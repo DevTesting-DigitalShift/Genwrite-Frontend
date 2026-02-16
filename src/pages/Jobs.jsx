@@ -14,6 +14,8 @@ import {
   Zap,
   LayoutGrid,
   List,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 import { getJobs, startJob, stopJob, deleteJob } from "@api/jobApi"
 import { selectUser } from "@store/slices/authSlice"
@@ -28,69 +30,26 @@ import { getSocket } from "@utils/socket"
 
 const PAGE_SIZE = 12 // Adjusted for better grid symmetry
 
-const CreateNewJobCard = ({ onClick, disabled }) => (
-  <motion.button
-    whileHover={
-      !disabled
-        ? { y: -5, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }
-        : {}
-    }
-    whileTap={!disabled ? { scale: 0.98 } : {}}
-    onClick={onClick}
-    disabled={disabled}
-    className={`group flex flex-col items-center justify-center p-6 text-center h-full min-h-[300px] rounded-2xl border-2 border-dashed transition-all duration-300 ${
-      disabled
-        ? "bg-slate-50 border-slate-200 cursor-not-allowed opacity-60"
-        : "bg-white border-slate-200 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 cursor-pointer"
-    }`}
-  >
-    <div
-      className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 mb-4 ${
-        disabled
-          ? "bg-slate-100 text-slate-400"
-          : "bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white"
-      }`}
-    >
-      <Plus size={24} strokeWidth={2.5} />
-    </div>
-    <h3
-      className={`font-bold text-lg mb-1 transition-colors ${
-        disabled ? "text-slate-400" : "text-slate-900"
-      }`}
-    >
-      Create New Job
-    </h3>
-    <p className="text-slate-400 text-sm max-w-[200px] mx-auto">
-      Automate your content generation pipeline.
-    </p>
-    {disabled && (
-      <div className="mt-4 flex items-center gap-1.5 text-rose-500 text-xs font-bold bg-rose-50 px-3 py-1.5 rounded-full border border-rose-100">
-        <AlertTriangle size={14} /> Limit Reached
-      </div>
-    )}
-  </motion.button>
-)
-
 const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
   const getTrueOptions = options => {
     if (!options) return []
     const mapping = {
-      wordpressPosting: "WordPress Posting",
+      wordpressPosting: "WordPress",
       includeFaqs: "FAQs",
-      includeCompetitorResearch: "Competitor Research",
+      includeCompetitorResearch: "Competitor",
       includeInterlinks: "Interlinks",
-      performKeywordResearch: "Keyword Research",
+      performKeywordResearch: "Keywords",
       includeTableOfContents: "TOC",
-      addOutBoundLinks: "Outbound Links",
-      embedYouTubeVideos: "YouTube Emb.",
-      easyToUnderstand: "Simple Style",
+      addOutBoundLinks: "Outbound",
+      embedYouTubeVideos: "YouTube",
+      easyToUnderstand: "Simple",
     }
     return Object.entries(options)
       .filter(([key, value]) => value === true && mapping[key])
       .map(([key]) => mapping[key])
   }
 
-  const renderArray = (arr, limit = 5) => {
+  const renderArray = (arr, limit = 3) => {
     if (!arr || arr.length === 0) return <span className="text-slate-300">-</span>
     const display = arr.slice(0, limit)
     const remaining = arr.length - limit
@@ -99,43 +58,64 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
         {display.map((item, i) => (
           <span
             key={i}
-            className="px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded text-[10px] border border-slate-100 whitespace-nowrap"
+            className="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-md text-[10px] font-medium border border-slate-100 whitespace-nowrap"
           >
             {item}
           </span>
         ))}
         {remaining > 0 && (
-          <span className="text-[10px] font-bold text-indigo-500">+{remaining}</span>
+          <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">
+            +{remaining}
+          </span>
         )}
       </div>
     )
   }
 
+  const formatLastRun = dateStr => {
+    if (!dateStr) return <span className="text-slate-300 italic text-[11px]">Never run</span>
+    try {
+      const date = new Date(dateStr)
+      return (
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-slate-700">
+            {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+          <span className="text-[10px] text-slate-400">
+            {date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )
+    } catch (e) {
+      return <span className="text-slate-300">-</span>
+    }
+  }
+
   return (
-    <div className="overflow-x-auto bg-white rounded-xl border border-slate-200">
-      <table className="w-full text-left border-collapse min-w-[1200px]">
+    <div className="overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-100">
+      <table className="w-full text-left border-collapse min-w-[1000px]">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
+          <tr className="bg-slate-50/80 border-b border-slate-200">
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Job Name
+              Job Details
+            </th>
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Intelligence
             </th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Status
             </th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Schedule & Volume
+              Last Run
+            </th>
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Schedule
             </th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Topics
             </th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Keywords
-            </th>
-            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Settings
-            </th>
-            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Source
+              Config
             </th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
               Actions
@@ -144,82 +124,94 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
         </thead>
         <tbody className="divide-y divide-slate-100">
           {data.map(job => (
-            <tr key={job._id} className="hover:bg-slate-50/50 transition-colors">
+            <tr key={job._id} className="hover:bg-slate-50/60 transition-colors group">
               <td className="px-6 py-4">
-                <div className="font-black text-slate-900 text-[15px] mb-0.5">{job.name}</div>
-                <div className="flex items-center gap-2">
-                  <div className="text-[10px] text-slate-400 font-bold">
-                    ID: {job._id.toString().slice(-6)}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                    <Briefcase size={18} />
                   </div>
-                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 rounded uppercase">
-                    {job.blogs?.aiModel}
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm">{job.name}</div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">
+                      ID: {job._id?.toString().slice(-6)}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex flex-col items-start gap-1.5">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    {job.blogs?.aiModel?.toUpperCase() || "AI"}
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-medium pl-0.5">
+                    {job.blogs?.languageToWrite}
                   </span>
                 </div>
               </td>
               <td className="px-6 py-4">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col items-start gap-1">
                   <button
                     onClick={() => onToggleStatus(job)}
                     disabled={isToggling}
-                    className={`w-max px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
                       job.status === "active"
-                        ? "bg-slate-900 text-white"
-                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                        : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
                     }`}
                   >
-                    {job.status === "active" ? "Running" : "Start"}
+                    {job.status === "active" ? "Running" : "Paused"}
                   </button>
-                  <div className="text-[10px] font-bold text-slate-400">
-                    {job.createdBlogs?.length || 0} GENERATED
-                  </div>
                 </div>
               </td>
+              <td className="px-6 py-4">{formatLastRun(job.lastRun)}</td>
               <td className="px-6 py-4">
-                <div className="text-sm font-bold text-slate-700 capitalize">
-                  {job.schedule?.type}
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-slate-700 capitalize">
+                    {job.schedule?.type || "Manual"}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {job.blogs?.numberOfBlogs} {job.blogs?.numberOfBlogs === 1 ? "blog" : "blogs"}
+                    /day
+                  </span>
                 </div>
-                <div className="text-xs text-slate-400">{job.blogs?.numberOfBlogs} blogs / day</div>
               </td>
-              <td className="px-6 py-4 max-w-[200px]">{renderArray(job.blogs?.topics)}</td>
-              <td className="px-6 py-4 max-w-[200px]">{renderArray(job.blogs?.keywords)}</td>
+              <td className="px-6 py-4 max-w-[200px]">{renderArray(job.blogs?.topics, 2)}</td>
               <td className="px-6 py-4">
-                <div className="flex flex-wrap gap-1">
-                  {getTrueOptions(job.options).map((opt, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold"
-                    >
-                      {opt}
-                    </span>
-                  ))}
-                  {getTrueOptions(job.options).length === 0 && (
-                    <span className="text-slate-300 text-[10px]">No active extras</span>
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                  {getTrueOptions(job.options).length > 0 ? (
+                    getTrueOptions(job.options)
+                      .slice(0, 3)
+                      .map((opt, i) => (
+                        <span
+                          key={i}
+                          className="px-1.5 py-0.5 bg-white text-slate-500 rounded text-[10px] font-medium border border-slate-200 shadow-xs"
+                        >
+                          {opt}
+                        </span>
+                      ))
+                  ) : (
+                    <span className="text-slate-300 text-[10px]">Basic</span>
+                  )}
+                  {getTrueOptions(job.options).length > 3 && (
+                    <span className="text-[10px] text-slate-400 px-1">+More</span>
                   )}
                 </div>
               </td>
-              <td className="px-6 py-4">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-bold text-slate-700 uppercase">
-                    {job.blogs?.languageToWrite}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium capitalize">
-                    {job.blogs?.tone} Tone
-                  </span>
-                </div>
-              </td>
               <td className="px-6 py-4 text-right">
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-2">
                   <button
                     onClick={() => onEdit(job)}
-                    className="text-xs font-bold text-indigo-600 hover:underline"
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Edit Job"
                   >
-                    Edit
+                    <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => onDelete(job)}
-                    className="text-xs font-bold text-rose-500 hover:underline"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="Delete Job"
                   >
-                    Delete
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </td>
@@ -280,6 +272,7 @@ const Jobs = () => {
 
   const usage = user?.usage?.createdJobs || 0
   const usageLimit = user?.usageLimits?.createdJobs || 0
+  const credits = user?.credits?.base || 0
 
   // TanStack Query
   const {
@@ -390,6 +383,7 @@ const Jobs = () => {
   }, [filteredJobs, currentPage])
 
   const totalPages = Math.ceil(filteredJobs.length / PAGE_SIZE)
+  const usagePercentage = Math.min(100, Math.round((usage / usageLimit) * 100))
 
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
@@ -401,9 +395,9 @@ const Jobs = () => {
         <title>Automation Jobs | GenWrite</title>
       </Helmet>
 
-      <div className="p-4 md:p-6 lg:p-10 max-w-[1800px] mx-auto">
+      <div className="p-4 md:p-6 lg:p-10 max-w-[1700px] mx-auto">
         {/* Page Header */}
-        <header className="mb-10">
+        <header className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200">
             <div className="space-y-1">
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Automation Jobs</h1>
@@ -441,7 +435,7 @@ const Jobs = () => {
               <button
                 onClick={handleRefresh}
                 disabled={queryLoading}
-                className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-5 py-2 rounded-xl font-bold text-sm transition-all shadow-sm"
+                className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-5 py-2 rounded-xl font-bold text-sm transition-all shadow-sm cursor-pointer"
               >
                 <RefreshCw
                   size={16}
@@ -449,53 +443,125 @@ const Jobs = () => {
                 />
                 Refresh
               </button>
+            </div>
+          </div>
+        </header>
 
-              <button
-                onClick={handleOpenJobModal}
-                disabled={usage >= usageLimit}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-200"
-              >
-                <Plus size={18} /> New Job
-              </button>
+        {/* Dashboard Stats & Create Job Banner */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          {/* Stats Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm lg:col-span-2">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Your Usage Overview</h3>
+                <p className="text-slate-500 text-sm">Monthly active job limits.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 mt-2">
+              {/* Jobs Limit Stat */}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
+                  <Briefcase size={24} strokeWidth={2.5} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xl font-black text-slate-900">
+                      {usage}{" "}
+                      <span className="text-base text-slate-400 font-medium">/ {usageLimit}</span>
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">{usagePercentage}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${usagePercentage > 90 ? "bg-rose-500" : "bg-blue-500"}`}
+                      style={{ width: `${usagePercentage}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">
+                    Jobs Created
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Warning Banner */}
-          <AnimatePresence>
-            {usage >= usageLimit && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 bg-amber-50 border border-amber-200 p-4 rounded-3xl">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <h4 className="font-bold text-amber-900">Job Creation Limit Reached</h4>
-                    <p className="text-amber-700 text-sm">
-                      You've used <span className="font-black">{usage}</span> of your{" "}
-                      <span className="font-black">{usageLimit}</span> job slots. Consider upgrading
-                      for more.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => navigate("/pricing")}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-2xl font-bold text-xs transition-colors shadow-lg shadow-amber-600/20 whitespace-nowrap"
-                  >
-                    Upgrade Now
-                  </button>
+          {/* Create New Job Banner (Replaces the card) */}
+          <button
+            onClick={handleOpenJobModal}
+            disabled={usage >= usageLimit}
+            className={`group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 border-2 cursor-pointer ${
+              usage >= usageLimit
+                ? "bg-slate-50 border-slate-200 cursor-not-allowed opacity-80"
+                : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 hover:shadow-xl hover:shadow-indigo-200"
+            }`}
+          >
+            {/* Background Pattern */}
+            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              <Sparkles size={140} fill="currentColor" />
+            </div>
+
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center mb-4 backdrop-blur-sm shadow-inner">
+                  <Plus size={24} strokeWidth={3} />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </header>
+                <h3
+                  className={`text-xl font-black mb-2 ${usage >= usageLimit ? "text-slate-400" : "text-white"}`}
+                >
+                  Create New Job
+                </h3>
+                <p
+                  className={`text-sm font-medium max-w-[240px] leading-relaxed ${usage >= usageLimit ? "text-slate-400" : "text-indigo-100"}`}
+                >
+                  Setup a new automated content pipeline for your strategy.
+                </p>
+              </div>
+
+              {usage >= usageLimit && (
+                <div className="flex items-center gap-2 text-rose-600 text-xs font-bold bg-white px-3 py-1.5 rounded-lg w-max mt-4 shadow-sm">
+                  <AlertTriangle size={14} /> Limit Reached
+                </div>
+              )}
+            </div>
+          </button>
+        </div>
+
+        {/* Warning Banner */}
+        <AnimatePresence>
+          {usage >= usageLimit && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-8"
+            >
+              <div className="flex flex-col sm:flex-row items-center gap-4 bg-amber-50 border border-amber-200 p-4 rounded-3xl">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h4 className="font-bold text-amber-900">Job Creation Limit Reached</h4>
+                  <p className="text-amber-700 text-sm">
+                    You've used <span className="font-black">{usage}</span> of your{" "}
+                    <span className="font-black">{usageLimit}</span> job slots. Consider upgrading
+                    for more.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-2xl font-bold text-xs transition-colors shadow-lg shadow-amber-600/20 whitespace-nowrap cursor-pointer"
+                >
+                  Upgrade Now
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Jobs Layout View */}
         {queryLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(PAGE_SIZE)].map((_, index) => (
               <SkeletonLoader key={index} className="rounded-2xl h-[300px]" />
             ))}
@@ -517,8 +583,7 @@ const Jobs = () => {
             </button>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <CreateNewJobCard onClick={handleOpenJobModal} disabled={usage >= usageLimit} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedJobs.map(job => (
               <JobCard
                 key={job._id}

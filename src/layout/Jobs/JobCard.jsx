@@ -99,7 +99,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
 
   const formatDate = dateStr => {
     if (!dateStr) return "N/A"
-    return new Date(dateStr).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+    return new Date(dateStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
   }
   const getTrueOptions = options => {
     if (!options) return []
@@ -225,7 +225,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
       </div>
 
       {/* Intelligence & Schedule - Clean Layout */}
-      <div className="grid grid-cols-2 gap-4 mb-6 pb-4 border-b border-slate-100">
+      <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-slate-100">
         <div className="flex flex-col">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
             Intelligence
@@ -241,6 +241,15 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
           <span className="text-xs font-bold text-slate-900 truncate capitalize tracking-tight">
             {job.schedule?.type} ({job.blogs?.numberOfBlogs})
           </span>
+        </div>
+        <div className="flex flex-col col-span-2 mt-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Last Run
+          </span>
+          <div className="flex items-center gap-2">
+            <Clock size={14} className="text-slate-400" />
+            <span className="text-xs font-bold text-slate-700">{formatDate(job.lastRun)}</span>
+          </div>
         </div>
       </div>
 
