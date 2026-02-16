@@ -7,8 +7,7 @@ import {
   FileTextOutlined,
   ReloadOutlined,
 } from "@ant-design/icons"
-import { useDispatch, useSelector } from "react-redux"
-import { markAllNotificationsAsRead } from "@store/slices/userSlice"
+import useAuthStore from "@store/useAuthStore"
 import { getSocket } from "@utils/socket"
 
 const { Text } = Typography
@@ -29,12 +28,9 @@ const typeIconMap = {
 }
 
 // Format date using native Date methods
-const formatDate = (dateStr) => {
+const formatDate = dateStr => {
   const date = new Date(dateStr)
-  return date.toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
+  return date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
 }
 
 /**
@@ -45,8 +41,7 @@ const formatDate = (dateStr) => {
 const NotificationDropdown = ({ notifications }) => {
   const [open, setOpen] = useState(false)
   const [localNotifications, setLocalNotifications] = useState([])
-  const dispatch = useDispatch()
-  const { loading, error } = useSelector((state) => state.user)
+  const { markAllNotificationsAsRead, loading, error } = useAuthStore()
 
   // Sync local notifications with prop changes
   useEffect(() => {
@@ -64,24 +59,19 @@ const NotificationDropdown = ({ notifications }) => {
   }, [error, notifications])
 
   // Optimistically update notification read status
-  const handleOpenChange = (flag) => {
+  const handleOpenChange = flag => {
     setOpen(flag)
-    if (flag && localNotifications.some((n) => !n.read)) {
+    if (flag && localNotifications.some(n => !n.read)) {
       // Optimistically mark all notifications as read locally
-      setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-      // Dispatch API call to mark notifications as read
-      dispatch(markAllNotificationsAsRead())
+      setLocalNotifications(prev => prev.map(n => ({ ...n, read: true })))
+      // Call Zustand action to mark notifications as read
+      markAllNotificationsAsRead()
     }
   }
 
   const menuItems = useMemo(() => {
     if (localNotifications.length === 0) {
-      return [
-        {
-          key: "empty",
-          label: <Empty description="No notifications available" />,
-        },
-      ]
+      return [{ key: "empty", label: <Empty description="No notifications available" /> }]
     }
 
     return localNotifications.map((item, idx) => {
@@ -109,7 +99,7 @@ const NotificationDropdown = ({ notifications }) => {
     })
   }, [localNotifications])
 
-  const unreadCount = localNotifications.filter((n) => !n.read).length
+  const unreadCount = localNotifications.filter(n => !n.read).length
 
   return (
     <Dropdown

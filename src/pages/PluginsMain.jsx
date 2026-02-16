@@ -14,13 +14,8 @@ import {
 } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import {
-  createIntegrationThunk,
-  getIntegrationsThunk,
-  pingIntegrationThunk,
-} from "@store/slices/otherSlice"
-import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
+import useAuthStore from "@store/useAuthStore"
+import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
 import { FaShopify, FaWix, FaYoutube } from "react-icons/fa"
 
@@ -29,31 +24,32 @@ const { Title, Text, Paragraph } = Typography
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
   const [activeTab, setActiveTab] = useState(null)
-  const [hasPinged, setHasPinged] = useState(sessionStorage.getItem("hasPinged") === "true")
-  const dispatch = useDispatch()
-  const plugins = useMemo(
-    () => pluginsData(dispatch, setWordpressStatus),
-    [dispatch, setWordpressStatus]
-  )
-  const { data: integrations, loading, error } = useSelector(state => state.wordpress)
   const {
-    integration,
+    integrations,
+    loading,
+    fetchIntegrations,
+    createIntegration,
+    pingIntegration,
+    updateIntegration: updateExistingIntegration,
+    fetchCategories,
     categories,
     ping,
     loading: postsLoading,
-  } = useSelector(state => state.integration)
+  } = useIntegrationStore()
+
+  const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
   const extendedPlugins = useMemo(() => {
     return plugins.filter(p => p.isVisible)
   }, [plugins])
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
+    fetchIntegrations()
     if (extendedPlugins.length > 0 && !activeTab) {
       setActiveTab(extendedPlugins[0].id.toString())
       checkPlugin(extendedPlugins[0])
     }
-  }, [plugins, dispatch, activeTab])
+  }, [plugins, fetchIntegrations, activeTab])
 
   const checkPlugin = async plugin => {
     if (wordpressStatus[plugin.id]?.success) return
@@ -88,7 +84,7 @@ const PluginsMain = () => {
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
-        dispatch(getIntegrationsThunk())
+        fetchIntegrations()
       }
     }
   }
@@ -109,6 +105,7 @@ const PluginsMain = () => {
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
     const [hasCredentials, setHasCredentials] = useState(!!wordpressInt) // If integration exists, assume credentials are set on backend
+    const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
@@ -206,8 +203,8 @@ const PluginsMain = () => {
           }
         }
 
-        const result = await dispatch(createIntegrationThunk(payload)).unwrap()
-        await dispatch(getIntegrationsThunk()).unwrap()
+        const result = await createIntegration(payload)
+        await fetchIntegrations()
         setIsEditing(false)
       } catch (err) {
         const errorMsg = err.message || `Failed to create ${plugin.pluginName} integration`
@@ -222,9 +219,9 @@ const PluginsMain = () => {
       setLocalLoading(true)
       try {
         const payload = { type: "SERVERENDPOINT", url, frontend }
-        const result = await dispatch(updateExistingIntegration(payload)).unwrap()
+        await updateExistingIntegration(payload)
         message.success("Server-to-Server integration updated successfully")
-        await dispatch(getIntegrationsThunk()).unwrap()
+        await fetchIntegrations()
         setIsEditing(false)
       } catch (err) {
         const errorMsg = err.message || "Failed to update Server-to-Server integration"
@@ -239,7 +236,7 @@ const PluginsMain = () => {
       setLocalLoading(true)
       try {
         const type = plugin.id === 112 ? "SERVERENDPOINT" : "WORDPRESS"
-        const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+        const result = await pingIntegration(type)
         setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
@@ -268,7 +265,7 @@ const PluginsMain = () => {
     const handleFetchCategories = async () => {
       if (postsLoading || !wordpressStatus[plugin.id]?.success) return
       try {
-        await dispatch(fetchCategories()).unwrap()
+        await fetchCategories()
         message.success("Categories fetched successfully")
       } catch (err) {
         message.error("Failed to fetch categories")
@@ -525,7 +522,7 @@ const PluginsMain = () => {
           if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
             // simple success signal
             message.success("Shopify connected")
-            dispatch(getIntegrationsThunk()).catch(() => {})
+            fetchIntegrations().catch(() => {})
           }
           // you can add more structured message handling here
         } catch (err) {
@@ -567,12 +564,10 @@ const PluginsMain = () => {
                 installWindowRef.current = null
 
                 // Refresh integrations
-                dispatch(getIntegrationsThunk())
-                  .unwrap()
-                  .catch(() => {})
+                fetchIntegrations().catch(() => {})
 
                 // Check Shopify status
-                dispatch(pingIntegrationThunk("SHOPIFY")).catch(() => {})
+                pingIntegration("SHOPIFY").catch(() => {})
               }
             }, 1200)
           }
@@ -591,7 +586,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const type = isShopify ? "SHOPIFY" : "WIX"
-          const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+          const result = await pingIntegration(type)
           setWordpressStatus(prev => ({
             ...prev,
             [plugin.id]: {

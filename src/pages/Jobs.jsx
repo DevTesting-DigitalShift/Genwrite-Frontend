@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import { Pagination, message } from "antd"
@@ -18,13 +17,20 @@ import {
   Trash2,
 } from "lucide-react"
 import { getJobs, startJob, stopJob, deleteJob } from "@api/jobApi"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import {
+  useJobsQuery,
+  useToggleJobStatusMutation,
+  useDeleteJobMutation,
+} from "@api/queries/jobQueries"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getSocket } from "@utils/socket"
 
@@ -227,8 +233,7 @@ const Jobs = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
-  const [showJobModal, setShowJobModal] = useState(false)
-  const [selectedJob, setSelectedJob] = useState(null)
+  const openJobModal = useJobStore(state => state.openJobModal)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("jobs_view_mode") || "grid"
@@ -240,34 +245,13 @@ const Jobs = () => {
   }, [viewMode])
 
   // Mutations for List View
-  const toggleJobStatusMutation = useMutation({
-    mutationFn: async ({ jobId, currentStatus }) => {
-      if (currentStatus === "active") await stopJob(jobId)
-      else await startJob(jobId)
-      return { jobId, status: currentStatus === "active" ? "stop" : "active" }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] })
-      message.success("Job status updated")
-    },
-  })
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
+  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteJobMutation()
 
-  const deleteJobMutation = useMutation({
-    mutationFn: async jobId => {
-      await deleteJob(jobId)
-      return jobId
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] })
-      message.success("Job deleted")
-    },
-  })
-
-  const { selectedKeywords } = useSelector(state => state.analysis)
-  const user = useSelector(selectUser)
+  const selectedKeywords = useAnalysisStore(state => state.selectedKeywords)
+  const user = useAuthStore(state => state.user)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
-  const [showWarning, setShowWarning] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
 
   const usage = user?.usage?.createdJobs || 0
@@ -275,19 +259,7 @@ const Jobs = () => {
   const credits = user?.credits?.base || 0
 
   // TanStack Query
-  const {
-    data: queryJobs = [],
-    isLoading: queryLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["jobs", user?.id],
-    queryFn: async () => {
-      const response = await getJobs()
-      return response || []
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!user,
-  })
+  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
 
   // Real-time Updates
   useEffect(() => {
@@ -354,14 +326,15 @@ const Jobs = () => {
 
   const handleOpenJobModal = useCallback(() => {
     if (!checkJobLimit()) return
-    setSelectedJob(null)
-    setShowJobModal(true)
-  }, [checkJobLimit])
+    openJobModal(null)
+  }, [checkJobLimit, openJobModal])
 
-  const handleEditJob = useCallback(job => {
-    setSelectedJob(job)
-    setShowJobModal(true)
-  }, [])
+  const handleEditJob = useCallback(
+    job => {
+      openJobModal(job)
+    },
+    [openJobModal]
+  )
 
   const handleRefresh = () => {
     refetch()
@@ -598,17 +571,17 @@ const Jobs = () => {
           <JobListView
             data={paginatedJobs}
             onEdit={handleEditJob}
-            isToggling={toggleJobStatusMutation.isPending}
-            isDeleting={deleteJobMutation.isPending}
+            isToggling={isToggling}
+            isDeleting={isDeleting}
             onToggleStatus={job => {
-              toggleJobStatusMutation.mutate({ jobId: job._id, currentStatus: job.status })
+              toggleStatus({ jobId: job._id, currentStatus: job.status })
             }}
             onDelete={job => {
               handlePopup({
                 title: "Delete Job",
                 description: `Are you sure you want to delete "${job.name}"?`,
                 confirmText: "Delete",
-                onConfirm: () => deleteJobMutation.mutate(job._id),
+                onConfirm: () => deleteMutate(job._id),
                 confirmProps: { danger: true },
               })
             }}
@@ -630,15 +603,7 @@ const Jobs = () => {
           </div>
         )}
 
-        <JobModal
-          showJobModal={showJobModal}
-          setShowJobModal={setShowJobModal}
-          selectedJob={selectedJob}
-          selectedKeywords={selectedKeywords}
-          user={user}
-          userPlan={userPlan}
-          isUserLoaded={isUserLoaded}
-        />
+        <JobModal user={user} userPlan={userPlan} isUserLoaded={isUserLoaded} />
       </div>
 
       <style jsx global>{`

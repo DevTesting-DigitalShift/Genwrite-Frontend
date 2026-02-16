@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { createNewQuickBlog } from "../../store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
@@ -45,11 +44,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [formData, setFormData] = useState(initialFormData)
   const [errors, setErrors] = useState(initialErrors)
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const user = useSelector(selectUser)
   const queryClient = useQueryClient()
 
   // Check if user has a pro subscription
@@ -170,40 +168,28 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
 
-    handlePopup({
-      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
-      description: (
-        <>
-          <span>
-            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
-            <b>{estimatedCost} credits</b>.
-          </span>
-          <br />
-          <span>Are you sure you want to proceed?</span>
-        </>
-      ),
-      onConfirm: async () => {
-        const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
+    const submitBlog = async () => {
+      const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
 
-        try {
-          // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-          const validatedData = validateQuickBlogData(finalData)
+      try {
+        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+        const validatedData = validateQuickBlogData(finalData)
 
-          // Dispatch and await the result
-          await dispatch(
-            createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
-          ).unwrap()
+        // Dispatch and await the result
+        const { createNewQuickBlog } = useBlogStore.getState()
+        await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
 
-          // ✅ Only close modal on success
-          handleClose()
-        } catch (error) {
-          // ❌ Don't close modal - let user retry
-          message.error(error?.message || "Failed to create blog. Please try again.")
-        } finally {
-          hideLoading(loadingId)
-        }
-      },
-    })
+        // ✅ Only close modal on success
+        handleClose()
+      } catch (error) {
+        // ❌ Don't close modal - let user retry
+        message.error(error?.message || "Failed to create blog. Please try again.")
+      } finally {
+        hideLoading(loadingId)
+      }
+    }
+
+    submitBlog()
   }
 
   // Handle template selection

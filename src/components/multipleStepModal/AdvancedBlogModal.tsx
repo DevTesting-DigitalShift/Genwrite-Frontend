@@ -1,8 +1,9 @@
 import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { selectUser } from "@store/slices/authSlice"
-import { fetchGeneratedTitles, createNewBlog } from "@store/slices/blogSlice"
-import { store } from "@store/index"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { getGeneratedTitles } from "@api/blogApi"
 import {
   Badge,
   Button,
@@ -26,14 +27,12 @@ import {
 import clsx from "clsx"
 import { Crown, Sparkles, TriangleAlert } from "lucide-react"
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
@@ -85,6 +84,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     },
   }
 
+  type FormError = Partial<Record<keyof typeof initialData, string>>
+
   const BLOG_OPTIONS = [
     { key: "isCheckedQuick", label: "Add a Quick Summary" },
     { key: "options.includeFaqs", label: "Add FAQs (Frequently Asked Questions)" },
@@ -93,11 +94,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     { key: "options.addOutBoundLinks", label: "Show Outbound Links" },
   ]
 
-  type FormError = Partial<Record<keyof typeof initialData, string>>
-  type AppDispatch = typeof store.dispatch
-
-  const dispatch = useDispatch<AppDispatch>()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
@@ -136,7 +133,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         keywords: formData.keywords,
         ...(generatedTitles?.length > 0 && { oldTitles: generatedTitles }),
       }
-      const result = (await dispatch(fetchGeneratedTitles(payload)).unwrap()) as string[]
+      const result = await getGeneratedTitles(payload)
       setGeneratedTitles(result)
     } catch (error) {
       console.error("Error generating titles:", error)
@@ -147,7 +144,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   }
 
   // setting the selected analyzed keywords from keywords planner
-  const selectedKeywords = useSelector(selectSelectedAnalysisKeywords)
+  const selectedKeywords = useAnalysisStore(state => state.selectedKeywords)
   useEffect(() => {
     if (selectedKeywords) {
       setFormData(prev => ({
@@ -322,10 +319,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       const loadingId = showLoading("Creating your blog...")
 
       try {
-        // Type assertion needed because thunk is defined in JSX file without proper TypeScript types
-        await dispatch(
-          createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
-        ).unwrap()
+        const { createNewBlog } = useBlogStore.getState()
+        await createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
 
         // ✅ Only close modal on success
         handleClose()

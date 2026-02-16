@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Helmet } from "react-helmet"
-import { openJobModal } from "@store/slices/jobSlice"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import GoThrough from "../components/dashboardModals/GoThrough"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
@@ -52,9 +51,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
 
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const { user, loadAuthenticatedUser } = useAuthStore()
+  const { openJobModal } = useJobStore()
+  const { clearSelectedKeywords } = useAnalysisStore()
   const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
@@ -116,10 +116,7 @@ const Dashboard = () => {
         return
       }
       try {
-        const result = await dispatch(loadAuthenticatedUser())
-        if (loadAuthenticatedUser.rejected.match(result)) {
-          // Handle error
-        }
+        await loadAuthenticatedUser()
         setLoading(false)
       } catch (error) {
         console.error("User init failed:", error)
@@ -127,7 +124,7 @@ const Dashboard = () => {
       }
     }
     initUser()
-  }, [dispatch, navigate])
+  }, [navigate])
 
   useEffect(() => {
     if (!user || !user._id) return
@@ -156,7 +153,7 @@ const Dashboard = () => {
 
   const handleCloseActiveModal = () => {
     if ([ACTIVE_MODELS.Advanced_Blog].includes(activeModel)) {
-      dispatch(clearSelectedKeywords())
+      clearSelectedKeywords()
     }
     setActiveModel("")
   }
@@ -164,7 +161,7 @@ const Dashboard = () => {
   const openSecondStepJobModal = () => {
     setActiveModel("")
     navigate("/jobs")
-    dispatch(openJobModal())
+    openJobModal()
   }
 
   const renderModel = () => {

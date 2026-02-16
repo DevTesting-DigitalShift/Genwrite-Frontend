@@ -13,12 +13,13 @@ import {
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
-import { useDispatch, useSelector } from "react-redux"
-import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
+import useAuthStore from "@store/useAuthStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import useBlogStore from "@store/useBlogStore"
+import { useBlogsQuery } from "@api/queries/blogQueries"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
 import { Coins, Keyboard, Search, WholeWord, Workflow, Zap, FileText } from "lucide-react"
-import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
 import { Rocket } from "lucide-react"
@@ -37,11 +38,14 @@ export default function ToolboxPage() {
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const { allBlogs } = useSelector(state => state.blog)
-  const dispatch = useDispatch()
-  const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
-    state => state.analysis
-  )
+  const {
+    keywordAnalysis: keywordAnalysisResult,
+    loading: analyzing,
+    runKeywordAnalysis,
+    clearKeywordAnalysis,
+  } = useAnalysisStore()
+  const { data: blogData } = useBlogsQuery()
+  const allBlogs = blogData?.data || []
 
   const addKeyword = () => {
     const input = newKeyword.trim()
@@ -79,7 +83,7 @@ export default function ToolboxPage() {
   }
 
   const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords))
+    runKeywordAnalysis(keywords)
     setCurrentPage(1)
     setSelectedRowKeys([])
   }
@@ -372,9 +376,9 @@ export default function ToolboxPage() {
 
   useEffect(() => {
     return () => {
-      dispatch(clearKeywordAnalysis())
+      clearKeywordAnalysis()
     }
-  }, [dispatch])
+  }, [clearKeywordAnalysis])
 
   return (
     <>
@@ -737,7 +741,7 @@ export default function ToolboxPage() {
 
 function AnimatedCard({ item }) {
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
   const [isUserPlanFree, setIsUserPlanFree] = useState(false)
 

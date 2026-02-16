@@ -35,7 +35,6 @@ import {
   Check,
   ExternalLink,
 } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
@@ -44,7 +43,6 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { ReloadOutlined, LoadingOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
-import { retryBlog } from "@store/slices/blogSlice"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js"
 import { useQueryClient } from "@tanstack/react-query"
@@ -66,6 +64,8 @@ import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryA
 import { COSTS } from "@/data/blogData"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
 
 const renderer = {
   heading({ text, depth: level }) {
@@ -124,15 +124,27 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const hideTimeout = useRef(null)
   const previewCache = useRef({})
   const [lastSavedContent, setLastSavedContent] = useState("")
+  const lastSavedContentRef = useRef(lastSavedContent)
 
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan
   const location = useLocation()
 
+  // Sync ref with state
+  useEffect(() => {
+    lastSavedContentRef.current = lastSavedContent
+  }, [lastSavedContent])
+
   const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
   const safeContent = content ?? blog?.content ?? ""
+
+  // ... (markdownToHtml and htmlToMarkdown unchanged - lines 104-142 in original file logic but we are skipping context for brevity in thought, ensuring we only replace what effectively changes or include surrounding lines if needed for context match)
+  // Actually, I need to match the file content. I will target the block where useEditor is defined and the state definitions above it.
+
+  // Let's rewrite the `useEditor` call and the new Ref setup.
+  // I will just perform the specific edits.
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
@@ -359,13 +371,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         },
       },
       onUpdate: ({ editor }) => {
-        if (!editorReady) return
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
 
         const normCurrent = normalizeContent(markdown)
-        const normSaved = normalizeContent(lastSavedContent ?? "")
+        const normSaved = normalizeContent(lastSavedContentRef.current ?? "")
 
         // Avoid setting true on initial load if contents are effectively same
         if (normCurrent !== normSaved) {
@@ -375,15 +386,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         }
       },
     },
-    [
-      selectedFont,
-      htmlToMarkdown,
-      setContent,
-      setUnsavedChanges,
-      lastSavedContent,
-      normalizeContent,
-      editorReady,
-    ]
+    [selectedFont, htmlToMarkdown, setContent, setUnsavedChanges, normalizeContent]
   )
 
   const safeEditorAction = useCallback(

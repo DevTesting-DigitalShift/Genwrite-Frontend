@@ -36,15 +36,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
-import {
-  archiveBlog,
-  fetchAllBlogs,
-  retryBlog,
-  restoreTrashedBlog,
-  deleteAllUserBlogs,
-} from "@store/slices/blogSlice"
+import useAuthStore from "@store/useAuthStore"
 import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
@@ -54,7 +46,13 @@ import clsx from "clsx"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
-import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
+import {
+  archiveBlogById,
+  getAllBlogs,
+  retryBlogById,
+  restoreBlogById,
+  deleteAllBlogs,
+} from "@api/blogApi"
 import {
   BLOG_STATUS,
   BLOG_STATUS_OPTIONS,
@@ -73,10 +71,9 @@ const BlogsPage = () => {
   const location = useLocation()
   const isTrashcan = location.pathname === "/trashcan"
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
   const userId = user?._id || "guest"
   const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()
@@ -383,26 +380,26 @@ const BlogsPage = () => {
   const handleRestore = useCallback(
     async id => {
       try {
-        await dispatch(restoreTrashedBlog(id)).unwrap()
+        await restoreBlogById(id)
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       } catch (err) {
         message.error("Failed to restore blog")
       }
     },
-    [dispatch, queryClient]
+    [queryClient]
   )
 
   const handleBulkDelete = useCallback(async () => {
     try {
-      await dispatch(deleteAllUserBlogs()).unwrap()
+      await deleteAllBlogs()
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
       message.success("All trashed blogs deleted")
     } catch (err) {
       message.error("Failed to delete all blogs")
     }
-  }, [dispatch, queryClient])
+  }, [queryClient])
 
   const menuOptions = useMemo(
     () =>
@@ -703,7 +700,7 @@ const BlogsPage = () => {
               <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Search size={40} className="text-slate-300" />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">No Articles Found</h3>
+              <h3 className="text-2xl font-black text-slate-800">No Blogs Found</h3>
               <p className="text-slate-400 mt-2 font-medium">
                 Try adjusting your filters or searching for something else.
               </p>

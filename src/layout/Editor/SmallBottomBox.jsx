@@ -1,10 +1,10 @@
 import React, { useState } from "react"
-import { Button, Dropdown, Tooltip, message } from "antd"
-import { MenuOutlined, CopyOutlined, ReloadOutlined, CloseOutlined } from "@ant-design/icons"
+import { Button, Dropdown, message } from "antd"
+import { MenuOutlined, ReloadOutlined } from "@ant-design/icons"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useDispatch, useSelector } from "react-redux"
-import { retryBlog } from "@store/slices/blogSlice"
+import useAuthStore from "@store/useAuthStore"
+import { useRetryBlogMutation } from "@api/queries/blogQueries"
 
 import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
 // import ChatBox from "../generateBlog/ChatBox"
@@ -14,38 +14,26 @@ const SmallBottomBox = ({ id }) => {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
+
+  const { mutateAsync: retryBlog, isLoading: isRetrying } = useRetryBlogMutation()
 
   const closeModal = () => setModalOpen(false)
   const closeChat = () => setIsChatOpen(false)
 
   const handleRetry = async () => {
     try {
-      const resultAction = await dispatch(retryBlog({ id: id._id, payload: { createNew: true } }))
-
-      if (retryBlog.fulfilled.match(resultAction)) {
-        message.success(resultAction.payload?.message || "Blog regenerated successfully!")
-        navigate("/blogs")
-      } else {
-        message.error(resultAction.payload || "Failed to regenerate blog.")
-      }
+      const response = await retryBlog({ id: id._id, payload: { createNew: true } })
+      message.success(response?.message || "Blog regenerated successfully!")
+      navigate("/blogs")
     } catch (error) {
-      message.error(error.message || "Failed to regenerate blog.")
       console.error("Error regenerating blog:", error)
     }
   }
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      // handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "Rewrite is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
     } else {
       handlePopup({
@@ -66,6 +54,7 @@ const SmallBottomBox = ({ id }) => {
         </span>
       ),
       onClick: handleRegenerate,
+      disabled: isRetrying,
     },
   ]
 
@@ -76,6 +65,7 @@ const SmallBottomBox = ({ id }) => {
           <Button
             type="default"
             icon={<MenuOutlined />}
+            loading={isRetrying}
             className="text-gray-700 border-gray-300 hover:bg-gray-100"
           />
         </Dropdown>

@@ -13,15 +13,15 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { Button, Input, Tabs, Card, Tag, message, Steps, Spin, Alert } from "antd"
-import { useDispatch, useSelector } from "react-redux"
+
+import useToolsStore from "@store/useToolsStore"
 import {
-  analyseWebsite,
-  createWebsitePrompts,
-  checkWebsiteRankings,
-  generateAdvancedAnalysis,
-  websiteRankingOrchestrator,
-  resetWebsiteRanking,
-} from "@store/slices/toolsSlice"
+  useWebsiteAnalysisMutation,
+  useWebsitePromptsMutation,
+  useWebsiteRankingsCheckMutation,
+  useWebsiteAdvancedAnalysisMutation,
+  useWebsiteOrchestratorMutation,
+} from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -29,7 +29,6 @@ import remarkGfm from "remark-gfm"
 const { TabPane } = Tabs
 
 const WebsiteRanking = () => {
-  const dispatch = useDispatch()
   const [url, setUrl] = useState("")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
@@ -40,21 +39,31 @@ const WebsiteRanking = () => {
   const [analysisResult, setAnalysisResult] = useState(null)
   const [rankingsResult, setRankingsResult] = useState(null)
 
-  const { analyser, prompts, rankings, advancedComp, orchestrator } = useSelector(
-    state => state.tools.websiteRanking
-  )
+  const { websiteRanking, resetWebsiteRanking } = useToolsStore()
+  const { analyser, prompts, rankings, advancedComp, orchestrator } = websiteRanking
+
+  // Mutations
+  const { mutateAsync: analyseWebsite, isPending: isAnalysing } = useWebsiteAnalysisMutation()
+  const { mutateAsync: createWebsitePrompts, isPending: isCreatingPrompts } =
+    useWebsitePromptsMutation()
+  const { mutateAsync: checkWebsiteRankings, isPending: isCheckingRankings } =
+    useWebsiteRankingsCheckMutation()
+  const { mutateAsync: generateAdvancedAnalysis, isPending: isAnalyzingAdvanced } =
+    useWebsiteAdvancedAnalysisMutation()
+  const { mutateAsync: websiteRankingOrchestrator, isPending: isOrchestratorLoading } =
+    useWebsiteOrchestratorMutation()
 
   useEffect(() => {
     return () => {
-      dispatch(resetWebsiteRanking())
+      resetWebsiteRanking()
     }
-  }, [dispatch])
+  }, [resetWebsiteRanking])
 
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {
     if (!url) return message.error("Please enter a URL")
     try {
-      await dispatch(websiteRankingOrchestrator({ url, region, promptCount })).unwrap()
+      await websiteRankingOrchestrator({ url, region, promptCount })
       message.success("Full audit completed!")
     } catch (err) {
       console.error(err)
@@ -66,7 +75,7 @@ const WebsiteRanking = () => {
   const handleAnalyse = async () => {
     if (!url) return message.error("Please enter a URL")
     try {
-      const res = await dispatch(analyseWebsite({ url })).unwrap()
+      const res = await analyseWebsite({ url })
       setAnalysisResult(res)
       setManualStep(1)
       message.success("Website analyzed!")
@@ -78,13 +87,11 @@ const WebsiteRanking = () => {
   const handleCreatePrompts = async () => {
     if (!analysisResult?.expertiseAreas) return message.error("No expertise areas found")
     try {
-      const res = await dispatch(
-        createWebsitePrompts({
-          expertiseAreas: analysisResult.expertiseAreas,
-          region,
-          count: promptCount,
-        })
-      ).unwrap()
+      const res = await createWebsitePrompts({
+        expertiseAreas: analysisResult.expertiseAreas,
+        region,
+        count: promptCount,
+      })
       setGeneratedPrompts(res)
       setManualStep(2)
       message.success("Prompts created!")
@@ -96,9 +103,7 @@ const WebsiteRanking = () => {
   const handleCheckRankings = async () => {
     if (!url || !generatedPrompts.length) return message.error("Missing URL or prompts")
     try {
-      const res = await dispatch(
-        checkWebsiteRankings({ url, prompts: generatedPrompts, region })
-      ).unwrap()
+      const res = await checkWebsiteRankings({ url, prompts: generatedPrompts, region })
       setRankingsResult(res)
       setManualStep(3)
       message.success("Rankings checked!")
@@ -110,9 +115,7 @@ const WebsiteRanking = () => {
   const handleAdvancedAnalysis = async () => {
     if (!analysisResult || !rankingsResult) return message.error("Missing analysis data")
     try {
-      await dispatch(
-        generateAdvancedAnalysis({ analysis: analysisResult, rankings: rankingsResult })
-      ).unwrap()
+      await generateAdvancedAnalysis({ analysis: analysisResult, rankings: rankingsResult })
       message.success("Report generated!")
     } catch (err) {
       message.error(err?.message || "Report generation failed")
@@ -516,20 +519,20 @@ const WebsiteRanking = () => {
                 type="primary"
                 size="large"
                 onClick={handleOrchestrator}
-                loading={orchestrator.loading}
+                loading={isOrchestratorLoading}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 border-none h-12 text-lg font-semibold"
                 icon={<Rocket className="w-5 h-5" />}
               >
                 Start Full Audit
               </Button>
 
-              {orchestrator.loading && (
+              {isOrchestratorLoading && (
                 <div className="mt-8">
                   <ProgressLoadingScreen message="Conducting comprehensive website audit..." />
                 </div>
               )}
 
-              {!orchestrator.loading && renderOrchestratorResult()}
+              {!isOrchestratorLoading && renderOrchestratorResult()}
             </Card>
           </TabPane>
 
@@ -560,12 +563,7 @@ const WebsiteRanking = () => {
                     onChange={e => setUrl(e.target.value)}
                     size="large"
                   />
-                  <Button
-                    type="primary"
-                    onClick={handleAnalyse}
-                    loading={analyser.loading}
-                    size="large"
-                  >
+                  <Button type="primary" onClick={handleAnalyse} loading={isAnalysing} size="large">
                     Analyse Structure
                   </Button>
                 </div>
@@ -605,7 +603,7 @@ const WebsiteRanking = () => {
                   <Button
                     type="primary"
                     onClick={handleCreatePrompts}
-                    loading={prompts.loading}
+                    loading={isCreatingPrompts}
                     size="large"
                   >
                     Generate Search Prompts
@@ -630,7 +628,7 @@ const WebsiteRanking = () => {
                   <Button
                     type="primary"
                     onClick={handleCheckRankings}
-                    loading={rankings.loading}
+                    loading={isCheckingRankings}
                     size="large"
                   >
                     Check Search Rankings
@@ -653,7 +651,7 @@ const WebsiteRanking = () => {
                     <Button
                       type="primary"
                       onClick={handleAdvancedAnalysis}
-                      loading={advancedComp.loading}
+                      loading={isAnalyzingAdvanced}
                       size="large"
                       icon={<FileText className="w-4 h-4" />}
                     >

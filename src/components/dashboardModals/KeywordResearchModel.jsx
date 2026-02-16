@@ -2,12 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { CloseOutlined } from "@ant-design/icons"
 import { Button, Input, Table, Tag, Modal, Switch } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import {
-  analyzeKeywordsThunk,
-  clearKeywordAnalysis,
-  setSelectedKeywords,
-} from "@store/slices/analysisSlice"
+import useAnalysisStore from "@store/useAnalysisStore"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
   const [newKeyword, setNewKeyword] = useState("")
@@ -15,19 +10,21 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
 
-  const dispatch = useDispatch()
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
-  } = useSelector(state => state.analysis)
+    clearKeywordAnalysis,
+    setSelectedKeywords,
+    analyzeKeywords: analyzeKeywordsAction,
+  } = useAnalysisStore()
 
   useEffect(() => {
     if (keywords.length === 0) {
       setCurrentPage(1)
-      dispatch(clearKeywordAnalysis())
+      clearKeywordAnalysis()
     }
-  }, [keywords, dispatch])
+  }, [keywords, clearKeywordAnalysis])
 
   const addKeyword = () => {
     const input = newKeyword.trim()
@@ -66,13 +63,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       const updatedSelectedKeywords = selectedKeywords.allKeywords.filter(
         kw => kw !== keywordToRemove
       )
-      dispatch(
-        setSelectedKeywords({
-          focusKeywords: updatedSelectedKeywords.slice(0, 3),
-          keywords: updatedSelectedKeywords,
-          allKeywords: updatedSelectedKeywords,
-        })
-      )
+      setSelectedKeywords({
+        focusKeywords: updatedSelectedKeywords.slice(0, 3),
+        keywords: updatedSelectedKeywords,
+        allKeywords: updatedSelectedKeywords,
+      })
     }
   }
 
@@ -85,7 +80,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
 
   const analyzeKeywords = () => {
     if (keywords.length > 0) {
-      dispatch(analyzeKeywordsThunk(keywords))
+      analyzeKeywordsAction(keywords)
       setCurrentPage(1)
     }
   }
@@ -156,24 +151,20 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           ...(selectedKeywords?.allKeywords || []),
           ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
         ].slice(0, 6) // Limit to 6 keywords
-        dispatch(
-          setSelectedKeywords({
-            focusKeywords: finalKeywords.slice(0, 3),
-            keywords: finalKeywords,
-            allKeywords: finalKeywords,
-          })
-        )
+        setSelectedKeywords({
+          focusKeywords: finalKeywords.slice(0, 3),
+          keywords: finalKeywords,
+          allKeywords: finalKeywords,
+        })
       },
       onCancel() {
         // Keep existing selected keywords
         const finalKeywords = selectedKeywords?.allKeywords || []
-        dispatch(
-          setSelectedKeywords({
-            focusKeywords: finalKeywords.slice(0, 3),
-            keywords: finalKeywords,
-            allKeywords: finalKeywords,
-          })
-        )
+        setSelectedKeywords({
+          focusKeywords: finalKeywords.slice(0, 3),
+          keywords: finalKeywords,
+          allKeywords: finalKeywords,
+        })
       },
       okButtonProps: { className: "bg-blue-600 text-white" },
     })
@@ -181,13 +172,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
 
   const proceedWithSelectedKeywords = async type => {
     const finalKeywords = selectedKeywords?.allKeywords || []
-    await dispatch(
-      setSelectedKeywords({
-        focusKeywords: finalKeywords.slice(0, 3),
-        keywords: finalKeywords.slice(3),
-        allKeywords: finalKeywords,
-      })
-    )
+    setSelectedKeywords({
+      focusKeywords: finalKeywords.slice(0, 3),
+      keywords: finalKeywords.slice(3),
+      allKeywords: finalKeywords,
+    })
     closeFnc()
     setTimeout(() => {
       if (type === "blog") {
@@ -237,10 +226,10 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
             text === "LOW"
               ? "green"
               : text === "MEDIUM"
-              ? "orange"
-              : text === "HIGH"
-              ? "red"
-              : "gray"
+                ? "orange"
+                : text === "HIGH"
+                  ? "red"
+                  : "gray"
           }
           className="text-xs sm:text-sm"
         >
@@ -359,10 +348,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       width="90vw"
       centered
       title="Keyword Research"
-      styles={{
-        content: { maxWidth: "1000px", margin: "0 auto" },
-        body: { padding: "16px" },
-      }}
+      styles={{ content: { maxWidth: "1000px", margin: "0 auto" }, body: { padding: "16px" } }}
       className="rounded-lg sm:rounded-xl"
     >
       <div className="space-y-4 sm:space-y-6">
@@ -448,17 +434,13 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                 rowSelection={{
                   selectedRowKeys: selectedKeywords?.allKeywords || [],
                   onChange: selected => {
-                    dispatch(
-                      setSelectedKeywords({
-                        focusKeywords: selected.slice(0, 3),
-                        keywords: selected,
-                        allKeywords: selected,
-                      })
-                    )
+                    setSelectedKeywords({
+                      focusKeywords: selected.slice(0, 3),
+                      keywords: selected,
+                      allKeywords: selected,
+                    })
                   },
-                  getCheckboxProps: record => ({
-                    name: record.keyword,
-                  }),
+                  getCheckboxProps: record => ({ name: record.keyword }),
                 }}
                 rowKey={record => record.keyword}
                 scroll={{ x: 600 }}

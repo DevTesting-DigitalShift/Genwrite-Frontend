@@ -4,8 +4,7 @@ import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
 import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
@@ -15,8 +14,7 @@ const PrivateRoutesLayout = () => {
   // const [chatOpen, setChatOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
-  const { user, loading } = useSelector(state => state.auth)
+  const { user, loading, loadAuthenticatedUser } = useAuthStore()
 
   // Hide chatbot on toolbox routes
   const isToolboxRoute = location.pathname.startsWith("/toolbox/")
@@ -27,7 +25,7 @@ const PrivateRoutesLayout = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        await dispatch(loadAuthenticatedUser()).unwrap()
+        await loadAuthenticatedUser()
       } catch {
         localStorage.removeItem("token")
         navigate("/login")

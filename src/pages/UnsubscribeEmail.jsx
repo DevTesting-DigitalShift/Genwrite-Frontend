@@ -1,16 +1,16 @@
 import React, { useEffect } from "react"
 import { Button, Typography, Space, ConfigProvider, message } from "antd"
 import { MailMinus } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { resetUnsubscribe, unsubscribeThunk } from "@store/slices/otherSlice"
+import useAuthStore from "@store/useAuthStore"
+
 const { Title, Paragraph, Text } = Typography
 
 const UnsubscribeEmail = () => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { loading, successMessage, error } = useSelector((state) => state.wordpress)
+  const { loading, unsubscribeSuccessMessage, error, unsubscribeAction, resetUnsubscribe } =
+    useAuthStore()
 
   // Get email from URL query parameter
   const email = searchParams.get("email")
@@ -18,24 +18,24 @@ const UnsubscribeEmail = () => {
   // Reset unsubscribe state when component unmounts
   useEffect(() => {
     return () => {
-      dispatch(resetUnsubscribe())
+      resetUnsubscribe()
     }
-  }, [dispatch])
+  }, [resetUnsubscribe])
 
   // Handle success or error messages
   useEffect(() => {
-    if (successMessage) {
-      message.success(successMessage)
+    if (unsubscribeSuccessMessage) {
+      message.success(unsubscribeSuccessMessage)
       // Redirect to home after 2 seconds
       setTimeout(() => navigate("/"), 2000)
     }
     if (error) {
       message.error(error)
     }
-  }, [successMessage, error, navigate])
+  }, [unsubscribeSuccessMessage, error, navigate])
 
   // Validate email format
-  const isValidEmail = (email) => {
+  const isValidEmail = email => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return email && emailRegex.test(email)
   }
@@ -50,7 +50,7 @@ const UnsubscribeEmail = () => {
       return
     }
     try {
-      await dispatch(unsubscribeThunk(email)).unwrap()
+      await unsubscribeAction(email)
     } catch (err) {
       // Error is handled by useEffect
     }
@@ -63,14 +63,8 @@ const UnsubscribeEmail = () => {
   return (
     <ConfigProvider
       theme={{
-        token: {
-          fontFamily: "Inter, sans-serif",
-        },
-        components: {
-          Button: {
-            primaryColor: "#fff",
-          },
-        },
+        token: { fontFamily: "Inter, sans-serif" },
+        components: { Button: { primaryColor: "#fff" } },
       }}
     >
       <main className="bg-gradient-to-br from-blue-50 via-purple-50 to-white flex items-center justify-center min-h-screen p-4 font-sans">

@@ -3,8 +3,7 @@ import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { message } from "antd"
 import dayjs from "dayjs"
-import { useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 
 // Configuration for different announcement types
 const announcementConfig = {
@@ -59,7 +58,7 @@ const fetchAnnouncements = async () => {
 // Inline Announcement Banner Component
 const InlineAnnouncementBanner = () => {
   const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false)
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
 
   // useEffect for announcement banner visibility
   useEffect(() => {

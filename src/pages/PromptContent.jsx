@@ -1,37 +1,42 @@
 import React, { useState, useCallback, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate, useLocation } from "react-router-dom"
 import { Button, message, Input } from "antd"
 import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
-import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSlice"
+import useAuthStore from "@store/useAuthStore"
+import useContentStore from "@store/useContentStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+
 const { TextArea } = Input
 
 const PromptContent = () => {
   const [content, setContent] = useState("")
   const [prompt, setPrompt] = useState("")
   const [copiedField, setCopiedField] = useState(null)
-  const dispatch = useDispatch()
+
   const navigate = useNavigate()
   const location = useLocation()
   const { handlePopup } = useConfirmPopup()
 
-  // Redux selectors
-  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
+  // Zustand stores
+  const { user } = useAuthStore()
+  const userPlan = user?.subscription?.plan
+
   const {
     data: generatedContent,
     loading: isGenerating,
     error,
-  } = useSelector(state => state.wordpress)
+    generatePromptContent,
+    resetMetadata,
+  } = useContentStore()
 
   // Clear data on route change or component unmount
   useEffect(() => {
     return () => {
-      dispatch(resetMetadata())
+      resetMetadata()
     }
-  }, [location.pathname, dispatch])
+  }, [location.pathname, resetMetadata])
 
   // Validation functions
   const isPromptValid = prompt.trim().length >= 10
@@ -55,20 +60,20 @@ const PromptContent = () => {
     }
 
     try {
-      await dispatch(generatePromptContentThunk({ prompt, content })).unwrap()
+      await generatePromptContent({ prompt, content })
       message.success("Content generated successfully!")
     } catch (error) {
       console.error("Error generating content:", error)
-      message.error("Failed to generate content.")
+      message.error(typeof error === "string" ? error : "Failed to generate content.")
     }
-  }, [content, prompt, dispatch, userPlan, navigate, isPromptValid, isContentValid])
+  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid])
 
   const handleReset = useCallback(() => {
     setContent("")
     setPrompt("")
-    dispatch(resetMetadata())
+    resetMetadata()
     message.success("Content and prompt reset!")
-  }, [dispatch])
+  }, [resetMetadata])
 
   const copyToClipboard = async (text, label, fieldName) => {
     try {
@@ -242,7 +247,7 @@ const PromptContent = () => {
       </div>
 
       {/* Generated Content Display */}
-      {generatedContent?.data && !isGenerating && (
+      {generatedContent && !isGenerating && (
         <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -253,7 +258,7 @@ const PromptContent = () => {
             </div>
             <button
               onClick={() =>
-                copyToClipboard(stripHtml(generatedContent.data), "Generated content", "generated")
+                copyToClipboard(stripHtml(generatedContent), "Generated content", "generated")
               }
               className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
               title="Copy generated content"
@@ -273,7 +278,7 @@ const PromptContent = () => {
           </div>
 
           {/* Render HTML content in a humanized way */}
-          {renderHtmlContent(generatedContent.data)}
+          {renderHtmlContent(generatedContent)}
         </div>
       )}
 

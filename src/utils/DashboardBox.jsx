@@ -1,10 +1,9 @@
-import React, { useEffect } from "react"
+import React from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { CrownFilled } from "@ant-design/icons"
-import { ArrowRight, Eye, Gem } from "lucide-react"
+import { ArrowRight, Gem } from "lucide-react"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useProAction } from "@/hooks/useProAction"
@@ -13,7 +12,7 @@ dayjs.extend(relativeTime)
 const isValidFunction = o => o && typeof o === "function"
 
 export const DashboardBox = ({ title, content, id, showModal, icon, gradient, dataTour }) => {
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
   const { handleProAction } = useProAction()
@@ -104,7 +103,7 @@ export const QuickBox = ({
   navigate: navigateTo, // NEW PROP
 }) => {
   const navigate = useNavigate()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const { handleProAction } = useProAction()

@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from "react"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
+import useContentStore from "@store/useContentStore"
 import { useNavigate } from "react-router-dom"
 import { Button, message, Input } from "antd"
-import { PlusOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons"
-import { generateMetadataThunk, resetMetadata } from "@store/slices/otherSlice"
+import { CopyOutlined } from "@ant-design/icons"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { RefreshCw, Sparkles } from "lucide-react"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
@@ -18,11 +18,10 @@ const GenerateMetaData = () => {
   const [keywords, setKeywords] = useState([])
   const [newKeyword, setNewKeyword] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
-  const metadata = useSelector(state => state.wordpress.metadata)
+  const { user } = useAuthStore()
+  const { metadata, generateMetadata, resetMetadata } = useContentStore()
+  const userPlan = user?.subscription?.plan
 
   // Calculate word count
   const wordCount = useCallback(() => {
@@ -55,7 +54,7 @@ const GenerateMetaData = () => {
     try {
       // If content is URL, send as url param, otherwise content
       const payload = isUrl(content) ? { url: content } : { content }
-      await dispatch(generateMetadataThunk(payload)).unwrap()
+      await generateMetadata(payload)
       message.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
@@ -63,7 +62,7 @@ const GenerateMetaData = () => {
     } finally {
       setIsGenerating(false)
     }
-  }, [content, dispatch, userPlan, navigate])
+  }, [content, userPlan, navigate])
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
@@ -107,9 +106,9 @@ const GenerateMetaData = () => {
     setContent("")
     setKeywords([])
     setNewKeyword("")
-    dispatch(resetMetadata())
+    resetMetadata()
     message.success("Content and metadata reset!")
-  }, [dispatch])
+  }, [resetMetadata])
 
   if (isGenerating) {
     return (

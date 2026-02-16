@@ -11,8 +11,9 @@ import {
   Palette,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { likeCompetitor, resetCompetitorLikeBlog } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -20,15 +21,22 @@ import remarkGfm from "remark-gfm"
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")
   const [topic, setTopic] = useState("")
-  const dispatch = useDispatch()
-  const { loading: isLoading, result, error } = useSelector(state => state.tools.competitorLikeBlog)
+  // const dispatch = useDispatch() // Removed
+  const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
+  const { result, error } = competitorLikeBlog
+  const {
+    mutate: generateContent,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useCompetitorLikeBlogMutation()
+  const isLoading = isPending || isMutationLoading
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      dispatch(resetCompetitorLikeBlog())
+      resetCompetitorLikeBlog()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidUrl = str => {
     try {
@@ -62,13 +70,15 @@ const CompetitorLikeBlog = () => {
 
     const payload = { url: url.trim(), topic: topic.trim() }
 
-    try {
-      await dispatch(likeCompetitor(payload)).unwrap()
-      message.success("Content generated successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to generate content. Please try again.")
-      console.error(err)
-    }
+    generateContent(payload, {
+      onSuccess: () => {
+        message.success("Content generated successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to generate content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -84,14 +94,53 @@ const CompetitorLikeBlog = () => {
   const handleReset = () => {
     setUrl("")
     setTopic("")
-    dispatch(resetCompetitorLikeBlog())
+    resetCompetitorLikeBlog()
     message.info("Reset successfully")
   }
+
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Analyzing competitor style and generating content..." />
+        <ProgressLoadingScreen
+          message="Analyzing competitor style and generating content..."
+          timer={timer}
+        />
       </div>
     )
   }

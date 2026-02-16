@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Tag, Tags } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
-import { Modal, Select, Table, Tooltip, message, Button, Empty } from "antd"
+import { Modal, Select, Table, Tooltip, message, Button } from "antd"
 import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons"
-import { fetchBlogById, fetchBlogStats, fetchBlogs } from "@store/slices/blogSlice"
+import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
 
 const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   const [formData, setFormData] = useState({
@@ -15,47 +14,41 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   })
   const [stats, setStats] = useState(null)
   const [id, setId] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const dispatch = useDispatch()
-  const { allBlogs, loading: blogLoading } = useSelector(state => state.blog)
+  const [isStatsLoading, setIsStatsLoading] = useState(false)
 
-  // Fetch blogs when modal opens
+  // Fetch all blogs
+  const { data: allBlogs, isLoading: blogsLoading } = useAllBlogsQuery()
+
+  // Fetch blog details
+  const { data: blogDetails, isLoading: detailsLoading } = useBlogDetailsQuery(id)
+
+  // Directly use the query if needed, but the original logic fetched stats on button click
+  // However, TanStack Query is better for this.
+  // I'll use a manual trigger for stats or just keep it reactive.
+  // Original code: handleGetInsights fetched stats and set state.
+
+  const { data: fetchedStats, refetch: fetchStats } = useBlogStatsQuery(id)
+
   useEffect(() => {
-    if (visible) {
-      dispatch(fetchBlogs())
+    if (blogDetails && blogDetails._id === id) {
+      setFormData(prev => ({
+        ...prev,
+        title: blogDetails.title || "",
+        content: blogDetails.content || "",
+        keywords: blogDetails.focusKeywords || [],
+        selectedBlog: blogDetails,
+        contentType: "markdown",
+      }))
     }
-  }, [visible, dispatch])
+  }, [blogDetails, id])
 
-  // Fetch blog details when id changes
-  useEffect(() => {
-    if (id) {
-      setIsLoading(true)
-      dispatch(fetchBlogById(id))
-        .unwrap()
-        .then(response => {
-          if (response?._id) {
-            setFormData(prev => ({
-              ...prev,
-              title: response.title || "",
-              content: response.content || "",
-              keywords: response.focusKeywords || [],
-              selectedBlog: response,
-              contentType: "markdown",
-            }))
-          } else {
-            message.error("Blog details not found.")
-          }
-        })
-        .catch(error => {
-          console.error("Failed to fetch blog by ID:", error)
-          message.error("Failed to fetch blog details.")
-        })
-        .finally(() => setIsLoading(false))
-    }
-  }, [id, dispatch])
-
-  // Handle blog selection
   const handleBlogSelect = value => {
+    if (!value) {
+      setId(null)
+      setFormData({ selectedBlog: null, title: "", content: "", keywords: [] })
+      setStats(null)
+      return
+    }
     const blog = allBlogs?.find(b => b._id === value)
     if (blog) {
       setId(blog._id)
@@ -69,7 +62,6 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
     }
   }
 
-  // Fetch performance stats on button click
   const handleGetInsights = async () => {
     if (!formData.selectedBlog?._id) {
       message.error("Please select a blog.")
@@ -79,16 +71,19 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
       message.warning("Your content is too short. This may affect performance analysis accuracy.")
       return
     }
-    setIsLoading(true)
+
+    setIsStatsLoading(true)
     try {
-      const response = await dispatch(fetchBlogStats(formData.selectedBlog._id)).unwrap()
-      setStats(response.stats || response)
-      message.success("Performance insights loaded successfully.")
+      const result = await fetchStats()
+      if (result.data) {
+        setStats(result.data.stats || result.data)
+        message.success("Performance insights loaded successfully.")
+      }
     } catch (error) {
       console.error("Failed to fetch blog stats:", error)
       message.error("Failed to load performance stats.")
     } finally {
-      setIsLoading(false)
+      setIsStatsLoading(false)
     }
   }
 
@@ -624,7 +619,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
               placeholder="Select Blog"
               onChange={handleBlogSelect}
               value={formData.selectedBlog?._id || ""}
-              loading={blogLoading}
+              loading={blogsLoading}
             >
               <Select.Option value="">Select Blog</Select.Option>
               {allBlogs?.map(blog => (
@@ -660,38 +655,44 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                 </h3>
               </div>
               <div className="max-h-[200px] sm:max-h-[400px] overflow-y-auto p-3 sm:p-4 bg-white">
-                <div
-                  className="prose prose-sm sm:prose-base lg:prose-lg max-w-none
-                    prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mt-6 prose-headings:mb-3
-                    prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:font-extrabold prose-h1:leading-tight prose-h1:border-b prose-h1:border-gray-200 prose-h1:pb-2
-                    prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:font-bold prose-h2:leading-snug
-                    prose-h3:text-lg sm:prose-h3:text-xl prose-h3:font-semibold prose-h3:leading-normal
-                    prose-h4:text-base sm:prose-h4:text-lg prose-h4:font-semibold
-                    prose-h5:text-sm sm:prose-h5:text-base prose-h5:font-semibold
-                    prose-h6:text-sm prose-h6:font-medium prose-h6:text-gray-700
-                    prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3 prose-p:text-sm sm:prose-p:text-base
-                    prose-strong:text-gray-900 prose-strong:font-bold
-                    prose-em:italic prose-em:text-gray-800
-                    prose-ul:list-disc prose-ul:ml-5 prose-ul:my-3 prose-ul:space-y-1
-                    prose-ol:list-decimal prose-ol:ml-5 prose-ol:my-3 prose-ol:space-y-1
-                    prose-li:text-gray-700 prose-li:leading-relaxed prose-li:text-sm sm:prose-li:text-base prose-li:my-1
-                    prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-800 prose-a:transition-colors
-                    prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:my-4
-                    prose-code:bg-gray-100 prose-code:text-red-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
-                    prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4
-                    prose-img:rounded-lg prose-img:shadow-md prose-img:my-4
-                    prose-hr:border-gray-300 prose-hr:my-6
-                    prose-table:border-collapse prose-table:w-full prose-table:my-4
-                    prose-th:bg-gray-100 prose-th:border prose-th:border-gray-300 prose-th:p-2 prose-th:text-left prose-th:font-semibold
-                    prose-td:border prose-td:border-gray-300 prose-td:p-2
-                    first:prose-headings:mt-0
-                  "
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      formData?.content?.trim() ||
-                      "<p class='text-gray-500 text-center py-8'>No content available for this blog</p>",
-                  }}
-                />
+                {detailsLoading ? (
+                  <div className="flex justify-center py-10">
+                    <LoadingOutlined style={{ fontSize: 24 }} spin />
+                  </div>
+                ) : (
+                  <div
+                    className="prose prose-sm sm:prose-base lg:prose-lg max-w-none
+                      prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mt-6 prose-headings:mb-3
+                      prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:font-extrabold prose-h1:leading-tight prose-h1:border-b prose-h1:border-gray-200 prose-h1:pb-2
+                      prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:font-bold prose-h2:leading-snug
+                      prose-h3:text-lg sm:prose-h3:text-xl prose-h3:font-semibold prose-h3:leading-normal
+                      prose-h4:text-base sm:prose-h4:text-lg prose-h4:font-semibold
+                      prose-h5:text-sm sm:prose-h5:text-base prose-h5:font-semibold
+                      prose-h6:text-sm prose-h6:font-medium prose-h6:text-gray-700
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3 prose-p:text-sm sm:prose-p:text-base
+                      prose-strong:text-gray-900 prose-strong:font-bold
+                      prose-em:italic prose-em:text-gray-800
+                      prose-ul:list-disc prose-ul:ml-5 prose-ul:my-3 prose-ul:space-y-1
+                      prose-ol:list-decimal prose-ol:ml-5 prose-ol:my-3 prose-ol:space-y-1
+                      prose-li:text-gray-700 prose-li:leading-relaxed prose-li:text-sm sm:prose-li:text-base prose-li:my-1
+                      prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-800 prose-a:transition-colors
+                      prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:my-4
+                      prose-code:bg-gray-100 prose-code:text-red-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
+                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4
+                      prose-img:rounded-lg prose-img:shadow-md prose-img:my-4
+                      prose-hr:border-gray-300 prose-hr:my-6
+                      prose-table:border-collapse prose-table:w-full prose-table:my-4
+                      prose-th:bg-gray-100 prose-th:border prose-th:border-gray-300 prose-th:p-2 prose-th:text-left prose-th:font-semibold
+                      prose-td:border prose-td:border-gray-300 prose-td:p-2
+                      first:prose-headings:mt-0
+                    "
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        formData?.content?.trim() ||
+                        "<p class='text-gray-500 text-center py-8'>No content available for this blog</p>",
+                    }}
+                  />
+                )}
               </div>
             </motion.div>
             {formData.keywords?.length > 0 && (
@@ -728,11 +729,11 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                   type="primary"
                   size="large"
                   onClick={handleGetInsights}
-                  loading={isLoading}
+                  loading={isStatsLoading}
                   className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg px-4 sm:px-6 py-2 transition-all duration-200"
-                  disabled={isLoading || !formData.selectedBlog}
+                  disabled={isStatsLoading || !formData.selectedBlog}
                 >
-                  {isLoading ? (
+                  {isStatsLoading ? (
                     <span className="flex items-center gap-2">
                       <LoadingOutlined /> Loading Insights...
                     </span>

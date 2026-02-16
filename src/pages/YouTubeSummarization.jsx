@@ -10,27 +10,29 @@ import {
   ListChecks,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { summarizeYoutube, resetYoutubeSummary } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
-  const dispatch = useDispatch()
+  const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
+  const { result: summaryResult, error } = youtubeSummary
   const {
-    loading: isLoading,
-    result: summaryResult,
-    error,
-  } = useSelector(state => state.tools.youtubeSummary)
-  const user = useSelector(state => state.auth.user)
+    mutate: summarizeVideo,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useYoutubeSummaryMutation()
+  const isLoading = isPending || isMutationLoading
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputUrl("")
-      dispatch(resetYoutubeSummary())
+      resetYoutubeSummary()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidYoutubeUrl = url => {
     const youtubeRegex =
@@ -53,13 +55,15 @@ const YouTubeSummarization = () => {
 
     const payload = { url: inputUrl.trim() }
 
-    try {
-      await dispatch(summarizeYoutube(payload)).unwrap()
-      message.success("Video summarized successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to summarize video. Please try again.")
-      console.error(err)
-    }
+    summarizeVideo(payload, {
+      onSuccess: () => {
+        message.success("Video summarized successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to summarize video. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -80,14 +84,54 @@ const YouTubeSummarization = () => {
 
   const handleReset = () => {
     setInputUrl("")
-    dispatch(resetYoutubeSummary())
+    resetYoutubeSummary()
     message.info("Content reset")
   }
+
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Summarizing YouTube video..." isYouTube={true} />
+        <ProgressLoadingScreen
+          message="Summarizing YouTube video..."
+          isYouTube={true}
+          timer={timer} // Pass the custom timer
+        />
       </div>
     )
   }
@@ -148,8 +192,14 @@ const YouTubeSummarization = () => {
                   : "hover:from-red-700 hover:to-purple-700 hover:scale-105"
               }`}
             >
-              <Youtube className="w-5 h-5" />
-              Summarize Video
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Summarizing...
+                </>
+              ) : (
+                <>Summarize Video</>
+              )}
             </Button>
           </div>
         </div>

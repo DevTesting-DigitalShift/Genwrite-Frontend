@@ -1,8 +1,6 @@
 import ReactDOM from "react-dom/client"
 import "./index.css"
 import App from "./App"
-import { Provider } from "react-redux"
-import { store } from "./store"
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import { QueryProvider } from "./utils/queryClient"
 import { RouterProvider } from "react-router-dom"
@@ -30,11 +28,9 @@ if ("serviceWorker" in navigator) {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <QueryProvider>
-      <Provider store={store}>
-        <RouterProvider router={router}>
-          <App />
-        </RouterProvider>
-      </Provider>
+      <RouterProvider router={router}>
+        <App />
+      </RouterProvider>
     </QueryProvider>
   </GoogleOAuthProvider>
 )

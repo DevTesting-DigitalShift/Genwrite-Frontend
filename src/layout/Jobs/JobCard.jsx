@@ -14,9 +14,9 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react"
-import { startJob, stopJob, deleteJob } from "@api/jobApi"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useQueryClient } from "@tanstack/react-query"
 
 const Badge = ({ children, variant = "gray" }) => {
   const variants = {
@@ -40,52 +40,22 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
 
   const isRunning = job.status === "active"
 
-  const toggleJobStatusMutation = useMutation({
-    mutationFn: async ({ jobId, currentStatus }) => {
-      if (currentStatus === "active") {
-        await stopJob(jobId)
-      } else {
-        await startJob(jobId)
-      }
-      return { jobId, status: currentStatus === "active" ? "stop" : "active" }
-    },
-    onSuccess: data => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      message.success(
-        data.status === "active" ? "Job started successfully!" : "Job paused successfully!"
-      )
-    },
-    onError: error => {
-      console.error("Failed to toggle job status:", error)
-      message.error(error.message || "Failed to update job status")
-    },
-  })
-
-  const deleteJobMutation = useMutation({
-    mutationFn: async jobId => {
-      await deleteJob(jobId)
-      return jobId
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      if (paginatedJobs.length === 1 && setCurrentPage) {
-        setCurrentPage(prev => Math.max(1, prev - 1))
-      }
-      message.success("Job deleted successfully!")
-    },
-    onError: error => {
-      console.error("Failed to delete job:", error)
-      message.error(error.message || "Failed to delete job")
-    },
-  })
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
+  const { mutate: deleteMutate } = useDeleteJobMutation()
 
   const handleToggleStatus = e => {
     e.stopPropagation()
-    toggleJobStatusMutation.mutate({ jobId: job._id, currentStatus: job.status })
+    toggleStatus({ jobId: job._id, currentStatus: job.status })
   }
 
   const handleDeleteJob = jobId => {
-    deleteJobMutation.mutate(jobId)
+    deleteMutate(jobId, {
+      onSuccess: () => {
+        if (paginatedJobs.length === 1 && setCurrentPage) {
+          setCurrentPage(prev => Math.max(1, prev - 1))
+        }
+      },
+    })
   }
 
   const handleEditJob = e => {
@@ -139,7 +109,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
         </div>
         <button
           onClick={handleToggleStatus}
-          disabled={toggleJobStatusMutation.isPending}
+          disabled={isToggling}
           className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
             isRunning
               ? "bg-red-500 text-white hover:bg-red-600"
@@ -147,7 +117,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
           }`}
           title={isRunning ? "Stop Job" : "Start Job"}
         >
-          {toggleJobStatusMutation.isPending ? (
+          {isToggling ? (
             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : isRunning ? (
             <Square size={14} fill="currentColor" />

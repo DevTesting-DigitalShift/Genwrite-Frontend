@@ -13,10 +13,10 @@ import {
   Sparkles,
   MessageSquare,
 } from "lucide-react"
-import { useSelector } from "react-redux"
+
 import { Modal, Tooltip, message, Button, Input, Popover, Select } from "antd"
 import ImageModal from "@components/ImageModal"
-import { fetchUserThunk } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 
 const { TextArea } = Input
 import TurndownService from "turndown"
@@ -374,7 +374,7 @@ const TextEditor = ({
 
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const user = useSelector(state => state.auth.user)
+  const user = useAuthStore(state => state.user)
   const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()

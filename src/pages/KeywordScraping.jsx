@@ -1,27 +1,65 @@
 import React, { useState, useEffect } from "react"
 import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { scrapeKeywords, resetKeywordScraping } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
-  const dispatch = useDispatch()
+  const { keywordScraping, resetKeywordScraping } = useToolsStore()
+  const { result: scrapingResult, error } = keywordScraping
   const {
-    loading: isLoading,
-    result: scrapingResult,
-    error,
-  } = useSelector(state => state.tools.keywordScraping)
-  const user = useSelector(state => state.auth.user)
+    mutate: scrapeKeywords,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useKeywordScrapingMutation()
+  const isLoading = isPending || isMutationLoading
+
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputUrl("")
-      dispatch(resetKeywordScraping())
+      resetKeywordScraping()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidUrl = url => {
     const urlRegex =
@@ -42,13 +80,15 @@ const KeywordScraping = () => {
 
     const payload = { url: inputUrl.trim() }
 
-    try {
-      await dispatch(scrapeKeywords(payload)).unwrap()
-      message.success("Keywords scraped successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to scrape keywords. Please try again.")
-      console.error(err)
-    }
+    scrapeKeywords(payload, {
+      onSuccess: () => {
+        message.success("Keywords scraped successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to scrape keywords. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -69,14 +109,14 @@ const KeywordScraping = () => {
 
   const handleReset = () => {
     setInputUrl("")
-    dispatch(resetKeywordScraping())
+    resetKeywordScraping()
     message.info("Content reset")
   }
 
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Scraping keywords from the website..." />
+        <ProgressLoadingScreen message="Scraping keywords from the website..." timer={timer} />
       </div>
     )
   }
@@ -135,8 +175,16 @@ const KeywordScraping = () => {
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
               }`}
             >
-              <Search className="w-5 h-5" />
-              Scrape Keywords
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Scraping...
+                </>
+              ) : (
+                <>
+                  Scrape Keywords
+                </>
+              )}
             </Button>
           </div>
         </div>

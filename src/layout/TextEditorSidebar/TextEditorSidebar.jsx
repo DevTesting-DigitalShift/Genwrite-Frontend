@@ -29,25 +29,22 @@ import {
   MessageSquare,
 } from "lucide-react"
 import { Button, message, Input, Select, Switch, Tooltip, Collapse } from "antd"
-import { fetchBlogPrompt } from "@store/slices/blogSlice"
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import {
-  generateMetadataThunk,
-  getIntegrationsThunk,
-  getCategoriesThunk,
-} from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
 import { Modal } from "antd"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import axiosInstance from "@/api"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { fetchCategories, generateMetadata } from "@api/otherApi"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
@@ -222,9 +219,6 @@ const TextEditorSidebar = ({
   // Blog slug editor state
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
   const [isEditingSlug, setIsEditingSlug] = useState(false)
-
-  const { data: integrations } = useSelector(state => state.wordpress)
-  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
 
   // Posting State (Migrated from CategoriesModal)
   const [selectedCategory, setSelectedCategory] = useState("")
@@ -584,7 +578,17 @@ const TextEditorSidebar = ({
   // UI State for categories to prevent flickering or disappearing on re-renders
   const [uiCategories, setUiCategories] = useState([])
 
-  // Sync UI categories with Redux, preserving data during re-renders
+  const { user } = useAuthStore()
+  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
+
+  const { integrations, categories, fetchIntegrations } = useIntegrationStore()
+  const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
+  const { setBlogPrompt } = useBlogStore()
+
+  // Sync UI categories with Store, preserving data during re-renders
   useEffect(() => {
     if (categories?.length > 0) {
       setUiCategories(categories)
@@ -596,14 +600,6 @@ const TextEditorSidebar = ({
     setUiCategories([])
   }, [selectedIntegration?.platform])
 
-  const user = useSelector(state => state.auth.user)
-  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
-  const { handlePopup } = useConfirmPopup()
-  const { loading: isAnalyzingCompetitive } = useSelector(state => state.analysis)
-  const { analysisResult } = useSelector(state => state.analysis)
   const result = analysisResult?.[blog?._id]
 
   const hasAnyIntegration =
@@ -700,8 +696,8 @@ const TextEditorSidebar = ({
   }, [blog])
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
+    fetchIntegrations()
+  }, [fetchIntegrations])
 
   // Initialize enhancement options from blog
   useEffect(() => {
@@ -884,22 +880,26 @@ const TextEditorSidebar = ({
       ),
       confirmText: "Run",
       onConfirm: async () => {
+        const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
+        setLoading(true)
         try {
-          await dispatch(
-            fetchCompetitiveAnalysisThunk({
-              blogId: blog._id,
-              title: blog.title,
-              content: blog.content,
-              keywords: keywords || blog?.focusKeywords || [],
-            })
-          ).unwrap()
+          const result = await runCompetitiveAnalysis({
+            blogId: blog._id,
+            title: blog.title,
+            content: blog.content,
+            keywords: keywords || blog?.focusKeywords || [],
+          })
+          setAnalysisResult(blog._id, result)
           setActivePanel("seo")
-        } catch {
+        } catch (err) {
+          setError(err.message)
           message.error("Analysis failed")
+        } finally {
+          setLoading(false)
         }
       },
     })
-  }, [isPro, navigate, handlePopup, dispatch, blog, keywords])
+  }, [isPro, navigate, handlePopup, blog, keywords])
 
   const handleMetadataGen = useCallback(() => {
     if (isPro) return navigate("/pricing")
@@ -913,13 +913,11 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsGeneratingMetadata(true)
         try {
-          const result = await dispatch(
-            generateMetadataThunk({
-              content: editorContent,
-              keywords: keywords || [],
-              focusKeywords: blog?.focusKeywords || [],
-            })
-          ).unwrap()
+          const result = await generateMetadata({
+            content: editorContent,
+            keywords: keywords || [],
+            focusKeywords: blog?.focusKeywords || [],
+          })
           // Show the generated metadata in accept/reject modal
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
@@ -930,7 +928,7 @@ const TextEditorSidebar = ({
         }
       },
     })
-  }, [isPro, navigate, handlePopup, dispatch, editorContent, keywords, blog])
+  }, [isPro, navigate, handlePopup, editorContent, keywords, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {
@@ -985,10 +983,9 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsHumanizing(true)
         try {
-          const result = await dispatch(
-            fetchBlogPrompt({ id: blog._id, prompt: customPrompt })
-          ).unwrap()
-          setHumanizedContent(result.data)
+          const { getBlogPrompt } = await import("@api/blogApi")
+          const res = await getBlogPrompt(blog._id, customPrompt)
+          setHumanizedContent(res.data)
           setIsHumanizeModalOpen(true)
           setCustomPrompt("")
           message.success("Prompt applied!")
@@ -1003,7 +1000,6 @@ const TextEditorSidebar = ({
     isPro,
     navigate,
     handlePopup,
-    dispatch,
     blog,
     customPrompt,
     setHumanizedContent,
@@ -1142,11 +1138,11 @@ const TextEditorSidebar = ({
   // Auto-fetch categories when integration changes
   useEffect(() => {
     if (selectedIntegration?.platform) {
-      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase()))
-        .unwrap()
-        .catch(() => {})
+      if (fetchCategories) {
+        fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
+      }
     }
-  }, [dispatch, selectedIntegration?.platform])
+  }, [fetchCategories, selectedIntegration?.platform])
 
   // Initialize posting form based on Blog Data & History
   useEffect(() => {
