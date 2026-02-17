@@ -237,7 +237,7 @@ const SideBar_Header = () => {
 
   return (
     <div
-      className={`md:z-[999] ${
+      className={`md:z-[10] ${
         path.includes("signup") || path.includes("login") ? "hidden" : "flex"
       }`}
     >
@@ -245,7 +245,7 @@ const SideBar_Header = () => {
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
+        className={`fixed top-0 left-0 h-full z-30 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
           sidebarOpen ? "w-64" : "hidden md:w-20 md:flex"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
@@ -373,7 +373,7 @@ const SideBar_Header = () => {
       {/* Main Content */}
       <div className="flex-1 md:ml-20">
         <header
-          className="fixed top-0 z-40 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
+          className="fixed top-0 z-20 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
  border-gray-200 w-full md:w-[calc(100%-5rem)]"
         >
           <div className="flex items-center gap-2">

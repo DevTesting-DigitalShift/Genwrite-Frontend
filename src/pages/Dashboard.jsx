@@ -386,14 +386,9 @@ const Dashboard = () => {
             {creationTools.map(tool => (
               <motion.div
                 key={tool.id}
-                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[220px]"
+                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
                 onClick={() => setActiveModel(tool.modelKey)}
               >
-                {/* Unique Gradient Background based on tool color */}
-                <div
-                  className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 translate-x-10 -translate-y-10 group-hover:opacity-20 transition-opacity ${tool.bgColor?.replace("bg-", "bg-") || "bg-gray-100"}`}
-                />
-
                 {tool.credit && (
                   <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
                     <Coins className="w-3 h-3" />
@@ -416,7 +411,7 @@ const Dashboard = () => {
                   </p>
                 </div>
 
-                <div className="relative z-10 mt-6 flex items-center text-sm font-semibold text-gray-900 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                <div className="relative z-10 mt-3 flex items-center text-xs font-semibold text-gray-600 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                   Create Now <ChevronRight className="w-4 h-4 ml-1" />
                 </div>
               </motion.div>

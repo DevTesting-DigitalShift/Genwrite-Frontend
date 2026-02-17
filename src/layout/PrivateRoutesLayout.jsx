@@ -8,6 +8,7 @@ import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
+import PaymentPendingModal from "@components/PaymentPendingModal"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
@@ -120,6 +121,7 @@ const PrivateRoutesLayout = () => {
           }
         `}
       </style>
+      <PaymentPendingModal user={user} />
     </>
   ) : (
     <Navigate to="/login" replace />

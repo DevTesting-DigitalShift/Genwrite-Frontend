@@ -3,14 +3,13 @@ import { BarChart3, Sparkles, FileText, TrendingUp, X } from "lucide-react"
 import { useAnimations } from "../hooks/useAnimations"
 import useViewport from "@/hooks/useViewport"
 import type { OverviewPanelProps } from "../types"
-import { ScoreCard, StatCard } from "../FeatureComponents"
-import * as Cheerio from "cheerio"
+import { ScoreCard } from "../FeatureComponents"
 
 /**
  * Overview Panel - Dashboard with stats, scores, and quick actions
  */
 const OverviewPanel: React.FC<OverviewPanelProps> = ({
-  blog,
+  _blog,
   editorContent,
   keywords,
   setIsSidebarOpen,
@@ -30,25 +29,36 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
   const getWordCount = (text: string): number => {
     if (!text) return 0
 
-    // Plain text case
-    if (!/< article/i.test(text)) {
+    // Plain text case (heuristic check for HTML tags)
+    if (!/<[a-z][\s\S]*>/i.test(text)) {
       return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
     }
 
-    const $ = Cheerio.load(text)
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(text, "text/html")
 
-    // Remove non-visible / non-content elements
-    $(
-      "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-    ).remove()
+      // Remove non-visible / non-content elements
+      const elementsToRemove = doc.querySelectorAll(
+        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
+      )
+      elementsToRemove.forEach(el => el.remove())
 
-    // If article exists, scope to it; otherwise use body/root
-    const articleEl = $("article")
-    const content = articleEl.length ? articleEl : $("body")
+      // If article exists, use it; otherwise use body
+      const content = doc.querySelector("article") || doc.body
+      const strippedText = content.textContent || ""
 
-    const strippedText = content.text()
-
-    return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+    } catch (e) {
+      console.error("Error parsing HTML for word count:", e)
+      // Fallback to simple regex strip
+      return text
+        .replace(/<[^>]*>/g, " ")
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .filter(Boolean).length
+    }
   }
 
   const wordCount = getWordCount(editorContent)

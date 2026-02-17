@@ -110,7 +110,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
         <button
           onClick={handleToggleStatus}
           disabled={isToggling}
-          className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
+          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all ${
             isRunning
               ? "bg-red-500 text-white hover:bg-red-600"
               : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
@@ -118,11 +118,11 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
           title={isRunning ? "Stop Job" : "Start Job"}
         >
           {isToggling ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : isRunning ? (
-            <Square size={14} fill="currentColor" />
+            <Square size={16} fill="currentColor" />
           ) : (
-            <Play size={14} fill="currentColor" className="ml-0.5" />
+            <Play size={16} fill="currentColor" className="ml-0.5" />
           )}
         </button>
       </div>
@@ -244,7 +244,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleEditJob}
-            className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
           >
             Edit Job
           </button>
@@ -258,7 +258,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
                 confirmProps: { danger: true },
               })
             }
-            className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"
           >
             Delete
           </button>

@@ -49,7 +49,7 @@ import { runCompetitiveAnalysis } from "@api/analysisApi"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
-import * as Cheerio from "cheerio"
+
 import { marked } from "marked"
 import TurndownService from "turndown"
 
@@ -327,42 +327,47 @@ const TextEditorSidebar = ({
       let sections = []
       // ... (rest of parsing logic will remain, just inserting the hook before it)
 
-      // STRATEGY 1: Structured HTML with <section> tags
-      // Use Cheerio to parse the generic content first
-      // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
-      const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(editorContent, "text/html")
 
       // STRATEGY 1: Structured HTML with <section> tags
       // Target sections inside #sections-wrapper if available to exclude meta/cta/faq
-      let $htmlSections = $("#sections-wrapper section")
+      let htmlSections = Array.from(doc.querySelectorAll("#sections-wrapper section"))
 
       // Fallback: If no wrapper found, try all valid content sections (excluding meta/cta/faq/summary)
-      if ($htmlSections.length === 0) {
-        $htmlSections = $("section").not(
+      if (htmlSections.length === 0) {
+        const allSections = Array.from(doc.querySelectorAll("section"))
+        const excludeSelector =
           "#blog-meta, #blog-cta, #faq-section, .blog-base-meta, .blog-brand-cta, .faq-section, .blog-quick-summary"
-        )
+        htmlSections = allSections.filter(el => !el.matches(excludeSelector))
       }
 
-      if ($htmlSections.length > 0) {
-        $htmlSections.each((i, el) => {
-          const $el = $(el)
-          const id = $el.attr("id")
+      if (htmlSections.length > 0) {
+        htmlSections.forEach((el, i) => {
+          const id = el.id
 
           // Skip if no ID (cannot target)
           if (!id) return
 
           // Try to find a heading inside this section
-          const $heading = $el.find("h1, h2, h3, h4, h5, h6").first()
-          const title = $heading.length ? $heading.text().trim() : `Section ${i + 1}`
+          const heading = el.querySelector("h1, h2, h3, h4, h5, h6")
+          const title = heading ? heading.textContent.trim() : `Section ${i + 1}`
 
           // Get text preview
           // Prefer content inside .section-content if available, otherwise full section text
-          // Removing the title from the preview text
-          const $content = $el.find(".section-content").length ? $el.find(".section-content") : $el
-          let text = $content.text()
-          if ($heading.length) {
-            text = text.replace($heading.text(), "")
+          const contentEl = el.querySelector(".section-content") || el
+
+          // Remove heading text from preview if it exists inside the content element
+          let text = ""
+          if (heading && contentEl.contains(heading)) {
+            const clone = contentEl.cloneNode(true)
+            const cloneHeading = clone.querySelector("h1, h2, h3, h4, h5, h6")
+            if (cloneHeading) cloneHeading.remove()
+            text = clone.textContent || ""
+          } else {
+            text = contentEl.textContent || ""
           }
+
           text = text.replace(/\s+/g, " ").trim()
 
           const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
@@ -378,26 +383,25 @@ const TextEditorSidebar = ({
 
         // Convert Markdown to HTML to ensure we catch all headers with generated IDs
         const html = marked.parse(editorContent)
-        const $md = Cheerio.load(html)
+        const mdDoc = parser.parseFromString(html, "text/html")
 
-        $md("h1, h2, h3").each((i, el) => {
-          const $el = $md(el)
-          const id = $el.attr("id")
-          const title = $el.text().trim()
+        mdDoc.querySelectorAll("h1, h2, h3").forEach((el, i) => {
+          const id = el.id
+          const title = el.textContent.trim()
 
           // Extract content preview (next elements until next header)
           let contentPreview = ""
-          let $next = $el.next()
+          let next = el.nextElementSibling
           let charCount = 0
           const MAX_PREVIEW = 120
 
-          while ($next.length && !$next.is("h1, h2, h3") && charCount < MAX_PREVIEW) {
-            const text = $next.text().trim()
+          while (next && !["H1", "H2", "H3"].includes(next.tagName) && charCount < MAX_PREVIEW) {
+            const text = next.textContent.trim()
             if (text) {
               contentPreview += text + " "
               charCount += text.length
             }
-            $next = $next.next()
+            next = next.nextElementSibling
           }
 
           if (id) {
@@ -472,24 +476,25 @@ const TextEditorSidebar = ({
           "article",
         ])
 
-        // STRATEGY 1: Cheerio (HTML Content)
+        // STRATEGY 1: DOMParser (HTML Content)
         // Only works if editorContent contains actual HTML tags with IDs
-        const $ = Cheerio.load(editorContent, { xmlMode: false })
-        const $section = $(`#${sectionToolState.sectionId}`)
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(editorContent, "text/html")
+        const sectionEl = doc.getElementById(sectionToolState.sectionId)
 
-        if ($section.length) {
+        if (sectionEl) {
           // Found explicit HTML section
-          originalSectionContent = turndownService.turndown($section.html())
+          originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
 
-          const $contentDiv = $section.find(".section-content")
-          if ($contentDiv.length) {
-            $contentDiv.html(response.data.content)
+          const contentDiv = sectionEl.querySelector(".section-content")
+          if (contentDiv) {
+            contentDiv.innerHTML = response.data.content
           } else {
-            $section.html(response.data.content)
+            sectionEl.innerHTML = response.data.content
           }
 
           // Convert modified HTML back to Markdown to match editor format
-          const modifiedHtml = $("body").html() || $.html()
+          const modifiedHtml = doc.body.innerHTML
           newFullContent = turndownService.turndown(modifiedHtml)
 
           // If we got HTML back, clean it up for comparison too
@@ -711,24 +716,36 @@ const TextEditorSidebar = ({
   const getWordCount = text => {
     if (!text) return 0
 
-    // Plain text case
-    if (!/<article/i.test(text)) {
+    // Plain text case (heuristic check for HTML tags)
+    if (!/<[a-z][\s\S]*>/i.test(text)) {
       return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
     }
 
-    const $ = Cheerio.load(text)
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(text, "text/html")
 
-    // Remove non-visible / non-content elements
-    $(
-      "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-    ).remove()
+      // Remove non-visible / non-content elements
+      const elementsToRemove = doc.querySelectorAll(
+        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
+      )
+      elementsToRemove.forEach(el => el.remove())
 
-    // If article exists, scope to it; otherwise use body/root
-    const content = $("article").length ? $("article") : $.root()
+      // If article exists, use it; otherwise use body
+      const content = doc.querySelector("article") || doc.body
+      const strippedText = content.textContent || ""
 
-    const strippedText = content.text()
-
-    return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+    } catch (e) {
+      console.error("Error parsing HTML for word count:", e)
+      // Fallback to simple regex strip
+      return text
+        .replace(/<[^>]*>/g, " ")
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .filter(Boolean).length
+    }
   }
 
   // Update regen form field
