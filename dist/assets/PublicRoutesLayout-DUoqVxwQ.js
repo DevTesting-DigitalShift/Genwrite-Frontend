@@ -1,1 +1,0 @@
-import{j as t}from"./tiptap-BabmW22p.js";import{l as s,N as a,O as n}from"./vendor-CcjAMWu8.js";const l=()=>{const e=localStorage.getItem("token"),o=s();return e&&["/login","/signup"].includes(o.pathname)?t.jsx(a,{to:"/dashboard",replace:!0}):t.jsx("div",{children:t.jsx("main",{className:"flex-1",children:t.jsx(n,{})})})};export{l as default};

@@ -1,1 +1,0 @@
-import{u as r}from"./useQuery-CEoF32mJ.js";import{getBlogs as t,getBlogById as u,getBlogStatsById as s}from"./blogApi-mE4NxLdq.js";const y=()=>r({queryKey:["allBlogs"],queryFn:()=>t()}),a=e=>r({queryKey:["blog",e],queryFn:()=>u(e),enabled:!!e}),g=e=>r({queryKey:["blogStats",e],queryFn:()=>s(e),enabled:!!e});export{a,g as b,y as u};
