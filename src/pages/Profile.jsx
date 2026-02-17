@@ -12,7 +12,7 @@ import {
   ClipboardDocumentIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/solid"
-import { isEqual } from "lodash-es"
+import isEqual from "lodash-es/isEqual"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import { DatePicker, message, Select, Tag, Tooltip, Switch } from "antd"
