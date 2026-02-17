@@ -7,7 +7,7 @@ import { FC, useEffect, useState, useMemo } from "react"
 interface TemplateSelectionProps {
   numberOfSelection?: number
   userSubscriptionPlan: string
-  onClick: Function
+  onClick: (templates: BlogTemplate[]) => void
   preSelectedIds?: Array<string | number>
   className?: string
 }
@@ -122,9 +122,9 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       >
         <Input.Search
           size="large"
-          className="w-full sm:w-2/3 md:w-1/2 !h-full text-center"
+          className="w-full sm:w-2/3 md:w-1/2 h-full! text-center"
           placeholder="search template by name"
-          onSearch={(value, event, info) => {
+          onSearch={value => {
             setTemplates(packages.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
           }}
           enterButton={<Search />}

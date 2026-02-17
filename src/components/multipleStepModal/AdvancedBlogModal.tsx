@@ -42,7 +42,7 @@ import { useQueryClient } from "@tanstack/react-query"
 const { Text } = Typography
 
 interface AdvancedBlogModalProps {
-  onSubmit: (data: any) => void
+  onSubmit: (data: unknown) => void
   closeFnc: () => void
 }
 
@@ -320,6 +320,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
       try {
         const { createNewBlog } = useBlogStore.getState()
+
         await createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
 
         // ✅ Only close modal on success
@@ -354,7 +355,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       if (keys.length > 1) {
         setFormData(prev => setValueByPath(prev, keys, value))
       } else {
-        updateFormData({ [name]: value } as any)
+        updateFormData({ [name]: value } as unknown as Partial<typeof initialData>)
 
         updateErrors({ [name]: "" })
       }
@@ -369,7 +370,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           <Flex
             vertical
             gap={8}
-            className={clsx("rounded-md !p-2", errors?.template && "border-2 border-red-500")}
+            className={clsx("rounded-md p-2!", errors?.template && "border-2 border-red-500")}
           >
             <label className={clsx("text-base mb-2", errors?.template && "text-red-500")}>
               {errors?.template ? (
@@ -405,9 +406,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 value={formData.topic}
                 onChange={handleInputChange}
                 className={clsx(
-                  "!bg-gray-50 antd-placeholder",
-                  errors.topic && "ring-1 !ring-[#ef4444]",
-                  "rounded-lg focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                  "bg-gray-50! antd-placeholder",
+                  errors.topic && "ring-1 ring-[#ef4444]!",
+                  "rounded-lg focus:outline-none! focus:ring-0! focus:ring-[#1B6FC9]!"
                 )}
               />
               {errors.topic && <Text className="error-text">{errors.topic}</Text>}
@@ -464,9 +465,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 maxCount={3}
                 tokenSeparators={[","]}
                 className={clsx(
-                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.focusKeywords && "!border-red-500",
-                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+                  " bg-gray-50! custom-placeholder [&>.ant-select-arrow]:hidden border",
+                  errors.focusKeywords && "border-red-500!",
+                  "rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
                 )}
                 style={{ width: "100%" }}
               />
@@ -490,9 +491,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 onChange={val => handleInputChange({ target: { name: "keywords", value: val } })}
                 tokenSeparators={[","]}
                 className={clsx(
-                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.keywords && "!border-red-500",
-                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+                  " bg-gray-50! custom-placeholder [&>.ant-select-arrow]:hidden border",
+                  errors.keywords && "border-red-500!",
+                  "rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
                 )}
                 style={{ width: "100%" }}
               />
@@ -504,7 +505,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               vertical
               gap={8}
               hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper !mb-4"
+              className="form-item-wrapper mb-4!"
             >
               <label htmlFor="blog-title">
                 Blog Title <span className="text-red-500">*</span>
@@ -517,9 +518,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   value={formData.title}
                   onChange={handleInputChange}
                   className={clsx(
-                    " !bg-gray-50 antd-placeholder",
-                    errors.title && "ring-1 !ring-[#ef4444]",
-                    "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                    " bg-gray-50! antd-placeholder",
+                    errors.title && "ring-1 ring-[#ef4444]!",
+                    "focus:outline-none! focus:ring-0! focus:ring-[#1B6FC9]!"
                   )}
                 />
                 <Button
@@ -529,7 +530,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   block
                   loading={isGenerating}
                   onClick={handleGenerateTitles}
-                  className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
+                  className="w-1/4! h-full text-[1rem] py-1 px-3 tracking-wide"
                 >
                   Generate {generatedTitles?.length ? "More" : "Titles"}
                 </Button>
@@ -543,9 +544,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       key={i}
                       color="geekblue"
                       className={clsx(
-                        "cursor-pointer text-[length:1rem] bg-black",
-                        formData.title === t && "!bg-blue-500 !text-white",
-                        "hover:!bg-blue-400 hover:!text-black p-1"
+                        "cursor-pointer text-[1rem] bg-black",
+                        formData.title === t && "bg-blue-500! text-white!",
+                        "hover:bg-blue-400! hover:text-black! p-1"
                       )}
                       onClick={() => {
                         handleInputChange({ target: { name: "title", value: t } })
@@ -591,7 +592,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 <Flex vertical className="w-full" gap={8}>
                   <label>
                     Blog Words Length :{" "}
-                    <Text strong underline className="text-[length:16px] px-2">
+                    <Text strong underline className="text-[16px] px-2">
                       {formData.userDefinedLength} words
                     </Text>
                   </label>
@@ -606,9 +607,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     max={5000}
                     tooltip={{ formatter: val => `${val} words`, placement: "bottom" }}
                     classNames={{
-                      rail: "!bg-gray-400",
-                      track: "!bg-gradient-to-tr !from-blue-600 !via-violet-500 !to-purple-500",
-                      handle: "hover:!ring-1 hover:!ring-purple-400",
+                      rail: "bg-gray-400!",
+                      track: "bg-linear-to-tr! from-blue-600! via-violet-500! to-purple-500!",
+                      handle: "hover:ring-1! hover:ring-purple-400!",
                     }}
                   />
                 </Flex>
@@ -657,18 +658,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <Radio.Button
                     key={model.id}
                     value={model.id}
-                    className="rounded-lg !px-4 !py-3 !border-[3px] hover:border-blue-400 hover:bg-purple-50 min-h-fit"
+                    className="rounded-lg px-4! py-3! border-[3px]! hover:border-blue-400 hover:bg-purple-50 min-h-fit"
                   >
                     <img src={model.logo} alt={model.label} className="size-6 object-contain" />
-                    <span className="text-[length:15px] font-medium text-gray-800">
-                      {model.label}
-                    </span>
+                    <span className="text-[15px] font-medium text-gray-800">{model.label}</span>
                   </Radio.Button>
                 ))}
               </Radio.Group>
             </Space>
             {/* Cost Cutter Toggle */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+            <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
               <Flex justify="space-between" align="center">
                 <div>
                   <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
@@ -745,7 +744,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 }}
                 defaultValue={IMAGE_OPTIONS[0]?.id}
                 block
-                className="p-2 !grid grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 !gap-4 w-full"
+                className="p-2 grid! grid-cols-1 sm:grid-cols-2! md:grid-cols-3! gap-4! w-full"
               >
                 {IMAGE_OPTIONS.map((option, index) => {
                   const isButtonDisabled = option.restrict && user?.subscription?.plan == "free"
@@ -775,7 +774,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         title={
                           <Text
                             strong
-                            className="text-[length:15px] text-gray-200 font-montserrat tracking-wide"
+                            className="text-[15px] text-gray-200 font-montserrat tracking-wide"
                           >
                             {isButtonDisabled
                               ? "Only For Subscribed Users"
@@ -795,9 +794,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         <Radio.Button
                           value={option.id}
                           disabled={isButtonDisabled || isAILimitReached}
-                          className="rounded-lg !px-4 !py-3 !border-[3px] text-red-600 hover:border-blue-400 hover:bg-violet-50 min-h-fit min-w-fit"
+                          className="rounded-lg px-4! py-3! border-[3px]! text-red-600 hover:border-blue-400 hover:bg-violet-50 min-h-fit min-w-fit"
                         >
-                          <span className="text-[length:15px] font-medium text-gray-800">
+                          <span className="text-[15px] font-medium text-gray-800">
                             {option.label}
                           </span>
                         </Radio.Button>
@@ -825,7 +824,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onChange={val =>
                       handleInputChange({ target: { name: "numberOfImages", value: val || 0 } })
                     }
-                    className="w-1/3 !text-base"
+                    className="w-1/3 text-base!"
                   />
                 </Flex>
               ) : (
@@ -865,7 +864,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 }}
                 maxCount={3}
                 tokenSeparators={[",", " "]}
-                className="!w-full !bg-gray-50 [&>.ant-select-arrow]:hidden custom-placeholder border rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+                className="w-full! bg-gray-50! [&>.ant-select-arrow]:hidden custom-placeholder border rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
               />
             </Space>
           </Flex>
@@ -938,7 +937,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 <Button
                   onClick={handlePrev}
                   type="default"
-                  className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
+                  className="h-10 px-6 text-[1rem] font-medium text-gray-700! bg-white border border-gray-300 rounded-md hover:bg-gray-50!"
                 >
                   Previous
                 </Button>
@@ -946,7 +945,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <Button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
                 type="default"
-                className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+                className="h-10 px-6 text-[1rem] font-medium text-white! bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90!"
               >
                 {currentStep === 3 ? "Generate Blog" : "Next"}
               </Button>
@@ -960,7 +959,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         destroyOnHidden
         className="m-2"
       >
-        <div className="h-full !max-h-[80vh] overflow-auto" style={{ scrollbarWidth: "none" }}>
+        <div className="h-full max-h-[80vh]! overflow-auto" style={{ scrollbarWidth: "none" }}>
           {renderSteps()}
         </div>
       </Modal>

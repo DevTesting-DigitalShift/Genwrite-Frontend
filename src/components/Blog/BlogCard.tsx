@@ -40,6 +40,7 @@ interface BlogCardProps {
   onRetry: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
+
   handlePopup: (config: Record<string, any>) => void
   hasGSCPermissions?: boolean
   isTrashcan?: boolean

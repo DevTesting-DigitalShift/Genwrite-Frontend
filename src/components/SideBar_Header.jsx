@@ -237,7 +237,7 @@ const SideBar_Header = () => {
 
   return (
     <div
-      className={`md:z-[10] ${
+      className={`md:z-10 ${
         path.includes("signup") || path.includes("login") ? "hidden" : "flex"
       }`}
     >
@@ -256,7 +256,7 @@ const SideBar_Header = () => {
         {/* Logo Header */}
         <div className="flex items-center mt-3 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <Menu className="w-5 h-5 text-white" />
             </div>
           ) : (
@@ -271,7 +271,7 @@ const SideBar_Header = () => {
           <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
+              className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
             >
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
@@ -306,7 +306,7 @@ const SideBar_Header = () => {
                     }`}
                   >
                     <Icon
-                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${
+                      className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
                         !isActive && "group-hover:scale-110"
                       }`}
                     />
@@ -329,17 +329,17 @@ const SideBar_Header = () => {
                 <ScheduleDemoButton
                   calLink="genwrite/30min"
                   buttonText="Schedule Demo"
-                  variant="gradient"
+                  variant="linear"
                   size="middle"
                   tooltipText=""
                   showIcon={true}
-                  className="!w-full !justify-center"
+                  className="w-full! justify-center!"
                 />
               </li>
               <li>
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
                   <Zap className="w-5 h-5" />
                   <span className="text-sm font-medium">Go Pro</span>
@@ -348,7 +348,7 @@ const SideBar_Header = () => {
               <li>
                 <button
                   onClick={() => setShowWhatsNew(true)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
                   <HelpCircle className="w-5 h-5" />
                   <span className="text-sm font-medium">Introduction Video</span>
@@ -362,9 +362,9 @@ const SideBar_Header = () => {
         <div className="p-3 border-t border-gray-200">
           <NavLink
             to="/contact"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100"
           >
-            <UsersRound className="w-5 h-5 flex-shrink-0" />
+            <UsersRound className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span className="text-sm font-medium">Contact Us</span>}
           </NavLink>
         </div>
@@ -373,7 +373,7 @@ const SideBar_Header = () => {
       {/* Main Content */}
       <div className="flex-1 md:ml-20">
         <header
-          className="fixed top-0 z-20 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
+          className="fixed top-0 z-20 p-4 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
  border-gray-200 w-full md:w-[calc(100%-5rem)]"
         >
           <div className="flex items-center gap-2">
@@ -387,7 +387,7 @@ const SideBar_Header = () => {
             <ScheduleDemoButton
               calLink="genwrite/30min"
               buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
-              variant="gradient"
+              variant="linear"
               size="large"
               tooltipText="Schedule a free consultation"
               showIcon={isDesktop}
@@ -399,7 +399,7 @@ const SideBar_Header = () => {
                 <Tooltip title="User Credits" className="hidden md:flex">
                   <button
                     onClick={() => navigate("/credit-logs")}
-                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
+                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
                   >
                     <RiCoinsFill size={24} color="orange" />
                     <span className="font-semibold">
@@ -419,7 +419,7 @@ const SideBar_Header = () => {
                 </Tooltip>
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
                   <Avatar
-                    className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
+                    className="bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
                     style={{ marginLeft: "20px", marginRight: "20px" }}
                     size="large"
                     src={user?.avatar ? user.avatar : undefined}

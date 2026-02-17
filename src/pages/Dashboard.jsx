@@ -263,7 +263,7 @@ const Dashboard = () => {
       >
         {/* Header / Hero Section */}
         <motion.div variants={itemVariants} className="mt-4">
-          <h1 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-semibold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {getGreeting()},{" "}
             <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
           </h1>
@@ -282,8 +282,8 @@ const Dashboard = () => {
               onClick={() => navigate("/analytics")}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-indigo-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
-              <div className="relative z-10 flex items-start justify-between">
+              <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
+              <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-indigo-600 font-bold">Analytics</p>
                   <p className="text-xs text-slate-400 mt-1 font-medium">Insights & Trends</p>
@@ -302,8 +302,8 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-              <div className="relative z-10 flex items-start justify-between">
+              <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Blogs</p>
                   <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">{totalBlogs}</p>
@@ -319,8 +319,8 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-              <div className="relative z-10 flex items-start justify-between">
+              <div className="absolute inset-0 bg-linear-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Posted</p>
                   <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
@@ -338,7 +338,7 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Archived</p>
@@ -357,7 +357,7 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Branded</p>
@@ -396,7 +396,7 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                <div className="relative z-10">
+                <div className="relative ">
                   <div
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${tool.bgColor || "bg-gray-50"} ${tool.color || "text-gray-600"} shadow-sm`}
                   >

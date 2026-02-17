@@ -1,7 +1,6 @@
 import { motion } from "framer-motion"
-import { Info, Crown, TagIcon, User, Calendar } from "lucide-react"
+import { Info, Crown, TagIcon } from "lucide-react"
 import { Button, Input, message } from "antd"
-import { useState } from "react"
 import { useAnimations } from "../hooks/useAnimations"
 import type { BlogInfoPanelProps } from "../types"
 
@@ -42,9 +41,9 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
+          <div className="p-2 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg">
             <Info className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -112,7 +111,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
         {(blog?.brandId || blog?.nameOfVoice) && (
           <motion.div
             variants={item}
-            className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg"
+            className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg"
           >
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-purple-600" />

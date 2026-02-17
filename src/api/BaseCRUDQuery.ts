@@ -1,9 +1,8 @@
-// src/api/base/BaseCRUDQuery.ts
 import { QueryBase, AnyUseQueryOptions } from "./QueryBase"
 
 export abstract class BaseCRUDQuery<
   TEntity extends { _id?: string },
-  TError = Error
+  TError = Error,
 > extends QueryBase<TEntity, TError> {
   abstract api: {
     list: (params?: any) => Promise<TEntity[]>

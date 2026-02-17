@@ -1,0 +1,1 @@
+import{d as l}from"./useAuthStore-CU2rUJjR.js";import{c as s}from"./react-wNxFir7h.js";const b=s(l(o=>({showJobModal:!1,selectedJob:null,openJobModal:(e=null)=>o({showJobModal:!0,selectedJob:e}),closeJobModal:()=>o({showJobModal:!1,selectedJob:null}),setSelectedJob:e=>o({selectedJob:e})}),{name:"job-store"}));export{b as u};

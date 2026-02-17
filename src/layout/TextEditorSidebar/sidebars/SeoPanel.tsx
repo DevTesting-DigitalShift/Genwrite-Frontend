@@ -19,14 +19,8 @@ import type { SeoPanelProps } from "../types"
 import { CompetitorsList } from "../FeatureComponents"
 
 const { TextArea } = Input
-const { Panel } = Collapse
 
-/**
- * SEO Panel - Metadata management, competitive analysis, and export options
- */
 const SeoPanel: React.FC<SeoPanelProps> = ({
-  blog,
-  user,
   userPlan,
   isPro,
   metadata,
@@ -35,7 +29,6 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
   onMetadataSave,
   isGeneratingMetadata,
   analysisResult,
-  editorContent,
   includeImagesInExport,
   setIncludeImagesInExport,
   onExportMarkdown,
@@ -53,10 +46,10 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+            <div className="p-2 bg-linear-to-br from-indigo-500 to-purple-600 rounded-lg">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
 
@@ -107,12 +100,12 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
               onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              className="!resize-none"
+              className="resize-none!"
             />
           </div>
           <button
             onClick={onMetadataSave}
-            className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md transition-all"
+            className="w-full py-2 text-sm font-semibold rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md transition-all"
           >
             Save Metadata
           </button>
@@ -180,7 +173,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                   userPlan === "free"
                     ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                     : `
-                      bg-gradient-to-br from-blue-50 to-indigo-50
+                      bg-linear-to-br from-blue-50 to-indigo-50
                       hover:from-blue-100 hover:to-indigo-100
                       text-blue-700 border-blue-200
                       hover:border-blue-300 hover:shadow-lg
@@ -208,7 +201,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                   userPlan === "free"
                     ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                     : `
-                      bg-gradient-to-br from-purple-50 to-pink-50
+                      bg-linear-to-br from-purple-50 to-pink-50
                       hover:from-purple-100 hover:to-pink-100
                       text-purple-700 border-purple-200
                       hover:border-purple-300 hover:shadow-lg
@@ -236,7 +229,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                   userPlan === "free"
                     ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                     : `
-                      bg-gradient-to-br from-green-50 to-emerald-50
+                      bg-linear-to-br from-green-50 to-emerald-50
                       hover:from-green-100 hover:to-emerald-100
                       text-green-700 border-green-200
                       hover:border-green-300 hover:shadow-lg
@@ -330,7 +323,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                         transition={{ delay: idx * 0.05 }}
                         className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
                       >
-                        <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                           <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
                         </div>
                         <p className="text-xs text-amber-900 leading-relaxed flex-1">

@@ -1,20 +1,5 @@
-/**
- * Zod Validation Schemas for Modal Forms
- *
- * This file contains Zod schemas for API data validation with:
- * - .optional() for optional fields
- * - .default() for default values
- * - .describe() for documentation
- *
- * Use VITE_VALIDATE_FORMS=true env variable to enable validation on form submit
- */
-
 import { z } from "zod"
 import { ImageSource, AiModel, Tone, Language, ScheduleType } from "./forms.types"
-
-// ============================================================================
-// SHARED ENUM SCHEMAS
-// ============================================================================
 
 export const imageSourceSchema = z
   .enum([ImageSource.NONE, ImageSource.STOCK, ImageSource.AI, ImageSource.UPLOAD])
@@ -140,110 +125,102 @@ export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSche
 // BULK BLOG FINAL DATA SCHEMA
 // ============================================================================
 
-export const bulkBlogFinalDataSchema = z
-  .object({
-    templates: z
-      .array(z.string())
-      .min(1, "At least one template is required")
-      .describe("Selected blog template names"),
+export const bulkBlogFinalDataSchema = z.object({
+  templates: z
+    .array(z.string())
+    .min(1, "At least one template is required")
+    .describe("Selected blog template names"),
 
-    topics: z
-      .array(z.string())
-      .min(1, "At least one topic is required")
-      .describe("List of blog topics to generate"),
+  topics: z
+    .array(z.string())
+    .min(1, "At least one topic is required")
+    .describe("List of blog topics to generate"),
 
-    keywords: z
-      .array(z.string())
-      .default([])
-      .describe("Keywords for SEO (required if performKeywordResearch is false)"),
+  keywords: z
+    .array(z.string())
+    .default([])
+    .describe("Keywords for SEO (required if performKeywordResearch is false)"),
 
-    performKeywordResearch: z
-      .boolean()
-      .default(true)
-      .describe("Whether to perform AI-powered keyword research"),
+  performKeywordResearch: z
+    .boolean()
+    .default(true)
+    .describe("Whether to perform AI-powered keyword research"),
 
-    tone: toneSchema,
+  tone: toneSchema,
 
-    languageToWrite: languageSchema
-      .default(Language.ENGLISH)
-      .describe("Target language for blog content"),
+  languageToWrite: languageSchema
+    .default(Language.ENGLISH)
+    .describe("Target language for blog content"),
 
-    userDefinedLength: z
-      .number()
-      .min(500)
-      .max(5000)
-      .default(1000)
-      .describe("Target word count for each blog (500-5000)"),
+  userDefinedLength: z
+    .number()
+    .min(500)
+    .max(5000)
+    .default(1000)
+    .describe("Target word count for each blog (500-5000)"),
 
-    imageSource: imageSourceSchema
-      .default(ImageSource.STOCK)
-      .describe("Source of images for blogs"),
+  imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Source of images for blogs"),
 
-    useBrandVoice: z.boolean().default(false).describe("Whether to use a custom brand voice"),
+  useBrandVoice: z.boolean().default(false).describe("Whether to use a custom brand voice"),
 
-    useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
+  useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
 
-    includeInterlinks: z.boolean().default(true).describe("Whether to include internal links"),
+  includeInterlinks: z.boolean().default(true).describe("Whether to include internal links"),
 
-    includeFaqs: z.boolean().default(true).describe("Whether to include FAQ section"),
+  includeFaqs: z.boolean().default(true).describe("Whether to include FAQ section"),
 
-    numberOfBlogs: z
-      .number()
-      .min(1)
-      .max(10)
-      .default(1)
-      .describe("Number of blogs to generate (1-10)"),
+  numberOfBlogs: z
+    .number()
+    .min(1)
+    .max(10)
+    .default(1)
+    .describe("Number of blogs to generate (1-10)"),
 
-    numberOfImages: z
-      .number()
-      .min(0)
-      .max(20)
-      .default(0)
-      .describe("Number of images per blog (0 = AI decides)"),
+  numberOfImages: z
+    .number()
+    .min(0)
+    .max(20)
+    .default(0)
+    .describe("Number of images per blog (0 = AI decides)"),
 
-    wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
+  wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
 
-    postFrequency: z.number().default(600).describe("Post frequency in seconds"),
+  postFrequency: z.number().default(600).describe("Post frequency in seconds"),
 
-    aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
+  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
 
-    includeTableOfContents: z
-      .boolean()
-      .default(false)
-      .describe("Whether to include table of contents"),
+  includeTableOfContents: z
+    .boolean()
+    .default(false)
+    .describe("Whether to include table of contents"),
 
-    isCheckedGeneratedImages: z
-      .boolean()
-      .default(true)
-      .describe("Whether images should be generated/included"),
+  isCheckedGeneratedImages: z
+    .boolean()
+    .default(true)
+    .describe("Whether images should be generated/included"),
 
-    addOutBoundLinks: z.boolean().default(false).describe("Whether to include outbound links"),
+  addOutBoundLinks: z.boolean().default(false).describe("Whether to include outbound links"),
 
-    blogImages: z.array(z.any()).optional().describe("Custom uploaded images (File objects)"),
+  blogImages: z.array(z.any()).optional().describe("Custom uploaded images (File objects)"),
 
-    postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
+  postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
 
-    brandId: z.string().nullable().optional().describe("Brand voice ID when useBrandVoice is true"),
+  brandId: z.string().nullable().optional().describe("Brand voice ID when useBrandVoice is true"),
 
-    addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
+  addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
 
-    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
 
-    easyToUnderstand: z
-      .boolean()
-      .default(false)
-      .describe("Use v2 system prompts for 8th grader level readability"),
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
 
-    embedYouTubeVideos: z
-      .boolean()
-      .default(false)
-      .describe("Embed YouTube videos in the blog content"),
-  })
-  .transform(data => {
-    // Strip irrelevant UI state fields
-    const { topicInput, keywordInput, isDragging, templateIds, ...cleanData } = data as any
-    return cleanData
-  })
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
+})
 
 export type BulkBlogFinalDataSchemaType = z.infer<typeof bulkBlogFinalDataSchema>
 
@@ -363,11 +340,7 @@ export const jobFinalDataSchema = z
 
     templateIds: z.array(z.number()).default([]).describe("Selected template IDs"),
   })
-  .transform(data => {
-    // Strip irrelevant UI state fields
-    const { templateIds, ...cleanData } = data as any
-    return cleanData
-  })
+  .transform(({ templateIds: _, ...cleanData }) => cleanData)
 
 export type JobFinalDataSchemaType = z.infer<typeof jobFinalDataSchema>
 
@@ -467,11 +440,7 @@ export const advancedBlogFinalDataSchema = z
 
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })
-  .transform(data => {
-    // Strip irrelevant UI state fields - templateIds is only used in frontend
-    const { templateIds, ...cleanData } = data as any
-    return cleanData
-  })
+  .transform(({ templateIds: _, ...cleanData }) => cleanData)
 
 export type AdvancedBlogFinalDataSchemaType = z.infer<typeof advancedBlogFinalDataSchema>
 

@@ -101,7 +101,7 @@ const ScheduleDemoButton = ({
       }
     }
 
-    initCal()
+    void initCal()
   }, [])
 
   /**
