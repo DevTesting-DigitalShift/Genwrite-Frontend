@@ -20,7 +20,7 @@ const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
   const { aiDetection, resetAiDetection } = useToolsStore()
   const { result: detectionResult, error } = aiDetection
-  const { mutate: detectContent, isLoading } = useAiDetectionMutation()
+  const { mutate: detectContent, isPending } = useAiDetectionMutation()
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -90,7 +90,7 @@ const AiContentDetection = () => {
     return <CheckCircle className="w-5 h-5 text-green-600" />
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen message="Analyzing your content..." />
@@ -153,7 +153,7 @@ const AiContentDetection = () => {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={isLoading || !inputContent.trim() || wordCount < 20}
+              disabled={isPending || !inputContent.trim() || wordCount < 20}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                 !inputContent.trim() || wordCount < 20
                   ? "opacity-50 cursor-not-allowed"

@@ -16,9 +16,6 @@ const PrivateRoutesLayout = () => {
   const location = useLocation()
   const { user, loading, loadAuthenticatedUser } = useAuthStore()
 
-  // Hide chatbot on toolbox routes
-  const isToolboxRoute = location.pathname.startsWith("/toolbox/")
-
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
   // Load authenticated user on mount
@@ -56,8 +53,6 @@ const PrivateRoutesLayout = () => {
     }
   }, [user, navigate])
 
-  const isToolbarRoute = location.pathname.startsWith("/toolbox/")
-
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {
     return <LoadingScreen message="Authenticating..." />
@@ -68,11 +63,7 @@ const PrivateRoutesLayout = () => {
       <div className="flex flex-col min-h-screen">
         <LayoutWithSidebarAndHeader />
 
-        <div
-          className={`flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 ${
-            isToolbarRoute ? "px-0 pl-2" : " px-3 md:px-6"
-          }`}
-        >
+        <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 px-3 md:px-6">
           {/* Chatbot Button (hidden on /toolbox/:id) */}
           {/* {!isToolboxRoute && (
             <>

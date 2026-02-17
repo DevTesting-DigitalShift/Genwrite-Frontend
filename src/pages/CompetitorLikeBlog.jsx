@@ -21,7 +21,7 @@ import remarkGfm from "remark-gfm"
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")
   const [topic, setTopic] = useState("")
-  // const dispatch = useDispatch() // Removed
+
   const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
   const { result, error } = competitorLikeBlog
   const {

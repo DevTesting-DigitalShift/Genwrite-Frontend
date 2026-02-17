@@ -36,7 +36,6 @@ const MainEditorPage = () => {
     enabled: !!id,
   })
 
-  // Redux remnants (Handled via Zustand or direct hooks now)
   const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
   const [activeTab, setActiveTab] = useState("Normal")
   // isLoading is now derived from isBlogFetching
@@ -332,7 +331,7 @@ const MainEditorPage = () => {
       !templateFormData.keywords ||
       templateFormData.keywords.length === 0
 
-    if (isEmpty && !id) navigate("/toolbox")
+    if (isEmpty && !id) navigate("/dashboard")
     setShowTemplateModal(false)
   }
 

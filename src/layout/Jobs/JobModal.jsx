@@ -227,6 +227,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
+        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
       },
       options: {
         ...newJob.options,
@@ -259,6 +260,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
+        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
       },
       options: {
         ...newJob.options,

@@ -15,8 +15,7 @@ export const useHumanizeMutation = () => {
       // Optionally handle error in store, but usually local state/toast is enough
     },
     // We don't reset result on mutate because we might want to show previous result while loading?
-    // Redux cleared it on pending. Let's stick to that if needed, or just let loading state handle UI.
-    // Redux: state.result = null on pending.
+
     onMutate: () => {
       setResult(null)
     },

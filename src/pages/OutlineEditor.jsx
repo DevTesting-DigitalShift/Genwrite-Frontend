@@ -51,7 +51,7 @@ const OutlineEditor = () => {
 
   const handleClose = () => {
     setIsOpen(false)
-    navigate("/toolbox")
+    navigate("/dashboard")
   }
 
   const handlePrev = () => {

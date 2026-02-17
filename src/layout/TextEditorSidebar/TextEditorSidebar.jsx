@@ -45,6 +45,7 @@ import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { fetchCategories, generateMetadata } from "@api/otherApi"
+import { runCompetitiveAnalysis } from "@api/analysisApi"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
@@ -869,37 +870,27 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleAnalyzing = useCallback(() => {
+  const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")
-    handlePopup({
-      title: "SEO Analysis",
-      description: (
-        <>
-          Run competitive analysis? <span className="font-bold">10 credits</span>
-        </>
-      ),
-      confirmText: "Run",
-      onConfirm: async () => {
-        const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
-        setLoading(true)
-        try {
-          const result = await runCompetitiveAnalysis({
-            blogId: blog._id,
-            title: blog.title,
-            content: blog.content,
-            keywords: keywords || blog?.focusKeywords || [],
-          })
-          setAnalysisResult(blog._id, result)
-          setActivePanel("seo")
-        } catch (err) {
-          setError(err.message)
-          message.error("Analysis failed")
-        } finally {
-          setLoading(false)
-        }
-      },
-    })
-  }, [isPro, navigate, handlePopup, blog, keywords])
+
+    const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
+    setLoading(true)
+    try {
+      const result = await runCompetitiveAnalysis({
+        blogId: blog._id,
+        title: blog.title,
+        content: blog.content,
+        keywords: keywords || blog?.focusKeywords || [],
+      })
+      setAnalysisResult(blog._id, result)
+      setActivePanel("seo")
+    } catch (err) {
+      setError(err.message)
+      message.error("Analysis failed")
+    } finally {
+      setLoading(false)
+    }
+  }, [isPro, navigate, blog, keywords])
 
   const handleMetadataGen = useCallback(() => {
     if (isPro) return navigate("/pricing")

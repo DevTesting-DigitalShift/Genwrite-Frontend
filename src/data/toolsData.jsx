@@ -133,6 +133,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Keyword_Research,
     category: "seo",
+    credit: "Free",
   },
   {
     id: "keyword-scraping",
@@ -205,18 +206,6 @@ export const tools = [
     credit: "10 Credits",
   },
   {
-    id: "blog-analytics",
-    title: "Blog Analytics",
-    description: "Detailed insights into your blog performance and trends.",
-    icon: <BarChart2 className="w-6 h-6" />,
-    type: "navigation",
-    path: "/analytics",
-    category: "seo",
-    isPopular: true,
-    stats: "150K",
-    credit: "Free",
-  },
-  {
     id: "performance-monitoring",
     title: "Performance Monitoring",
     description: "Monitor your blog's SEO, keywords, and competitor data.",
@@ -224,6 +213,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Performance_Monitoring,
     category: "seo",
+    credit: "Free",
   },
   {
     id: "image-tools",

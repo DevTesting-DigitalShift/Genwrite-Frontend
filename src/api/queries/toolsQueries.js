@@ -20,7 +20,7 @@ export const useAiDetectionMutation = () => {
   return useMutation({
     mutationFn: detectAiContentApi,
     onMutate: () => {
-      resetAiDetection() // Or keep previous result, up to UI/UX choice. But Redux cleared it.
+      resetAiDetection()
     },
     onSuccess: data => {
       setAiDetectionResult(data)

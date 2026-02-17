@@ -98,7 +98,7 @@ export interface QuickBlogFormData {
   easyToUnderstand: boolean
 }
 
-/** Data sent to API/Redux for QuickBlogModal */
+/** Data sent to API for QuickBlogModal */
 export interface QuickBlogFinalData {
   topic: string
   exactTitle: boolean
@@ -156,7 +156,7 @@ export interface BulkBlogFormData {
   embedYouTubeVideos: boolean
 }
 
-/** Data sent to API/Redux for BulkBlogModal */
+/** Data sent to API for BulkBlogModal */
 export interface BulkBlogFinalData {
   templates: string[]
   templateIds: number[]
@@ -319,7 +319,7 @@ export interface AdvancedBlogFormData {
   options: AdvancedBlogOptions
 }
 
-/** Data sent to API/Redux for AdvancedBlogModal */
+/** Data sent to API for AdvancedBlogModal */
 export interface AdvancedBlogFinalData {
   templateIds: number[]
   template: string

@@ -464,8 +464,6 @@ const PluginsMain = () => {
     if (plugin.id === 113 || plugin.id === 114) {
       const isShopify = plugin.id === 113
 
-      // savedDomain from redux (shopify / wix)
-      // const integrations = useSelector(state => state.integration)
       const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
       const [domain, setDomain] = useState(savedDomain ?? "")
       const [isValidDomain, setIsValidDomain] = useState(true)
