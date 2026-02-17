@@ -237,9 +237,7 @@ const SideBar_Header = () => {
 
   return (
     <div
-      className={`md:z-10 ${
-        path.includes("signup") || path.includes("login") ? "hidden" : "flex"
-      }`}
+      className={`z-50 ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
     >
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}

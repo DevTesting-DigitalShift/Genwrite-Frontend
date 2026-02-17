@@ -420,8 +420,8 @@ const PluginsMain = () => {
                       loading={localLoading}
                       className={`rounded-lg border-0 mt-2 ${
                         isEditing
-                          ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                          : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                          ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                          : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                       }`}
                     >
                       {serverInt
@@ -701,7 +701,7 @@ const PluginsMain = () => {
                         block
                         onClick={openInstallUrl}
                         disabled={!domain || !isValidDomain || localLoading}
-                        className={`flex-1 bg-gradient-to-r ${
+                        className={`flex-1 bg-linear-to-r ${
                           isShopify
                             ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                             : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
@@ -720,7 +720,7 @@ const PluginsMain = () => {
                         onClick={handlePing}
                         loading={localLoading}
                         disabled={!domain || localLoading}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                        className="flex-1 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
                       >
                         Check Status
                       </Button>
@@ -745,7 +745,7 @@ const PluginsMain = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="h-full"
+        className="h-full p-6"
       >
         <Flex vertical gap="large" className="h-full p-6">
           <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
@@ -895,8 +895,8 @@ const PluginsMain = () => {
                     loading={localLoading}
                     className={`rounded-lg border-0 mt-2 ${
                       isEditing
-                        ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                        : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                        ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                        : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                     }`}
                   >
                     {wordpressInt
@@ -993,7 +993,7 @@ const PluginsMain = () => {
         transition={{ duration: 0.5 }}
         className="my-6 ml-6 sm:ml-10"
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Plugin Center
         </h1>
         <p className="text-gray-500 text-base mt-2 max-w-md">
