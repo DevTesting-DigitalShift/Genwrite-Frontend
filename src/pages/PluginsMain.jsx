@@ -352,9 +352,9 @@ const PluginsMain = () => {
                           value={url}
                           onChange={handleUrlChange}
                           disabled={!isEditing || loading || localLoading}
-                          className={`w-full rounded-lg border ${
+                          className={`w-full h-14 rounded-2xl border ${
                             url && !isValidUrl ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
                         />
                       </div>
                       {url && !isValidUrl && (
@@ -374,9 +374,9 @@ const PluginsMain = () => {
                           value={frontend}
                           onChange={handleFrontendChange}
                           disabled={!isEditing || loading || localLoading}
-                          className={`w-full rounded-lg border ${
+                          className={`w-full h-14 rounded-2xl border ${
                             frontend && !isValidFrontend ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
                         />
                       </div>
                       {frontend && !isValidFrontend && (
@@ -396,7 +396,7 @@ const PluginsMain = () => {
                           onFocus={() => setAuthToken("")}
                           onChange={handleAuthTokenChange}
                           disabled={!isEditing || loading || localLoading}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                          className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                         />
                       </div>
                     </div>
@@ -418,7 +418,7 @@ const PluginsMain = () => {
                           : loading || localLoading
                       }
                       loading={localLoading}
-                      className={`rounded-lg border-0 mt-2 ${
+                      className={`h-14 rounded-2xl border-0 mt-2 ${
                         isEditing
                           ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
                           : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
@@ -441,7 +441,7 @@ const PluginsMain = () => {
                         type="default"
                         size="large"
                         icon={<Download size={16} />}
-                        className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
+                        className="w-full h-14 mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-2xl shadow-sm"
                       >
                         Download Plugin Doc
                       </Button>
@@ -682,9 +682,9 @@ const PluginsMain = () => {
                           value={domain}
                           onChange={e => setDomain(e.target.value.trim())}
                           disabled={localLoading}
-                          className={`w-full rounded-lg border ${
+                          className={`w-full h-14 rounded-2xl border ${
                             domain && !isValidDomain ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
                         />
                       </div>
                       {domain && !isValidDomain && (
@@ -701,7 +701,7 @@ const PluginsMain = () => {
                         block
                         onClick={openInstallUrl}
                         disabled={!domain || !isValidDomain || localLoading}
-                        className={`flex-1 bg-linear-to-r ${
+                        className={`flex-1 h-14 rounded-2xl bg-linear-to-r ${
                           isShopify
                             ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                             : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
@@ -720,7 +720,7 @@ const PluginsMain = () => {
                         onClick={handlePing}
                         loading={localLoading}
                         disabled={!domain || localLoading}
-                        className="flex-1 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                        className="flex-1 h-14 rounded-2xl bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
                       >
                         Check Status
                       </Button>
@@ -828,9 +828,9 @@ const PluginsMain = () => {
                         value={url}
                         onChange={handleUrlChange}
                         disabled={!isEditing || loading || localLoading}
-                        className={`w-full rounded-lg border ${
+                        className={`w-full h-14 rounded-2xl border ${
                           url && !isValidUrl ? "border-red-400" : "border-gray-300"
-                        } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                        } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
                       />
                     </div>
                     {url && !isValidUrl && (
@@ -849,7 +849,7 @@ const PluginsMain = () => {
                       onFocus={() => setWpUsername("")}
                       onChange={e => setWpUsername(e.target.value)}
                       disabled={!isEditing || loading || localLoading}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                      className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                     />
                   </div>
 
@@ -866,7 +866,7 @@ const PluginsMain = () => {
                         onFocus={() => setWpPassword("")}
                         onChange={e => setWpPassword(e.target.value)}
                         disabled={!isEditing || loading || localLoading}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                        className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                       />
                     </div>
                     {isEditing && (
@@ -893,7 +893,7 @@ const PluginsMain = () => {
                         : loading || localLoading
                     }
                     loading={localLoading}
-                    className={`rounded-lg border-0 mt-2 ${
+                    className={`h-14 rounded-2xl border-0 mt-2 ${
                       isEditing
                         ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
                         : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
@@ -915,7 +915,7 @@ const PluginsMain = () => {
               type="default"
               size="large"
               icon={<Download size={16} />}
-              className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
+              className="w-full h-14 mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-2xl shadow-sm"
             >
               Download Plugin
             </Button>
@@ -987,12 +987,7 @@ const PluginsMain = () => {
         <title>Plugins | GenWrite</title>
       </Helmet>
 
-      <div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="my-6 ml-6 sm:ml-10"
-      >
+      <div className="my-6 ml-6 sm:ml-10">
         <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Plugin Center
         </h1>

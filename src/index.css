@@ -1,8 +1,8 @@
-/* @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hind:wght@400;500;600&display=swap"); */
-
 @import "tailwindcss";
 @plugin "daisyui";
-@config "../tailwind.config.cjs";
+/* @config "../tailwind.config.cjs"; */
+
+/* @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hind:wght@400;500;600&display=swap"); */
 
 body {
   font-family: "Lato", sans-serif;
@@ -15,15 +15,15 @@ code {
 }
 
 /* Example: Enlarge the message box */
-.ant-message {
-  font-size: 18px; /* Make text larger */
-  top: 100px; /* Move it lower on the screen if needed */
+/* .ant-message {
+  font-size: 18px;
+  top: 100px;
 }
 
 .ant-message-notice-content {
-  padding: 16px 24px; /* Increase padding */
-  border-radius: 8px; /* Optional: rounded corners */
-}
+  padding: 16px 24px;
+  border-radius: 8px;
+} */
 
 .blog-content2 {
   font-size: 1rem;
@@ -263,6 +263,8 @@ input[type="number"] {
   scrollbar-width: none; /* Firefox */
 }
 
+/* Custom Tabs */
+/*
 .custom-tabs .ant-tabs-tab {
   padding: 12px 24px;
   background: transparent !important;
@@ -412,6 +414,7 @@ input[type="number"] {
     padding: 10px !important;
   }
 }
+*/
 
 /* Shimmer animation for skeleton loaders */
 @keyframes shimmer {
@@ -427,6 +430,7 @@ input[type="number"] {
   animation: shimmer 2s ease-in-out infinite;
 }
 
+/*
 .protocol-select .ant-select-selector {
   border: none !important;
   padding: 0 12px !important;
@@ -446,26 +450,33 @@ input[type="number"] {
 .ant-input {
   font-size: 14px;
 }
+*/
 
 /* Remove left rounding, keep right rounded */
+/*
 .url-input .ant-input {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 }
+*/
 
 /* Match addon height & remove its right rounding */
+/*
 .url-input .ant-input-group-addon {
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
 }
+*/
 
 /* Optional: clean select inside addon */
+/*
 .protocol-select .ant-select-selector {
   border: none !important;
   border-radius: 12px 0 0 12px !important;
 }
+*/
 
 .section-iframe-wrapper {
   margin-bottom: 20px;

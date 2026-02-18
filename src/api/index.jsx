@@ -37,9 +37,19 @@ axiosInstance.interceptors.response.use(
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
+      // Use toast store directly if possible or import it.
+      // Since this is a non-React file, we can import the store directly.
+      window.dispatchEvent(
+        new CustomEvent("show-toast", {
+          detail: { message: "Session expired. Please login again.", type: "alert-error" },
+        })
+      )
+
       // Redirect to login handled below
       if (window.location.pathname !== "/login") {
-        window.location.href = "/login"
+        setTimeout(() => {
+          window.location.href = "/login"
+        }, 1500)
       }
     }
 

@@ -179,7 +179,7 @@ const SideBar_Header = () => {
       if (key === "logout") handleLogout()
       else navigate(`/${key}`)
     },
-    rootClassName: "rounded-xl shadow-xl min-w-[220px] !bg-white border border-gray-100",
+    rootClassName: "rounded-lg shadow-xl min-w-[220px] !bg-white border border-gray-100",
     items: [
       {
         key: "user-info",
@@ -196,25 +196,25 @@ const SideBar_Header = () => {
         key: "profile",
         label: "Profile",
         icon: <User className="w-4 h-4 text-blue-500" />,
-        className: "!py-2 !px-3 hover:!bg-blue-50 !rounded-lg text-sm font-medium",
+        className: "!py-2 !px-3 hover:!bg-blue-50 !rounded-xl text-sm font-medium",
       },
       {
         key: "transactions",
         label: "Subscription & Transactions",
         icon: <RiCashFill className="w-4 h-4 text-purple-500" />,
-        className: "!py-2 !px-3 hover:!bg-purple-50 !rounded-lg text-sm font-medium",
+        className: "!py-2 !px-3 hover:!bg-purple-50 !rounded-xl text-sm font-medium",
       },
       {
         key: "credit-logs",
         label: "Credit History",
         icon: <History className="w-4 h-4 text-orange-500" />,
-        className: "!py-2 !px-3 hover:!bg-orange-50 !rounded-lg text-sm font-medium",
+        className: "!py-2 !px-3 hover:!bg-orange-50 !rounded-xl text-sm font-medium",
       },
       {
         key: "pricing",
         label: "Upgrade Plan",
         icon: <Sparkles className="w-4 h-4 text-amber-500" />,
-        className: "!py-2 !px-3 hover:!bg-amber-50 !rounded-lg text-sm font-bold text-amber-600",
+        className: "!py-2 !px-3 hover:!bg-amber-50 !rounded-xl text-sm font-bold text-amber-600",
       },
       { type: "divider", className: "!my-2" },
       {
@@ -222,7 +222,7 @@ const SideBar_Header = () => {
         danger: true,
         label: "Sign Out",
         icon: <LogOut className="w-4 h-4" />,
-        className: "!py-2 !px-3 !rounded-lg text-sm font-bold",
+        className: "!py-2 !px-3 !rounded-xl text-sm font-bold",
       },
     ],
   }
@@ -232,7 +232,14 @@ const SideBar_Header = () => {
       if (key === "login") navigate("/login")
     },
     rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
-    items: [{ key: "login", danger: true, label: "Login", className: "!py-1.5 hover:bg-gray-100" }],
+    items: [
+      {
+        key: "login",
+        danger: true,
+        label: "Login",
+        className: "!py-1.5 hover:bg-gray-100 !rounded-xl",
+      },
+    ],
   }
 
   return (
@@ -254,7 +261,7 @@ const SideBar_Header = () => {
         {/* Logo Header */}
         <div className="flex items-center mt-3 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
-            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <Menu className="w-5 h-5 text-white" />
             </div>
           ) : (
@@ -269,7 +276,7 @@ const SideBar_Header = () => {
           <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
+              className="w-full h-14 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
             >
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
@@ -378,7 +385,9 @@ const SideBar_Header = () => {
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
               <FiMenu size={24} className="text-gray-700" />
             </button>
-            <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
+            <a href="/dashboard">
+              <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
+            </a>
           </div>
           <div className="flex items-center space-x-4">
             {/* Schedule Demo - Hidden on mobile, shown on tablet/desktop */}

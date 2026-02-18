@@ -15,9 +15,8 @@ import {
   FaGoogle,
 } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
-import { Sparkles, Zap, PenTool, CheckCircle, Crown, TrendingUp } from "lucide-react"
+import { Sparkles, Zap, PenTool, CheckCircle, Crown, TrendingUp, User } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { message } from "antd"
 import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import IceAnimation from "@components/IceAnimation"
@@ -30,6 +29,12 @@ const Auth = ({ path }) => {
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [recaptchaValue, setRecaptchaValue] = useState(null)
+
+  const addToast = (msg, type) => {
+    window.dispatchEvent(
+      new CustomEvent("show-toast", { detail: { message: msg, type: `alert-${type}` } })
+    )
+  }
 
   const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
@@ -101,7 +106,7 @@ const Auth = ({ path }) => {
         access_token: tokenResponse.access_token,
         referralId: formData.referralId,
       }).then(data => {
-        message.success("Google login successful!")
+        addToast("Google login successful!", "success")
 
         const user = data.user || data?.data?.user || data
 
@@ -113,7 +118,7 @@ const Auth = ({ path }) => {
       })
     },
     onError: () => {
-      message.error("Google login initialization failed.")
+      addToast("Google login initialization failed.", "error")
       setRecaptchaValue(null)
     },
   })
@@ -142,7 +147,7 @@ const Auth = ({ path }) => {
 
         const { user } = await authPromise
 
-        message.success(isSignup ? "Signup successful!" : "Login successful!")
+        addToast(isSignup ? "Signup successful!" : "Login successful!", "success")
 
         // 🔥 Your new redirect rule
         if (isSignup) {
@@ -152,7 +157,7 @@ const Auth = ({ path }) => {
         }
       } catch (err) {
         console.error("Auth error:", err)
-        message.error(err.data?.message || err?.message || "Signup failed")
+        addToast(err.data?.message || err?.message || "Signup failed", "error")
         setRecaptchaValue(null)
       } finally {
         setLoading(false)
@@ -199,7 +204,7 @@ const Auth = ({ path }) => {
   ]
 
   return (
-    <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen relative  bg-linear-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
       {/* <IceAnimation density={30} /> */}
 
@@ -213,12 +218,12 @@ const Auth = ({ path }) => {
         <motion.div
           animate={{ rotate: [0, 360], scale: [1, 1.1, 1], x: [0, 30, 0] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-linear-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ rotate: [360, 0], scale: [1, 1.2, 1], x: [0, -30, 0] }}
           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-linear-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
         />
 
         {/* Medium geometric shapes - smaller on mobile */}
@@ -270,7 +275,7 @@ const Auth = ({ path }) => {
               </motion.div>
               <h1 className="text-5xl font-extrabold text-gray-900 leading-[1.1]">
                 Scale your SEO with <br />
-                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Agentic AI Intelligence
                 </span>
               </h1>
@@ -286,7 +291,7 @@ const Auth = ({ path }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
-                className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+                className="relative bg-linear-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
               >
                 {/* Abstract Patterns */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
@@ -325,7 +330,7 @@ const Auth = ({ path }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
-                className="relative bg-gradient-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+                className="relative bg-linear-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
               >
                 {/* Abstract Patterns */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
@@ -371,7 +376,7 @@ const Auth = ({ path }) => {
                   whileHover={{ scale: 1.02, y: -4 }}
                   className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
+                  <div className="w-10 h-10 bg-linear-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
                     {feature.icon}
                   </div>
                   <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
@@ -385,7 +390,7 @@ const Auth = ({ path }) => {
                 whileHover={{ scale: 1.02, y: -4 }}
                 className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
+                <div className="w-10 h-10 bg-linear-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
                   <FaShieldAlt className="w-5 h-5" />
                 </div>
                 <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
@@ -406,8 +411,8 @@ const Auth = ({ path }) => {
             {/* Main Form Card */}
             <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/30 p-6 md:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-linear-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />
 
               {/* Header */}
               <div className="relative mb-8 text-center">
@@ -415,7 +420,7 @@ const Auth = ({ path }) => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 250, damping: 15, delay: 0.2 }}
-                  className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                  className="w-16 h-16 bg-linear-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
                 >
                   <FaRocket className="text-white text-2xl" />
                 </motion.div>
@@ -440,19 +445,14 @@ const Auth = ({ path }) => {
               </div>
 
               {/* Google Button */}
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.35 }}
-                whileHover={{ y: -2, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white/90 backdrop-blur-sm border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-purple-300 hover:shadow-lg transition-all duration-200 mb-6 font-medium disabled:opacity-50"
+                className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-bold rounded-2xl text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all"
               >
-                <FcGoogle className="text-2xl" />
+                <FcGoogle className="text-xl mr-2" />
                 <span>{isSignup ? "Sign up with Google" : "Continue with Google"}</span>
-              </motion.button>
+              </button>
 
               {/* Divider */}
               <motion.div
@@ -462,12 +462,12 @@ const Auth = ({ path }) => {
                 className="flex items-center my-6"
               >
                 <hr className="flex-1 border-gray-200" />
-                <span className="px-4 text-gray-500 text-sm font-medium">or</span>
+                <span className="px-4 text-gray-400 text-sm font-medium">or</span>
                 <hr className="flex-1 border-gray-200" />
               </motion.div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <AnimatePresence mode="wait">
                   {isSignup && (
                     <motion.div
@@ -477,8 +477,8 @@ const Auth = ({ path }) => {
                       transition={{ duration: 0.2 }}
                       className="relative"
                     >
-                      <div className="absolute top-4 left-4 text-gray-500 z-2">
-                        <FaUser />
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 z-10 w-5 h-5 flex items-center justify-center">
+                        <User className="w-5 h-5" />
                       </div>
                       <input
                         type="text"
@@ -486,8 +486,8 @@ const Auth = ({ path }) => {
                         placeholder="Full Name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
-                          errors.name ? "border-red-500" : "border-gray-200"
+                        className={`input border border-gray-300 w-full h-14 pl-12 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors rounded-2xl text-base focus:outline-none focus:ring-0 ${
+                          errors.name ? "input-error" : "border-gray-200 focus:border-gray-400"
                         }`}
                         aria-label="Full Name"
                         aria-invalid={!!errors.name}
@@ -500,7 +500,7 @@ const Auth = ({ path }) => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
                             transition={{ duration: 0.15 }}
-                            className="text-red-600 text-xs mt-1"
+                            className="text-red-500 text-xs mt-1 ml-1"
                             id="name-error"
                           >
                             {errors.name}
@@ -512,8 +512,8 @@ const Auth = ({ path }) => {
                 </AnimatePresence>
 
                 <div className="relative">
-                  <div className="absolute top-4 left-4 text-gray-500 z-2">
-                    <FaEnvelope />
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 z-10 w-5 h-5 flex items-center justify-center">
+                    <FaEnvelope className="w-4 h-4" />
                   </div>
                   <input
                     type="email"
@@ -521,8 +521,8 @@ const Auth = ({ path }) => {
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
-                      errors.email ? "border-red-500" : "border-gray-200"
+                    className={`input border border-gray-300 w-full h-14 pl-12 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors rounded-2xl text-base focus:outline-none focus:ring-0 ${
+                      errors.email ? "input-error" : "border-gray-200 focus:border-gray-400"
                     }`}
                     aria-label="Email Address"
                     aria-invalid={!!errors.email}
@@ -535,7 +535,7 @@ const Auth = ({ path }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.15 }}
-                        className="text-red-600 text-xs mt-1"
+                        className="text-red-500 text-xs mt-1 ml-1"
                         id="email-error"
                       >
                         {errors.email}
@@ -545,8 +545,8 @@ const Auth = ({ path }) => {
                 </div>
 
                 <div className="relative">
-                  <div className="absolute top-4 left-4 text-gray-500 z-2">
-                    <FaLock />
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 z-10 w-5 h-5 flex items-center justify-center">
+                    <FaLock className="w-4 h-4" />
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -554,8 +554,8 @@ const Auth = ({ path }) => {
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full pl-12 pr-12 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
-                      errors.password ? "border-red-500" : "border-gray-200"
+                    className={`input border border-gray-300 w-full h-14 pl-12 pr-12 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors rounded-2xl text-base focus:outline-none focus:ring-0 ${
+                      errors.password ? "input-error" : "border-gray-200 focus:border-gray-400"
                     }`}
                     aria-label="Password"
                     aria-invalid={!!errors.password}
@@ -564,7 +564,7 @@ const Auth = ({ path }) => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors duration-150 z-2"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10 btn btn-sm btn-circle btn-ghost"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -576,7 +576,7 @@ const Auth = ({ path }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.15 }}
-                        className="text-red-600 text-xs mt-1"
+                        className="text-red-500 text-xs mt-1 ml-1"
                         id="password-error"
                       >
                         {errors.password}
@@ -595,8 +595,8 @@ const Auth = ({ path }) => {
                       transition={{ duration: 0.2 }}
                       className="relative"
                     >
-                      <div className="absolute top-4 left-4 text-gray-500 z-2">
-                        <FiGift />
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 z-10 w-5 h-5 flex items-center justify-center">
+                        <FiGift className="w-4 h-4" />
                       </div>
                       <input
                         type="text"
@@ -604,7 +604,7 @@ const Auth = ({ path }) => {
                         placeholder="Referral Code (Optional)"
                         value={formData.referralId || ""}
                         onChange={handleInputChange}
-                        className="w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                        className="input border border-gray-200 w-full h-14 pl-12 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors rounded-2xl text-base focus:outline-none focus:ring-0 focus:border-gray-400"
                         aria-label="Referral Code"
                       />
                     </motion.div>
@@ -614,12 +614,12 @@ const Auth = ({ path }) => {
                 {/* Terms and Conditions Checkbox (Signup Only) */}
                 {isSignup && (
                   <div className="relative">
-                    <label className="flex items-center gap-2 text-gray-600 text-sm">
+                    <label className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={termsAccepted}
                         onChange={handleTermsChange}
-                        className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                        className="checkbox checkbox-primary checkbox-sm"
                         aria-label="Accept Terms and Conditions"
                         aria-describedby={errors.terms ? "terms-error" : undefined}
                       />
@@ -701,19 +701,13 @@ const Auth = ({ path }) => {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading || (isSignup && !termsAccepted)}
-                  className={`w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
-                    loading || (isSignup && !termsAccepted)
-                      ? "opacity-70 cursor-not-allowed"
-                      : "hover:from-purple-700 hover:to-blue-700"
+                  className={`btn w-full btn-block h-14 border-none text-lg rounded-2xl shadow-lg text-white normal-case bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 hover:shadow-xl ${
+                    loading || (isSignup && !termsAccepted) ? "btn-disabled opacity-70" : ""
                   }`}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-3">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                        className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white"
-                      />
+                      <span className="loading loading-spinner loading-md"></span>
                       <span>Processing...</span>
                     </div>
                   ) : (

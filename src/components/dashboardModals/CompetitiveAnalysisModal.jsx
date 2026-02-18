@@ -1,35 +1,27 @@
 import { useState, useEffect, useMemo } from "react"
-import { Activity, ExternalLink } from "lucide-react"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
 import {
-  Collapse,
-  Card,
-  Progress,
-  Modal,
-  Select,
-  Tabs,
-  Empty,
-  Button,
-  Tag,
-  Input,
-  message,
-  Tooltip,
-} from "antd"
-import { motion } from "framer-motion"
+  Activity,
+  ExternalLink,
+  Link as LinkIcon,
+  AlertCircle,
+  X,
+  Check,
+  Loader2,
+  ChevronDown,
+} from "lucide-react"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
-import { LoadingOutlined } from "@ant-design/icons"
-import { Link as LinkIcon } from "lucide-react"
-import { getBlogById, getAllBlogs } from "@api/blogApi"
+import { getBlogById } from "@api/blogApi"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useAllBlogsQuery } from "@api/queries/blogQueries"
-
-const { Panel } = Collapse
+import toast from "@utils/toast"
 
 const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [formData, setFormData] = useState({
@@ -45,7 +37,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [id, setId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState(null)
-  const [collapseKey, setCollapseKey] = useState(0) // Used to reset Collapse
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
@@ -83,11 +74,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       setId(null)
       setIsLoading(false)
       setActiveTab(null)
-      setCollapseKey(0)
-    } else {
-      // Since we are using react-query for fetching blogs via useAllBlogsQuery hook in the component,
-      // we don't need to manually trigger a fetch here. The hook handles it.
-      // If we need to refetch, we can use the refetch function from the hook.
     }
   }, [open])
 
@@ -128,6 +114,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         })
         .catch(error => {
           console.error("Failed to fetch blog by ID:", error)
+          toast.error("Failed to fetch blog details")
         })
         .finally(() => setIsLoading(false))
     }
@@ -160,12 +147,24 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     formData?.generatedMetadata?.competitorsAnalysis,
   ])
 
-  const handleProjectSelect = value => {
+  const handleProjectSelect = e => {
+    const value = e.target.value
     const foundProject = blogs?.find(p => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
       setAnalysisResults(null)
-      setCollapseKey(prev => prev + 1) // Reset Collapse
+    } else {
+      setId(null)
+      setAnalysisResults(null)
+      setFormData({
+        title: "",
+        content: "",
+        keywords: [],
+        focusKeywords: [],
+        contentType: "markdown",
+        selectedProject: null,
+        generatedMetadata: null,
+      })
     }
   }
 
@@ -175,7 +174,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     if (formData.keywords.length === 0 && formData.focusKeywords.length === 0) return
 
     if (formData.content.length < 500) {
-      message.warning("Your content is too short. This may affect competitive analysis accuracy.")
+      toast.error("Your content is too short. This may affect competitive analysis accuracy.")
       return
     }
 
@@ -220,6 +219,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       setAnalysisResults(result)
     } catch (err) {
       console.error("Error fetching analysis:", err)
+      toast.error("Failed to run competitive analysis")
     } finally {
       setIsLoading(false)
       setAnalysisLoading(false)
@@ -251,192 +251,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       ))
   }
 
-  const renderCompetitorsList = competitors => {
-    if (!competitors || competitors.length === 0) return null
-    return (
-      <Collapse key={collapseKey} accordion className="bg-white border border-gray-200 rounded-lg">
-        {competitors.map((competitor, index) => (
-          <Panel
-            key={index}
-            header={
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full pr-2">
-                <span className="font-medium text-gray-800 truncate max-w-[80%] sm:max-w-[60%] text-sm md:text-base">
-                  {cleanMarkdown(competitor.title)}
-                </span>
-                <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                  <Tooltip title="Relatable Score">
-                    {competitor.score && (
-                      <Tag color="blue">{(competitor.score * 100).toFixed(2)}%</Tag>
-                    )}
-                  </Tooltip>
-                  <a
-                    href={competitor?.link ?? competitor?.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    Visit <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            }
-            className="text-sm md:text-base text-gray-700 leading-relaxed"
-          >
-            {competitor?.content ? (
-              <div>{parseSummary(competitor.content)}</div>
-            ) : (
-              <>
-                <p className="mb-2 font-medium">
-                  {cleanMarkdown(competitor.snippet || competitor.content)}
-                </p>
-                <div>{parseSummary(competitor.summary)}</div>
-              </>
-            )}
-          </Panel>
-        ))}
-      </Collapse>
-    )
-  }
-
-  const renderOutboundLinksList = (links, title) => {
-    if (!links || links.length === 0) return null
-    return (
-      <Card
-        title={
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-blue-100 rounded text-blue-500">
-              <LinkIcon size={20} strokeWidth={2} />
-            </div>
-            <span className="text-base md:text-lg font-semibold text-gray-800">{title}</span>
-          </div>
-        }
-        className="bg-white border border-gray-200 rounded-xl shadow-sm"
-      >
-        <Collapse key={collapseKey} accordion>
-          {links.map((link, index) => (
-            <Panel
-              key={index}
-              header={
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full">
-                  <span className="text-sm md:text-base font-medium text-gray-800">
-                    {cleanMarkdown(link.title)}
-                  </span>
-                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                    <Tooltip title="Relatable Score">
-                      {link.score && <Tag color="blue">{(link.score * 100).toFixed(2)}%</Tag>}
-                    </Tooltip>
-                    <a
-                      href={link.link || link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      Visit <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
-                </div>
-              }
-              className="text-sm md:text-base text-gray-700 leading-relaxed"
-            >
-              <p className="text-gray-600">{cleanMarkdown(link.snippet || link.content)}</p>
-              {link.summary && <div>{parseSummary(link.summary)}</div>}
-            </Panel>
-          ))}
-        </Collapse>
-      </Card>
-    )
-  }
-
-  const renderCompetitorsAnalysis = competitorsAnalysis => {
-    if (!competitorsAnalysis) return null
-    const { analysis, suggestions } = competitorsAnalysis
-    return (
-      <Card
-        title={
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-purple-100 rounded text-purple-500">
-              <Activity size={20} strokeWidth={2} />
-            </div>
-            <span className="text-base md:text-lg font-semibold text-gray-800">
-              Competitors Analysis
-            </span>
-          </div>
-        }
-        className="bg-white border border-gray-200 rounded-xl shadow-sm"
-      >
-        <Collapse key={collapseKey} accordion expandIconPosition="right">
-          <Panel
-            header={
-              <span className="font-semibold text-gray-800 text-sm md:text-base">Analysis</span>
-            }
-            key="analysis"
-          >
-            <Collapse accordion>
-              {Object.entries(analysis).map(([key, value], index) => {
-                const { score, maxScore, feedback } = value
-                const description = cleanMarkdown(
-                  value?.feedback?.replace(/\s*\(\d+\/\d+\)$/, "").trim()
-                )
-                return (
-                  <Panel
-                    key={key}
-                    header={
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full pr-2">
-                        <span className="font-medium text-gray-800 text-sm md:text-base">
-                          {cleanMarkdown(key)}
-                        </span>
-                        <Tooltip title="Relatable Score">
-                          {score && maxScore && (
-                            <Tag color="blue">
-                              {score}/{maxScore}
-                            </Tag>
-                          )}
-                        </Tooltip>
-                      </div>
-                    }
-                    className="text-sm md:text-base text-gray-700 leading-relaxed"
-                  >
-                    <p>{description}</p>
-                  </Panel>
-                )
-              })}
-            </Collapse>
-          </Panel>
-          <Panel
-            header={
-              <span className="font-semibold text-gray-800 text-sm md:text-base">Suggestions</span>
-            }
-            key="suggestions"
-          >
-            <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-              {(Array.isArray(suggestions) ? suggestions : suggestions.split(/(?:\d+\.\s)/))
-                .filter(Boolean)
-                .map((point, index) => (
-                  <li key={index}>
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: cleanMarkdown(point.trim()).replace(
-                          /\*\*(.*?)\*\*/g,
-                          "<strong>$1</strong>"
-                        ),
-                      }}
-                    />
-                  </li>
-                ))}
-            </ul>
-          </Panel>
-        </Collapse>
-      </Card>
-    )
-  }
-
   const mergedCompetitors = useMemo(() => {
     const blogCompetitors = formData?.generatedMetadata?.competitors || []
     const analysisCompetitors = analysisResults?.competitors || []
-    const uniqueCompetitors = []
     const seenUrls = new Set()
+    const uniqueCompetitors = []
 
     ;[...blogCompetitors, ...analysisCompetitors].forEach(competitor => {
       const url = competitor.url || competitor.link
@@ -460,375 +279,535 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
 
   const blogLoading = useBlogStore(state => state.loading)
+
+  if (!open) return null
+
   if (isLoading || blogLoading || analysisLoading) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <LoadingScreen />
       </div>
     )
   }
 
+  // Helper component for DaisyUI collapse
+  const CollapsibleSection = ({ title, children, defaultOpen = false, topRightContent }) => {
+    return (
+      <div className="collapse collapse-arrow border border-base-200 bg-base-100 rounded-lg shadow-sm mb-2">
+        <input type="checkbox" defaultChecked={defaultOpen} />
+        <div className="collapse-title text-base font-medium flex justify-between items-center pr-12 min-h-14 py-3">
+          <span className="truncate mr-2">{title}</span>
+          {topRightContent && <div onClick={e => e.stopPropagation()}>{topRightContent}</div>}
+        </div>
+        <div className="collapse-content bg-base-50 text-sm">
+          <div className="pt-3">{children}</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Modal
-      open={open}
-      title={
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3"
-        >
-          <div className="p-2 bg-blue-500 rounded-lg text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 sm:p-6 font-sans">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        onClick={closeFnc}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0 bg-white z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
+              <Activity size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Competitive Analysis Dashboard</h2>
           </div>
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-            Competitive Analysis Dashboard
-          </h2>
-        </motion.div>
-      }
-      onCancel={closeFnc}
-      footer={[
-        <div key="footer" className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Estimated Cost:</span>
+          <button
+            onClick={closeFnc}
+            className="btn btn-ghost btn-sm btn-circle text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/50 custom-scrollbar">
+          {/* Blog Selection */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">
+              Select Blog Post
+            </label>
+            <div className="relative">
+              <select
+                className="select bg-white text-black w-full h-12 text-base rounded-lg border border-gray-300 transition-all pl-4 pr-10"
+                onChange={handleProjectSelect}
+                value={formData.selectedProject?._id || ""}
+              >
+                <option disabled>Choose a blog to analyze...</option>
+                {blogs?.map(project => (
+                  <option key={project._id} value={project._id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+          </motion.div>
+
+          {formData.selectedProject ? (
+            <div className="space-y-6">
+              {/* Blog Details Summary */}
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                    Blog Details
+                  </h3>
+                </div>
+                <div className="p-5 space-y-5">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                      Title
+                    </label>
+                    <div className="p-3 bg-gray-50 rounded-lg text-gray-800 font-medium border border-gray-200/60 text-sm">
+                      {formData.title}
+                    </div>
+                  </div>
+
+                  {mergedKeywords.length > 0 && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                        Keywords
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {mergedKeywords.map(keyword => (
+                          <span
+                            key={keyword}
+                            className="badge badge-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-3 h-auto text-sm font-medium"
+                          >
+                            {cleanMarkdown(keyword)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">
+                      Content Preview
+                    </label>
+                    {formData.content ? (
+                      <div className="max-h-48 overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200/60 text-sm text-gray-600 leading-relaxed custom-scrollbar prose prose-sm max-w-none">
+                        <div dangerouslySetInnerHTML={{ __html: formData.content }} />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-200 text-gray-400">
+                        <AlertCircle size={24} className="mb-2 opacity-50" />
+                        <span className="text-sm">No content available</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* SEO Meta */}
+              {formData.generatedMetadata?.seo_meta && (
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                      SEO Metadata
+                    </h3>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <span className="text-xs font-bold text-gray-500 uppercase mb-1 block">
+                        Meta Title
+                      </span>
+                      <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200/60">
+                        {cleanMarkdown(formData.generatedMetadata.seo_meta.title)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-500 uppercase mb-1 block">
+                        Meta Description
+                      </span>
+                      <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200/60">
+                        {cleanMarkdown(formData.generatedMetadata.seo_meta.description)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis Section */}
+              {(hasCompetitors ||
+                hasOutboundLinks ||
+                hasInternalLinks ||
+                hasAnalysisResults ||
+                hasInitialAnalysis) && (
+                <div className="mt-8">
+                  <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide gap-1">
+                    {hasAnalysisResults && (
+                      <button
+                        onClick={() => setActiveTab("results")}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2
+                                            ${activeTab === "results" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+                      >
+                        <Activity size={16} /> Results
+                      </button>
+                    )}
+                    {hasCompetitors && (
+                      <button
+                        onClick={() => setActiveTab("competitors")}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2
+                                            ${activeTab === "competitors" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+                      >
+                        <ExternalLink size={16} /> Competitors
+                      </button>
+                    )}
+                    {(hasOutboundLinks || hasInternalLinks) && (
+                      <button
+                        onClick={() => setActiveTab("links")}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2
+                                            ${activeTab === "links" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+                      >
+                        <LinkIcon size={16} /> links
+                      </button>
+                    )}
+                    {hasInitialAnalysis && (
+                      <button
+                        onClick={() => setActiveTab("initial-analysis")}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2
+                                            ${activeTab === "initial-analysis" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+                      >
+                        <Activity size={16} /> Initial Analysis
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="min-h-[300px]">
+                    {activeTab === "results" && hasAnalysisResults && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6"
+                      >
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center text-center shadow-sm">
+                          <div className="relative w-32 h-32 flex items-center justify-center mb-4">
+                            <div
+                              className="radial-progress text-blue-600"
+                              style={{
+                                "--value": Number(analysisResults.insights?.blogScore ?? 0),
+                                "--size": "8rem",
+                                "--thickness": "0.8rem",
+                              }}
+                            >
+                              <span className="text-2xl font-bold text-gray-800">
+                                {Number(analysisResults.insights?.blogScore ?? 0)}%
+                              </span>
+                            </div>
+                          </div>
+                          <h4 className="text-lg font-bold text-gray-800 mb-1">Blog SEO Score</h4>
+                          <p className="text-sm text-gray-500">Based on competitive analysis</p>
+                        </div>
+
+                        <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6 shadow-sm">
+                          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <div className="p-1.5 bg-green-100 rounded-lg text-green-700 shadow-sm">
+                              <Check size={18} />
+                            </div>
+                            Suggestions to Beat Competitors
+                          </h3>
+                          <div className="bg-white/60 rounded-xl p-4 border border-green-100/50">
+                            <ul className="space-y-3">
+                              {(Array.isArray(analysisResults?.insights?.suggestions)
+                                ? analysisResults?.insights?.suggestions
+                                : analysisResults?.insights?.suggestions?.split(/(?:\d+\.\s)/)
+                              )
+                                ?.filter(Boolean)
+                                .map((point, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex gap-3 text-sm text-gray-700 items-start"
+                                  >
+                                    <span className="text-green-500 font-bold mt-0.5">•</span>
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: cleanMarkdown(point.trim()).replace(
+                                          /\*\*(.*?)\*\*/g,
+                                          "<strong>$1</strong>"
+                                        ),
+                                      }}
+                                    />
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Competitors Analysis Accordion */}
+                        {analysisResults?.insights?.analysis && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-lg font-bold text-gray-800">
+                                Detailed Breakdown
+                              </h3>
+                              <div className="h-px flex-1 bg-gray-200"></div>
+                            </div>
+                            {Object.entries(analysisResults.insights.analysis).map(
+                              ([key, value], index) => (
+                                <CollapsibleSection
+                                  key={key}
+                                  title={cleanMarkdown(key)}
+                                  topRightContent={
+                                    value.score &&
+                                    value.maxScore && (
+                                      <div className="badge badge-primary badge-sm font-semibold">
+                                        {value.score}/{value.maxScore}
+                                      </div>
+                                    )
+                                  }
+                                >
+                                  <p className="text-gray-600 text-sm leading-relaxed">
+                                    {cleanMarkdown(
+                                      value?.feedback?.replace(/\s*\(\d+\/\d+\)$/, "").trim()
+                                    )}
+                                  </p>
+                                </CollapsibleSection>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {activeTab === "competitors" && (
+                      <div className="space-y-3">
+                        {mergedCompetitors.map((competitor, index) => (
+                          <CollapsibleSection
+                            key={index}
+                            title={cleanMarkdown(competitor.title)}
+                            topRightContent={
+                              <div className="flex items-center gap-2">
+                                {competitor.score && (
+                                  <span className="badge badge-info badge-sm text-white font-medium">
+                                    {(competitor.score * 100).toFixed(0)}% Match
+                                  </span>
+                                )}
+                                <a
+                                  href={competitor?.link ?? competitor?.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-xs btn-ghost btn-square text-blue-600 hover:bg-blue-50"
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              </div>
+                            }
+                          >
+                            <div className="prose prose-sm max-w-none text-gray-600">
+                              {competitor?.content ? (
+                                <div>{parseSummary(competitor.content)}</div>
+                              ) : (
+                                <>
+                                  <p className="font-medium text-gray-800 mb-2">
+                                    {cleanMarkdown(competitor.snippet || competitor.content)}
+                                  </p>
+                                  <div>{parseSummary(competitor.summary)}</div>
+                                </>
+                              )}
+                            </div>
+                          </CollapsibleSection>
+                        ))}
+                      </div>
+                    )}
+
+                    {activeTab === "links" && (
+                      <div className="space-y-6">
+                        {[
+                          {
+                            title: "Outbound Links",
+                            data: formData?.generatedMetadata?.outboundLinks,
+                            color: "text-blue-600",
+                            bg: "bg-blue-100",
+                          },
+                          {
+                            title: "Internal Links",
+                            data: formData?.generatedMetadata?.internalLinks,
+                            color: "text-purple-600",
+                            bg: "bg-purple-100",
+                          },
+                        ].map(
+                          (section, idx) =>
+                            section.data?.length > 0 && (
+                              <div
+                                key={idx}
+                                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm"
+                              >
+                                <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                                  <div
+                                    className={`p-1.5 rounded-lg ${section.bg} ${section.color}`}
+                                  >
+                                    <LinkIcon size={16} />
+                                  </div>
+                                  <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide">
+                                    {section.title}
+                                  </h3>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                  {section.data.map((link, i) => (
+                                    <CollapsibleSection
+                                      key={i}
+                                      title={cleanMarkdown(link.title)}
+                                      topRightContent={
+                                        <a
+                                          href={link.link || link.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="btn btn-xs btn-ghost text-blue-600 flex items-center gap-1 font-normal"
+                                        >
+                                          Visit <ExternalLink size={12} />
+                                        </a>
+                                      }
+                                    >
+                                      <p className="text-gray-600 text-sm mb-2">
+                                        {cleanMarkdown(link.snippet || link.content)}
+                                      </p>
+                                      {link.summary && (
+                                        <div className="text-gray-500 text-xs italic bg-gray-50 p-2 rounded border border-gray-100">
+                                          {parseSummary(link.summary)}
+                                        </div>
+                                      )}
+                                    </CollapsibleSection>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === "initial-analysis" && hasInitialAnalysis && (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          {Object.entries(
+                            formData?.generatedMetadata?.competitorsAnalysis?.analysis || {}
+                          ).map(([key, value]) => (
+                            <CollapsibleSection
+                              key={key}
+                              title={cleanMarkdown(key)}
+                              topRightContent={
+                                value.score &&
+                                value.maxScore && (
+                                  <div className="badge badge-outline badge-sm">
+                                    {value.score}/{value.maxScore}
+                                  </div>
+                                )
+                              }
+                            >
+                              <p className="text-gray-600 text-sm">
+                                {cleanMarkdown(
+                                  value?.feedback?.replace(/\s*\(\d+\/\d+\)$/, "").trim()
+                                )}
+                              </p>
+                            </CollapsibleSection>
+                          ))}
+                        </div>
+                        {/* Suggestions */}
+                        {formData?.generatedMetadata?.competitorsAnalysis?.suggestions && (
+                          <div className="bg-amber-50 rounded-xl border border-amber-100 p-5">
+                            <h3 className="text-amber-800 font-bold mb-3 flex items-center gap-2">
+                              <Activity size={18} /> Initial Suggestions
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700 marker:text-amber-500">
+                              {(Array.isArray(
+                                formData.generatedMetadata.competitorsAnalysis.suggestions
+                              )
+                                ? formData.generatedMetadata.competitorsAnalysis.suggestions
+                                : formData.generatedMetadata.competitorsAnalysis.suggestions.split(
+                                    /(?:\d+\.\s)/
+                                  )
+                              )
+                                .filter(Boolean)
+                                .map((point, index) => (
+                                  <li key={index}>
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: cleanMarkdown(point.trim()).replace(
+                                          /\*\*(.*?)\*\*/g,
+                                          "<strong>$1</strong>"
+                                        ),
+                                      }}
+                                    />
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 mt-4">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                <Activity size={32} className="text-blue-500/50" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">No Blog Selected</h3>
+              <p className="text-gray-500 max-w-sm text-sm">
+                Please select a blog post from the dropdown above to view details and run
+                competitive analysis.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 text-sm bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+            <span className="text-gray-500 font-medium">Estimated Cost:</span>
             <span className="font-bold text-blue-600">
               {getEstimatedCost("analysis.competitors")} credits
             </span>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
+          <div className="flex w-full sm:w-auto gap-3">
+            <button
               onClick={closeFnc}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition w-full sm:w-auto"
+              className="btn btn-ghost border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 flex-1 sm:flex-none font-medium"
             >
               Close
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={handleSubmit}
-              className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition w-full sm:w-auto ${
-                isLoading || blogLoading || analysisLoading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              disabled={isLoading || blogLoading || analysisLoading}
+              disabled={isLoading || blogLoading || analysisLoading || !formData.selectedProject}
+              className="btn bg-blue-600 hover:bg-blue-700 text-white border-none flex-1 sm:flex-none shadow-lg shadow-blue-500/30 font-semibold px-6"
             >
               {isLoading || blogLoading || analysisLoading ? (
-                <span className="flex items-center gap-2">
-                  <LoadingOutlined />
-                  {analysisResults ? "Re-Analyzing..." : "Analyzing..."}
-                </span>
+                <>
+                  <Loader2 className="animate-spin mr-2" size={18} />
+                  Analyzing...
+                </>
               ) : analysisResults ? (
                 "Re-Run Analysis"
               ) : (
-                "Run Competitive Analysis"
+                "Run Analysis"
               )}
-            </Button>
+            </button>
           </div>
-        </div>,
-      ]}
-      width="100%"
-      className="w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl"
-      centered
-      closable={true}
-      transitionName=""
-      maskTransitionName=""
-      styles={{ body: { maxHeight: "80vh", overflowY: "auto", padding: "12px sm:16px" } }}
-    >
-      <div className="space-y-4 sm:space-y-6 p-5">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">
-            Select Blog Post
-          </label>
-          <Select
-            showSearch
-            filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
-            }
-            className="w-full rounded-md text-sm md:text-base"
-            onChange={handleProjectSelect}
-            value={formData.selectedProject?._id || ""}
-            placeholder="Select a blog"
-          >
-            <Select.Option value="">Select a blog</Select.Option>
-            {blogs?.map(project => (
-              <Select.Option key={project._id} value={project._id}>
-                {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
-              </Select.Option>
-            ))}
-          </Select>
-        </motion.div>
-
-        {formData.selectedProject && (
-          <div className="space-y-4 sm:space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="border border-gray-200 rounded-xl shadow-sm overflow-hidden"
-            >
-              <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-base md:text-lg font-semibold text-gray-700">Blog Details</h3>
-              </div>
-              <div className="p-3 sm:p-4">
-                <div className="mb-3 sm:mb-4">
-                  <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">
-                    Title
-                  </label>
-                  <Input
-                    name="title"
-                    value={formData.title}
-                    readOnly
-                    className="w-full bg-gray-100 cursor-not-allowed text-sm md:text-base"
-                  />
-                </div>
-                {mergedKeywords.length > 0 && (
-                  <div className="mb-3 sm:mb-4">
-                    <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">
-                      Keywords
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {mergedKeywords.map((keyword, i) => (
-                        <Tag
-                          key={keyword}
-                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100 text-sm"
-                        >
-                          {cleanMarkdown(keyword)}
-                        </Tag>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {formData.content ? (
-                  <div
-                    className="text-gray-700 max-h-60 overflow-y-auto p-3 sm:p-4 bg-gray-50 rounded-md text-sm md:text-base prose prose-sm max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: formData.content }} // Render HTML content directly
-                  />
-                ) : (
-                  <Empty description="No content available for this blog" />
-                )}
-              </div>
-            </motion.div>
-
-            {formData.generatedMetadata?.seo_meta && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="border border-gray-200 rounded-xl shadow-sm overflow-hidden"
-              >
-                <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="text-base md:text-lg font-semibold text-gray-700">SEO Metadata</h3>
-                </div>
-                <div className="p-3 sm:p-4">
-                  <p className="text-sm md:text-base text-gray-600">
-                    <strong>Title:</strong>{" "}
-                    {cleanMarkdown(formData.generatedMetadata.seo_meta.title)}
-                  </p>
-                  <p className="text-sm md:text-base text-gray-600 mt-2">
-                    <strong>Description:</strong>{" "}
-                    {cleanMarkdown(formData.generatedMetadata.seo_meta.description)}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        )}
-
-        {!formData.selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-8 sm:py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
-          >
-            <p className="text-gray-600 text-sm md:text-lg">
-              Select a blog to view details and analysis
-            </p>
-          </motion.div>
-        )}
-
-        {(hasCompetitors ||
-          hasOutboundLinks ||
-          hasInternalLinks ||
-          hasAnalysisResults ||
-          hasInitialAnalysis) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Tabs
-              activeKey={activeTab}
-              onChange={key => {
-                setActiveTab(key)
-                setCollapseKey(prev => prev + 1) // Reset Collapse when tab changes
-              }}
-              type="card"
-              className="w-full"
-            >
-              {hasAnalysisResults && (
-                <div
-                  tab={
-                    <span className="flex items-center gap-2 text-sm md:text-base">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M3 3v18h18" />
-                        <path d="m19 9-5 5-4-4-3 3" />
-                      </svg>
-                      Analysis Results
-                    </span>
-                  }
-                  key="results"
-                >
-                  <motion.div
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="space-y-4 sm:space-y-6"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2, duration: 0.5 }}
-                      className="flex flex-col items-center my-10"
-                    >
-                      <Progress
-                        type="dashboard"
-                        percent={Number(analysisResults.insights?.blogScore ?? 0)}
-                        width={120}
-                        format={percent => `${percent} / 100`}
-                        strokeColor={{ "0%": "#1B6FC9", "100%": "#4C9FE8" }}
-                        trailColor="#e5e7eb"
-                      />
-
-                      <div className="text-gray-800 text-base md:text-lg font-semibold mt-3">
-                        Blog SEO Score
-                      </div>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4, duration: 0.4 }}
-                    >
-                      <Card
-                        title="Suggestions to Beat Competitors"
-                        className="bg-white border border-gray-200 rounded-lg shadow-sm"
-                        headStyle={{
-                          background: "#f9fafb",
-                          fontWeight: 600,
-                          fontSize: "0.9rem sm:1.1rem",
-                        }}
-                      >
-                        <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-                          {(Array.isArray(analysisResults?.insights?.suggestions)
-                            ? analysisResults?.insights?.suggestions
-                            : analysisResults?.insights?.suggestions?.split(/(?:\d+\.\s)/)
-                          )
-                            ?.filter(Boolean)
-                            .map((point, index) => (
-                              <li key={index}>
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: cleanMarkdown(point.trim()).replace(
-                                      /\*\*(.*?)\*\*/g,
-                                      "<strong>$1</strong>"
-                                    ),
-                                  }}
-                                />
-                              </li>
-                            ))}
-                        </ul>
-                      </Card>
-                    </motion.div>
-                    {renderCompetitorsAnalysis(analysisResults?.insights)}
-                  </motion.div>
-                </div>
-              )}
-              {hasCompetitors && (
-                <div
-                  tab={
-                    <span className="flex items-center gap-2 text-sm md:text-base">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      Competitors
-                    </span>
-                  }
-                  key="competitors"
-                >
-                  {renderCompetitorsList(mergedCompetitors)}
-                </div>
-              )}
-              {(hasOutboundLinks || hasInternalLinks) && (
-                <div
-                  tab={
-                    <span className="flex items-center gap-2 text-sm md:text-base">
-                      <Activity size={20} strokeWidth={2} />
-                      Links
-                    </span>
-                  }
-                  key="links"
-                >
-                  <div className="space-y-4 sm:space-y-6">
-                    {renderOutboundLinksList(
-                      formData?.generatedMetadata?.outboundLinks,
-                      "Outbound Links"
-                    )}
-                    {renderOutboundLinksList(
-                      formData?.generatedMetadata?.internalLinks,
-                      "Internal Links"
-                    )}
-                  </div>
-                </div>
-              )}
-              {hasInitialAnalysis && (
-                <div
-                  tab={
-                    <span className="flex items-center gap-2 text-sm md:text-base">
-                      <Activity size={20} strokeWidth={2} />
-                      Initial Analysis
-                    </span>
-                  }
-                  key="initial-analysis"
-                >
-                  {renderCompetitorsAnalysis(formData?.generatedMetadata?.competitorsAnalysis)}
-                </div>
-              )}
-            </Tabs>
-          </motion.div>
-        )}
-      </div>
-    </Modal>
+        </div>
+      </motion.div>
+    </div>
   )
 }
 

@@ -16,7 +16,6 @@ import {
   Sparkles,
   Youtube,
 } from "lucide-react"
-import { message } from "antd"
 import { Helmet } from "react-helmet"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -25,6 +24,12 @@ const ContactUs = () => {
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const addToast = (msg, type) => {
+    window.dispatchEvent(
+      new CustomEvent("show-toast", { detail: { message: msg, type: `alert-${type}` } })
+    )
+  }
 
   const handleInputChange = e => {
     const { name, value } = e.target
@@ -75,13 +80,13 @@ const ContactUs = () => {
         formData,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
-      message.success("Message sent successfully!")
+      addToast("Message sent successfully!", "success")
       setFormData({ name: "", email: "", subject: "", message: "" })
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 5000)
     } catch (error) {
       console.error("FAILED...", error)
-      message.error("Failed to send message. Try again.")
+      addToast("Failed to send message. Try again.", "error")
     } finally {
       setIsSubmitting(false)
     }
@@ -209,121 +214,110 @@ const ContactUs = () => {
                 </AnimatePresence>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {/* Name Field */}
-                    <div className="space-y-2">
-                      <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
-                            errors.name
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-50 focus:border-blue-500"
-                          }`}
-                          placeholder="Your full name"
-                        />
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Name Field */}
+                      <div className="space-y-2">
+                        <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative group">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                          <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            className={`input border border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 ${
+                              errors.name ? "input-error" : "focus:border-blue-500"
+                            }`}
+                            placeholder="Your full name"
+                          />
+                        </div>
+                        {errors.name && (
+                          <p className="text-xs font-semibold text-red-500 ml-1">{errors.name}</p>
+                        )}
                       </div>
-                      {errors.name && (
-                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.name}</p>
+
+                      {/* Email Field */}
+                      <div className="space-y-2">
+                        <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative group">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className={`input border border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 ${
+                              errors.email ? "input-error" : "focus:border-blue-500"
+                            }`}
+                            placeholder="you@example.com"
+                          />
+                        </div>
+                        {errors.email && (
+                          <p className="text-xs font-semibold text-red-500 ml-1">{errors.email}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        className="input border border-gray-300 h-14 w-full px-5 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 focus:border-blue-500"
+                        placeholder="What is this about? (optional)"
+                      />
+                    </div>
+
+                    {/* Message Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
+                        Message <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        rows={5}
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        className={`textarea border border-gray-300 w-full bg-gray-50 focus:bg-white rounded-2xl resize-none px-5 py-4 focus:outline-none focus:ring-0 ${
+                          errors.message ? "textarea-error" : "focus:border-blue-500"
+                        }`}
+                        placeholder="Tell us how we can help you..."
+                      />
+                      {errors.message && (
+                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.message}</p>
                       )}
                     </div>
 
-                    {/* Email Field */}
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
-                            errors.email
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-50 focus:border-blue-500"
-                          }`}
-                          placeholder="you@example.com"
-                        />
-                      </div>
-                      {errors.email && (
-                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.email}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Subject Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      id="subject"
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleInputChange}
-                      className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl text-gray-800 placeholder-gray-400 focus:border-blue-500 focus:bg-white focus:shadow-sm outline-none transition-all duration-300"
-                      placeholder="What is this about? (optional)"
-                    />
-                  </div>
-
-                  {/* Message Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
-                      Message <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      rows={5}
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 resize-none ${
-                        errors.message
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-50 focus:border-blue-500"
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={`btn h-14 btn-block bg-linear-to-r from-blue-600 to-purple-600 text-white border-none rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.01] w-full transition-all normal-case font-bold text-base ${
+                        isSubmitting ? "loading" : ""
                       }`}
-                      placeholder="Tell us how we can help you..."
-                    />
-                    {errors.message && (
-                      <p className="text-xs font-semibold text-red-500 ml-1">{errors.message}</p>
-                    )}
+                    >
+                      {!isSubmitting && (
+                        <>
+                          Send Message
+                        </>
+                      )}
+                      {isSubmitting && "Processing..."}
+                    </button>
                   </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`w-full py-5 px-8 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 shadow shadow-blue-100 hover:shadow flex items-center justify-center gap-3 border-none group ${
-                      isSubmitting
-                        ? "opacity-70 cursor-not-allowed"
-                        : "hover:scale-[1.01] active:scale-[0.99]"
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
                 </form>
               </div>
             </div>

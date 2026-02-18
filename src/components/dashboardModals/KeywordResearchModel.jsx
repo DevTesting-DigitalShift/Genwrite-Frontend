@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { CloseOutlined } from "@ant-design/icons"
-import { Button, Input, Table, Tag, Modal, Switch } from "antd"
+import { motion, AnimatePresence } from "framer-motion"
+import { X, Search, Plus, Trash2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 import useAnalysisStore from "@store/useAnalysisStore"
+import toast from "@utils/toast"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
+  const [showAutoSelectModal, setShowAutoSelectModal] = useState(false)
+  const [autoSelectedList, setAutoSelectedList] = useState([])
 
   const {
     keywordAnalysis: keywordAnalysisResult,
@@ -55,7 +57,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     const updatedKeywords = keywords.filter((_, i) => i !== index)
     setKeywords(updatedKeywords)
     if (updatedKeywords.length === 0) {
-      dispatch(clearKeywordAnalysis())
+      clearKeywordAnalysis()
       setCurrentPage(1)
     }
     // Remove from selectedKeywords if present
@@ -113,61 +115,29 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     ]
   }
 
-  const showAutoKeywords = () => {
+  const handleShowAutoKeywords = () => {
     const autoKeywords = getAutoSelectedKeywords()
     if (!autoKeywords.length || !keywordAnalysisResult?.length) {
-      Modal.error({
-        title: "No Auto-Selected Keywords",
-        content: "No keywords available to auto-select. Please analyze keywords first.",
-      })
+      toast.error("No keywords available to auto-select. Please analyze keywords first.")
       return
     }
+    setAutoSelectedList(autoKeywords)
+    setShowAutoSelectModal(true)
+  }
 
-    Modal.info({
-      icon: null,
-      title: (
-        <div className="flex justify-between items-center">
-          <span>Auto-Selected Keywords</span>
-        </div>
-      ),
-      content: (
-        <div>
-          <p>We selected these keywords automatically based on competition index:</p>
-          <ul className="list-disc ml-5 mt-2">
-            {autoKeywords.map(kw => (
-              <li key={kw} className="capitalize text-sm sm:text-base">
-                {kw}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-sm sm:text-base">Do you want to add these too?</p>
-        </div>
-      ),
-      okText: "Accept",
-      cancelText: "Decline",
-      closable: true,
-      onOk() {
-        const finalKeywords = [
-          ...(selectedKeywords?.allKeywords || []),
-          ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
-        ].slice(0, 6) // Limit to 6 keywords
-        setSelectedKeywords({
-          focusKeywords: finalKeywords.slice(0, 3),
-          keywords: finalKeywords,
-          allKeywords: finalKeywords,
-        })
-      },
-      onCancel() {
-        // Keep existing selected keywords
-        const finalKeywords = selectedKeywords?.allKeywords || []
-        setSelectedKeywords({
-          focusKeywords: finalKeywords.slice(0, 3),
-          keywords: finalKeywords,
-          allKeywords: finalKeywords,
-        })
-      },
-      okButtonProps: { className: "bg-blue-600 text-white" },
+  const confirmAutoSelect = () => {
+    const finalKeywords = [
+      ...(selectedKeywords?.allKeywords || []),
+      ...autoSelectedList.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
+    ].slice(0, 6) // Limit to 6 keywords
+
+    setSelectedKeywords({
+      focusKeywords: finalKeywords.slice(0, 3),
+      keywords: finalKeywords,
+      allKeywords: finalKeywords,
     })
+    setShowAutoSelectModal(false)
+    toast.success("Keywords auto-selected successfully")
   }
 
   const proceedWithSelectedKeywords = async type => {
@@ -181,11 +151,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     setTimeout(() => {
       if (type === "blog") {
         openSecondStepModal()
-        // openSecondStepModal({
-        //   focusKeywords: finalKeywords.slice(0, 3),
-        //   keywords: finalKeywords.slice(3),
-        //   allKeywords: finalKeywords,
-        // })
       } else {
         openJobModal()
       }
@@ -199,52 +164,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
   const handleCreateJob = () => {
     proceedWithSelectedKeywords("job")
   }
-
-  const columns = [
-    {
-      title: "Keyword",
-      dataIndex: "keyword",
-      key: "keyword",
-      sorter: (a, b) => a.keyword.localeCompare(b.keyword),
-      render: text => <span className="font-medium capitalize text-sm sm:text-base">{text}</span>,
-    },
-    {
-      title: "Monthly Searches",
-      dataIndex: "avgMonthlySearches",
-      key: "avgMonthlySearches",
-      sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
-      render: value => new Intl.NumberFormat().format(value),
-    },
-    {
-      title: "Competition",
-      dataIndex: "competition",
-      key: "competition",
-      sorter: (a, b) => a.competition_index - b.competition_index,
-      render: text => (
-        <Tag
-          color={
-            text === "LOW"
-              ? "green"
-              : text === "MEDIUM"
-                ? "orange"
-                : text === "HIGH"
-                  ? "red"
-                  : "gray"
-          }
-          className="text-xs sm:text-sm"
-        >
-          {text}
-        </Tag>
-      ),
-    },
-    {
-      title: "Competition Index",
-      dataIndex: "competition_index",
-      key: "competition_index",
-      sorter: (a, b) => a.competition_index - b.competition_index,
-      render: value => (value ? value : "-"),
-    },
-  ]
 
   const tableData =
     keywordAnalysisResult?.map((kw, idx) => ({
@@ -262,17 +181,62 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     ? tableData.filter(row => selectedKeywords?.allKeywords?.includes(row.keyword))
     : tableData
 
-  const handlePageChange = page => setCurrentPage(page)
+  const hasSelectedKeywords = selectedKeywords?.allKeywords?.length > 0
 
-  useEffect(() => {
-    return () => {
-      setKeywords([])
-      setNewKeyword("")
-      setCurrentPage(1)
-      setShowSelectedOnly(false)
+  // Manual Pagination Logic
+  const pageSize = 5
+  const totalPages = Math.ceil(filteredTableData.length / pageSize)
+  const paginatedData = filteredTableData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  )
+
+  // Smart Pagination Logic
+  const getPageNumbers = () => {
+    const pages = []
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i)
+        pages.push("...")
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push("...")
+        pages.push(currentPage - 1)
+        pages.push(currentPage)
+        pages.push(currentPage + 1)
+        pages.push("...")
+        pages.push(totalPages)
+      }
     }
-  }, [])
+    return pages
+  }
 
+  const toggleRowSelection = keyword => {
+    const currentSelected = selectedKeywords?.allKeywords || []
+    let newSelected
+    if (currentSelected.includes(keyword)) {
+      newSelected = currentSelected.filter(k => k !== keyword)
+    } else {
+      newSelected = [...currentSelected, keyword]
+    }
+    setSelectedKeywords({
+      focusKeywords: newSelected.slice(0, 3),
+      keywords: newSelected,
+      allKeywords: newSelected,
+    })
+  }
+
+  // Handle body scroll lock
   useEffect(() => {
     if (visible) {
       document.body.style.overflow = "hidden"
@@ -284,173 +248,329 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     }
   }, [visible])
 
-  const hasSelectedKeywords = selectedKeywords?.allKeywords?.length > 0
+  if (!visible) return null
 
   return (
-    <Modal
-      open={visible}
-      onCancel={closeFnc}
-      closable={true}
-      footer={[
-        <div
-          key="footer-buttons"
-          className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t border-gray-100"
-        >
-          <motion.button
-            onClick={showAutoKeywords}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 w-full sm:w-auto"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            disabled={analyzing || !keywordAnalysisResult?.length}
-            style={{
-              opacity: analyzing || !keywordAnalysisResult?.length ? 0.5 : 1,
-              cursor: analyzing || !keywordAnalysisResult?.length ? "not-allowed" : "pointer",
-            }}
-          >
-            Show Auto-Selected Keywords
-          </motion.button>
-          <motion.button
-            onClick={handleCreateBlog}
-            className={`px-4 py-2 text-sm font-medium rounded-lg w-full sm:w-auto ${
-              hasSelectedKeywords
-                ? "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                : "text-gray-400 bg-gray-200 cursor-not-allowed"
-            }`}
-            whileHover={{ scale: hasSelectedKeywords ? 1.03 : 1 }}
-            whileTap={{ scale: hasSelectedKeywords ? 0.97 : 1 }}
-            disabled={!hasSelectedKeywords}
-          >
-            Create Blog
-          </motion.button>
-          <motion.button
-            onClick={handleCreateJob}
-            className={`px-4 py-2 text-sm font-medium rounded-lg w-full sm:w-auto ${
-              hasSelectedKeywords
-                ? "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                : "text-gray-400 bg-gray-200 cursor-not-allowed"
-            }`}
-            whileHover={{ scale: hasSelectedKeywords ? 1.03 : 1 }}
-            whileTap={{ scale: hasSelectedKeywords ? 0.97 : 1 }}
-            disabled={!hasSelectedKeywords}
-          >
-            Create New Job
-          </motion.button>
-          <motion.button
-            onClick={closeFnc}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 w-full sm:w-auto"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            Close
-          </motion.button>
-        </div>,
-      ]}
-      width="90vw"
-      centered
-      title="Keyword Research"
-      styles={{ content: { maxWidth: "1000px", margin: "0 auto" }, body: { padding: "16px" } }}
-      className="rounded-lg sm:rounded-xl"
-    >
-      <div className="space-y-4 sm:space-y-6">
-        <p className="mb-3 sm:mb-4 text-gray-600 text-sm sm:text-base">
-          Find and analyze keywords for your blog
-        </p>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+        onClick={closeFnc}
+      />
 
-        <div className="flex flex-col sm:flex-row gap-2 mb-4 sm:mb-6">
-          <Input
-            placeholder="Enter a keyword"
-            value={newKeyword}
-            onChange={e => setNewKeyword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="flex-1 text-sm sm:text-base"
-            aria-label="Enter keyword"
-          />
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button type="primary" onClick={addKeyword} className="w-full sm:w-auto">
-              Add
-            </Button>
-          </motion.div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
-          {keywords.map((keyword, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1 }}
-              className="bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full flex items-center text-xs sm:text-sm"
-            >
-              <span className="lowercase">{keyword}</span>
-              <motion.div
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.8 }}
-                className="ml-1 sm:ml-2 cursor-pointer"
-                onClick={() => removeKeyword(index)}
-              >
-                <CloseOutlined className="text-blue-800 text-xs" />
-              </motion.div>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            block
-            type="primary"
-            onClick={analyzeKeywords}
-            loading={analyzing}
-            disabled={keywords.length === 0}
-            className="text-sm sm:text-base"
-          >
-            Analyze Keywords
-          </Button>
-        </motion.div>
-
-        {!analyzing && keywordAnalysisResult?.length > 0 && (
-          <div className="mt-4 sm:mt-6">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <Switch
-                checked={showSelectedOnly}
-                onChange={checked => setShowSelectedOnly(checked)}
-                disabled={!hasSelectedKeywords}
-                size="small"
-              />
-              <span className="ml-2 text-gray-600 text-sm sm:text-base">
-                Show Selected Keywords Only
-              </span>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/30">
+              <Search size={20} />
             </div>
-            <div className="overflow-x-auto">
-              <Table
-                columns={columns}
-                dataSource={filteredTableData}
-                pagination={{
-                  current: currentPage,
-                  pageSize: 5,
-                  showSizeChanger: false,
-                  onChange: handlePageChange,
-                  total: filteredTableData.length,
-                  responsive: true,
-                }}
-                rowSelection={{
-                  selectedRowKeys: selectedKeywords?.allKeywords || [],
-                  onChange: selected => {
-                    setSelectedKeywords({
-                      focusKeywords: selected.slice(0, 3),
-                      keywords: selected,
-                      allKeywords: selected,
-                    })
-                  },
-                  getCheckboxProps: record => ({ name: record.keyword }),
-                }}
-                rowKey={record => record.keyword}
-                scroll={{ x: 600 }}
-                className="min-w-[600px]"
-              />
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Keyword Research</h2>
+              <p className="text-sm text-gray-500 font-medium">
+                Find and analyze keywords for your blog
+              </p>
             </div>
           </div>
+          <button
+            onClick={closeFnc}
+            className="btn btn-ghost btn-sm btn-circle text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/50">
+          {/* Input Area */}
+          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Enter keywords (comma separated)..."
+                  className="input border border-gray-300 w-full pl-10 h-12 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-white text-black"
+                  value={newKeyword}
+                  onChange={e => setNewKeyword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              </div>
+              <button
+                onClick={addKeyword}
+                className="btn bg-gray-300 text-black border-none rounded-lg h-12 shadow-md shadow-gray-900/10 px-6 font-medium"
+              >
+                <Plus size={18} className="mr-1" /> Add
+              </button>
+            </div>
+
+            {/* Keyword Tags */}
+            {keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4 max-h-32 overflow-y-auto px-1 py-1">
+                {keywords.map((keyword, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="badge badge-lg bg-blue-50 text-blue-700 border-blue-100 gap-2 h-auto py-2 pl-3 pr-2"
+                  >
+                    <span className="text-sm font-medium">{keyword}</span>
+                    <button
+                      onClick={() => removeKeyword(index)}
+                      className="hover:text-red-500 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {/* Analyze Button */}
+            <div className="mt-4">
+              <button
+                onClick={analyzeKeywords}
+                disabled={keywords.length === 0 || analyzing}
+                className={`btn w-full h-12 text-base rounded-lg shadow-lg transition-all
+                        ${
+                          analyzing || keywords.length === 0
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed shadow-none"
+                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30 border-none"
+                        }`}
+              >
+                {analyzing ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" /> Analyzing...
+                  </>
+                ) : (
+                  "Analyze Keywords"
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Results Area */}
+          {!analyzing && keywordAnalysisResult?.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="form-control">
+                  <label className="label cursor-pointer gap-2 justify-start">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-primary bg-gray-300 toggle-sm"
+                      checked={showSelectedOnly}
+                      onChange={e => setShowSelectedOnly(e.target.checked)}
+                      disabled={!hasSelectedKeywords}
+                    />
+                    <span className="label-text font-medium text-gray-700">Show Selected Only</span>
+                  </label>
+                </div>
+                <div className="text-sm text-gray-500 font-medium">
+                  Showing {paginatedData.length} of {filteredTableData.length} results
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="table w-full">
+                  <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+                    <tr>
+                      <th className="w-12 text-center">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-xs rounded-sm"
+                          disabled
+                        />
+                      </th>
+                      <th className="py-4">Keyword</th>
+                      <th className="py-4 text-center">Vol</th>
+                      <th className="py-4 text-center">Comp</th>
+                      <th className="py-4 text-center">Comp. Idx</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-700 text-sm">
+                    {paginatedData.map(row => {
+                      const isSelected = selectedKeywords?.allKeywords?.includes(row.keyword)
+                      return (
+                        <tr
+                          key={row.keyword}
+                          onClick={() => toggleRowSelection(row.keyword)}
+                          className={`hover:bg-blue-50/50 cursor-pointer transition-colors ${isSelected ? "bg-blue-50/30" : ""}`}
+                        >
+                          <td className="text-center">
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-sm checkbox-primary rounded-md"
+                              checked={!!isSelected}
+                              onChange={() => toggleRowSelection(row.keyword)}
+                            />
+                          </td>
+                          <td className="font-medium">{row.keyword}</td>
+                          <td className="text-center font-mono text-xs">
+                            {new Intl.NumberFormat().format(row.avgMonthlySearches)}
+                          </td>
+                          <td className="text-center">
+                            <span
+                              className={`badge badge-sm font-semibold border-none text-white
+                                                ${
+                                                  row.competition === "LOW"
+                                                    ? "bg-green-500"
+                                                    : row.competition === "MEDIUM"
+                                                      ? "bg-amber-500"
+                                                      : "bg-red-500"
+                                                }`}
+                            >
+                              {row.competition}
+                            </span>
+                          </td>
+                          <td className="text-center font-mono text-xs">
+                            {row.competition_index ?? "-"}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    {paginatedData.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center py-8 text-gray-500">
+                          No keywords found matching criteria
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-4">
+                  <div className="join">
+                    <button
+                      className="join-item btn btn-sm bg-white border border-gray-200"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    >
+                      «
+                    </button>
+                    {getPageNumbers().map((page, i) => (
+                      <button
+                        key={i}
+                        className={`join-item btn btn-sm border border-gray-200 ${
+                          page === currentPage
+                            ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700"
+                            : "bg-white text-gray-700 hover:bg-gray-50"
+                        } ${page === "..." ? "btn-disabled bg-transparent border-none text-gray-400 cursor-default" : ""}`}
+                        disabled={page === "..."}
+                        onClick={() => typeof page === "number" && setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      className="join-item btn btn-sm bg-white border border-gray-200"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    >
+                      »
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+          <button
+            onClick={handleShowAutoKeywords}
+            disabled={analyzing || !keywordAnalysisResult?.length}
+            className="btn btn-ghost text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-medium normal-case flex items-center gap-2"
+          >
+            <CheckCircle2 size={18} /> Auto-Select Keywords
+          </button>
+
+          <div className="flex w-full sm:w-auto gap-3">
+            <button
+              onClick={closeFnc}
+              className="btn bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 flex-1 sm:flex-none"
+            >
+              Close
+            </button>
+            <div className="join shadow-sm hover:shadow-md transition-shadow">
+              <button
+                onClick={handleCreateBlog}
+                disabled={!hasSelectedKeywords}
+                className="btn join-item bg-gray-900 border-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
+              >
+                Create Blog
+              </button>
+              <button
+                onClick={handleCreateJob}
+                disabled={!hasSelectedKeywords}
+                className="btn join-item bg-gray-300 border-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 border-l-gray-700"
+              >
+                Job
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Auto Select Modal Overlay */}
+      <AnimatePresence>
+        {showAutoSelectModal && (
+          <div className="fixed inset-0 z-1100 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              onClick={() => setShowAutoSelectModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Auto-Selected Keywords</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  We found these low-competition keywords for you:
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 mb-6 max-h-48 overflow-y-auto border border-gray-100">
+                  <ul className="space-y-2">
+                    {autoSelectedList.map(kw => (
+                      <li
+                        key={kw}
+                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                      >
+                        <CheckCircle2 size={16} className="text-green-500" />{" "}
+                        <span className="capitalize">{kw}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowAutoSelectModal(false)}
+                    className="btn btn-sm btn-ghost"
+                  >
+                    Cancel
+                  </button>
+                  <button onClick={confirmAutoSelect} className="btn btn-sm btn-primary">
+                    Accept & Add
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
-      </div>
-    </Modal>
+      </AnimatePresence>
+    </div>
   )
 }
 
