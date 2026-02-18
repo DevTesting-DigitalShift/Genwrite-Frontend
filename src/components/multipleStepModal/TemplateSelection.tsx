@@ -122,7 +122,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       >
         <Input.Search
           size="large"
-          className="w-full sm:w-2/3 md:w-1/2 h-full! text-center"
+          className="w-full sm:w-2/3 md:w-1/2 text-center"
           placeholder="search template by name"
           onSearch={value => {
             setTemplates(packages.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
@@ -156,8 +156,8 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
               <div
                 key={pkg.id}
                 className={clsx(
-                  "relative cursor-pointer transition-all rounded-lg duration-200 py-2 border-2 hover:border-blue-700",
-                  selectedIds.includes(pkg.id) && "border-blue-500"
+                  "relative cursor-pointer transition-all rounded-lg duration-200",
+                  selectedIds.includes(pkg.id) && "border-2 border-blue-500"
                 )}
                 onClick={() => handlePackageSelect(pkg.id)}
                 onKeyDown={e => e.key === "Enter" && handlePackageSelect(pkg.id)}
@@ -196,7 +196,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       <style>{`
       .ant-input, .ant-input:focus, .ant-input-search .ant-input{
         border:none !important;
-        height:100% !important;
+        height:80% !important;
       }
 
       ant-input-search .ant-input:focus, .ant-input-search .ant-input:hover{

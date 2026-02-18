@@ -391,7 +391,7 @@ const BrandVoice = () => {
         animate={{ x: 0 }}
       >
         <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Create Your Brand Voice
           </h1>
         </div>
@@ -427,7 +427,7 @@ const BrandVoice = () => {
                 value={formData.postLink}
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
-                className={`flex-grow p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+                className={`grow p-2 sm:p-3 border rounded-lg text-black bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                   errors.postLink ? "border-red-500" : "border-gray-300"
                 }`}
                 whileFocus={{ scale: 1.01 }}
@@ -435,7 +435,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <motion.button
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 onClick={handleFetchSiteInfo}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
@@ -477,7 +477,7 @@ const BrandVoice = () => {
               value={formData.nameOfVoice}
               onChange={handleInputChange}
               placeholder="e.g., Friendly Tech"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+              className={`w-full p-2 sm:p-3 border rounded-lg text-black bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.nameOfVoice ? "border-red-500" : "border-gray-300"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -524,7 +524,7 @@ const BrandVoice = () => {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-grow bg-transparent border-none outline-none text-sm sm:text-base"
+                  className="grow bg-transparent border-none text-black outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
                   aria-describedby={errors.keywords ? "keywords-error" : undefined}
                 />
@@ -583,7 +583,7 @@ const BrandVoice = () => {
               value={formData.sitemapUrl}
               onChange={handleInputChange}
               placeholder="e.g., https://example.com/sitemap.xml"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+              className={`w-full p-2 sm:p-3 border rounded-lg text-black bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.sitemapUrl ? "border-red-500" : "border-gray-300"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -610,7 +610,7 @@ const BrandVoice = () => {
               value={formData.describeBrand}
               onChange={handleInputChange}
               placeholder="Describe your brand's tone and personality"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+              className={`w-full p-2 sm:p-3 border rounded-lg text-black bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.describeBrand ? "border-red-500" : "border-gray-300"
               }`}
               rows={4}
@@ -650,7 +650,7 @@ const BrandVoice = () => {
               value={formData.persona}
               onChange={handleInputChange}
               placeholder="e.g., A seasoned tech blogger with a friendly, conversational tone. Writes for developers and startup founders. Uses American English with occasional technical jargon."
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+              className={`w-full p-2 sm:p-3 border rounded-lg text-black bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.persona ? "border-red-500" : "border-gray-300"
               }`}
               rows={3}
@@ -667,7 +667,7 @@ const BrandVoice = () => {
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
             <motion.button
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={handleSave}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -687,7 +687,7 @@ const BrandVoice = () => {
             </motion.button>
 
             <motion.button
-              className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={resetForm}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}

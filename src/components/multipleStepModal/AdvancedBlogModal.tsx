@@ -406,7 +406,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 value={formData.topic}
                 onChange={handleInputChange}
                 className={clsx(
-                  "bg-gray-50! antd-placeholder",
+                  "bg-white! antd-placeholder",
                   errors.topic && "ring-1 ring-[#ef4444]!",
                   "rounded-lg focus:outline-none! focus:ring-0! focus:ring-[#1B6FC9]!"
                 )}
@@ -429,7 +429,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               className="custom-placeholder"
             />
 
-            <Flex justify="space-between" className="mt-3 form-item-wrapper">
+            <Flex justify="space-between" className="mt-3! form-item-wrapper">
               <label htmlFor="blog-auto-generate-title-keywords">
                 Auto Generate Title & Keywords
               </label>
@@ -945,7 +945,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <Button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
                 type="default"
-                className="h-10 px-6 text-[1rem] font-medium text-white! bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90!"
+                className="h-10 px-6 text-[1rem] font-medium text-white! bg-[#1B6FC9]! rounded-md hover:bg-[#1B6FC9]/90!"
               >
                 {currentStep === 3 ? "Generate Blog" : "Next"}
               </Button>

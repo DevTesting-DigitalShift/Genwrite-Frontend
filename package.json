@@ -20,6 +20,7 @@
     "@codemirror/lang-markdown": "^6.3.4",
     "@codemirror/language-data": "^6.5.1",
     "@codemirror/state": "^6.5.4",
+    "@emailjs/browser": "^4.4.1",
     "@heroicons/react": "^2.0.18",
     "@react-oauth/google": "^0.13.4",
     "@stripe/stripe-js": "^8.7.0",
@@ -47,10 +48,8 @@
     "axios": "^1.13.5",
     "chart.js": "^4.5.0",
     "clsx": "^2.1.1",
-    "codemirror": "^6.0.2",
     "dayjs": "^1.11.13",
     "dompurify": "^3.3.1",
-    "emailjs-com": "^3.2.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.34.0",
     "fuse.js": "^7.1.0",
@@ -91,13 +90,11 @@
     "daisyui": "^5.5.18",
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
-    "jsdom": "^28.1.0",
     "postcss": "^8.4.41",
     "rollup-plugin-visualizer": "^6.0.5",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.2",
     "vite": "^7.3.1",
-    "vitest": "^4.0.18",
     "zod": "^4.3.6"
   }
 }

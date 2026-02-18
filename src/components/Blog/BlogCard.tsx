@@ -125,7 +125,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
       onConfirm: () => onRetry(blog._id),
       confirmProps: {
         type: "text",
-        className: "border-emerald-500 bg-emerald-50 text-emerald-600",
+        className: "border-emerald-500! bg-emerald-100! text-emerald-600! font-bold",
       },
     })
   }
@@ -144,7 +144,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
       onConfirm: () => onArchive?.(blog._id),
       confirmProps: {
         type: "text",
-        className: "border-rose-500 hover:bg-rose-500 bg-rose-100 text-rose-600 font-bold",
+        className: "border-rose-500! bg-rose-100! text-rose-600! font-bold",
       },
     })
   }

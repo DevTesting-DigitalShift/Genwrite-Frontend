@@ -1038,7 +1038,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())
                 }
               >
-                <Bold className="w-5 h-5" />
+                <Bold className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
             <Tooltip title="Italic">
@@ -1048,12 +1048,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
                 }
               >
-                <Italic className="w-5 h-5" />
+                <Italic className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
             <Tooltip title="Link">
               <button className="p-2 rounded hover:bg-gray-200" onClick={handleAddLink}>
-                <LinkIcon className="w-5 h-5" />
+                <LinkIcon className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
           </AIBubbleMenu>

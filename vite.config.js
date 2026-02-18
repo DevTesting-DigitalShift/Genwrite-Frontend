@@ -77,6 +77,7 @@ export default defineConfig({
       "axios",
       "marked",
       "dompurify",
+      "@emailjs/browser",
     ],
     exclude: ["lexical", "lexical-react"],
   },

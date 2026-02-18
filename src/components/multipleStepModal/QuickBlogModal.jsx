@@ -470,7 +470,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border ${
                     errors.topic ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50`}
+                  } rounded-md text-sm bg`}
                   placeholder="Enter the blog topic"
                   aria-label="Blog topic"
                 />
@@ -731,7 +731,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
                       }
                       onKeyDown={e => handleKeyDown(e)}
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50`}
+                      className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
                     />
