@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import {
-  createManualBlog,
-  fetchBlogById,
-  updateBlogById,
-  clearSelectedBlog,
-} from "../store/slices/blogSlice"
 import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
@@ -23,14 +16,29 @@ import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getBlogById, createSimpleBlog, updateBlog } from "@api/blogApi"
 
 const MainEditorPage = () => {
   const { id } = useParams()
-  const dispatch = useDispatch()
-  const blog = useSelector(state => state.blog.selectedBlog)
-  const { metadata } = useSelector(state => state.wordpress)
+  const queryClient = useQueryClient()
+
+  // Zustand Stores
+  const { user } = useAuthStore()
+  const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
+
+  // TanStack Query for fetching blog
+  const { data: fetchedBlog, isLoading: isBlogFetching } = useQuery({
+    queryKey: ["blog", id],
+    queryFn: () => getBlogById(id),
+    enabled: !!id,
+  })
+
+  const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
   const [activeTab, setActiveTab] = useState("Normal")
-  const [isLoading, setIsLoading] = useState(!!id)
+  // isLoading is now derived from isBlogFetching
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
   const [editorTitle, setEditorTitle] = useState("")
@@ -48,7 +56,7 @@ const MainEditorPage = () => {
   const [humanizePrompt, setHumanizePrompt] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
-  const user = useSelector(state => state.auth.user)
+
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
   const location = useLocation()
@@ -89,15 +97,15 @@ const MainEditorPage = () => {
   }, [unsavedChanges])
 
   useEffect(() => {
-    if (id) {
-      setIsLoading(true)
-      dispatch(fetchBlogById(id))
-        .unwrap()
-        .catch(() => message.error("Failed to load blog."))
-        .finally(() => setIsLoading(false))
-    } else {
+    if (fetchedBlog) {
+      setSelectedBlog(fetchedBlog)
+    }
+  }, [fetchedBlog, setSelectedBlog])
+
+  useEffect(() => {
+    if (!id) {
       // Clear selected blog when creating a new blog
-      dispatch(clearSelectedBlog())
+      clearBlogUI()
       // Clear editor state to prevent showing previous blog content
       setEditorContent("")
       setEditorTitle("")
@@ -105,7 +113,7 @@ const MainEditorPage = () => {
       setIsPosted(null)
       setFormData({ category: "", includeTableOfContents: false })
     }
-  }, [id, dispatch])
+  }, [id, clearBlogUI])
 
   useEffect(() => {
     if (blog && id) {
@@ -217,7 +225,7 @@ const MainEditorPage = () => {
   }
 
   const handleSave = async (updateData = {}) => {
-    const { metadata, slug, ...rest } = updateData
+    const { metadata: seoMetadata, slug, ...rest } = updateData
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
       return
@@ -230,31 +238,27 @@ const MainEditorPage = () => {
 
     setIsSaving(true)
     try {
-      const response = await dispatch(
-        updateBlogById({
-          id: blog._id,
-          title: editorTitle,
-          content: editorContent,
-          published: blog?.published,
-          focusKeywords: blog?.focusKeywords,
-          keywords,
-          slug: slug !== undefined ? slug : blog?.slug,
-          seoMetadata: metadata
-            ? { title: metadata.title, description: metadata.description }
-            : blog?.seoMetadata || { title: "", description: "" },
-          ...rest,
-        })
-      ).unwrap()
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        slug: slug !== undefined ? slug : blog?.slug,
+        seoMetadata: seoMetadata
+          ? { title: seoMetadata.title, description: seoMetadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+        ...rest,
+      }
+
+      const response = await updateBlog(blog._id, payload)
 
       message.success("Blog updated successfully")
       setUnsavedChanges(false) // Reset unsavedChanges after save
 
-      setIsLoading(true)
-      setTimeout(() => {
-        dispatch(fetchBlogById(id))
-          .unwrap()
-          .finally(() => setIsLoading(false))
-      }, 2000)
+      // Refresh query data
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
 
       return response
     } catch (error) {
@@ -268,19 +272,17 @@ const MainEditorPage = () => {
   const handleOptimizeSave = async () => {
     setIsSaving(true)
     try {
-      await dispatch(
-        updateBlogById({
-          id: blog._id,
-          title: editorTitle,
-          content: editorContent,
-          published: blog?.published,
-          focusKeywords: blog?.focusKeywords,
-          keywords,
-          seoMetadata: metadata
-            ? { title: metadata.title, description: metadata.description }
-            : blog?.seoMetadata || { title: "", description: "" },
-        })
-      ).unwrap()
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        seoMetadata: metadata
+          ? { title: metadata.title, description: metadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+      }
+      await updateBlog(blog._id, payload)
       const res = await sendRetryLines(blog._id)
       if (res.data) {
         setSaveContent(res.data)
@@ -290,6 +292,7 @@ const MainEditorPage = () => {
         message.error("No content received from retry.")
       }
       setUnsavedChanges(false) // Reset unsavedChanges after save
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
     } catch (error) {
       console.error("Error updating the blog:", error)
       message.error("Failed to save blog.")
@@ -328,7 +331,7 @@ const MainEditorPage = () => {
       !templateFormData.keywords ||
       templateFormData.keywords.length === 0
 
-    if (isEmpty && !id) navigate("/toolbox")
+    if (isEmpty && !id) navigate("/dashboard")
     setShowTemplateModal(false)
   }
 
@@ -364,7 +367,7 @@ const MainEditorPage = () => {
     }
 
     try {
-      const res = await dispatch(createManualBlog({ blogData, user })).unwrap()
+      const res = await createSimpleBlog(blogData)
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
@@ -402,7 +405,7 @@ const MainEditorPage = () => {
     message.info("Retained original content.")
   }, [setIsHumanizeModalOpen])
 
-  if (isLoading || isPosting || blog?.status === "pending") {
+  if (isBlogFetching || isPosting || blog?.status === "pending") {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
         <LoadingScreen />
@@ -556,7 +559,7 @@ const MainEditorPage = () => {
               )}
             </header>
             <div key={activeTab} className="flex-grow overflow-auto max-h-[800px] custom-scroll">
-              {isLoading ? (
+              {isBlogFetching ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>

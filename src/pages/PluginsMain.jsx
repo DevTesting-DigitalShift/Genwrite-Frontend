@@ -14,46 +14,42 @@ import {
 } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import {
-  createIntegrationThunk,
-  getIntegrationsThunk,
-  pingIntegrationThunk,
-} from "@store/slices/otherSlice"
-import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
+import useAuthStore from "@store/useAuthStore"
+import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
-import { FaShopify, FaWix } from "react-icons/fa"
+import { FaShopify, FaWix, FaYoutube } from "react-icons/fa"
 
 const { Title, Text, Paragraph } = Typography
 
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
   const [activeTab, setActiveTab] = useState(null)
-  const [hasPinged, setHasPinged] = useState(sessionStorage.getItem("hasPinged") === "true")
-  const dispatch = useDispatch()
-  const plugins = useMemo(
-    () => pluginsData(dispatch, setWordpressStatus),
-    [dispatch, setWordpressStatus]
-  )
-  const { data: integrations, loading, error } = useSelector(state => state.wordpress)
   const {
-    integration,
+    integrations,
+    loading,
+    fetchIntegrations,
+    createIntegration,
+    pingIntegration,
+    updateIntegration: updateExistingIntegration,
+    fetchCategories,
     categories,
     ping,
     loading: postsLoading,
-  } = useSelector(state => state.integration)
+  } = useIntegrationStore()
+
+  const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
   const extendedPlugins = useMemo(() => {
     return plugins.filter(p => p.isVisible)
   }, [plugins])
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
+    fetchIntegrations()
     if (extendedPlugins.length > 0 && !activeTab) {
       setActiveTab(extendedPlugins[0].id.toString())
       checkPlugin(extendedPlugins[0])
     }
-  }, [plugins, dispatch, activeTab])
+  }, [plugins, fetchIntegrations, activeTab])
 
   const checkPlugin = async plugin => {
     if (wordpressStatus[plugin.id]?.success) return
@@ -88,7 +84,7 @@ const PluginsMain = () => {
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
-        dispatch(getIntegrationsThunk())
+        fetchIntegrations()
       }
     }
   }
@@ -109,6 +105,7 @@ const PluginsMain = () => {
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
     const [hasCredentials, setHasCredentials] = useState(!!wordpressInt) // If integration exists, assume credentials are set on backend
+    const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
@@ -206,8 +203,8 @@ const PluginsMain = () => {
           }
         }
 
-        const result = await dispatch(createIntegrationThunk(payload)).unwrap()
-        await dispatch(getIntegrationsThunk()).unwrap()
+        const result = await createIntegration(payload)
+        await fetchIntegrations()
         setIsEditing(false)
       } catch (err) {
         const errorMsg = err.message || `Failed to create ${plugin.pluginName} integration`
@@ -222,9 +219,9 @@ const PluginsMain = () => {
       setLocalLoading(true)
       try {
         const payload = { type: "SERVERENDPOINT", url, frontend }
-        const result = await dispatch(updateExistingIntegration(payload)).unwrap()
+        await updateExistingIntegration(payload)
         message.success("Server-to-Server integration updated successfully")
-        await dispatch(getIntegrationsThunk()).unwrap()
+        await fetchIntegrations()
         setIsEditing(false)
       } catch (err) {
         const errorMsg = err.message || "Failed to update Server-to-Server integration"
@@ -239,7 +236,7 @@ const PluginsMain = () => {
       setLocalLoading(true)
       try {
         const type = plugin.id === 112 ? "SERVERENDPOINT" : "WORDPRESS"
-        const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+        const result = await pingIntegration(type)
         setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
@@ -268,7 +265,7 @@ const PluginsMain = () => {
     const handleFetchCategories = async () => {
       if (postsLoading || !wordpressStatus[plugin.id]?.success) return
       try {
-        await dispatch(fetchCategories()).unwrap()
+        await fetchCategories()
         message.success("Categories fetched successfully")
       } catch (err) {
         message.error("Failed to fetch categories")
@@ -423,8 +420,8 @@ const PluginsMain = () => {
                       loading={localLoading}
                       className={`rounded-lg border-0 mt-2 ${
                         isEditing
-                          ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                          : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                          ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                          : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                       }`}
                     >
                       {serverInt
@@ -467,8 +464,6 @@ const PluginsMain = () => {
     if (plugin.id === 113 || plugin.id === 114) {
       const isShopify = plugin.id === 113
 
-      // savedDomain from redux (shopify / wix)
-      // const integrations = useSelector(state => state.integration)
       const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
       const [domain, setDomain] = useState(savedDomain ?? "")
       const [isValidDomain, setIsValidDomain] = useState(true)
@@ -525,7 +520,7 @@ const PluginsMain = () => {
           if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
             // simple success signal
             message.success("Shopify connected")
-            dispatch(getIntegrationsThunk()).catch(() => {})
+            fetchIntegrations().catch(() => {})
           }
           // you can add more structured message handling here
         } catch (err) {
@@ -567,12 +562,10 @@ const PluginsMain = () => {
                 installWindowRef.current = null
 
                 // Refresh integrations
-                dispatch(getIntegrationsThunk())
-                  .unwrap()
-                  .catch(() => {})
+                fetchIntegrations().catch(() => {})
 
                 // Check Shopify status
-                dispatch(pingIntegrationThunk("SHOPIFY")).catch(() => {})
+                pingIntegration("SHOPIFY").catch(() => {})
               }
             }, 1200)
           }
@@ -591,7 +584,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const type = isShopify ? "SHOPIFY" : "WIX"
-          const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+          const result = await pingIntegration(type)
           setWordpressStatus(prev => ({
             ...prev,
             [plugin.id]: {
@@ -708,7 +701,7 @@ const PluginsMain = () => {
                         block
                         onClick={openInstallUrl}
                         disabled={!domain || !isValidDomain || localLoading}
-                        className={`flex-1 bg-gradient-to-r ${
+                        className={`flex-1 bg-linear-to-r ${
                           isShopify
                             ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                             : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
@@ -727,7 +720,7 @@ const PluginsMain = () => {
                         onClick={handlePing}
                         loading={localLoading}
                         disabled={!domain || localLoading}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                        className="flex-1 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
                       >
                         Check Status
                       </Button>
@@ -752,7 +745,7 @@ const PluginsMain = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="h-full"
+        className="h-full p-6"
       >
         <Flex vertical gap="large" className="h-full p-6">
           <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
@@ -902,8 +895,8 @@ const PluginsMain = () => {
                     loading={localLoading}
                     className={`rounded-lg border-0 mt-2 ${
                       isEditing
-                        ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                        : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                        ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                        : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                     }`}
                   >
                     {wordpressInt
@@ -927,6 +920,41 @@ const PluginsMain = () => {
               Download Plugin
             </Button>
           </a>
+
+          <div className="mt-6 flex md:justify-between flex-col md:flex-row">
+            <div>
+              <Text strong className="text-base text-gray-800">
+                Struggling to connect?
+              </Text>
+
+              <Text className="block text-gray-600 mt-1">
+                Watch our step-by-step guide to integrate the WordPress plugin professionally.
+              </Text>
+            </div>
+
+            <a
+              href="https://youtu.be/WFpfx-xOZK8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3"
+            >
+              <button
+                className="
+    inline-flex items-center justify-center
+    px-6 py-3
+    bg-red-600 hover:bg-red-700
+    text-white font-semibold
+    rounded-xl
+    shadow-md hover:shadow-lg
+    transition-all duration-200
+    focus:outline-none focus:ring-2 focus:ring-red-500/50
+    active:scale-95
+  "
+              >
+                Watch Video Guide
+              </button>
+            </a>
+          </div>
 
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
             <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
@@ -965,7 +993,7 @@ const PluginsMain = () => {
         transition={{ duration: 0.5 }}
         className="my-6 ml-6 sm:ml-10"
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Plugin Center
         </h1>
         <p className="text-gray-500 text-base mt-2 max-w-md">

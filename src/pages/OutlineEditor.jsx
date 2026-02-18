@@ -1,23 +1,22 @@
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
-import { createOutlineThunk } from "@store/slices/otherSlice"
-import { Empty, Input, Select, Modal } from "antd"
+import useAuthStore from "@store/useAuthStore"
+import useContentStore from "@store/useContentStore"
+import { Empty, Input, Select, Modal, message } from "antd"
 import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
 import React, { useCallback, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { selectUser } from "@store/slices/authSlice"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const { Option } = Select
 
 const OutlineEditor = () => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
+  const { createOutline } = useContentStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState([])
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -52,7 +51,7 @@ const OutlineEditor = () => {
 
   const handleClose = () => {
     setIsOpen(false)
-    navigate("/toolbox")
+    navigate("/dashboard")
   }
 
   const handlePrev = () => {
@@ -224,7 +223,7 @@ const OutlineEditor = () => {
     }
 
     try {
-      const response = await dispatch(createOutlineThunk(blogData)).unwrap()
+      const response = await createOutline(blogData)
       setMarkdownContent(response)
       setIsOpen(false)
     } catch (err) {

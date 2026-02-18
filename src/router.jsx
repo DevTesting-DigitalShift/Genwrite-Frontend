@@ -10,7 +10,6 @@ const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
-const ToolboxSettings = lazy(() => import("@pages/ToolboxPage"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
@@ -100,7 +99,6 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: "dashboard", element: withSuspense(Dashboard) },
-          { path: "toolbox", element: withSuspense(ToolboxSettings) },
           { path: "editor", element: withSuspense(ToolBox) },
           { path: "blog/:id", element: withSuspense(ToolBox) },
           { path: "blogs", element: withSuspense(BlogsPage) },

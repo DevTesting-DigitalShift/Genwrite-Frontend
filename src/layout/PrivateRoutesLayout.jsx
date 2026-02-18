@@ -4,22 +4,18 @@ import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
 import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
+import PaymentPendingModal from "@components/PaymentPendingModal"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
   // const [chatOpen, setChatOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
-  const { user, loading } = useSelector(state => state.auth)
-
-  // Hide chatbot on toolbox routes
-  const isToolboxRoute = location.pathname.startsWith("/toolbox/")
+  const { user, loading, loadAuthenticatedUser } = useAuthStore()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
@@ -27,7 +23,7 @@ const PrivateRoutesLayout = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        await dispatch(loadAuthenticatedUser()).unwrap()
+        await loadAuthenticatedUser()
       } catch {
         localStorage.removeItem("token")
         navigate("/login")
@@ -58,8 +54,6 @@ const PrivateRoutesLayout = () => {
     }
   }, [user, navigate])
 
-  const isToolbarRoute = location.pathname.startsWith("/toolbox/")
-
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {
     return <LoadingScreen message="Authenticating..." />
@@ -70,11 +64,7 @@ const PrivateRoutesLayout = () => {
       <div className="flex flex-col min-h-screen">
         <LayoutWithSidebarAndHeader />
 
-        <div
-          className={`flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 ${
-            isToolbarRoute ? "px-0 pl-2" : " px-3 md:px-6"
-          }`}
-        >
+        <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 px-3 md:px-6">
           {/* Chatbot Button (hidden on /toolbox/:id) */}
           {/* {!isToolboxRoute && (
             <>
@@ -131,6 +121,7 @@ const PrivateRoutesLayout = () => {
           }
         `}
       </style>
+      <PaymentPendingModal user={user} />
     </>
   ) : (
     <Navigate to="/login" replace />

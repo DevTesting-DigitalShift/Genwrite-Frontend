@@ -44,7 +44,6 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
     ) {
       setFileList(initialFiles)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFiles])
 
   // Reset to page 1 if current page exceeds total pages after deletion
@@ -156,7 +155,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
                 <Button
                   icon={<UploadOutlined className="text-base sm:text-lg" />}
                   block
-                  className="!border-2 hover:ring-1 hover:ring-violet-500 !border-blue-500 hover:!bg-violet-50 hover:!text-gray-700 text-xs sm:text-sm font-medium"
+                  className="border-2! hover:ring-1 hover:ring-violet-500 border-blue-500! hover:bg-violet-50! hover:text-gray-700! text-xs sm:text-sm font-medium"
                 >
                   Upload from Device
                 </Button>

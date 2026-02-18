@@ -12,8 +12,6 @@ import { PLATFORM_LABELS, POPULAR_CATEGORIES } from "../constants"
  */
 const PostingPanel: React.FC<PostingPanelProps> = ({
   blog,
-  user,
-  userPlan,
   integrations,
   blogPostings,
   isLoadingPostings,
@@ -93,6 +91,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
   /**
    * Handle repost with same settings
    */
+
   const handleRepost = (posting: any) => {
     onPost({
       ...formData,
@@ -111,9 +110,9 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
       className="flex flex-col h-full bg-white relative"
     >
       {/* Header */}
-      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
+      <div className="p-3 border-b bg-linear-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
+          <div className="p-2 bg-linear-to-br from-green-600 to-emerald-600 rounded-lg">
             <Send className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -231,7 +230,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                   onChange={handleIntegrationChange}
                   status={platformError ? "error" : ""}
                 >
-                  {Object.entries(integrations.integrations).map(([k, v]) => (
+                  {Object.entries(integrations.integrations).map(([k]) => (
                     <Select.Option key={k} value={k}>
                       {PLATFORM_LABELS[k] || k}
                     </Select.Option>
@@ -319,7 +318,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
             ${
               isPosting || !hasAnyIntegration
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
+                : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
             }
           `}
         >

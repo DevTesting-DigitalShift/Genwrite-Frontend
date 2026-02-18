@@ -34,7 +34,7 @@ export const tools = [
   // Popular / Featured
   {
     id: "quick-blog",
-    title: "AI Blog Writer",
+    title: "Generate Quick Blog",
     description: "Easily create in-depth blog posts for any topic",
     icon: <PenTool className="w-6 h-6" />,
     color: "text-purple-600",
@@ -47,7 +47,7 @@ export const tools = [
   },
   {
     id: "youtube-blog",
-    title: "YouTube to Blog",
+    title: "Generate YouTube Blog",
     description: "Transform YouTube videos into SEO-friendly blogs.",
     icon: <FaYoutube className="w-6 h-6" />,
     color: "text-red-600",
@@ -58,7 +58,7 @@ export const tools = [
   },
   {
     id: "advanced-blog",
-    title: "Advanced Blog",
+    title: "Generate Advanced Blog",
     description: "Fine-tune every detail for premium, pro-level blogs.",
     icon: <PenTool className="w-6 h-6" />,
     color: "text-blue-600",
@@ -69,7 +69,7 @@ export const tools = [
   },
   {
     id: "bulk-blog",
-    title: "Bulk Blog Generator",
+    title: "Generate Bulk Blog",
     description: "Generate dozens of blogs at once with flexible templates.",
     icon: <Grid3X3 className="w-6 h-6" />,
     color: "text-orange-600",
@@ -80,7 +80,7 @@ export const tools = [
   },
   {
     id: "text-humanizer",
-    title: "AI Text Humanizer",
+    title: "Humanize Content",
     description:
       "This tool helps you bypass AI detectors and make it human written & plagiarism free",
     icon: <Wand2 className="w-6 h-6" />,
@@ -89,6 +89,7 @@ export const tools = [
     category: "text",
     isPopular: true,
     stats: "100K",
+    credit: "5 Credits",
   },
   {
     id: "website-builder",
@@ -100,6 +101,7 @@ export const tools = [
     category: "seo",
     isPopular: true,
     stats: "480K",
+    credit: "Basic Plan: 10 Credits",
   },
 
   // Other Tools from Toolbox & Dashboard
@@ -111,6 +113,7 @@ export const tools = [
     type: "navigation",
     path: "/outline",
     category: "blog",
+    credit: "5 Credits",
   },
   {
     id: "competitor-analysis",
@@ -120,6 +123,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Competitor_Analysis,
     category: "seo",
+    credit: "10 Credits",
   },
   {
     id: "keyword-research",
@@ -129,6 +133,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Keyword_Research,
     category: "seo",
+    credit: "Free",
   },
   {
     id: "keyword-scraping",
@@ -138,6 +143,7 @@ export const tools = [
     type: "navigation",
     path: "/keyword-scraping",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "generate-metadata",
@@ -147,6 +153,7 @@ export const tools = [
     type: "navigation",
     path: "/generate-metadata",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "boost-content",
@@ -156,6 +163,7 @@ export const tools = [
     type: "navigation",
     path: "/prompt-content",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "content-detection",
@@ -165,6 +173,7 @@ export const tools = [
     type: "navigation",
     path: "/content-detection",
     category: "text",
+    credit: "2 Credits",
   },
   {
     id: "youtube-summarization",
@@ -174,6 +183,7 @@ export const tools = [
     type: "navigation",
     path: "/youtube-summarization",
     category: "youtube",
+    credit: "5 Credits",
   },
   {
     id: "chat-pdf",
@@ -183,6 +193,7 @@ export const tools = [
     type: "navigation",
     path: "/chat-with-pdf",
     category: "text",
+    credit: "5 Credits",
   },
   {
     id: "competitor-like-blog",
@@ -192,6 +203,7 @@ export const tools = [
     type: "navigation",
     path: "/competitor-like-blog",
     category: "blog",
+    credit: "10 Credits",
   },
   {
     id: "performance-monitoring",
@@ -201,5 +213,18 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Performance_Monitoring,
     category: "seo",
+    credit: "Free",
+  },
+  {
+    id: "image-tools",
+    title: "AI Image Tools",
+    description: "Generate, enhance, and manage your AI-crafted images in a dedicated gallery.",
+    icon: <ImageIcon className="w-6 h-6" />,
+    type: "navigation",
+    path: "/image-gallery",
+    category: "image",
+    isPopular: true,
+    stats: "320K",
+    credit: "Varies by Model",
   },
 ]

@@ -7,6 +7,7 @@ export interface Brand {
   keywords: string[]
   describeBrand: string
   persona: string
+
   [x: string]: any
 }
 

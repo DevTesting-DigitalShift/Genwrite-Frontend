@@ -2,33 +2,31 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Heart, Gift, ArrowLeft, CheckCircle, Star, Sparkles, Crown, Zap } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { useDispatch } from "react-redux"
-import { updateProfile } from "@store/slices/userSlice"
 import { message } from "antd"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { WarningOutlined } from "@ant-design/icons"
 import { cancelStripeSubscription } from "@api/otherApi"
-import { useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
- 
+
 const CancellationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
+  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
     if (
       user?.subscription?.plan === "free" ||
       ["unpaid", "cancelled"].includes(user?.subscription?.status) ||
-      user?.subscription?.status === "trialing" ||    
+      user?.subscription?.status === "trialing" ||
       user?.subscription?.cancelAt
     ) {
-      navigate("/dashboard", { replace: true }) 
+      navigate("/dashboard", { replace: true })
     }
   }, [user])
 
@@ -48,7 +46,7 @@ const CancellationPage = () => {
   const handleStay = async () => {
     try {
       setIsProcessing(true)
-      dispatch(updateProfile({ "subscription.discountApplied": 30 }))
+      await updateProfileMutate({ "subscription.discountApplied": 30 })
       setShowSuccess(true)
       sendCancellationRelatedEvent(user, "discount")
       message.success("30% More Credits applied successfully!")

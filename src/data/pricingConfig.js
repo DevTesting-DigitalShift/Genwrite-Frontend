@@ -15,7 +15,7 @@ export const pricingConfig = {
   },
   images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
   aiModels: {
-    gemini: { label: "Gemini", costMultiplier: 1 },
+    gemini: { label: "Gemini", costMultiplier: 1 }, 
     openai: { label: "ChatGPT", costMultiplier: 1.5 },
     chatgpt: { label: "ChatGPT", costMultiplier: 1.5 },
     claude: { label: "Claude", costMultiplier: 2 },

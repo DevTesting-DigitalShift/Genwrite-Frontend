@@ -5,11 +5,10 @@ import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { getIntegrationsThunk } from "@store/slices/otherSlice"
+import { fetchIntegrations } from "@api/otherApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -35,14 +34,21 @@ const StepContent = ({
   user,
   userPlan,
 }) => {
-  const dispatch = useDispatch()
   const fileInputRef = useRef(null)
   const isProUser = user?.subscription?.plan === "pro"
-  const { data: integrations } = useSelector(state => state.wordpress)
+
+  const { data: integrations } = useQuery({
+    queryKey: ["integrations"],
+    queryFn: fetchIntegrations,
+    staleTime: 5 * 60 * 1000,
+  })
 
   useEffect(() => {
     if (integrations?.integrations?.size) {
       setFormData(prev => ({ ...prev, postingType: integrations.integrations.key().next().value }))
+    } else if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      // fallback for normal object
+      setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
     }
   }, [integrations])
 
@@ -50,10 +56,6 @@ const StepContent = ({
   const MAX_BLOGS = 10
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const navigate = useNavigate()
-
-  useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
 
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {

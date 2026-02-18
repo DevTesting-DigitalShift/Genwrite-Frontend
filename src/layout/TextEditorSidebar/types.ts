@@ -145,6 +145,7 @@ export interface RegenerateForm {
  */
 export interface BasePanelProps {
   blog: Blog
+
   user: any
   userPlan: string
   isPro: boolean
@@ -204,8 +205,10 @@ export interface PostingPanelProps extends BasePanelProps {
   categoryError: boolean
   platformError: boolean
   errors: { category: string; platform: string }
+
   onPost: (data: any) => void
   isPosting: boolean
+
   formData: any
   hasAnyIntegration: boolean
 }

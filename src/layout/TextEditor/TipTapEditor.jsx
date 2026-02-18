@@ -33,17 +33,16 @@ import {
   Minus,
   Sparkles,
   Check,
+  ExternalLink,
 } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { ReloadOutlined } from "@ant-design/icons"
+import { ReloadOutlined, LoadingOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
-import { retryBlog } from "@store/slices/blogSlice"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js"
 import { useQueryClient } from "@tanstack/react-query"
@@ -65,6 +64,20 @@ import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryA
 import { COSTS } from "@/data/blogData"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+
+const renderer = {
+  heading({ text, depth: level }) {
+    const slug = String(text)
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+    return `<h${level} id="${slug}">${text}</h${level}>`
+  },
+}
+
+marked.use({ renderer })
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -103,23 +116,35 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     imageSize: "1024x1024",
   })
 
-  // Image modal state
   const [editorReady, setEditorReady] = useState(false)
   const [linkPreview, setLinkPreview] = useState(null)
   const [linkPreviewPos, setLinkPreviewPos] = useState(null)
   const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
   const [linkPreviewElement, setLinkPreviewElement] = useState(null)
   const hideTimeout = useRef(null)
+  const previewCache = useRef({})
   const [lastSavedContent, setLastSavedContent] = useState("")
+  const lastSavedContentRef = useRef(lastSavedContent)
 
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan
   const location = useLocation()
 
+  // Sync ref with state
+  useEffect(() => {
+    lastSavedContentRef.current = lastSavedContent
+  }, [lastSavedContent])
+
   const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
   const safeContent = content ?? blog?.content ?? ""
+
+  // ... (markdownToHtml and htmlToMarkdown unchanged - lines 104-142 in original file logic but we are skipping context for brevity in thought, ensuring we only replace what effectively changes or include surrounding lines if needed for context match)
+  // Actually, I need to match the file content. I will target the block where useEditor is defined and the state definitions above it.
+
+  // Let's rewrite the `useEditor` call and the new Ref setup.
+  // I will just perform the specific edits.
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
@@ -132,18 +157,6 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         trimmed.includes(">") &&
         !trimmed.includes("## ") &&
         !trimmed.includes("**"))
-
-    const renderer = {
-      heading(text, level) {
-        const slug = text
-          .toLowerCase()
-          .replace(/[^\w]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-        return `<h${level} id="${slug}">${text}</h${level}>`
-      },
-    }
-
-    marked.use({ renderer })
 
     const rawHtml = isHtml
       ? markdown
@@ -197,6 +210,62 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       "article",
     ])
     return turndownService.turndown(html)
+  }, [])
+
+  const handleLinkHover = useCallback(
+    event => {
+      const link = event.target.closest("a")
+      if (!link) return
+
+      const url = link.href
+      if (!url) return
+
+      // Don't show preview for internal anchors or mailto
+      if (url.startsWith("#") || url.startsWith("mailto:")) return
+
+      if (hideTimeout.current) {
+        clearTimeout(hideTimeout.current)
+        hideTimeout.current = null
+      }
+
+      const rect = link.getBoundingClientRect()
+      setLinkPreviewPos({ top: rect.bottom + window.scrollY + 5, left: rect.left + window.scrollX })
+      setLinkPreviewUrl(url)
+      setLinkPreviewElement(link)
+
+      if (previewCache.current[url]) {
+        setLinkPreview(previewCache.current[url])
+        return
+      }
+
+      setLinkPreview({ loading: true })
+
+      getLinkPreview(url)
+        .then(data => {
+          previewCache.current[url] = data
+          // Check if we are still looking for THIS url
+          setLinkPreviewUrl(current => {
+            if (current === url) {
+              setLinkPreview(data)
+            }
+            return current
+          })
+        })
+        .catch(err => {
+          console.error("Link preview error:", err)
+          setLinkPreview({ error: true, url })
+        })
+    },
+    [setLinkPreview, setLinkPreviewPos, setLinkPreviewUrl, setLinkPreviewElement]
+  )
+
+  const handleLinkLeave = useCallback(() => {
+    hideTimeout.current = setTimeout(() => {
+      setLinkPreview(null)
+      setLinkPreviewUrl(null)
+      setLinkPreviewElement(null)
+      setLinkPreviewPos(null)
+    }, 300)
   }, [])
 
   const normalEditor = useEditor(
@@ -290,15 +359,24 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         attributes: {
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
         },
+        handleDOMEvents: {
+          mouseover: (view, event) => {
+            handleLinkHover(event)
+            return false
+          },
+          mouseout: (view, event) => {
+            handleLinkLeave()
+            return false
+          },
+        },
       },
       onUpdate: ({ editor }) => {
-        if (!editorReady) return
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
 
         const normCurrent = normalizeContent(markdown)
-        const normSaved = normalizeContent(lastSavedContent ?? "")
+        const normSaved = normalizeContent(lastSavedContentRef.current ?? "")
 
         // Avoid setting true on initial load if contents are effectively same
         if (normCurrent !== normSaved) {
@@ -308,15 +386,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         }
       },
     },
-    [
-      selectedFont,
-      htmlToMarkdown,
-      setContent,
-      setUnsavedChanges,
-      lastSavedContent,
-      normalizeContent,
-      editorReady,
-    ]
+    [selectedFont, htmlToMarkdown, setContent, setUnsavedChanges, normalizeContent]
   )
 
   const safeEditorAction = useCallback(
@@ -581,7 +651,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       // Find the new element
       const element = normalEditor.view.dom.querySelector(`#${sectionId}`)
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" })
+        element.scrollIntoView({ behavior: "smooth", block: "start" })
 
         // Add highlight classes
         element.classList.add(
@@ -603,14 +673,14 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex gap-1 shrink-0">
         {[1, 2, 3, 4].map(level => (
           <Tooltip key={level} title={`Heading ${level}`}>
             <button
               onClick={() =>
                 safeEditorAction(() => normalEditor.chain().focus().toggleHeading({ level }).run())
               }
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md text-black ${
                 normalEditor?.isActive("heading", { level })
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
@@ -626,19 +696,19 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         ))}
       </div>
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+      <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
 
       {/* Text styles */}
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex gap-1 shrink-0">
         <Tooltip title="Bold">
           <button
             onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())}
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md text-black ${
               normalEditor?.isActive("bold") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
             }`}
             type="button"
           >
-            <Bold className="w-4 h-4" />
+            <Bold className="w-4 h-4 text-black" />
           </button>
         </Tooltip>
         <Tooltip title="Italic">
@@ -646,27 +716,27 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             onClick={() =>
               safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
             }
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md text-black ${
               normalEditor?.isActive("italic") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
             }`}
             type="button"
           >
-            <Italic className="w-4 h-4" />
+            <Italic className="w-4 h-4 text-black" />
           </button>
         </Tooltip>
       </div>
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+      <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
 
       {/* Alignment */}
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex gap-1 shrink-0">
         {["left", "center", "right"].map(align => (
           <Tooltip key={align} title={`Align ${align}`}>
             <button
               onClick={() =>
                 safeEditorAction(() => normalEditor.chain().focus().setTextAlign(align).run())
               }
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md text-black ${
                 normalEditor?.isActive({ textAlign: align })
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
@@ -681,16 +751,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         ))}
       </div>
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+      <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
 
       {/* Lists */}
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex gap-1 shrink-0">
         <Tooltip title="Bullet List">
           <button
             onClick={() =>
               safeEditorAction(() => normalEditor.chain().focus().toggleBulletList().run())
             }
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md text-black ${
               normalEditor?.isActive("bulletList")
                 ? "bg-blue-100 text-blue-600"
                 : "hover:bg-gray-100"
@@ -705,7 +775,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             onClick={() =>
               safeEditorAction(() => normalEditor.chain().focus().toggleOrderedList().run())
             }
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md text-black ${
               normalEditor?.isActive("orderedList")
                 ? "bg-blue-100 text-blue-600"
                 : "hover:bg-gray-100"
@@ -717,14 +787,14 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         </Tooltip>
       </div>
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+      <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
 
       {/* Media & Undo/Redo */}
-      <div className="flex gap-1 flex-nowrap">
+      <div className="flex gap-1 shrink-0">
         <Tooltip title="Link">
           <button
             onClick={handleAddLink}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            className="p-2 rounded-md text-black hover:bg-gray-100 shrink-0"
             type="button"
           >
             <LinkIcon className="w-4 h-4" />
@@ -733,7 +803,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         <Tooltip title="Image">
           <button
             onClick={handleAddImage}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            className="p-2 rounded-md text-black hover:bg-gray-100 shrink-0"
             type="button"
           >
             <ImageIcon className="w-4 h-4" />
@@ -743,7 +813,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           <Tooltip title="Table">
             <button
               onClick={handleAddTable}
-              className={`p-2 rounded-md hover:bg-gray-100 flex-shrink-0 ${
+              className={`p-2 rounded-md text-black hover:bg-gray-100 shrink-0 ${
                 tableDropdownOpen ? "bg-blue-100 text-blue-600" : ""
               }`}
               type="button"
@@ -757,7 +827,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           tableButtonRef.current &&
           createPortal(
             <div
-              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-[9999]"
+              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-9999"
               style={{
                 top: `${tableButtonRef.current.getBoundingClientRect().bottom + 8}px`,
                 left: `${tableButtonRef.current.getBoundingClientRect().left}px`,
@@ -773,7 +843,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   Array.from({ length: 10 }, (_, colIndex) => (
                     <div
                       key={`${rowIndex}-${colIndex}`}
-                      className={`w-5 h-5 border border-gray-300 cursor-pointer transition-colors ${
+                      className={`w-5 h-5 border border-gray-300 cursor-pointer text-black ${
                         rowIndex < hoveredCell.row && colIndex < hoveredCell.col
                           ? "bg-blue-500 border-blue-600"
                           : "bg-white hover:bg-blue-100"
@@ -886,7 +956,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           >
             <Tooltip title="Table Options">
               <button
-                className={`p-2 rounded-md transition-colors flex-shrink-0 ${
+                className={`p-2 rounded-md text-black shrink-0 ${
                   normalEditor.isActive("table") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
                 }`}
                 type="button"
@@ -900,7 +970,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         <Tooltip title="Undo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            className="p-2 rounded-md text-black hover:bg-gray-100 shrink-0"
             type="button"
           >
             <Undo2 className="w-4 h-4" />
@@ -909,7 +979,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         <Tooltip title="Redo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            className="p-2 rounded-md text-black hover:bg-gray-100 shrink-0"
             type="button"
           >
             <Redo2 className="w-4 h-4" />
@@ -917,13 +987,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         </Tooltip>
       </div>
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+      <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
 
       {/* Font Select */}
       <Select
         value={selectedFont}
         onChange={value => safeEditorAction(() => setSelectedFont(value))}
-        className="w-32 flex-shrink-0"
+        className="w-32 shrink-0"
       >
         {FONT_OPTIONS.map(font => (
           <Select.Option key={font.value} value={font.value}>
@@ -950,7 +1020,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       transition={{ duration: 0.4 }}
     >
       {/* Toolbar - Fixed at top */}
-      <div className="sticky top-0 z-50 bg-white shadow-sm flex-shrink-0">{renderToolbar()}</div>
+      <div className="sticky top-0 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
 
       {/* Editor Content - Scrollable */}
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
@@ -968,7 +1038,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())
                 }
               >
-                <Bold className="w-5 h-5" />
+                <Bold className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
             <Tooltip title="Italic">
@@ -978,12 +1048,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
                 }
               >
-                <Italic className="w-5 h-5" />
+                <Italic className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
             <Tooltip title="Link">
               <button className="p-2 rounded hover:bg-gray-200" onClick={handleAddLink}>
-                <LinkIcon className="w-5 h-5" />
+                <LinkIcon className="w-5 h-5 text-gray-600" />
               </button>
             </Tooltip>
           </AIBubbleMenu>
@@ -1484,6 +1554,102 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         imageSourceType={editingImageSrc ? "thumbnail" : "url"}
         allowEnhance={blog?.imageSource !== "stock"}
       />
+
+      {/* Link Preview Popover */}
+      {linkPreview && linkPreviewPos && (
+        <div
+          className="fixed z-9999 pointer-events-none"
+          style={{ top: `${linkPreviewPos.top}px`, left: `${linkPreviewPos.left}px` }}
+          onMouseEnter={() => {
+            if (hideTimeout.current) {
+              clearTimeout(hideTimeout.current)
+              hideTimeout.current = null
+            }
+          }}
+          onMouseLeave={handleLinkLeave}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="link-hover-preview bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden w-[320px] pointer-events-auto"
+          >
+            {linkPreview.loading ? (
+              <div className="p-4 flex items-center justify-center gap-3 text-gray-500">
+                <LoadingOutlined spin className="text-blue-500" />
+                <span className="text-sm">Fetching preview...</span>
+              </div>
+            ) : linkPreview.error ? (
+              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <div className="p-1.5 bg-gray-200 rounded text-gray-500">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider truncate">
+                    Link
+                  </p>
+                  <p className="text-xs text-gray-600 truncate font-medium">
+                    {linkPreviewUrl || "External Link"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Image Header if available */}
+                {(linkPreview.images?.[0] || linkPreview.favicons?.[0]) && (
+                  <div className="relative h-32 bg-gray-100 overflow-hidden border-b border-gray-100">
+                    <img
+                      src={linkPreview.images?.[0] || linkPreview.favicons?.[0]}
+                      alt="Link preview"
+                      className="w-full h-full object-cover"
+                      onError={e => {
+                        e.target.style.display = "none"
+                      }}
+                    />
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md shadow-sm border border-gray-200/50 flex items-center gap-1.5">
+                      {linkPreview.favicons?.[0] && (
+                        <img
+                          src={linkPreview.favicons[0]}
+                          className="w-3 h-3 rounded-sm"
+                          alt="favicon"
+                        />
+                      )}
+                      <span className="text-[10px] font-bold text-gray-600 truncate max-w-[120px]">
+                        {linkPreview.siteName || new URL(linkPreviewUrl).hostname}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-4">
+                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1.5">
+                    {linkPreview.title || "No title available"}
+                  </h4>
+                  {linkPreview.description && (
+                    <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed mb-3">
+                      {linkPreview.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-blue-600 font-medium truncate italic">
+                        {linkPreviewUrl}
+                      </p>
+                    </div>
+                    <a
+                      href={linkPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-50 p-1.5 rounded-lg hover:bg-blue-100 text-black shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   )
 }

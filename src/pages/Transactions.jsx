@@ -14,9 +14,8 @@ import {
   ArrowRight,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchTransactions } from "@store/slices/userSlice"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"
 import { ReloadOutlined } from "@ant-design/icons"
 import { clsx } from "clsx"
@@ -24,24 +23,16 @@ import { clsx } from "clsx"
 const { Meta } = Card
 
 const Transactions = () => {
-  const dispatch = useDispatch()
-  const { user, integration } = useSelector(state => ({
-    user: state.auth.user,
-    integration: state.auth.integration || null,
-  }))
-  const { transactions, loading } = useSelector(state => state.user)
+  const { user, integration, loadAuthenticatedUser } = useAuthStore()
+  const { data: transactions = [], isLoading: loading, refetch } = useTransactionsQuery()
   const navigate = useNavigate()
 
   const showTrialMessage =
     user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
 
   useEffect(() => {
-    dispatch(loadAuthenticatedUser())
-  }, [dispatch])
-
-  useEffect(() => {
-    dispatch(fetchTransactions())
-  }, [dispatch])
+    loadAuthenticatedUser()
+  }, [loadAuthenticatedUser])
 
   const columns = [
     {
@@ -355,7 +346,7 @@ const Transactions = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => dispatch(fetchTransactions())}
+              onClick={() => refetch()}
               className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition text-sm flex items-center justify-center"
             >
               <ReloadOutlined className="w-4 h-4" />

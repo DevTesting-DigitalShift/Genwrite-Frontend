@@ -1,30 +1,30 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
-import { createMultiBlog } from "@store/slices/blogSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Select, Tooltip } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { queryClient } from "@utils/queryClient"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { validateBulkBlogData } from "@/types/forms.schemas"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
 
 // Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
+  const { integrations, fetchIntegrations } = useIntegrationStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const user = useSelector(state => state.auth.user)
-  const { data: integrations } = useSelector(state => state.wordpress)
+  const queryClient = useQueryClient()
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -45,10 +45,10 @@ const BulkBlogModal = ({ closeFnc }) => {
     topicInput: "",
     keywordInput: "",
     performKeywordResearch: true,
-    tone: "",
+    tone: "", // Initialize as empty string, will be validated as required
     languageToWrite: "English",
     userDefinedLength: 1000,
-    imageSource: IMAGE_SOURCE.STOCK,
+    imageSource: IMAGE_SOURCE.STOCK, // Ensure this matches schema enum
     isCheckedBrand: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -91,8 +91,8 @@ const BulkBlogModal = ({ closeFnc }) => {
   const [formData, setFormData] = useState(initialFormData)
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
+    fetchIntegrations()
+  }, [])
 
   useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
@@ -282,7 +282,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
     const finalData = {
       ...formData,
-      imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
+      imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : "none", // Explicitly use "none" string if needed, or IMAGE_SOURCE.NONE
+      tone: formData.tone || undefined, // Send undefined if empty to let Zod catch it as required
     }
     const validatedData = validateBulkBlogData(finalData)
 
@@ -291,13 +292,25 @@ const BulkBlogModal = ({ closeFnc }) => {
     )
 
     try {
-      await dispatch(
-        createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
-      ).unwrap()
-      handleClose() // ✅ Only close on success
+      const { createMultiBlog } = useBlogStore.getState()
+      // Don't await the promise so the modal closes immediately
+      createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
+        .then(() => {
+          // Optional: You can show a success message here if needed,
+          // but the store action likely handles the main success feedback/navigation
+        })
+        .catch(error => {
+          message.error(error?.message || "Failed to create blogs. Please try again.")
+        })
+        .finally(() => {
+          hideLoading(loadingId)
+        })
+
+      handleClose()
     } catch (error) {
+      // This catch block might not be hit if createMultiBlog validation fails synchronously before returning a promise
+      // but good to keep for safety
       message.error(error?.message || "Failed to create blogs. Please try again.")
-    } finally {
       hideLoading(loadingId)
     }
   }
@@ -1216,7 +1229,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         setFormData(prev => ({
                           ...prev,
                           isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.imageSource : "unsplash",
+                          imageSource: checked ? prev.imageSource : "stock",
                         }))
                         setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
                       }}
@@ -1263,12 +1276,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     }`}
                   >
                     {[
-                      {
-                        id: "unsplash",
-                        label: "Stock Images",
-                        value: "unsplash",
-                        restricted: false,
-                      },
+                      { id: "stock", label: "Stock Images", value: "stock", restricted: false },
                       {
                         id: "ai",
                         label: "AI Generated",

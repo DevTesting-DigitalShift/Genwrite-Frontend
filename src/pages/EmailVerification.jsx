@@ -3,6 +3,7 @@ import { Card, Input, Button, Form, Typography, Alert, Space, Result, message } 
 import { MailOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import axiosInstance from "@api/index"
+import { useResendVerification } from "@/api/queries/authQueries"
 
 const { Title, Text } = Typography
 
@@ -43,6 +44,9 @@ export default function EmailVerification() {
   }
 
   // STEP 1 → send code
+  const { mutateAsync: resendEmail } = useResendVerification()
+
+  // STEP 1 → send code
   const handleSendCode = async () => {
     try {
       setLoading(true)
@@ -51,14 +55,12 @@ export default function EmailVerification() {
       const values = await form.validateFields(["email"])
       setEmail(values.email)
 
-      await axiosInstance.post("/auth/resend-verification-email", {
-        email: values.email,
-      })
+      await resendEmail({ email: values.email })
 
       startResendCountdown()
       setShowOTP(true)
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send verification email")
+      setError(err.response?.data?.message || err.message || "Failed to send verification email")
     } finally {
       setLoading(false)
     }

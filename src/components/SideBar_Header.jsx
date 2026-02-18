@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "../store/useAuthStore"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
 import {
-  Box,
   Briefcase,
-  CreditCard,
   Crown,
   FileText,
   HelpCircle,
@@ -24,14 +22,6 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react"
-import {
-  loadAuthenticatedUser,
-  logoutUser,
-  selectUser,
-  updateCredits,
-  addNotification,
-  updateUserPartial,
-} from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCashFill, RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
@@ -45,21 +35,27 @@ const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
-  const user = useSelector(selectUser)
+  const {
+    user,
+    loadAuthenticatedUser,
+    logoutUser,
+    updateCredits,
+    addNotification,
+    updateUserPartial,
+  } = useAuthStore()
   const location = useLocation()
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const sidebarRef = useRef(null)
   const { isDesktop } = useViewport()
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      await dispatch(loadAuthenticatedUser()).unwrap()
+      await loadAuthenticatedUser()
     } catch (err) {
       console.error("User load failed:", err)
       navigate("/login")
     }
-  }, [dispatch, navigate])
+  }, [loadAuthenticatedUser, navigate])
 
   const handleCreditsUpdate = useCallback(
     data => {
@@ -68,25 +64,25 @@ const SideBar_Header = () => {
         typeof data === "object" &&
         (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
       ) {
-        dispatch(updateCredits(data.credits || data))
+        updateCredits(data.credits || data)
       } else {
         fetchCurrentUser()
       }
     },
-    [dispatch, fetchCurrentUser]
+    [updateCredits, fetchCurrentUser]
   )
 
   const handleNotificationUpdate = useCallback(
     data => {
       if (data && typeof data === "object" && data.message) {
-        dispatch(addNotification(data))
+        addNotification(data)
       } else if (data && typeof data === "object" && data.notifications) {
-        dispatch(updateUserPartial({ notifications: data.notifications }))
+        updateUserPartial({ notifications: data.notifications })
       } else {
         fetchCurrentUser()
       }
     },
-    [dispatch, fetchCurrentUser]
+    [addNotification, updateUserPartial, fetchCurrentUser]
   )
 
   const handleCloseModal = () => {
@@ -148,7 +144,7 @@ const SideBar_Header = () => {
 
   useEffect(() => {
     fetchCurrentUser()
-  }, [dispatch, navigate])
+  }, [fetchCurrentUser])
 
   useEffect(() => {
     if (user?.name || user?.credits) {
@@ -164,7 +160,6 @@ const SideBar_Header = () => {
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
-    { title: "Image Gallery", icon: ImagesIcon, path: "/image-gallery" },
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
   ]
 
@@ -172,7 +167,7 @@ const SideBar_Header = () => {
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap()
+      await logoutUser()
       navigate("/login")
     } catch (error) {
       console.error("Logout error:", error)
@@ -242,15 +237,13 @@ const SideBar_Header = () => {
 
   return (
     <div
-      className={`md:z-[999] ${
-        path.includes("signup") || path.includes("login") ? "hidden" : "flex"
-      }`}
+      className={`z-50 ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
     >
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
+        className={`fixed top-0 left-0 h-full z-30 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
           sidebarOpen ? "w-64" : "hidden md:w-20 md:flex"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
@@ -261,7 +254,7 @@ const SideBar_Header = () => {
         {/* Logo Header */}
         <div className="flex items-center mt-3 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <Menu className="w-5 h-5 text-white" />
             </div>
           ) : (
@@ -276,7 +269,7 @@ const SideBar_Header = () => {
           <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
+              className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
             >
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
@@ -311,7 +304,7 @@ const SideBar_Header = () => {
                     }`}
                   >
                     <Icon
-                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${
+                      className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
                         !isActive && "group-hover:scale-110"
                       }`}
                     />
@@ -334,17 +327,17 @@ const SideBar_Header = () => {
                 <ScheduleDemoButton
                   calLink="genwrite/30min"
                   buttonText="Schedule Demo"
-                  variant="gradient"
+                  variant="linear"
                   size="middle"
                   tooltipText=""
                   showIcon={true}
-                  className="!w-full !justify-center"
+                  className="w-full! justify-center!"
                 />
               </li>
               <li>
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
                   <Zap className="w-5 h-5" />
                   <span className="text-sm font-medium">Go Pro</span>
@@ -353,7 +346,7 @@ const SideBar_Header = () => {
               <li>
                 <button
                   onClick={() => setShowWhatsNew(true)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
                   <HelpCircle className="w-5 h-5" />
                   <span className="text-sm font-medium">Introduction Video</span>
@@ -367,9 +360,9 @@ const SideBar_Header = () => {
         <div className="p-3 border-t border-gray-200">
           <NavLink
             to="/contact"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100"
           >
-            <UsersRound className="w-5 h-5 flex-shrink-0" />
+            <UsersRound className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span className="text-sm font-medium">Contact Us</span>}
           </NavLink>
         </div>
@@ -378,7 +371,7 @@ const SideBar_Header = () => {
       {/* Main Content */}
       <div className="flex-1 md:ml-20">
         <header
-          className="fixed top-0 z-40 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
+          className="fixed top-0 z-20 p-4 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
  border-gray-200 w-full md:w-[calc(100%-5rem)]"
         >
           <div className="flex items-center gap-2">
@@ -392,7 +385,7 @@ const SideBar_Header = () => {
             <ScheduleDemoButton
               calLink="genwrite/30min"
               buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
-              variant="gradient"
+              variant="linear"
               size="large"
               tooltipText="Schedule a free consultation"
               showIcon={isDesktop}
@@ -404,7 +397,7 @@ const SideBar_Header = () => {
                 <Tooltip title="User Credits" className="hidden md:flex">
                   <button
                     onClick={() => navigate("/credit-logs")}
-                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
+                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
                   >
                     <RiCoinsFill size={24} color="orange" />
                     <span className="font-semibold">
@@ -424,7 +417,7 @@ const SideBar_Header = () => {
                 </Tooltip>
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
                   <Avatar
-                    className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
+                    className="bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
                     style={{ marginLeft: "20px", marginRight: "20px" }}
                     size="large"
                     src={user?.avatar ? user.avatar : undefined}

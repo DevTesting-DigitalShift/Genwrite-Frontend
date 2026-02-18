@@ -257,7 +257,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       {/* Floating Bubble Menu */}
       <div
         ref={menuRef}
-        className="fixed z-[9999] flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
+        className="fixed z-9999 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
         style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
         onMouseDown={e => e.preventDefault()} // Prevent losing selection
       >

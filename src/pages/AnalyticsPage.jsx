@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -18,7 +18,6 @@ import { Chart as ChartJS, registerables } from "chart.js"
 import { Pie, Doughnut, Bar, Line } from "react-chartjs-2"
 import { useQuery } from "@tanstack/react-query"
 import { getBlogStatus } from "@/api/analysisApi"
-import { selectUser } from "@/store/slices/authSlice"
 import dayjs from "dayjs"
 
 ChartJS.register(...registerables)
@@ -78,7 +77,7 @@ const ChartCard = ({ title, children, className = "" }) => (
 )
 
 const AnalyticsPage = () => {
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   // const [selectedRange, setSelectedRange] = useState("7days")
 
   const {
@@ -90,10 +89,7 @@ const AnalyticsPage = () => {
     queryKey: ["blogStatus"],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      let params = {
-        start: new Date(user?.createdAt || Date.now()).toISOString(),
-        end: endDate,
-      }
+      let params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
 
       // switch (selectedRange) {
       //   case "7days":
@@ -139,10 +135,7 @@ const AnalyticsPage = () => {
   const chartOptions = {
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "bottom",
-        labels: { font: { size: 12 }, padding: 20, color: "#6b7280" },
-      },
+      legend: { position: "bottom", labels: { font: { size: 12 }, padding: 20, color: "#6b7280" } },
       tooltip: {
         backgroundColor: "white",
         titleColor: "#1f2937",
@@ -154,28 +147,15 @@ const AnalyticsPage = () => {
     },
     scales: {
       x: { ticks: { font: { size: 12 }, color: "#6b7280" } },
-      y: {
-        ticks: { font: { size: 12 }, color: "#6b7280" },
-        beginAtZero: true,
-      },
+      y: { ticks: { font: { size: 12 }, color: "#6b7280" }, beginAtZero: true },
     },
   }
 
   const barChartOptions = {
     ...chartOptions,
     scales: {
-      x: {
-        ticks: {
-          font: { size: 12 },
-          color: "#6b7280",
-          maxRotation: 45,
-          minRotation: 45,
-        },
-      },
-      y: {
-        ticks: { font: { size: 12 }, color: "#6b7280", stepSize: 1 },
-        beginAtZero: true,
-      },
+      x: { ticks: { font: { size: 12 }, color: "#6b7280", maxRotation: 45, minRotation: 45 } },
+      y: { ticks: { font: { size: 12 }, color: "#6b7280", stepSize: 1 }, beginAtZero: true },
     },
   }
 
@@ -183,18 +163,8 @@ const AnalyticsPage = () => {
     ...chartOptions,
     plugins: { ...chartOptions.plugins, legend: { display: false } },
     scales: {
-      x: {
-        ticks: {
-          font: { size: 12 },
-          color: "#6b7280",
-          maxRotation: 45,
-          minRotation: 45,
-        },
-      },
-      y: {
-        ticks: { font: { size: 12 }, color: "#6b7280", stepSize: 1 },
-        beginAtZero: true,
-      },
+      x: { ticks: { font: { size: 12 }, color: "#6b7280", maxRotation: 45, minRotation: 45 } },
+      y: { ticks: { font: { size: 12 }, color: "#6b7280", stepSize: 1 }, beginAtZero: true },
     },
   }
 

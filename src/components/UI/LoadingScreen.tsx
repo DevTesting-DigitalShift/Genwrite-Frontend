@@ -14,7 +14,6 @@ const LoadingScreen = ({
   message,
   delay = 200, // Default 200ms delay to prevent flash
 }: LoadingScreenProps = {}) => {
-  const [isTimedOut, setIsTimedOut] = useState(false)
   const [shouldShow, setShouldShow] = useState(delay === 0) // Show immediately if no delay
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const delayRef = useRef<NodeJS.Timeout | null>(null)
@@ -42,7 +41,6 @@ const LoadingScreen = ({
         `LoadingScreen: Maximum duration (${maxDuration}ms) exceeded. ` +
           `Component has been visible for too long.`
       )
-      setIsTimedOut(true)
       onTimeout?.()
     }, maxDuration)
 

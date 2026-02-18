@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react"
+import React, { useState, useRef, useCallback, useEffect } from "react"
 import {
   Send,
   Copy,
@@ -10,21 +10,32 @@ import {
   Loader2,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
+
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
+import useHumanizeStore from "@store/useHumanizeStore"
+import useAuthStore from "@store/useAuthStore"
+import { useHumanizeMutation } from "@api/queries/humanizeQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
-  const dispatch = useDispatch()
-  const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize)
-  const user = useSelector(state => state.auth.user)
+  const { result: outputContent, resetHumanizeState } = useHumanizeStore()
+  const { mutate: generateContent, isPending } = useHumanizeMutation()
+
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const leftPanelRef = useRef()
   const rightPanelRef = useRef()
   const isScrollingSyncRef = useRef(false)
+
+  // Cleanup on unmount - reset state when user leaves the page
+  useEffect(() => {
+    return () => {
+      resetHumanizeState()
+      setInputContent("")
+    }
+  }, [])
 
   // Calculate word count
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
@@ -81,15 +92,15 @@ const HumanizeContent = () => {
 
     const payload = { content: inputContent.trim() }
 
-    try {
-      const resultAction = await dispatch(generateHumanizedContent(payload)).unwrap()
-      if (generateHumanizedContent.fulfilled.match(resultAction)) {
+    generateContent(payload, {
+      onSuccess: () => {
         message.success("Content processed successfully!")
-      }
-    } catch (err) {
-      message.error("Failed to process content. Please try again.")
-      console.error(err)
-    }
+      },
+      onError: err => {
+        message.error("Failed to process content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async (content, type) => {
@@ -119,11 +130,11 @@ const HumanizeContent = () => {
 
   const handleReset = () => {
     setInputContent("")
-    dispatch(resetHumanizeState())
+    resetHumanizeState()
     message.info("Content reset")
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen message="Humanizing your content..." />
@@ -186,7 +197,7 @@ const HumanizeContent = () => {
             </div>
             <Button
               onClick={handleMagicWandClick}
-              disabled={isLoading || !inputContent.trim() || wordCount < 300}
+              disabled={isPending || !inputContent.trim() || wordCount < 300}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                 !inputContent.trim() || wordCount < 300
                   ? "opacity-50 cursor-not-allowed"
@@ -199,7 +210,7 @@ const HumanizeContent = () => {
         </div>
 
         {/* Split View Results */}
-        {(outputContent || isLoading) && (
+        {(outputContent || isPending) && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
@@ -271,7 +282,7 @@ const HumanizeContent = () => {
                   </div>
                 </div>
                 <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-                  {isLoading ? (
+                  {isPending ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />

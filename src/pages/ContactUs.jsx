@@ -1,5 +1,5 @@
 import { useState } from "react"
-import emailjs from "emailjs-com"
+import emailjs from "@emailjs/browser"
 import {
   Mail,
   Clock,
@@ -21,28 +21,17 @@ import { Helmet } from "react-helmet"
 import { motion, AnimatePresence } from "framer-motion"
 
 const ContactUs = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  })
+  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   const handleInputChange = e => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData(prev => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: "",
-      }))
+      setErrors(prev => ({ ...prev, [name]: "" }))
     }
   }
 
@@ -155,14 +144,14 @@ const ContactUs = () => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-xs sm:text-sm font-medium text-blue-800 mb-6 shadow-sm"
+            className="inline-flex items-center gap-2 bg-linear-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-xs sm:text-sm font-medium text-blue-800 mb-6 shadow-sm"
           >
             <Sparkles className="w-4 h-4 text-blue-600" />
             We'd Love to Hear From You
           </motion.div>
 
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-gray-900 leading-tight">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Get in Touch
             </span>
           </h1>
@@ -181,12 +170,12 @@ const ContactUs = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-3xl shadow border border-gray-100 p-5 sm:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-linear-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
 
               <div className="relative">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -208,7 +197,7 @@ const ContactUs = () => {
                       exit={{ opacity: 0, height: 0 }}
                       className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3 overflow-hidden"
                     >
-                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <h3 className="font-bold text-green-800">Message Sent Successfully!</h3>
                         <p className="text-green-700 text-sm">
@@ -317,7 +306,7 @@ const ContactUs = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`w-full py-5 px-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 shadow shadow-blue-100 hover:shadow flex items-center justify-center gap-3 border-none group ${
+                    className={`w-full py-5 px-8 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 shadow shadow-blue-100 hover:shadow flex items-center justify-center gap-3 border-none group ${
                       isSubmitting
                         ? "opacity-70 cursor-not-allowed"
                         : "hover:scale-[1.01] active:scale-[0.99]"
@@ -361,7 +350,7 @@ const ContactUs = () => {
                     href={`mailto:${companyInfo.email.trim()}`}
                     className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-2xl transition-all"
                   >
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-none">
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-none">
                       <Mail className="w-5 h-5 text-blue-500" />
                     </div>
                     <span className="text-sm sm:text-base font-bold text-gray-700 group-hover:text-blue-600 truncate">
@@ -376,7 +365,7 @@ const ContactUs = () => {
                     Working Hours
                   </p>
                   <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-2xl transition-all">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">
                       <Clock className="w-5 h-5 text-orange-500" />
                     </div>
                     <div className="text-xs sm:text-sm font-bold text-gray-600 space-y-1">
@@ -419,7 +408,7 @@ const ContactUs = () => {
             </div>
 
             {/* Feedback Widget */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 sm:p-8 text-white shadow shadow-indigo-100 overflow-hidden relative">
+            <div className="bg-linear-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 sm:p-8 text-white shadow shadow-indigo-100 overflow-hidden relative">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12" />
               <div className="relative">
                 <div className="flex items-center gap-3 mb-4">

@@ -12,13 +12,12 @@ import {
   ClipboardDocumentIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/solid"
-import { isEqual } from "lodash-es"
-import { useSelector, useDispatch } from "react-redux"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import isEqual from "lodash-es/isEqual"
+import useAuthStore from "@store/useAuthStore"
+import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import { DatePicker, message, Select, Tag, Tooltip, Switch } from "antd"
 import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
-import { updateProfile } from "@store/slices/userSlice"
 import PasswordModal from "@components/PasswordModal"
 import {
   updatePasswordAPI,
@@ -67,8 +66,8 @@ const STATUS_COLORS = {
 const Profile = () => {
   const [profileData, setProfileData] = useState(DEMO_PROFILE)
   const [initialProfileData, setInitialProfileData] = useState(null)
-  const { user } = useSelector(state => state.auth)
-  const dispatch = useDispatch()
+  const { user, loadAuthenticatedUser } = useAuthStore()
+  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
   const [referralStats, setReferralStats] = useState({ totalJoined: 0, converted: 0 })
   const [emailPreferences, setEmailPreferences] = useState({
@@ -79,8 +78,8 @@ const Profile = () => {
   const [referralCode, setReferralCode] = useState("")
 
   useEffect(() => {
-    dispatch(loadAuthenticatedUser())
-  }, [dispatch])
+    loadAuthenticatedUser()
+  }, [loadAuthenticatedUser])
 
   const totalCredits = (user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)
 
@@ -166,7 +165,7 @@ const Profile = () => {
     }
 
     try {
-      await dispatch(updateProfile(changes)).unwrap()
+      await updateProfileMutate(changes)
       message.success("Profile updated successfully!")
     } catch (err) {
       message.error("Error updating profile, try again")
@@ -214,7 +213,7 @@ const Profile = () => {
       }
 
       // Reload user data to update hasPassword status
-      dispatch(loadAuthenticatedUser())
+      loadAuthenticatedUser()
     } catch (error) {
       throw error
     }
@@ -226,7 +225,7 @@ const Profile = () => {
       setReferralCode(res.referralId)
       message.success("Referral code generated!")
       // Update user in store to reflect new referral code
-      dispatch(loadAuthenticatedUser())
+      loadAuthenticatedUser()
     } catch (error) {
       message.error("Failed to generate referral code")
     }

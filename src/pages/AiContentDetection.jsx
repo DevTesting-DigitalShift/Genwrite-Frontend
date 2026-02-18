@@ -11,27 +11,24 @@ import {
   Info,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { detectAiContent, resetAiDetection } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useAiDetectionMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
-  const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: detectionResult,
-    error,
-  } = useSelector(state => state.tools.aiDetection)
-  const user = useSelector(state => state.auth.user)
+  const { aiDetection, resetAiDetection } = useToolsStore()
+  const { result: detectionResult, error } = aiDetection
+  const { mutate: detectContent, isPending } = useAiDetectionMutation()
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputContent("")
-      dispatch(resetAiDetection())
+      resetAiDetection()
     }
-  }, [dispatch])
+  }, [])
 
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
@@ -48,13 +45,15 @@ const AiContentDetection = () => {
 
     const payload = { content: inputContent.trim() }
 
-    try {
-      await dispatch(detectAiContent(payload)).unwrap()
-      message.success("Content analyzed successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to analyze content. Please try again.")
-      console.error(err)
-    }
+    detectContent(payload, {
+      onSuccess: () => {
+        message.success("Content analyzed successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to analyze content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -69,7 +68,7 @@ const AiContentDetection = () => {
 
   const handleReset = () => {
     setInputContent("")
-    dispatch(resetAiDetection())
+    resetAiDetection()
     message.info("Content reset")
   }
 
@@ -91,7 +90,7 @@ const AiContentDetection = () => {
     return <CheckCircle className="w-5 h-5 text-green-600" />
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen message="Analyzing your content..." />
@@ -154,7 +153,7 @@ const AiContentDetection = () => {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={isLoading || !inputContent.trim() || wordCount < 20}
+              disabled={isPending || !inputContent.trim() || wordCount < 20}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                 !inputContent.trim() || wordCount < 20
                   ? "opacity-50 cursor-not-allowed"

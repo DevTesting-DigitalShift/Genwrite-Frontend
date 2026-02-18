@@ -1,7 +1,6 @@
-import { pingIntegrationThunk } from "@store/slices/otherSlice"
 import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
 
-export const pluginsData = dispatch => [
+export const pluginsData = pingFn => [
   {
     id: 111,
     name: "WordPress",
@@ -18,7 +17,7 @@ export const pluginsData = dispatch => [
     isVisible: true,
     onCheck: async () => {
       try {
-        const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
+        const result = await pingFn("WORDPRESS")
         return {
           status: result.status || "success",
           message: result.message || "WordPress connection verified",
@@ -49,7 +48,7 @@ export const pluginsData = dispatch => [
     isVisible: true,
     onCheck: async () => {
       try {
-        const result = await dispatch(pingIntegrationThunk("SERVERENDPOINT")).unwrap()
+        const result = await pingFn("SERVERENDPOINT")
         return {
           status: result.status || "success",
           message: result.message || "Server-to-Server connection verified",

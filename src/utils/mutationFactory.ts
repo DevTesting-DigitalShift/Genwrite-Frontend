@@ -10,22 +10,17 @@ interface CustomHandlers {
   onDeleteSuccess?: () => void
   onDeleteError?: () => void
 }
-// Infer TEntity from query.useCreate().onSuccess(data: TEntity)
-type InferEntity<T> = T extends {
-  useCreate: (opts?: { onSuccess?: (data: infer U) => void }) => any
-}
-  ? U
-  : never
+
 /**
  * Automatically sets up create/update/delete mutation hooks with AntD messages.
  * Derives the entity name from the BaseCRUDQuery.baseKey (if no name is provided).
  */
+
 export const mutationFactory = <TQuery extends BaseCRUDQuery<any, any>>(
   query: TQuery,
   entityName?: string,
   customHandlers: CustomHandlers = {}
 ) => {
-  type TEntity = InferEntity<TQuery>
   // If entityName not provided, derive from query.baseKey
   const baseKey = Array.isArray(query.baseKey) ? query.baseKey[0] : query.baseKey
   const entity =

@@ -29,31 +29,41 @@ import {
   MessageSquare,
 } from "lucide-react"
 import { Button, message, Input, Select, Switch, Tooltip, Collapse } from "antd"
-import { fetchBlogPrompt } from "@store/slices/blogSlice"
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import {
-  generateMetadataThunk,
-  getIntegrationsThunk,
-  getCategoriesThunk,
-} from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
 import { Modal } from "antd"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import axiosInstance from "@/api"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { fetchCategories, generateMetadata } from "@api/otherApi"
+import { runCompetitiveAnalysis } from "@api/analysisApi"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
-import * as Cheerio from "cheerio"
+
 import { marked } from "marked"
 import TurndownService from "turndown"
+
+const renderer = {
+  heading({ text, depth: level }) {
+    const slug = String(text)
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+    return `<h${level} id="${slug}">${text}</h${level}>`
+  },
+}
+
+marked.use({ renderer })
 
 const { TextArea } = Input
 
@@ -211,9 +221,6 @@ const TextEditorSidebar = ({
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
   const [isEditingSlug, setIsEditingSlug] = useState(false)
 
-  const { data: integrations } = useSelector(state => state.wordpress)
-  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
-
   // Posting State (Migrated from CategoriesModal)
   const [selectedCategory, setSelectedCategory] = useState("")
   const [selectedIntegration, setSelectedIntegration] = useState(null)
@@ -283,7 +290,7 @@ const TextEditorSidebar = ({
 
   // Diff Viewer State
   const [showDiff, setShowDiff] = useState(false)
-  const [diffData, setDiffData] = useState({ old: "", new: "" })
+  const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -320,42 +327,47 @@ const TextEditorSidebar = ({
       let sections = []
       // ... (rest of parsing logic will remain, just inserting the hook before it)
 
-      // STRATEGY 1: Structured HTML with <section> tags
-      // Use Cheerio to parse the generic content first
-      // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
-      const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(editorContent, "text/html")
 
       // STRATEGY 1: Structured HTML with <section> tags
       // Target sections inside #sections-wrapper if available to exclude meta/cta/faq
-      let $htmlSections = $("#sections-wrapper section")
+      let htmlSections = Array.from(doc.querySelectorAll("#sections-wrapper section"))
 
       // Fallback: If no wrapper found, try all valid content sections (excluding meta/cta/faq/summary)
-      if ($htmlSections.length === 0) {
-        $htmlSections = $("section").not(
+      if (htmlSections.length === 0) {
+        const allSections = Array.from(doc.querySelectorAll("section"))
+        const excludeSelector =
           "#blog-meta, #blog-cta, #faq-section, .blog-base-meta, .blog-brand-cta, .faq-section, .blog-quick-summary"
-        )
+        htmlSections = allSections.filter(el => !el.matches(excludeSelector))
       }
 
-      if ($htmlSections.length > 0) {
-        $htmlSections.each((i, el) => {
-          const $el = $(el)
-          const id = $el.attr("id")
+      if (htmlSections.length > 0) {
+        htmlSections.forEach((el, i) => {
+          const id = el.id
 
           // Skip if no ID (cannot target)
           if (!id) return
 
           // Try to find a heading inside this section
-          const $heading = $el.find("h1, h2, h3, h4, h5, h6").first()
-          const title = $heading.length ? $heading.text().trim() : `Section ${i + 1}`
+          const heading = el.querySelector("h1, h2, h3, h4, h5, h6")
+          const title = heading ? heading.textContent.trim() : `Section ${i + 1}`
 
           // Get text preview
           // Prefer content inside .section-content if available, otherwise full section text
-          // Removing the title from the preview text
-          const $content = $el.find(".section-content").length ? $el.find(".section-content") : $el
-          let text = $content.text()
-          if ($heading.length) {
-            text = text.replace($heading.text(), "")
+          const contentEl = el.querySelector(".section-content") || el
+
+          // Remove heading text from preview if it exists inside the content element
+          let text = ""
+          if (heading && contentEl.contains(heading)) {
+            const clone = contentEl.cloneNode(true)
+            const cloneHeading = clone.querySelector("h1, h2, h3, h4, h5, h6")
+            if (cloneHeading) cloneHeading.remove()
+            text = clone.textContent || ""
+          } else {
+            text = contentEl.textContent || ""
           }
+
           text = text.replace(/\s+/g, " ").trim()
 
           const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
@@ -368,39 +380,28 @@ const TextEditorSidebar = ({
       // Only runs if no proper <section> tags were found
       if (sections.length === 0) {
         // Configure marked to match TipTap's ID generation
-        const renderer = {
-          heading(text, level) {
-            const slug = text
-              .toLowerCase()
-              .replace(/[^\w]+/g, "-")
-              .replace(/^-+|-+$/g, "")
-            return `<h${level} id="${slug}">${text}</h${level}>`
-          },
-        }
-        marked.use({ renderer })
 
         // Convert Markdown to HTML to ensure we catch all headers with generated IDs
         const html = marked.parse(editorContent)
-        const $md = Cheerio.load(html)
+        const mdDoc = parser.parseFromString(html, "text/html")
 
-        $md("h1, h2, h3").each((i, el) => {
-          const $el = $md(el)
-          const id = $el.attr("id")
-          const title = $el.text().trim()
+        mdDoc.querySelectorAll("h1, h2, h3").forEach((el, i) => {
+          const id = el.id
+          const title = el.textContent.trim()
 
           // Extract content preview (next elements until next header)
           let contentPreview = ""
-          let $next = $el.next()
+          let next = el.nextElementSibling
           let charCount = 0
           const MAX_PREVIEW = 120
 
-          while ($next.length && !$next.is("h1, h2, h3") && charCount < MAX_PREVIEW) {
-            const text = $next.text().trim()
+          while (next && !["H1", "H2", "H3"].includes(next.tagName) && charCount < MAX_PREVIEW) {
+            const text = next.textContent.trim()
             if (text) {
               contentPreview += text + " "
               charCount += text.length
             }
-            $next = $next.next()
+            next = next.nextElementSibling
           }
 
           if (id) {
@@ -450,6 +451,8 @@ const TextEditorSidebar = ({
 
       if (response.data && (response.data.content || response.data.markdown)) {
         let newFullContent = editorContent
+        let originalSectionContent = ""
+        let newSectionContent = response.data.markdown || response.data.content || ""
 
         // Helper to normalize slugs similar to how TipTap/Marked does
         const getSlug = text =>
@@ -458,40 +461,46 @@ const TextEditorSidebar = ({
             .replace(/[^\w]+/g, "-")
             .replace(/^-+|-+$/g, "")
 
-        // STRATEGY 1: Cheerio (HTML Content)
-        // Only works if editorContent contains actual HTML tags with IDs
-        const $ = Cheerio.load(editorContent, { xmlMode: false })
-        const $section = $(`#${sectionToolState.sectionId}`)
+        const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
+        turndownService.keep([
+          "p",
+          "div",
+          "iframe",
+          "table",
+          "tr",
+          "th",
+          "td",
+          "figure",
+          "figcaption",
+          "section",
+          "article",
+        ])
 
-        if ($section.length) {
+        // STRATEGY 1: DOMParser (HTML Content)
+        // Only works if editorContent contains actual HTML tags with IDs
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(editorContent, "text/html")
+        const sectionEl = doc.getElementById(sectionToolState.sectionId)
+
+        if (sectionEl) {
           // Found explicit HTML section
-          const $contentDiv = $section.find(".section-content")
-          if ($contentDiv.length) {
-            $contentDiv.html(response.data.content)
+          originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
+
+          const contentDiv = sectionEl.querySelector(".section-content")
+          if (contentDiv) {
+            contentDiv.innerHTML = response.data.content
           } else {
-            $section.html(response.data.content)
+            sectionEl.innerHTML = response.data.content
           }
 
           // Convert modified HTML back to Markdown to match editor format
-          const modifiedHtml = $("body").html() || $.html()
-          const turndownService = new TurndownService({
-            headingStyle: "atx",
-            bulletListMarker: "-",
-          })
-          turndownService.keep([
-            "p",
-            "div",
-            "iframe",
-            "table",
-            "tr",
-            "th",
-            "td",
-            "figure",
-            "figcaption",
-            "section",
-            "article",
-          ])
+          const modifiedHtml = doc.body.innerHTML
           newFullContent = turndownService.turndown(modifiedHtml)
+
+          // If we got HTML back, clean it up for comparison too
+          if (response.data.content && !response.data.markdown) {
+            newSectionContent = turndownService.turndown(response.data.content)
+          }
         } else {
           // STRATEGY 2: Markdown Content (Fallback)
           // Parse markdown line-by-line to find the header matching the sectionId
@@ -528,6 +537,8 @@ const TextEditorSidebar = ({
             // Found the section
             if (endLine === -1) endLine = lines.length
 
+            originalSectionContent = lines.slice(startLine, endLine).join("\n")
+
             // Construct new content:
             // 1. Everything before the header (lines 0 to startLine-1)
             // 2. The Header itself (lines[startLine]) - we keep the header!
@@ -537,10 +548,11 @@ const TextEditorSidebar = ({
             const before = lines.slice(0, startLine + 1).join("\n") // Include header line
             const after = lines.slice(endLine).join("\n")
 
-            // Prefer markdown response if available, else convert content or use as is
-            const newSectionContent = response.data.markdown || response.data.content || ""
-
             newFullContent = `${before}\n\n${newSectionContent}\n\n${after}`
+
+            // For the diff display, let's include the header in the 'new' version too if possible
+            // or just keep it consistent with originalSectionContent
+            newSectionContent = `${lines[startLine]}\n\n${newSectionContent}`
           } else {
             message.error(
               "Could not locate section in current content. Ensure section headers are not modified."
@@ -551,7 +563,7 @@ const TextEditorSidebar = ({
         }
 
         // Open Diff Modal instead of instant replace
-        setDiffData({ old: editorContent, new: newFullContent })
+        setDiffData({ old: originalSectionContent, new: newSectionContent, full: newFullContent })
         setShowDiff(true)
 
         // Clear instructions if custom
@@ -572,7 +584,17 @@ const TextEditorSidebar = ({
   // UI State for categories to prevent flickering or disappearing on re-renders
   const [uiCategories, setUiCategories] = useState([])
 
-  // Sync UI categories with Redux, preserving data during re-renders
+  const { user } = useAuthStore()
+  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
+
+  const { integrations, categories, fetchIntegrations } = useIntegrationStore()
+  const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
+  const { setBlogPrompt } = useBlogStore()
+
+  // Sync UI categories with Store, preserving data during re-renders
   useEffect(() => {
     if (categories?.length > 0) {
       setUiCategories(categories)
@@ -584,14 +606,6 @@ const TextEditorSidebar = ({
     setUiCategories([])
   }, [selectedIntegration?.platform])
 
-  const user = useSelector(state => state.auth.user)
-  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
-  const { handlePopup } = useConfirmPopup()
-  const { loading: isAnalyzingCompetitive } = useSelector(state => state.analysis)
-  const { analysisResult } = useSelector(state => state.analysis)
   const result = analysisResult?.[blog?._id]
 
   const hasAnyIntegration =
@@ -688,8 +702,8 @@ const TextEditorSidebar = ({
   }, [blog])
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
+    fetchIntegrations()
+  }, [fetchIntegrations])
 
   // Initialize enhancement options from blog
   useEffect(() => {
@@ -702,24 +716,36 @@ const TextEditorSidebar = ({
   const getWordCount = text => {
     if (!text) return 0
 
-    // Plain text case
-    if (!/<article/i.test(text)) {
+    // Plain text case (heuristic check for HTML tags)
+    if (!/<[a-z][\s\S]*>/i.test(text)) {
       return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
     }
 
-    const $ = Cheerio.load(text)
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(text, "text/html")
 
-    // Remove non-visible / non-content elements
-    $(
-      "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-    ).remove()
+      // Remove non-visible / non-content elements
+      const elementsToRemove = doc.querySelectorAll(
+        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
+      )
+      elementsToRemove.forEach(el => el.remove())
 
-    // If article exists, scope to it; otherwise use body/root
-    const content = $("article").length ? $("article") : $.root()
+      // If article exists, use it; otherwise use body
+      const content = doc.querySelector("article") || doc.body
+      const strippedText = content.textContent || ""
 
-    const strippedText = content.text()
-
-    return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+    } catch (e) {
+      console.error("Error parsing HTML for word count:", e)
+      // Fallback to simple regex strip
+      return text
+        .replace(/<[^>]*>/g, " ")
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .filter(Boolean).length
+    }
   }
 
   // Update regen form field
@@ -861,33 +887,27 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleAnalyzing = useCallback(() => {
+  const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")
-    handlePopup({
-      title: "SEO Analysis",
-      description: (
-        <>
-          Run competitive analysis? <span className="font-bold">10 credits</span>
-        </>
-      ),
-      confirmText: "Run",
-      onConfirm: async () => {
-        try {
-          await dispatch(
-            fetchCompetitiveAnalysisThunk({
-              blogId: blog._id,
-              title: blog.title,
-              content: blog.content,
-              keywords: keywords || blog?.focusKeywords || [],
-            })
-          ).unwrap()
-          setActivePanel("seo")
-        } catch {
-          message.error("Analysis failed")
-        }
-      },
-    })
-  }, [isPro, navigate, handlePopup, dispatch, blog, keywords])
+
+    const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
+    setLoading(true)
+    try {
+      const result = await runCompetitiveAnalysis({
+        blogId: blog._id,
+        title: blog.title,
+        content: blog.content,
+        keywords: keywords || blog?.focusKeywords || [],
+      })
+      setAnalysisResult(blog._id, result)
+      setActivePanel("seo")
+    } catch (err) {
+      setError(err.message)
+      message.error("Analysis failed")
+    } finally {
+      setLoading(false)
+    }
+  }, [isPro, navigate, blog, keywords])
 
   const handleMetadataGen = useCallback(() => {
     if (isPro) return navigate("/pricing")
@@ -901,13 +921,11 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsGeneratingMetadata(true)
         try {
-          const result = await dispatch(
-            generateMetadataThunk({
-              content: editorContent,
-              keywords: keywords || [],
-              focusKeywords: blog?.focusKeywords || [],
-            })
-          ).unwrap()
+          const result = await generateMetadata({
+            content: editorContent,
+            keywords: keywords || [],
+            focusKeywords: blog?.focusKeywords || [],
+          })
           // Show the generated metadata in accept/reject modal
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
@@ -918,7 +936,7 @@ const TextEditorSidebar = ({
         }
       },
     })
-  }, [isPro, navigate, handlePopup, dispatch, editorContent, keywords, blog])
+  }, [isPro, navigate, handlePopup, editorContent, keywords, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {
@@ -973,10 +991,9 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsHumanizing(true)
         try {
-          const result = await dispatch(
-            fetchBlogPrompt({ id: blog._id, prompt: customPrompt })
-          ).unwrap()
-          setHumanizedContent(result.data)
+          const { getBlogPrompt } = await import("@api/blogApi")
+          const res = await getBlogPrompt(blog._id, customPrompt)
+          setHumanizedContent(res.data)
           setIsHumanizeModalOpen(true)
           setCustomPrompt("")
           message.success("Prompt applied!")
@@ -991,7 +1008,6 @@ const TextEditorSidebar = ({
     isPro,
     navigate,
     handlePopup,
-    dispatch,
     blog,
     customPrompt,
     setHumanizedContent,
@@ -1130,11 +1146,11 @@ const TextEditorSidebar = ({
   // Auto-fetch categories when integration changes
   useEffect(() => {
     if (selectedIntegration?.platform) {
-      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase()))
-        .unwrap()
-        .catch(() => {})
+      if (fetchCategories) {
+        fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
+      }
     }
-  }, [dispatch, selectedIntegration?.platform])
+  }, [fetchCategories, selectedIntegration?.platform])
 
   // Initialize posting form based on Blog Data & History
   useEffect(() => {
@@ -3214,7 +3230,7 @@ const TextEditorSidebar = ({
             oldMarkdown={diffData.old}
             newMarkdown={diffData.new}
             onAccept={() => {
-              setEditorContent(diffData.new)
+              setEditorContent(diffData.full)
               setShowDiff(false)
               message.success("Changes applied successfully")
             }}

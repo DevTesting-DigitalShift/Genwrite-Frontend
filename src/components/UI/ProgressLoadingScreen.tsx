@@ -17,7 +17,6 @@ const ProgressLoadingScreen = ({
   isYouTube = false,
 }: ProgressLoadingScreenProps) => {
   const [progress, setProgress] = useState(0)
-  const [isTimedOut, setIsTimedOut] = useState(false)
   const [shouldShow, setShouldShow] = useState(delay === 0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const delayRef = useRef<NodeJS.Timeout | null>(null)
@@ -39,7 +38,6 @@ const ProgressLoadingScreen = ({
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
       console.warn(`ProgressLoadingScreen: Maximum duration exceeded.`)
-      setIsTimedOut(true)
       onTimeout?.()
     }, maxDuration)
 

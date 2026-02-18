@@ -1,225 +1,268 @@
 import React, { memo, useState } from "react"
 import { motion } from "framer-motion"
-import { useDispatch } from "react-redux"
 import { message } from "antd"
-import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi"
-import { QuestionCircleOutlined } from "@ant-design/icons"
-import { toggleJobStatusThunk, deleteJobThunk, openJobModal } from "@store/slices/jobSlice"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  CalendarDays,
+  FileText,
+  Cpu,
+  Tag,
+  Hash,
+  Play,
+  Square,
+  PenTool,
+  Trash2,
+  CheckCircle2,
+  Clock,
+} from "lucide-react"
+import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useQueryClient } from "@tanstack/react-query"
 
-const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
-  const dispatch = useDispatch()
+const Badge = ({ children, variant = "gray" }) => {
+  const variants = {
+    gray: "bg-slate-100 text-slate-600 border border-slate-200/60",
+    indigo: "bg-indigo-50 text-indigo-700 border border-indigo-100",
+    emerald: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+  }
+  return (
+    <span
+      className={`px-2.5 py-1 text-[10px] font-semibold rounded-full uppercase tracking-wider ${variants[variant]}`}
+    >
+      {children}
+    </span>
+  )
+}
+
+const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const [showAllTopics, setShowAllTopics] = useState(false)
 
-  const toggleJobStatusMutation = useMutation({
-    mutationFn: ({ jobId, currentStatus }) =>
-      dispatch(toggleJobStatusThunk({ jobId, currentStatus })).unwrap(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-    },
-    onError: (error) => {
-      console.error("Failed to toggle job status:", error)
-    },
-  })
+  const isRunning = job.status === "active"
 
-  const deleteJobMutation = useMutation({
-    mutationFn: (jobId) => dispatch(deleteJobThunk(jobId)).unwrap(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      if (paginatedJobs.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1)
-      }
-    },
-    onError: (error) => {
-      console.error("Failed to delete job:", error)
-    },
-  })
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
+  const { mutate: deleteMutate } = useDeleteJobMutation()
 
-  const handleStartJob = (jobId) => {
-    const job = paginatedJobs.find((j) => j._id === jobId)
-    if (!job) {
-      message.error("Job not found.")
-      return
-    }
-    toggleJobStatusMutation.mutate({ jobId, currentStatus: job.status })
+  const handleToggleStatus = e => {
+    e.stopPropagation()
+    toggleStatus({ jobId: job._id, currentStatus: job.status })
   }
 
-  const handleDeleteJob = (jobId) => {
-    deleteJobMutation.mutate(jobId)
+  const handleDeleteJob = jobId => {
+    deleteMutate(jobId, {
+      onSuccess: () => {
+        if (paginatedJobs.length === 1 && setCurrentPage) {
+          setCurrentPage(prev => Math.max(1, prev - 1))
+        }
+      },
+    })
   }
 
-  const handleEditJob = (job) => {
-    if (!job?._id) {
-      message.error("Invalid job ID.")
-      return
-    }
+  const handleEditJob = e => {
+    e.stopPropagation()
     if (job.status === "active") {
       message.warning("Please pause the job before editing.")
       return
     }
-    dispatch(openJobModal(job)) // Pass the job object
+    onEdit(job)
   }
+
+  const formatDate = dateStr => {
+    if (!dateStr) return "N/A"
+    return new Date(dateStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+  }
+  const getTrueOptions = options => {
+    if (!options) return []
+    const mapping = {
+      wordpressPosting: "WordPress Posting",
+      includeFaqs: "FAQs",
+      includeCompetitorResearch: "Comp. Research",
+      includeInterlinks: "Interlinks",
+      performKeywordResearch: "Keyword Research",
+      includeTableOfContents: "TOC",
+      addOutBoundLinks: "Outbound Links",
+      embedYouTubeVideos: "YouTube Emb.",
+      easyToUnderstand: "Simple Style",
+    }
+    return Object.entries(options)
+      .filter(([key, value]) => value === true && mapping[key])
+      .map(([key]) => mapping[key])
+  }
+
+  const activeOptions = getTrueOptions(job.options)
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6"
+      className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col hover:shadow-xl transition-all duration-300 relative"
     >
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            ID: {(job._id || "").toString().slice(-6) || "N/A"}
+      {/* Header */}
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex-1 min-w-0 pr-4">
+          <h3 className="font-black text-slate-900 text-xl tracking-tight mb-1 truncate capitalize">
+            {job.name}
+          </h3>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            ID: {(job._id || "").toString().slice(-6)}
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => handleStartJob(job._id)}
-          className={`px-3 py-1 rounded-full text-sm font-medium ${
-            job.status === "active"
-              ? "bg-red-100 text-red-600 hover:bg-red-200"
-              : "bg-green-100 text-green-600 hover:bg-green-200"
+        <button
+          onClick={handleToggleStatus}
+          disabled={isToggling}
+          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all ${
+            isRunning
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
           }`}
-          aria-label={job.status === "active" ? "Stop job" : "Start job"}
+          title={isRunning ? "Stop Job" : "Start Job"}
         >
-          {job.status === "active" ? "Stop" : "Start"}
-        </motion.button>
+          {isToggling ? (
+            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : isRunning ? (
+            <Square size={16} fill="currentColor" />
+          ) : (
+            <Play size={16} fill="currentColor" className="ml-0.5" />
+          )}
+        </button>
       </div>
-      <div className="space-y-3 text-sm text-gray-600">
-        <div className="flex items-center gap-2 capitalize">
-          <FiCalendar className="w-4 h-4 text-blue-500" />
-          <span>Scheduling: {job?.schedule?.type}</span>
-        </div>
-        <div className="flex items-center gap-2 capitalize">
-          <FiFileText className="w-4 h-4 text-purple-500" />
-          <span>Daily Blogs: {job?.blogs?.numberOfBlogs}</span>
-        </div>
-        <div className="flex items-center gap-2 capitalize">
-          <FiSettings className="w-4 h-4 text-green-500" />
-          <span>Model: {job?.blogs?.aiModel}</span>
-        </div>
-        <div className="flex items-center gap-2 capitalize">
-          <FiCalendar className="w-4 h-4 text-red-500" />
-          <span>Status: {job?.status}</span>
-        </div>
-        {job?.blogs?.topics?.length > 0 && (
-          <div className="flex items-start gap-2">
-            <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-700 font-medium">Topics:</span>
-              {(showAllTopics ? job.blogs.topics : job.blogs.topics.slice(0, 6)).map(
-                (topic, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
-                  >
-                    {topic}
-                  </span>
-                )
-              )}
-              {job.blogs.topics.length > 6 && (
-                <button
-                  onClick={() => setShowAllTopics((prev) => !prev)}
-                  className="text-xs text-blue-600 hover:underline"
+
+      {/* Topics & Keywords - starting 5 +n */}
+      <div className="space-y-4 mb-6 pt-4 border-t border-slate-100">
+        {job.blogs?.topics?.length > 0 && (
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Topics
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {job.blogs.topics.slice(0, 5).map((topic, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-100"
                 >
-                  {showAllTopics ? "Show less" : `+${job.blogs.topics.length - 6} more`}
-                </button>
+                  {topic}
+                </span>
+              ))}
+              {job.blogs.topics.length > 5 && (
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
+                  +{job.blogs.topics.length - 5}
+                </span>
               )}
             </div>
           </div>
         )}
-        {job?.blogs?.keywords?.length > 0 && (
-          <div className="flex items-start gap-2">
-            <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-700 font-medium">Keywords:</span>
-              {job?.blogs?.keywords?.map((keyword, index) => (
+
+        {job.blogs?.keywords?.length > 0 && (
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Focus Keywords
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {job.blogs.keywords.slice(0, 5).map((kw, i) => (
                 <span
-                  key={index}
-                  className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
+                  key={i}
+                  className="px-2 py-1 bg-indigo-50/50 text-indigo-700 text-[11px] font-bold rounded-lg border border-indigo-100/50"
                 >
-                  {keyword}
+                  {kw}
+                </span>
+              ))}
+              {job.blogs.keywords.length > 5 && (
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
+                  +{job.blogs.keywords.length - 5}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeOptions.length > 0 && (
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Active Settings
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeOptions.map((opt, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold border border-slate-200"
+                >
+                  {opt}
                 </span>
               ))}
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <FiFileText className="w-4 h-4 text-purple-500" />
-          <span>Generated Blogs: {(job?.createdBlogs || []).length}</span>
-        </div>
-        {job?.lastRun && (
-          <div className="flex items-center gap-2">
-            <FiCalendar className="w-4 h-4 text-yellow-500" />
-            <span>
-              Last Run:{" "}
-              {new Date(job?.lastRun).toLocaleString("en-IN", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <FiCalendar className="w-4 h-4 text-yellow-500" />
-          <span>
-            Created:{" "}
-            {job?.createdAt
-              ? new Date(job?.createdAt).toLocaleString("en-IN", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })
-              : "N/A"}
+      </div>
+
+      {/* Intelligence & Schedule - Clean Layout */}
+      <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-slate-100">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Intelligence
+          </span>
+          <span className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">
+            {job.blogs?.aiModel} / {job.blogs?.languageToWrite}
           </span>
         </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Schedule
+          </span>
+          <span className="text-xs font-bold text-slate-900 truncate capitalize tracking-tight">
+            {job.schedule?.type} ({job.blogs?.numberOfBlogs})
+          </span>
+        </div>
+        <div className="flex flex-col col-span-2 mt-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Last Run
+          </span>
+          <div className="flex items-center gap-2">
+            <Clock size={14} className="text-slate-400" />
+            <span className="text-xs font-bold text-slate-700">{formatDate(job.lastRun)}</span>
+          </div>
+        </div>
       </div>
-      <div className="flex gap-2 mt-6">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => handleEditJob(job)}
-          className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
-          aria-label="Edit job"
-        >
-          <FiEdit />
-          Edit
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-          aria-label="Delete job"
-          onClick={() =>
-            handlePopup({
-              title: "Delete Job",
-              description: (
-                <span className="my-2">
-                  Are you sure you want to delete <b className="capitalize">{job.name}</b> job?
-                </span>
-              ),
-              confirmText: "Delete",
-              onConfirm: () => {
-                handleDeleteJob(job._id)
-              },
-              confirmProps: {
-                type: "text",
-                className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
-              },
-              cancelProps: {
-                danger: false,
-              },
-            })
-          }
-        >
-          Delete
-        </motion.button>
+
+      {/* Footer - Minimalist */}
+      <div className="mt-auto">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${isRunning ? "bg-emerald-500" : "bg-slate-300"}`}
+            />
+            <span
+              className={`text-[11px] font-black uppercase tracking-widest ${isRunning ? "text-emerald-600" : "text-slate-400"}`}
+            >
+              {isRunning ? "Running" : "Stopped"}
+            </span>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+            {job?.createdBlogs?.length || 0} GENERATED
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={handleEditJob}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+          >
+            Edit Job
+          </button>
+          <button
+            onClick={() =>
+              handlePopup({
+                title: "Delete Job",
+                description: "Are you sure you want to delete this job?",
+                confirmText: "Delete",
+                onConfirm: () => handleDeleteJob(job._id),
+                confirmProps: { danger: true },
+              })
+            }
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </motion.div>
   )

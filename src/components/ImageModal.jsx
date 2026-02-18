@@ -9,7 +9,7 @@ import {
   Check,
   Search,
 } from "lucide-react"
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { generateImage, generateAltText, enhanceImage } from "@api/imageGalleryApi"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/UI/LoadingScreen"
@@ -59,7 +59,7 @@ const ImageModal = ({
     imageSize: "1k",
   })
 
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
 
   // Reset state when modal opens
   useEffect(() => {

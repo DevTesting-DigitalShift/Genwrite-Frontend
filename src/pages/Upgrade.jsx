@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
+import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
 import { Button, message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 
@@ -53,8 +54,8 @@ const PricingCard = ({
     plan.type === "credit_purchase"
       ? null
       : billingPeriod === "annual"
-      ? plan.priceAnnual
-      : plan.priceMonthly
+        ? plan.priceAnnual
+        : plan.priceMonthly
 
   const isWithinBillingCycle = userStatus === "active"
 
@@ -408,8 +409,9 @@ const Upgrade = () => {
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const navigate = useNavigate()
+  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
   const CONVERSION_RATE = 90 // USD to INR conversion rate
 
@@ -553,10 +555,7 @@ const Upgrade = () => {
     return null
   }
 
-  const countryMapping = {
-    INR: "IN",
-    USD: "US",
-  }
+  const countryMapping = { INR: "IN", USD: "US" }
 
   const countryToSend = countryMapping[currency] || "US"
 
@@ -575,12 +574,12 @@ const Upgrade = () => {
       return
     }
     try {
-      const response = await axiosInstance.post("/stripe/checkout", {
+      const response = await createCheckoutSession({
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
-          ? "basic"
-          : "credits",
+            ? "basic"
+            : "credits",
         credits: plan.type === "credit_purchase" ? credits : plan.credits,
         billingPeriod,
         country: countryToSend,
@@ -588,6 +587,7 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
+
       if ([200, 201].includes(response.status)) {
         if (response.data?.sessionId) {
           sendStripeGTMEvent(plan, credits, billingPeriod, user._id)

@@ -1,1 +1,0 @@
-import{r as o,I as s,e5 as c}from"./index-HTll-w-o.js";function a(){return a=Object.assign?Object.assign.bind():function(t){for(var n=1;n<arguments.length;n++){var e=arguments[n];for(var r in e)Object.prototype.hasOwnProperty.call(e,r)&&(t[r]=e[r])}return t},a.apply(this,arguments)}const i=(t,n)=>o.createElement(s,a({},t,{ref:n,icon:c})),l=o.forwardRef(i);export{l as R};

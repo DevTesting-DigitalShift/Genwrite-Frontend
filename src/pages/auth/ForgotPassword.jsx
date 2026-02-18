@@ -11,8 +11,7 @@ import {
   Shield,
   Clock,
 } from "lucide-react"
-import { useDispatch } from "react-redux"
-import { forgotPassword } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 import { message } from "antd"
 
 const ForgotPassword = () => {
@@ -22,9 +21,9 @@ const ForgotPassword = () => {
   const [error, setError] = useState("")
   const [timer, setTimer] = useState(0)
 
-  const dispatch = useDispatch()
+  const { forgotPassword } = useAuthStore()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
 
     if (!email) {
@@ -41,7 +40,7 @@ const ForgotPassword = () => {
     setError("")
 
     try {
-      const res = await dispatch(forgotPassword(email)).unwrap()
+      const res = await forgotPassword(email)
       setSuccess(true)
       setTimer(900) // 15 minutes = 900 seconds
       message.success(res) // e.g., "Password reset link sent to your email"
@@ -56,13 +55,13 @@ const ForgotPassword = () => {
     if (timer <= 0) return
 
     const interval = setInterval(() => {
-      setTimer((prev) => prev - 1)
+      setTimer(prev => prev - 1)
     }, 1000)
 
     return () => clearInterval(interval)
   }, [timer])
 
-  const formatTime = (seconds) => {
+  const formatTime = seconds => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
@@ -74,27 +73,13 @@ const ForgotPassword = () => {
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            animate={{
-              rotate: [0, 360],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+            animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
           />
           <motion.div
-            animate={{
-              rotate: [360, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+            animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
             className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
           />
         </div>
@@ -156,8 +141,8 @@ const ForgotPassword = () => {
               <div className="flex items-center gap-3 text-blue-800">
                 <Clock className="w-5 h-5 flex-shrink-0" />
                 <p className="text-sm">
-                  The reset link will expire in <strong>{formatTime(timer)}</strong>. If you don't see the email, check your
-                  spam folder.
+                  The reset link will expire in <strong>{formatTime(timer)}</strong>. If you don't
+                  see the email, check your spam folder.
                 </p>
               </div>
             </motion.div>
@@ -197,27 +182,13 @@ const ForgotPassword = () => {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{
-            rotate: [360, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
       </div>
@@ -270,7 +241,7 @@ const ForgotPassword = () => {
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
-                onChange={(e) => {
+                onChange={e => {
                   setEmail(e.target.value)
                   setError("")
                 }}

@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .ant-select-selection-overflow .ant-select-selection-item {
   background-color: #e6f4ff !important;
   /* light blue background */
@@ -12,7 +13,7 @@
 /* For the remove icon (the “x”) */
 .ant-select-selection-item-remove {
   color: black !important;
-  margin-left: .3em;
+  margin-left: 0.3em;
 }
 
 .ant-select-selection-item-remove:hover {
@@ -41,17 +42,15 @@ label {
   @apply mb-0;
 }
 
-.ant-radio-button-label{
-  @apply w-full flex items-center justify-center gap-3 !text-lg ;
+.ant-radio-button-label {
+  @apply w-full flex items-center justify-center gap-3 text-lg!;
 }
 
-
-.antd-placeholder{
-  @apply placeholder:!text-gray-500 placeholder:!font-medium placeholder:!italic; 
+.antd-placeholder {
+  @apply placeholder:text-gray-500! placeholder:font-medium! placeholder:italic!;
 }
 
 /* Custom placeholder color */
 .custom-placeholder .ant-select-selection-placeholder {
- @apply !text-gray-500 !font-medium !italic;
+  @apply text-gray-500! font-medium! italic!;
 }
-

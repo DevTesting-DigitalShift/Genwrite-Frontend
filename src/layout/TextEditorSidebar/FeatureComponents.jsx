@@ -23,10 +23,7 @@ const FeatureCard = ({
   children,
 }) => (
   <motion.div
-    whileHover={{
-      scale: 1.02,
-      transition: { duration: 0.2 },
-    }}
+    whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
     className="bg-white rounded-lg shadow-sm border hover:shadow-xl border-gray-200 p-4"
   >
     <div className="flex items-start gap-3 mb-3">
@@ -47,7 +44,7 @@ const FeatureCard = ({
       loading={isLoading}
       disabled={isLoading}
       type="primary"
-      className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+      className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
       ghost={isPro}
     >
       {isLoading ? "Processing..." : buttonText}
@@ -198,7 +195,7 @@ const AnalysisInsights = ({ insights }) => {
             className="p-3 bg-blue-50 rounded-lg border border-blue-100"
           >
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <div className="flex justify-between">
                   <p className="font-medium text-blue-900 text-sm mb-1">
@@ -260,7 +257,7 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
           size="small"
           type="primary"
           onClick={() => onApply(index, suggestion)}
-          className="flex-1 !bg-gradient-to-r !from-green-500 !to-emerald-600 !border-0"
+          className="flex-1 bg-linear-to-r! from-green-500! to-emerald-600! border-0!"
         >
           Accept
         </Button>

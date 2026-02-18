@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Helmet } from "react-helmet"
-import { openJobModal } from "@store/slices/jobSlice"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import GoThrough from "../components/dashboardModals/GoThrough"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
@@ -20,10 +19,12 @@ import {
   UploadCloud,
   Archive,
   BadgePercent,
+  TrendingUp,
   Sparkles,
   PenTool,
   ChevronRight,
   Clock,
+  Coins,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import dayjs from "dayjs"
@@ -50,9 +51,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
 
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const { user, loadAuthenticatedUser } = useAuthStore()
+  const { openJobModal } = useJobStore()
+  const { clearSelectedKeywords } = useAnalysisStore()
   const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
@@ -114,10 +116,7 @@ const Dashboard = () => {
         return
       }
       try {
-        const result = await dispatch(loadAuthenticatedUser())
-        if (loadAuthenticatedUser.rejected.match(result)) {
-          // Handle error
-        }
+        await loadAuthenticatedUser()
         setLoading(false)
       } catch (error) {
         console.error("User init failed:", error)
@@ -125,7 +124,7 @@ const Dashboard = () => {
       }
     }
     initUser()
-  }, [dispatch, navigate])
+  }, [navigate])
 
   useEffect(() => {
     if (!user || !user._id) return
@@ -154,7 +153,7 @@ const Dashboard = () => {
 
   const handleCloseActiveModal = () => {
     if ([ACTIVE_MODELS.Advanced_Blog].includes(activeModel)) {
-      dispatch(clearSelectedKeywords())
+      clearSelectedKeywords()
     }
     setActiveModel("")
   }
@@ -162,7 +161,7 @@ const Dashboard = () => {
   const openSecondStepJobModal = () => {
     setActiveModel("")
     navigate("/jobs")
-    dispatch(openJobModal())
+    openJobModal()
   }
 
   const renderModel = () => {
@@ -264,7 +263,7 @@ const Dashboard = () => {
       >
         {/* Header / Hero Section */}
         <motion.div variants={itemVariants} className="mt-4">
-          <h1 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-semibold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {getGreeting()},{" "}
             <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
           </h1>
@@ -275,15 +274,36 @@ const Dashboard = () => {
         {hasAnalyticsData && (
           <motion.div
             variants={containerVariants}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="grid grid-cols-2 lg:grid-cols-5 gap-4"
           >
+            {/* Analytics Shortcut */}
+            <motion.div
+              variants={itemVariants}
+              onClick={() => navigate("/analytics")}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-indigo-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-indigo-600 font-bold">Analytics</p>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">Insights & Trends</p>
+                </div>
+                <div className="p-3 rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center text-[10px] font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                VIEW REPORTS &rarr;
+              </div>
+            </motion.div>
+
             {/* Total Blogs */}
             <motion.div
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-              <div className="relative z-10 flex items-start justify-between">
+              <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Blogs</p>
                   <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">{totalBlogs}</p>
@@ -299,8 +319,8 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-              <div className="relative z-10 flex items-start justify-between">
+              <div className="absolute inset-0 bg-linear-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Posted</p>
                   <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
@@ -318,7 +338,7 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Archived</p>
@@ -337,7 +357,7 @@ const Dashboard = () => {
               variants={itemVariants}
               className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Branded</p>
@@ -366,23 +386,24 @@ const Dashboard = () => {
             {creationTools.map(tool => (
               <motion.div
                 key={tool.id}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[220px]"
+                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
                 onClick={() => setActiveModel(tool.modelKey)}
               >
-                {/* Unique Gradient Background based on tool color */}
-                <div
-                  className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 translate-x-10 -translate-y-10 group-hover:opacity-20 transition-opacity ${tool.bgColor?.replace("bg-", "bg-") || "bg-gray-100"}`}
-                />
+                {tool.credit && (
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+                    <Coins className="w-3 h-3" />
+                    {tool.credit}
+                  </div>
+                )}
 
-                <div className="relative z-10">
+                <div className="relative ">
                   <div
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${tool.bgColor || "bg-gray-50"} ${tool.color || "text-gray-600"} shadow-sm`}
                   >
                     {tool.icon}
                   </div>
 
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight pr-12">
                     {tool.title}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed font-medium">
@@ -390,7 +411,7 @@ const Dashboard = () => {
                   </p>
                 </div>
 
-                <div className="relative z-10 mt-6 flex items-center text-sm font-semibold text-gray-900 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                <div className="relative z-10 mt-3 flex items-center text-xs font-semibold text-gray-600 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                   Create Now <ChevronRight className="w-4 h-4 ml-1" />
                 </div>
               </motion.div>
@@ -447,7 +468,6 @@ const Dashboard = () => {
               {recentBlogs.slice(0, 4).map(blog => (
                 <motion.div
                   key={blog._id}
-                  whileHover={{ y: -5 }}
                   onClick={() => navigate(`/blog/${blog._id}`)}
                   className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
                 >
