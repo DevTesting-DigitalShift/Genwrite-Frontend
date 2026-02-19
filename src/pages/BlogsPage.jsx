@@ -1,22 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
-import SkeletonLoader from "../components/UI/SkeletonLoader"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import BlogCard from "../components/Blog/BlogCard"
-import {
-  Badge,
-  Button,
-  Input,
-  Popconfirm,
-  Tooltip,
-  Popover,
-  Pagination,
-  message,
-  Flex,
-  Spin,
-  Select,
-  InputNumber,
-  Divider,
-} from "antd"
 import {
   ArrowDownUp,
   Calendar,
@@ -26,26 +10,27 @@ import {
   RotateCcw,
   Search,
   Trash2,
-  X,
-  ArchiveRestore,
-  MousePointerClick,
-  Eye,
   ChevronDown,
   Loader2,
+  MousePointerClick,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Zap,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import dayjs from "dayjs"
-import Fuse from "fuse.js"
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
+import toast from "@utils/toast"
 import {
   archiveBlogById,
   getAllBlogs,
@@ -60,12 +45,8 @@ import {
   ITEMS_PER_PAGE,
   SORT_OPTIONS,
 } from "@/data/blogFilters"
-import { useInView } from "react-intersection-observer"
 
 dayjs.extend(isBetween)
-
-const { Option } = Select
-const TRUNCATE_LENGTH = 200
 
 const BlogsPage = () => {
   const location = useLocation()
@@ -100,33 +81,26 @@ const BlogsPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const [isMenuOpen, setMenuOpen] = useState(false)
-  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
 
-  // Temporary state for GSC filters (immediate input values)
   const [tempGscClicks, setTempGscClicks] = useState(blogFilters.gscClicks)
   const [tempGscImpressions, setTempGscImpressions] = useState(blogFilters.gscImpressions)
 
-  // Debounce effect for GSC Clicks - waits 5 seconds after user stops typing
   useEffect(() => {
     const timer = setTimeout(() => {
       if (tempGscClicks !== blogFilters.gscClicks) {
         updateBlogFilters({ gscClicks: tempGscClicks })
       }
-    }, 3000) // 5 second delay
-
+    }, 3000)
     return () => clearTimeout(timer)
   }, [tempGscClicks])
 
-  // Debounce effect for GSC Impressions - waits 5 seconds after user stops typing
   useEffect(() => {
     const timer = setTimeout(() => {
       if (tempGscImpressions !== blogFilters.gscImpressions) {
         updateBlogFilters({ gscImpressions: tempGscImpressions })
       }
-    }, 5000) // 5 second delay
-
+    }, 5000)
     return () => clearTimeout(timer)
   }, [tempGscImpressions])
 
@@ -137,7 +111,6 @@ const BlogsPage = () => {
     if (field) {
       const parsedFilters = JSON.parse(field)
       setBlogFilters(prev => ({ ...prev, ...parsedFilters }) || {})
-      // Sync temp values with loaded filters
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
@@ -145,7 +118,6 @@ const BlogsPage = () => {
     }
   }, [user?.createdAt, isTrashcan])
 
-  // For active blogs - infinite query
   const {
     isLoading: isLoadingActive,
     isRefetching: isRefetchingActive,
@@ -188,16 +160,15 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    // Refetch every 10 seconds if we have pending blogs
-    refetchInterval: data => {
+    refetchInterval: query => {
+      const data = query.state.data
       const hasPending = data?.pages?.some(page =>
-        page.data?.some(blog => blog.status === "pending")
+        page.data?.some(blog => blog.status === "pending" || blog.status === "in-progress")
       )
-      return hasPending ? 10000 : false // Poll every 10s if pending blogs exist
+      return hasPending ? 10000 : false
     },
   })
 
-  // For trashed blogs - regular query with pagination
   const { data: trashData, isLoading: isLoadingTrash } = useQuery({
     queryKey: ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
     queryFn: async () => {
@@ -218,7 +189,6 @@ const BlogsPage = () => {
     enabled: !!user && isTrashcan,
   })
 
-  // Always call useMemo - compute blogs based on which data is available
   const allBlogs = useMemo(() => {
     if (isTrashcan) {
       return trashData?.trashedBlogs || []
@@ -251,9 +221,9 @@ const BlogsPage = () => {
     setBlogFilters({ ...initialBlogFilter, start: user?.createdAt })
     setTempGscClicks(null)
     setTempGscImpressions(null)
-    setTempGscImpressions(null)
     sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     setCurrentPage(1)
+    toast.success("Filters reset to factory defaults")
   }, [user, isTrashcan, userId, initialBlogFilter])
 
   const hasActiveDates = useMemo(() => {
@@ -272,51 +242,18 @@ const BlogsPage = () => {
     return hasActiveDates || isOtherChanged
   }, [blogFilters, user?.createdAt, hasActiveDates, initialBlogFilter])
 
-  // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleStatusChange = data => {
-      // Check if blog failed due to insufficient credits
-      if (data?.newStatus === "failed") {
-        // Check recent notifications for insufficient credits
-        const recentNotification = user?.notifications?.[0]
-        if (recentNotification?.type === "INSUFFICIENT_CREDITS") {
-          message.error({
-            content: (
-              <div>
-                <strong>Insufficient Credits</strong>
-                <p className="mt-1">
-                  {recentNotification.message ||
-                    "You don't have enough credits to complete this operation."}
-                </p>
-                <a
-                  href="/pricing"
-                  className="text-blue-600 hover:text-blue-700 font-semibold underline"
-                  onClick={e => {
-                    e.preventDefault()
-                    navigate("/pricing")
-                  }}
-                >
-                  Add Credits →
-                </a>
-              </div>
-            ),
-            duration: 8,
-            className: "insufficient-credits-notification",
-          })
-        }
-      }
-
+    const handleStatusChange = _ => {
       queryClient.refetchQueries({
         queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
         type: "active",
       })
     }
 
-    // When a new blog is created, invalidate cache to fetch it
-    const handleBlogCreated = data => {
+    const handleBlogCreated = _ => {
       if (!isTrashcan) {
         queryClient.invalidateQueries({ queryKey: ["blogs"] })
       }
@@ -335,7 +272,7 @@ const BlogsPage = () => {
       socket.off("blog:deleted", handleStatusChange)
       socket.off("blog:created", handleBlogCreated)
     }
-  }, [user, userId, queryClient, isTrashcan, navigate])
+  }, [user, queryClient, isTrashcan])
 
   const handleBlogClick = useCallback(
     blog => {
@@ -355,10 +292,10 @@ const BlogsPage = () => {
     async id => {
       try {
         await retryBlogById(id)
-        message.success("Blog will be regenerated shortly")
-        isTrashcan ? queryClient.invalidateQueries(["trashedBlogs"]) : refetchActive()
+        toast.success("Synthesis recalibrated. Retrying...")
+        isTrashcan ? queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] }) : refetchActive()
       } catch (err) {
-        message.error("Failed to retry blog")
+        toast.error("Retry failed")
       }
     },
     [isTrashcan, queryClient, refetchActive]
@@ -368,10 +305,10 @@ const BlogsPage = () => {
     async id => {
       try {
         await archiveBlogById(id)
-        message.success("Blog archived successfully")
+        toast.success("Article archived")
         refetchActive()
       } catch (err) {
-        message.error("Failed to archive")
+        toast.error("Failed to archive")
       }
     },
     [refetchActive]
@@ -381,10 +318,11 @@ const BlogsPage = () => {
     async id => {
       try {
         await restoreBlogById(id)
+        toast.success("Article restored to main grid")
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       } catch (err) {
-        message.error("Failed to restore blog")
+        toast.error("Restoration failed")
       }
     },
     [queryClient]
@@ -395,409 +333,411 @@ const BlogsPage = () => {
       await deleteAllBlogs()
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      message.success("All trashed blogs deleted")
+      toast.success("Trash emptied. Permanent deletion complete.")
     } catch (err) {
-      message.error("Failed to delete all blogs")
+      toast.error("Purge failed")
     }
   }, [queryClient])
 
-  const menuOptions = useMemo(
-    () =>
-      SORT_OPTIONS.map(opt => ({
-        ...opt,
-        onClick: _ => {
-          updateBlogFilters({ sort: opt.value })
-        },
-      })),
-    [updateBlogFilters]
-  )
-
-  const funnelMenuOptions = useMemo(
-    () =>
-      BLOG_STATUS_OPTIONS.map(opt => ({
-        ...opt,
-        onClick: _ => {
-          updateBlogFilters({ status: opt.value })
-        },
-      })),
-    [updateBlogFilters]
-  )
-
-  const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
-    if (!content) return ""
-    return content.length > length ? content.substring(0, length) + "..." : content
-  }, [])
-
-  const stripMarkdown = useCallback(text => {
-    return text
-      ?.replace(/<[^>]*>/g, "")
-      ?.replace(/[\\*#=_~`>\-]+/g, "")
-      ?.replace(/\s{2,}/g, " ")
-      ?.trim()
-  }, [])
+  // Total pages for trashcan pagination
+  const totalTrashPages = Math.ceil(totalItems / pageSize)
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 min-h-screen">
+    <div className="p-6 md:p-10 min-h-screen bg-slate-50 font-inter">
       <Helmet>
-        <title>{isTrashcan ? "Trashcan" : "Blogs"} | GenWrite</title>
+        <title>{isTrashcan ? "Trashcan" : "Content Matrix"} | GenWrite</title>
       </Helmet>
 
-      {/* Page Header */}
-      <div className="pt-4">
-        <header className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200/60">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
-                {isTrashcan ? "Trashcan" : "Generated Content"}
-              </h1>
-              <p className="text-slate-500 text-sm max-w-md font-medium">
-                {isTrashcan
-                  ? "Restore valuable work or permanently delete clutter. Items are wiped after 7 days."
-                  : "Review and manage your AI-crafted articles, insights, and marketing copy."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {!isTrashcan && (
-                <button
-                  onClick={() => handleProAction(() => navigate("/blog-editor"))}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-600/90 text-white rounded-lg transition-all shadow-lg text-sm font-bold cursor-pointer active:scale-95"
-                >
-                  <Plus size={18} strokeWidth={3} />
-                  New Article
-                </button>
+      {/* Header Grid */}
+      <header className="mb-12">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10 pb-10 border-b border-slate-200/50">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
+              {isTrashcan ? (
+                <Trash2 size={10} className="text-rose-400" />
+              ) : (
+                <Zap size={10} className="text-blue-400" />
               )}
+              {isTrashcan ? "Archival Storage" : "Active Synthesis Grid"}
+            </div>
+            <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
+              {isTrashcan
+                ? "Trashcan"
+                : "Content <span className='text-blue-600 font-black'>Matrix</span>"}
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: isTrashcan ? "" : "Content <span className='text-blue-600'>Matrix</span>",
+                }}
+                style={{ display: "none" }}
+              />
+              {/* Note: dangerous style above is just to keep the logic consistent if I wanted to use a span, but I'll write it clearly below */}
+              {!isTrashcan && <span className="text-blue-600 ml-3">Matrix</span>}
+            </h1>
+            <p className="text-slate-400 font-medium max-w-xl text-lg leading-relaxed">
+              {isTrashcan
+                ? "Items in the void are purged after 7 days. Restore valuable DNA or clear the cache."
+                : "Manage your high-entropy AI articles and research output."}
+            </p>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-4">
+            {!isTrashcan && (
+              <button
+                onClick={() => handleProAction(() => navigate("/blog-editor"))}
+                className="btn btn-primary h-14 px-8 rounded-2xl bg-slate-900 border-none text-white font-black shadow-2xl hover:bg-black transition-all gap-2 group"
+              >
+                <Plus
+                  size={20}
+                  strokeWidth={3}
+                  className="group-hover:rotate-90 transition-transform"
+                />
+                Forge New Article
+              </button>
+            )}
+
+            <button
+              onClick={() =>
+                queryClient.invalidateQueries({
+                  queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
+                })
+              }
+              className="btn btn-ghost h-14 px-6 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-all gap-2 shadow-sm"
+            >
+              <RefreshCcw size={18} className={isRefetching ? "animate-spin text-blue-500" : ""} />
+              <span className="hidden sm:inline">Refresh Grid</span>
+            </button>
+
+            {isTrashcan && allBlogs.length > 0 && (
               <button
                 onClick={() =>
-                  queryClient.invalidateQueries({
-                    queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
+                  handlePopup({
+                    title: "Empty Trash?",
+                    description: "Permanently purge all articles in trash. This cannot be undone.",
+                    onConfirm: handleBulkDelete,
                   })
                 }
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg transition-all hover:border-slate-300 hover:bg-slate-50 text-sm font-bold cursor-pointer shadow-sm active:scale-95"
+                className="btn btn-error btn-outline h-14 px-6 rounded-2xl font-black gap-2"
               >
-                <RefreshCcw size={16} className={isRefetching ? "animate-spin" : ""} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-
-              {isTrashcan && allBlogs.length > 0 && (
-                <Button
-                  danger
-                  size="large"
-                  icon={<Trash2 size={18} />}
-                  onClick={() =>
-                    handlePopup({
-                      title: "Empty Trash?",
-                      description: "Permanently delete all blogs. This action is irreversible.",
-                      onConfirm: handleBulkDelete,
-                    })
-                  }
-                  className="rounded-2xl h-[44px] font-bold shadow-sm"
-                >
-                  Empty All
-                </Button>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Advanced Filters */}
-        <div className="flex flex-col justify-between lg:flex-row lg:items-center gap-4 mb-8">
-          <div className="relative group flex-1 max-w-xl">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
-              size={18}
-            />
-            <DebouncedSearchInput
-              initialValue={blogFilters.q}
-              onSearch={val => updateBlogFilters({ q: val })}
-              placeholder="Search by title, keywords or ID..."
-              className="pl-12 pr-4 py-3 bg-white !border border-slate-300 rounded-2xl text-sm w-full focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all shadow-sm font-medium"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Desktop Quick Filters */}
-            <div className="hidden lg:flex items-center gap-3">
-              <Select
-                value={blogFilters.status}
-                onChange={val => updateBlogFilters({ status: val })}
-                className="min-w-[150px] h-11 custom-select"
-                variant="filled"
-                dropdownStyle={{ borderRadius: "16px" }}
-              >
-                {BLOG_STATUS_OPTIONS.map(opt => (
-                  <Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Option>
-                ))}
-              </Select>
-
-              <Select
-                value={blogFilters.sort}
-                onChange={val => updateBlogFilters({ sort: val })}
-                className="min-w-[150px] h-11 custom-select"
-                variant="filled"
-                dropdownStyle={{ borderRadius: "16px" }}
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-
-            <Popover
-              open={isDetailedFilterOpen}
-              onOpenChange={setDetailedFilterOpen}
-              trigger="click"
-              placement="bottomRight"
-              content={
-                <div className="w-[320px] p-2 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-slate-800 m-0">Advanced Filters</h4>
-                    <button
-                      onClick={resetFilters}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg"
-                    >
-                      Reset All
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Mobile Only Quick Filters */}
-                    <div className="lg:hidden space-y-4">
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Status Filter
-                        </p>
-                        <Select
-                          value={blogFilters.status}
-                          onChange={val => updateBlogFilters({ status: val })}
-                          className="w-full h-10 custom-select"
-                          variant="filled"
-                        >
-                          {BLOG_STATUS_OPTIONS.map(opt => (
-                            <Option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </Option>
-                          ))}
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Sort Order
-                        </p>
-                        <Select
-                          value={blogFilters.sort}
-                          onChange={val => updateBlogFilters({ sort: val })}
-                          className="w-full h-10 custom-select"
-                          variant="filled"
-                        >
-                          {SORT_OPTIONS.map(opt => (
-                            <Option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </Option>
-                          ))}
-                        </Select>
-                      </div>
-                    </div>
-
-                    <Divider className="my-2" />
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <MousePointerClick size={12} /> Search Clicks
-                      </p>
-                      <InputNumber
-                        min={0}
-                        placeholder="Min. clicks"
-                        value={tempGscClicks}
-                        onChange={val => setTempGscClicks(val)}
-                        className="w-full h-10 rounded-xl bg-slate-50 border-slate-100"
-                        controls={false}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <Calendar size={12} /> Publication Period
-                      </p>
-                      <DateRangePicker
-                        value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
-                        minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
-                        maxDate={dayjs()}
-                        onChange={dates => {
-                          if (dates?.[0]) {
-                            updateBlogFilters({
-                              start: dates[0].toISOString(),
-                              end: dates[1].toISOString(),
-                            })
-                          }
-                        }}
-                        className="!w-full !h-10 !rounded-xl !bg-slate-50 !border-slate-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-              }
-            >
-              <button
-                className={clsx(
-                  "h-11 px-5 rounded-2xl flex items-center gap-2 font-bold transition-all shadow-sm border",
-                  hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
-                    ? "bg-indigo-50 text-indigo-600 border-indigo-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                )}
-              >
-                <Filter size={18} />
-                <span>Filters</span>
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ml-0.5" />
-                )}
-              </button>
-            </Popover>
-
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="h-11 w-11 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all border border-slate-200"
-                title="Clear Filters"
-              >
-                <RotateCcw size={18} />
+                <Trash2 size={18} />
+                Purge All
               </button>
             )}
           </div>
         </div>
+      </header>
 
-        {/* Content Grid */}
-        <AnimatePresence mode="wait">
-          {isLoading || isRefetching ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(8)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white shadow-sm rounded-3xl p-6 border border-slate-100 h-[320px] animate-pulse"
-                >
-                  <div className="w-1/3 h-4 bg-slate-100 rounded mb-6" />
-                  <div className="w-full h-12 bg-slate-50 rounded mb-4" />
-                  <div className="w-2/3 h-4 bg-slate-50 rounded mb-8" />
-                  <div className="flex gap-2 mt-auto">
-                    <div className="w-12 h-6 bg-slate-50 rounded-full" />
-                    <div className="w-12 h-6 bg-slate-50 rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : allBlogs.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col justify-center items-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-200 shadow-sm"
+      {/* Control Matrix (Search & Filters) */}
+      <div className="flex flex-col xl:flex-row xl:items-center gap-6 mb-12">
+        <div className="relative group flex-1 max-w-2xl">
+          <DebouncedSearchInput
+            initialValue={blogFilters.q}
+            onSearch={val => updateBlogFilters({ q: val })}
+            placeholder="Search by title, keywords or ID..."
+            className="w-full h-16! pl-14! bg-white! border-slate-200! rounded-[24px]! shadow-sm! focus:ring-8! focus:ring-blue-500/5! focus:border-blue-500! transition-all! font-bold! text-slate-700!"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="hidden xl:flex items-center gap-4">
+            <select
+              value={blogFilters.status}
+              onChange={e => updateBlogFilters({ status: e.target.value })}
+              className="select select-bordered h-16 rounded-2xl bg-white border-slate-200 font-bold text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 min-w-[180px]"
             >
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                <Search size={40} className="text-slate-300" />
+              {BLOG_STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={blogFilters.sort}
+              onChange={e => updateBlogFilters({ sort: e.target.value })}
+              className="select select-bordered h-16 rounded-2xl bg-white border-slate-200 font-bold text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 min-w-[200px]"
+            >
+              {SORT_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="dropdown dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className={clsx(
+                "btn h-16 px-6 rounded-2xl font-black gap-3 transition-all",
+                hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
+                  ? "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              )}
+            >
+              <Filter size={18} />
+              Advanced
+              {hasActiveFilters && (
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              )}
+            </div>
+
+            <div
+              tabIndex={0}
+              className="dropdown-content z-50 card card-compact w-80 p-6 shadow-2xl bg-white border border-slate-100 mt-2 space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Global Filters
+                </h4>
+                <button
+                  onClick={resetFilters}
+                  className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest"
+                >
+                  Reset
+                </button>
               </div>
-              <h3 className="text-2xl font-black text-slate-800">No Blogs Found</h3>
-              <p className="text-slate-400 mt-2 font-medium">
-                Try adjusting your filters or searching for something else.
-              </p>
-              <button
-                onClick={resetFilters}
-                className="mt-8 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
-              >
-                Clear All Filters
-              </button>
-            </motion.div>
-          ) : (
-            <>
-              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allBlogs.map(blog => (
-                  <BlogCard
-                    key={blog._id}
-                    blog={blog}
-                    onBlogClick={handleBlogClick}
-                    onManualBlogClick={handleManualBlogClick}
-                    onRetry={handleRetry}
-                    onArchive={isTrashcan ? undefined : handleArchive}
-                    onRestore={isTrashcan ? handleRestore : undefined}
-                    handlePopup={handlePopup}
-                    hasGSCPermissions={Boolean(user?.gsc?.length)}
-                    isTrashcan={isTrashcan}
+
+              <div className="space-y-6">
+                {/* Mobile visible Selects in dropdown */}
+                <div className="xl:hidden space-y-4">
+                  <select
+                    value={blogFilters.status}
+                    onChange={e => updateBlogFilters({ status: e.target.value })}
+                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
+                  >
+                    {BLOG_STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={blogFilters.sort}
+                    onChange={e => updateBlogFilters({ sort: e.target.value })}
+                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
+                  >
+                    {SORT_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <MousePointerClick size={12} className="text-blue-500" /> Min Clicks
+                  </label>
+                  <input
+                    type="number"
+                    value={tempGscClicks || ""}
+                    onChange={e => setTempGscClicks(parseInt(e.target.value) || null)}
+                    placeholder="0"
+                    className="input input-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
                   />
-                ))}
-              </motion.div>
+                </div>
 
-              {/* Sequential Loading / Pagination */}
-              <div className="mt-16 flex flex-col items-center gap-6 pb-20">
-                {!isTrashcan && hasNextPage && (
-                  <div className="flex flex-col items-center gap-4">
-                    <p className="text-slate-400 text-xs font-black uppercase tracking-widest">
-                      Displaying {allBlogs.length} of {totalItems} items
-                    </p>
-                    <button
-                      onClick={() => fetchNextPage()}
-                      disabled={isFetchingNextPage}
-                      className="group flex items-center gap-3 px-8 py-3.5 bg-white border-2 border-slate-200 text-slate-800 rounded-2xl font-black hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                    >
-                      {isFetchingNextPage ? (
-                        <Loader2 size={20} className="animate-spin" />
-                      ) : (
-                        <>
-                          <ChevronDown
-                            size={20}
-                            className="group-hover:translate-y-0.5 transition-transform"
-                          />
-                          Reveal More Articles
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {isTrashcan && totalItems > pageSize && (
-                  <Pagination
-                    current={currentPage}
-                    pageSize={pageSize}
-                    total={totalItems}
-                    onChange={(page, size) => {
-                      setCurrentPage(page)
-                      if (size !== pageSize) setPageSize(size)
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Calendar size={12} className="text-purple-500" /> Synthesis Timeframe
+                  </label>
+                  <DateRangePicker
+                    value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
+                    minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
+                    maxDate={dayjs()}
+                    onChange={dates => {
+                      if (dates?.[0]) {
+                        updateBlogFilters({
+                          start: dates[0].toISOString(),
+                          end: dates[1].toISOString(),
+                        })
+                      }
                     }}
-                    showSizeChanger
-                    className="modern-pagination"
+                    className="w-full! rounded-xl!"
                   />
-                )}
+                </div>
               </div>
-            </>
+            </div>
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              className="btn btn-ghost h-16 w-16 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-rose-500 transition-all shadow-sm"
+              title="Clear Matrix Filters"
+            >
+              <RotateCcw size={18} />
+            </button>
           )}
-        </AnimatePresence>
+        </div>
       </div>
 
-      <style jsx global>{`
-        .custom-select .ant-select-selector {
-          border-radius: 12px !important;
-          background-color: #f8fafc !important;
-          border: none !important;
-          height: 40px !important;
-          display: flex !important;
-          align-items: center !important;
-        }
-        .modern-pagination .ant-pagination-item {
-          border-radius: 12px;
-          border-color: #e2e8f0;
-          font-weight: 700;
-        }
-        .modern-pagination .ant-pagination-item-active {
-          background-color: #4f46e5;
-          border-color: #4f46e5;
-        }
-        .modern-pagination .ant-pagination-item-active a {
-          color: white !important;
-        }
-      `}</style>
+      {/* Main Grid View */}
+      <AnimatePresence mode="wait">
+        {isLoading || isRefetching ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(9)].map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-[40px] p-8 border border-slate-100 h-[400px] flex flex-col space-y-6"
+              >
+                <div className="w-12 h-12 bg-slate-50 rounded-2xl animate-pulse" />
+                <div className="space-y-3">
+                  <div className="w-3/4 h-8 bg-slate-50 rounded animate-pulse" />
+                  <div className="w-1/2 h-8 bg-slate-50 rounded animate-pulse" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <div className="w-full h-4 bg-slate-50 rounded animate-pulse" />
+                  <div className="w-full h-4 bg-slate-50 rounded animate-pulse" />
+                  <div className="w-2/3 h-4 bg-slate-50 rounded animate-pulse" />
+                </div>
+                <div className="flex justify-between mt-auto">
+                  <div className="w-20 h-8 bg-slate-50 rounded-xl animate-pulse" />
+                  <div className="w-24 h-8 bg-slate-50 rounded-xl animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : allBlogs.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col justify-center items-center py-40 bg-white rounded-[64px] border border-slate-100 shadow-2xl shadow-slate-200/50"
+          >
+            <div className="w-32 h-32 bg-slate-50 rounded-[48px] flex items-center justify-center mb-8 shadow-inner">
+              <Search size={48} className="text-slate-200" />
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+              Binary Void Detected
+            </h3>
+            <p className="text-slate-400 mt-4 font-medium max-w-sm text-center px-6">
+              No matching content found in this sector. Adjust your search parameters or recalibrate
+              filters.
+            </p>
+            <button
+              onClick={resetFilters}
+              className="btn btn-primary mt-10 h-14 px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all"
+            >
+              Reset Matrix Search
+            </button>
+          </motion.div>
+        ) : (
+          <div className="space-y-20">
+            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {allBlogs.map(blog => (
+                <BlogCard
+                  key={blog._id}
+                  blog={blog}
+                  onBlogClick={handleBlogClick}
+                  onManualBlogClick={handleManualBlogClick}
+                  onRetry={handleRetry}
+                  onArchive={isTrashcan ? undefined : handleArchive}
+                  onRestore={isTrashcan ? handleRestore : undefined}
+                  handlePopup={handlePopup}
+                  hasGSCPermissions={Boolean(user?.gsc?.length)}
+                  isTrashcan={isTrashcan}
+                />
+              ))}
+            </motion.div>
+
+            {/* Pagination Matrix */}
+            <div className="pt-10 flex flex-col items-center gap-10">
+              {!isTrashcan && hasNextPage && (
+                <div className="flex flex-col items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px w-10 bg-slate-200" />
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">
+                      Showing {allBlogs.length} / {totalItems} Entity IDs
+                    </p>
+                    <div className="h-px w-10 bg-slate-200" />
+                  </div>
+
+                  <button
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="btn btn-outline h-16 px-12 rounded-[24px] border-2 border-slate-200 bg-white text-slate-900 font-black hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-xl group disabled:opacity-50"
+                  >
+                    {isFetchingNextPage ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <>
+                        Reveal More Articles
+                        <ChevronDown
+                          size={20}
+                          className="group-hover:translate-y-1 transition-transform"
+                        />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {isTrashcan && totalItems > pageSize && (
+                <div className="flex items-center gap-2 join">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className="join-item btn btn-outline border-slate-200 h-12 w-12 p-0"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  {[...Array(totalTrashPages)].map((_, i) => {
+                    const page = i + 1
+                    // Show limited pages if many
+                    if (totalTrashPages > 5) {
+                      if (
+                        page !== 1 &&
+                        page !== totalTrashPages &&
+                        (page < currentPage - 1 || page > currentPage + 1)
+                      ) {
+                        if (page === currentPage - 2 || page === currentPage + 2)
+                          return (
+                            <span key={i} className="join-item btn btn-disabled">
+                              ...
+                            </span>
+                          )
+                        return null
+                      }
+                    }
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(page)}
+                        className={clsx(
+                          "join-item btn h-12 w-12 border-slate-200",
+                          currentPage === page
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white text-slate-600 hover:bg-slate-50"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+
+                  <button
+                    disabled={currentPage === totalTrashPages}
+                    onClick={() => setCurrentPage(prev => Math.min(totalTrashPages, prev + 1))}
+                    className="join-item btn btn-outline border-slate-200 h-12 w-12 p-0"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <footer className="mt-32 pb-10 flex flex-col items-center gap-4 opacity-30 select-none">
+        <div className="flex items-center gap-4">
+          <div className="h-1 w-1 bg-slate-400 rounded-full" />
+          <span className="text-[10px] font-black uppercase tracking-[1em]">End of Sync</span>
+          <div className="h-1 w-1 bg-slate-400 rounded-full" />
+        </div>
+      </footer>
     </div>
   )
 }

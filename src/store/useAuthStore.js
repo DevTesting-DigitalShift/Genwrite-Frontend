@@ -17,7 +17,7 @@ import {
 } from "@api/userApi"
 import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
-import { message } from "antd"
+import toast from "@utils/toast"
 
 // Utils
 const saveToken = token => localStorage.setItem("token", token)
@@ -256,7 +256,7 @@ const useAuthStore = create(
           set({ user: data, isAuthenticated: true, profileLoading: false })
           return data
         } catch (error) {
-          message.error("Failed to fetch user profile")
+          toast.error("Failed to fetch user profile")
           set({ profileLoading: false, error: error.message })
           throw error
         }
@@ -277,7 +277,7 @@ const useAuthStore = create(
           return updatedNotifications
         } catch (error) {
           const errorMsg = error.response?.data?.message || "Failed to mark notifications as read."
-          message.error(errorMsg)
+          toast.error(errorMsg)
           set({ loading: false, error: errorMsg })
           throw error
         }
@@ -290,7 +290,7 @@ const useAuthStore = create(
           set({ transactions: data || [], loading: false })
           return data || []
         } catch (error) {
-          message.error("Failed to fetch transactions")
+          toast.error("Failed to fetch transactions")
           set({ loading: false, error: error.message })
           throw error
         }
@@ -305,7 +305,7 @@ const useAuthStore = create(
           set({ user: updatedUser, loading: false })
           return data
         } catch (error) {
-          message.error("Error updating profile, try again")
+          toast.error("Error updating profile, try again")
           set({ loading: false, error: error.message })
           throw error
         }

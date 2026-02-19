@@ -1,79 +1,35 @@
 import { useState } from "react"
-import { DatePicker, Button } from "antd"
+import DatePicker from "react-multi-date-picker"
 import dayjs from "dayjs"
-import utc from "dayjs/plugin/utc"
 
-dayjs.extend(utc)
-
-const { RangePicker } = DatePicker
-
-/**
- * DateRangePicker component for selecting date ranges.
- * @param {Object} props - Component props.
- * @param {Array} props.value - Selected date range.
- * @param {Function} props.onChange - Callback function for date range change.
- * @param {dayjs.Dayjs} props.minDate - Minimum selectable date.
- * @param {dayjs.Dayjs} props.maxDate - Maximum selectable date.
- * @param {string} props.maxDate - Maximum selectable date.
- * @returns {JSX.Element} DateRangePicker component.
- */
 export default function DateRangePicker({ value, onChange, minDate, maxDate, className }) {
-  const PRESET_RANGES = {
-    "Last 7 Days": [
-      dayjs().subtract(6, "day").startOf("day").isBefore(minDate)
-        ? minDate
-        : dayjs().subtract(6, "day").startOf("day"),
-      maxDate.endOf("day"),
-    ],
-    "Last 30 Days": [
-      dayjs().subtract(29, "day").startOf("day").isBefore(minDate)
-        ? minDate
-        : dayjs().subtract(29, "day").startOf("day"),
-      maxDate.endOf("day"),
-    ],
-    "Last 3 Months": [
-      dayjs().subtract(3, "month").startOf("day").isBefore(minDate)
-        ? minDate
-        : dayjs().subtract(3, "month").startOf("day"),
-      maxDate.endOf("day"),
-    ],
-    "Last 6 Months": [
-      dayjs().subtract(6, "month").startOf("day").isBefore(minDate)
-        ? minDate
-        : dayjs().subtract(6, "month").startOf("day"),
-      maxDate.endOf("day"),
-    ],
-    "Last 1 Year": [
-      dayjs().subtract(1, "year").startOf("day").isBefore(minDate)
-        ? minDate
-        : dayjs().subtract(1, "year").startOf("day"),
-      maxDate.endOf("day"),
-    ],
+  const handleChange = dates => {
+    if (!dates || dates.length === 0) {
+      onChange([null, null])
+      return
+    }
+    const start = dates[0] ? dayjs(dates[0].toDate()).startOf("day") : null
+    const end = dates[1] ? dayjs(dates[1].toDate()).endOf("day") : null
+
+    if (start && end) {
+      onChange([start, end])
+    }
   }
 
   return (
-    <>
-      {/* Range picker */}
-      <RangePicker
-        size="middle"
-        presets={Object.entries(PRESET_RANGES).map(([label, range]) => ({
-          label,
-          value: range,
-        }))}
-        value={value}
-        minDate={minDate}
-        maxDate={maxDate}
-        onChange={dates => {
-          onChange(
-            dates ? [dayjs(dates[0]).startOf("day"), dayjs(dates[1]).endOf("day")] : [null, null]
-          )
-        }}
-        format="YYYY-MM-DD"
-        placeholder={["Start date", "End date"]}
-        className={`w-full rounded-lg border-gray-300 shadow-sm ${className}`}
-        allowClear={false}
-        aria-label="Select date range"
+    <div className={`relative ${className}`}>
+      <DatePicker
+        value={value ? [value[0]?.toDate(), value[1]?.toDate()] : []}
+        onChange={handleChange}
+        range
+        dateSeparator=" ~ "
+        minDate={minDate?.toDate()}
+        maxDate={maxDate?.toDate()}
+        placeholder="Start date - End date"
+        className="w-full input input-bordered flex items-center"
+        inputClass="w-full bg-transparent outline-none cursor-pointer"
+        containerClassName="w-full"
       />
-    </>
+    </div>
   )
 }

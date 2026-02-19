@@ -5,7 +5,7 @@ import TurndownService from "turndown"
 import { marked } from "marked"
 import { DOMSerializer } from "@tiptap/pm/model"
 import { Sparkles, Loader2 } from "lucide-react"
-import { Tooltip, message, Modal } from "antd"
+import toast from "@utils/toast"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
 const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) => {
@@ -77,7 +77,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
 
   const handleAIOperation = async operation => {
     if (!blogId) {
-      message.error("Blog ID not found")
+      toast.error("Blog ID not found")
       return
     }
 
@@ -97,7 +97,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
     const selectedHtmlContent = tempDiv.innerHTML
 
     if (!selectedHtmlContent.trim()) {
-      message.warning("Please select some text first")
+      toast.warning("Please select some text first")
       return
     }
 
@@ -131,7 +131,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
         setCurrentOperation(operation)
         setAiResultModalOpen(true)
         setShowMenu(false)
-        message.success(`${operation} completed! Review the changes.`)
+        toast.success(`${operation} completed! Review the changes.`)
       }
     } catch (error) {
       console.error("AI Operation Error:", error)
@@ -142,14 +142,14 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
         const errorMsg = neededCredits
           ? `Insufficient credits. You need ${neededCredits} credits to perform this operation.`
           : "Insufficient credits to perform this operation. Please add more credits."
-        message.error({ content: errorMsg, duration: 5 })
+        toast.error(errorMsg)
       } else {
         // Handle other errors
         const errorMessage =
           error.response?.data?.message ||
           error.message ||
           `Failed to ${operation}. Please try again.`
-        message.error(errorMessage)
+        toast.error(errorMessage)
       }
     } finally {
       setIsProcessing(false)
@@ -168,7 +168,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
     }
 
     setAiResultModalOpen(false)
-    message.success("Changes applied successfully!")
+    toast.success("Changes applied successfully!")
     // Reset state
     setOriginalContent("")
     setNewContent("")
@@ -178,7 +178,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
   // Handle declining AI changes
   const handleDeclineAIChanges = () => {
     setAiResultModalOpen(false)
-    message.info("Changes discarded")
+    toast.info("Changes discarded")
     // Reset state
     setOriginalContent("")
     setNewContent("")
@@ -190,37 +190,22 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       <>
         {/* AI Result Comparison Modal */}
         {aiResultModalOpen && (
-          <Modal
-            title={
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600" />
-                <span>Review AI Changes - {currentOperation}</span>
+          <div className="modal modal-open z-9999">
+            <div className="modal-box w-11/12 max-w-5xl h-[80vh] flex flex-col p-0">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  Review AI Changes - {currentOperation}
+                </h3>
+                <button
+                  className="btn btn-sm btn-circle btn-ghost"
+                  onClick={handleDeclineAIChanges}
+                >
+                  ✕
+                </button>
               </div>
-            }
-            open={aiResultModalOpen}
-            onCancel={handleDeclineAIChanges}
-            footer={[
-              <button
-                key="decline"
-                onClick={handleDeclineAIChanges}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Decline
-              </button>,
-              <button
-                key="accept"
-                onClick={handleAcceptAIChanges}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ml-2"
-              >
-                Accept Changes
-              </button>,
-            ]}
-            width={1000}
-            centered
-            className="section-ai-diff-modal"
-          >
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-y-auto max-h-[70vh]">
+
+              <div className="flex-1 overflow-auto p-4 custom-scroll">
                 <ReactDiffViewer
                   oldValue={oldMarkdown}
                   newValue={newMarkdown}
@@ -245,8 +230,20 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
                   }}
                 />
               </div>
+
+              <div className="modal-action p-4 border-t mt-0 bg-gray-50 flex justify-end gap-2">
+                <button onClick={handleDeclineAIChanges} className="btn btn-ghost">
+                  Decline
+                </button>
+                <button onClick={handleAcceptAIChanges} className="btn btn-success text-white">
+                  Accept Changes
+                </button>
+              </div>
             </div>
-          </Modal>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={handleDeclineAIChanges}>close</button>
+            </form>
+          </div>
         )}
       </>
     )
@@ -274,77 +271,74 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
                 <div className="w-px h-5 bg-gray-200 mx-1" />
               </>
             )}
-            <Tooltip title="Rewrite selected text with AI">
+            <div className="tooltip tooltip-bottom" data-tip="Rewrite selected text with AI">
               <button
                 onClick={() => handleAIOperation("rewrite")}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
+                disabled={isProcessing}
               >
                 <Sparkles className="w-4 h-4" />
                 <span className="font-medium">Rewrite</span>
               </button>
-            </Tooltip>
+            </div>
           </>
         )}
       </div>
 
-      {/* AI Result Comparison Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <span>Review AI Changes - {currentOperation}</span>
-          </div>
-        }
-        open={aiResultModalOpen}
-        onCancel={handleDeclineAIChanges}
-        footer={[
-          <button
-            key="decline"
-            onClick={handleDeclineAIChanges}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Decline
-          </button>,
-          <button
-            key="accept"
-            onClick={handleAcceptAIChanges}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ml-2"
-          >
-            Accept Changes
-          </button>,
-        ]}
-        width={1000}
-        centered
-        className="section-ai-diff-modal"
-      >
-        <div className="space-y-4">
-          <div className="border rounded-lg overflow-y-auto max-h-[70vh]">
-            <ReactDiffViewer
-              oldValue={oldMarkdown}
-              newValue={newMarkdown}
-              splitView={true}
-              compareMethod={DiffMethod.WORDS}
-              leftTitle="Original Content"
-              rightTitle="AI Generated Content"
-              useDarkTheme={false}
-              styles={{
-                variables: {
-                  light: {
-                    diffViewerBackground: "#ffffff",
-                    addedBackground: "#e6ffec",
-                    addedColor: "#1a7f37",
-                    removedBackground: "#ffebe9",
-                    removedColor: "#cf222e",
-                    wordAddedBackground: "#abf2bc",
-                    wordRemovedBackground: "#ffc1c0",
+      {/* AI Result Comparison Modal - duplicated outside just in case but controlled by same state */}
+      {aiResultModalOpen && (
+        <div className="modal modal-open z-9999">
+          <div className="modal-box w-11/12 max-w-5xl h-[80vh] flex flex-col p-0">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Review AI Changes - {currentOperation}
+              </h3>
+              <button className="btn btn-sm btn-circle btn-ghost" onClick={handleDeclineAIChanges}>
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4 custom-scroll">
+              <ReactDiffViewer
+                oldValue={oldMarkdown}
+                newValue={newMarkdown}
+                splitView={true}
+                compareMethod={DiffMethod.WORDS}
+                leftTitle="Original Content"
+                rightTitle="AI Generated Content"
+                useDarkTheme={false}
+                styles={{
+                  variables: {
+                    light: {
+                      diffViewerBackground: "#ffffff",
+                      addedBackground: "#e6ffec",
+                      addedColor: "#1a7f37",
+                      removedBackground: "#ffebe9",
+                      removedColor: "#cf222e",
+                      wordAddedBackground: "#abf2bc",
+                      wordRemovedBackground: "#ffc1c0",
+                    },
                   },
-                },
-                line: { fontSize: "14px", lineHeight: "1.6" },
-              }}
-            />
+                  line: { fontSize: "14px", lineHeight: "1.6" },
+                }}
+              />
+            </div>
+
+            <div className="modal-action p-4 border-t mt-0 bg-gray-50 flex justify-end gap-2">
+              <button onClick={handleDeclineAIChanges} className="btn btn-ghost">
+                Decline
+              </button>
+              <button onClick={handleAcceptAIChanges} className="btn btn-success text-white">
+                Accept Changes
+              </button>
+            </div>
           </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={handleDeclineAIChanges}>close</button>
+          </form>
         </div>
-      </Modal>
+      )}
     </>
   )
 }

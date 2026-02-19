@@ -9,7 +9,6 @@ import { ScoreCard } from "../FeatureComponents"
  * Overview Panel - Dashboard with stats, scores, and quick actions
  */
 const OverviewPanel: React.FC<OverviewPanelProps> = ({
-  _blog,
   editorContent,
   keywords,
   setIsSidebarOpen,
@@ -153,7 +152,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
               ${
                 isAnalyzing
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+                  : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
               }
             `}
           >

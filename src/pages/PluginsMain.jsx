@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { Tabs, Button, Card, Flex, Typography, message, Space, Spin, Input } from "antd"
 import {
   Server,
   Download,
@@ -11,15 +10,23 @@ import {
   XCircle,
   Eye,
   EyeOff,
+  LayoutGrid,
+  Settings,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
+  PlayCircle,
+  Info,
 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
-import { FaShopify, FaWix, FaYoutube } from "react-icons/fa"
-
-const { Title, Text, Paragraph } = Typography
+import { FaShopify, FaWix, FaYoutube, FaWordpress } from "react-icons/fa"
+import toast from "@utils/toast"
 
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
@@ -68,9 +75,9 @@ const PluginsMain = () => {
           status: err.response?.status || "error",
           message:
             err.response?.status === 400
-              ? "No link found. Add the appropriate link into your profile."
+              ? "No configuration found. Provide details below."
               : err.response?.status === 502
-                ? `${plugin.pluginName} connection failed, check integration is active`
+                ? `${plugin.pluginName} connection failed. Check service URL.`
                 : `${plugin.pluginName} Connection Error`,
           success: false,
         },
@@ -92,6 +99,8 @@ const PluginsMain = () => {
   const PluginTabContent = ({ plugin }) => {
     const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [integrations])
     const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [integrations])
+
+    // States for inputs
     const [url, setUrl] = useState(
       plugin.id === 112 ? serverInt?.url || "" : wordpressInt?.url || ""
     )
@@ -101,17 +110,18 @@ const PluginsMain = () => {
     const [isValidFrontend, setIsValidFrontend] = useState(!!serverInt)
     const [isEditing, setIsEditing] = useState(plugin.id === 112 ? !serverInt : !wordpressInt)
     const [localLoading, setLocalLoading] = useState(false)
-    // New states for WordPress credentials
+
+    // WordPress credentials
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
-    const [hasCredentials, setHasCredentials] = useState(!!wordpressInt) // If integration exists, assume credentials are set on backend
+    const [hasCredentials, setHasCredentials] = useState(!!wordpressInt)
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
         setUrl(serverInt.url)
         setFrontend(serverInt.frontend)
-        setAuthToken(serverInt?.data ? "*".repeat(10) : "")
+        setAuthToken("*".repeat(10))
         setIsValidUrl(true)
         setIsValidFrontend(true)
         setIsEditing(false)
@@ -121,17 +131,7 @@ const PluginsMain = () => {
         setWpPassword("**********")
         setIsValidUrl(true)
         setIsEditing(false)
-        setHasCredentials(true) // Backend has credentials
-      } else {
-        setUrl("")
-        setFrontend("")
-        setAuthToken("")
-        setWpUsername("")
-        setWpPassword("")
-        setIsValidUrl(false)
-        setIsValidFrontend(false)
-        setIsEditing(true)
-        setHasCredentials(false)
+        setHasCredentials(true)
       }
     }, [wordpressInt, serverInt, plugin.id])
 
@@ -144,34 +144,14 @@ const PluginsMain = () => {
     }, [integrations, hasPinged])
 
     const handleUrlChange = e => {
-      const value = e.target.value
-      setUrl(value)
+      const val = e.target.value
+      setUrl(val)
       try {
-        new URL(value)
+        new URL(val)
         setIsValidUrl(true)
       } catch {
         setIsValidUrl(false)
       }
-    }
-
-    const handleFrontendChange = e => {
-      const value = e.target.value
-      setFrontend(value)
-      try {
-        new URL(value)
-        setIsValidFrontend(true)
-      } catch {
-        setIsValidFrontend(false)
-      }
-    }
-
-    const handleAuthTokenChange = e => {
-      const value = e.target.value
-      setAuthToken(value)
-    }
-
-    const handleEdit = () => {
-      setIsEditing(prev => !prev)
     }
 
     const handleConnect = async () => {
@@ -181,51 +161,30 @@ const PluginsMain = () => {
       try {
         let payload
         if (plugin.id === 112) {
-          // Validate authToken is not placeholder
           if (authToken === "*".repeat(10)) {
-            message.error("Please re-enter your auth token to update the integration")
+            toast.error("Re-enter token to update")
             setLocalLoading(false)
             return
           }
           payload = { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
         } else {
-          // Validate credentials are not placeholders
           if (wpUsername === "**********" || wpPassword === "**********") {
-            message.error("Please re-enter your credentials to update the integration")
+            toast.error("Re-enter credentials to update")
             setLocalLoading(false)
             return
           }
-
           payload = {
             type: "WORDPRESS",
             url,
             credentials: { user: wpUsername, password: wpPassword },
           }
         }
-
-        const result = await createIntegration(payload)
+        await createIntegration(payload)
         await fetchIntegrations()
         setIsEditing(false)
+        toast.success(`${plugin.pluginName} Linked!`)
       } catch (err) {
-        const errorMsg = err.message || `Failed to create ${plugin.pluginName} integration`
-        message.error(errorMsg)
-      } finally {
-        setLocalLoading(false)
-      }
-    }
-
-    const handleUpdate = async () => {
-      if (!isValidUrl || !isValidFrontend) return
-      setLocalLoading(true)
-      try {
-        const payload = { type: "SERVERENDPOINT", url, frontend }
-        await updateExistingIntegration(payload)
-        message.success("Server-to-Server integration updated successfully")
-        await fetchIntegrations()
-        setIsEditing(false)
-      } catch (err) {
-        const errorMsg = err.message || "Failed to update Server-to-Server integration"
-        message.error(errorMsg)
+        toast.error(err.message || "Integration upgrade failed")
       } finally {
         setLocalLoading(false)
       }
@@ -245,248 +204,34 @@ const PluginsMain = () => {
             success: result.success,
           },
         }))
-        if (result.success) {
-          message.success(result.message)
-        } else {
-          message.error(result.message)
-        }
+        if (result.success) toast.success(result.message)
+        else toast.error(result.message)
       } catch (err) {
-        const errorMsg = err.message || `Failed to check ${plugin.pluginName} connection status`
-        setWordpressStatus(prev => ({
-          ...prev,
-          [plugin.id]: { status: "error", message: errorMsg, success: false },
-        }))
-        message.error(errorMsg)
+        toast.error(err.message || "Heath check failed")
       } finally {
         setLocalLoading(false)
       }
     }
 
-    const handleFetchCategories = async () => {
-      if (postsLoading || !wordpressStatus[plugin.id]?.success) return
-      try {
-        await fetchCategories()
-        message.success("Categories fetched successfully")
-      } catch (err) {
-        message.error("Failed to fetch categories")
-      }
-    }
-
-    if (plugin.id === 112) {
-      return (
-        <div className="h-full p-6">
-          <Flex vertical gap="large">
-            <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-              <img
-                src={plugin.pluginImage}
-                alt={plugin.pluginName}
-                className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
-              />
-              <Flex vertical gap="small">
-                <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
-                  {plugin.pluginName}
-                </Title>
-                <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
-                <Flex className="flex flex-wrap gap-4 mt-2">
-                  <Flex align="center" gap="small">
-                    <Tag size={16} className="text-teal-500" />
-                    <Text className="text-teal-600 font-medium text-sm md:text-base">
-                      Version {plugin.version}
-                    </Text>
-                  </Flex>
-                  <Flex align="center" gap="small">
-                    <Clock size={16} className="text-blue-500" />
-                    <Text className="text-blue-600 font-medium text-sm md:text-base">
-                      Updated {plugin.updatedDate}
-                    </Text>
-                  </Flex>
-                </Flex>
-              </Flex>
-            </Flex>
-
-            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-              <Flex vertical gap="middle">
-                {/* 🔹 Header + Status */}
-                <Flex align="center" gap="small">
-                  <Text strong>Server-to-Server Integration</Text>
-
-                  {integrations?.integrations?.SERVERENDPOINT &&
-                    wordpressStatus[plugin.id]?.success !== undefined &&
-                    (wordpressStatus[plugin.id]?.success ? (
-                      <Flex align="center" gap="small">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <Text className="text-green-600">Connected</Text>
-                      </Flex>
-                    ) : (
-                      <Flex align="center" gap="small">
-                        <XCircle size={16} className="text-red-500" />
-                        <Text className="text-red-600">Not Connected</Text>
-                      </Flex>
-                    ))}
-                </Flex>
-
-                {/* 🔹 Input fields */}
-                <Flex vertical gap="middle" className="w-full">
-                  {/* Header Row */}
-                  <Flex align="center" className="justify-between">
-                    <Text strong>Server Integration</Text>
-                    <Button
-                      type="link"
-                      icon={<Edit size={16} />}
-                      onClick={handleEdit}
-                      className="p-0 text-blue-500 hover:text-blue-600"
-                    >
-                      {isEditing ? "Cancel" : "Edit"}
-                    </Button>
-                  </Flex>
-
-                  {/* Input Fields */}
-                  <div className="flex flex-col gap-3 w-full">
-                    {/* Server URL */}
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">Server URL</label>
-                      <div className="relative w-full">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          placeholder="e.g., http://localhost:4000/blogs"
-                          value={url}
-                          onChange={handleUrlChange}
-                          disabled={!isEditing || loading || localLoading}
-                          className={`w-full h-14 rounded-2xl border ${
-                            url && !isValidUrl ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
-                        />
-                      </div>
-                      {url && !isValidUrl && (
-                        <span className="text-red-500 text-xs mt-1">
-                          Please enter a valid Server URL (e.g., http://localhost:4000/blogs)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Frontend URL */}
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">Frontend URL</label>
-                      <div className="relative w-full">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          placeholder="e.g., http://localhost:3000"
-                          value={frontend}
-                          onChange={handleFrontendChange}
-                          disabled={!isEditing || loading || localLoading}
-                          className={`w-full h-14 rounded-2xl border ${
-                            frontend && !isValidFrontend ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
-                        />
-                      </div>
-                      {frontend && !isValidFrontend && (
-                        <span className="text-red-500 text-xs mt-1">
-                          Please enter a valid Frontend URL (e.g., http://localhost:3000)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Auth Token */}
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">Auth Token</label>
-                      <div className="relative w-full">
-                        <input
-                          placeholder="Enter your auth token"
-                          value={authToken}
-                          onFocus={() => setAuthToken("")}
-                          onChange={handleAuthTokenChange}
-                          disabled={!isEditing || loading || localLoading}
-                          className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={isEditing ? handleConnect : handlePing}
-                      disabled={
-                        isEditing
-                          ? loading ||
-                            localLoading ||
-                            !url ||
-                            !frontend ||
-                            !authToken ||
-                            !isValidUrl ||
-                            !isValidFrontend
-                          : loading || localLoading
-                      }
-                      loading={localLoading}
-                      className={`h-14 rounded-2xl border-0 mt-2 ${
-                        isEditing
-                          ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                          : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                      }`}
-                    >
-                      {serverInt
-                        ? isEditing
-                          ? "Update Integration"
-                          : "Check Status"
-                        : "Connect Integration"}
-                    </Button>
-
-                    <a
-                      href={plugin.downloadLink}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button
-                        type="default"
-                        size="large"
-                        icon={<Download size={16} />}
-                        className="w-full h-14 mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-2xl shadow-sm"
-                      >
-                        Download Plugin Doc
-                      </Button>
-                    </a>
-                  </div>
-                </Flex>
-              </Flex>
-            </Card>
-
-            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-              <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
-                {plugin.message}
-              </Paragraph>
-            </Card>
-          </Flex>
-        </div>
-      )
-    }
-
+    // Shopify / Wix Logic
     if (plugin.id === 113 || plugin.id === 114) {
       const isShopify = plugin.id === 113
-
       const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
       const [domain, setDomain] = useState(savedDomain ?? "")
       const [isValidDomain, setIsValidDomain] = useState(true)
-      const [localLoading, setLocalLoading] = useState(false)
-
       const installWindowRef = useRef(null)
       const pollTimerRef = useRef(null)
 
-      // Validate domain
       const validateDomain = val => {
         if (!val) return false
-
         if (isShopify) {
           try {
-            // If user enters full URL, extract hostname
             const normalized = val.startsWith("http") ? new URL(val).hostname : val
             return /^[\w-]+\.myshopify\.com$/i.test(normalized)
           } catch {
             return false
           }
         }
-
-        // Wix or others
         try {
           new URL(val.startsWith("http") ? val : `https://${val}`)
           return true
@@ -499,523 +244,341 @@ const PluginsMain = () => {
         setIsValidDomain(validateDomain(domain))
       }, [domain])
 
-      useEffect(() => {
-        // cleanup on unmount
-        return () => {
-          if (pollTimerRef.current) {
-            clearInterval(pollTimerRef.current)
-          }
-          window.removeEventListener("message", handleMessage)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [])
-
-      // Handler for optional postMessage from callback window
-      const handleMessage = event => {
-        try {
-          // optional origin check - if your callback will postMessage, prefer checking event.origin
-          // if (event.origin !== window.location.origin) return
-          const payload = event.data
-          if (!payload) return
-          if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
-            // simple success signal
-            message.success("Shopify connected")
-            fetchIntegrations().catch(() => {})
-          }
-          // you can add more structured message handling here
-        } catch (err) {
-          // ignore silently
-        }
-      }
-      window.addEventListener("message", handleMessage)
-
-      // Open installer: call backend to generate Shopify install URL
       const openInstallUrl = async () => {
         if (!domain || !isValidDomain) {
-          message.error(isShopify ? "Enter a valid myshopify domain" : "Enter a valid URL")
+          toast.error(isShopify ? "Invalid *.myshopify.com domain" : "Invalid URL")
           return
         }
-
         setLocalLoading(true)
         try {
           if (isShopify) {
-            // correct backend endpoint
             const resp = await axiosInstance.post("/integrations/connect", {
               url: domain,
               type: "SHOPIFY",
             })
-
-            const redirectUrl = resp.data?.redirectUrl
-            if (!redirectUrl) {
-              throw new Error("No installer URL returned from server")
+            if (resp.data?.redirectUrl) {
+              installWindowRef.current = window.open(resp.data.redirectUrl, "_blank")
+              toast.info("Transmitting to Shopify installer...")
+              pollTimerRef.current = setInterval(() => {
+                const w = installWindowRef.current
+                if (!w || w.closed) {
+                  clearInterval(pollTimerRef.current)
+                  fetchIntegrations()
+                  pingIntegration("SHOPIFY")
+                }
+              }, 1200)
             }
-
-            installWindowRef.current = window.open(redirectUrl, "_blank", "noopener,noreferrer")
-            message.info("Opening Shopify installer…")
-
-            // Poll window close
-            pollTimerRef.current = setInterval(() => {
-              const w = installWindowRef.current
-              if (!w || w.closed) {
-                clearInterval(pollTimerRef.current)
-                pollTimerRef.current = null
-                installWindowRef.current = null
-
-                // Refresh integrations
-                fetchIntegrations().catch(() => {})
-
-                // Check Shopify status
-                pingIntegration("SHOPIFY").catch(() => {})
-              }
-            }, 1200)
           }
         } catch (err) {
-          console.error("Open install URL failed:", err)
-          const msg = err.response?.data?.message || err.message || "Failed to open installer"
-          message.error(msg)
+          toast.error(err.message || "Installer bootstrap failed")
         } finally {
           setLocalLoading(false)
         }
       }
 
-      // Ping the saved integration status
-      const handlePing = async () => {
-        if (loading || localLoading) return
+      const handleInternalPing = async () => {
         setLocalLoading(true)
         try {
-          const type = isShopify ? "SHOPIFY" : "WIX"
-          const result = await pingIntegration(type)
+          const res = await pingIntegration(isShopify ? "SHOPIFY" : "WIX")
           setWordpressStatus(prev => ({
             ...prev,
-            [plugin.id]: {
-              status: result.status || "success",
-              message: result.message,
-              success: result.success,
-            },
+            [plugin.id]: { success: res.success, message: res.message },
           }))
-          if (result.success) message.success(result.message)
-          else message.error(result.message)
-        } catch (err) {
-          const msg = err.message || `Failed to check ${plugin.name} connection`
-          setWordpressStatus(prev => ({
-            ...prev,
-            [plugin.id]: { status: "error", message: msg, success: false },
-          }))
-          message.error(msg)
+          res.success ? toast.success(res.message) : toast.error(res.message)
         } finally {
           setLocalLoading(false)
         }
       }
 
-      // UI
       return (
-        <div className="h-full p-6">
-          <Flex vertical gap="large">
-            {/* Header */}
-            <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-              <img
-                src={plugin.pluginImage}
-                alt={plugin.pluginName}
-                className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
-              />
-              <Flex vertical gap="small">
-                <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
-                  {plugin.pluginName}
-                </Title>
-                <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
-                <Flex className="flex flex-wrap gap-4 mt-2">
-                  <Flex align="center" gap="small">
-                    <Tag size={16} className="text-teal-500" />
-                    <Text className="text-teal-600 font-medium text-sm md:text-base">
-                      Version {plugin.version}
-                    </Text>
-                  </Flex>
-                  <Flex align="center" gap="small">
-                    <Clock size={16} className="text-blue-500" />
-                    <Text className="text-blue-600 font-medium text-sm md:text-base">
-                      Updated {plugin.updatedDate}
-                    </Text>
-                  </Flex>
-                </Flex>
-              </Flex>
-            </Flex>
+        <div className="p-8 sm:p-12 space-y-10">
+          <PluginHeader plugin={plugin} status={wordpressStatus[plugin.id]} />
 
-            {/* Integration Card */}
-            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-              <Flex vertical gap="middle">
-                <Flex align="center" gap="small">
-                  <Text strong>
-                    {isShopify ? "Shopify Store Integration" : "Wix Site Integration"}
-                  </Text>
+          <div className="bg-slate-50/50 rounded-[32px] p-8 border border-slate-100 flex flex-col gap-6">
+            <h4 className="text-xl font-black text-slate-800">Connection Portal</h4>
+            <div className="space-y-4">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                Store / Domain URL
+              </label>
+              <div className="relative">
+                <Globe className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-300" />
+                <input
+                  placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
+                  value={domain}
+                  onChange={e => setDomain(e.target.value.trim())}
+                  disabled={localLoading}
+                  className={`input input-bordered w-full h-16 pl-14 rounded-2xl font-bold bg-white focus:ring-4 focus:ring-blue-100 transition-all ${domain && !isValidDomain ? "border-rose-300" : "border-slate-100"}`}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <button
+                  onClick={openInstallUrl}
+                  disabled={!domain || !isValidDomain || localLoading}
+                  className="btn btn-primary h-16 flex-1 rounded-2xl bg-slate-900 border-none text-white font-black text-lg gap-3 normal-case"
+                >
+                  <Server className="size-5" /> Install Protocol
+                </button>
+                <button
+                  onClick={handleInternalPing}
+                  disabled={!domain || localLoading}
+                  className="btn btn-ghost h-16 flex-1 rounded-2xl bg-white border border-slate-200 font-bold gap-3 normal-case hover:bg-slate-100"
+                >
+                  {localLoading ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    <RefreshCw className="size-5" />
+                  )}{" "}
+                  Sync Status
+                </button>
+              </div>
+            </div>
+          </div>
 
-                  {savedDomain &&
-                    wordpressStatus[plugin.id]?.success !== undefined &&
-                    (wordpressStatus[plugin.id]?.success ? (
-                      <Flex align="center" gap="small">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <Text className="text-green-600">Connected</Text>
-                      </Flex>
-                    ) : (
-                      <Flex align="center" gap="small">
-                        <XCircle size={16} className="text-red-500" />
-                        <Text className="text-red-600">Not Connected</Text>
-                      </Flex>
-                    ))}
-                </Flex>
-
-                <Flex vertical gap="middle" className="w-full">
-                  <Text strong>Store URL</Text>
-
-                  <div className="flex flex-col gap-3 w-full">
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">
-                        {isShopify ? "Shopify Store Domain" : "Wix Site URL"}
-                      </label>
-                      <div className="relative w-full">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          placeholder={
-                            isShopify
-                              ? "your-store.myshopify.com"
-                              : "https://your-site.wixsite.com/mysite"
-                          }
-                          value={domain}
-                          onChange={e => setDomain(e.target.value.trim())}
-                          disabled={localLoading}
-                          className={`w-full h-14 rounded-2xl border ${
-                            domain && !isValidDomain ? "border-red-400" : "border-gray-300"
-                          } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
-                        />
-                      </div>
-                      {domain && !isValidDomain && (
-                        <span className="text-red-500 text-xs mt-1">
-                          {isShopify ? "Enter a valid *.myshopify.com domain" : "Enter a valid URL"}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        type="primary"
-                        size="large"
-                        block
-                        onClick={openInstallUrl}
-                        disabled={!domain || !isValidDomain || localLoading}
-                        className={`flex-1 h-14 rounded-2xl bg-linear-to-r ${
-                          isShopify
-                            ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                            : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-                        } text-white`}
-                      >
-                        <Flex align="center" justify="center" gap="small">
-                          <Server size={18} />
-                          Install {plugin.name}
-                        </Flex>
-                      </Button>
-
-                      <Button
-                        type="primary"
-                        size="large"
-                        block
-                        onClick={handlePing}
-                        loading={localLoading}
-                        disabled={!domain || localLoading}
-                        className="flex-1 h-14 rounded-2xl bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                      >
-                        Check Status
-                      </Button>
-                    </div>
-                  </div>
-                </Flex>
-              </Flex>
-            </Card>
-
-            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-              <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
-                {plugin.message}
-              </Paragraph>
-            </Card>
-          </Flex>
+          <p className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 text-sm font-bold text-indigo-700 leading-relaxed italic">
+            <Info className="size-4 inline mr-2 mb-1" /> {plugin.message}
+          </p>
         </div>
       )
     }
 
+    // Shared UI for WordPress / Server Endpoint
     return (
-      <div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="h-full p-6"
-      >
-        <Flex vertical gap="large" className="h-full p-6">
-          <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-            <img
-              src={plugin.pluginImage}
-              alt={plugin.pluginName}
-              className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            />
-            <Flex className="flex flex-col gap-1 md:gap-2">
-              <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
-                {plugin.pluginName}
-              </Title>
-              <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
-              <Flex className="flex flex-wrap gap-4 mt-2">
-                <Flex className="flex items-center gap-1 md:gap-2">
-                  <Tag size={16} className="text-teal-500" />
-                  <Text className="text-teal-600 font-medium text-sm md:text-base">
-                    Version {plugin.version}
-                  </Text>
-                </Flex>
-                <Flex className="flex items-center gap-1 md:gap-2">
-                  <Clock size={16} className="text-blue-500" />
-                  <Text className="text-blue-600 font-medium text-sm md:text-base">
-                    Updated {plugin.updatedDate}
-                  </Text>
-                </Flex>
-              </Flex>
-            </Flex>
-          </Flex>
+      <div className="p-8 sm:p-12 space-y-10">
+        <PluginHeader plugin={plugin} status={wordpressStatus[plugin.id]} />
 
-          {/* Integration Card */}
-          <Card className="mt-6 bg-gray-50 border-0 rounded-lg shadow-sm">
-            <Flex vertical gap="middle">
-              {/* 🔹 Header + Status */}
-              <Flex align="center" gap="small">
-                <Text strong>AI Blogger Sync Integration</Text>
-
-                {integrations?.integrations?.WORDPRESS &&
-                  wordpressStatus[plugin.id]?.success !== undefined &&
-                  (wordpressStatus[plugin.id]?.success ? (
-                    <Flex align="center" gap="small">
-                      <CheckCircle size={16} className="text-green-500" />
-                      <Text className="text-green-600">Connected</Text>
-                    </Flex>
-                  ) : (
-                    <Flex align="center" gap="small">
-                      <XCircle size={16} className="text-red-500" />
-                      <Text className="text-red-600">Not Connected</Text>
-                    </Flex>
-                  ))}
-              </Flex>
-
-              {/* 🔹 Input fields */}
-              <Flex vertical gap="middle" className="w-full">
-                {/* Header Row */}
-                <Flex align="center" className="justify-between">
-                  <Text strong>WordPress Configuration</Text>
-                  <Button
-                    type="link"
-                    icon={<Edit size={16} />}
-                    onClick={handleEdit}
-                    className="p-0 text-blue-500 hover:text-blue-600"
-                  >
-                    {isEditing ? "Cancel" : "Edit"}
-                  </Button>
-                </Flex>
-
-                {/* Input Fields */}
-                <div className="flex flex-col gap-3 w-full">
-                  {/* WordPress URL */}
-                  <div className="flex flex-col w-full">
-                    <label className="text-sm font-medium text-gray-700 mb-1">WordPress URL</label>
-                    <div className="relative w-full">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        placeholder="e.g., https://example.com"
-                        value={url}
-                        onChange={handleUrlChange}
-                        disabled={!isEditing || loading || localLoading}
-                        className={`w-full h-14 rounded-2xl border ${
-                          url && !isValidUrl ? "border-red-400" : "border-gray-300"
-                        } px-10 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
-                      />
-                    </div>
-                    {url && !isValidUrl && (
-                      <span className="text-red-500 text-xs mt-1">
-                        Please enter a valid URL (e.g., https://example.com)
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Username */}
-                  <div className="flex flex-col w-full">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <Input
-                      placeholder="WordPress Username"
-                      value={wpUsername}
-                      onFocus={() => setWpUsername("")}
-                      onChange={e => setWpUsername(e.target.value)}
-                      disabled={!isEditing || loading || localLoading}
-                      className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
-                    />
-                  </div>
-
-                  {/* Application Password */}
-                  <div className="flex flex-col w-full">
-                    <label className="text-sm font-medium text-gray-700 mb-1">
-                      Application Password
-                    </label>
-                    <div className="relative w-full">
-                      <input
-                        type="password"
-                        placeholder="Application Password"
-                        value={wpPassword}
-                        onFocus={() => setWpPassword("")}
-                        onChange={e => setWpPassword(e.target.value)}
-                        disabled={!isEditing || loading || localLoading}
-                        className="w-full h-14 rounded-2xl border border-gray-300 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
-                      />
-                    </div>
-                    {isEditing && (
-                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
-                        <span className="font-semibold">Note:</span>
-                        You must have Editor or Administrator level access.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Button */}
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={isEditing ? handleConnect : handlePing}
-                    disabled={
-                      isEditing
-                        ? loading ||
-                          localLoading ||
-                          !url ||
-                          !wpUsername ||
-                          !wpPassword ||
-                          !isValidUrl
-                        : loading || localLoading
-                    }
-                    loading={localLoading}
-                    className={`h-14 rounded-2xl border-0 mt-2 ${
-                      isEditing
-                        ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                        : "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                    }`}
-                  >
-                    {wordpressInt
-                      ? isEditing
-                        ? "Update Integration"
-                        : "Check Status"
-                      : "Connect Integration"}
-                  </Button>
-                </div>
-              </Flex>
-            </Flex>
-          </Card>
-
-          <a href={plugin.downloadLink} download target="_blank" rel="noopener noreferrer">
-            <Button
-              type="default"
-              size="large"
-              icon={<Download size={16} />}
-              className="w-full h-14 mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-2xl shadow-sm"
+        <div className="bg-slate-50/50 rounded-[32px] p-8 border border-slate-100">
+          <div className="flex items-center justify-between mb-8">
+            <h4 className="text-xl font-black text-slate-800">API Gateway Settings</h4>
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`btn btn-sm rounded-xl gap-2 font-bold normal-case ${isEditing ? "btn-ghost text-rose-500 hover:bg-rose-50" : "btn-ghost text-blue-600 hover:bg-blue-50"}`}
             >
-              Download Plugin
-            </Button>
-          </a>
+              {isEditing ? <XCircle className="size-4" /> : <Edit className="size-4" />}
+              {isEditing ? "Terminate Edit" : "Configure Parameters"}
+            </button>
+          </div>
 
-          <div className="mt-6 flex md:justify-between flex-col md:flex-row">
-            <div>
-              <Text strong className="text-base text-gray-800">
-                Struggling to connect?
-              </Text>
-
-              <Text className="block text-gray-600 mt-1">
-                Watch our step-by-step guide to integrate the WordPress plugin professionally.
-              </Text>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                Access Protocol (URL)
+              </label>
+              <div className="relative">
+                <Globe className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-300" />
+                <input
+                  value={url}
+                  onChange={handleUrlChange}
+                  disabled={!isEditing}
+                  className="input input-bordered w-full h-16 pl-14 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100 transition-all"
+                  placeholder="https://api.yourdomain.com/rest"
+                />
+              </div>
             </div>
 
+            {plugin.id === 112 && (
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Frontend Interface
+                </label>
+                <input
+                  value={frontend}
+                  onChange={e => setFrontend(e.target.value)}
+                  disabled={!isEditing}
+                  className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
+                  placeholder="https://yourpage.com"
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                  {plugin.id === 112 ? "Authentication Bearer" : "Admin Username"}
+                </label>
+                <input
+                  type={plugin.id === 112 ? "password" : "text"}
+                  value={plugin.id === 112 ? authToken : wpUsername}
+                  onChange={e =>
+                    plugin.id === 112 ? setAuthToken(e.target.value) : setWpUsername(e.target.value)
+                  }
+                  disabled={!isEditing}
+                  onFocus={e => isEditing && (e.target.value = "")}
+                  className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
+              {plugin.id === 111 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                    App Password
+                  </label>
+                  <input
+                    type="password"
+                    value={wpPassword}
+                    onChange={e => setWpPassword(e.target.value)}
+                    disabled={!isEditing}
+                    onFocus={e => isEditing && (e.target.value = "")}
+                    className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={isEditing ? handleConnect : handlePing}
+                className={`btn h-16 flex-1 rounded-2xl font-black text-lg border-none normal-case shadow-xl transition-all ${isEditing ? "btn-primary bg-slate-900 text-white hover:bg-slate-800" : "btn-success bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-100"}`}
+              >
+                {localLoading ? (
+                  <span className="loading loading-spinner"></span>
+                ) : isEditing ? (
+                  "Initialize Connection"
+                ) : (
+                  "Verify Integrity"
+                )}
+              </button>
+              <a
+                href={plugin.downloadLink}
+                download
+                className="btn btn-ghost h-16 px-6 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50"
+              >
+                <Download className="size-6 text-slate-600" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {plugin.id === 111 && (
+          <div className="bg-linear-to-r from-red-600 to-indigo-700 rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-indigo-100">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                <PlayCircle className="size-8" />
+              </div>
+              <div>
+                <h5 className="text-2xl font-black">Troubleshooting Guide</h5>
+                <p className="text-red-100 font-bold opacity-80">
+                  Watch our specialized workflow for WordPress deployments.
+                </p>
+              </div>
+            </div>
             <a
               href="https://youtu.be/WFpfx-xOZK8"
               target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-3"
+              className="btn bg-white border-none text-red-600 font-black px-10 h-16 rounded-2xl hover:bg-red-50 text-lg normal-case"
             >
-              <button
-                className="
-    inline-flex items-center justify-center
-    px-6 py-3
-    bg-red-600 hover:bg-red-700
-    text-white font-semibold
-    rounded-xl
-    shadow-md hover:shadow-lg
-    transition-all duration-200
-    focus:outline-none focus:ring-2 focus:ring-red-500/50
-    active:scale-95
-  "
-              >
-                Watch Video Guide
-              </button>
+              Access Intel
             </a>
           </div>
+        )}
 
-          <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-            <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
-              {plugin.message}
-            </Paragraph>
-          </Card>
-        </Flex>
+        <p className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-sm font-bold text-slate-500 italic">
+          <Info className="size-4 inline mr-2 text-blue-500" /> {plugin.message}
+        </p>
       </div>
     )
   }
 
-  const renderTabBar = (props, DefaultTabBar) => (
-    <DefaultTabBar {...props} className="custom-tab-bar rounded-t-lg" />
-  )
-
-  const tabItems = extendedPlugins.map(plugin => ({
-    key: plugin.id.toString(),
-    label: (
-      <Flex align="center" gap="small" className="font-sans font-medium text-base">
-        {<plugin.icon size={20} />}
-        {plugin.name}
-      </Flex>
-    ),
-    children: <PluginTabContent plugin={plugin} />,
-  }))
-
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-slate-50/30 p-6 lg:p-10 mb-32 flex flex-col">
       <Helmet>
-        <title>Plugins | GenWrite</title>
+        <title>Plugin Center | GenWrite</title>
       </Helmet>
 
-      <div className="my-6 ml-6 sm:ml-10">
-        <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Plugin Center
+      <div className="mb-12 ml-4">
+        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+          Plugin{" "}
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+            Integrations
+          </span>
         </h1>
-        <p className="text-gray-500 text-base mt-2 max-w-md">
-          Discover and integrate powerful tools to supercharge your workflow
+        <p className="text-slate-500 font-bold text-lg mt-2">
+          Connect your digital infrastructure for automated publication loops.
         </p>
       </div>
 
-      <div className="flex-1 px-2 md:px-6 pb-8">
-        <div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="h-full bg-white rounded-xl shadow-sm border border-gray-200 border-t-0 overflow-hidden"
-        >
-          <Tabs
-            activeKey={activeTab}
-            onChange={handleTabChange}
-            type="card"
-            size="large"
-            className="h-full"
-            renderTabBar={renderTabBar}
-            items={tabItems}
-          />
+      <div className="flex-1">
+        <div className="bg-white rounded-[40px] shadow-2xl shadow-indigo-100/30 border border-slate-100 overflow-hidden flex flex-col md:flex-row h-full min-h-[800px]">
+          {/* Sidebar Tabs */}
+          <div className="w-full md:w-80 bg-slate-50/50 border-r border-slate-100 p-6 space-y-2">
+            <h6 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 ml-2">
+              Active Modules
+            </h6>
+            {extendedPlugins.map(p => (
+              <button
+                key={p.id}
+                onClick={() => handleTabChange(p.id.toString())}
+                className={`w-full flex items-center gap-4 p-5 rounded-2xl font-black transition-all ${activeTab === p.id.toString() ? "bg-white shadow-xl shadow-indigo-100/50 text-blue-600" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+              >
+                {<p.icon className="size-5" /> || <LayoutGrid className="size-5" />}
+                <span className="text-sm">{p.name}</span>
+                {activeTab === p.id.toString() && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait">
+              {extendedPlugins.find(p => p.id.toString() === activeTab) && (
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <PluginTabContent
+                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+const PluginHeader = ({ plugin, status }) => (
+  <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+    <div className="w-32 h-32 bg-white rounded-3xl shadow-xl shadow-slate-100 flex items-center justify-center p-6 border border-slate-50 shrink-0">
+      <img src={plugin.pluginImage} alt={plugin.name} className="w-full h-full object-contain" />
+    </div>
+    <div className="flex-1 text-center md:text-left">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+        <h2 className="text-3xl font-black text-slate-900 leading-none">{plugin.pluginName}</h2>
+        <div className="flex gap-2 justify-center">
+          {status?.success !== undefined ? (
+            <div
+              className={`badge h-7 px-4 rounded-xl border-none font-bold text-[10px] uppercase tracking-widest ${status.success ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+            >
+              {status.success ? "Active" : "Offline"}
+            </div>
+          ) : (
+            <div className="badge h-7 px-4 rounded-xl border-none bg-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+              Awaiting Stats
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="text-slate-500 font-bold text-lg mb-6 max-w-2xl">{plugin.description}</p>
+      <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+        <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-xs font-black text-slate-600">
+          <Settings className="size-4" /> v{plugin.version}
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl text-xs font-black text-blue-600">
+          <Clock className="size-4" /> Updated {plugin.updatedDate}
+        </div>
+        {status?.success && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl text-xs font-black text-emerald-600 animate-pulse">
+            <CheckCircle2 className="size-4" /> Security Verified
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)
 
 export default PluginsMain

@@ -1,34 +1,16 @@
-import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
-import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import useAuthStore from "@store/useAuthStore"
-import useBlogStore from "@store/useBlogStore"
-import useAnalysisStore from "@store/useAnalysisStore"
-import { getGeneratedTitles } from "@api/blogApi"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  Badge,
-  Button,
-  Empty,
-  Flex,
-  Input,
-  InputNumber,
-  message,
-  Modal,
-  Radio,
-  RadioChangeEvent,
-  Select,
-  Slider,
-  Space,
-  Switch,
-  Tag,
-  Tooltip,
-  Typography,
-  UploadFile,
-} from "antd"
-import clsx from "clsx"
-import { Crown, Sparkles, TriangleAlert } from "lucide-react"
+  Crown,
+  Sparkles,
+  ChevronRight,
+  X,
+  Layers,
+  Zap,
+  AlertCircle,
+  HelpCircle,
+} from "lucide-react"
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
@@ -38,8 +20,14 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
-
-const { Text } = Typography
+import toast from "@utils/toast"
+import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { getGeneratedTitles } from "@api/blogApi"
+import clsx from "clsx"
 
 interface AdvancedBlogModalProps {
   onSubmit: (data: unknown) => void
@@ -64,7 +52,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     isCheckedGeneratedImages: false as boolean,
     imageSource: IMAGE_OPTIONS[0].id as string,
     numberOfImages: 0 as number,
-    blogImages: [] as UploadFile[],
+    blogImages: [] as any[],
     referenceLinks: [] as string[],
     isCheckedQuick: false as boolean,
     isCheckedBrand: false as boolean,
@@ -121,7 +109,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             formData.focusKeywords.length === 0 ? "Please enter at least 1 focus keyword" : "",
           keywords: formData.keywords.length === 0 ? "Please enter at least 1 keyword" : "",
         })
-        message.error(
+        toast.error(
           "Please enter a topic and at least one focus keyword and keyword before generating titles."
         )
         return
@@ -137,7 +125,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       setGeneratedTitles(result)
     } catch (error) {
       console.error("Error generating titles:", error)
-      message.error("Failed to generate titles. Please try again later.")
+      toast.error("Failed to generate titles. Please try again later.")
     } finally {
       setIsGenerating(false)
     }
@@ -327,7 +315,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         handleClose()
       } catch (error: unknown) {
         // ❌ Don't close modal - let user retry
-        message.error((error as Error)?.message || "Failed to create blog. Please try again.")
+        toast.error((error as Error)?.message || "Failed to create blog. Please try again.")
       } finally {
         hideLoading(loadingId)
       }
@@ -342,9 +330,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const handleInputChange = useCallback(
     (
       event:
-        | React.ChangeEvent<HTMLInputElement>
-        | RadioChangeEvent
-        | { target: { name: string; value: string | number | boolean | string[] | UploadFile[] } }
+        | React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+        | { target: { name: string; value: string | number | boolean | string[] | any[] } }
     ) => {
       const { name, value } = event.target
 
@@ -367,268 +354,371 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     switch (currentStep) {
       case 0:
         return (
-          <Flex
-            vertical
-            gap={8}
-            className={clsx("rounded-md p-2!", errors?.template && "border-2 border-red-500")}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-6"
           >
-            <label className={clsx("text-base mb-2", errors?.template && "text-red-500")}>
-              {errors?.template ? (
-                errors.template
-              ) : (
-                <>
-                  Select Template:{" "}
-                  <span className="font-semibold uppercase text-violet-800 underline">
-                    {formData.template}
-                  </span>
-                </>
-              )}
-            </label>
-            <TemplateSelection
-              userSubscriptionPlan={user?.subscription?.plan || "free"}
-              preSelectedIds={formData.templateIds}
-              onClick={handleTemplateSelection}
-            />
-          </Flex>
+            <div
+              className={clsx("p-2", errors?.template && "border-2 border-rose-500 rounded-2xl")}
+            >
+              <label className="flex flex-col gap-1 mb-6">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  {errors?.template ? (
+                    <span className="text-rose-500">{errors.template}</span>
+                  ) : (
+                    "Active Framework"
+                  )}
+                </span>
+                <span className="text-2xl font-black text-slate-900 tracking-tight">
+                  {formData.template || "Select Template Architecture"}
+                </span>
+              </label>
+
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan || "free"}
+                preSelectedIds={formData.templateIds}
+                onClick={handleTemplateSelection}
+              />
+            </div>
+          </motion.div>
         )
       case 1:
         return (
-          <Flex vertical gap={4} justify="space-evenly" className="p-2">
-            {/* Topic */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-topic">
-                Topic <span className="text-red-500">*</span>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-8 p-1"
+          >
+            {/* Topic Section */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                Source Objective <span className="text-rose-500">*</span>
               </label>
-              <Input
-                id="blog-topic"
+              <input
                 name="topic"
-                placeholder="e.g., Tech Blog"
+                placeholder="e.g., Quantum Computing Architecture"
                 value={formData.topic}
-                onChange={handleInputChange}
+                onChange={handleInputChange as any}
                 className={clsx(
-                  "bg-white! antd-placeholder",
-                  errors.topic && "ring-1 ring-[#ef4444]!",
-                  "rounded-lg focus:outline-none! focus:ring-0! focus:ring-[#1B6FC9]!"
+                  "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
+                  errors.topic && "ring-rose-500 focus:ring-rose-500/20"
                 )}
               />
-              {errors.topic && <Text className="error-text">{errors.topic}</Text>}
-            </Space>
+              {errors.topic && (
+                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
+                  {errors.topic}
+                </p>
+              )}
+            </div>
 
-            {/* Language Selection */}
-            <label htmlFor="blog-language">
-              Language <span className="text-red-500">*</span>
-            </label>
-            <Select
-              id="blog-language"
-              placeholder="Select a language"
-              value={formData.languageToWrite}
-              onChange={val =>
-                handleInputChange({ target: { name: "languageToWrite", value: val } })
-              }
-              options={LANGUAGES}
-              className="custom-placeholder"
-            />
-
-            <Flex justify="space-between" className="mt-3! form-item-wrapper">
-              <label htmlFor="blog-auto-generate-title-keywords">
-                Auto Generate Title & Keywords
+            {/* Language Section */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                Output Dialect <span className="text-rose-500">*</span>
               </label>
-              <Switch
-                id="blog-auto-generate-title-keywords"
-                value={formData.options.performKeywordResearch}
-                onChange={checked =>
+              <select
+                value={formData.languageToWrite}
+                onChange={e =>
+                  handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
+                }
+                className="select select-bordered w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition-all font-medium flex items-center"
+              >
+                {LANGUAGES.map(lang => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Auto Generate Toggle */}
+            <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:bg-slate-100/50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                  <Zap className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 tracking-tight">
+                    Neural Auto-Key
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    Machine Title Generation
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={formData.options.performKeywordResearch}
+                onChange={e =>
                   handleInputChange({
-                    target: { name: "options.performKeywordResearch", value: checked },
+                    target: { name: "options.performKeywordResearch", value: e.target.checked },
                   })
                 }
               />
-            </Flex>
+            </div>
 
             {/* Focus Keywords */}
-            <Space
-              direction="vertical"
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper"
-            >
-              <label htmlFor="blog-focus-keywords">
-                Focus Keywords (max 3) <span className="text-red-500">*</span>
-              </label>
-              <Select
-                id="blog-focus-keywords"
-                mode="tags"
-                placeholder="Add Focus keywords"
-                value={formData.focusKeywords}
-                open={false}
-                onChange={val =>
-                  handleInputChange({ target: { name: "focusKeywords", value: val } })
-                }
-                maxCount={3}
-                tokenSeparators={[","]}
-                className={clsx(
-                  " bg-gray-50! custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.focusKeywords && "border-red-500!",
-                  "rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
-                )}
-                style={{ width: "100%" }}
-              />
-              {errors.focusKeywords && <Text className="error-text">{errors.focusKeywords}</Text>}
-            </Space>
-            {/* Keywords */}
-            <Space
-              direction="vertical"
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper"
-            >
-              <label htmlFor="blog-keywords">
-                Keywords <span className="text-red-500">*</span>
-              </label>
-              <Select
-                id="blog-keywords"
-                mode="tags"
-                placeholder="Add Keywords"
-                value={formData.keywords}
-                open={false}
-                onChange={val => handleInputChange({ target: { name: "keywords", value: val } })}
-                tokenSeparators={[","]}
-                className={clsx(
-                  " bg-gray-50! custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.keywords && "border-red-500!",
-                  "rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
-                )}
-                style={{ width: "100%" }}
-              />
-              {errors.keywords && <Text className="error-text">{errors.keywords}</Text>}
-            </Space>
-            {/* Title */}
-
-            <Flex
-              vertical
-              gap={8}
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper mb-4!"
-            >
-              <label htmlFor="blog-title">
-                Blog Title <span className="text-red-500">*</span>
-              </label>
-              <Space.Compact block>
-                <Input
-                  id="blog-title"
-                  name="title"
-                  placeholder="e.g., How to create a blog"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className={clsx(
-                    " bg-gray-50! antd-placeholder",
-                    errors.title && "ring-1 ring-[#ef4444]!",
-                    "focus:outline-none! focus:ring-0! focus:ring-[#1B6FC9]!"
-                  )}
-                />
-                <Button
-                  type="primary"
-                  title="AI Generated Titles"
-                  icon={<Sparkles className="size-5" />}
-                  block
-                  loading={isGenerating}
-                  onClick={handleGenerateTitles}
-                  className="w-1/4! h-full text-[1rem] py-1 px-3 tracking-wide"
-                >
-                  Generate {generatedTitles?.length ? "More" : "Titles"}
-                </Button>
-              </Space.Compact>
-              {errors.title && <Text className="error-text">{errors.title}</Text>}
-
-              {generatedTitles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {generatedTitles.map((t, i) => (
-                    <Tag
-                      key={i}
-                      color="geekblue"
+            {!formData.options.performKeywordResearch && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                    Core Metrics (Focus Keywords) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      placeholder="Type and press comma..."
                       className={clsx(
-                        "cursor-pointer text-[1rem] bg-black",
-                        formData.title === t && "bg-blue-500! text-white!",
-                        "hover:bg-blue-400! hover:text-black! p-1"
+                        "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
+                        errors.focusKeywords && "ring-rose-500"
                       )}
-                      onClick={() => {
-                        handleInputChange({ target: { name: "title", value: t } })
+                      onKeyDown={e => {
+                        if (e.key === "," || e.key === "Enter") {
+                          e.preventDefault()
+                          const val = (e.target as HTMLInputElement).value.trim()
+                          if (val && formData.focusKeywords.length < 3) {
+                            handleInputChange({
+                              target: {
+                                name: "focusKeywords",
+                                value: [...formData.focusKeywords, val],
+                              },
+                            })
+                            ;(e.target as HTMLInputElement).value = ""
+                          }
+                        }
                       }}
-                    >
-                      {t}
-                    </Tag>
-                  ))}
+                    />
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.focusKeywords.map((kw, i) => (
+                        <div
+                          key={i}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        >
+                          {kw}
+                          <X
+                            size={12}
+                            className="cursor-pointer hover:text-rose-400 transition-colors"
+                            onClick={() =>
+                              handleInputChange({
+                                target: {
+                                  name: "focusKeywords",
+                                  value: formData.focusKeywords.filter((_, idx) => idx !== i),
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {errors.focusKeywords && (
+                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
+                      {errors.focusKeywords}
+                    </p>
+                  )}
                 </div>
-              )}
-            </Flex>
-            <Flex
-              justify="space-between"
-              className="mt-3 form-item-wrapper"
-              hidden={formData.options.performKeywordResearch}
-            >
-              <label htmlFor="blog-use-exact-title">Use Exact Title for Blog</label>
-              <Switch
-                id="blog-use-exact-title"
-                value={formData.options.exactTitle}
-                onChange={checked =>
-                  handleInputChange({ target: { name: "options.exactTitle", value: checked } })
-                }
-              />
-            </Flex>
-            {/* Tones & Word Length */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-around" gap={20}>
-                <Flex vertical className="w-full" gap={8}>
-                  <label htmlFor="blog-tone">
-                    Tone of Voice <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    id="blog-tone"
-                    placeholder="Select a tone"
-                    value={formData.tone || undefined}
-                    onChange={val => handleInputChange({ target: { name: "tone", value: val } })}
-                    options={TONES.map(t => ({ label: t, value: t }))}
-                    className="custom-placeholder"
-                  />
-                  {errors.tone && <Text className="error-text">{errors.tone}</Text>}
-                </Flex>
-                <Flex vertical className="w-full" gap={8}>
-                  <label>
-                    Blog Words Length :{" "}
-                    <Text strong underline className="text-[16px] px-2">
-                      {formData.userDefinedLength} words
-                    </Text>
-                  </label>
 
-                  <Slider
-                    id="blog-word-length"
-                    value={formData.userDefinedLength}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "userDefinedLength", value: val } })
-                    }
-                    min={500}
-                    max={5000}
-                    tooltip={{ formatter: val => `${val} words`, placement: "bottom" }}
-                    classNames={{
-                      rail: "bg-gray-400!",
-                      track: "bg-linear-to-tr! from-blue-600! via-violet-500! to-purple-500!",
-                      handle: "hover:ring-1! hover:ring-purple-400!",
+                {/* Secondary Keywords */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                    Latent Semantic Keywords <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    placeholder="Type and press comma..."
+                    className={clsx(
+                      "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
+                      errors.keywords && "ring-rose-500"
+                    )}
+                    onKeyDown={e => {
+                      if (e.key === "," || e.key === "Enter") {
+                        e.preventDefault()
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (val) {
+                          handleInputChange({
+                            target: { name: "keywords", value: [...formData.keywords, val] },
+                          })
+                          ;(e.target as HTMLInputElement).value = ""
+                        }
+                      }
                     }}
                   />
-                </Flex>
-              </Flex>
-            </Space>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {formData.keywords.map((kw, i) => (
+                      <div
+                        key={i}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                      >
+                        {kw}
+                        <X
+                          size={12}
+                          className="cursor-pointer hover:text-rose-500 transition-colors"
+                          onClick={() =>
+                            handleInputChange({
+                              target: {
+                                name: "keywords",
+                                value: formData.keywords.filter((_, idx) => idx !== i),
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {errors.keywords && (
+                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
+                      {errors.keywords}
+                    </p>
+                  )}
+                </div>
+
+                {/* Title Section */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                    Signature Title <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      name="title"
+                      placeholder="Initiate Title Concept..."
+                      value={formData.title}
+                      onChange={handleInputChange as any}
+                      className={clsx(
+                        "flex-1 h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
+                        errors.title && "ring-rose-500"
+                      )}
+                    />
+                    <button
+                      onClick={handleGenerateTitles}
+                      disabled={isGenerating}
+                      className="px-6 h-14 bg-slate-950 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 group disabled:opacity-50"
+                    >
+                      {isGenerating ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      {generatedTitles?.length ? "Refresh" : "Synthesize"}
+                    </button>
+                  </div>
+                  {errors.title && (
+                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
+                      {errors.title}
+                    </p>
+                  )}
+
+                  {generatedTitles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4 max-h-40 overflow-y-auto custom-scroll p-1">
+                      {generatedTitles.map((t, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleInputChange({ target: { name: "title", value: t } })}
+                          className={clsx(
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                            formData.title === t
+                              ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/30"
+                              : "bg-white text-slate-600 border-slate-100 hover:border-blue-200"
+                          )}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
+                    Maintain Absolute Title Literal
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-sm"
+                    checked={formData.options.exactTitle}
+                    onChange={e =>
+                      handleInputChange({
+                        target: { name: "options.exactTitle", value: e.target.checked },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Tone & Word Length */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                  Vocal Signature <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={formData.tone}
+                  onChange={e =>
+                    handleInputChange({ target: { name: "tone", value: e.target.value } })
+                  }
+                  className="select select-bordered w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition-all font-medium"
+                >
+                  <option value="" disabled>
+                    Select Resonance...
+                  </option>
+                  {TONES.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                {errors.tone && (
+                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
+                    {errors.tone}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-end mb-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    Unit Magnitude
+                  </label>
+                  <span className="text-lg font-black text-blue-600 tracking-tighter">
+                    {formData.userDefinedLength}{" "}
+                    <span className="text-[10px] uppercase">Words</span>
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="500"
+                  max="5000"
+                  step="100"
+                  value={formData.userDefinedLength}
+                  onChange={e =>
+                    handleInputChange({
+                      target: { name: "userDefinedLength", value: parseInt(e.target.value) },
+                    })
+                  }
+                  className="range range-xs range-primary"
+                />
+                <div className="flex justify-between w-full px-2 text-[8px] font-black text-slate-300 uppercase tracking-widest">
+                  <span>500</span>
+                  <span>2500</span>
+                  <span>5000</span>
+                </div>
+              </div>
+            </div>
+
             {/* Brief Section */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-brief">Add Brief Section</label>
-              <Input.TextArea
-                id="blog-brief"
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                Instructional Protocol (Brief)
+              </label>
+              <textarea
                 name="brief"
-                autoSize={{ minRows: 1, maxRows: 3 }}
                 value={formData.brief}
-                onChange={handleInputChange}
-                placeholder="Enter the brief info or instructions"
-                className="antd-placeholder"
+                onChange={handleInputChange as any}
+                placeholder="Neural directives for logic steering..."
+                className="w-full min-h-[100px] bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl p-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium resize-none shadow-inner"
               />
-            </Space>
-          </Flex>
+            </div>
+          </motion.div>
         )
 
       case 2: {
@@ -642,328 +732,479 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         }
 
         return (
-          <Flex vertical gap={20} className="p-2">
-            {/* AI Models */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label>Select AI Model</label>
-              <Radio.Group
-                name="aiModel"
-                value={formData.aiModel}
-                onChange={handleInputChange}
-                defaultValue={AI_MODELS[0]?.id}
-                block
-                className="p-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full"
-              >
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-8 p-1"
+          >
+            {/* AI Model Selection */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                Neural Processor Engine <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {AI_MODELS.map(model => (
-                  <Radio.Button
+                  <button
                     key={model.id}
-                    value={model.id}
-                    className="rounded-lg px-4! py-3! border-[3px]! hover:border-blue-400 hover:bg-purple-50 min-h-fit"
+                    onClick={() =>
+                      handleInputChange({ target: { name: "aiModel", value: model.id } })
+                    }
+                    className={clsx(
+                      "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left group",
+                      formData.aiModel === model.id
+                        ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-200"
+                        : "bg-white border-slate-100 hover:border-blue-200 text-slate-600"
+                    )}
                   >
-                    <img src={model.logo} alt={model.label} className="size-6 object-contain" />
-                    <span className="text-[15px] font-medium text-gray-800">{model.label}</span>
-                  </Radio.Button>
+                    <div
+                      className={clsx(
+                        "w-10 h-10 rounded-xl flex items-center justify-center border transition-colors",
+                        formData.aiModel === model.id
+                          ? "bg-white/10 border-white/20"
+                          : "bg-slate-50 border-slate-100 group-hover:border-blue-100"
+                      )}
+                    >
+                      <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black tracking-tight">{model.label}</h4>
+                      <p
+                        className={clsx(
+                          "text-[9px] font-bold uppercase tracking-widest",
+                          formData.aiModel === model.id ? "text-slate-400" : "text-slate-400"
+                        )}
+                      >
+                        {model.id.includes("pro") ? "Pro Logic" : "Standard"}
+                      </p>
+                    </div>
+                  </button>
                 ))}
-              </Radio.Group>
-            </Space>
-            {/* Cost Cutter Toggle */}
-            <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-              <Flex justify="space-between" align="center">
-                <div>
-                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-                </div>
-                <Switch
-                  checked={formData.costCutter}
-                  onChange={checked => updateFormData({ costCutter: checked })}
-                />
-              </Flex>
+              </div>
             </div>
 
-            {/* Easy to Understand Toggle */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="easy-to-understand-toggle">Easy to Understand</label>
-                <Switch
-                  id="easy-to-understand-toggle"
-                  checked={formData.options.easyToUnderstand}
-                  onChange={checked =>
-                    handleInputChange({
-                      target: { name: "options.easyToUnderstand", value: checked },
-                    })
-                  }
-                />
-              </Flex>
-            </Space>
+            {/* Feature Toggles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-emerald-50/50 border border-emerald-100 rounded-[28px] p-6 group hover:bg-emerald-50 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-emerald-200 flex items-center justify-center shadow-sm">
+                      <Zap className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900">Cost Cutter</h4>
+                      <p className="text-[10px] text-emerald-600/70 font-bold uppercase tracking-widest">
+                        25% Logic Savings
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-success"
+                    checked={formData.costCutter}
+                    onChange={e => updateFormData({ costCutter: e.target.checked })}
+                  />
+                </div>
+              </div>
 
-            {/* Embed YouTube Videos Toggle */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="embed-youtube-toggle">Embed YouTube Videos</label>
-                <Switch
-                  id="embed-youtube-toggle"
-                  checked={formData.options.embedYouTubeVideos}
-                  onChange={checked =>
-                    handleInputChange({
-                      target: { name: "options.embedYouTubeVideos", value: checked },
-                    })
-                  }
-                />
-              </Flex>
-            </Space>
-            {/* Image Settings */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="add-image-toggle">Add Images</label>
-                <Switch
-                  id="add-image-toggle"
-                  value={formData.isCheckedGeneratedImages}
-                  onChange={val => {
-                    ;[
-                      { name: "isCheckedGeneratedImages", value: val },
-                      { name: "blogImages", value: [] },
-                    ].map(t => handleInputChange({ target: t }))
-                  }}
-                />
-              </Flex>
-            </Space>
-            <Space
-              direction="vertical"
-              hidden={!formData.isCheckedGeneratedImages}
-              className="form-item-wrapper"
-            >
-              <label>Select Image Mode</label>
-              <Radio.Group
-                name="imageSource"
-                value={formData.imageSource}
+              <div className="bg-blue-50/50 border border-blue-100 rounded-[28px] p-6 group hover:bg-blue-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center shadow-sm">
+                      <HelpCircle className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900">Adaptive Clarity</h4>
+                      <p className="text-[10px] text-blue-600/70 font-bold uppercase tracking-widest">
+                        Easy to Understand
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={formData.options.easyToUnderstand}
+                    onChange={e =>
+                      handleInputChange({
+                        target: { name: "options.easyToUnderstand", value: e.target.checked },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-[28px] group hover:bg-slate-100 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                  <Sparkles className="w-5 h-5 text-slate-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">Visual Synthesis</h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    AI Guided Image Injection
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle"
+                checked={formData.isCheckedGeneratedImages}
                 onChange={e => {
-                  handleInputChange(e)
-                  if (e.target.value != IMAGE_OPTIONS.at(-1)?.id) {
-                    handleInputChange({ target: { name: "blogImages", value: [] } })
-                  }
+                  const val = e.target.checked
+                  ;[
+                    { name: "isCheckedGeneratedImages", value: val },
+                    { name: "blogImages", value: [] },
+                  ].map(t => handleInputChange({ target: t }))
                 }}
-                defaultValue={IMAGE_OPTIONS[0]?.id}
-                block
-                className="p-2 grid! grid-cols-1 sm:grid-cols-2! md:grid-cols-3! gap-4! w-full"
-              >
-                {IMAGE_OPTIONS.map((option, index) => {
-                  const isButtonDisabled = option.restrict && user?.subscription?.plan == "free"
-                  const isAILimitReached =
-                    index == 1 && user?.usage?.aiImages >= user?.usageLimits?.aiImages
-                  return (
-                    <Badge.Ribbon
-                      key={option.id + index}
-                      text={
-                        isButtonDisabled ? (
-                          <Crown className="p-1" />
-                        ) : isAILimitReached ? (
-                          <TriangleAlert className="p-0.5" />
-                        ) : (
-                          ""
-                        )
-                      }
-                      className={clsx(
-                        "absolute -top-2 z-10",
-                        (index == 0 || !(isButtonDisabled || isAILimitReached)) && "hidden"
-                      )}
-                      color={
-                        isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
-                      }
-                    >
-                      <Tooltip
-                        title={
-                          <Text
-                            strong
-                            className="text-[15px] text-gray-200 font-montserrat tracking-wide"
-                          >
-                            {isButtonDisabled
-                              ? "Only For Subscribed Users"
-                              : isAILimitReached
-                                ? "AI Image Limit Reached"
-                                : option.label}
-                          </Text>
-                        }
-                        className="w-full"
-                        autoAdjustOverflow
-                        color={
-                          isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
-                        }
-                        placement={index == 0 ? "left" : "top"}
-                        showArrow
-                      >
-                        <Radio.Button
-                          value={option.id}
-                          disabled={isButtonDisabled || isAILimitReached}
-                          className="rounded-lg px-4! py-3! border-[3px]! text-red-600 hover:border-blue-400 hover:bg-violet-50 min-h-fit min-w-fit"
+              />
+            </div>
+
+            {/* Image Source Settings */}
+            <AnimatePresence>
+              {formData.isCheckedGeneratedImages && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-6 overflow-hidden"
+                >
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                    Image Source Origin
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {IMAGE_OPTIONS.map((option, index) => {
+                      const isRestricted = option.restrict && user?.subscription?.plan === "free"
+                      const isLimitReached =
+                        index === 1 && user?.usage?.aiImages >= user?.usageLimits?.aiImages
+                      const isDisabled = isRestricted || isLimitReached
+
+                      return (
+                        <button
+                          key={option.id}
+                          disabled={isDisabled}
+                          onClick={() => {
+                            handleInputChange({ target: { name: "imageSource", value: option.id } })
+                            if (option.id !== IMAGE_OPTIONS.at(-1)?.id) {
+                              handleInputChange({ target: { name: "blogImages", value: [] } })
+                            }
+                          }}
+                          className={clsx(
+                            "relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all group overflow-hidden",
+                            formData.imageSource === option.id
+                              ? "bg-slate-900 border-slate-900 text-white"
+                              : "bg-white border-slate-100 hover:border-blue-200 text-slate-600",
+                            isDisabled &&
+                              "opacity-50 cursor-not-allowed bg-slate-50 border-slate-100"
+                          )}
                         >
-                          <span className="text-[15px] font-medium text-gray-800">
+                          {isRestricted && (
+                            <div className="absolute top-2 right-2">
+                              <Crown className="w-4 h-4 text-amber-500" />
+                            </div>
+                          )}
+                          {isLimitReached && (
+                            <div className="absolute top-2 right-2">
+                              <AlertCircle className="w-4 h-4 text-rose-500" />
+                            </div>
+                          )}
+                          <span className="text-xs font-black uppercase tracking-widest text-center">
                             {option.label}
                           </span>
-                        </Radio.Button>
-                      </Tooltip>
-                    </Badge.Ribbon>
-                  )
-                })}
-              </Radio.Group>
-            </Space>
-            <Space
-              direction="vertical"
-              hidden={!formData.isCheckedGeneratedImages}
-              className="form-item-wrapper"
-            >
-              {formData.imageSource != IMAGE_OPTIONS.at(-1)?.id ? (
-                <Flex align="center" justify="space-between">
-                  <label htmlFor="blog-img-count">Number of Images (0 = Decided by AI) : </label>
-                  <InputNumber
-                    id="blog-img-count"
-                    name="numberOfImages"
-                    min={0}
-                    max={15}
-                    value={formData.numberOfImages}
-                    defaultValue={0}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "numberOfImages", value: val || 0 } })
-                    }
-                    className="w-1/3 text-base!"
-                  />
-                </Flex>
-              ) : (
-                <>
-                  <BlogImageUpload
-                    id="blog-upload-images"
-                    label="Upload Custom Images"
-                    maxCount={15}
-                    initialFiles={formData.blogImages}
-                    onChange={file =>
-                      handleInputChange({ target: { name: "blogImages", value: file } })
-                    }
-                  />
-                  {errors.blogImages && <Text className="error-text">{errors.blogImages}</Text>}
-                </>
-              )}
-            </Space>
-            {/* Reference Links */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-references">Reference Links (max 3)</label>
-              <Select
-                id="blog-references"
-                mode="tags"
-                placeholder="Add Reference Links"
-                value={formData.referenceLinks}
-                open={false}
-                onChange={val => {
-                  const invalidLinks = val.filter(link => !isValidURL(link.trim()))
-                  if (invalidLinks.length > 0) {
-                    message.warning(
-                      "Only valid URLs starting from http:// or https:// are allowed."
-                    )
-                  }
-                  const validLinks = val.filter(isValidURL)
+                        </button>
+                      )
+                    })}
+                  </div>
 
-                  handleInputChange({ target: { name: "referenceLinks", value: validLinks } })
-                }}
-                maxCount={3}
-                tokenSeparators={[",", " "]}
-                className="w-full! bg-gray-50! [&>.ant-select-arrow]:hidden custom-placeholder border rounded-lg focus:border-[#1B6FC9] hover:border-[#1B6FC9]!"
-              />
-            </Space>
-          </Flex>
+                  {formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id ? (
+                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-[28px] space-y-4">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
+                          Injection Count (0 = Neural Choice)
+                        </label>
+                        <span className="text-xl font-black text-blue-600 tracking-tighter">
+                          {formData.numberOfImages}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="15"
+                        value={formData.numberOfImages}
+                        onChange={e =>
+                          handleInputChange({
+                            target: { name: "numberOfImages", value: parseInt(e.target.value) },
+                          })
+                        }
+                        className="range range-xs range-primary"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <BlogImageUpload
+                        id="blog-upload-images"
+                        label="Upload Custom Images"
+                        maxCount={15}
+                        initialFiles={formData.blogImages}
+                        onChange={file =>
+                          handleInputChange({ target: { name: "blogImages", value: file } })
+                        }
+                      />
+                      {errors.blogImages && (
+                        <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                          {errors.blogImages}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Reference Links */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
+                Evidence Protocol (Reference Links - max 3)
+              </label>
+              <div className="space-y-4">
+                <input
+                  placeholder="Paste URL and press Enter..."
+                  className="w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium"
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      const val = (e.target as HTMLInputElement).value.trim()
+                      if (val && formData.referenceLinks.length < 3) {
+                        if (isValidURL(val)) {
+                          handleInputChange({
+                            target: {
+                              name: "referenceLinks",
+                              value: [...formData.referenceLinks, val],
+                            },
+                          })
+                          ;(e.target as HTMLInputElement).value = ""
+                        } else {
+                          toast.error("Please enter a valid URL protocol")
+                        }
+                      }
+                    }
+                  }}
+                />
+                <div className="flex flex-col gap-2">
+                  {formData.referenceLinks.map((link, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl group hover:border-blue-100 transition-colors"
+                    >
+                      <span className="text-xs text-slate-500 truncate max-w-[90%] font-medium">
+                        {link}
+                      </span>
+                      <X
+                        size={14}
+                        className="text-slate-300 hover:text-rose-500 cursor-pointer transition-colors"
+                        onClick={() =>
+                          handleInputChange({
+                            target: {
+                              name: "referenceLinks",
+                              value: formData.referenceLinks.filter((_, idx) => idx !== i),
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )
       }
       case 3:
         return (
-          <Flex vertical gap="middle" className="p-2">
-            {BLOG_OPTIONS.map((option, index) => (
-              <Flex key={option.key + index} justify="space-between" className="form-item-wrapper">
-                <label htmlFor={`blog-${option.key}`}>{option.label}</label>
-                <Switch
-                  id={`blog-${option.key}`}
-                  value={getValueByPath(formData, option.key)}
-                  onChange={checked =>
-                    handleInputChange({ target: { name: option.key, value: checked } })
-                  }
-                />
-              </Flex>
-            ))}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4 p-1"
+          >
+            <div className="grid grid-cols-1 gap-4">
+              {BLOG_OPTIONS.map((option, index) => (
+                <div
+                  key={option.key + index}
+                  className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-[28px] hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <Layers size={14} className="text-slate-400" />
+                    </div>
+                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">
+                      {option.label}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-sm toggle-primary"
+                    checked={getValueByPath(formData, option.key)}
+                    onChange={e =>
+                      handleInputChange({ target: { name: option.key, value: e.target.checked } })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
 
-            <Space direction="vertical" className="form-item-wrapper">
-              <BrandVoiceSelector
-                label="Write with Brand Voice"
-                value={{
-                  isCheckedBrand: formData.isCheckedBrand,
-                  brandId: formData.brandId,
-                  addCTA: formData.options.addCTA,
-                }}
-                size="default"
-                onChange={val => {
-                  const opts = formData.options
-                  updateFormData({
-                    isCheckedBrand: val.isCheckedBrand,
-                    brandId: val.brandId,
-                    options: { ...opts, addCTA: val.addCTA },
-                  })
-                  updateErrors({ brandId: "" })
-                }}
-                errorText={errors.brandId}
-              />
-            </Space>
-          </Flex>
+            <div className="p-6 bg-slate-900 rounded-[32px] text-white shadow-xl shadow-slate-200 mt-6 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+              <div className="relative z-10">
+                <BrandVoiceSelector
+                  label=""
+                  value={{
+                    isCheckedBrand: formData.isCheckedBrand,
+                    brandId: formData.brandId,
+                    addCTA: formData.options.addCTA,
+                  }}
+                  size="default"
+                  onChange={val => {
+                    const opts = formData.options
+                    updateFormData({
+                      isCheckedBrand: val.isCheckedBrand,
+                      brandId: val.brandId,
+                      options: { ...opts, addCTA: val.addCTA },
+                    })
+                    updateErrors({ brandId: "" })
+                  }}
+                  errorText={errors.brandId}
+                />
+              </div>
+            </div>
+          </motion.div>
         )
       default:
-        return <Empty />
+        return null
     }
   }
 
   return (
-    <>
-      {" "}
-      <Modal
-        title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
-        open={true}
-        onCancel={handleClose}
-        footer={
-          <Flex justify="space-between" align="center" gap={12} className="mt-2">
-            {(currentStep === 2 || currentStep === 3) && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-                {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-                )}
+    <AnimatePresence>
+      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleClose}
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        />
+
+        {/* Modal Content */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          {/* Neural Header */}
+          <div className="p-8 pb-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                  {STEP_TITLES[currentStep]}
+                </h2>
               </div>
-            )}
-            <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
-              {currentStep > 0 && (
-                <Button
-                  onClick={handlePrev}
-                  type="default"
-                  className="h-10 px-6 text-[1rem] font-medium text-gray-700! bg-white border border-gray-300 rounded-md hover:bg-gray-50!"
-                >
-                  Previous
-                </Button>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-11">
+                Step 0{currentStep + 1} of 04 • Neural Configuration
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors group"
+            >
+              <X className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+            </button>
+          </div>
+
+          {/* Progress Indicator */}
+          <div className="px-8 pt-6">
+            <div className="flex gap-2 mb-2">
+              {STEP_TITLES.map((_, i) => (
+                <div
+                  key={i}
+                  className={clsx(
+                    "h-1.5 flex-1 rounded-full transition-all duration-500",
+                    i <= currentStep ? "bg-slate-900" : "bg-slate-100"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Main Body */}
+          <div
+            className="flex-1 overflow-y-auto p-8 custom-scroll"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {renderSteps()}
+          </div>
+
+          {/* Premium Glass Footer */}
+          <div className="p-8 pt-4 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between sticky bottom-0 z-20">
+            <div className="flex items-center gap-6">
+              {(currentStep === 2 || currentStep === 3) && (
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Resource Commitment
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-slate-900 tracking-tighter">
+                      {estimatedCost}
+                    </span>
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                      Credits
+                    </span>
+                    {formData.costCutter && (
+                      <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest rounded-full">
+                        -25% Logic Savings
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
-              <Button
+            </div>
+
+            <div className="flex items-center gap-3">
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrev}
+                  className="px-8 h-12 rounded-2xl border-2 border-slate-100 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:border-slate-200 hover:bg-slate-50 transition-all"
+                >
+                  Previous Phase
+                </button>
+              )}
+              <button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
-                type="default"
-                className="h-10 px-6 text-[1rem] font-medium text-white! bg-[#1B6FC9]! rounded-md hover:bg-[#1B6FC9]/90!"
+                className="px-8 h-12 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 group"
               >
-                {currentStep === 3 ? "Generate Blog" : "Next"}
-              </Button>
-            </Flex>
-          </Flex>
-        }
-        width={700}
-        centered
-        transitionName=""
-        maskTransitionName=""
-        destroyOnHidden
-        className="m-2"
-      >
-        <div className="h-full max-h-[80vh]! overflow-auto" style={{ scrollbarWidth: "none" }}>
-          {renderSteps()}
-        </div>
-      </Modal>
-    </>
+                {currentStep === 3 ? (
+                  <>
+                    <Zap className="w-4 h-4 group-hover:animate-pulse" />
+                    Initialize Generation
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ChevronRight
+                      size={14}
+                      className="group-hover:translate-x-1 transition-transform"
+                    />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   )
 }
 

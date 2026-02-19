@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { getSiteInfo } from "@api/brandApi"
-import { message } from "antd"
+import toast from "@utils/toast"
 
 const useBrandStore = create(
   devtools(
@@ -19,12 +19,12 @@ const useBrandStore = create(
         set(state => ({ siteInfo: { ...state.siteInfo, loading: true, error: null } }))
         try {
           const data = await getSiteInfo(url)
-          message.success("Site info fetched successfully.")
+          toast.success("Site info fetched successfully.")
           set(state => ({ siteInfo: { ...state.siteInfo, data, loading: false } }))
           return data
         } catch (error) {
           const errorMsg = error?.response?.data?.message || "Failed to fetch site info."
-          message.error(errorMsg)
+          toast.error(errorMsg)
           set(state => ({ siteInfo: { ...state.siteInfo, loading: false, error: errorMsg } }))
           throw error
         }

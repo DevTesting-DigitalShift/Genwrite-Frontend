@@ -1,20 +1,3 @@
-/**
- * TypeScript Types/Interfaces for Modal Forms
- *
- * This file contains comprehensive types for:
- * - QuickBlogModal
- * - BulkBlogModal
- * - JobModal
- * - AdvancedBlogModal
- */
-
-import type { UploadFile } from "antd"
-
-// ============================================================================
-// SHARED ENUMS & TYPES
-// ============================================================================
-
-/** Image source options for blog generation */
 export const ImageSource = { NONE: "none", STOCK: "stock", AI: "ai", UPLOAD: "upload" } as const
 
 export type ImageSourceType = (typeof ImageSource)[keyof typeof ImageSource]
@@ -75,11 +58,6 @@ export type ScheduleTypeValue = (typeof ScheduleType)[keyof typeof ScheduleType]
 /** Posting platform types */
 export type PostingType = "WORDPRESS" | "SHOPIFY" | "SERVERENDPOINT" | "WIX" | null
 
-// ============================================================================
-// QUICK BLOG MODAL TYPES
-// ============================================================================
-
-/** Internal form state for QuickBlogModal */
 export interface QuickBlogFormData {
   topic: string
   exactTitle: boolean
@@ -117,11 +95,6 @@ export interface QuickBlogFinalData {
   otherLinks: string[]
 }
 
-// ============================================================================
-// BULK BLOG MODAL TYPES
-// ============================================================================
-
-/** Internal form state for BulkBlogModal */
 export interface BulkBlogFormData {
   templates: string[]
   templateIds: number[]
@@ -187,12 +160,6 @@ export interface BulkBlogFinalData {
   easyToUnderstand: boolean
   embedYouTubeVideos: boolean
 }
-
-// ============================================================================
-// JOB MODAL TYPES
-// ============================================================================
-
-/** Schedule configuration for jobs */
 export interface JobSchedule {
   type: ScheduleTypeValue
   customDates: string[]
@@ -275,11 +242,6 @@ export interface JobFinalData {
   templateIds: number[]
 }
 
-// ============================================================================
-// ADVANCED BLOG MODAL TYPES
-// ============================================================================
-
-/** Sub-options for advanced blog configuration */
 export interface AdvancedBlogOptions {
   exactTitle: boolean
   performKeywordResearch: boolean
@@ -307,7 +269,7 @@ export interface AdvancedBlogFormData {
   isCheckedGeneratedImages: boolean
   imageSource: ImageSourceType
   numberOfImages: number
-  blogImages: UploadFile[]
+  blogImages: File[]
   referenceLinks: string[]
   isCheckedQuick: boolean
   isCheckedBrand: boolean
@@ -334,7 +296,7 @@ export interface AdvancedBlogFinalData {
   isCheckedGeneratedImages: boolean
   imageSource: ImageSourceType
   numberOfImages: number
-  blogImages?: UploadFile[]
+  blogImages?: File[]
   referenceLinks: string[]
   isCheckedQuick: boolean
   isCheckedBrand: boolean

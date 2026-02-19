@@ -9,7 +9,6 @@ import {
   FileText,
   HelpCircle,
   History,
-  ImagesIcon,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -22,7 +21,6 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react"
-import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCashFill, RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
@@ -174,74 +172,6 @@ const SideBar_Header = () => {
     }
   }
 
-  const userMenu = {
-    onClick: ({ key }) => {
-      if (key === "logout") handleLogout()
-      else navigate(`/${key}`)
-    },
-    rootClassName: "rounded-lg shadow-xl min-w-[220px] !bg-white border border-gray-100",
-    items: [
-      {
-        key: "user-info",
-        label: (
-          <div className="py-3 flex flex-col items-center border-b border-gray-200 mb-1">
-            <p className="font-semibold text-gray-900 text-xl truncate leading-tight">
-              {user?.name}
-            </p>
-          </div>
-        ),
-        disabled: true,
-      },
-      {
-        key: "profile",
-        label: "Profile",
-        icon: <User className="w-4 h-4 text-blue-500" />,
-        className: "!py-2 !px-3 hover:!bg-blue-50 !rounded-xl text-sm font-medium",
-      },
-      {
-        key: "transactions",
-        label: "Subscription & Transactions",
-        icon: <RiCashFill className="w-4 h-4 text-purple-500" />,
-        className: "!py-2 !px-3 hover:!bg-purple-50 !rounded-xl text-sm font-medium",
-      },
-      {
-        key: "credit-logs",
-        label: "Credit History",
-        icon: <History className="w-4 h-4 text-orange-500" />,
-        className: "!py-2 !px-3 hover:!bg-orange-50 !rounded-xl text-sm font-medium",
-      },
-      {
-        key: "pricing",
-        label: "Upgrade Plan",
-        icon: <Sparkles className="w-4 h-4 text-amber-500" />,
-        className: "!py-2 !px-3 hover:!bg-amber-50 !rounded-xl text-sm font-bold text-amber-600",
-      },
-      { type: "divider", className: "!my-2" },
-      {
-        key: "logout",
-        danger: true,
-        label: "Sign Out",
-        icon: <LogOut className="w-4 h-4" />,
-        className: "!py-2 !px-3 !rounded-xl text-sm font-bold",
-      },
-    ],
-  }
-
-  const noUserMenu = {
-    onClick: ({ key }) => {
-      if (key === "login") navigate("/login")
-    },
-    rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
-    items: [
-      {
-        key: "login",
-        danger: true,
-        label: "Login",
-        className: "!py-1.5 hover:bg-gray-100 !rounded-xl",
-      },
-    ],
-  }
-
   return (
     <div
       className={`z-50 ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
@@ -297,8 +227,6 @@ const SideBar_Header = () => {
                 location.pathname.startsWith(Menu.path) ||
                 (Menu.path === "/blogs" && location.pathname.startsWith("/blog/"))
               const Icon = Menu.icon
-              const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
-              const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
               return (
                 <li key={index}>
@@ -403,7 +331,7 @@ const SideBar_Header = () => {
             {user?.subscription?.plan !== "enterprise" && <GoProButton />}
             {isUserLoaded ? (
               <>
-                <Tooltip title="User Credits" className="hidden md:flex">
+                <div className="hidden md:flex tooltip tooltip-bottom" data-tip="User Credits">
                   <button
                     onClick={() => navigate("/credit-logs")}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
@@ -413,9 +341,12 @@ const SideBar_Header = () => {
                       {user?.credits?.base + user?.credits?.extra || 0}
                     </span>
                   </button>
-                </Tooltip>
+                </div>
                 <NotificationDropdown notifications={user?.notifications} />
-                <Tooltip title="Introduction Video" className="hidden md:flex">
+                <div
+                  className="hidden md:flex tooltip tooltip-bottom"
+                  data-tip="Introduction Video"
+                >
                   <button
                     onClick={() => setShowWhatsNew(true)}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
@@ -423,24 +354,93 @@ const SideBar_Header = () => {
                   >
                     <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
                   </button>
-                </Tooltip>
-                <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
-                  <Avatar
-                    className="bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
-                    style={{ marginLeft: "20px", marginRight: "20px" }}
-                    size="large"
-                    src={user?.avatar ? user.avatar : undefined}
+                </div>
+                <div className="dropdown dropdown-end">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    className="avatar placeholder cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition rounded-full ml-5 mr-5"
                   >
-                    {!user?.avatar && user?.name?.[0]?.toUpperCase()}
-                  </Avatar>
-                </Dropdown>
+                    <div className="bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold w-12 rounded-full">
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt="avatar" />
+                      ) : (
+                        <span>{user?.name?.[0]?.toUpperCase()}</span>
+                      )}
+                    </div>
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-64 mt-4 border border-gray-100"
+                  >
+                    <li className="menu-title px-4 py-2 border-b border-gray-100">
+                      <span className="font-semibold text-gray-900 text-lg truncate leading-tight block">
+                        {user?.name}
+                      </span>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => navigate("/profile")}
+                        className="text-sm font-medium py-2! px-4! hover:bg-blue-50! rounded-lg flex items-center gap-2"
+                      >
+                        <User className="w-4 h-4 text-blue-500" /> Profile
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => navigate("/transactions")}
+                        className="text-sm font-medium py-2! px-4! hover:bg-purple-50! rounded-lg flex items-center gap-2"
+                      >
+                        <RiCashFill className="w-4 h-4 text-purple-500" /> Subscription &
+                        Transactions
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => navigate("/credit-logs")}
+                        className="text-sm font-medium py-2! px-4! hover:bg-orange-50! rounded-lg flex items-center gap-2"
+                      >
+                        <History className="w-4 h-4 text-orange-500" /> Credit History
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => navigate("/pricing")}
+                        className="text-sm font-bold text-amber-600 py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" /> Upgrade Plan
+                      </button>
+                    </li>
+                    <div className="divider my-1"></div>
+                    <li>
+                      <button
+                        onClick={handleLogout}
+                        className="text-sm font-bold text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" /> Sign Out
+                      </button>
+                    </li>
+                  </ul>
+                </div>
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <RxAvatar size={30} />
-                <Dropdown menu={noUserMenu} trigger={["click"]} placement="bottomRight">
-                  <span className="text-gray-700 text-sm">UserName</span>
-                </Dropdown>
+                <div className="dropdown dropdown-end">
+                  <div tabIndex={0} role="button" className="text-gray-700 text-sm cursor-pointer">
+                    UserName
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2"
+                  >
+                    <li>
+                      <button onClick={() => navigate("/login")} className="text-error font-bold">
+                        Login
+                      </button>
+                    </li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>

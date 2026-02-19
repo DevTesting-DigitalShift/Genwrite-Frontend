@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import { message } from "antd"
+import toast from "@utils/toast"
 import { createBlog, createBlogMultiple, createQuickBlog } from "@api/blogApi"
 
 const useBlogStore = create(
@@ -32,7 +32,7 @@ const useBlogStore = create(
           queryClient.invalidateQueries(["blogs"])
           if (newBlog) {
             navigate("/blogs")
-            message.success("Blog creation has started!")
+            toast.success("Blog creation has started!")
           }
         } catch (error) {
           throw error
@@ -45,7 +45,7 @@ const useBlogStore = create(
           queryClient.invalidateQueries(["blogs"])
           if (newBlogs) {
             navigate("/blogs")
-            message.success("Blogs created successfully!")
+            toast.success("Blogs created successfully!")
           }
         } catch (error) {
           throw error
@@ -58,7 +58,7 @@ const useBlogStore = create(
           queryClient.invalidateQueries(["blogs"])
           if (newBlog) {
             navigate("/blogs")
-            message.success("Blog creation has started!")
+            toast.success("Blog creation has started!")
           }
         } catch (error) {
           throw error

@@ -28,10 +28,9 @@ import {
   CheckCircle,
   MessageSquare,
 } from "lucide-react"
-import { Button, message, Input, Select, Switch, Tooltip, Collapse } from "antd"
+import toast from "@utils/toast"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { Modal } from "antd"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -64,8 +63,6 @@ const renderer = {
 }
 
 marked.use({ renderer })
-
-const { TextArea } = Input
 
 // WordPress Categories Component
 const WordPressCategories = ({ onSelect, currentCategory }) => {
@@ -429,10 +426,10 @@ const TextEditorSidebar = ({
   }, [editorContent])
 
   const handleSectionTask = async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!sectionToolState.sectionId) return message.error("Please select a section")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!sectionToolState.sectionId) return toast.error("Please select a section")
     if (sectionToolState.task === "custom" && !sectionToolState.instructions.trim()) {
-      return message.error("Please enter instructions for custom task")
+      return toast.error("Please enter instructions for custom task")
     }
 
     setIsProcessingSection(true)
@@ -554,7 +551,7 @@ const TextEditorSidebar = ({
             // or just keep it consistent with originalSectionContent
             newSectionContent = `${lines[startLine]}\n\n${newSectionContent}`
           } else {
-            message.error(
+            toast.error(
               "Could not locate section in current content. Ensure section headers are not modified."
             )
             setIsProcessingSection(false)
@@ -571,11 +568,11 @@ const TextEditorSidebar = ({
           setSectionToolState(prev => ({ ...prev, instructions: "" }))
         }
       } else {
-        message.warning("No content returned from AI")
+        toast.warning("No content returned from AI")
       }
     } catch (error) {
       console.error("Section task failed:", error)
-      message.error(error.response?.data?.message || "Failed to process section task")
+      toast.error(error.response?.data?.message || "Failed to process section task")
     } finally {
       setIsProcessingSection(false)
     }
@@ -785,7 +782,7 @@ const TextEditorSidebar = ({
 
   // Handlers
   const handleRegenerate = async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
+    if (!blog?._id) return toast.error("Blog ID missing")
 
     // Open the regenerate modal
     setIsRegenerateModalOpen(true)
@@ -877,11 +874,11 @@ const TextEditorSidebar = ({
       await retryBlogById(blog._id, validatedPayload)
 
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      message.success("Blog regeneration started!")
+      toast.success("Blog regeneration started!")
       setIsRegenerateModalOpen(false)
       navigate("/blogs")
     } catch (error) {
-      message.error(error.message || "Failed to regenerate")
+      toast.error(error.message || "Failed to regenerate")
     } finally {
       setIsRegenerating(false)
     }
@@ -903,7 +900,7 @@ const TextEditorSidebar = ({
       setActivePanel("seo")
     } catch (err) {
       setError(err.message)
-      message.error("Analysis failed")
+      toast.error("Analysis failed")
     } finally {
       setLoading(false)
     }
@@ -930,7 +927,7 @@ const TextEditorSidebar = ({
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
         } catch {
-          message.error("Generation failed")
+          toast.error("Generation failed")
         } finally {
           setIsGeneratingMetadata(false)
         }
@@ -955,7 +952,7 @@ const TextEditorSidebar = ({
   const handleRejectMetadata = useCallback(() => {
     setGeneratedMetadataModal(false)
     setGeneratedMetadata(null)
-    message.info("Metadata discarded")
+    toast.info("Metadata discarded")
   }, [])
 
   // Enhancement option toggle handler
@@ -970,9 +967,9 @@ const TextEditorSidebar = ({
     try {
       await handleSubmit({ options: enhancementOptions })
       setHasEnhancementChanges(false)
-      message.success("Enhancement settings saved!")
+      toast.success("Enhancement settings saved!")
     } catch {
-      message.error("Failed to save settings")
+      toast.error("Failed to save settings")
     } finally {
       setIsSavingEnhancement(false)
     }
@@ -996,9 +993,9 @@ const TextEditorSidebar = ({
           setHumanizedContent(res.data)
           setIsHumanizeModalOpen(true)
           setCustomPrompt("")
-          message.success("Prompt applied!")
+          toast.success("Prompt applied!")
         } catch {
-          message.error("Failed")
+          toast.error("Failed")
         } finally {
           setIsHumanizing(false)
         }
@@ -1016,12 +1013,12 @@ const TextEditorSidebar = ({
   ])
 
   const handleMetadataSave = useCallback(async () => {
-    if (!metadata.title && !metadata.description) return message.error("Enter metadata")
+    if (!metadata.title && !metadata.description) return toast.error("Enter metadata")
     try {
       await handleSubmit({ metadata })
-      message.success("Saved!")
+      toast.success("Saved!")
     } catch {
-      message.error("Save failed")
+      toast.error("Save failed")
     }
   }, [handleSubmit, metadata])
 
@@ -1030,10 +1027,7 @@ const TextEditorSidebar = ({
     if (!editorContent?.trim()) return message.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport ? "Preparing PDF with images..." : "Generating PDF...",
-        key: "pdf-export",
-      })
+      toast.loading("Exporting PDF...", { id: "pdf-export" })
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "pdf",
@@ -1054,13 +1048,10 @@ const TextEditorSidebar = ({
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      const successMsg = includeImagesInExport
-        ? "PDF with images downloaded as ZIP!"
-        : "PDF downloaded successfully!"
-      message.success({ content: successMsg, key: "pdf-export" })
+      toast.success(successMsg, { id: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
-      message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
+      toast.error(error.message || "Failed to export PDF", { id: "pdf-export" })
     }
   }, [blog, editorContent, includeImagesInExport])
 
@@ -1305,19 +1296,8 @@ const TextEditorSidebar = ({
           (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
             error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
         ) {
-          message.error({
-            content: (
-              <span>
-                WordPress API has changed. Kindly update your WordPress credentials.
-                <span
-                  className="underline cursor-pointer ml-1 font-bold"
-                  onClick={() => navigate("/integration")}
-                >
-                  Update Now
-                </span>
-              </span>
-            ),
-            duration: 5,
+          toast.error("WordPress API has changed. Kindly update your WordPress credentials.", {
+            duration: 5000,
           })
         }
       }
@@ -1334,7 +1314,7 @@ const TextEditorSidebar = ({
             await handleSubmit({ metadata })
             executePost()
           } catch (error) {
-            message.error("Failed to save changes")
+            toast.error("Failed to save changes")
           }
         },
         onCancel: e => {
@@ -1423,7 +1403,7 @@ const TextEditorSidebar = ({
     return (
       <div className="flex flex-col h-full bg-white">
         {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
+        <div className="p-4 border-b bg-linear-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
               <Crown className="w-5 h-5 text-white" />
@@ -1598,7 +1578,7 @@ const TextEditorSidebar = ({
               ${
                 isAnalyzingCompetitive
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+                  : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
               }
             `}
           >
@@ -1710,10 +1690,10 @@ const TextEditorSidebar = ({
 
   const renderSeoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+            <div className="p-2 bg-linear-to-br from-indigo-500 to-purple-600 rounded-lg">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
 
@@ -1750,23 +1730,24 @@ const TextEditorSidebar = ({
             </button>
           </div>
           <div className="space-y-3">
-            <Input
+            <input
+              type="text"
               value={metadata.title}
               onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
-              size="small"
+              className="input input-bordered input-sm w-full"
             />
-            <TextArea
+            <textarea
               value={metadata.description}
               onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              className="!resize-none"
+              className="textarea textarea-bordered w-full text-sm resize-none"
             />
           </div>
           <button
             onClick={handleMetadataSave}
-            className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+            className="w-full py-2 text-sm font-semibold rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
           >
             Save Metadata
           </button>
@@ -1804,11 +1785,12 @@ const TextEditorSidebar = ({
                 Include Images
               </span>
             </div>
-            <Switch
+            <input
+              type="checkbox"
+              className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
-              onChange={setIncludeImagesInExport}
+              onChange={e => setIncludeImagesInExport(e.target.checked)}
               disabled={userPlan === "free"}
-              size="small"
             />
           </div>
           {includeImagesInExport && userPlan !== "free" && (
@@ -1841,7 +1823,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-blue-50 to-indigo-50
+            bg-linear-to-br from-blue-50 to-indigo-50
             hover:from-blue-100 hover:to-indigo-100
             text-blue-700 border-blue-200
             hover:border-blue-300 hover:shadow-lg
@@ -1872,7 +1854,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-purple-50 to-pink-50
+            bg-linear-to-br from-purple-50 to-pink-50
             hover:from-purple-100 hover:to-pink-100
             text-purple-700 border-purple-200
             hover:border-purple-300 hover:shadow-lg
@@ -1903,7 +1885,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-green-50 to-emerald-50
+            bg-linear-to-br from-green-50 to-emerald-50
             hover:from-green-100 hover:to-emerald-100
             text-green-700 border-green-200
             hover:border-green-300 hover:shadow-lg
@@ -1940,32 +1922,29 @@ const TextEditorSidebar = ({
                   <BarChart className="w-4 h-4 text-purple-600" />
                   <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
                 </div>
-                <Collapse
-                  ghost
-                  className="bg-transparent"
-                  items={Object.entries(result.insights.analysis).map(([category, data]) => ({
-                    key: category,
-                    label: (
-                      <div className="flex items-center justify-between w-full pr-2">
+                <div className="space-y-2">
+                  {Object.entries(result.insights.analysis).map(([category, data]) => (
+                    <div
+                      key={category}
+                      className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
+                    >
+                      <input type="checkbox" className="peer" />
+                      <div className="collapse-title flex items-center justify-between pr-8">
                         <span className="font-medium text-gray-800 text-sm">
                           {category.replace(/([A-Z])/g, " $1").trim()}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-indigo-600">
-                            {data.score}/{data.maxScore}
-                          </span>
-                        </div>
+                        <span className="text-xs font-bold text-indigo-600">
+                          {data.score}/{data.maxScore}
+                        </span>
                       </div>
-                    ),
-                    children: (
-                      <div className="">
+                      <div className="collapse-content">
                         <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
                           {data.feedback}
                         </p>
                       </div>
-                    ),
-                  }))}
-                />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1990,7 +1969,7 @@ const TextEditorSidebar = ({
                       transition={{ delay: idx * 0.05 }}
                       className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
                     >
-                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
                       </div>
                       <p className="text-xs text-amber-900 leading-relaxed flex-1">{suggestion}</p>
@@ -2025,7 +2004,7 @@ const TextEditorSidebar = ({
       if (handleReplace && suggestion) {
         // handleReplace in MainEditorPage already removes the suggestion from the list
         handleReplace(suggestion.original, suggestion.change)
-        message.success("Change applied successfully!")
+        toast.success("Change applied successfully!")
       }
     }
 
@@ -2039,7 +2018,7 @@ const TextEditorSidebar = ({
       if (proofreadingResults?.length > 0) {
         proofreadingResults.forEach(s => handleReplace(s.original, s.change))
         setProofreadingResults([])
-        message.success(`Applied ${proofreadingResults.length} changes!`)
+        toast.success(`Applied ${proofreadingResults.length} changes!`)
       }
     }
 
@@ -2050,10 +2029,10 @@ const TextEditorSidebar = ({
     return (
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
+              <div className="p-2 bg-linear-to-br from-amber-400 to-orange-500 rounded-lg">
                 <Lightbulb className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -2069,7 +2048,7 @@ const TextEditorSidebar = ({
               </div>
             </div>
             {proofreadingResults?.length > 0 && (
-              <span className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full">
+              <span className="px-2.5 py-1 bg-linear-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full">
                 {proofreadingResults.length}
               </span>
             )}
@@ -2078,7 +2057,7 @@ const TextEditorSidebar = ({
           {proofreadingResults?.length > 0 && (
             <button
               onClick={handleApplyAll}
-              className="w-full mt-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+              className="w-full mt-2 px-4 py-2.5 bg-linear-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
               Apply All {proofreadingResults.length} Changes
@@ -2111,7 +2090,7 @@ const TextEditorSidebar = ({
             </AnimatePresence>
           ) : (
             <div className="text-center py-16 h-[80vh] flex flex-col items-center justify-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-linear-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
                 <Lightbulb className="w-10 h-10 text-gray-400" />
               </div>
               <h4 className="font-semibold text-gray-700 mb-1">No suggestions yet</h4>
@@ -2120,7 +2099,7 @@ const TextEditorSidebar = ({
               </p>
               <button
                 onClick={handleProofreading}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
+                className="px-5 py-2.5 bg-linear-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
               >
                 Run AI Proofreading
               </button>
@@ -2133,9 +2112,9 @@ const TextEditorSidebar = ({
 
   const renderBlogInfoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
+          <div className="p-2 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg">
             <Info className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -2163,33 +2142,31 @@ const TextEditorSidebar = ({
           </div>
           {isEditingSlug && !hasPublishedLinks ? (
             <div className="space-y-2">
-              <Input
-                size="small"
+              <input
+                type="text"
                 value={blogSlug}
                 onChange={e => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
-                className="text-sm font-mono"
+                className="input input-bordered input-sm w-full text-sm font-mono"
               />
-              <Button
-                size="small"
-                type="primary"
-                block
+              <button
                 onClick={async () => {
                   if (!blogSlug.trim()) {
-                    return message.error("Slug cannot be empty")
+                    return toast.error("Slug cannot be empty")
                   }
                   try {
                     await handleSubmit({ slug: blogSlug })
                     setIsEditingSlug(false)
-                    message.success("Slug updated successfully")
+                    toast.success("Slug updated successfully")
                   } catch (error) {
                     console.error("Failed to update slug:", error)
-                    message.error("Failed to update slug")
+                    toast.error("Failed to update slug")
                   }
                 }}
+                className="btn btn-sm btn-primary w-full text-white"
               >
                 Save Slug
-              </Button>
+              </button>
             </div>
           ) : (
             <div>
@@ -2217,7 +2194,7 @@ const TextEditorSidebar = ({
 
         {/* Brand Information */}
         {(blog?.brandId || blog?.nameOfVoice) && (
-          <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
+          <div className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-purple-600" />
               <div className="text-xs font-bold text-purple-900 uppercase tracking-wider">
@@ -2407,9 +2384,9 @@ const TextEditorSidebar = ({
 
   const renderSectionToolsPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
+      <div className="p-4 border-b bg-linear-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
+          <div className="p-2 bg-linear-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
             <Wand2 className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -2570,39 +2547,36 @@ const TextEditorSidebar = ({
             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
               Your Instructions
             </label>
-            <TextArea
+            <textarea
               placeholder="E.g., Make it more professional and add 2 examples..."
               rows={4}
               value={sectionToolState.instructions}
               onChange={e =>
                 setSectionToolState(prev => ({ ...prev, instructions: e.target.value }))
               }
-              className="!bg-gray-50 !border-gray-200 !text-sm focus:!bg-white"
+              className="textarea textarea-bordered w-full text-sm bg-gray-50 focus:bg-white"
             />
           </motion.div>
         )}
 
         {/* Action Button */}
         <div className="pt-2">
-          <Button
-            type="primary"
-            icon={
-              isProcessingSection ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )
-            }
+          <button
             onClick={handleSectionTask}
             disabled={
               isProcessingSection ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
-            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-blue-600 border-none shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl font-semibold text-sm"
+            className="btn btn-primary w-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all bg-linear-to-r from-indigo-600 to-blue-600 border-none rounded-xl"
           >
+            {isProcessingSection ? (
+              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
             {isProcessingSection ? "Processing..." : "Run AI Task"}
-          </Button>
+          </button>
           <p className="text-[10px] text-center text-gray-400 mt-2">
             This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
             directly.
@@ -2614,9 +2588,9 @@ const TextEditorSidebar = ({
 
   const renderPostingPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
+      <div className="p-3 border-b bg-linear-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
+          <div className="p-2 bg-linear-to-br from-green-600 to-emerald-600 rounded-lg">
             <Send className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -2677,20 +2651,17 @@ const TextEditorSidebar = ({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tooltip title="Edit settings and repost">
-                      <Button
-                        size="small"
-                        className="flex items-center justify-center p-0 w-8 h-8 rounded-lg border-gray-200 hover:text-blue-600 hover:border-blue-200"
+                    <div className="tooltip" data-tip="Edit settings and repost">
+                      <button
+                        className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
                         onClick={() => openRepostModal(posting)}
                         disabled={isPosting}
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                    </Tooltip>
-                    <Button
-                      size="small"
-                      block
-                      className="text-[12px] font-semibold h-8"
+                      </button>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-block text-[12px] font-semibold h-8"
                       onClick={() => {
                         onPost({
                           ...formData,
@@ -2705,7 +2676,7 @@ const TextEditorSidebar = ({
                       disabled={isPosting}
                     >
                       Repost Same Settings
-                    </Button>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -2740,22 +2711,24 @@ const TextEditorSidebar = ({
                 Select Platform
               </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
-                <Select
-                  className={`w-full ${platformError ? "border-red-500" : ""}`}
-                  placeholder="Choose platform..."
-                  value={selectedIntegration?.rawPlatform || undefined}
-                  onChange={v => {
+                <select
+                  className={`select select-bordered w-full ${platformError ? "select-error" : ""}`}
+                  value={selectedIntegration?.rawPlatform || ""}
+                  onChange={e => {
+                    const v = e.target.value
                     const d = integrations.integrations[v]
                     handleIntegrationChange(v, d?.url)
                   }}
-                  status={platformError ? "error" : ""}
                 >
+                  <option value="" disabled>
+                    Choose platform...
+                  </option>
                   {Object.entries(integrations.integrations).map(([k, v]) => (
-                    <Select.Option key={k} value={k}>
+                    <option key={k} value={k}>
                       {PLATFORM_LABELS[k] || k}
-                    </Select.Option>
+                    </option>
                   ))}
-                </Select>
+                </select>
               ) : (
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
                   No platforms connected.{" "}
@@ -2792,17 +2765,13 @@ const TextEditorSidebar = ({
                 </div>
               )} */}
 
-              <Select
-                mode="tags"
-                className="w-full"
+              <input
+                type="text"
+                className={`input input-bordered w-full ${categoryError ? "input-error" : ""}`}
                 placeholder="Select or type..."
-                value={selectedCategory ? [selectedCategory] : []}
-                onChange={handleCategoryChange}
+                value={selectedCategory || ""}
+                onChange={e => handleCategoryChange([e.target.value])}
                 disabled={isCategoryLocked}
-                showSearch
-                allowClear
-                status={categoryError ? "error" : ""}
-                options={POPULAR_CATEGORIES.map(c => ({ value: c, label: c }))}
               />
 
               {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
@@ -2845,10 +2814,11 @@ const TextEditorSidebar = ({
             {/* ToC Toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
               <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-              <Switch
-                size="small"
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
                 checked={includeTableOfContents}
-                onChange={setIncludeTableOfContents}
+                onChange={e => setIncludeTableOfContents(e.target.checked)}
               />
             </div>
             {/* WordPress Categories (Moved Below ToC) */}
@@ -2873,7 +2843,7 @@ const TextEditorSidebar = ({
             ${
               isPosting || !hasAnyIntegration
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
+                : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
             }
           `}
         >
@@ -2919,14 +2889,14 @@ const TextEditorSidebar = ({
     return (
       <div className="w-16 border-l border-gray-200 flex flex-col items-center gap-2">
         <div className="flex flex-col gap-2">
-          <Tooltip title="Expand Sidebar" placement="left">
+          <div className="tooltip tooltip-left" data-tip="Expand Sidebar">
             <button
               onClick={() => setIsCollapsed(false)}
               className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
             >
               <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
             </button>
-          </Tooltip>
+          </div>
           {/* Divider */}
           <div className="w-8 h-px bg-gray-300 my-2" />
         </div>
@@ -2951,7 +2921,7 @@ const TextEditorSidebar = ({
                 }}
                 className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
                   isActive && !isCollapsed
-                    ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                    ? "bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
                     : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                 }`}
               >
@@ -3006,7 +2976,7 @@ const TextEditorSidebar = ({
             const Icon = item.icon
             const isActive = activePanel === item.id
             return (
-              <Tooltip key={item.id} title={item.label} placement="left">
+              <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                 <button
                   onClick={() => {
                     if (item.id === "regenerate") {
@@ -3023,7 +2993,7 @@ const TextEditorSidebar = ({
                   }}
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
                     isActive && !isCollapsed
-                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                      ? "bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
                       : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                   }`}
                 >
@@ -3033,211 +3003,196 @@ const TextEditorSidebar = ({
                     }`}
                   />
                 </button>
-              </Tooltip>
+              </div>
             )
           })}
         </div>
       </div>
 
       {/* Modals */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
+      <div className={`modal ${choosePlatformOpen ? "modal-open" : ""}`}>
+        <div className="modal-box max-w-xs">
+          <div className="flex items-center gap-2 mb-4">
             <Globe className="w-5 h-5 text-blue-600" />
-            <span>Published Platforms</span>
+            <h3 className="font-bold text-lg">Published Platforms</h3>
           </div>
-        }
-        open={choosePlatformOpen}
-        onCancel={() => setChoosePlatformOpen(false)}
-        footer={null}
-        centered
-        width={320}
-      >
-        <div className="space-y-2">
-          {integrationLinks.map(({ platform, link, label }) => (
-            <button
-              key={platform}
-              onClick={() => window.open(link, "_blank")}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm"
-            >
-              {label} <ExternalLink className="w-4 h-4" />
+          <div className="space-y-2">
+            {integrationLinks.map(({ platform, link, label }) => (
+              <button
+                key={platform}
+                onClick={() => window.open(link, "_blank")}
+                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
+              >
+                {label} <ExternalLink className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={() => setChoosePlatformOpen(false)}>
+              Close
             </button>
-          ))}
+          </div>
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={() => setChoosePlatformOpen(false)}></div>
+      </div>
 
       {/* Edit & Repost Modal */}
-      <Modal
-        title="Edit & Repost"
-        open={isRepostModalOpen}
-        onCancel={() => setIsRepostModalOpen(false)}
-        centered
-        width={400}
-        footer={[
-          <div className="flex justify-end gap-2">
-            <Button key="cancel" onClick={() => setIsRepostModalOpen(false)}>
+      <div className={`modal ${isRepostModalOpen ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Edit & Repost</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
+              <select
+                className="select select-bordered w-full"
+                value={repostSettings.platform}
+                onChange={e => setRepostSettings({ ...repostSettings, platform: e.target.value })}
+              >
+                {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {PLATFORM_LABELS[k] || k}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-400 mt-1">
+                Platform cannot be changed for reposting.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                placeholder="Select or type..."
+                value={repostSettings.category || ""}
+                onChange={e => setRepostSettings({ ...repostSettings, category: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={repostSettings.includeTableOfContents}
+                onChange={e =>
+                  setRepostSettings({ ...repostSettings, includeTableOfContents: e.target.checked })
+                }
+              />
+            </div>
+
+            {repostSettings.platform === "WORDPRESS" && (
+              <WordPressCategories
+                onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
+                currentCategory={repostSettings.category}
+              />
+            )}
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={() => setIsRepostModalOpen(false)}>
               Cancel
-            </Button>
-            <Button
-              key="submit"
-              type="primary"
+            </button>
+            <button
+              className={`btn btn-sm btn-primary text-white ${isPosting ? "loading" : ""}`}
               onClick={handleRepostSubmit}
-              loading={isPosting}
-              className="bg-blue-600"
             >
               Repost Now
-            </Button>
-          </div>,
-        ]}
-      >
-        <div className="space-y-4 py-2">
-          {/* Platform Select */}
-          <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
-            <Select
-              className="w-full"
-              value={repostSettings.platform}
-              onChange={v => setRepostSettings({ ...repostSettings, platform: v })}
-            >
-              {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
-                <Select.Option key={k} value={k}>
-                  {PLATFORM_LABELS[k] || k}
-                </Select.Option>
-              ))}
-            </Select>
-            <p className="text-[10px] text-gray-400 mt-1">
-              Platform cannot be changed for reposting.
-            </p>
+            </button>
           </div>
-
-          {/* Category Select */}
-          <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
-            <Select
-              mode="tags"
-              className="w-full"
-              placeholder="Select or type..."
-              value={repostSettings.category ? [repostSettings.category] : []}
-              onChange={vals =>
-                setRepostSettings({ ...repostSettings, category: vals[vals.length - 1] || "" })
-              }
-            >
-              {POPULAR_CATEGORIES.map(c => (
-                <Select.Option key={c} value={c} label={c}>
-                  {c}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-
-          {/* ToC Toggle */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
-            <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-            <Switch
-              size="small"
-              checked={repostSettings.includeTableOfContents}
-              onChange={c => setRepostSettings({ ...repostSettings, includeTableOfContents: c })}
-            />
-          </div>
-
-          {/* WordPress Categories */}
-          {repostSettings.platform === "WORDPRESS" && (
-            <WordPressCategories
-              onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
-              currentCategory={repostSettings.category}
-            />
-          )}
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={() => setIsRepostModalOpen(false)}></div>
+      </div>
 
       {/* Generated Metadata Accept/Reject Modal */}
-      <Modal
-        title="Generated SEO Metadata"
-        open={generatedMetadataModal}
-        onCancel={handleRejectMetadata}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={handleRejectMetadata}>Reject</Button>
-            <Button
-              type="primary"
+      <div className={`modal ${generatedMetadataModal ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Generated SEO Metadata</h3>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Review the AI-generated metadata below. Accept to apply these changes or reject to
+              keep your current data.
+            </p>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Generated Title
+              </label>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Generated Description
+              </label>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  {generatedMetadata?.description ||
+                    generatedMetadata?.metaDescription ||
+                    "No description generated"}
+                </p>
+              </div>
+            </div>
+
+            {/* Current values for comparison */}
+            <div className="border-t pt-4 mt-4">
+              <p className="text-xs font-medium text-gray-400 mb-2">
+                Current Values (will be replaced if accepted):
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Title:</span> {metadata.title || "Not set"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Description:</span>{" "}
+                  {metadata.description || "Not set"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={handleRejectMetadata}>
+              Reject
+            </button>
+            <button
               onClick={handleAcceptMetadata}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 border-0"
+              className="btn btn-sm btn-success text-white bg-linear-to-r from-green-500 to-emerald-600 border-0"
             >
               Accept & Apply
-            </Button>
-          </div>
-        }
-        centered
-        width={500}
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500 mb-4">
-            Review the AI-generated metadata below. Accept to apply these changes or reject to keep
-            your current data.
-          </p>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Generated Title</label>
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-gray-800">
-                {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Generated Description
-            </label>
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-gray-800">
-                {generatedMetadata?.description ||
-                  generatedMetadata?.metaDescription ||
-                  "No description generated"}
-              </p>
-            </div>
-          </div>
-
-          {/* Current values for comparison */}
-          <div className="border-t pt-4 mt-4">
-            <p className="text-xs font-medium text-gray-400 mb-2">
-              Current Values (will be replaced if accepted):
-            </p>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500">
-                <span className="font-medium">Title:</span> {metadata.title || "Not set"}
-              </p>
-              <p className="text-xs text-gray-500">
-                <span className="font-medium">Description:</span>{" "}
-                {metadata.description || "Not set"}
-              </p>
-            </div>
+            </button>
           </div>
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={handleRejectMetadata}></div>
+      </div>
 
       {/* Diff Viewer Modal */}
-      <Modal
-        title="Review Changes"
-        open={showDiff}
-        onCancel={() => setShowDiff(false)}
-        footer={null}
-        width={1000}
-        centered
-      >
-        <div className="max-h-[70vh] overflow-y-auto custom-scroll">
-          <ContentDiffViewer
-            oldMarkdown={diffData.old}
-            newMarkdown={diffData.new}
-            onAccept={() => {
-              setEditorContent(diffData.full)
-              setShowDiff(false)
-              message.success("Changes applied successfully")
-            }}
-            onReject={() => setShowDiff(false)}
-          />
+      <div className={`modal ${showDiff ? "modal-open" : ""}`}>
+        <div className="modal-box w-11/12 max-w-5xl">
+          <h3 className="font-bold text-lg mb-4">Review Changes</h3>
+          <div className="max-h-[70vh] overflow-y-auto custom-scroll">
+            <ContentDiffViewer
+              oldMarkdown={diffData.old}
+              newMarkdown={diffData.new}
+              onAccept={() => {
+                setEditorContent(diffData.full)
+                setShowDiff(false)
+                toast.success("Changes applied successfully")
+              }}
+              onReject={() => setShowDiff(false)}
+            />
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={() => setShowDiff(false)}>
+              Close
+            </button>
+          </div>
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={() => setShowDiff(false)}></div>
+      </div>
 
       {/* Regenerate Modal */}
       <RegenerateModal

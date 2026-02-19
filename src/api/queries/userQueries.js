@@ -5,7 +5,7 @@ import {
   getTransactions,
   updateUserProfile,
 } from "@api/userApi"
-import { message } from "antd"
+import toast from "@utils/toast"
 
 export const useProfileQuery = () => {
   return useQuery({ queryKey: ["userProfile"], queryFn: getProfile })
@@ -20,11 +20,11 @@ export const useUpdateProfileMutation = () => {
   return useMutation({
     mutationFn: updateUserProfile,
     onSuccess: () => {
-      message.success("Profile updated successfully")
+      toast.success("Profile updated successfully")
       queryClient.invalidateQueries({ queryKey: ["userProfile"] })
     },
     onError: error => {
-      message.error(error.response?.data?.message || "Failed to update profile")
+      toast.error(error.response?.data?.message || "Failed to update profile")
     },
   })
 }

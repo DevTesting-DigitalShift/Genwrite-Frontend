@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Copy, Gift, Sparkles } from "lucide-react"
-import { message } from "antd"
+import { X, Gift, Sparkles } from "lucide-react"
 
 const WinterSaleBanner = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hrs: 0,
-    min: 0,
-    sec: 0,
-  })
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hrs: 0, min: 0, sec: 0 })
 
   // Calculate time remaining until Dec 31, 2025 12:00 AM
   const calculateTimeLeft = () => {
@@ -62,7 +56,7 @@ const WinterSaleBanner = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 bottom-4 sm:right-14 sm:bottom-6 z-[100] w-12 h-12 sm:w-14 sm:h-14 bg-[#1a3a6a] rounded-full shadow-2xl flex items-center justify-center text-white border-2 border-white/20 backdrop-blur-sm"
+          className="fixed right-4 bottom-4 sm:right-14 sm:bottom-6 z-100 w-12 h-12 sm:w-14 sm:h-14 bg-[#1a3a6a] rounded-full shadow-2xl flex items-center justify-center text-white border-2 border-white/20 backdrop-blur-sm"
         >
           <Gift className="w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute -top-1 -right-1 flex h-3 w-3 sm:h-4 sm:w-4">
@@ -85,12 +79,12 @@ const WinterSaleBanner = () => {
               left-4 right-4 bottom-4 
               sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] 
               md:w-[420px]
-              z-[1000] 
+              z-1000
               bg-[#ffa0a0] 
               rounded-2xl 
               shadow-2xl 
               overflow-hidden 
-              h-[28rem] sm:h-[30rem] md:h-[32rem]
+              h-112 sm:h-120 md:h-128
               flex flex-col
               max-w-[95vw]"
           >

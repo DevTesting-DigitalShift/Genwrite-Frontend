@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react"
-import { Spin, message, Button } from "antd"
 import { Search, Image as ImageIcon, Check } from "lucide-react"
 import { getImages, searchImages } from "@api/imageGalleryApi"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
+import toast from "@utils/toast"
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
   return (
     <div className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse">
-      <div className="w-full aspect-[3/4] bg-gradient-to-br from-gray-200 to-gray-300"></div>
+      <div className="w-full aspect-3/4 bg-linear-to-br from-gray-200 to-gray-300"></div>
     </div>
   )
 }
@@ -27,7 +27,7 @@ const SkeletonGrid = ({ count = 12 }) => {
           <div
             className={`w-full ${
               heights[index % heights.length]
-            } bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-shimmer`}
+            } bg-linear-to-br from-gray-200 via-gray-100 to-gray-200 bg-size-200% animate-shimmer`}
           ></div>
         </div>
       ))}
@@ -76,13 +76,13 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
         setHasMore(pagination.page < pagination.totalPages)
       } catch (error) {
         console.error("Error fetching images:", error)
-        message.error("Failed to load images")
+        toast.error("Failed to load images")
       } finally {
         setLoading(false)
         setLoadingMore(false)
       }
     },
-    [pageSize, searchQuery],
+    [pageSize, searchQuery]
   )
 
   // Reset and fetch when search changes
@@ -124,12 +124,12 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
       `}</style>
       <div className="flex flex-col h-full">
         {/* Search Bar */}
-        <div className="mb-4 flex-shrink-0">
+        <div className="mb-4 shrink-0">
           <DebouncedSearchInput
             onSearch={setSearchQuery}
             placeholder="Search images..."
             debounceTime={500}
-            className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="input input-bordered w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -171,7 +171,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
                     )}
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 md:p-4">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 md:p-4">
                       <p className="text-white text-xs md:text-sm line-clamp-2 font-medium">
                         {image.description}
                       </p>
@@ -183,14 +183,14 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
               {/* Load More Button */}
               {hasMore && (
                 <div className="mt-6 flex justify-center">
-                  <Button
+                  <button
                     onClick={handleLoadMore}
-                    loading={loadingMore}
-                    size="large"
-                    className="px-6 md:px-8 rounded-lg w-full sm:w-auto"
+                    disabled={loadingMore}
+                    className="btn btn-lg px-6 md:px-8 rounded-lg w-full sm:w-auto"
                   >
+                    {loadingMore && <span className="loading loading-spinner"></span>}
                     {loadingMore ? "Loading..." : "Load More"}
-                  </Button>
+                  </button>
                 </div>
               )}
             </>

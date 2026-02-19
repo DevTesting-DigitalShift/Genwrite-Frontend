@@ -5,8 +5,8 @@ import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
-import { message, Modal, Tooltip } from "antd"
-import { Plus, X, Crown } from "lucide-react" // Added Crown icon
+import toast from "@utils/toast"
+import { Plus, X, Crown } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
@@ -124,13 +124,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     setErrors(newErrors)
 
     if (Object.values(newErrors).some(error => error)) {
-      message.error("Please fill all required fields correctly.")
+      toast.error("Please fill all required fields correctly.")
       return
     }
 
     if (otherLinks.length > 3) {
       setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
-      message.error("You can only add up to 3 links.")
+      toast.error("You can only add up to 3 links.")
       return
     }
 
@@ -183,7 +183,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         handleClose()
       } catch (error) {
         // ❌ Don't close modal - let user retry
-        message.error(error?.message || "Failed to create blog. Please try again.")
+        toast.error(error?.message || "Failed to create blog. Please try again.")
       } finally {
         hideLoading(loadingId)
       }
@@ -342,7 +342,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       const validation = validateUrl(link)
       if (!validation.valid) {
         setErrors(prev => ({ ...prev, otherLinks: validation.error }))
-        message.error(validation.error)
+        toast.error(validation.error)
         return
       }
 
@@ -388,448 +388,447 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   return (
     <>
       {" "}
-      <Modal
-        title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
-        open={true}
-        onCancel={handleClose}
-        footer={
-          currentStep === 0
-            ? [
-                <button
-                  key="next"
-                  onClick={handleNext}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
-                  aria-label="Next step"
+      <dialog className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden bg-white">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-bold text-lg">{`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}</h3>
+            <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
+            {currentStep === 0 && (
+              <>
+                <div
+                  className={` overflow-clip p-4 pt-0 ${
+                    errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
+                  }`}
                 >
-                  Next
-                </button>,
-              ]
-            : [
-                <div key="footer-content" className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-gray-600">Estimated Cost:</span>
-                    <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-                    {formData.costCutter && (
-                      <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-                    )}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      key="previous"
-                      onClick={() => setCurrentStep(0)}
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-                      aria-label="Previous step"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      key="submit"
-                      onClick={handleSubmit}
-                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
-                      aria-label="Submit quick blog"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </div>,
-              ]
-        }
-        width={800}
-        centered
-        transitionName=""
-        maskTransitionName=""
-        destroyOnHidden
-      >
-        <div className="p-2 space-y-2 !max-h-[75vh] overflow-y-auto custom-scroll">
-          {currentStep === 0 && (
-            <>
-              <div
-                className={` overflow-clip p-4 pt-0 ${
-                  errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
-                }`}
-              >
-                <TemplateSelection
-                  userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                  onClick={handlePackageSelect}
-                  preSelectedIds={formData.templateIds}
-                />
-              </div>
-              {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
-            </>
-          )}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Topic <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="topic"
-                  value={formData.topic}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border ${
-                    errors.topic ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg`}
-                  placeholder="Enter the blog topic"
-                  aria-label="Blog topic"
-                />
-                {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Use Topic name as Blog Title
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.exactTitle}
-                    onChange={e => setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))}
-                    className="sr-only peer"
+                  <TemplateSelection
+                    userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+                    onClick={handlePackageSelect}
+                    preSelectedIds={formData.templateIds}
                   />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Language <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="languageToWrite"
-                  value={formData.languageToWrite}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] focus:border-transparent"
-                  aria-label="Select language"
-                >
-                  {LANGUAGES.map(lang => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Perform Keyword Research
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.performKeywordResearch}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        performKeywordResearch: e.target.checked,
-                        focusKeywords: e.target.checked ? [] : prev.focusKeywords,
-                        keywords: e.target.checked ? [] : prev.keywords,
-                        focusKeywordInput: "",
-                        keywordInput: "",
-                      }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-              {!formData.performKeywordResearch && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Focus Keywords (Max 3) <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.focusKeywordInput}
-                        onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                        onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                        className={`flex-1 px-3 py-2 border ${
-                          errors.focusKeywords ? "border-red-500" : "border-gray-200"
-                        } rounded-md text-sm bg-gray-50`}
-                        placeholder="Enter focus keywords, separated by commas"
-                        aria-label="Focus keywords"
-                      />
-                      <button
-                        onClick={() => handleAddKeyword("focusKeywords")}
-                        className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                        aria-label="Add focus keywords"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    {errors.focusKeywords && (
-                      <p className="text-red-500 text-sm mt-1">{errors.focusKeywords}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {formData.focusKeywords.map((keyword, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                        >
-                          {keyword}
-                          <button
-                            onClick={() => handleRemoveKeyword(index, "focusKeywords")}
-                            className="ml-1 text-blue-400 hover:text-blue-600"
-                            aria-label={`Remove ${keyword}`}
-                          >
-                            <X size={16} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Keywords <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.keywordInput}
-                        onChange={e => handleKeywordInputChange(e, "keywords")}
-                        onKeyDown={e => handleKeyPress(e, "keywords")}
-                        className={`flex-1 px-3 py-2 border ${
-                          errors.keywords ? "border-red-500" : "border-gray-200"
-                        } rounded-md text-sm bg-gray-50`}
-                        placeholder="Enter secondary keywords, separated by commas"
-                        aria-label="Secondary keywords"
-                      />
-                      <button
-                        onClick={() => handleAddKeyword("keywords")}
-                        className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                        aria-label="Add secondary keywords"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    {errors.keywords && (
-                      <p className="text-red-500 text-sm mt-1">{errors.keywords}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {formData.keywords.map((keyword, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                        >
-                          {keyword}
-                          <button
-                            onClick={() => handleRemoveKeyword(index, "keywords")}
-                            className="ml-1 text-blue-400 hover:text-blue-600"
-                            aria-label={`Remove ${keyword}`}
-                          >
-                            <X size={16} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Add Images & Source Selection */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Add Images</label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.addImages}
-                    onChange={e => setFormData(prev => ({ ...prev, addImages: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-              {formData.addImages && (
+                </div>
+                {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
+              </>
+            )}
+            {currentStep === 1 && (
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Image Source
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Topic <span className="text-red-500">*</span>
                   </label>
-                  <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
-                    {imageSources.map(source => (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+                  <input
+                    type="text"
+                    name="topic"
+                    value={formData.topic}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border ${
+                      errors.topic ? "border-red-500" : "border-gray-200"
+                    } rounded-md text-sm bg`}
+                    placeholder="Enter the blog topic"
+                    aria-label="Blog topic"
+                  />
+                  {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Use Topic name as Blog Title
+                  </label>
+                  <label className="relative inline-block w-11 h-6 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.exactTitle}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Language <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="languageToWrite"
+                    value={formData.languageToWrite}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] focus:border-transparent"
+                    aria-label="Select language"
+                  >
+                    {LANGUAGES.map(lang => (
+                      <option key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Perform Keyword Research
+                  </label>
+                  <label className="relative inline-block w-11 h-6 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.performKeywordResearch}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          performKeywordResearch: e.target.checked,
+                          focusKeywords: e.target.checked ? [] : prev.focusKeywords,
+                          keywords: e.target.checked ? [] : prev.keywords,
+                          focusKeywordInput: "",
+                          keywordInput: "",
+                        }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+                {!formData.performKeywordResearch && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Focus Keywords (Max 3) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={formData.focusKeywordInput}
+                          onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                          onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                          className={`flex-1 px-3 py-2 border ${
+                            errors.focusKeywords ? "border-red-500" : "border-gray-200"
+                          } rounded-md text-sm bg-gray-50`}
+                          placeholder="Enter focus keywords, separated by commas"
+                          aria-label="Focus keywords"
+                        />
+                        <button
+                          onClick={() => handleAddKeyword("focusKeywords")}
+                          className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                          aria-label="Add focus keywords"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      {errors.focusKeywords && (
+                        <p className="text-red-500 text-sm mt-1">{errors.focusKeywords}</p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.focusKeywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                          >
+                            {keyword}
+                            <button
+                              onClick={() => handleRemoveKeyword(index, "focusKeywords")}
+                              className="ml-1 text-blue-400 hover:text-blue-600"
+                              aria-label={`Remove ${keyword}`}
+                            >
+                              <X size={16} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Keywords <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={formData.keywordInput}
+                          onChange={e => handleKeywordInputChange(e, "keywords")}
+                          onKeyDown={e => handleKeyPress(e, "keywords")}
+                          className={`flex-1 px-3 py-2 border ${
+                            errors.keywords ? "border-red-500" : "border-gray-200"
+                          } rounded-md text-sm bg-gray-50`}
+                          placeholder="Enter secondary keywords, separated by commas"
+                          aria-label="Secondary keywords"
+                        />
+                        <button
+                          onClick={() => handleAddKeyword("keywords")}
+                          className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                          aria-label="Add secondary keywords"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      {errors.keywords && (
+                        <p className="text-red-500 text-sm mt-1">{errors.keywords}</p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.keywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                          >
+                            {keyword}
+                            <button
+                              onClick={() => handleRemoveKeyword(index, "keywords")}
+                              className="ml-1 text-blue-400 hover:text-blue-600"
+                              aria-label={`Remove ${keyword}`}
+                            >
+                              <X size={16} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Add Images & Source Selection */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Add Images</label>
+                  <label className="relative inline-block w-11 h-6 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.addImages}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, addImages: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+                {formData.addImages && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Image Source
+                    </label>
+                    <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
+                      {imageSources.map(source => (
+                        <label
+                          key={source.id}
+                          htmlFor={source.id}
+                          className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
                       ${
                         formData.imageSource === source.value
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-300"
                       } hover:shadow-sm w-full`}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={handleChange}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Easy to Understand Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Easy to Understand
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.easyToUnderstand}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-              {/* Embed YouTube Videos Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Embed YouTube Videos
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.embedYouTubeVideos}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-              {/* Reference Links Section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {type === "yt"
-                    ? "YouTube Video Links "
-                    : "Reference Links (e.g., articles, websites)"}{" "}
-                  (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
-                </label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={formData.otherLinkInput}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
-                      }
-                      onKeyDown={e => handleKeyDown(e)}
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
-                      placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
-                      aria-label="Reference/Video links"
-                    />
-                    <button
-                      onClick={() => handleAddLink()}
-                      className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                      aria-label="Add reference/video links"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                  {errors.otherLinks && (
-                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {otherLinks.map((link, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                      >
-                        {link}
-                        <button
-                          onClick={() => handleRemoveLink(index)}
-                          className="ml-1 text-blue-400 hover:text-blue-600"
-                          aria-label={`Remove ${link}`}
                         >
-                          <X size={16} />
-                        </button>
-                      </span>
-                    ))}
+                          <input
+                            type="radio"
+                            id={source.id}
+                            name="imageSource"
+                            value={source.value}
+                            checked={formData.imageSource === source.value}
+                            onChange={handleChange}
+                            className="hidden"
+                          />
+                          <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Cost Cutter Toggle */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                    <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-                  </div>
-                  <label className="relative inline-block w-14 h-7 cursor-pointer">
+                {/* Easy to Understand Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Easy to Understand
+                  </label>
+                  <label className="relative inline-block w-11 h-6 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={formData.costCutter}
+                      checked={formData.easyToUnderstand}
                       onChange={e =>
-                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
+                        setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
                       }
                       className="sr-only peer"
                     />
-                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
-                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </label>
                 </div>
-              </div>
 
-              {/* Blog Configuration Info */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-base font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                  📝 Blog Configuration
-                </h3>
+                {/* Embed YouTube Videos Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Embed YouTube Videos
+                  </label>
+                  <label className="relative inline-block w-11 h-6 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.embedYouTubeVideos}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
 
-                <div className="space-y-2 text-sm">
-                  {/* Row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">Word Count</span>
-                    <span className="font-semibold text-blue-900">~1500 words</span>
+                {/* Reference Links Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {type === "yt"
+                      ? "YouTube Video Links "
+                      : "Reference Links (e.g., articles, websites)"}{" "}
+                    (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={formData.otherLinkInput}
+                        onChange={e =>
+                          setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
+                        }
+                        onKeyDown={e => handleKeyDown(e)}
+                        className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
+                        placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
+                        aria-label="Reference/Video links"
+                      />
+                      <button
+                        onClick={() => handleAddLink()}
+                        className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                        aria-label="Add reference/video links"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                    {errors.otherLinks && (
+                      <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {otherLinks.map((link, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                        >
+                          {link}
+                          <button
+                            onClick={() => handleRemoveLink(index)}
+                            className="ml-1 text-blue-400 hover:text-blue-600"
+                            aria-label={`Remove ${link}`}
+                          >
+                            <X size={16} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   </div>
+                </div>
 
-                  {/* Divider */}
-                  <div className="border-t border-blue-200/60"></div>
-
-                  {/* Row */}
+                {/* Cost Cutter Toggle */}
+                <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">AI Model</span>
-                    <span className="font-semibold text-blue-900">Gemini Flash</span>
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                      <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                    </div>
+                    <label className="relative inline-block w-14 h-7 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.costCutter}
+                        onChange={e =>
+                          setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
+                      <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
+                    </label>
                   </div>
+                </div>
 
-                  {/* Divider */}
-                  <div className="border-t border-blue-200/60"></div>
+                {/* Blog Configuration Info */}
+                <div className="bg-linear-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm">
+                  <h3 className="text-base font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                    📝 Blog Configuration
+                  </h3>
 
-                  {/* Row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">Images</span>
-                    <span className="font-semibold text-blue-900">
-                      {formData.addImages
-                        ? formData.imageSource.includes("ai")
-                          ? "AI Generated"
-                          : "Stock Images"
-                        : "None"}
-                    </span>
+                  <div className="space-y-2 text-sm">
+                    {/* Row */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-900/70">Word Count</span>
+                      <span className="font-semibold text-blue-900">~1500 words</span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-blue-200/60"></div>
+
+                    {/* Row */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-900/70">AI Model</span>
+                      <span className="font-semibold text-blue-900">Gemini Flash</span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-blue-200/60"></div>
+
+                    {/* Row */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-900/70">Images</span>
+                      <span className="font-semibold text-blue-900">
+                        {formData.addImages
+                          ? formData.imageSource.includes("ai")
+                            ? "AI Generated"
+                            : "Stock Images"
+                          : "None"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-gray-50 flex justify-end">
+            {currentStep === 0 ? (
+              <button
+                onClick={handleNext}
+                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+              >
+                Next
+              </button>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Estimated Cost:</span>
+                  <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                  {formData.costCutter && (
+                    <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setCurrentStep(0)}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </Modal>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={handleClose}>close</button>
+        </form>
+      </dialog>
     </>
   )
 }

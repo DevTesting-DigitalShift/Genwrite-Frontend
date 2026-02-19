@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
-import { message } from "antd"
+import toast from "@utils/toast"
 
 const useAnalysisStore = create(
   devtools(
@@ -38,12 +38,12 @@ const useAnalysisStore = create(
             analysisResult: { ...state.analysisResult, [blogId]: data },
             loading: false,
           }))
-          message.success("Competitive analysis completed successfully!")
+          toast.success("Competitive analysis completed successfully!")
           return data
         } catch (error) {
           console.error("Competitive analysis error", error)
           const errMsg = error.response?.data?.message || "Failed to fetch competitive analysis."
-          message.error(errMsg)
+          toast.error(errMsg)
           set({ error: errMsg, loading: false })
           throw error
         }
@@ -57,7 +57,7 @@ const useAnalysisStore = create(
           return result
         } catch (err) {
           const errMsg = err?.response?.data?.message || "Failed to analyze keywords."
-          message.error(errMsg)
+          toast.error(errMsg)
           set({ error: errMsg, loading: false })
           throw err
         }

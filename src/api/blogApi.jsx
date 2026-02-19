@@ -1,6 +1,5 @@
 import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
-import { message } from "antd"
 
 export const createQuickBlog = async (blogData, type) => {
   try {

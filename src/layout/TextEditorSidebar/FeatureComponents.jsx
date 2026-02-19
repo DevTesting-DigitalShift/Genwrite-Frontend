@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import { motion } from "framer-motion"
-import { Button, Tag } from "antd"
 import {
   TrendingUp,
   FileText,
@@ -9,8 +8,8 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
+  Crown,
 } from "lucide-react"
-import { CrownTwoTone } from "@ant-design/icons"
 
 const FeatureCard = ({
   title,
@@ -33,22 +32,21 @@ const FeatureCard = ({
       <div className="flex-1">
         <div className="flex items-center gap-4 mb-1">
           <h3 className="font-semibold text-gray-900">{title}</h3>
-          {isPro && <CrownTwoTone className="text-2xl ml-auto mr-2" />}
+          {isPro && <Crown className="w-5 h-5 text-yellow-500 ml-auto" />}
         </div>
         <p className="text-sm text-gray-600">{description}</p>
       </div>
     </div>
     {children}
-    <Button
+    <button
       onClick={onClick}
-      loading={isLoading}
       disabled={isLoading}
-      type="primary"
-      className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
-      ghost={isPro}
+      className={`btn btn-primary w-full min-h-0 h-10 text-sm rounded-lg font-medium transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg border-none ${
+        isLoading ? "loading" : ""
+      } ${isPro ? "btn-outline" : ""}`}
     >
       {isLoading ? "Processing..." : buttonText}
-    </Button>
+    </button>
   </motion.div>
 )
 
@@ -144,7 +142,11 @@ const CompetitorsList = ({ competitors }) => {
               rel="noopener noreferrer"
               className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              {item.score && <Tag color="blue">{(item.score * 100).toFixed(2)}%</Tag>}
+              {item.score && (
+                <div className="badge badge-info badge-outline text-[10px] h-4">
+                  {(item.score * 100).toFixed(2)}%
+                </div>
+              )}
               Visit <ExternalLink className="w-3 h-3" />
             </a>
           </div>
@@ -201,7 +203,13 @@ const AnalysisInsights = ({ insights }) => {
                   <p className="font-medium text-blue-900 text-sm mb-1">
                     {key.replace(/([A-Z])/g, " $1").trim()}
                   </p>
-                  <p>{score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}</p>
+                  <p>
+                    {score && (
+                      <div className="badge badge-outline badge-primary text-[10px]">
+                        {score.replace("/", " / ")}
+                      </div>
+                    )}
+                  </p>
                 </div>
                 <p
                   className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
@@ -253,17 +261,15 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
         </div>
       </div>
       <div className="flex gap-2">
-        <Button
-          size="small"
-          type="primary"
+        <button
           onClick={() => onApply(index, suggestion)}
-          className="flex-1 bg-linear-to-r! from-green-500! to-emerald-600! border-0!"
+          className="btn btn-success btn-sm flex-1 text-white"
         >
           Accept
-        </Button>
-        <Button size="small" onClick={() => onReject(index)} className="flex-1">
+        </button>
+        <button onClick={() => onReject(index)} className="btn btn-ghost btn-outline btn-sm flex-1">
           Reject
-        </Button>
+        </button>
       </div>
     </div>
   </div>

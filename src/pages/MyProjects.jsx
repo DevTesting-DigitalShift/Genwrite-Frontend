@@ -2,18 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/UI/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
-import {
-  Badge,
-  Button,
-  Input,
-  Popconfirm,
-  Tooltip,
-  Popover,
-  Pagination,
-  message,
-  Flex,
-  Spin,
-} from "antd"
+import toast from "@utils/toast"
 import {
   ArrowDownUp,
   Calendar,
@@ -24,6 +13,9 @@ import {
   Search,
   Trash2,
   X,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -119,7 +111,7 @@ const MyProjects = () => {
           status: error.status,
           response: error.response,
         })
-        message.error("Failed to load blogs. Please try again.")
+        toast.error("Failed to load blogs. Please try again.")
       },
     })
 
@@ -127,7 +119,6 @@ const MyProjects = () => {
   const allBlogs = useMemo(() => data?.pages.flatMap(p => p.data) ?? [], [data])
   // const hasMore = data?.pages[data?.pages.length - 1]?.hasMore ?? false
   const totalItems = data?.pages[0]?.totalItems ?? 0
-  /** @type {React.RefObject<null> | React.Ref<import("antd").InputRef>} */
   const inputRef = useRef(null)
 
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -204,20 +195,20 @@ const MyProjects = () => {
   const handleRetry = useCallback(async id => {
     try {
       await retryBlogById(id)
-      message.success("Blog will be regenerated shortly")
+      toast.success("Blog will be regenerated shortly")
       refetch()
     } catch (err) {
-      message.error("Failed to retry blog")
+      toast.error("Failed to retry blog")
     }
   }, [])
 
   const handleArchive = useCallback(async id => {
     try {
       await archiveBlogById(id)
-      message.success("Blog archived successfully")
+      toast.success("Blog archived successfully")
       refetch()
     } catch (err) {
-      message.error("Failed to archive")
+      toast.error("Failed to archive")
     }
   }, [])
 
@@ -321,7 +312,7 @@ const MyProjects = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+            className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
           >
             Blogs Generated
           </motion.h1>
@@ -335,157 +326,143 @@ const MyProjects = () => {
             content creation.
           </motion.p>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Flex gap={8} justify="center" align="center">
-            <div
-              onClick={() => {
-                handleProAction(() => {
-                  navigate("/blog-editor") // only runs for Pro users
-                })
-              }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium cursor-pointer"
-            >
-              <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
-              New Blog
-            </div>
-            {/* Refresh */}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="default"
-                icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-                onClick={() =>
-                  queryClient.invalidateQueries({
-                    queryKey: ["blogs", userId, blogFilters],
-                    refetchType: "all",
-                  })
-                }
-                className="p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm"
-              >
-                Refresh
-              </Button>
-            </motion.div>
-          </Flex>
-        </motion.div>
+        <div className="flex gap-3">
+          <div
+            onClick={() => {
+              handleProAction(() => {
+                navigate("/blog-editor")
+              })
+            }}
+            className="flex items-center gap-2 px-6 h-12 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-2xl transition-all shadow-xl shadow-blue-200/50 hover:shadow-blue-300 font-black text-sm cursor-pointer active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            New Blog
+          </div>
+          <button
+            onClick={() =>
+              queryClient.invalidateQueries({
+                queryKey: ["blogs", userId, blogFilters],
+                refetchType: "all",
+              })
+            }
+            className="btn btn-ghost h-12 px-5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all flex items-center gap-2 group"
+          >
+            <RefreshCcw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter and Sort Bar */}
-      <Flex
-        justify="space-around"
-        align="center"
-        gap="middle"
-        wrap={window?.innerWidth <= 1024}
-        className="flex-col sm:flex-row p-4 sm:p-6 rounded-lg mb-4"
-      >
-        <DebouncedSearchInput
-          initialValue={blogFilters.q}
-          onSearch={value => {
-            updateBlogFilters({ q: value })
-          }}
-          placeholder="search blogs..."
-          className="min-w-[300px] w-full text-center border mr-2"
-          containerClassName="w-1/3"
-        />
+      <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 backdrop-blur-sm p-4 rounded-[24px] border border-slate-100 mb-8 shadow-sm">
+        <div className="w-full lg:w-1/3">
+          <DebouncedSearchInput
+            initialValue={blogFilters.q}
+            onSearch={value => {
+              updateBlogFilters({ q: value })
+            }}
+            placeholder="Search projects..."
+            className="w-full bg-white h-12 rounded-2xl border-slate-200 focus:border-blue-500 transition-all font-medium text-slate-700"
+          />
+        </div>
 
-        {/* Sort */}
-        <Popover
-          open={isMenuOpen}
-          onOpenChange={visible => setMenuOpen(visible)}
-          trigger="click"
-          placement="bottomRight"
-          content={
-            <div className="min-w-[200px] rounded-lg space-y-1">
-              {menuOptions.map(({ label, icon, onClick }) => (
-                <Tooltip title={label} placement="left" key={label}>
-                  <button
-                    onClick={onClick}
-                    className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="text-base sm:text-lg">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
-          }
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<ArrowDownUp className="w-4 sm:w-5 h-4 sm:h-5" />}
-              className={`min-w-[210px] p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm ${
+        <div className="flex flex-wrap items-center justify-center gap-3 flex-1">
+          <div className="dropdown dropdown-bottom dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.sort !== SORT_OPTIONS[0].value
-                  ? "border-blue-400 bg-blue-50 text-blue-600"
-                  : ""
+                  ? "border-blue-300 bg-blue-50/50 text-blue-600 ring-4 ring-blue-500/10"
+                  : "text-slate-600"
               }`}
             >
-              Sort: {menuOptions.find(t => t.value === blogFilters.sort).label}
-            </Button>
-          </motion.div>
-        </Popover>
-
-        {/* Filter */}
-        <Popover
-          open={isFunnelMenuOpen}
-          onOpenChange={visible => setFunnelMenuOpen(visible)}
-          trigger="click"
-          placement="bottomRight"
-          content={
-            <div className="min-w-[200px] rounded-lg space-y-1">
-              {funnelMenuOptions.map(({ label, icon, onClick }) => (
-                <Tooltip title={label} placement="left" key={label}>
+              <ArrowDownUp className="w-4 h-4" />
+              <span className="font-bold">
+                Sort: {menuOptions.find(t => t.value === blogFilters.sort).label}
+              </span>
+            </div>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2"
+            >
+              {menuOptions.map(({ label, icon, onClick }) => (
+                <li key={label}>
                   <button
                     onClick={onClick}
-                    className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="rounded-2xl py-3 px-4 hover:bg-indigo-50 hover:text-indigo-600 transition-all gap-3"
                   >
-                    <span className="text-base sm:text-lg">{icon}</span>
-                    <span>{label}</span>
+                    <span className="text-xl opacity-70">{icon}</span>
+                    <span className="font-bold">{label}</span>
                   </button>
-                </Tooltip>
+                </li>
               ))}
-            </div>
-          }
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<Filter className="w-4 sm:w-5 h-4 sm:h-5" />}
-              className={`min-w-[210px] p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm ${
+            </ul>
+          </div>
+
+          <div className="dropdown dropdown-bottom dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.status !== BLOG_STATUS.ALL
-                  ? "border-green-400 bg-green-50 text-green-600"
-                  : ""
+                  ? "border-emerald-300 bg-emerald-50/50 text-emerald-600 ring-4 ring-emerald-500/10"
+                  : "text-slate-600"
               }`}
             >
-              Filter: {funnelMenuOptions.find(t => t.value === blogFilters.status).label}
-            </Button>
-          </motion.div>
-        </Popover>
+              <Filter className="w-4 h-4" />
+              <span className="font-bold">
+                Filter: {funnelMenuOptions.find(t => t.value === blogFilters.status).label}
+              </span>
+            </div>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2"
+            >
+              {funnelMenuOptions.map(({ label, icon, onClick }) => (
+                <li key={label}>
+                  <button
+                    onClick={onClick}
+                    className="rounded-2xl py-3 px-4 hover:bg-emerald-50 hover:text-emerald-600 transition-all gap-3"
+                  >
+                    <span className="text-xl opacity-70">{icon}</span>
+                    <span className="font-bold">{label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Reset */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button
-            type="default"
-            icon={<RotateCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+          <button
             onClick={resetFilters}
-            className={`p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm ${
-              hasActiveFilters && "border-red-400 bg-red-50 text-red-600"
+            className={`btn btn-ghost h-12 px-6 rounded-2xl border transition-all normal-case font-bold flex items-center gap-2 ${
+              hasActiveFilters
+                ? "border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100"
+                : "border-slate-200 bg-white text-slate-400 opacity-50 cursor-not-allowed"
             }`}
+            disabled={!hasActiveFilters}
           >
+            <RotateCcw className={`w-4 h-4 ${hasActiveFilters ? "animate-spin-once" : ""}`} />
             Reset
-          </Button>
-        </motion.div>
+          </button>
+        </div>
 
-        <DateRangePicker
-          value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
-          minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
-          maxDate={dayjs()}
-          onChange={dates => {
-            updateBlogFilters({
-              ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1].toISOString() } : {}),
-            })
-          }}
-          className={clsx("min-w-[400px] !w-1/3", hasActiveDates && "border-purple-500")}
-        />
-      </Flex>
+        <div className="w-full lg:w-1/3">
+          <DateRangePicker
+            value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
+            minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
+            maxDate={dayjs()}
+            onChange={dates => {
+              updateBlogFilters({
+                ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1].toISOString() } : {}),
+              })
+            }}
+            className={clsx(
+              "w-full h-12 rounded-2xl border-slate-200",
+              hasActiveDates && "border-indigo-400! bg-indigo-50/30!"
+            )}
+          />
+        </div>
+      </div>
       <AnimatePresence>
         {isLoading || isRefetching ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
@@ -522,35 +499,23 @@ const MyProjects = () => {
             {/* Total */}
             {/* INFINITE SCROLL SENTINEL */}
             {hasNextPage && (
-              <>
-                <Flex vertical gap={12} justify="center" align="center" className="mt-4">
-                  {/* <div ref={loadMoreRef} className="py-8 text-center">
-               {isFetchingNextPage ? <Spinner /> : <div className="h-1" />}
-               </div> */}
-                  <div className="text-right text-sm text-gray-500 mr-0">
-                    Showing {allBlogs.length} of {totalItems} blogs
-                  </div>
-                  <Button
-                    loading={isFetchingNextPage}
-                    onClick={() => fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                  >
-                    {isFetchingNextPage ? "loading..." : "Load More"}
-                  </Button>
-                </Flex>
-              </>
+              <div className="mt-12 flex flex-col items-center gap-8">
+                <div className="px-5 py-2 bg-slate-100 text-slate-500 rounded-full text-xs font-bold tracking-widest uppercase shadow-xs">
+                  Showing {allBlogs.length} of {totalItems} projects
+                </div>
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="btn btn-primary h-14 px-12 rounded-[24px] font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-2xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    "Load More Results"
+                  )}
+                </button>
+              </div>
             )}
-            <style>{`
-      .ant-input, .ant-input:focus, .ant-input-search .ant-input{
-        border:none !important;
-        height:100% !important;
-      }
-
-      ant-input-search .ant-input:focus, .ant-input-search .ant-input:hover{
-        box-shadow:none !important;
-      }
-      
-      `}</style>
           </>
         )}
       </AnimatePresence>

@@ -1,5 +1,3 @@
-import { Button } from "antd"
-
 const DifferentPlugins = ({
   pluginImage,
   pluginLink,
@@ -38,26 +36,20 @@ const DifferentPlugins = ({
         </div>
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <a href={pluginLink} download className="w-full sm:w-auto">
-            <Button
-              block
-              type="primary"
-              className="bg-[#1B6FC9] text-white text-xs sm:text-sm font-normal px-3 sm:px-4 py-1 sm:py-2 rounded-md h-auto"
-            >
+            <button className="w-full bg-[#1B6FC9] text-white text-xs sm:text-sm font-normal px-3 sm:px-4 py-2 rounded-md hover:bg-[#155a9c] transition-colors">
               Install Plugin
-            </Button>
+            </button>
           </a>
-          <Button
-            block
-            type="primary"
+          <button
             onClick={onCheck}
-            className={`transition-all text-xs sm:text-sm font-normal px-3 sm:px-4 py-1 sm:py-2 rounded-md h-auto ${
+            className={`w-full transition-all text-xs sm:text-sm font-normal px-3 sm:px-4 py-2 rounded-md text-white ${
               wordpressStatus?.success
-                ? "bg-green-600 hover:bg-green-600"
+                ? "bg-green-600 hover:bg-green-700"
                 : "bg-[#1B6FC9] hover:bg-[#155a9c]"
             }`}
           >
             {wordpressStatus?.success ? "Connected" : "Connect"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

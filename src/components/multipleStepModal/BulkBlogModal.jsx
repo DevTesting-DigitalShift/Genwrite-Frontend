@@ -6,7 +6,7 @@ import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
-import { message, Modal, Select, Tooltip } from "antd"
+import toast from "@utils/toast"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -17,7 +17,6 @@ import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 
-// Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
   const { user } = useAuthStore()
   const { integrations, fetchIntegrations } = useIntegrationStore()
@@ -34,9 +33,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
   const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
-  const { Option } = Select
 
-  // Initial Form Data
   const initialFormData = {
     templates: [],
     templateIds: [],
@@ -45,10 +42,10 @@ const BulkBlogModal = ({ closeFnc }) => {
     topicInput: "",
     keywordInput: "",
     performKeywordResearch: true,
-    tone: "", // Initialize as empty string, will be validated as required
+    tone: "", 
     languageToWrite: "English",
     userDefinedLength: 1000,
-    imageSource: IMAGE_SOURCE.STOCK, // Ensure this matches schema enum
+    imageSource: IMAGE_SOURCE.STOCK, 
     isCheckedBrand: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -300,7 +297,7 @@ const BulkBlogModal = ({ closeFnc }) => {
           // but the store action likely handles the main success feedback/navigation
         })
         .catch(error => {
-          message.error(error?.message || "Failed to create blogs. Please try again.")
+          toast.error(error?.message || "Failed to create blogs. Please try again.")
         })
         .finally(() => {
           hideLoading(loadingId)
@@ -310,7 +307,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     } catch (error) {
       // This catch block might not be hit if createMultiBlog validation fails synchronously before returning a promise
       // but good to keep for safety
-      message.error(error?.message || "Failed to create blogs. Please try again.")
+      toast.error(error?.message || "Failed to create blogs. Please try again.")
       hideLoading(loadingId)
     }
   }
@@ -719,48 +716,15 @@ const BulkBlogModal = ({ closeFnc }) => {
   return (
     <>
       {" "}
-      <Modal
-        title={`Step ${currentStep + 1}: ${steps[currentStep]}`}
-        open={true}
-        onCancel={handleClose}
-        footer={
-          <div className="flex items-center justify-between w-full">
-            {currentStep === 2 && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-                {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-                )}
-                <span className="text-xs text-gray-500">
-                  ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
-                </span>
-              </div>
-            )}
-            <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
-              {currentStep > 0 && (
-                <button
-                  onClick={handlePrev}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
-                >
-                  Previous
-                </button>
-              )}
-              <button
-                onClick={currentStep === 2 ? handleSubmit : handleNext}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
-              >
-                {currentStep === 2 ? "Generate Blogs" : "Next"}
-              </button>
-            </div>
-          </div>
-        }
-        width={800}
-        centered
-        transitionName=""
-        maskTransitionName=""
-      >
-        <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
+    <dialog className="modal modal-open">
+      <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden bg-white">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="font-bold text-lg">{`Step ${currentStep + 1}: ${steps[currentStep]}`}</h3>
+          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-2 md:p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
             <div
               className={`p-3 md:p-0 ${
@@ -789,11 +753,11 @@ const BulkBlogModal = ({ closeFnc }) => {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                   Topics <span className="text-red-500">*</span>
-                  <Tooltip title="Upload a .csv file in the format: `Topics` as header">
+                  <div className="tooltip" data-tip="Upload a .csv file in the format: `Topics` as header">
                     <div className="cursor-pointer">
                       <Info size={16} className="text-blue-500" />
                     </div>
-                  </Tooltip>
+                  </div>
                 </label>
                 <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs.</p>
                 <div className="flex gap-2 mt-2">
@@ -841,7 +805,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         <button
                           type="button"
                           onClick={() => handleRemoveTopic(actualIndex)}
-                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -889,11 +853,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                       Keywords <span className="text-red-500">*</span>
-                      <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
+                      <div className="tooltip" data-tip="Upload a .csv file in the format: `Keywords` as header">
                         <div className="cursor-pointer">
                           <Info size={16} className="text-blue-500" />
                         </div>
-                      </Tooltip>
+                      </div>
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -942,7 +906,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveKeyword(actualIndex)}
-                              className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                              className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -975,28 +939,28 @@ const BulkBlogModal = ({ closeFnc }) => {
                   <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
                     Tone of Voice <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    className="w-full"
+                  <select
+                    className={`select select-bordered w-full h-10 min-h-0 text-sm ${
+                      errors.tone ? "select-error" : ""
+                    }`}
                     value={formData.tone}
-                    onChange={value => {
-                      setFormData(prev => ({ ...prev, tone: value }))
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, tone: e.target.value }))
                       setErrors(prev => ({ ...prev, tone: "" }))
                     }}
-                    placeholder="Select tone"
-                    status={errors.tone ? "error" : ""}
                   >
-                    <Option value="">Select Tone</Option>
-                    <Option value="professional">Professional</Option>
-                    <Option value="casual">Casual</Option>
-                    <Option value="friendly">Friendly</Option>
-                    <Option value="formal">Formal</Option>
-                    <Option value="conversational">Conversational</Option>
-                    <Option value="witty">Witty</Option>
-                    <Option value="informative">Informative</Option>
-                    <Option value="inspirational">Inspirational</Option>
-                    <Option value="persuasive">Persuasive</Option>
-                    <Option value="empathetic">Empathetic</Option>
-                  </Select>
+                    <option value="" disabled>Select Tone</option>
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="formal">Formal</option>
+                    <option value="conversational">Conversational</option>
+                    <option value="witty">Witty</option>
+                    <option value="informative">Informative</option>
+                    <option value="inspirational">Inspirational</option>
+                    <option value="persuasive">Persuasive</option>
+                    <option value="empathetic">Empathetic</option>
+                  </select>
                   {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
                 </div>
                 <div>
@@ -1006,23 +970,22 @@ const BulkBlogModal = ({ closeFnc }) => {
                   >
                     Language <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    className="w-full"
+                  <select
+                    className="select select-bordered w-full h-10 min-h-0 text-sm"
                     value={formData.languageToWrite}
-                    onChange={value => {
-                      setFormData(prev => ({ ...prev, languageToWrite: value }))
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, languageToWrite: e.target.value }))
                     }}
-                    placeholder="Select language"
                   >
-                    <Option value="English">English</Option>
-                    <Option value="Spanish">Spanish</Option>
-                    <Option value="German">German</Option>
-                    <Option value="French">French</Option>
-                    <Option value="Italian">Italian</Option>
-                    <Option value="Portuguese">Portuguese</Option>
-                    <Option value="Dutch">Dutch</Option>
-                    <Option value="Japanese">Japanese</Option>
-                  </Select>
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="German">German</option>
+                    <option value="French">French</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Dutch">Dutch</option>
+                    <option value="Japanese">Japanese</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1034,9 +997,9 @@ const BulkBlogModal = ({ closeFnc }) => {
                       min="500"
                       max="5000"
                       value={formData.userDefinedLength}
-                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-linear-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                       style={{
-                        background: `linear-gradient(to right, #1B6FC9 ${
+                        background: `linear-linear(to right, #1B6FC9 ${
                           ((formData.userDefinedLength - 500) / 4500) * 100
                         }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
                       }}
@@ -1126,7 +1089,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               </div>
 
               {/* Cost Cutter Toggle */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
@@ -1250,16 +1213,9 @@ const BulkBlogModal = ({ closeFnc }) => {
                     />
                   </label>
                   {isAiImagesLimitReached && (
-                    <Tooltip
-                      title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                      overlayInnerStyle={{
-                        backgroundColor: "#FEF9C3",
-                        border: "1px solid #FACC15",
-                        color: "#78350F",
-                      }}
-                    >
+                    <div className="tooltip tooltip-warning" data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle.">
                       <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                    </Tooltip>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1437,20 +1393,20 @@ const BulkBlogModal = ({ closeFnc }) => {
                         Post your blog automatically to connected platforms only.
                       </p>
                     </span>
-                    <Select
-                      className="w-full mt-2"
-                      placeholder="Select platform"
-                      value={formData.postingType}
-                      onChange={handleIntegrationChange}
-                      status={errors.integration ? "error" : ""}
+                    <select
+                      className={`select select-bordered w-full mt-2 h-10 min-h-0 text-sm ${
+                        errors.integration ? "select-error" : ""
+                      }`}
+                      value={formData.postingType || ""}
+                      onChange={e => handleIntegrationChange(e.target.value)}
                     >
-                      <Option value={null}>Select Platform</Option>
+                      <option value="" disabled>Select Platform</option>
                       {Object.entries(integrations.integrations).map(([platform]) => (
-                        <Option key={platform} value={platform}>
+                        <option key={platform} value={platform}>
                           {platform}
-                        </Option>
+                        </option>
                       ))}
-                    </Select>
+                    </select>
                     {errors.integration && (
                       <p className="text-red-500 text-xs mt-1">{errors.integration}</p>
                     )}
@@ -1544,7 +1500,44 @@ const BulkBlogModal = ({ closeFnc }) => {
             </div>
           )}
         </div>
-      </Modal>
+        
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex items-center justify-between w-full">
+            {currentStep === 2 && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                {formData.costCutter && (
+                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                )}
+                <span className="text-xs text-gray-500">
+                  ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
+                </span>
+              </div>
+            )}
+            <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrev}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
+                >
+                  Previous
+                </button>
+              )}
+              <button
+                onClick={currentStep === 2 ? handleSubmit : handleNext}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
+              >
+                {currentStep === 2 ? "Generate Blogs" : "Next"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={handleClose}>close</button>
+      </form>
+    </dialog>
     </>
   )
 }

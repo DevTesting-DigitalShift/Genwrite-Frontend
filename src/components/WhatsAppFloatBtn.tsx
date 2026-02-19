@@ -1,4 +1,3 @@
-import { Tooltip } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useCallback } from "react"
 import { FaWhatsapp } from "react-icons/fa"
@@ -11,11 +10,7 @@ interface WhatsAppFloatButtonProps {
   className?: string
   size?: "small" | "medium" | "large"
   showPulse?: boolean
-  mobileOffset?: {
-    bottom?: string
-    right?: string
-    left?: string
-  }
+  mobileOffset?: { bottom?: string; right?: string; left?: string }
 }
 
 const WhatsAppFloatButton = ({
@@ -34,18 +29,6 @@ const WhatsAppFloatButton = ({
     const encodedMessage = encodeURIComponent(message)
     return `https://wa.me/${phoneNumber}?text=${encodedMessage}`
   }, [phoneNumber, message])
-
-  const getPositionClasses = useCallback((): string => {
-    const bottomOffset = mobileOffset?.bottom || "bottom-4 sm:bottom-6"
-
-    switch (position) {
-      case "bottom-left":
-        return `${mobileOffset?.left || "left-3 sm:left-6"} ${bottomOffset}`
-      case "bottom-right":
-      default:
-        return `${mobileOffset?.right || "right-3 sm:right-6"} ${bottomOffset}`
-    }
-  }, [position, mobileOffset])
 
   const getSizeClasses = useCallback((): { button: string; icon: string; label: string } => {
     switch (size) {
@@ -78,29 +61,26 @@ const WhatsAppFloatButton = ({
   const sizeClasses = getSizeClasses()
 
   return (
-    <Tooltip
-      title={tooltipText}
-      placement={position === "bottom-left" ? "right" : "left"}
-      trigger={["hover"]}
+    <div
+      className="fixed z-50 pointer-events-auto tooltip tooltip-left"
+      style={{
+        // Manual positioning for floating button
+        bottom: mobileOffset?.bottom || (position === "bottom-right" ? "1.5rem" : "1.5rem"),
+        [position === "bottom-right" ? "right" : "left"]:
+          mobileOffset?.right ||
+          mobileOffset?.left ||
+          (position === "bottom-right" ? "0.75rem" : "0.75rem"),
+      }}
+      data-tip={tooltipText}
     >
       <motion.div
-        className={`
-          fixed z-50 ${getPositionClasses()}
-          cursor-pointer select-none
-          ${className}
-        `}
+        className={`cursor-pointer select-none ${className}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{
-          type: "spring",
-          stiffness: 260,
-          damping: 20,
-          delay: 0.5,
-        }}
+        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.5 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
       >
-
         {showPulse && (
           <div
             className={`
@@ -128,21 +108,15 @@ const WhatsAppFloatButton = ({
           `}
           aria-label="Chat on WhatsApp"
         >
-          <FaWhatsapp  className={sizeClasses.icon} />
+          <FaWhatsapp className={sizeClasses.icon} />
         </motion.button>
 
         <AnimatePresence>
           {isHovered && (
             <motion.div
-              initial={{
-                opacity: 0,
-                x: position === "bottom-left" ? -10 : 10,
-              }}
+              initial={{ opacity: 0, x: position === "bottom-left" ? -10 : 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{
-                opacity: 0,
-                x: position === "bottom-left" ? -10 : 10,
-              }}
+              exit={{ opacity: 0, x: position === "bottom-left" ? -10 : 10 }}
               transition={{ duration: 0.2 }}
               className={`
                 absolute top-1/2 -translate-y-1/2
@@ -180,7 +154,7 @@ const WhatsAppFloatButton = ({
           )}
         </AnimatePresence>
       </motion.div>
-    </Tooltip>
+    </div>
   )
 }
 

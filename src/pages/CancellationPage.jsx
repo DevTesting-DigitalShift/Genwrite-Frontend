@@ -1,10 +1,22 @@
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Heart, Gift, ArrowLeft, CheckCircle, Star, Sparkles, Crown, Zap } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Heart,
+  Gift,
+  ArrowLeft,
+  CheckCircle2,
+  Star,
+  Sparkles,
+  Crown,
+  Zap,
+  AlertTriangle,
+  XCircle,
+  ShieldCheck,
+  ChevronRight,
+} from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { message } from "antd"
+import toast from "@utils/toast"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { WarningOutlined } from "@ant-design/icons"
 import { cancelStripeSubscription } from "@api/otherApi"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
@@ -13,7 +25,6 @@ import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
 const CancellationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
   const { user } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
   const navigate = useNavigate()
@@ -28,20 +39,7 @@ const CancellationPage = () => {
     ) {
       navigate("/dashboard", { replace: true })
     }
-  }, [user])
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const formatTime = seconds => {
-    const minutes = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`
-  }
+  }, [user, navigate])
 
   const handleStay = async () => {
     try {
@@ -49,312 +47,261 @@ const CancellationPage = () => {
       await updateProfileMutate({ "subscription.discountApplied": 30 })
       setShowSuccess(true)
       sendCancellationRelatedEvent(user, "discount")
-      message.success("30% More Credits applied successfully!")
+      toast.success("30% Bonus Credits activated!")
     } catch (err) {
       console.error("Error applying discount:", err)
-      message.error("Failed to apply discount, please try again later.")
+      toast.error("Failed to apply bonus, please try again later.")
     } finally {
       setIsProcessing(false)
     }
   }
 
   const handleCancel = async () => {
-    // setIsProcessing(true);
-    // // Simulate API call for cancellation
-    // setTimeout(() => {
-    //   setIsProcessing(false);
-    //   setShowSuccess(true);
-    // }, 2000);
     handlePopup({
-      title: "Cancel Subscription",
+      title: "Confirm Cancellation",
       description: (
-        <span>
-          Are you sure you'd like to cancel your subscription? <br />
-          You'll continue to enjoy all your benefits{" "}
-          <strong>until the end of your current billing cycle</strong>.
-        </span>
+        <div className="space-y-4">
+          <p className="text-slate-600 font-medium leading-relaxed">
+            Are you sure you want to terminate your subscription? You'll continue to enjoy all
+            premium benefits <strong>until the end of your current cycle</strong>.
+          </p>
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 flex items-center gap-3">
+            <AlertTriangle className="text-rose-500 w-5 h-5 shrink-0" />
+            <p className="text-rose-800 text-xs font-bold">
+              WARNING: You will lose your 30% retention bonus offer if you proceed.
+            </p>
+          </div>
+        </div>
       ),
-      icon: <WarningOutlined style={{ fontSize: 40, color: "red" }} />,
+      icon: <XCircle className="w-12 h-12 text-rose-500" />,
       onConfirm: async () => {
         try {
           setIsProcessing(true)
-          const data = await cancelStripeSubscription()
+          await cancelStripeSubscription()
           sendCancellationRelatedEvent(user, "cancel")
-          message.success("Subscription cancelled successfully!")
+          toast.success("Subscription schedule updated for termination")
           navigate("/dashboard")
         } catch (err) {
           console.error("Error cancelling subscription:", err)
-          message.error("Failed to cancel subscription, please try again later.")
+          toast.error("Failed to update status, please try again.")
         } finally {
           setIsProcessing(false)
         }
       },
-      confirmText: "Cancel Anyway",
-      cancelText: "Go Back",
+      confirmText: "Eject Anyway",
+      cancelText: "Stay with GenWrite",
     })
   }
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden font-inter">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-100 rounded-full blur-[120px] opacity-40 -mr-64 -mt-64" />
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden"
+          className="max-w-xl w-full bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 p-12 text-center relative overflow-hidden border border-white"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl" />
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-            className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
+          <div className="w-24 h-24 bg-emerald-500 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-emerald-200">
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+            You're One of Us! 🚀
+          </h1>
+          <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+            Spectral link maintained. Your 30% credit bonus has been successfully integrated into
+            your next billing cycle.
+          </p>
+
+          <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 mb-10 flex items-center justify-center gap-4 group">
+            <Gift className="w-6 h-6 text-emerald-600 transition-transform group-hover:rotate-12" />
+            <span className="text-emerald-900 font-black uppercase tracking-widest text-xs">
+              30% Bonus Credits Applied
+            </span>
+          </div>
+
+          <Link
+            to="/dashboard"
+            className="btn btn-primary w-full h-16 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all gap-3"
           >
-            <CheckCircle className="w-10 h-10 text-white" />
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-bold text-gray-900 mb-4"
-          >
-            Welcome Back! 🎉
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-gray-600 mb-6 leading-relaxed"
-          >
-            Your 30% More Credits has been applied successfully! We're thrilled to have you continue
-            your journey with GenWrite.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6"
-          >
-            <div className="flex items-center justify-center gap-2 text-green-800 font-semibold">
-              <Gift className="w-5 h-5" />
-              <span>30% More Credits to Your Next Billing Cycle</span>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Link
-              to="/dashboard"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              Continue to Dashboard
-              <ArrowLeft className="w-4 h-4 rotate-180" />
-            </Link>
-          </motion.div>
+            Enter Dashboard Matrix
+            <ArrowLeft className="w-5 h-5 rotate-180" />
+          </Link>
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative py-16">
-        {/* <div className="">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10 font-inter relative overflow-hidden flex flex-col items-center justify-center">
+      {/* Background Orbs */}
+      <div className="absolute top-10 right-10 w-96 h-96 bg-blue-100 rounded-full blur-[100px] opacity-40 animate-pulse" />
+      <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-100 rounded-full blur-[100px] opacity-40" />
+
+      <div className="max-w-5xl w-full relative z-10">
+        {/* Hero Section */}
+        <section className="text-center mb-16 space-y-4">
           <motion.div
-            animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
-            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-            className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl"
-          />
-        </div> */}
-        <div className="max-w-7xl mx-auto px-4 text-center">
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-6 py-2 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-rose-100 mb-4"
+          >
+            <AlertTriangle className="w-3 h-3" /> Exclusive Retention offer Detected
+          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-4xl md:text-5xl font-bold mb-4"
+            transition={{ delay: 0.1 }}
+            className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter"
           >
-            Don't Leave Yet! 😢
+            Leaving So <span className="text-blue-600 underline decoration-blue-200">Soon?</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-xl md:text-2xl font-semibold mb-6"
+            transition={{ delay: 0.2 }}
+            className="text-xl md:text-2xl text-slate-500 font-medium"
           >
-            Stay with us and enjoy a{" "}
-            <span className="text-orange-400 font-bold uppercase">30% MORE credits </span> on next
-            billing cycle!
+            Don't miss out on our{" "}
+            <span className="text-slate-900 font-black">30% Neural Credit Boost</span> for your next
+            cycle.
           </motion.p>
-        </div>
-      </section>
+        </section>
 
-      {/* Main Content */}
-      <section className="max-w-7xl mx-auto px-4 py-12 grid md:grid-cols-2 gap-8">
-        {/* Offer Details */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-400/10 to-red-400/10 rounded-full -translate-y-12 translate-x-12" />
-          <div className="flex items-center gap-3 mb-4">
-            <Crown className="w-6 h-6 text-orange-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Exclusive Retention Offer</h2>
-          </div>
-          <div className="space-y-3 text-gray-700">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-orange-500" />
-              <span>30% more credits on next billing cycle</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-orange-500" />
-              <span>Better priority support and faster response times</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-orange-500" />
-              <span>No long-term commitment required</span>
-            </div>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleStay}
-            disabled={isProcessing}
-            className={`w-full mt-6 py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 ${
-              isProcessing
-                ? "opacity-70 cursor-not-allowed"
-                : "hover:from-blue-400 hover:to-purple-400"
-            }`}
+        <div className="grid lg:grid-cols-2 gap-10">
+          {/* Main Card */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-[48px] p-10 shadow-2xl shadow-slate-200/50 border border-white space-y-8 relative overflow-hidden group"
           >
-            {isProcessing ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white"
+            <div className="absolute top-0 right-0 p-8">
+              <Crown className="w-8 h-8 text-amber-100 opacity-50 group-hover:scale-125 transition-transform" />
+            </div>
+
+            <div className="space-y-6">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                <Gift className="text-rose-500" />
+                The Loyalty Reward
+              </h2>
+
+              <div className="space-y-4">
+                {[
+                  "30% Extra Neural Credits on next billing",
+                  "Priority Spectrum Support Access",
+                  "Early Access to GPT-5 Pro Features",
+                  "No commitment - keep the bonus and cancel later",
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 group">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 transition-colors">
+                      <Star className="w-4 h-4 text-blue-600 group-hover:text-white" />
+                    </div>
+                    <span className="text-slate-700 font-bold text-sm tracking-tight">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-6">
+              <button
+                onClick={handleStay}
+                disabled={isProcessing}
+                className="btn btn-primary w-full h-16 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all group scale-[1.02]"
+              >
+                {isProcessing ? (
+                  <span className="loading loading-spinner"></span>
+                ) : (
+                  <>
+                    Upgrade My Loyalty • Get 30% More
+                    <Zap className="w-5 h-5 ml-2 text-amber-400 group-hover:rotate-12 transition-transform" />
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleCancel}
+                disabled={isProcessing}
+                className="btn btn-ghost w-full h-14 rounded-2xl text-slate-400 hover:text-rose-500 font-black uppercase tracking-widest text-[10px]"
+              >
+                Proceed to Cancellation Sequence
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Benefits Grid */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-8"
+          >
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Why maintain sync?
+            </h2>
+
+            <div className="grid gap-6">
+              {[
+                {
+                  icon: <Sparkles className="text-blue-600" />,
+                  title: "Semantic Content Engine",
+                  desc: "High-entropy text generation that converts like magic.",
+                },
+                {
+                  icon: <BrainCircuit className="text-purple-600" />,
+                  title: "Neural Research Core",
+                  desc: "Sync PDFs and webpages to build the ultimate research base.",
+                },
+                {
+                  icon: <ShieldCheck className="text-emerald-600" />,
+                  title: "Enterprise Security",
+                  desc: "Your data is encrypted and never used for training models.",
+                },
+              ].map((benefit, i) => (
+                <div
+                  key={i}
+                  className="flex gap-5 p-6 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50 group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:shadow-md transition-all">
+                    {benefit.icon}
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-black text-slate-900 tracking-tight">{benefit.title}</h3>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                      {benefit.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-8">
+              <Link
+                to="/pricing"
+                className="text-sm font-black text-blue-600 flex items-center gap-2 group"
+              >
+                Explore Higher Neural Tiers
+                <ChevronRight
+                  size={16}
+                  className="group-hover:translate-x-1 transition-transform"
                 />
-                <span>Applying Discount...</span>
-              </>
-            ) : (
-              <>
-                <Gift className="w-5 h-5" />
-                <span>Claim 30% More Credits & Stay 🙌</span>
-                <Zap className="w-5 h-5" />
-              </>
-            )}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={handleCancel}
-            disabled={isProcessing}
-            className={`w-full mt-3 py-4 px-6 border-2 border-red-500 text-gray-700 font-semibold rounded-xl transition-all duration-300 hover:border-red-600 hover:bg-red-100 ${
-              isProcessing ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            Cancel Anyway
-          </motion.button>
-        </motion.div>
-
-        {/* Benefits Section */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
-          className="space-y-6"
-        >
-          <h2 className="text-2xl font-bold text-gray-900">Why Stay with GenWrite?</h2>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-6 h-6 text-blue-600" />
-              <div>
-                <h3 className="font-semibold text-gray-800">Powerful AI Writing Tools</h3>
-                <p className="text-gray-600">
-                  Generate high-quality content effortlessly with our advanced AI features.
-                </p>
-              </div>
+              </Link>
             </div>
-            <div className="flex items-start gap-3">
-              <Heart className="w-6 h-6 text-red-600" />
-              <div>
-                <h3 className="font-semibold text-gray-800">Personalized Support</h3>
-                <p className="text-gray-600">
-                  Get dedicated support to help you succeed with your writing projects.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Crown className="w-6 h-6 text-yellow-600" />
-              <div>
-                <h3 className="font-semibold text-gray-800">Premium Features</h3>
-                <p className="text-gray-600">
-                  Access exclusive tools and templates to elevate your content creation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Testimonial Section */}
-      <section className="bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="text-2xl font-bold text-gray-900 text-center mb-8"
-          >
-            What Our Users Say
-          </motion.h2>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="bg-white rounded-2xl shadow-lg p-6 text-center"
-          >
-            <p className="text-gray-600 italic mb-4">
-              "GenWrite has transformed the way I create content. The AI tools are a game-changer!"
-            </p>
-            <p className="font-semibold text-gray-800">— Sarah M., Content Creator</p>
           </motion.div>
         </div>
-      </section>
+      </div>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="flex items-center justify-center gap-6 text-xs text-gray-500 mb-4"
-          >
-            <div className="flex items-center gap-1">
-              <CheckCircle className="w-3 h-3 text-green-500" />
-              <span>No Hidden Fees</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <CheckCircle className="w-3 h-3 text-green-500" />
-              <span>Cancel Anytime</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <CheckCircle className="w-3 h-3 text-green-500" />
-              <span>Instant Activation</span>
-            </div>
-          </motion.div>
-          <p className="text-xs text-gray-500">
-            This offer is valid for existing subscribers only and cannot be combined with other
-            promotions. You can cancel anytime after applying the discount.
+      {/* Trust Footer */}
+      <footer className="mt-20 w-full max-w-5xl border-t border-slate-200/50 pt-10 pb-10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex items-center gap-8 opacity-40">
+            {["No Hidden Latency", "Eject Anytime", "Neural Encryption"].map((t, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <CheckCircle2 size={12} className="text-emerald-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{t}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center md:text-right max-w-xs">
+            Terms of synchronization apply. 30% bonus limited to one billing cycle per user ID.
           </p>
         </div>
       </footer>

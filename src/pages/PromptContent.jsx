@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Button, message, Input } from "antd"
-import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
+import { RefreshCw, Sparkles, Copy, Check, FileText, Send } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
-
-const { TextArea } = Input
+import toast from "@utils/toast"
 
 const PromptContent = () => {
   const [content, setContent] = useState("")
@@ -40,17 +39,21 @@ const PromptContent = () => {
 
   // Validation functions
   const isPromptValid = prompt.trim().length >= 10
-  const isContentValid = content.trim().split(/\s+/).length >= 300
-  const canGenerate = isPromptValid && isContentValid && !isGenerating
+  const isContentWordsValid =
+    content
+      .trim()
+      .split(/\s+/)
+      .filter(w => w.length > 0).length >= 300
+  const canGenerate = isPromptValid && isContentWordsValid && !isGenerating
 
   const handleGenerateContent = useCallback(async () => {
     if (!isPromptValid) {
-      message.error("Prompt must be at least 10 characters long.")
+      toast.error("Prompt must be at least 10 characters long.")
       return
     }
 
-    if (!isContentValid) {
-      message.error("Content must be at least 300 words long.")
+    if (!isContentWordsValid) {
+      toast.error("Content must be at least 300 words long.")
       return
     }
 
@@ -61,49 +64,54 @@ const PromptContent = () => {
 
     try {
       await generatePromptContent({ prompt, content })
-      message.success("Content generated successfully!")
+      toast.success("Content generated successfully!")
     } catch (error) {
       console.error("Error generating content:", error)
-      message.error(typeof error === "string" ? error : "Failed to generate content.")
+      toast.error(typeof error === "string" ? error : "Failed to generate content.")
     }
-  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid])
+  }, [
+    content,
+    prompt,
+    generatePromptContent,
+    userPlan,
+    navigate,
+    isPromptValid,
+    isContentWordsValid,
+  ])
 
   const handleReset = useCallback(() => {
     setContent("")
     setPrompt("")
     resetMetadata()
-    message.success("Content and prompt reset!")
+    toast.success("Content and prompt reset!")
   }, [resetMetadata])
 
   const copyToClipboard = async (text, label, fieldName) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopiedField(fieldName)
-      message.success(`${label} copied to clipboard!`)
+      toast.success(`${label} copied!`)
 
-      // Reset copy indicator after 2 seconds
       setTimeout(() => {
         setCopiedField(null)
       }, 2000)
     } catch (error) {
-      message.error(`Failed to copy ${label}.`)
+      toast.error(`Failed to copy ${label}.`)
     }
   }
 
-  // Helper function to strip HTML tags and get plain text
   const stripHtml = html => {
     const tmp = document.createElement("div")
     tmp.innerHTML = html
     return tmp.textContent || tmp.innerText || ""
   }
 
-  // Helper function to render HTML content safely
   const renderHtmlContent = htmlContent => {
     return (
       <div
-        className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
+        className="prose prose-slate max-w-none p-6 bg-slate-50/50 rounded-2xl border border-slate-100"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
-        style={{ lineHeight: "1.6", color: "#374151" }}
+        style={{ lineHeight: "1.7" }}
       />
     )
   }
@@ -117,177 +125,191 @@ const PromptContent = () => {
   if (isGenerating) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Generating content..." />
+        <ProgressLoadingScreen message="We're crafting your content using advanced AI..." />
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-5">
+    <div className="max-w-6xl mx-auto space-y-8 p-6 lg:p-10">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-md rounded-3xl shadow-sm border border-slate-100 p-8"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 bg-linear-to-tr from-blue-600 to-indigo-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-blue-200">
+              <Sparkles className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create Content from Prompts</h1>
-              <p className="text-gray-600">
-                Transform your ideas into ready-to-publish content in seconds.
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                AI Prompt Studio
+              </h1>
+              <p className="text-slate-500 font-medium">
+                Transform rough ideas into polished articles with single commands.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Reset all content"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Reset
-            </button>
-          </div>
+          <button
+            onClick={handleReset}
+            className="btn btn-ghost hover:bg-slate-100 text-slate-600 font-bold normal-case gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Reset Canvas
+          </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Input Form */}
-      <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-        <div className="space-y-4">
-          {/* Prompt Section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-file-text w-5 h-5 text-blue-600"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-1 gap-8"
+      >
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+          <div className="p-8 space-y-8">
+            {/* Prompt Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <Send className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-800">Your AI Instruction</h2>
+                </div>
+                <div
+                  className={`badge badge-lg font-bold border-none py-4 px-4 ${promptLength >= 10 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
                 >
-                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
-                  <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
-                  <path d="M10 9H8"></path>
-                  <path d="M16 13H8"></path>
-                  <path d="M16 17H8"></path>
-                </svg>
-                <h2 className="text-xl font-semibold text-gray-900">Prompt</h2>
+                  {promptLength}/10 Min
+                </div>
               </div>
-              <span className={`text-sm ${promptLength >= 10 ? "text-green-600" : "text-red-500"}`}>
-                {promptLength}/10 minimum
-              </span>
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="Example: 'Rewrite this content to be more witty and include 3 actionable tips for marketing managers...'"
+                rows={3}
+                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-300 min-h-[120px] ${
+                  prompt.trim() && !isPromptValid ? "border-rose-300" : "border-slate-200"
+                }`}
+              />
             </div>
-            <TextArea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
-              rows={4}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
-                prompt.trim() && !isPromptValid ? "border-red-300" : "border-gray-300"
-              }`}
-            />
-          </div>
 
-          {/* Content Section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-file-text w-5 h-5 text-blue-600"
+            {/* Content Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-800">Source Content</h2>
+                </div>
+                <div
+                  className={`badge badge-lg font-bold border-none py-4 px-4 ${wordCount >= 300 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
                 >
-                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
-                  <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
-                  <path d="M10 9H8"></path>
-                  <path d="M16 13H8"></path>
-                  <path d="M16 17H8"></path>
-                </svg>
-                <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+                  {wordCount}/300 Words
+                </div>
               </div>
-              <span className={`text-sm ${wordCount >= 300 ? "text-green-600" : "text-red-500"}`}>
-                {wordCount}/300 words minimum
-              </span>
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Paste your existing content here that you want to transform..."
+                rows={10}
+                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 min-h-[300px] ${
+                  content.trim() && !isContentWordsValid ? "border-rose-300" : "border-slate-200"
+                }`}
+              />
             </div>
-            <TextArea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Enter your content here (minimum 300 words)..."
-              rows={12}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
-                content.trim() && !isContentValid ? "border-red-300" : "border-gray-300"
-              }`}
-            />
-          </div>
 
-          {/* Generate Button */}
-          <Button
-            onClick={() => handleGenerateContent()}
-            loading={isGenerating}
-            disabled={!canGenerate}
-            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
-              !canGenerate ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            {isGenerating ? "Generating..." : "Generate Content"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Generated Content Display */}
-      {generatedContent && !isGenerating && (
-        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg text-white flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900">Generated Content</h2>
-            </div>
+            {/* Generate Button */}
             <button
-              onClick={() =>
-                copyToClipboard(stripHtml(generatedContent), "Generated content", "generated")
-              }
-              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Copy generated content"
+              onClick={() => handleGenerateContent()}
+              disabled={!canGenerate}
+              className={`btn btn-lg w-full h-16 rounded-2xl font-black text-xl normal-case gap-3 shadow-xl transition-all ${
+                canGenerate
+                  ? "bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-blue-200 hover:scale-[1.01] hover:shadow-2xl"
+                  : "bg-slate-100 text-slate-400 border-none cursor-not-allowed"
+              }`}
             >
-              {copiedField === "generated" ? (
+              {isGenerating ? (
                 <>
-                  <Check className="w-4 h-4" />
-                  Copied!
+                  <span className="loading loading-spinner"></span>
+                  Architecting Content...
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" />
-                  Copy
+                  <Sparkles className="w-6 h-6" />
+                  Generate Refined Content
                 </>
               )}
             </button>
           </div>
-
-          {/* Render HTML content in a humanized way */}
-          {renderHtmlContent(generatedContent)}
         </div>
-      )}
+      </motion.div>
+
+      {/* Generated Content Display */}
+      <AnimatePresence>
+        {generatedContent && !isGenerating && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-[32px] shadow-2xl shadow-indigo-100/30 border border-slate-100 overflow-hidden"
+          >
+            <div className="p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-linear-to-tr from-emerald-500 to-teal-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-emerald-100">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-800">Result Unlocked</h2>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                      Optimized by GenWrite AI
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    copyToClipboard(stripHtml(generatedContent), "Refined content", "generated")
+                  }
+                  className="btn btn-outline border-slate-200 hover:bg-slate-50 hover:text-blue-600 font-bold rounded-xl normal-case gap-2"
+                >
+                  {copiedField === "generated" ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy Output
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {renderHtmlContent(generatedContent)}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Error State */}
-      {error && !isGenerating && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-red-700">Error: {error}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && !isGenerating && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="alert alert-error bg-rose-50 border-rose-100 text-rose-700 rounded-2xl p-6"
+          >
+            <XCircle className="w-6 h-6" />
+            <div className="font-bold">Generation failed: {error}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

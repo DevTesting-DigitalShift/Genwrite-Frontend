@@ -1,17 +1,26 @@
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
-import useAuthStore from "@store/useAuthStore"
-import useContentStore from "@store/useContentStore"
-import { Empty, Input, Select, Modal, message } from "antd"
-import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
+import toast from "@utils/toast"
+import {
+  Bold,
+  Italic,
+  List,
+  Plus,
+  Sparkles,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Export,
+} from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 import React, { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
-
-const { Option } = Select
+import useAuthStore from "@store/useAuthStore"
+import useContentStore from "@store/useContentStore"
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
@@ -228,7 +237,7 @@ const OutlineEditor = () => {
       setIsOpen(false)
     } catch (err) {
       console.error("Failed to create blog:", err)
-      message.error(err?.message || "Failed to create blog")
+      toast.error(err?.message || "Failed to create outline")
     } finally {
       setIsSubmitting(false)
     }
@@ -288,439 +297,442 @@ const OutlineEditor = () => {
     <>
       {isSubmitting && <ProgressLoadingScreen message="Generating your outline..." />}
       <div className="px-4 sm:px-6 lg:px-8">
-        <Modal
-          title={
-            <span className="text-lg sm:text-xl font-semibold">
-              {currentStep === 0
-                ? "Select Template"
-                : currentStep === 1
-                  ? "Tell us about your blog, we'll outline it for you!"
-                  : "Brand Voice & Resources"}
-            </span>
-          }
-          open={isOpen}
-          onCancel={handleClose}
-          footer={
-            currentStep === 0
-              ? [
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleClose}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+              >
+                {/* Header */}
+                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                  <h2 className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    {currentStep === 0
+                      ? "Select Template"
+                      : currentStep === 1
+                        ? "Blog Details"
+                        : currentStep === 2
+                          ? "Brand Voice & Resources"
+                          : "Generated Outline"}
+                  </h2>
                   <button
-                    key="next"
-                    onClick={handleNext}
-                    className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 text-sm sm:text-base"
-                    aria-label="Proceed to next step"
+                    onClick={handleClose}
+                    className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600"
                   >
-                    Next
-                  </button>,
-                ]
-              : currentStep === 1
-                ? [
-                    <button
-                      key="previous"
-                      onClick={handlePrev}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
-                      aria-label="Go to previous step"
-                    >
-                      Previous
-                    </button>,
-                    <button
-                      key="next"
-                      onClick={handleNext}
-                      className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
-                      aria-label="Proceed to brand and resources"
-                    >
-                      Next
-                    </button>,
-                  ]
-                : currentStep === 2
-                  ? [
-                      <button
-                        key="previous"
-                        onClick={handlePrev}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
-                        aria-label="Go to previous step"
-                      >
-                        Previous
-                      </button>,
-                      <button
-                        key="submit"
-                        onClick={handleSubmit}
-                        className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isSubmitting}
-                        aria-label="Submit blog"
-                      >
-                        {isSubmitting ? "Submitting..." : "Submit"}
-                      </button>,
-                    ]
-                  : [
-                      <button
-                        key="export"
-                        onClick={handleExportMarkdown}
-                        className="px-4 py-2 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
-                        aria-label="Export as Markdown"
-                      >
-                        Export as Markdown
-                      </button>,
-                      <button
-                        key="close"
-                        onClick={handleClose}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 ml-2 sm:ml-3 text-sm sm:text-base"
-                        aria-label="Close modal"
-                      >
-                        Close
-                      </button>,
-                    ]
-          }
-          width="90vw"
-          style={{ maxWidth: "800px" }}
-          centered
-          maskStyle={{ backdropFilter: "blur(4px)", backgroundColor: "rgba(0, 0, 0, 0.35)" }}
-        >
-          <div className="px-2 sm:px-4">
-            {currentStep === 0 && (
-              <div className="py-2 sm:py-3">
-                <TemplateSelection
-                  userSubscriptionPlan={user?.subscription?.plan || "free"}
-                  preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
-                  onClick={handlePackageSelect}
-                />
+                    <X size={20} />
+                  </button>
+                </div>
 
-                {errors.template && (
-                  <p className="text-red-500 text-xs sm:text-sm mt-2">Please select a template.</p>
-                )}
-              </div>
-            )}
-            {currentStep === 1 && (
-              <div className="space-y-4 sm:space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Topic <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={formData.topic}
-                    onChange={e => handleInputChange(e, "topic")}
-                    placeholder="Enter blog topic..."
-                    className={clsx(
-                      "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
-                      errors.topic && "border-red-500"
-                    )}
-                    aria-label="Blog topic"
-                  />
-                  {errors.topic && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">Topic cannot be empty.</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tone <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    value={formData.tone}
-                    onChange={handleSelectChange}
-                    className={clsx("w-full", errors.tone && "border-red-500")}
-                    aria-label="Blog tone"
-                    placeholder="Select tone"
-                  >
-                    <Option value="Informative">Informative</Option>
-                    <Option value="Casual">Casual</Option>
-                    <Option value="Professional">Professional</Option>
-                    <Option value="Persuasive">Persuasive</Option>
-                    <Option value="Humorous">Humorous</Option>
-                  </Select>
-                  {errors.tone && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">Please select a tone.</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Focus Keywords (max 3) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={formData.focusKeywordInput}
-                      onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                      onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                      placeholder="Enter focus keywords, separated by commas"
-                      className={clsx(
-                        "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
-                        errors.focusKeywords && "border-red-500"
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto px-8 py-6">
+                  {currentStep === 0 && (
+                    <div className="space-y-6">
+                      <TemplateSelection
+                        userSubscriptionPlan={user?.subscription?.plan || "free"}
+                        preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+                        onClick={handlePackageSelect}
+                      />
+                      {errors.template && (
+                        <p className="text-rose-500 text-sm font-medium">
+                          Please select a template to continue.
+                        </p>
                       )}
-                      aria-label="Focus keywords"
-                    />
-                    <button
-                      onClick={() => handleAddKeyword("focusKeywords")}
-                      className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
-                      aria-label="Add focus keyword"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.focusKeywords.map((keyword, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
-                      >
-                        {keyword}
-                        <button
-                          onClick={() => handleRemoveKeyword(index, "focusKeywords")}
-                          className="ml-1 text-blue-400 hover:text-blue-600"
-                          aria-label={`Remove focus keyword ${keyword}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  {errors.focusKeywords && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">
-                      At least one focus keyword is required (max 3).
-                    </p>
+                    </div>
                   )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Keywords <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={formData.keywordInput}
-                      onChange={e => handleKeywordInputChange(e, "keywords")}
-                      onKeyDown={e => handleKeyPress(e, "keywords")}
-                      placeholder="Enter secondary keywords, separated by commas"
-                      className={clsx(
-                        "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
-                        errors.keywords && "border-red-500"
-                      )}
-                      aria-label="Secondary keywords"
-                    />
-                    <button
-                      onClick={() => handleAddKeyword("keywords")}
-                      className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
-                      aria-label="Add keyword"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {visibleKeywords.map((keyword, index) => (
-                      <span
-                        key={`${keyword}-${index}`}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
-                      >
-                        {keyword}
-                        <button
-                          onClick={() => handleRemoveKeyword(index, "keywords")}
-                          className="ml-1 text-blue-400 hover:text-blue-600"
-                          aria-label={`Remove keyword ${keyword}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </span>
-                    ))}
-                    {formData.keywords.length > 18 && (
-                      <span
-                        onClick={() => setShowAllKeywords(prev => !prev)}
-                        className="text-xs sm:text-sm font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
-                      >
-                        {showAllKeywords ? (
-                          <>Show less</>
-                        ) : (
-                          <>+{formData.keywords.length - 18} more</>
+
+                  {currentStep === 1 && (
+                    <div className="space-y-5">
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Blog Topic <span className="text-rose-500">*</span>
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.topic}
+                          onChange={e => handleInputChange(e, "topic")}
+                          placeholder="e.g. How to use AI for content marketing"
+                          className={`input input-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        />
+                        {errors.topic && (
+                          <span className="text-rose-500 text-xs mt-1">Topic is required</span>
                         )}
-                      </span>
-                    )}
-                  </div>
-                  {errors.keywords && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">
-                      At least one keyword is required.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-4">
-                    <Input
-                      value={formData.title}
-                      onChange={e => handleInputChange(e, "title")}
-                      placeholder="Enter blog title..."
-                      className={clsx(
-                        "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
-                        errors.title && "border-red-500"
-                      )}
-                      aria-label="Blog title"
-                    />
-                  </div>
-                  {errors.title && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">Title cannot be empty.</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Choose length of Blog <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="500"
-                    max="5000"
-                    value={formData.userDefinedLength ?? 1000}
-                    onChange={e => handleInputChange(e, "userDefinedLength")}
-                    className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((formData?.userDefinedLength ?? 1000) - 500) / 45
-                      }%, #e5e7eb 0%)`,
-                    }}
-                    aria-label="Desired word count"
-                  />
-                  <span className="mt-2 text-xs sm:text-sm text-gray-600 block">
-                    {formData?.userDefinedLength ?? 1000} words
-                  </span>
-                </div>
-              </div>
-            )}
-            {currentStep === 2 && (
-              <div className="space-y-4 sm:space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Brand Voice
-                  </label>
-                  <div className="mt-2 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
-                    {brands?.length > 0 ? (
-                      <div className="max-h-48 overflow-y-auto pr-1">
-                        <div className="grid gap-2 sm:gap-3">
-                          {brands.map(voice => (
-                            <label
-                              key={voice._id}
-                              className={clsx(
-                                "flex items-start gap-2 p-2 sm:p-3 rounded-md cursor-pointer",
-                                formData.brandId === voice._id
-                                  ? "bg-blue-100 border-blue-300"
-                                  : "bg-white border border-gray-200"
-                              )}
+                      </div>
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Writing Tone <span className="text-rose-500">*</span>
+                          </span>
+                        </label>
+                        <select
+                          value={formData.tone}
+                          onChange={e => handleSelectChange(e.target.value)}
+                          className={`select select-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        >
+                          <option value="Informative">Informative</option>
+                          <option value="Casual">Casual</option>
+                          <option value="Professional">Professional</option>
+                          <option value="Persuasive">Persuasive</option>
+                          <option value="Humorous">Humorous</option>
+                        </select>
+                      </div>
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Focus Keywords (Max 3) <span className="text-rose-500">*</span>
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.focusKeywordInput}
+                            onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                            onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                            placeholder="Type and press Enter..."
+                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          />
+                          <button
+                            onClick={() => handleAddKeyword("focusKeywords")}
+                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Plus size={20} />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {formData.focusKeywords.map((keyword, index) => (
+                            <span
+                              key={index}
+                              className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
                             >
-                              <input
-                                type="radio"
-                                name="selectedBrandVoice"
-                                value={voice._id}
-                                checked={formData.brandId === voice._id}
-                                onChange={() => handleBrandSelect(voice._id)}
-                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
+                              {keyword}
+                              <X
+                                size={12}
+                                className="cursor-pointer hover:text-blue-900"
+                                onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                               />
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-700 text-sm sm:text-base">
-                                  {voice.nameOfVoice}
-                                </div>
-                                <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                                  {voice.describeBrand}
-                                </p>
-                              </div>
-                            </label>
+                            </span>
                           ))}
                         </div>
+                        {errors.focusKeywords && (
+                          <span className="text-rose-500 text-xs mt-1">
+                            At least one focus keyword is required
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="text-gray-500 text-xs sm:text-sm italic">
-                        <Empty /> No brand voices available. Create one to get started.
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Secondary Keywords <span className="text-rose-500">*</span>
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.keywordInput}
+                            onChange={e => handleKeywordInputChange(e, "keywords")}
+                            onKeyDown={e => handleKeyPress(e, "keywords")}
+                            placeholder="Add secondary keywords..."
+                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          />
+                          <button
+                            onClick={() => handleAddKeyword("keywords")}
+                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Plus size={20} />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {visibleKeywords.map((keyword, index) => (
+                            <span
+                              key={index}
+                              className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
+                            >
+                              {keyword}
+                              <X
+                                size={12}
+                                className="cursor-pointer hover:text-slate-900"
+                                onClick={() => handleRemoveKeyword(index, "keywords")}
+                              />
+                            </span>
+                          ))}
+                          {formData.keywords.length > 18 && (
+                            <button
+                              onClick={() => setShowAllKeywords(!showAllKeywords)}
+                              className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
+                            >
+                              {showAllKeywords
+                                ? "Show Less"
+                                : `+${formData.keywords.length - 18} more`}
+                            </button>
+                          )}
+                        </div>
+                        {errors.keywords && (
+                          <span className="text-rose-500 text-xs mt-1">Keywords are required</span>
+                        )}
                       </div>
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Suggested Title <span className="text-rose-500">*</span>
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.title}
+                          onChange={e => handleInputChange(e, "title")}
+                          placeholder="Project title..."
+                          className={`input input-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        />
+                        {errors.title && (
+                          <span className="text-rose-500 text-xs mt-1">Title is required</span>
+                        )}
+                      </div>
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Target Length:{" "}
+                            <span className="text-blue-600">
+                              {formData.userDefinedLength} words
+                            </span>
+                          </span>
+                        </label>
+                        <input
+                          type="range"
+                          min="500"
+                          max="5000"
+                          step="100"
+                          value={formData.userDefinedLength}
+                          onChange={e => handleInputChange(e, "userDefinedLength")}
+                          className="range h-1.5 range-primary bg-slate-100"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">
+                          <span>500 words</span>
+                          <span>5000 words</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 2 && (
+                    <div className="space-y-6">
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">Brand Voice</span>
+                        </label>
+                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4">
+                          {brands?.length > 0 ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                              {brands.map(voice => (
+                                <label
+                                  key={voice._id}
+                                  className={`flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all border ${
+                                    formData.brandId === voice._id
+                                      ? "bg-blue-50 border-blue-200 shadow-sm"
+                                      : "bg-white border-slate-100 hover:border-slate-200"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    className="radio radio-primary radio-sm mt-1"
+                                    checked={formData.brandId === voice._id}
+                                    onChange={() => handleBrandSelect(voice._id)}
+                                  />
+                                  <div>
+                                    <div className="font-bold text-slate-700 text-sm">
+                                      {voice.nameOfVoice}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                                      {voice.describeBrand}
+                                    </p>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 text-slate-400">
+                              <Sparkles className="mx-auto mb-2 opacity-20" size={32} />
+                              <p className="text-sm font-medium italic">
+                                No brand voices found. Using default voice.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-bold text-slate-700">
+                            Resource Links (Max 4)
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.resourceInput}
+                            onChange={e => handleKeywordInputChange(e, "resources")}
+                            onKeyDown={e => handleKeyPress(e, "resources")}
+                            placeholder="Add URLs to context or sources..."
+                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          />
+                          <button
+                            onClick={() => handleAddKeyword("resources")}
+                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Plus size={20} />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {formData.resources.map((resource, index) => (
+                            <div
+                              key={index}
+                              className="badge h-auto py-2 bg-slate-50 text-blue-600 border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
+                            >
+                              <span className="max-w-[150px] truncate">{resource}</span>
+                              <X
+                                size={12}
+                                className="cursor-pointer hover:text-rose-500"
+                                onClick={() => handleRemoveKeyword(index, "resources")}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {errors.resources && (
+                          <span className="text-rose-500 text-xs mt-1">
+                            Invalid URL or maximum reached (4)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 3 && (
+                    <div className="space-y-4">
+                      <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        {markdownContent ? (
+                          <div
+                            className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: markdownContent
+                                .replace(
+                                  /^#+\s+/gm,
+                                  match =>
+                                    `<h${match.length} class="font-bold text-slate-900 mt-4 outline-header">`
+                                )
+                                .replace(/\n/gm, "<br>")
+                                .replace(
+                                  /\*\*(.*?)\*\*/g,
+                                  "<strong class='text-slate-900'>$1</strong>"
+                                )
+                                .replace(/\*(.*?)\*/g, "<em class='italic'>$1</em>")
+                                .replace(/^- (.*)$/gm, "<li class='list-disc ml-4 mt-1'>$1</li>")
+                                .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>"),
+                            }}
+                          />
+                        ) : (
+                          <div className="text-center py-10 text-slate-400">
+                            <p className="text-sm font-medium italic">No content generated yet.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-6 border-t border-slate-50 flex items-center justify-between gap-3 bg-slate-50/10">
+                  {currentStep > 0 && currentStep < 4 ? (
+                    <button
+                      onClick={handlePrev}
+                      className="btn btn-ghost h-12 px-6 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 border border-slate-200"
+                    >
+                      <ChevronLeft size={20} className="mr-2" />
+                      Back
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex gap-3">
+                    {currentStep === 0 && (
+                      <button
+                        onClick={handleNext}
+                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all"
+                      >
+                        Next Step
+                        <ChevronRight size={20} className="ml-2" />
+                      </button>
+                    )}
+
+                    {currentStep === 1 && (
+                      <button
+                        onClick={handleNext}
+                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all"
+                      >
+                        Brand & Sources
+                        <ChevronRight size={20} className="ml-2" />
+                      </button>
+                    )}
+
+                    {currentStep === 2 && (
+                      <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <span className="loading loading-spinner"></span>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            Generate Outline
+                            <Sparkles size={20} className="ml-2" />
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {currentStep === 3 && (
+                      <>
+                        <button
+                          onClick={handleExportMarkdown}
+                          className="btn btn-ghost h-12 px-6 rounded-2xl text-emerald-600 font-bold hover:bg-emerald-50 border border-emerald-100"
+                        >
+                          Export .MD
+                        </button>
+                        <button
+                          onClick={handleClose}
+                          className="btn btn-primary h-12 px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-lg hover:bg-slate-800"
+                        >
+                          Finish Editor
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Resource Links (max 4)
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={formData.resourceInput}
-                      onChange={e => handleKeywordInputChange(e, "resources")}
-                      onKeyDown={e => handleKeyPress(e, "resources")}
-                      placeholder="Enter resource links (YouTube or others), separated by commas"
-                      className={clsx(
-                        "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
-                        errors.resources && "border-red-500"
-                      )}
-                      aria-label="Resource links"
-                    />
-                    <button
-                      onClick={() => handleAddKeyword("resources")}
-                      className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
-                      aria-label="Add resource link"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.resources.map((resource, index) => (
-                      <div
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
-                      >
-                        {isImageUrl(resource) ? (
-                          <img
-                            src={resource}
-                            alt={`Resource ${index + 1}`}
-                            className="h-12 sm:h-16 w-auto object-contain rounded mr-2 hover:opacity-80 transition-opacity"
-                          />
-                        ) : (
-                          <a
-                            href={resource}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-700 hover:underline mr-2 truncate max-w-[100px] sm:max-w-[150px]"
-                          >
-                            {resource}
-                          </a>
-                        )}
-                        <button
-                          onClick={() => handleRemoveKeyword(index, "resources")}
-                          className="ml-1 text-blue-400 hover:text-blue-600"
-                          aria-label={`Remove resource ${resource}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {errors.resources && (
-                    <p className="text-red-500 text-xs sm:text-sm mt-1">
-                      Please enter valid resource links (max 4).
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            {currentStep === 3 && (
-              <div className="p-3 sm:p-4 bg-white rounded-lg shadow-sm">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
-                  Generated Blog Outline
-                </h2>
-                {markdownContent ? (
-                  <div
-                    className="prose prose-sm max-w-none text-gray-700 text-sm sm:text-base"
-                    dangerouslySetInnerHTML={{
-                      __html: markdownContent
-                        .replace(/^#+\s+/gm, match => `<h${match.length}>`)
-                        .replace(/\n/gm, "<br>")
-                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                        .replace(/^- (.*)$/gm, "<li>$1</li>")
-                        .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>"),
-                    }}
-                  />
-                ) : (
-                  <p className="text-gray-500 text-xs sm:text-sm">
-                    No content available to display.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </Modal>
-        <div className="py-6 min-h-[100vh] flex flex-col">
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+        <div className="py-6 min-h-screen flex flex-col">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
-            <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
+            <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
               Blog Outline Editor
             </h1>
 
