@@ -193,13 +193,25 @@ const Auth = ({ path }) => {
   ]
 
   const quickFeatures = [
-    { icon: <Zap className="w-4 h-4" />, text: "SEO-Optimized Content" },
-    { icon: <CheckCircle className="w-4 h-4" />, text: "Automated Scheduling" },
-    { icon: <Sparkles className="w-4 h-4" />, text: "Human-Like Text" },
+    {
+      icon: <Zap className="w-4 h-4" />,
+      text: "SEO-Optimized Content",
+      subtext: "Rank higher with AI-driven keyword integration.",
+    },
+    {
+      icon: <CheckCircle className="w-4 h-4" />,
+      text: "Automated Scheduling",
+      subtext: "Plan and publish content effortlessly.",
+    },
+    {
+      icon: <Sparkles className="w-4 h-4" />,
+      text: "Human-Like Text",
+      subtext: "Engaging, natural-sounding copy that converts.",
+    },
   ]
 
   return (
-    <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen relative  bg-linear-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
       {/* <IceAnimation density={30} /> */}
 
@@ -213,12 +225,12 @@ const Auth = ({ path }) => {
         <motion.div
           animate={{ rotate: [0, 360], scale: [1, 1.1, 1], x: [0, 30, 0] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-linear-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ rotate: [360, 0], scale: [1, 1.2, 1], x: [0, -30, 0] }}
           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-linear-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
         />
 
         {/* Medium geometric shapes - smaller on mobile */}
@@ -270,7 +282,7 @@ const Auth = ({ path }) => {
               </motion.div>
               <h1 className="text-5xl font-extrabold text-gray-900 leading-[1.1]">
                 Scale your SEO with <br />
-                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Agentic AI Intelligence
                 </span>
               </h1>
@@ -286,7 +298,7 @@ const Auth = ({ path }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
-                className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+                className="relative bg-linear-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
               >
                 {/* Abstract Patterns */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
@@ -299,11 +311,10 @@ const Auth = ({ path }) => {
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-0.5">
-                        {import.meta.env.VITE_TRIAL_TEXT || "Start 3-Day Free Trial"}
+                        {import.meta.env.VITE_TRIAL_TEXT || "Start Your Trial Today"}
                       </h3>
                       <p className="text-purple-100 text-sm font-medium opacity-90">
-                        {import.meta.env.VITE_TRIAL_SUBTEXT ||
-                          "No credit card required • Immediate access"}
+                        {import.meta.env.VITE_TRIAL_SUBTEXT || "Immediate access"}
                       </p>
                     </div>
                   </div>
@@ -325,7 +336,7 @@ const Auth = ({ path }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
-                className="relative bg-gradient-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+                className="relative bg-linear-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
               >
                 {/* Abstract Patterns */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
@@ -371,13 +382,11 @@ const Auth = ({ path }) => {
                   whileHover={{ scale: 1.02, y: -4 }}
                   className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
+                  <div className="w-10 h-10 bg-linear-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
                     {feature.icon}
                   </div>
                   <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Designed for maximum performance and readability.
-                  </p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{feature.subtext}</p>
                 </motion.div>
               ))}
               {/* Extra Feature for Grid Balance */}
@@ -385,7 +394,7 @@ const Auth = ({ path }) => {
                 whileHover={{ scale: 1.02, y: -4 }}
                 className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
+                <div className="w-10 h-10 bg-linear-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
                   <FaShieldAlt className="w-5 h-5" />
                 </div>
                 <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
@@ -406,8 +415,8 @@ const Auth = ({ path }) => {
             {/* Main Form Card */}
             <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/30 p-6 md:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-linear-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />
 
               {/* Header */}
               <div className="relative mb-8 text-center">
@@ -415,7 +424,7 @@ const Auth = ({ path }) => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 250, damping: 15, delay: 0.2 }}
-                  className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                  className="w-16 h-16 bg-linear-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
                 >
                   <FaRocket className="text-white text-2xl" />
                 </motion.div>
@@ -701,7 +710,7 @@ const Auth = ({ path }) => {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading || (isSignup && !termsAccepted)}
-                  className={`w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
+                  className={`w-full py-4 px-6 bg-linear-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
                     loading || (isSignup && !termsAccepted)
                       ? "opacity-70 cursor-not-allowed"
                       : "hover:from-purple-700 hover:to-blue-700"

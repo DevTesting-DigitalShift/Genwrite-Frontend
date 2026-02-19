@@ -271,7 +271,7 @@ const Profile = () => {
           >
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Profile Picture */}
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 {profileData?.profilePicture ? (
                   <img
                     src={profileData.profilePicture}
@@ -279,7 +279,7 @@ const Profile = () => {
                     className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 object-cover shadow-md"
                   />
                 ) : (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-bold shadow-md">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 bg-linear-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-bold shadow-md">
                     {profileData?.personalDetails?.name
                       ? `${profileData?.personalDetails.name[0]?.toUpperCase()}`
                       : "NA"}
@@ -304,7 +304,7 @@ const Profile = () => {
                 </p>
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                   <span
-                    className={`px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r ${
+                    className={`px-3 sm:px-4 py-1 sm:py-1.5 bg-linear-to-r ${
                       PLAN_COLORS[profileData.subscription?.plan] || PLAN_COLORS.free
                     } text-white rounded-full text-xs sm:text-sm font-medium capitalize`}
                   >
@@ -430,7 +430,7 @@ const Profile = () => {
                   value={profileData.personalDetails.bio || ""}
                   onChange={handleInputChange}
                   placeholder="Tell us about yourself..."
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm sm:text-base"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm sm:text-base text-black"
                   rows={4}
                 />
               </div>
@@ -486,7 +486,7 @@ const Profile = () => {
                 ) : (
                   <button
                     onClick={handleGenerateReferral}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-shadow"
+                    className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-shadow"
                   >
                     <ArrowPathIcon className="w-5 h-5" />
                     Generate Referral Code
@@ -592,7 +592,7 @@ const ProfileField = ({
       value={value || ""}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base"
+      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base text-black"
       maxLength={maxLength}
       pattern={name === "personalDetails.phone" ? "[0-9]*" : undefined}
       disabled={disabled}

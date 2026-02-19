@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
+import { createPortalSession } from "@api/otherApi"
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
@@ -23,6 +24,7 @@ const PricingCard = ({
   userSubscription,
   user,
   currency,
+  onManage,
 }) => {
   const [customCredits, setCustomCredits] = useState(500)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -82,11 +84,11 @@ const PricingCard = ({
   const getCardStyles = () => {
     const baseStyles = {
       container: isDisabled
-        ? `bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 opacity-80 cursor-not-allowed`
-        : `bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-300 hover:shadow-xl`,
+        ? `bg-linear-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 opacity-90`
+        : `bg-linear-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-300 hover:shadow-xl`,
       price: `text-teal-700`,
       button: isDisabled
-        ? `bg-teal-300 text-white cursor-not-allowed`
+        ? `bg-teal-600 hover:bg-teal-700 text-white`
         : `bg-teal-600 hover:bg-teal-700 text-white`,
     }
 
@@ -96,26 +98,26 @@ const PricingCard = ({
       case "pro":
         return {
           container: isDisabled
-            ? `bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 opacity-80 cursor-not-allowed`
-            : `bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-400 hover:shadow-xl shadow-lg`,
+            ? `bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 opacity-90`
+            : `bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-400 hover:shadow-xl shadow-lg`,
           price: `text-blue-700`,
           button: isDisabled
-            ? `bg-blue-300 text-white cursor-not-allowed`
+            ? `bg-blue-600 hover:bg-blue-700 text-white`
             : `bg-blue-600 hover:bg-blue-700 text-white`,
         }
       case "enterprise":
         return {
           container: isDisabled
-            ? `bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 opacity-80 cursor-not-allowed`
-            : `bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-300 hover:shadow-xl`,
+            ? `bg-linear-to-br from-purple-50 to-pink-50 border-2 border-purple-200 opacity-90`
+            : `bg-linear-to-br from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-300 hover:shadow-xl`,
           price: `text-purple-700`,
           button: isDisabled
-            ? `bg-purple-300 text-white cursor-not-allowed`
+            ? `bg-purple-600 hover:bg-purple-700 text-white`
             : `bg-purple-600 hover:bg-purple-700 text-white`,
         }
       case "credits":
         return {
-          container: `bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-300 hover:shadow-xl`,
+          container: `bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-300 hover:shadow-xl`,
           price: `text-emerald-700`,
           button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
         }
@@ -227,14 +229,14 @@ const PricingCard = ({
         !isDisabled &&
         (userSubscription?.plan?.toLowerCase() === "basic" && plan.tier === "pro" ? (
           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+            <div className="bg-linear-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
               <Star className="w-4 h-4" />
               Most Popular
             </div>
           </div>
         ) : userSubscription?.plan?.toLowerCase() === "pro" && plan.tier === "enterprise" ? (
           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+            <div className="bg-linear-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
               <Star className="w-4 h-4" />
               Most Popular
             </div>
@@ -327,27 +329,29 @@ const PricingCard = ({
         {/* CTA Button */}
         <div className="px-6 pb-6">
           <button
-            onClick={handleButtonClick}
             className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-              isDisabled ? "" : "hover:transform hover:scale-[1.02] hover:shadow-lg"
+              isDisabled
+                ? "bg-opacity-80 hover:bg-opacity-100 cursor-pointer hover:transform hover:scale-[1.02] hover:shadow-lg"
+                : "hover:transform hover:scale-[1.02] hover:shadow-lg"
             } ${styles.button} ${
               plan.type === "credit_purchase" && customCredits < 500
                 ? "opacity-50 cursor-not-allowed"
                 : ""
             } flex items-center justify-center gap-2`}
-            disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
+            disabled={!isDisabled && plan.type === "credit_purchase" && customCredits < 500} // Allow clicking current plan
+            onClick={() => (isDisabled ? onManage() : handleButtonClick())}
           >
             {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
-            {isDisabled ? "Current Plan" : plan.cta}
+            {isDisabled ? "Manage Subscription" : plan.cta}
           </button>
         </div>
 
         {/* Features */}
-        <div className="px-6 pb-6 space-y-2.5 flex-grow">
+        <div className="px-6 pb-6 space-y-2.5 grow">
           {plan.features.map((feature, index) => (
             <div key={index} className="flex items-start gap-2">
-              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0 mt-0.5">
+                <Check className="w-2.5 h-2.5 text-white stroke-3" />
               </div>
               <span
                 className={`text-sm leading-relaxed ${
@@ -559,6 +563,21 @@ const Upgrade = () => {
 
   const countryToSend = countryMapping[currency] || "US"
 
+  const handleManageSubscription = async () => {
+    try {
+      message.loading({ content: "Opening billing portal...", key: "portal" })
+      const data = await createPortalSession(window.location.href)
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        message.warning({ content: "Could not open billing settings.", key: "portal" })
+      }
+    } catch (error) {
+      console.error(error)
+      message.error({ content: "Failed to manage subscription.", key: "portal" })
+    }
+  }
+
   const handleBuy = async (plan, credits, billingPeriod) => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
@@ -573,23 +592,41 @@ const Upgrade = () => {
       message.error("Failed to load payment gateway. Please try again later.")
       return
     }
+
     try {
-      const response = await createCheckoutSession({
-        planName: plan.name.toLowerCase().includes("pro")
-          ? "pro"
-          : plan.name.toLowerCase().includes("basic")
-            ? "basic"
-            : "credits",
-        credits: plan.type === "credit_purchase" ? credits : plan.credits,
-        billingPeriod,
-        country: countryToSend,
-        client_id: getGaClientId(),
+      // 1. Construct Plan Slug
+      // Format: tier-frequency-country (e.g., basic-monthly-us)
+      const tier = plan.tier.toLowerCase()
+      const frequency = billingPeriod.toLowerCase() // 'monthly' or 'annual'
+      const countryCode = countryToSend.toLowerCase() // 'us' or 'in'
+
+      let planSlug = ""
+
+      if (plan.type === "credit_purchase") {
+        // For credits, we rely on the backend's credit purchase fallback or a base slug
+        planSlug = "get-credits" // Using a generic slug; backend logic handles (!targetPlan && credits)
+      } else {
+        planSlug = `${tier}-${frequency}-${countryCode}`
+      }
+
+      // 2. Prepare Payload
+      const payload = {
+        planSlug,
+        credits: plan.type === "credit_purchase" ? credits : undefined,
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-      })
+        client_id: getGaClientId(),
+      }
+
+      // 3. Call API
+      const response = await createCheckoutSession(payload)
 
       if ([200, 201].includes(response.status)) {
-        if (response.data?.sessionId) {
+        if (response.data?.url) {
+          // Modern Stripe Checkout redirection (server-side generation)
+          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+          window.location.href = response.data.url
+        } else if (response.data?.sessionId) {
           sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
           const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
           if (result?.error) throw result.error
@@ -599,8 +636,11 @@ const Upgrade = () => {
         }
       }
     } catch (error) {
+      console.error("Checkout Error:", error)
       if (error?.status === 409) {
         message.error(error?.response?.data?.message || "User Subscription Conflict Error")
+      } else if (error?.status === 404) {
+        message.error("Selected plan configuration unavailable.")
       } else {
         message.error("Failed to initiate checkout. Please try again.")
       }
@@ -618,12 +658,12 @@ const Upgrade = () => {
       <motion.div className="flex flex-col justify-center items-center mb-6 sm:mb-8 mx-auto">
         <motion.h1
           whileHover={{ scale: 1.02 }}
-          className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center px-4"
+          className="text-2xl sm:text-3xl md:text-4xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center px-4"
         >
           Flexible Pricing Plans
         </motion.h1>
         <motion.div
-          className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"
+          className="h-1 bg-linear-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.3 }}
@@ -635,31 +675,6 @@ const Upgrade = () => {
       </motion.div>
 
       <div className="mx-auto">
-        {/* Global trial banner (unchanged) */}
-        {/* {showTrialMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
-          >
-            <div className="flex flex-col items-center text-center">
-              <Star className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mb-3 sm:mb-4" />
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 px-4">
-                Start Your 3-Day Free Trial
-              </h2>
-              <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-xl mb-4 sm:mb-6 px-4">
-                Unlock the full potential of GenWrite with a 3-day free trial. Experience our
-                powerful AI content creation tools at no cost. Select a plan below to begin your
-                trial and elevate your content creation journey.
-              </p>
-              <p className="text-blue-600 text-sm sm:text-base px-4">
-                Any remaining trial credits will roll over to your next plan.
-              </p>
-            </div>
-          </motion.div>
-        )} */}
-
         {/* Enterprise message (unchanged) */}
         {user?.subscription?.plan === "enterprise" && (
           <motion.div
@@ -743,6 +758,7 @@ const Upgrade = () => {
                     userStatus={user?.subscription?.status}
                     userStartDate={user?.subscription?.startDate}
                     userSubscription={user?.subscription}
+                    onManage={handleManageSubscription}
                   />
                 ))}
           </AnimatePresence>
@@ -770,7 +786,7 @@ const Upgrade = () => {
           <a
             href="/cancel-subscription"
             className="text-sm font-medium text-white transition-colors 
-        bg-gradient-to-r from-blue-600 to-purple-600 
+        bg-linear-to-r from-blue-600 to-purple-600 
         rounded-lg px-4 py-2 shadow-sm 
         hover:from-blue-700 hover:to-purple-700"
           >

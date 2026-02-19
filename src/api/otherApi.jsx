@@ -12,6 +12,11 @@ export const cancelStripeSubscription = async () => {
   return response.data
 }
 
+export const createPortalSession = async returnUrl => {
+  const response = await axiosInstance.get("/stripe/portal", { params: { returnUrl } })
+  return response.data
+}
+
 export const humanizeContentGenerator = async payload => {
   const response = await axiosInstance.post("/generate/humanised-content", payload)
   return response.data

@@ -96,19 +96,19 @@ const CancellationPage = () => {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
           className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl" />
+          <div className="absolute inset-0 bg-linear-to-br from-green-400/10 to-blue-400/10 rounded-3xl" />
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-            className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
+            className="w-20 h-20 bg-linear-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
           >
             <CheckCircle className="w-10 h-10 text-white" />
           </motion.div>
@@ -147,7 +147,7 @@ const CancellationPage = () => {
           >
             <Link
               to="/dashboard"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
             >
               Continue to Dashboard
               <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -162,19 +162,7 @@ const CancellationPage = () => {
     <div>
       {/* Hero Section */}
       <section className="relative py-16">
-        {/* <div className="">
-          <motion.div
-            animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
-            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-            className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl"
-          />
-        </div> */}
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center text-black">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -205,7 +193,7 @@ const CancellationPage = () => {
           transition={{ delay: 0.5 }}
           className="bg-white rounded-2xl shadow-lg p-6 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-400/10 to-red-400/10 rounded-full -translate-y-12 translate-x-12" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-br from-orange-400/10 to-red-400/10 rounded-full -translate-y-12 translate-x-12" />
           <div className="flex items-center gap-3 mb-4">
             <Crown className="w-6 h-6 text-orange-600" />
             <h2 className="text-2xl font-bold text-gray-900">Exclusive Retention Offer</h2>
@@ -229,7 +217,7 @@ const CancellationPage = () => {
             whileTap={{ scale: 0.98 }}
             onClick={handleStay}
             disabled={isProcessing}
-            className={`w-full mt-6 py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 ${
+            className={`w-full mt-6 py-4 px-6 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 ${
               isProcessing
                 ? "opacity-70 cursor-not-allowed"
                 : "hover:from-blue-400 hover:to-purple-400"

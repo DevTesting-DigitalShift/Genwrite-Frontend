@@ -9,3 +9,12 @@ export const useCreateCheckoutSession = () => {
     },
   })
 }
+
+export const useCreatePortalSession = () => {
+  return useMutation({
+    mutationFn: async returnUrl => {
+      const response = await axiosInstance.get("/stripe/portal", { params: { returnUrl } })
+      return response.data
+    },
+  })
+}

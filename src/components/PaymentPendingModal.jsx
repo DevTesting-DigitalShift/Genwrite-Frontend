@@ -1,16 +1,26 @@
 import React from "react"
-import { Modal, Button } from "antd"
+import { Modal, Button, message } from "antd"
 import { motion } from "framer-motion"
 import { AlertTriangle, Lock, ShieldAlert, ChevronRight, CreditCard } from "lucide-react"
+import { useCreatePortalSession } from "@/api/queries/paymentQueries"
 
 const PaymentPendingModal = ({ user }) => {
   const isOpen = ["past_due"].includes(user?.subscription?.status)
+  const { mutate: createPortalSession, isPending } = useCreatePortalSession()
 
   const handleResolveIssue = () => {
-    window.open(
-      user?.subscription?.portalUrl || "https://billing.stripe.com/p/login/test",
-      "_blank"
-    )
+    createPortalSession(undefined, {
+      onSuccess: data => {
+        if (data?.url) {
+          window.location.href = data.url
+        } else {
+          message.error("Failed to generate payment link")
+        }
+      },
+      onError: () => {
+        message.error("Unable to access payment portal")
+      },
+    })
   }
 
   return (
@@ -28,12 +38,9 @@ const PaymentPendingModal = ({ user }) => {
     >
       <div className="relative overflow-hidden">
         {/* Content Section */}
-        <div className="p-6">
+        <div>
           <div className="space-y-6">
-            <div className="flex items-start gap-4 p-5 rounded-2xl bg-rose-50 border border-rose-100">
-              <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-rose-600" />
-              </div>
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-rose-50 border border-rose-100">
               <div>
                 <h4 className="font-bold text-rose-900 text-sm uppercase tracking-wider mb-1">
                   Payment Failed
@@ -64,11 +71,16 @@ const PaymentPendingModal = ({ user }) => {
             <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
               <button
                 onClick={handleResolveIssue}
-                className="w-full h-16 bg-purple-300 hover:bg-purple-200 text-purple-900 rounded-2xl font-  bold text-lg shadow-xl transition-all flex items-center justify-center gap-3 group"
+                disabled={isPending}
+                className={`w-full h-16 bg-purple-300 hover:bg-purple-200 text-purple-900 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-3 group ${
+                  isPending ? "opacity-70 cursor-wait" : ""
+                }`}
               >
-                <CreditCard className="w-5 h-5 text-purple-900 group-hover:text-white transition-colors" />
-                <span>Resolve Payment Now</span>
-                <ChevronRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <CreditCard className="w-5 h-5 text-purple-900 transition-colors" />
+                <span>{isPending ? "Redirecting..." : "Resolve Payment Now"}</span>
+                {!isPending && (
+                  <ChevronRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                )}
               </button>
             </motion.div>
           </div>
