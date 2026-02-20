@@ -427,7 +427,7 @@ const BrandVoice = () => {
                 value={formData.postLink}
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
-                className={`input border border-gray-300 h-14 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-2xl text-sm sm:text-base p-4 ${
+                className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-lg ${
                   errors.postLink ? "input-error" : "focus:border-indigo-500"
                 }`}
                 whileFocus={{ scale: 1.01 }}
@@ -435,7 +435,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <button
-                className="btn btn-primary h-14 w-1/3 bg-linear-to-r from-indigo-500 to-purple-600 border-none text-white shadow-md hover:shadow-lg rounded-2xl"
+                className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 onClick={handleFetchSiteInfo}
                 disabled={
                   siteInfo.loading ||
@@ -474,7 +474,7 @@ const BrandVoice = () => {
               value={formData.nameOfVoice}
               onChange={handleInputChange}
               placeholder="e.g., Friendly Tech"
-              className={`input border p-4 border-gray-300 h-14 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-2xl text-sm sm:text-base ${
+              className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
                 errors.nameOfVoice ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -501,7 +501,7 @@ const BrandVoice = () => {
               </div>
             </label>
             <motion.div
-              className={`flex bg-white border rounded-2xl p-3 flex-col gap-2 ${
+              className={`flex bg-white border rounded-md p-3 flex-col gap-2 ${
                 errors.keywords ? "border-red-500" : "border-gray-300"
               }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
@@ -566,7 +566,7 @@ const BrandVoice = () => {
               value={formData.sitemapUrl}
               onChange={handleInputChange}
               placeholder="e.g., https://example.com/sitemap.xml"
-              className={`input border p-4 border-gray-300 h-14 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-2xl text-sm sm:text-base ${
+              className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
                 errors.sitemapUrl ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -593,7 +593,7 @@ const BrandVoice = () => {
               value={formData.describeBrand}
               onChange={handleInputChange}
               placeholder="Describe your brand's tone and personality"
-              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-2xl text-sm sm:text-base p-4 ${
+              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
                 errors.describeBrand ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={4}
@@ -626,7 +626,7 @@ const BrandVoice = () => {
               value={formData.persona}
               onChange={handleInputChange}
               placeholder="e.g., A seasoned tech blogger with a friendly, conversational tone. Writes for developers and startup founders. Uses American English with occasional technical jargon."
-              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-2xl text-sm sm:text-base p-4 ${
+              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
                 errors.persona ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={3}
@@ -643,7 +643,7 @@ const BrandVoice = () => {
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
             <button
-              className="btn btn-primary h-12 px-4 bg-linear-to-r from-indigo-500 to-purple-600 border-none text-white shadow-md hover:shadow-lg rounded-lg text-base"
+              className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={handleSave}
               disabled={isUploading || showTrialMessage}
             >
@@ -660,7 +660,7 @@ const BrandVoice = () => {
             </button>
 
             <button
-              className="btn h-12 px-4 bg-red-600 hover:bg-red-700 text-white border-none shadow-md hover:shadow-lg rounded-lg text-base"
+              className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={resetForm}
               disabled={isUploading}
             >
@@ -685,7 +685,7 @@ const BrandVoice = () => {
             </button>
           </motion.div>
         </div>
-        <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">
+        <div className="space-y-3 overflow-y-auto max-h-screen sm:max-h-[calc(100vh-250px)]">
           {isLoading ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />

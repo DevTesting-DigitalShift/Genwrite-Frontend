@@ -18,6 +18,7 @@ import {
   ChevronRight,
   PlayCircle,
   Info,
+  RefreshCw,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
@@ -291,109 +292,140 @@ const PluginsMain = () => {
       }
 
       return (
-        <div className="p-8 sm:p-12 space-y-10">
+        <div className="space-y-8">
           <PluginHeader plugin={plugin} status={wordpressStatus[plugin.id]} />
 
-          <div className="bg-slate-50/50 rounded-[32px] p-8 border border-slate-100 flex flex-col gap-6">
-            <h4 className="text-xl font-black text-slate-800">Connection Portal</h4>
-            <div className="space-y-4">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                Store / Domain URL
-              </label>
-              <div className="relative">
-                <Globe className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-300" />
-                <input
-                  placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
-                  value={domain}
-                  onChange={e => setDomain(e.target.value.trim())}
-                  disabled={localLoading}
-                  className={`input input-bordered w-full h-16 pl-14 rounded-2xl font-bold bg-white focus:ring-4 focus:ring-blue-100 transition-all ${domain && !isValidDomain ? "border-rose-300" : "border-slate-100"}`}
-                />
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span className="text-gray-700">Connection Portal</span>
+              {wordpressStatus[plugin.id]?.success ? (
+                <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+                  <CheckCircle2 size={14} /> Connected
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+                  <XCircle size={14} /> Not Connected
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Store / Domain URL</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                  <input
+                    placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
+                    value={domain}
+                    onChange={e => setDomain(e.target.value.trim())}
+                    disabled={localLoading}
+                    className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      domain && !isValidDomain
+                        ? "border-rose-300 focus:border-rose-300"
+                        : "border-gray-200"
+                    }`}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                   onClick={openInstallUrl}
                   disabled={!domain || !isValidDomain || localLoading}
-                  className="btn btn-primary h-16 flex-1 rounded-2xl bg-slate-900 border-none text-white font-black text-lg gap-3 normal-case"
+                  className="flex-1 py-3 bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg font-semibold shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  <Server className="size-5" /> Install Protocol
+                  <Server className="size-4" /> Install Protocol
                 </button>
                 <button
                   onClick={handleInternalPing}
                   disabled={!domain || localLoading}
-                  className="btn btn-ghost h-16 flex-1 rounded-2xl bg-white border border-slate-200 font-bold gap-3 normal-case hover:bg-slate-100"
+                  className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {localLoading ? (
-                    <span className="loading loading-spinner"></span>
+                    <span className="loading loading-spinner loading-sm"></span>
                   ) : (
-                    <RefreshCw className="size-5" />
-                  )}{" "}
+                    <RefreshCw className="size-4" />
+                  )}
                   Sync Status
                 </button>
               </div>
             </div>
-          </div>
 
-          <p className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 text-sm font-bold text-indigo-700 leading-relaxed italic">
-            <Info className="size-4 inline mr-2 mb-1" /> {plugin.message}
-          </p>
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
+              <Info className="size-5 text-indigo-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                {plugin.message}
+              </p>
+            </div>
+          </div>
         </div>
       )
     }
 
     // Shared UI for WordPress / Server Endpoint
     return (
-      <div className="p-8 sm:p-12 space-y-10">
+      <div className="space-y-8">
         <PluginHeader plugin={plugin} status={wordpressStatus[plugin.id]} />
 
-        <div className="bg-slate-50/50 rounded-[32px] p-8 border border-slate-100">
-          <div className="flex items-center justify-between mb-8">
-            <h4 className="text-xl font-black text-slate-800">API Gateway Settings</h4>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`btn btn-sm rounded-xl gap-2 font-bold normal-case ${isEditing ? "btn-ghost text-rose-500 hover:bg-rose-50" : "btn-ghost text-blue-600 hover:bg-blue-50"}`}
-            >
-              {isEditing ? <XCircle className="size-4" /> : <Edit className="size-4" />}
-              {isEditing ? "Terminate Edit" : "Configure Parameters"}
-            </button>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <span className="text-gray-700">{plugin.pluginName} Integration</span>
+            {wordpressStatus[plugin.id]?.success ? (
+              <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+                <CheckCircle2 size={14} /> Connected
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+                <XCircle size={14} /> Not Connected
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                Access Protocol (URL)
-              </label>
-              <div className="relative">
-                <Globe className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-300" />
-                <input
-                  value={url}
-                  onChange={handleUrlChange}
-                  disabled={!isEditing}
-                  className="input input-bordered w-full h-16 pl-14 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100 transition-all"
-                  placeholder="https://api.yourdomain.com/rest"
-                />
-              </div>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Configuration</h3>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Edit size={16} />
+                {isEditing ? "Cancel Edit" : "Edit"}
+              </button>
             </div>
 
-            {plugin.id === 112 && (
+            <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                  Frontend Interface
+                <label className="text-sm font-medium text-gray-700">
+                  {plugin.id === 112 ? "Endpoint URL" : "WordPress URL"}
                 </label>
-                <input
-                  value={frontend}
-                  onChange={e => setFrontend(e.target.value)}
-                  disabled={!isEditing}
-                  className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
-                  placeholder="https://yourpage.com"
-                />
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                  <input
+                    value={url}
+                    onChange={handleUrlChange}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    placeholder="https://your-site.com"
+                  />
+                </div>
               </div>
-            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {plugin.id === 112 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Frontend Interface</label>
+                  <input
+                    value={frontend}
+                    onChange={e => setFrontend(e.target.value)}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    placeholder="https://yourpage.com"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                  {plugin.id === 112 ? "Authentication Bearer" : "Admin Username"}
+                <label className="text-sm font-medium text-gray-700">
+                  {plugin.id === 112 ? "Authentication Token" : "Username"}
                 </label>
                 <input
                   type={plugin.id === 112 ? "password" : "text"}
@@ -403,130 +435,127 @@ const PluginsMain = () => {
                   }
                   disabled={!isEditing}
                   onFocus={e => isEditing && (e.target.value = "")}
-                  className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
+
               {plugin.id === 111 && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                    App Password
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Application Password</label>
                   <input
                     type="password"
                     value={wpPassword}
                     onChange={e => setWpPassword(e.target.value)}
                     disabled={!isEditing}
                     onFocus={e => isEditing && (e.target.value = "")}
-                    className="input input-bordered w-full h-16 px-6 rounded-2xl font-bold bg-white border-none focus:ring-4 focus:ring-blue-100"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex gap-4 pt-4">
-              <button
-                onClick={isEditing ? handleConnect : handlePing}
-                className={`btn h-16 flex-1 rounded-2xl font-black text-lg border-none normal-case shadow-xl transition-all ${isEditing ? "btn-primary bg-slate-900 text-white hover:bg-slate-800" : "btn-success bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-100"}`}
-              >
-                {localLoading ? (
-                  <span className="loading loading-spinner"></span>
-                ) : isEditing ? (
-                  "Initialize Connection"
-                ) : (
-                  "Verify Integrity"
-                )}
-              </button>
-              <a
-                href={plugin.downloadLink}
-                download
-                className="btn btn-ghost h-16 px-6 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50"
-              >
-                <Download className="size-6 text-slate-600" />
-              </a>
-            </div>
+            <button
+              onClick={isEditing ? handleConnect : handlePing}
+              className={`w-full py-3 rounded-lg font-semibold text-white shadow-sm transition-all focus:ring-4 focus:ring-opacity-20 ${
+                isEditing
+                  ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                  : "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500"
+              }`}
+            >
+              {localLoading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : isEditing ? (
+                "Save Configuration"
+              ) : (
+                "Check Status"
+              )}
+            </button>
           </div>
         </div>
 
         {plugin.id === 111 && (
-          <div className="bg-linear-to-r from-red-600 to-indigo-700 rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-indigo-100">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                <PlayCircle className="size-8" />
+          <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                <PlayCircle size={20} />
               </div>
               <div>
-                <h5 className="text-2xl font-black">Troubleshooting Guide</h5>
-                <p className="text-red-100 font-bold opacity-80">
-                  Watch our specialized workflow for WordPress deployments.
-                </p>
+                <h4 className="font-semibold text-red-900 text-sm">Need Help?</h4>
+                <p className="text-xs text-red-700">Watch our setup guide video.</p>
               </div>
             </div>
             <a
               href="https://youtu.be/WFpfx-xOZK8"
               target="_blank"
-              className="btn bg-white border-none text-red-600 font-black px-10 h-16 rounded-2xl hover:bg-red-50 text-lg normal-case"
+              className="px-4 py-2 bg-white text-red-600 text-xs font-bold border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
             >
-              Access Intel
+              Watch Video
             </a>
           </div>
         )}
 
-        <p className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-sm font-bold text-slate-500 italic">
-          <Info className="size-4 inline mr-2 text-blue-500" /> {plugin.message}
-        </p>
+        <div className="pt-6 border-t border-gray-100">
+          <a
+            href={plugin.downloadLink}
+            download
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-emerald-500 text-emerald-600 font-medium hover:bg-emerald-50 transition-colors"
+          >
+            <Download size={18} />
+            Download Plugin
+          </a>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/30 p-6 lg:p-10 mb-32 flex flex-col">
+    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10">
       <Helmet>
         <title>Plugin Center | GenWrite</title>
       </Helmet>
 
-      <div className="mb-12 ml-4">
-        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
-          Plugin{" "}
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
-            Integrations
-          </span>
-        </h1>
-        <p className="text-slate-500 font-bold text-lg mt-2">
-          Connect your digital infrastructure for automated publication loops.
-        </p>
-      </div>
+      <div className="mx-auto space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Plugin Center
+          </h1>
+          <p className="text-gray-500">
+            Discover and integrate powerful tools to supercharge your workflow
+          </p>
+        </div>
 
-      <div className="flex-1">
-        <div className="bg-white rounded-[40px] shadow-2xl shadow-indigo-100/30 border border-slate-100 overflow-hidden flex flex-col md:flex-row h-full min-h-[800px]">
-          {/* Sidebar Tabs */}
-          <div className="w-full md:w-80 bg-slate-50/50 border-r border-slate-100 p-6 space-y-2">
-            <h6 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 ml-2">
-              Active Modules
-            </h6>
-            {extendedPlugins.map(p => (
-              <button
-                key={p.id}
-                onClick={() => handleTabChange(p.id.toString())}
-                className={`w-full flex items-center gap-4 p-5 rounded-2xl font-black transition-all ${activeTab === p.id.toString() ? "bg-white shadow-xl shadow-indigo-100/50 text-blue-600" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
-              >
-                {<p.icon className="size-5" /> || <LayoutGrid className="size-5" />}
-                <span className="text-sm">{p.name}</span>
-                {activeTab === p.id.toString() && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></div>
-                )}
-              </button>
-            ))}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px]">
+          {/* Horizontal Tabs */}
+          <div className="flex items-center gap-6 px-6 sm:px-10 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+            {extendedPlugins.map(p => {
+              const Icon = p.icon
+              const isActive = activeTab === p.id.toString()
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleTabChange(p.id.toString())}
+                  className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                    isActive
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon size={18} className={isActive ? "text-blue-600" : "text-gray-400"} />
+                  {p.name}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="p-6 lg:p-10">
             <AnimatePresence mode="wait">
               {extendedPlugins.find(p => p.id.toString() === activeTab) && (
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
                     plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
@@ -541,41 +570,21 @@ const PluginsMain = () => {
   )
 }
 
-const PluginHeader = ({ plugin, status }) => (
-  <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-    <div className="w-32 h-32 bg-white rounded-3xl shadow-xl shadow-slate-100 flex items-center justify-center p-6 border border-slate-50 shrink-0">
+const PluginHeader = ({ plugin }) => (
+  <div className="flex items-start gap-6">
+    <div className="w-20 h-20 shrink-0">
       <img src={plugin.pluginImage} alt={plugin.name} className="w-full h-full object-contain" />
     </div>
-    <div className="flex-1 text-center md:text-left">
-      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
-        <h2 className="text-3xl font-black text-slate-900 leading-none">{plugin.pluginName}</h2>
-        <div className="flex gap-2 justify-center">
-          {status?.success !== undefined ? (
-            <div
-              className={`badge h-7 px-4 rounded-xl border-none font-bold text-[10px] uppercase tracking-widest ${status.success ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
-            >
-              {status.success ? "Active" : "Offline"}
-            </div>
-          ) : (
-            <div className="badge h-7 px-4 rounded-xl border-none bg-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-              Awaiting Stats
-            </div>
-          )}
+    <div className="space-y-1">
+      <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>
+      <p className="text-gray-500 text-base leading-relaxed max-w-2xl">{plugin.description}</p>
+      <div className="flex flex-wrap items-center gap-4 pt-2 text-sm text-gray-500 font-medium">
+        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+          <Tag size={13} /> <span>v{plugin.version}</span>
         </div>
-      </div>
-      <p className="text-slate-500 font-bold text-lg mb-6 max-w-2xl">{plugin.description}</p>
-      <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-        <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl text-xs font-black text-slate-600">
-          <Settings className="size-4" /> v{plugin.version}
+        <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+          <Clock size={13} /> <span>Updated {plugin.updatedDate}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl text-xs font-black text-blue-600">
-          <Clock className="size-4" /> Updated {plugin.updatedDate}
-        </div>
-        {status?.success && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl text-xs font-black text-emerald-600 animate-pulse">
-            <CheckCircle2 className="size-4" /> Security Verified
-          </div>
-        )}
       </div>
     </div>
   </div>

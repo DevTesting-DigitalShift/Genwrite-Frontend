@@ -132,9 +132,6 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
             <tr key={job._id} className="hover:bg-blue-50/30 transition-all group">
               <td className="px-8 py-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-100 group-hover:scale-110 transition-transform duration-300">
-                    <Briefcase size={20} />
-                  </div>
                   <div>
                     <div className="font-bold text-slate-900 text-[15px] group-hover:text-blue-700 transition-colors">
                       {job.name}
@@ -317,25 +314,25 @@ const Jobs = () => {
   return (
     <>
       <Helmet>
-        <title>Automation Jobs | GenWrite</title>
+        <title>Content Agent | GenWrite</title>
       </Helmet>
 
-      <div className="min-h-screen bg-slate-50">
-        <div className="max-w-7xl mx-auto space-y-10 p-6 md:p-10">
+      <div className="min-h-screen">
+        <div className="space-y-10 p-6">
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Automation Jobs</h1>
-              <p className="text-slate-500 text-lg font-medium max-w-2xl">
-                Create and manage your automated content generation pipelines efficiently.
-              </p>
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Jobs Automation
+              </h1>
+              <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="join bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="join bg-white p-1 gap-1 rounded-xl border border-slate-200 shadow-sm">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-xl transition-all ${
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
                     viewMode === "grid"
                       ? "bg-indigo-600 text-white hover:bg-indigo-700"
                       : "text-slate-400"
@@ -345,7 +342,7 @@ const Jobs = () => {
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-xl transition-all ${
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
                     viewMode === "list"
                       ? "bg-indigo-600 text-white hover:bg-indigo-700"
                       : "text-slate-400"
@@ -358,7 +355,7 @@ const Jobs = () => {
               <button
                 onClick={handleRefresh}
                 disabled={queryLoading}
-                className="btn btn-ghost bg-white hover:bg-slate-100 text-slate-600 font-bold border border-slate-200 h-12 px-6 rounded-2xl shadow-sm"
+                className="btn btn-ghost bg-white rounded-lg hover:bg-slate-100 text-slate-600 font-bold border border-slate-200 h-12 px-6 shadow-sm"
               >
                 <RefreshCw
                   size={18}
@@ -371,21 +368,21 @@ const Jobs = () => {
 
           {/* Stats & Create Banner */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-[40px] p-10 border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
+            <div className="lg:col-span-2 p-8 rounded-xl border border-slate-200 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl pointer-events-none" />
 
               <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+                    <h3 className="text-2xl font-black text-slate-800">
                       Usage Overview
                     </h3>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">
+                    <p className="text-slate-500 font-bold text-sm">
                       Monthly Subscription Metrics
                     </p>
                   </div>
-                  <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 shadow-sm">
-                    <Briefcase size={28} />
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100 shadow-sm">
+                    <Briefcase size={20} />
                   </div>
                 </div>
 
@@ -420,10 +417,10 @@ const Jobs = () => {
             <button
               onClick={handleOpenJobModal}
               disabled={usage >= usageLimit}
-              className={`relative h-full text-left rounded-[40px] p-10 overflow-hidden group transition-all duration-500 ${
+              className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
                 usage >= usageLimit
                   ? "bg-slate-100 cursor-not-allowed grayscale"
-                  : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800 shadow-2xl shadow-indigo-200 hover:scale-[1.02] active:scale-95"
+                  : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800 shadow-2xl shadow-indigo-200"
               }`}
             >
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 transition-transform duration-1000">
@@ -431,12 +428,12 @@ const Jobs = () => {
               </div>
 
               <div className="relative z-10 h-full flex flex-col justify-between">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-xl text-white rounded-[24px] flex items-center justify-center border border-white/20 shadow-2xl">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-xl text-white rounded-lg flex items-center justify-center border border-white/20 shadow-2xl">
                   <Plus size={32} strokeWidth={3} />
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-white mb-2">Create New Pipeline</h3>
-                  <p className="text-indigo-100 font-medium leading-relaxed opacity-80 max-w-[200px]">
+                  <p className="text-indigo-100 font-medium leading-relaxed opacity-80">
                     Setup a new automated content generation stream.
                   </p>
                 </div>
@@ -454,22 +451,15 @@ const Jobs = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Jobs</h2>
-                <div className="badge badge-lg bg-indigo-50 text-indigo-600 border-indigo-100 font-bold px-4 h-9">
-                  {filteredJobs.length} Processed
-                </div>
               </div>
 
               <div className="relative group w-72">
-                <Search
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                  size={18}
-                />
                 <input
                   type="text"
                   placeholder="Search pipelines..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="input input-bordered w-full h-12 pl-12 rounded-2xl bg-white border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all font-medium"
+                  className="input input-bordered w-full h-12 pl-12 rounded-lg border-slate-200 outline-0 font-medium"
                 />
               </div>
             </div>

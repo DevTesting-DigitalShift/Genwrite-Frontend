@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X,
   Zap,
+  Eye,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -335,7 +336,7 @@ const BlogsPage = () => {
       setCurrentPage(1)
       toast.success("Trash emptied. Permanent deletion complete.")
     } catch (err) {
-      toast.error("Purge failed")
+      toast.error("delete failed")
     }
   }, [queryClient])
 
@@ -343,97 +344,75 @@ const BlogsPage = () => {
   const totalTrashPages = Math.ceil(totalItems / pageSize)
 
   return (
-    <div className="p-6 md:p-10 min-h-screen bg-slate-50 font-inter">
+    <div className="p-6">
       <Helmet>
-        <title>{isTrashcan ? "Trashcan" : "Content Matrix"} | GenWrite</title>
+        <title>{isTrashcan ? "Trashcan" : "Blogs"} | GenWrite</title>
       </Helmet>
 
       {/* Header Grid */}
-      <header className="mb-12">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10 pb-10 border-b border-slate-200/50">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
-              {isTrashcan ? (
-                <Trash2 size={10} className="text-rose-400" />
-              ) : (
-                <Zap size={10} className="text-blue-400" />
-              )}
-              {isTrashcan ? "Archival Storage" : "Active Synthesis Grid"}
-            </div>
-            <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
-              {isTrashcan
-                ? "Trashcan"
-                : "Content <span className='text-blue-600 font-black'>Matrix</span>"}
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: isTrashcan ? "" : "Content <span className='text-blue-600'>Matrix</span>",
-                }}
-                style={{ display: "none" }}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8 mt-5 md:mt-0">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {isTrashcan ? "Trashcan" : "Blogs Generated"}
+          </h1>
+          <p className="text-gray-500 text-sm max-w-md">
+            {isTrashcan
+              ? "Restore valuable work or permanently delete clutter. Trashed items are deleted after 7 days."
+              : "All our blogs in one place. Explore insights, tips, and strategies to level up your content creation."}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          {!isTrashcan && (
+            <button
+              onClick={() => handleProAction(() => navigate("/blog-editor"))}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium cursor-pointer "
+            >
+              <Plus
+                size={20}
+                strokeWidth={3}
+                className="group-hover:rotate-90 transition-transform"
               />
-              {/* Note: dangerous style above is just to keep the logic consistent if I wanted to use a span, but I'll write it clearly below */}
-              {!isTrashcan && <span className="text-blue-600 ml-3">Matrix</span>}
-            </h1>
-            <p className="text-slate-400 font-medium max-w-xl text-lg leading-relaxed">
-              {isTrashcan
-                ? "Items in the void are purged after 7 days. Restore valuable DNA or clear the cache."
-                : "Manage your high-entropy AI articles and research output."}
-            </p>
-          </div>
+              New Blog
+            </button>
+          )}
 
-          <div className="flex flex-wrap items-center gap-4">
-            {!isTrashcan && (
-              <button
-                onClick={() => handleProAction(() => navigate("/blog-editor"))}
-                className="btn btn-primary h-14 px-8 rounded-2xl bg-slate-900 border-none text-white font-black shadow-2xl hover:bg-black transition-all gap-2 group"
-              >
-                <Plus
-                  size={20}
-                  strokeWidth={3}
-                  className="group-hover:rotate-90 transition-transform"
-                />
-                Forge New Article
-              </button>
-            )}
+          <button
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"] })
+            }
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium cursor-pointer  border border-gray-300 text-gray-800"
+          >
+            <RefreshCcw size={18} className={isRefetching ? "animate-spin text-blue-500" : ""} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
 
+          {isTrashcan && allBlogs.length > 0 && (
             <button
               onClick={() =>
-                queryClient.invalidateQueries({
-                  queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
+                handlePopup({
+                  title: "Empty Trash?",
+                  description: "Permanently delete all articles in trash. This cannot be undone.",
+                  onConfirm: handleBulkDelete,
                 })
               }
-              className="btn btn-ghost h-14 px-6 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-all gap-2 shadow-sm"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border border-red-300 bg-red-100 text-red-500 hover:bg-red-200"
             >
-              <RefreshCcw size={18} className={isRefetching ? "animate-spin text-blue-500" : ""} />
-              <span className="hidden sm:inline">Refresh Grid</span>
+              <Trash2 size={18} />
+              Delete All
             </button>
-
-            {isTrashcan && allBlogs.length > 0 && (
-              <button
-                onClick={() =>
-                  handlePopup({
-                    title: "Empty Trash?",
-                    description: "Permanently purge all articles in trash. This cannot be undone.",
-                    onConfirm: handleBulkDelete,
-                  })
-                }
-                className="btn btn-error btn-outline h-14 px-6 rounded-2xl font-black gap-2"
-              >
-                <Trash2 size={18} />
-                Purge All
-              </button>
-            )}
-          </div>
+          )}
         </div>
-      </header>
+      </div>
 
       {/* Control Matrix (Search & Filters) */}
       <div className="flex flex-col xl:flex-row xl:items-center gap-6 mb-12">
-        <div className="relative group flex-1 max-w-2xl">
+        <div className="relative group flex-1">
           <DebouncedSearchInput
             initialValue={blogFilters.q}
             onSearch={val => updateBlogFilters({ q: val })}
-            placeholder="Search by title, keywords or ID..."
-            className="w-full h-16! pl-14! bg-white! border-slate-200! rounded-[24px]! shadow-sm! focus:ring-8! focus:ring-blue-500/5! focus:border-blue-500! transition-all! font-bold! text-slate-700!"
+            placeholder="Search by title or keywords..."
+            className="w-full text-sm placeholder-gray-400 focus:outline-none h-11 pl-10 pr-4 bg-slate-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
           />
         </div>
 
@@ -442,7 +421,7 @@ const BlogsPage = () => {
             <select
               value={blogFilters.status}
               onChange={e => updateBlogFilters({ status: e.target.value })}
-              className="select select-bordered h-16 rounded-2xl bg-white border-slate-200 font-bold text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 min-w-[180px]"
+              className="select min-w-[180px] focus:none outline-0"
             >
               {BLOG_STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -454,7 +433,7 @@ const BlogsPage = () => {
             <select
               value={blogFilters.sort}
               onChange={e => updateBlogFilters({ sort: e.target.value })}
-              className="select select-bordered h-16 rounded-2xl bg-white border-slate-200 font-bold text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 min-w-[200px]"
+              className="select min-w-[200px] focus:none outline-0"
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -464,12 +443,12 @@ const BlogsPage = () => {
             </select>
           </div>
 
-          <div className="dropdown dropdown-end">
+          <div className="dropdown dropdown-end focus:none outline-0">
             <div
               tabIndex={0}
               role="button"
               className={clsx(
-                "btn h-16 px-6 rounded-2xl font-black gap-3 transition-all",
+                "btn gap-3 transition-all",
                 hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
                   ? "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                   : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -484,21 +463,19 @@ const BlogsPage = () => {
 
             <div
               tabIndex={0}
-              className="dropdown-content z-50 card card-compact w-80 p-6 shadow-2xl bg-white border border-slate-100 mt-2 space-y-6"
+              className="menu dropdown-content z-50 card card-compact w-80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-white border border-slate-100 mt-2 gap-4 block"
             >
-              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Global Filters
-                </h4>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
+                <h4 className="font-bold text-slate-800 text-sm">Detailed Filters</h4>
                 <button
                   onClick={resetFilters}
-                  className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest"
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
                 >
-                  Reset
+                  Reset All
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Mobile visible Selects in dropdown */}
                 <div className="xl:hidden space-y-4">
                   <select
@@ -525,22 +502,35 @@ const BlogsPage = () => {
                   </select>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <MousePointerClick size={12} className="text-blue-500" /> Min Clicks
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <MousePointerClick size={14} className="text-slate-400" /> MIN. GSC CLICKS
                   </label>
                   <input
                     type="number"
                     value={tempGscClicks || ""}
                     onChange={e => setTempGscClicks(parseInt(e.target.value) || null)}
-                    placeholder="0"
-                    className="input input-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
+                    placeholder="e.g. 50"
+                    className="input input-sm h-10 w-full rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={12} className="text-purple-500" /> Synthesis Timeframe
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Eye size={14} className="text-slate-400" /> MIN. GSC IMPRESSIONS
+                  </label>
+                  <input
+                    type="number"
+                    value={tempGscImpressions || ""}
+                    onChange={e => setTempGscImpressions(parseInt(e.target.value) || null)}
+                    placeholder="e.g. 1000"
+                    className="input input-sm h-10 w-full rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Calendar size={14} className="text-slate-400" /> DATE RANGE
                   </label>
                   <DateRangePicker
                     value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
@@ -554,7 +544,7 @@ const BlogsPage = () => {
                         })
                       }
                     }}
-                    className="w-full! rounded-xl!"
+                    className="w-full! rounded-lg!"
                   />
                 </div>
               </div>
@@ -603,28 +593,27 @@ const BlogsPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col justify-center items-center py-40 bg-white rounded-[64px] border border-slate-100 shadow-2xl shadow-slate-200/50"
+            className="flex flex-col justify-center items-center py-20 bg-white border-2 border-dashed border-slate-200 rounded-3xl"
           >
-            <div className="w-32 h-32 bg-slate-50 rounded-[48px] flex items-center justify-center mb-8 shadow-inner">
-              <Search size={48} className="text-slate-200" />
-            </div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-              Binary Void Detected
-            </h3>
-            <p className="text-slate-400 mt-4 font-medium max-w-sm text-center px-6">
-              No matching content found in this sector. Adjust your search parameters or recalibrate
-              filters.
+            <img
+              src="/Images/trash-can.webp"
+              alt="No blogs found"
+              className="w-36 h-36 mb-4 object-contain opacity-80"
+            />
+            <h3 className="text-xl font-bold text-slate-600">No blogs found</h3>
+            <p className="text-slate-400 mt-2 text-sm">
+              Try adjusting your filters or search terms.
             </p>
             <button
               onClick={resetFilters}
-              className="btn btn-primary mt-10 h-14 px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all"
+              className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
             >
-              Reset Matrix Search
+              Clear all filters
             </button>
           </motion.div>
         ) : (
           <div className="space-y-20">
-            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {allBlogs.map(blog => (
                 <BlogCard
                   key={blog._id}
@@ -639,7 +628,7 @@ const BlogsPage = () => {
                   isTrashcan={isTrashcan}
                 />
               ))}
-            </motion.div>
+            </div>
 
             {/* Pagination Matrix */}
             <div className="pt-10 flex flex-col items-center gap-10">
@@ -647,8 +636,8 @@ const BlogsPage = () => {
                 <div className="flex flex-col items-center gap-6">
                   <div className="flex items-center gap-3">
                     <div className="h-px w-10 bg-slate-200" />
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">
-                      Showing {allBlogs.length} / {totalItems} Entity IDs
+                    <p className="text-slate-500 text-sm">
+                      Showing {allBlogs.length} / {totalItems}
                     </p>
                     <div className="h-px w-10 bg-slate-200" />
                   </div>
@@ -656,18 +645,12 @@ const BlogsPage = () => {
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="btn btn-outline h-16 px-12 rounded-[24px] border-2 border-slate-200 bg-white text-slate-900 font-black hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-xl group disabled:opacity-50"
+                    className="btn btn-outline p-6 px-8 border rounded-lg text-gray-700 border-slate-200 disabled:opacity-50"
                   >
                     {isFetchingNextPage ? (
                       <Loader2 size={20} className="animate-spin" />
                     ) : (
-                      <>
-                        Reveal More Articles
-                        <ChevronDown
-                          size={20}
-                          className="group-hover:translate-y-1 transition-transform"
-                        />
-                      </>
+                      <>Load More</>
                     )}
                   </button>
                 </div>
@@ -730,14 +713,6 @@ const BlogsPage = () => {
           </div>
         )}
       </AnimatePresence>
-
-      <footer className="mt-32 pb-10 flex flex-col items-center gap-4 opacity-30 select-none">
-        <div className="flex items-center gap-4">
-          <div className="h-1 w-1 bg-slate-400 rounded-full" />
-          <span className="text-[10px] font-black uppercase tracking-[1em]">End of Sync</span>
-          <div className="h-1 w-1 bg-slate-400 rounded-full" />
-        </div>
-      </footer>
     </div>
   )
 }

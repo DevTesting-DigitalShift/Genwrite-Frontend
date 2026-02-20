@@ -55,28 +55,23 @@ export const ConfirmPopupProvider = ({ children }) => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="modal-box rounded-2xl"
+              className="modal-box"
             >
-              <div className="flex items-start gap-3 mt-2">
-                <div className="p-1">{icon}</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
-                  <p className="text-gray-600 text-justify tracking-wide leading-relaxed">
-                    {description}
-                  </p>
-                </div>
-              </div>
+              <h3 className="font-bold text-lg">{title}</h3>
+              <p className="text-gray-600 text-sm text-justify py-4">
+                {description}
+              </p>
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   onClick={() => handleClose({ source: "button" })}
-                  className="btn btn-ghost text-error"
+                  className="btn"
                   {...cancelProps}
                 >
                   {cancelText}
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="btn btn-primary"
+                  className="btn"
                   disabled={loading}
                   {...confirmProps}
                 >
@@ -85,9 +80,6 @@ export const ConfirmPopupProvider = ({ children }) => {
                 </button>
               </div>
             </motion.div>
-            <form method="dialog" className="modal-backdrop">
-              <button onClick={() => handleClose({ source: "mask" })}>close</button>
-            </form>
           </dialog>
         )}
       </AnimatePresence>

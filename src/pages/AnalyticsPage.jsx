@@ -181,150 +181,162 @@ const AnalyticsPage = () => {
     },
   }
 
-  const charts = [
-    {
-      title: "Model Intelligence Distribution",
-      type: "Pie",
-      data: {
-        labels: Object.keys(blogsByModel).length ? Object.keys(blogsByModel) : ["No Data"],
-        datasets: [
-          {
-            data: Object.keys(blogsByModel).length ? Object.values(blogsByModel) : [1],
-            backgroundColor: ["#0f172a", "#3b82f6", "#10b981", "#f59e0b"],
-            hoverOffset: 24,
-            borderColor: "#ffffff",
-            borderWidth: 4,
-          },
-        ],
-      },
+ const charts = [
+  {
+    title: "Blogs by Model",
+    type: "Pie",
+    data: {
+      labels: Object.keys(blogsByModel).length ? Object.keys(blogsByModel) : ["No Data"],
+      datasets: [
+        {
+          data: Object.keys(blogsByModel).length ? Object.values(blogsByModel) : [1],
+          backgroundColor: [
+            "#6366F1", // modern indigo
+            "#EC4899", // vibrant rose
+            "#14B8A6", // teal
+            "#F59E0B", // amber
+            "#8B5CF6", // violet
+          ],
+          hoverOffset: 24,
+          borderColor: "#ffffff",
+          borderWidth: 4,
+        },
+      ],
     },
-    {
-      title: "Asset Origin Matrix",
-      type: "Doughnut",
-      data: {
-        labels: Object.keys(imageSources).length ? Object.keys(imageSources) : ["No Data"],
-        datasets: [
-          {
-            data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
-            backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#94a3b8"],
-            hoverOffset: 24,
-            borderColor: "#ffffff",
-            borderWidth: 4,
-            cutout: "70%",
-          },
-        ],
-      },
+  },
+  {
+    title: "Image Sources",
+    type: "Doughnut",
+    data: {
+      labels: Object.keys(imageSources).length ? Object.keys(imageSources) : ["No Data"],
+      datasets: [
+        {
+          data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
+          backgroundColor: [
+            "#0EA5E9", // sky blue
+            "#22C55E", // green
+            "#F97316", // orange
+            "#A855F7", // purple
+            "#E11D48", // ruby
+          ],
+          hoverOffset: 24,
+          borderColor: "#ffffff",
+          borderWidth: 4,
+          cutout: "70%",
+        },
+      ],
     },
-    {
-      title: "Pipeline Status Flow",
-      type: "Bar",
-      data: {
-        labels: Object.keys(blogsByStatus).length ? Object.keys(blogsByStatus) : ["No Data"],
-        datasets: [
-          {
-            label: "Nodes",
-            data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
-            backgroundColor: Object.keys(blogsByStatus).length
-              ? Object.keys(blogsByStatus).map(status => {
-                  switch (status.toLowerCase()) {
-                    case "pending":
-                      return "#facc15"
-                    case "complete":
-                      return "#10b981"
-                    case "failed":
-                      return "#ef4444"
-                    case "in-progress":
-                      return "#3b82f6"
-                    default:
-                      return "#64748b"
-                  }
-                })
-              : ["#e2e8f0"],
-            borderRadius: 12,
-            maxBarThickness: 40,
-          },
-        ],
-      },
+  },
+  {
+    title: "Blogs By Status",
+    type: "Bar",
+    data: {
+      labels: Object.keys(blogsByStatus).length ? Object.keys(blogsByStatus) : ["No Data"],
+      datasets: [
+        {
+          label: "Nodes",
+          data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
+          backgroundColor: Object.keys(blogsByStatus).length
+            ? Object.keys(blogsByStatus).map(status => {
+                switch (status.toLowerCase()) {
+                  case "pending":
+                    return "#EAB308" // strong yellow
+                  case "complete":
+                    return "#16A34A" // deep green
+                  case "failed":
+                    return "#DC2626" // red
+                  case "in-progress":
+                    return "#2563EB" // blue
+                  default:
+                    return "#64748B" // slate
+                }
+              })
+            : ["#CBD5E1"],
+          borderRadius: 12,
+          maxBarThickness: 40,
+        },
+      ],
     },
-    {
-      title: "Architectural Preference",
-      type: "Line",
-      data: {
-        labels: Object.keys(templatesUsed).length ? Object.keys(templatesUsed) : ["No Data"],
-        datasets: [
-          {
-            label: "Usage",
-            data: Object.keys(templatesUsed).length ? Object.values(templatesUsed) : [0],
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.5,
-            fill: true,
-            pointBackgroundColor: "#ffffff",
-            pointBorderColor: "#3b82f6",
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-          },
-        ],
-      },
+  },
+  {
+    title: "Templates Used",
+    type: "Line",
+    data: {
+      labels: Object.keys(templatesUsed).length ? Object.keys(templatesUsed) : ["No Data"],
+      datasets: [
+        {
+          label: "Usage",
+          data: Object.keys(templatesUsed).length ? Object.values(templatesUsed) : [0],
+          borderColor: "#4F46E5",
+          backgroundColor: "rgba(79, 70, 229, 0.18)",
+          tension: 0.5,
+          fill: true,
+          pointBackgroundColor: "#ffffff",
+          pointBorderColor: "#4F46E5",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
     },
-  ]
+  },
+]
 
   const statsData = [
     {
-      title: "Neural Output",
+      title: "Total Blogs",
       value: totalBlogs,
       icon: <FileText className="w-5 h-5 text-white" />,
-      iconBg: "bg-slate-950",
-      cardBg: "bg-white",
-      ringColor: "ring-slate-100",
+      iconBg: "bg-pink-500",
+      cardBg: "bg-pink-100",
+      ringColor: "ring-pink-100",
     },
     {
-      title: "Live Deployments",
+      title: "Posted Blogs",
       value: postedBlogs,
       icon: <UploadCloud className="w-5 h-5 text-white" />,
       iconBg: "bg-emerald-600",
-      cardBg: "bg-white",
+      cardBg: "bg-emerald-100",
       ringColor: "ring-emerald-100",
     },
     {
-      title: "Archived Nodes",
+      title: "Archived Blogs",
       value: archivedBlogs,
       icon: <Archive className="w-5 h-5 text-white" />,
       iconBg: "bg-amber-500",
-      cardBg: "bg-white",
+      cardBg: "bg-amber-100",
       ringColor: "ring-amber-100",
     },
     {
-      title: "Pattern Optimized",
+      title: "Branded Blogs",
       value: brandedBlogs,
       icon: <BadgePercent className="w-5 h-5 text-white" />,
       iconBg: "bg-blue-600",
-      cardBg: "bg-white",
+      cardBg: "bg-blue-100",
       ringColor: "ring-blue-100",
     },
   ]
 
   const usageData = [
     {
-      title: "Autonomous Pipelines",
+      title: "Created Jobs",
       value: usage.createdJobs,
       limit: usageLimits.createdJobs,
       progress: usage.createdJobs,
       icon: <FilePlus className="w-5 h-5 text-white" />,
-      iconBg: "bg-slate-900",
-      cardBg: "bg-slate-50",
-      ringColor: "ring-slate-200",
+      iconBg: "bg-purple-500",
+      cardBg: "bg-purple-100",
+      ringColor: "ring-purple-200",
     },
     {
-      title: "Synthetic Assets",
+      title: "AI Images",
       value: usage.aiImages,
       limit: usageLimits.aiImages,
       progress: usage.aiImages,
       icon: <ImageIcon className="w-5 h-5 text-white" />,
-      iconBg: "bg-blue-600",
-      cardBg: "bg-blue-50/50",
-      ringColor: "ring-blue-200",
+      iconBg: "bg-teal-600",
+      cardBg: "bg-teal-100",
+      ringColor: "ring-teal-200",
     },
   ]
 
@@ -333,8 +345,8 @@ const AnalyticsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/30">
-      <div className="p-8 sm:p-12 max-w-7xl mx-auto">
+    <div className="min-h-screen">
+      <div className="p-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -342,12 +354,11 @@ const AnalyticsPage = () => {
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12 gap-6"
         >
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-slate-950 tracking-tight">
-              Intelligence Analytics
+            <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Blog Analytics
             </h1>
-            <p className="text-lg font-medium text-slate-500 max-w-xl leading-relaxed">
-              Real-time monitoring of your autonomous content generation grid and performance
-              metrics.
+            <p className="text-base mt-1 text-gray-600">
+              Track your blog performance and engagement metrics
             </p>
           </div>
         </motion.div>
@@ -372,16 +383,13 @@ const AnalyticsPage = () => {
           <div className="space-y-16">
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-[18px] bg-slate-950 flex items-center justify-center shadow-lg shadow-slate-900/20">
-                  <TrendingUp className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    System Statistics
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Blog Statistics
                   </h2>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    High-Fidelity Metric Matrix
-                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -403,16 +411,13 @@ const AnalyticsPage = () => {
 
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-[18px] bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                  <Gauge className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <Gauge className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    Resource Quota
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Usage & Limit
                   </h2>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Bandwidth & Consumption Pulse
-                  </p>
                 </div>
               </div>
 
@@ -435,16 +440,13 @@ const AnalyticsPage = () => {
 
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-[18px] bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20">
-                  <StopCircle className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                  <StopCircle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    Neural Intelligence Charts
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Analytics Charts
                   </h2>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Abstracted Data Visualization
-                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">

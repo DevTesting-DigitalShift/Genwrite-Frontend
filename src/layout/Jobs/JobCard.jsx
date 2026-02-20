@@ -12,6 +12,7 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
+  Sparkles,
 } from "lucide-react"
 import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -97,15 +98,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const activeOptions = getTrueOptions(job.options)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      className="group bg-white rounded-3xl border border-slate-200/60 p-6 flex flex-col shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden h-full"
-    >
-      {/* Neural Pattern Overlay */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-blue-500/5 to-transparent pointer-events-none" />
-
+    <motion.div className="group bg-white rounded-xl border border-slate-200/60 p-6 flex flex-col shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden h-full">
       {/* Header */}
       <div className="flex justify-between items-start mb-6 relative z-10">
         <div className="flex-1 min-w-0 pr-4">
@@ -122,7 +115,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
         <button
           onClick={handleToggleStatus}
           disabled={isToggling}
-          className={`group/btn flex items-center justify-center w-12 h-12 rounded-2xl transition-all ${
+          className={`group/btn flex items-center justify-center w-12 h-12 rounded-xl transition-all ${
             isRunning
               ? "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-100"
               : "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100"
