@@ -1,5 +1,5 @@
 import { packages } from "@/data/templates"
-import toast from "@utils/toast" 
+import toast from "@utils/toast"
 import clsx from "clsx"
 import { Crown, Search } from "lucide-react"
 import { FC, useEffect, useState, useMemo } from "react"
@@ -124,7 +124,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
     <div className={`relative ${className}`}>
       {/* Header Section - Responsive */}
       <div className="sticky top-0 pb-4 bg-white z-30 flex flex-col sm:flex-row justify-around items-center gap-4">
-        <label className="input input-bordered flex items-center gap-2 w-full sm:w-2/3 md:w-1/2">
+        <label className="input input-bordered flex items-center gap-2 w-full">
           <input
             type="text"
             className="grow"
@@ -163,7 +163,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                 className={clsx(
                   "relative cursor-pointer transition-all rounded-lg duration-200 border-2",
                   selectedIds.includes(pkg.id)
-                    ? "border-blue-500 ring-2 ring-blue-200"
+                    ? "border-blue-500"
                     : "border-transparent hover:border-gray-200"
                 )}
                 onClick={() => handlePackageSelect(pkg.id)}
@@ -172,8 +172,8 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                 tabIndex={0}
                 aria-label={`Select ${pkg.name} template`}
               >
-                <div className="bg-white rounded-md overflow-hidden shadow-sm h-full border border-base-200">
-                  <div className="relative aspect-video">
+                <div className="bg-white rounded-md overflow-hidden shadow-sm h-full border border-gray-300">
+                  <div className="relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
                       alt={pkg.name}

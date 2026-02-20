@@ -42,10 +42,10 @@ const BulkBlogModal = ({ closeFnc }) => {
     topicInput: "",
     keywordInput: "",
     performKeywordResearch: true,
-    tone: "", 
+    tone: "",
     languageToWrite: "English",
     userDefinedLength: 1000,
-    imageSource: IMAGE_SOURCE.STOCK, 
+    imageSource: IMAGE_SOURCE.STOCK,
     isCheckedBrand: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -716,828 +716,854 @@ const BulkBlogModal = ({ closeFnc }) => {
   return (
     <>
       {" "}
-    <dialog className="modal modal-open">
-      <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden bg-white">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-bold text-lg">{`Step ${currentStep + 1}: ${steps[currentStep]}`}</h3>
-          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-2 md:p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
-          {currentStep === 0 && (
-            <div
-              className={`p-3 md:p-0 ${
-                errors.templates ? "border-2 border-red-500 rounded-lg" : ""
-              }`}
-            >
-              <TemplateSelection
-                numberOfSelection={3}
-                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                preSelectedIds={formData.templateIds}
-                onClick={handlePackageSelect}
-              />
-              <p
-                className={`text-sm ${
-                  errors?.templates ? "text-red-500" : "text-gray-600"
-                }  my-3 sm:mb-4 px-4`}
+      <dialog className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden bg-white">
+          <div className="flex items-center justify-between p-4 border-b border-gray-300">
+            <h3 className="font-bold text-lg">{`Step ${currentStep + 1}: ${steps[currentStep]}`}</h3>
+            <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-2 md:p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
+            {currentStep === 0 && (
+              <div
+                className={`p-3 md:p-0 ${
+                  errors.templates ? "border-2 border-red-500 rounded-lg" : ""
+                }`}
               >
-                {errors?.templates
-                  ? errors.templates
-                  : "Select up to 3 templates for the types of blogs you want to generate."}
-              </p>
-            </div>
-          )}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                  Topics <span className="text-red-500">*</span>
-                  <div className="tooltip" data-tip="Upload a .csv file in the format: `Topics` as header">
-                    <div className="cursor-pointer">
-                      <Info size={16} className="text-blue-500" />
-                    </div>
-                  </div>
-                </label>
-                <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs.</p>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    value={formData.topicInput}
-                    onChange={handleTopicInputChange}
-                    onKeyDown={handleTopicKeyPress}
-                    className={`w-full px-3 py-2 border rounded-md text-sm bg-gray-50 ${
-                      errors.topics ? "border-red-500" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500`}
-                    placeholder="e.g., digital marketing trends, AI in business"
-                  />
-                  <button
-                    onClick={handleAddTopic}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
-                  >
-                    Add
-                  </button>
-                  <label
-                    className={`flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200 ${
-                      errors.topicsCSV ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <Upload size={16} />
-                    <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
-                  </label>
-                </div>
-                {errors.topics && <p className="text-red-500 text-xs mt-1">{errors.topics}</p>}
-                {errors.topicsCSV && (
-                  <p className="text-red-500 text-xs mt-1">{errors.topicsCSV}</p>
-                )}
-                <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                  {(showAllTopics
-                    ? formData.topics.slice().reverse()
-                    : formData.topics.slice().reverse().slice(0, 18)
-                  ).map((topic, reversedIndex) => {
-                    const actualIndex = formData.topics.length - 1 - reversedIndex
-                    return (
-                      <span
-                        key={`${topic}-${actualIndex}`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                      >
-                        {topic}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTopic(actualIndex)}
-                          className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )
-                  })}
-                  {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
-                    <span
-                      onClick={() => setShowAllTopics(prev => !prev)}
-                      className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
+                <TemplateSelection
+                  numberOfSelection={3}
+                  userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+                  preSelectedIds={formData.templateIds}
+                  onClick={handlePackageSelect}
+                />
+                <p
+                  className={`text-sm ${
+                    errors?.templates ? "text-red-500" : "text-gray-600"
+                  }  my-3 sm:mb-4 px-4`}
+                >
+                  {errors?.templates
+                    ? errors.templates
+                    : "Select up to 3 templates for the types of blogs you want to generate."}
+                </p>
+              </div>
+            )}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    Topics <span className="text-red-500">*</span>
+                    <div
+                      className="tooltip"
+                      data-tip="Upload a .csv file in the format: `Topics` as header"
                     >
-                      {showAllTopics ? (
-                        <>Show less</>
-                      ) : (
-                        <>
-                          {formData.topics.length > 18 && `+${formData.topics.length - 18} more`}
-                          {recentlyUploadedTopicsCount &&
-                            ` (+${recentlyUploadedTopicsCount} uploaded)`}
-                        </>
-                      )}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Perform Keyword Research?
-                  <p className="text-xs text-gray-500">
-                    Allow AI to find relevant keywords for the topics.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="performKeywordResearch"
-                    checked={formData.performKeywordResearch}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
-              </div>
-              {!formData.performKeywordResearch && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                      Keywords <span className="text-red-500">*</span>
-                      <div className="tooltip" data-tip="Upload a .csv file in the format: `Keywords` as header">
-                        <div className="cursor-pointer">
-                          <Info size={16} className="text-blue-500" />
-                        </div>
+                      <div className="cursor-pointer">
+                        <Info size={16} className="text-blue-500" />
                       </div>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.keywordInput}
-                        onChange={handleKeywordInputChange}
-                        onKeyDown={handleTopicKeyPress}
-                        className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 ${
-                          errors.keywords ? "border-red-500" : "border-gray-300"
-                        } focus:ring-2 focus:ring-blue-500`}
-                        placeholder="e.g., digital marketing trends, AI in business"
-                      />
-                      <button
-                        onClick={handleAddKeyword}
-                        className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
-                      >
-                        Add
-                      </button>
-                      <label
-                        className={`px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 ${
-                          errors.keywordsCSV ? "border-red-500" : "border-gray-300"
-                        }`}
-                      >
-                        <Upload size={16} />
-                        <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
-                      </label>
                     </div>
-                    {errors.keywords && (
-                      <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>
-                    )}
-                    {errors.keywordsCSV && (
-                      <p className="text-red-500 text-xs mt-1">{errors.keywordsCSV}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                      {(showAllKeywords
-                        ? formData.keywords.slice().reverse()
-                        : formData.keywords.slice().reverse().slice(0, 18)
-                      ).map((keyword, reversedIndex) => {
-                        const actualIndex = formData.keywords.length - 1 - reversedIndex
-                        return (
-                          <span
-                            key={`${keyword}-${actualIndex}`}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                          >
-                            {keyword}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveKeyword(actualIndex)}
-                              className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        )
-                      })}
-                      {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
-                        <span
-                          onClick={() => setShowAllKeywords(prev => !prev)}
-                          className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
-                        >
-                          {showAllKeywords ? (
-                            <>Show less</>
-                          ) : (
-                            <>
-                              {formData.keywords.length > 18 &&
-                                `+${formData.keywords.length - 18} more`}
-                              {recentlyUploadedKeywordsCount &&
-                                ` (+${recentlyUploadedKeywordsCount} uploaded)`}
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tone of Voice <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    className={`select select-bordered w-full h-10 min-h-0 text-sm ${
-                      errors.tone ? "select-error" : ""
-                    }`}
-                    value={formData.tone}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, tone: e.target.value }))
-                      setErrors(prev => ({ ...prev, tone: "" }))
-                    }}
-                  >
-                    <option value="" disabled>Select Tone</option>
-                    <option value="professional">Professional</option>
-                    <option value="casual">Casual</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="formal">Formal</option>
-                    <option value="conversational">Conversational</option>
-                    <option value="witty">Witty</option>
-                    <option value="informative">Informative</option>
-                    <option value="inspirational">Inspirational</option>
-                    <option value="persuasive">Persuasive</option>
-                    <option value="empathetic">Empathetic</option>
-                  </select>
-                  {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
-                </div>
-                <div>
-                  <label
-                    htmlFor="language"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Language <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="select select-bordered w-full h-10 min-h-0 text-sm"
-                    value={formData.languageToWrite}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, languageToWrite: e.target.value }))
-                    }}
-                  >
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="German">German</option>
-                    <option value="French">French</option>
-                    <option value="Italian">Italian</option>
-                    <option value="Portuguese">Portuguese</option>
-                    <option value="Dutch">Dutch</option>
-                    <option value="Japanese">Japanese</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Approx. Blog Length (Words)
-                  </label>
-                  <div className="relative">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Enter the main topics for your blogs.
+                  </p>
+                  <div className="flex gap-2 mt-2">
                     <input
-                      type="range"
-                      min="500"
-                      max="5000"
-                      value={formData.userDefinedLength}
-                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-linear-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                      style={{
-                        background: `linear-linear(to right, #1B6FC9 ${
-                          ((formData.userDefinedLength - 500) / 4500) * 100
-                        }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
-                      }}
-                      onChange={e => {
-                        setFormData(prev => ({
-                          ...prev,
-                          userDefinedLength: parseInt(e.target.value, 10),
-                        }))
-                      }}
+                      type="text"
+                      value={formData.topicInput}
+                      onChange={handleTopicInputChange}
+                      onKeyDown={handleTopicKeyPress}
+                      className={`w-full px-3 py-2 border rounded-md text-sm bg-gray-50 ${
+                        errors.topics ? "border-red-500" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500`}
+                      placeholder="e.g., digital marketing trends, AI in business"
                     />
-                    <span className="mt-2 text-sm text-gray-600 block">
-                      {formData.userDefinedLength} words
-                    </span>
+                    <button
+                      onClick={handleAddTopic}
+                      className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                    >
+                      Add
+                    </button>
+                    <label
+                      className={`flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200 ${
+                        errors.topicsCSV ? "border-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <Upload size={16} />
+                      <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
+                    </label>
+                  </div>
+                  {errors.topics && <p className="text-red-500 text-xs mt-1">{errors.topics}</p>}
+                  {errors.topicsCSV && (
+                    <p className="text-red-500 text-xs mt-1">{errors.topicsCSV}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                    {(showAllTopics
+                      ? formData.topics.slice().reverse()
+                      : formData.topics.slice().reverse().slice(0, 18)
+                    ).map((topic, reversedIndex) => {
+                      const actualIndex = formData.topics.length - 1 - reversedIndex
+                      return (
+                        <span
+                          key={`${topic}-${actualIndex}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {topic}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTopic(actualIndex)}
+                            className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
+                    {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
+                      <span
+                        onClick={() => setShowAllTopics(prev => !prev)}
+                        className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
+                      >
+                        {showAllTopics ? (
+                          <>Show less</>
+                        ) : (
+                          <>
+                            {formData.topics.length > 18 && `+${formData.topics.length - 18} more`}
+                            {recentlyUploadedTopicsCount &&
+                              ` (+${recentlyUploadedTopicsCount} uploaded)`}
+                          </>
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Select AI Model <span className="text-red-500">*</span>
-                </label>
-                <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${
-                    errors.aiModel ? "border-2 border-red-500 rounded-lg p-2" : ""
-                  }`}
-                >
-                  {[
-                    {
-                      id: "gemini",
-                      label: "Gemini",
-                      logo: "/Images/gemini.webp",
-                      restricted: false,
-                    },
-                    {
-                      id: "openai",
-                      label: "ChatGPT",
-                      logo: "/Images/chatgpt.webp",
-                      restricted: userPlan === "free",
-                    },
-                    {
-                      id: "claude",
-                      label: "Claude",
-                      logo: "/Images/claude.webp",
-                      restricted: userPlan === "free" || userPlan === "basic",
-                    },
-                  ].map(model => (
-                    <label
-                      key={model.id}
-                      htmlFor={model.id}
-                      className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                        formData.aiModel === model.id
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm ${model.restricted ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={e => {
-                        if (model.restricted) {
-                          e.preventDefault()
-                          // Assuming openUpgradePopup is defined elsewhere
-                          openUpgradePopup({ featureName: model.label, navigate })
-                        }
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Perform Keyword Research?
+                    <p className="text-xs text-gray-500">
+                      Allow AI to find relevant keywords for the topics.
+                    </p>
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="performKeywordResearch"
+                      checked={formData.performKeywordResearch}
+                      onChange={handleCheckboxChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                  </label>
+                </div>
+                {!formData.performKeywordResearch && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                        Keywords <span className="text-red-500">*</span>
+                        <div
+                          className="tooltip"
+                          data-tip="Upload a .csv file in the format: `Keywords` as header"
+                        >
+                          <div className="cursor-pointer">
+                            <Info size={16} className="text-blue-500" />
+                          </div>
+                        </div>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={formData.keywordInput}
+                          onChange={handleKeywordInputChange}
+                          onKeyDown={handleTopicKeyPress}
+                          className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 ${
+                            errors.keywords ? "border-red-500" : "border-gray-300"
+                          } focus:ring-2 focus:ring-blue-500`}
+                          placeholder="e.g., digital marketing trends, AI in business"
+                        />
+                        <button
+                          onClick={handleAddKeyword}
+                          className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                        >
+                          Add
+                        </button>
+                        <label
+                          className={`px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 ${
+                            errors.keywordsCSV ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <Upload size={16} />
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleCSVKeywordUpload}
+                            hidden
+                          />
+                        </label>
+                      </div>
+                      {errors.keywords && (
+                        <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>
+                      )}
+                      {errors.keywordsCSV && (
+                        <p className="text-red-500 text-xs mt-1">{errors.keywordsCSV}</p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                        {(showAllKeywords
+                          ? formData.keywords.slice().reverse()
+                          : formData.keywords.slice().reverse().slice(0, 18)
+                        ).map((keyword, reversedIndex) => {
+                          const actualIndex = formData.keywords.length - 1 - reversedIndex
+                          return (
+                            <span
+                              key={`${keyword}-${actualIndex}`}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                            >
+                              {keyword}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveKeyword(actualIndex)}
+                                className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          )
+                        })}
+                        {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
+                          <span
+                            onClick={() => setShowAllKeywords(prev => !prev)}
+                            className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
+                          >
+                            {showAllKeywords ? (
+                              <>Show less</>
+                            ) : (
+                              <>
+                                {formData.keywords.length > 18 &&
+                                  `+${formData.keywords.length - 18} more`}
+                                {recentlyUploadedKeywordsCount &&
+                                  ` (+${recentlyUploadedKeywordsCount} uploaded)`}
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
+                      Tone of Voice <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`select select-bordered w-full h-10 min-h-0 text-sm ${
+                        errors.tone ? "select-error" : ""
+                      }`}
+                      value={formData.tone}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, tone: e.target.value }))
+                        setErrors(prev => ({ ...prev, tone: "" }))
                       }}
                     >
-                      <input
-                        type="radio"
-                        id={model.id}
-                        name="aiModel"
-                        value={model.id}
-                        checked={formData.aiModel === model.id}
-                        onChange={e => {
-                          if (!model.restricted) {
-                            setFormData(prev => ({ ...prev, aiModel: e.target.value }))
-                            setErrors(prev => ({ ...prev, aiModel: "" }))
-                          }
-                        }}
-                        className="hidden"
-                        disabled={model.restricted}
-                      />
-                      <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                      <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.aiModel && <p className="text-red-500 text-xs mt-1">{errors.aiModel}</p>}
-              </div>
-
-              {/* Cost Cutter Toggle */}
-              <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                    <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                      <option value="" disabled>
+                        Select Tone
+                      </option>
+                      <option value="professional">Professional</option>
+                      <option value="casual">Casual</option>
+                      <option value="friendly">Friendly</option>
+                      <option value="formal">Formal</option>
+                      <option value="conversational">Conversational</option>
+                      <option value="witty">Witty</option>
+                      <option value="informative">Informative</option>
+                      <option value="inspirational">Inspirational</option>
+                      <option value="persuasive">Persuasive</option>
+                      <option value="empathetic">Empathetic</option>
+                    </select>
+                    {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
                   </div>
-                  <label
-                    htmlFor="bulk-cost-cutter-toggle"
-                    className="relative inline-block w-12 h-6"
-                  >
-                    <input
-                      type="checkbox"
-                      id="bulk-cost-cutter-toggle"
-                      className="sr-only peer"
-                      checked={formData.costCutter || false}
+                  <div>
+                    <label
+                      htmlFor="language"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Language <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="select select-bordered w-full h-10 min-h-0 text-sm"
+                      value={formData.languageToWrite}
                       onChange={e => {
-                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
+                        setFormData(prev => ({ ...prev, languageToWrite: e.target.value }))
                       }}
-                    />
-                    <div
-                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.costCutter ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
-                        formData.costCutter ? "translate-x-6" : ""
-                      }`}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Easy to Understand Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Easy to Understand
-                </label>
-                <label
-                  htmlFor="bulk-easy-understand-toggle"
-                  className="relative inline-block w-11 h-6 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    id="bulk-easy-understand-toggle"
-                    className="sr-only peer"
-                    checked={formData.easyToUnderstand || false}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-              {/* Embed YouTube Videos Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Embed YouTube Videos
-                </label>
-                <label
-                  htmlFor="bulk-embed-youtube-toggle"
-                  className="relative inline-block w-11 h-6 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    id="bulk-embed-youtube-toggle"
-                    className="sr-only peer"
-                    checked={formData.embedYouTubeVideos || false}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
-                <div className="flex items-center">
-                  <label
-                    htmlFor="add-image-toggle"
-                    className={`relative inline-block w-12 h-6 ${
-                      isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      id="add-image-toggle"
-                      className="sr-only peer"
-                      checked={formData.isCheckedGeneratedImages}
-                      disabled={isAiImagesLimitReached}
-                      onChange={e => {
-                        if (isAiImagesLimitReached) {
-                          openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                          return
-                        }
-                        const checked = e.target.checked
-                        setFormData(prev => ({
-                          ...prev,
-                          isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.imageSource : "stock",
-                        }))
-                        setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
-                      }}
-                    />
-                    <div
-                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.isCheckedGeneratedImages && !isAiImagesLimitReached
-                          ? "bg-[#1B6FC9]"
-                          : "bg-gray-300"
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                        formData.isCheckedGeneratedImages && !isAiImagesLimitReached
-                          ? "translate-x-6"
-                          : ""
-                      }`}
-                    />
-                  </label>
-                  {isAiImagesLimitReached && (
-                    <div className="tooltip tooltip-warning" data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle.">
-                      <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                    >
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="German">German</option>
+                      <option value="French">French</option>
+                      <option value="Italian">Italian</option>
+                      <option value="Portuguese">Portuguese</option>
+                      <option value="Dutch">Dutch</option>
+                      <option value="Japanese">Japanese</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Approx. Blog Length (Words)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="500"
+                        max="5000"
+                        value={formData.userDefinedLength}
+                        className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-linear-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                        style={{
+                          background: `linear-linear(to right, #1B6FC9 ${
+                            ((formData.userDefinedLength - 500) / 4500) * 100
+                          }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
+                        }}
+                        onChange={e => {
+                          setFormData(prev => ({
+                            ...prev,
+                            userDefinedLength: parseInt(e.target.value, 10),
+                          }))
+                        }}
+                      />
+                      <span className="mt-2 text-sm text-gray-600 block">
+                        {formData.userDefinedLength} words
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-              {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
+            )}
+            {currentStep === 2 && (
+              <div className="space-y-6">
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
+                    Select AI Model <span className="text-red-500">*</span>
                   </label>
                   <div
-                    className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${
-                      errors.blogImages && formData.imageSource === "customImage"
-                        ? "border-2 border-red-500 rounded-lg p-2"
-                        : ""
+                    className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${
+                      errors.aiModel ? "border-2 border-red-500 rounded-lg p-2" : ""
                     }`}
                   >
                     {[
-                      { id: "stock", label: "Stock Images", value: "stock", restricted: false },
                       {
-                        id: "ai",
-                        label: "AI Generated",
-                        value: "ai",
+                        id: "gemini",
+                        label: "Gemini",
+                        logo: "/Images/gemini.webp",
+                        restricted: false,
+                      },
+                      {
+                        id: "openai",
+                        label: "ChatGPT",
+                        logo: "/Images/chatgpt.webp",
                         restricted: userPlan === "free",
                       },
-                    ].map(source => (
+                      {
+                        id: "claude",
+                        label: "Claude",
+                        logo: "/Images/claude.webp",
+                        restricted: userPlan === "free" || userPlan === "basic",
+                      },
+                    ].map(model => (
                       <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150 ${
-                          formData.imageSource === source.value
+                        key={model.id}
+                        htmlFor={model.id}
+                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
+                          formData.aiModel === model.id
                             ? "border-blue-600 bg-blue-50"
                             : "border-gray-300"
-                        } hover:shadow-sm ${
-                          source.restricted ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
+                        } hover:shadow-sm ${model.restricted ? "opacity-50 cursor-not-allowed" : ""}`}
                         onClick={e => {
-                          if (source.restricted) {
+                          if (model.restricted) {
                             e.preventDefault()
-                            openUpgradePopup({ featureName: source.label, navigate })
+                            // Assuming openUpgradePopup is defined elsewhere
+                            openUpgradePopup({ featureName: model.label, navigate })
                           }
                         }}
                       >
                         <input
                           type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={() => {
-                            if (!source.restricted) {
-                              handleImageSourceChange(source.value)
+                          id={model.id}
+                          name="aiModel"
+                          value={model.id}
+                          checked={formData.aiModel === model.id}
+                          onChange={e => {
+                            if (!model.restricted) {
+                              setFormData(prev => ({ ...prev, aiModel: e.target.value }))
+                              setErrors(prev => ({ ...prev, aiModel: "" }))
                             }
                           }}
                           className="hidden"
-                          disabled={source.restricted}
+                          disabled={model.restricted}
                         />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                        <img
+                          src={model.logo}
+                          alt={model.label}
+                          className="w-6 h-6 object-contain"
+                        />
+                        <span className="text-sm font-medium text-gray-800">{model.label}</span>
                       </label>
                     ))}
                   </div>
+                  {errors.aiModel && <p className="text-red-500 text-xs mt-1">{errors.aiModel}</p>}
+                </div>
 
-                  <div className="pt-4 w-full">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Number of Images
+                {/* Cost Cutter Toggle */}
+                <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                      <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                    </div>
+                    <label
+                      htmlFor="bulk-cost-cutter-toggle"
+                      className="relative inline-block w-12 h-6"
+                    >
+                      <input
+                        type="checkbox"
+                        id="bulk-cost-cutter-toggle"
+                        className="sr-only peer"
+                        checked={formData.costCutter || false}
+                        onChange={e => {
+                          setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
+                        }}
+                      />
+                      <div
+                        className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                          formData.costCutter ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      />
+                      <div
+                        className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                          formData.costCutter ? "translate-x-6" : ""
+                        }`}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Easy to Understand Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Easy to Understand
+                  </label>
+                  <label
+                    htmlFor="bulk-easy-understand-toggle"
+                    className="relative inline-block w-11 h-6 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      id="bulk-easy-understand-toggle"
+                      className="sr-only peer"
+                      checked={formData.easyToUnderstand || false}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+
+                {/* Embed YouTube Videos Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Embed YouTube Videos
+                  </label>
+                  <label
+                    htmlFor="bulk-embed-youtube-toggle"
+                    className="relative inline-block w-11 h-6 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      id="bulk-embed-youtube-toggle"
+                      className="sr-only peer"
+                      checked={formData.embedYouTubeVideos || false}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                    <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Add Image
+                  </label>
+                  <div className="flex items-center">
+                    <label
+                      htmlFor="add-image-toggle"
+                      className={`relative inline-block w-12 h-6 ${
+                        isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        id="add-image-toggle"
+                        className="sr-only peer"
+                        checked={formData.isCheckedGeneratedImages}
+                        disabled={isAiImagesLimitReached}
+                        onChange={e => {
+                          if (isAiImagesLimitReached) {
+                            openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                            return
+                          }
+                          const checked = e.target.checked
+                          setFormData(prev => ({
+                            ...prev,
+                            isCheckedGeneratedImages: checked,
+                            imageSource: checked ? prev.imageSource : "stock",
+                          }))
+                          setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
+                        }}
+                      />
+                      <div
+                        className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                          formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                            ? "bg-[#1B6FC9]"
+                            : "bg-gray-300"
+                        }`}
+                      />
+                      <div
+                        className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                          formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                            ? "translate-x-6"
+                            : ""
+                        }`}
+                      />
+                    </label>
+                    {isAiImagesLimitReached && (
+                      <div
+                        className="tooltip tooltip-warning"
+                        data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                      >
+                        <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Image Source
+                    </label>
+                    <div
+                      className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${
+                        errors.blogImages && formData.imageSource === "customImage"
+                          ? "border-2 border-red-500 rounded-lg p-2"
+                          : ""
+                      }`}
+                    >
+                      {[
+                        { id: "stock", label: "Stock Images", value: "stock", restricted: false },
+                        {
+                          id: "ai",
+                          label: "AI Generated",
+                          value: "ai",
+                          restricted: userPlan === "free",
+                        },
+                      ].map(source => (
+                        <label
+                          key={source.id}
+                          htmlFor={source.id}
+                          className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150 ${
+                            formData.imageSource === source.value
+                              ? "border-blue-600 bg-blue-50"
+                              : "border-gray-300"
+                          } hover:shadow-sm ${
+                            source.restricted ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                          onClick={e => {
+                            if (source.restricted) {
+                              e.preventDefault()
+                              openUpgradePopup({ featureName: source.label, navigate })
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            id={source.id}
+                            name="imageSource"
+                            value={source.value}
+                            checked={formData.imageSource === source.value}
+                            onChange={() => {
+                              if (!source.restricted) {
+                                handleImageSourceChange(source.value)
+                              }
+                            }}
+                            className="hidden"
+                            disabled={source.restricted}
+                          />
+                          <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 w-full">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Number of Images
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Enter the number of images (0 = AI will decide)
+                      </p>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        name="numberOfImages"
+                        min="0"
+                        max="15"
+                        value={formData.numberOfImages}
+                        onChange={handleInputChange}
+                        onWheel={e => e.currentTarget.blur()}
+                        className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
+                          errors.numberOfImages ? "border-red-500" : "border-gray-300"
+                        } focus:ring-2 focus:ring-blue-500`}
+                        placeholder="e.g., 5"
+                      />
+                      {errors.numberOfImages && (
+                        <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <BrandVoiceSelector
+                    label="Write with Brand Voice"
+                    size="large"
+                    labelClass="text-sm font-medium text-gray-700"
+                    value={{
+                      isCheckedBrand: formData.isCheckedBrand,
+                      brandId: formData.brandId,
+                      addCTA: formData.addCTA,
+                    }}
+                    onChange={val => {
+                      setFormData(prev => ({
+                        ...prev,
+                        isCheckedBrand: val.isCheckedBrand,
+                        brandId: val.brandId,
+                        addCTA: val.addCTA,
+                      }))
+                      setErrors(prev => ({ ...prev, brandId: "" }))
+                    }}
+                    errorText={errors.brandId}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Include Interlinks
+                      <p className="text-xs text-gray-500">
+                        Attempt to link between generated blogs if relevant.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="includeInterlinks"
+                        checked={formData.includeInterlinks}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Include FAQ Section
+                      <p className="text-xs text-gray-500">
+                        Generate relevant FAQ questions and answers for the blog.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="includeFaqs"
+                        checked={formData.includeFaqs}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm font-medium text-gray-700">
+                    Enable Automatic Posting
+                    <p className="text-xs text-gray-500">
+                      Automatically post blogs on the selected dates.
+                    </p>
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="wordpressPostStatus"
+                      checked={formData.wordpressPostStatus}
+                      onChange={handleCheckboxChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                  </label>
+                </div>
+                {formData.wordpressPostStatus &&
+                  integrations?.integrations &&
+                  Object.keys(integrations.integrations).length > 0 && (
+                    <div
+                      className={`${
+                        errors.integration ? "border-2 border-red-500 rounded-lg p-2" : ""
+                      }`}
+                    >
+                      <span className="text-sm font-medium text-gray-700">
+                        Select Your Publishing Platform <span className="text-red-500">*</span>
+                        <p className="text-xs text-gray-500">
+                          Post your blog automatically to connected platforms only.
+                        </p>
+                      </span>
+                      <select
+                        className={`select select-bordered w-full mt-2 h-10 min-h-0 text-sm ${
+                          errors.integration ? "select-error" : ""
+                        }`}
+                        value={formData.postingType || ""}
+                        onChange={e => handleIntegrationChange(e.target.value)}
+                      >
+                        <option value="" disabled>
+                          Select Platform
+                        </option>
+                        {Object.entries(integrations.integrations).map(([platform]) => (
+                          <option key={platform} value={platform}>
+                            {platform}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.integration && (
+                        <p className="text-red-500 text-xs mt-1">{errors.integration}</p>
+                      )}
+                    </div>
+                  )}
+                {formData.wordpressPostStatus && (
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Include Table of Contents
+                      <p className="text-xs text-gray-500">
+                        Generate a table of contents for each blog.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="includeTableOfContents"
+                        checked={formData.includeTableOfContents}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                    </label>
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm font-medium text-gray-700">
+                    Enable Competitive Research
+                    <p className="text-xs text-gray-500">
+                      Perform competitive research to analyze similar blogs.
+                    </p>
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="useCompetitors"
+                      checked={formData.useCompetitors}
+                      onChange={handleCheckboxChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                  </label>
+                </div>
+                {formData.useCompetitors && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Show Outbound Links
+                      <p className="text-xs text-gray-500">
+                        Display outbound links found during competitor analysis.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="addOutBoundLinks"
+                        checked={formData.addOutBoundLinks}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
+                    </label>
+                  </div>
+                )}
+                <div className="pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Blogs <span className="text-red-500">*</span>
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
-                      Enter the number of images (0 = AI will decide)
+                      How many blogs to generate based on the topics provided.
                     </p>
                     <input
                       type="tel"
                       inputMode="numeric"
-                      name="numberOfImages"
-                      min="0"
-                      max="15"
-                      value={formData.numberOfImages}
+                      name="numberOfBlogs"
+                      min="1"
+                      max="10"
+                      value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
                       onChange={handleInputChange}
                       onWheel={e => e.currentTarget.blur()}
-                      className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
-                        errors.numberOfImages ? "border-red-500" : "border-gray-300"
+                      className={`w-full px-3 py-2 border rounded-md text-sm ${
+                        errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
                       } focus:ring-2 focus:ring-blue-500`}
                       placeholder="e.g., 5"
                     />
-                    {errors.numberOfImages && (
-                      <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                    {errors.numberOfBlogs && (
+                      <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
                     )}
                   </div>
                 </div>
-              )}
-              <div className="space-y-4 pt-4 border-t border-gray-200">
-                <BrandVoiceSelector
-                  label="Write with Brand Voice"
-                  size="large"
-                  labelClass="text-sm font-medium text-gray-700"
-                  value={{
-                    isCheckedBrand: formData.isCheckedBrand,
-                    brandId: formData.brandId,
-                    addCTA: formData.addCTA,
-                  }}
-                  onChange={val => {
-                    setFormData(prev => ({
-                      ...prev,
-                      isCheckedBrand: val.isCheckedBrand,
-                      brandId: val.brandId,
-                      addCTA: val.addCTA,
-                    }))
-                    setErrors(prev => ({ ...prev, brandId: "" }))
-                  }}
-                  errorText={errors.brandId}
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    Include Interlinks
-                    <p className="text-xs text-gray-500">
-                      Attempt to link between generated blogs if relevant.
-                    </p>
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeInterlinks"
-                      checked={formData.includeInterlinks}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    Include FAQ Section
-                    <p className="text-xs text-gray-500">
-                      Generate relevant FAQ questions and answers for the blog.
-                    </p>
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeFaqs"
-                      checked={formData.includeFaqs}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm font-medium text-gray-700">
-                  Enable Automatic Posting
-                  <p className="text-xs text-gray-500">
-                    Automatically post blogs on the selected dates.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="wordpressPostStatus"
-                    checked={formData.wordpressPostStatus}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
-              </div>
-              {formData.wordpressPostStatus &&
-                integrations?.integrations &&
-                Object.keys(integrations.integrations).length > 0 && (
-                  <div
-                    className={`${
-                      errors.integration ? "border-2 border-red-500 rounded-lg p-2" : ""
-                    }`}
-                  >
-                    <span className="text-sm font-medium text-gray-700">
-                      Select Your Publishing Platform <span className="text-red-500">*</span>
-                      <p className="text-xs text-gray-500">
-                        Post your blog automatically to connected platforms only.
-                      </p>
-                    </span>
-                    <select
-                      className={`select select-bordered w-full mt-2 h-10 min-h-0 text-sm ${
-                        errors.integration ? "select-error" : ""
-                      }`}
-                      value={formData.postingType || ""}
-                      onChange={e => handleIntegrationChange(e.target.value)}
-                    >
-                      <option value="" disabled>Select Platform</option>
-                      {Object.entries(integrations.integrations).map(([platform]) => (
-                        <option key={platform} value={platform}>
-                          {platform}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.integration && (
-                      <p className="text-red-500 text-xs mt-1">{errors.integration}</p>
-                    )}
-                  </div>
-                )}
-              {formData.wordpressPostStatus && (
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Include Table of Contents
-                    <p className="text-xs text-gray-500">
-                      Generate a table of contents for each blog.
-                    </p>
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeTableOfContents"
-                      checked={formData.includeTableOfContents}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
-                </div>
-              )}
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm font-medium text-gray-700">
-                  Enable Competitive Research
-                  <p className="text-xs text-gray-500">
-                    Perform competitive research to analyze similar blogs.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="useCompetitors"
-                    checked={formData.useCompetitors}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
-              </div>
-              {formData.useCompetitors && (
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Show Outbound Links
-                    <p className="text-xs text-gray-500">
-                      Display outbound links found during competitor analysis.
-                    </p>
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="addOutBoundLinks"
-                      checked={formData.addOutBoundLinks}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                  </label>
-                </div>
-              )}
-              <div className="pt-4 border-t border-gray-200">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Number of Blogs <span className="text-red-500">*</span>
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    How many blogs to generate based on the topics provided.
-                  </p>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    name="numberOfBlogs"
-                    min="1"
-                    max="10"
-                    value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
-                    onChange={handleInputChange}
-                    onWheel={e => e.currentTarget.blur()}
-                    className={`w-full px-3 py-2 border rounded-md text-sm ${
-                      errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500`}
-                    placeholder="e.g., 5"
-                  />
-                  {errors.numberOfBlogs && (
-                    <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="p-4 border-t bg-gray-50">
-          <div className="flex items-center justify-between w-full">
-            {currentStep === 2 && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-                {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-                )}
-                <span className="text-xs text-gray-500">
-                  ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
-                </span>
               </div>
             )}
-            <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
-              {currentStep > 0 && (
-                <button
-                  onClick={handlePrev}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
-                >
-                  Previous
-                </button>
+          </div>
+
+          <div className="p-4 border-t bg-gray-50">
+            <div className="flex items-center justify-between w-full">
+              {currentStep === 2 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Estimated Cost:</span>
+                  <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                  {formData.costCutter && (
+                    <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                  )}
+                  <span className="text-xs text-gray-500">
+                    ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
+                  </span>
+                </div>
               )}
-              <button
-                onClick={currentStep === 2 ? handleSubmit : handleNext}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
-              >
-                {currentStep === 2 ? "Generate Blogs" : "Next"}
-              </button>
+              <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
+                {currentStep > 0 && (
+                  <button
+                    onClick={handlePrev}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
+                  >
+                    Previous
+                  </button>
+                )}
+                <button
+                  onClick={currentStep === 2 ? handleSubmit : handleNext}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
+                >
+                  {currentStep === 2 ? "Generate Blogs" : "Next"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
-      </form>
-    </dialog>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={handleClose}>close</button>
+        </form>
+      </dialog>
     </>
   )
 }

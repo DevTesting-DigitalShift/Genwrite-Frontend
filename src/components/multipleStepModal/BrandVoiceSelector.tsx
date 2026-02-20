@@ -82,7 +82,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           </label>
 
           <div
-            className="w-full h-[200px] overflow-y-auto p-1 space-y-2 border rounded-md bg-base-100"
+            className="w-full h-[200px] overflow-y-auto p-1 space-y-2 border border-gray-300 p-3 rounded-md bg-base-100"
             style={{ scrollbarWidth: "thin", scrollBehavior: "smooth" }}
           >
             {brands.map((brand: Brand) => (

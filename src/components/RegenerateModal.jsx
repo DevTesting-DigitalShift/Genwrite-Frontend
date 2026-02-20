@@ -104,10 +104,10 @@ const RegenerateModal = ({
     <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
       <div className="modal-box w-11/12 max-w-3xl p-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-base-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-base-100">
           <div className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-blue-600" />
-            <span className="text-sm font-semibold">
+            <span className="text-base font-semibold">
               Regenerate Blog - Step {regenerateStep} of 2
             </span>
           </div>
@@ -120,7 +120,7 @@ const RegenerateModal = ({
           {isRegenerating && (
             <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center">
               <span className="loading loading-spinner loading-lg text-primary"></span>
-              <p className="mt-4 font-medium text-gray-600">Processing...</p>
+              <p className="mt-4 font-semibold text-gray-600">Processing...</p>
             </div>
           )}
 
@@ -135,7 +135,7 @@ const RegenerateModal = ({
               {/* Topic & Title */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Topic</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Topic</label>
                   <input
                     type="text"
                     className="input input-bordered w-full"
@@ -148,7 +148,7 @@ const RegenerateModal = ({
                 {/* Perform Keyword Research Toggle - below Topic */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-semibold text-gray-700">
                       Perform Keyword Research
                     </span>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -168,7 +168,7 @@ const RegenerateModal = ({
                 {/* Only show Title input if performKeywordResearch is OFF */}
                 {!regenForm.options.performKeywordResearch && (
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block">Title</label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
@@ -183,7 +183,7 @@ const RegenerateModal = ({
               {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Focus Keywords (max 3)
                   </label>
                   <div className="flex items-center gap-2">
@@ -205,7 +205,7 @@ const RegenerateModal = ({
                     {regenForm.focusKeywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold"
                       >
                         {kw}
                         <button onClick={() => removeRegenKeyword("focus", i)}>
@@ -220,7 +220,7 @@ const RegenerateModal = ({
               {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Keywords</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -243,7 +243,7 @@ const RegenerateModal = ({
                     {regenForm.keywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold"
                       >
                         {kw}
                         <button onClick={() => removeRegenKeyword("secondary", i)}>
@@ -258,7 +258,7 @@ const RegenerateModal = ({
               {/* Tone & Length */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Tone</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Tone</label>
                   <select
                     className="select select-bordered w-full"
                     value={regenForm.tone}
@@ -272,7 +272,9 @@ const RegenerateModal = ({
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Word Count</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Word Count
+                  </label>
                   <select
                     className="select select-bordered w-full"
                     value={regenForm.userDefinedLength}
@@ -294,7 +296,7 @@ const RegenerateModal = ({
 
               {/* AI Model */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">AI Model</label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">AI Model</label>
                 <div className="grid grid-cols-3 gap-3">
                   {AI_MODELS.map(model => (
                     <button
@@ -306,7 +308,7 @@ const RegenerateModal = ({
                           updateRegenField("aiModel", model.id)
                         }
                       }}
-                      className={`p-3 rounded-lg border-2 text-center text-sm font-medium transition-all ${
+                      className={`p-3 rounded-lg border-2 text-center text-sm font-semibold transition-all ${
                         regenForm.aiModel === model.id
                           ? "border-blue-500 bg-blue-50"
                           : "border-gray-200 hover:border-gray-300"
@@ -324,7 +326,7 @@ const RegenerateModal = ({
                 <label className="text-sm font-semibold text-gray-700 block">Add Images</label>
 
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
+                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
                     <input
                       type="radio"
                       name="imageSource"
@@ -335,10 +337,10 @@ const RegenerateModal = ({
                       }}
                       className="radio radio-primary radio-sm"
                     />
-                    <span className="text-sm font-medium text-gray-700">None</span>
+                    <span className="text-sm font-semibold text-gray-700">None</span>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
+                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
                     <input
                       type="radio"
                       name="imageSource"
@@ -352,10 +354,10 @@ const RegenerateModal = ({
                       }}
                       className="radio radio-primary radio-sm"
                     />
-                    <span className="text-sm font-medium text-gray-700">Stock Images</span>
+                    <span className="text-sm font-semibold text-gray-700">Stock Images</span>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
+                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
                     <input
                       type="radio"
                       name="imageSource"
@@ -369,13 +371,13 @@ const RegenerateModal = ({
                       }}
                       className="radio radio-primary radio-sm"
                     />
-                    <span className="text-sm font-medium text-gray-700">AI Generated</span>
+                    <span className="text-sm font-semibold text-gray-700">AI Generated</span>
                   </label>
                 </div>
 
                 {regenForm.isCheckedGeneratedImages && (
                   <div className="pt-2">
-                    <label className="text-sm font-medium text-gray-700 block mb-2">
+                    <label className="text-sm font-semibold text-gray-700 block mb-2">
                       Number of Images: {regenForm.numberOfImages ?? 0}
                     </label>
                     <input
@@ -394,7 +396,7 @@ const RegenerateModal = ({
             </div>
           ) : (
             // Step 2: Content Enhancement Options + Brand Voice
-            <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2 p-4">
+            <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">
                 Content Enhancement Options
               </h4>
@@ -422,7 +424,7 @@ const RegenerateModal = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-semibold text-gray-700">
                       Add FAQs (Frequently Asked Questions)
                     </span>
                   </div>
@@ -436,7 +438,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
+                    <span className="text-sm font-semibold text-gray-700">Include Interlinks</span>
                   </div>
                   <input
                     type="checkbox"
@@ -449,7 +451,7 @@ const RegenerateModal = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
                     <div>
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-semibold text-gray-700">
                         Perform Competitive Research
                       </span>
                     </div>
@@ -466,7 +468,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">Show Outbound Links</span>
+                    <span className="text-sm font-semibold text-gray-700">Show Outbound Links</span>
                   </div>
                   <input
                     type="checkbox"
@@ -478,7 +480,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
+                    <span className="text-sm font-semibold text-gray-700">Add a Quick Summary</span>
                   </div>
                   <input
                     type="checkbox"
@@ -490,7 +492,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">Easy to Understand</span>
+                    <span className="text-sm font-semibold text-gray-700">Easy to Understand</span>
                   </div>
                   <input
                     type="checkbox"
@@ -502,7 +504,9 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">Embed YouTube Videos</span>
+                    <span className="text-sm font-semibold text-gray-700">
+                      Embed YouTube Videos
+                    </span>
                   </div>
                   <input
                     type="checkbox"
@@ -516,7 +520,7 @@ const RegenerateModal = ({
                 <div className="">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 mt-3">
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-semibold text-gray-700">
                         Enable Automate Posting
                       </span>
                     </div>
@@ -531,7 +535,7 @@ const RegenerateModal = ({
                   {regenForm.wordpressPostStatus && (
                     <div className="mt-6">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-semibold text-gray-700">
                           Show Table of Content
                         </span>
                         <input
@@ -544,7 +548,7 @@ const RegenerateModal = ({
                         />
                       </div>
 
-                      <label className="text-sm font-medium text-gray-600 block my-2 mt-6">
+                      <label className="text-sm font-semibold text-gray-600 block my-2 mt-6">
                         Choose Platform
                       </label>
                       <select
@@ -567,7 +571,7 @@ const RegenerateModal = ({
                 <div className="flex items-center justify-between py-4 px-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 trans mt-3ition-colors border-2 border-green-200">
                   <div className="flex items-center gap-3">
                     <div>
-                      <span className="text-sm font-medium text-gray-700">Cost Cutter</span>
+                      <span className="text-sm font-semibold text-gray-700">Cost Cutter</span>
                       <span className="ml-2 text-sm text-green-600 font-semibold">Save 25%</span>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Reduce credits by 25% with optimized generation
@@ -587,11 +591,11 @@ const RegenerateModal = ({
         </div>
 
         {/* Footer */}
-        <div className="modal-action px-6 py-4 bg-base-100 border-t flex justify-between items-center mt-0">
+        <div className="modal-action px-6 py-4 bg-base-100 border-t border-gray-300 flex justify-between items-center mt-0">
           <div className="text-sm text-gray-500">
             <div className="flex items-center gap-1">
               <Zap className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-gray-600 font-medium">Estimated Cost:</span>
+              <span className="text-sm text-gray-600 font-semibold">Estimated Cost:</span>
               <span className="font-bold text-blue-600 text-sm">
                 {calculateRegenCost()} credits
               </span>
@@ -605,14 +609,14 @@ const RegenerateModal = ({
             )}
             {regenerateStep === 1 ? (
               <button
-                className="btn btn-primary bg-linear-to-r from-blue-500 to-indigo-600 border-0 text-white"
+                className="btn btn-primary bg-linear-to-r from-blue-500 rounded-lg to-indigo-600 border-0 text-white"
                 onClick={() => setRegenerateStep(2)}
               >
                 Next: Enhancement Options
               </button>
             ) : (
               <button
-                className="btn btn-primary bg-linear-to-r from-blue-600 to-purple-600 border-0 text-white"
+                className="btn btn-primary bg-linear-to-r from-blue-600 rounded-lg to-purple-600 border-0 text-white"
                 disabled={isRegenerating}
                 onClick={handleSubmit}
               >

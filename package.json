@@ -14,7 +14,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.0.0",
     "@calcom/embed-react": "^1.5.3",
     "@codemirror/lang-html": "^6.4.9",
     "@codemirror/lang-markdown": "^6.3.4",
@@ -44,7 +43,6 @@
     "@tiptap/pm": "^3.19.0",
     "@tiptap/react": "^3.19.0",
     "@tiptap/starter-kit": "^3.19.0",
-    "antd": "^6.3.0",
     "axios": "^1.13.5",
     "chart.js": "^4.5.0",
     "clsx": "^2.1.1",

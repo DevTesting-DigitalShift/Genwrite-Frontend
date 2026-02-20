@@ -1,11 +1,28 @@
 import toast from "@utils/toast"
-import { RefreshCw, Search, Download, Calendar, Filter, X } from "lucide-react"
+import {
+  RefreshCw,
+  Search,
+  Download,
+  Calendar,
+  Filter,
+  X,
+  MousePointer2,
+  Eye,
+  TrendingUp,
+  BarChart3,
+  AlertCircle,
+} from "lucide-react"
 import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import useAuthStore from "@store/useAuthStore"
+import useGscStore from "@store/useGscStore"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Helmet } from "react-helmet"
 
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
@@ -362,204 +379,168 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-2 md:p-6 min-h-screen mt-5 md:mt-0 max-w-[1600px] mx-auto">
-          {/* Dashboard Header & Stats */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 md:p-8 mb-6 border border-gray-100">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
-                  Search <span className="text-blue-600">Performance</span>
-                </h1>
-                <p className="text-gray-500 mt-2 font-medium">
-                  Track your organic growth and keyword rankings
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleExport}
-                  disabled={isLoading}
-                  className="btn btn-outline btn-md border-gray-200 hover:bg-gray-50 hover:text-gray-900 gap-2 normal-case rounded-xl font-semibold"
-                >
-                  <Download className="size-4" />
-                  Export Data
-                </button>
-                <button
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  className="btn btn-primary btn-md shadow-lg shadow-blue-200 gap-2 normal-case rounded-xl font-semibold bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white"
-                >
-                  <RefreshCw className={clsx("size-4", isLoading && "animate-spin")} />
-                  Refresh
-                </button>
-              </div>
-            </div>
-
-            {/* Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-              <div className="p-5 rounded-2xl border border-blue-50 bg-linear-to-br from-blue-50/50 to-white shadow-xs">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <MousePointer2 className="size-4 text-blue-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
-                    Total Clicks
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <p className="text-2xl md:text-3xl font-black text-gray-900 tabular-nums">
-                    {new Intl.NumberFormat().format(metrics.totalClicks)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-2xl border border-purple-50 bg-linear-to-br from-purple-50/50 to-white shadow-xs">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Eye className="size-4 text-purple-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
-                    Impressions
-                  </span>
-                </div>
-                <p className="text-2xl md:text-3xl font-black text-gray-900 tabular-nums">
-                  {new Intl.NumberFormat().format(metrics.totalImpressions)}
-                </p>
-              </div>
-
-              <div className="p-5 rounded-2xl border border-teal-50 bg-linear-to-br from-teal-50/50 to-white shadow-xs">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-teal-100 rounded-lg">
-                    <TrendingUp className="size-4 text-teal-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
-                    Avg. CTR
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <p className="text-2xl md:text-3xl font-black text-gray-900 tabular-nums">
-                    {metrics.avgCtr}
-                  </p>
-                  <span className="text-lg font-bold text-gray-400">%</span>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-2xl border border-amber-50 bg-linear-to-br from-amber-50/50 to-white shadow-xs">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-amber-100 rounded-lg">
-                    <BarChart3 className="size-4 text-amber-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
-                    Avg. Position
-                  </span>
-                </div>
-                <p className="text-2xl md:text-3xl font-black text-gray-900 tabular-nums">
-                  {metrics.avgPosition}
-                </p>
-              </div>
-            </div>
-
-            {/* Filters Bar */}
-            <div className="flex flex-wrap gap-4 items-center p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                <label className="text-[10px] uppercase font-bold text-gray-400 ml-1">Period</label>
-                <select
-                  value={dateRange}
-                  onChange={e => handleDateRangeChange(e.target.value)}
-                  className="select select-bordered select-sm w-full font-medium h-10 rounded-xl border-gray-200 focus:border-blue-500"
-                >
-                  <option value="7d">Last 7 Days</option>
-                  <option value="30d">Last 30 Days</option>
-                  <option value="180d">Last 6 Months</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-              </div>
-
-              {showDatePicker && (
-                <div className="flex gap-2 items-end">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1">
-                      From
-                    </label>
-                    <input
-                      type="date"
-                      className="input input-bordered input-sm h-10 rounded-xl border-gray-200"
-                      value={customDateRange[0]?.format("YYYY-MM-DD") || ""}
-                      onChange={e => handleCustomDateRangeChange("start", e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1">To</label>
-                    <input
-                      type="date"
-                      className="input input-bordered input-sm h-10 rounded-xl border-gray-200"
-                      value={customDateRange[1]?.format("YYYY-MM-DD") || ""}
-                      onChange={e => handleCustomDateRangeChange("end", e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-1 flex-1 min-w-[240px]">
-                <label className="text-[10px] uppercase font-bold text-gray-400 ml-1">
-                  Keyword Search
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => handleSearch(e.target.value)}
-                    placeholder="Search queries, titles..."
-                    className="input input-bordered input-sm w-full pl-10 h-10 rounded-xl border-gray-200 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
-                <label className="text-[10px] uppercase font-bold text-gray-400 ml-1">
-                  Filter by Blog
-                </label>
-                <select
-                  value={blogTitleFilter || ""}
-                  onChange={e => handleBlogTitleChange(e.target.value || null)}
-                  className="select select-bordered select-sm w-full font-medium h-10 rounded-xl border-gray-200 focus:border-blue-500"
-                >
-                  <option value="">All blog posts</option>
-                  {blogTitles.map(title => (
-                    <option key={title} value={title}>
-                      {title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-end h-full">
-                <button
-                  onClick={handleResetFilters}
-                  className={clsx(
-                    "btn btn-sm h-10 px-6 normal-case rounded-xl font-bold transition-all",
-                    isFilterApplied ? "btn-error btn-outline" : "btn-ghost text-gray-400"
-                  )}
-                >
-                  {isFilterApplied ? (
-                    <X className="size-4 mr-1" />
-                  ) : (
-                    <Filter className="size-4 mr-1" />
-                  )}
-                  Reset
-                </button>
-              </div>
+        <div className="p-4 md:p-6 min-h-screen bg-[#FDFDFF]">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <h1 className="text-2xl font-bold text-indigo-600">Search Performance</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExport}
+                disabled={isLoading}
+                className="btn btn-sm h-10 px-6 bg-indigo-100 text-indigo-600 border-none hover:bg-indigo-200 normal-case font-bold rounded-lg gap-2"
+              >
+                <Download className="size-4" />
+                Export
+              </button>
+              <button
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="btn btn-sm h-10 px-6 bg-blue-100 text-blue-600 border-none hover:bg-blue-200 normal-case font-bold rounded-lg gap-2"
+              >
+                <RefreshCw className={clsx("size-4", isLoading && "animate-spin")} />
+                Refresh
+              </button>
             </div>
           </div>
 
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-[#ebf5ff] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-blue-100/50 shadow-sm transition-all hover:shadow-md">
+              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
+                Total Clicks
+              </span>
+              <p className="text-4xl font-black text-blue-600 mb-3 tabular-nums">
+                {new Intl.NumberFormat().format(metrics.totalClicks)}
+              </p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                Total clicks on filtered data
+              </span>
+            </div>
+
+            <div className="bg-[#f5f3ff] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-purple-100/50 shadow-sm transition-all hover:shadow-md">
+              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
+                Total Impressions
+              </span>
+              <p className="text-4xl font-black text-purple-600 mb-3 tabular-nums">
+                {new Intl.NumberFormat().format(metrics.totalImpressions)}
+              </p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                Total impressions on filtered data
+              </span>
+            </div>
+
+            <div className="bg-[#f0fdf4] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-emerald-100/50 shadow-sm transition-all hover:shadow-md">
+              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
+                Average CTR
+              </span>
+              <p className="text-4xl font-black text-emerald-600 mb-3 tabular-nums">
+                {metrics.avgCtr}%
+              </p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                Average click-through rate
+              </span>
+            </div>
+
+            <div className="bg-[#fffbeb] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-amber-100/50 shadow-sm transition-all hover:shadow-md">
+              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
+                Average Position
+              </span>
+              <p className="text-4xl font-black text-amber-500 mb-3 tabular-nums">
+                {metrics.avgPosition}
+              </p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                Average search result position
+              </span>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-2 mb-8 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={dateRange}
+                onChange={e => handleDateRangeChange(e.target.value)}
+                className="select select-bordered select-sm h-10 border-slate-200 bg-white text-slate-600 font-bold focus:outline-none focus:border-indigo-400 rounded-lg min-w-[140px]"
+              >
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+                <option value="180d">Last 180 Days</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => handleSearch(e.target.value)}
+                  placeholder="Search title, query, or country"
+                  className="input input-bordered input-sm w-full pl-10 h-10 border-slate-200 bg-white text-slate-600 font-bold placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 rounded-lg"
+                />
+              </div>
+
+              <select
+                value={blogTitleFilter || ""}
+                onChange={e => handleBlogTitleChange(e.target.value || null)}
+                className="select select-bordered select-sm h-10 border-slate-200 bg-white text-slate-600 font-bold focus:outline-none focus:border-indigo-400 rounded-lg flex-1 min-w-[200px]"
+              >
+                <option value="">Select Blog Title</option>
+                {blogTitles.map(title => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={handleResetFilters}
+                className={`btn btn-sm h-10 px-6 rounded-lg font-bold border-none transition-all ${
+                  isFilterApplied
+                    ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                    : "bg-slate-50 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                Reset Filters
+              </button>
+            </div>
+          </div>
+
+          {/* Custom Date Picker (conditional) */}
+          {showDatePicker && (
+            <div className="flex gap-4 mb-6 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-top-2">
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered h-10 border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
+                  value={customDateRange[0]?.format("YYYY-MM-DD") || ""}
+                  onChange={e => handleCustomDateRangeChange("start", e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered h-10 border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
+                  value={customDateRange[1]?.format("YYYY-MM-DD") || ""}
+                  onChange={e => handleCustomDateRangeChange("end", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
           {error && (
-            <div className="alert alert-error shadow-sm mb-6 rounded-2xl border-none text-white font-medium">
+            <div className="alert alert-error shadow-sm mb-6 rounded-2xl border-none text-white font-bold bg-rose-500">
               <AlertCircle className="size-5" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="bg-white rounded-3xl shadow-xs border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-[32px] shadow-2xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden">
             <GSCAnalyticsTabs
               items={[
                 { key: "query", label: "Queries" },

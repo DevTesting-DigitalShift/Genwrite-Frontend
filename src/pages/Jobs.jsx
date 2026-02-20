@@ -42,7 +42,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
   const getTrueOptions = options => {
     if (!options) return []
     const mapping = {
-      wordpressPosting: "WP",
+      wordpressPosting: "WordPress",
       includeFaqs: "FAQs",
       includeCompetitorResearch: "Competitor",
       includeInterlinks: "Interlinks",
@@ -57,22 +57,22 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
       .map(([key]) => mapping[key])
   }
 
-  const renderArray = (arr, limit = 2) => {
+  const renderArray = (arr, limit = 3) => {
     if (!arr || arr.length === 0) return <span className="text-slate-300">-</span>
     const display = arr.slice(0, limit)
     const remaining = arr.length - limit
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {display.map((item, i) => (
           <span
             key={i}
-            className="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-100 whitespace-nowrap"
+            className="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-md text-[10px] font-medium border border-slate-100 whitespace-nowrap"
           >
             {item}
           </span>
         ))}
         {remaining > 0 && (
-          <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
+          <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">
             +{remaining}
           </span>
         )}
@@ -86,10 +86,10 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
       const date = new Date(dateStr)
       return (
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-slate-700">
+          <span className="text-sm font-semibold text-slate-700">
             {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
           </span>
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+          <span className="text-[10px] text-slate-400">
             {date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
@@ -100,94 +100,124 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
   }
 
   return (
-    <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-200/60 shadow-2xl shadow-slate-200/40">
+    <div className="overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-100">
       <table className="w-full text-left border-collapse min-w-[1000px]">
         <thead>
-          <tr className="bg-slate-50/50 border-b border-slate-100">
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Pipeline Details
+          <tr className="bg-slate-50/80 border-b border-slate-200">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Job Details
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Intelligence
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Status
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Last Run
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Schedule
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
               Topics
             </th>
-            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Config
+            </th>
+            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
               Actions
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-slate-100">
           {data.map(job => (
-            <tr key={job._id} className="hover:bg-blue-50/30 transition-all group">
-              <td className="px-8 py-6">
-                <div className="flex items-center gap-4">
+            <tr key={job._id} className="hover:bg-slate-50/60 transition-colors group">
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                    <Briefcase size={18} />
+                  </div>
                   <div>
-                    <div className="font-bold text-slate-900 text-[15px] group-hover:text-blue-700 transition-colors">
-                      {job.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">
+                    <div className="font-bold text-slate-900 text-sm">{job.name}</div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">
                       ID: {job._id?.toString().slice(-6)}
                     </div>
                   </div>
                 </div>
               </td>
-              <td className="px-8 py-6">
+              <td className="px-6 py-4">
                 <div className="flex flex-col items-start gap-1.5">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-slate-900 text-white uppercase tracking-wider shadow-sm">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
                     {job.blogs?.aiModel?.toUpperCase() || "AI"}
                   </span>
-                  <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">
+                  <span className="text-[11px] text-slate-500 font-medium pl-0.5">
                     {job.blogs?.languageToWrite}
                   </span>
                 </div>
               </td>
-              <td className="px-8 py-6">
-                <button
-                  onClick={() => onToggleStatus(job)}
-                  disabled={isToggling}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                    job.status === "active"
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white"
-                      : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-800 hover:text-white"
-                  } active:scale-95`}
-                >
-                  {job.status === "active" ? "Running" : "Paused"}
-                </button>
+              <td className="px-6 py-4">
+                <div className="flex flex-col items-start gap-1">
+                  <button
+                    onClick={() => onToggleStatus(job)}
+                    disabled={isToggling}
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                      job.status === "active"
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                        : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                    }`}
+                  >
+                    {job.status === "active" ? "Running" : "Paused"}
+                  </button>
+                </div>
               </td>
-              <td className="px-8 py-6">{formatLastRun(job.lastRun)}</td>
-              <td className="px-8 py-6">
+              <td className="px-6 py-4">{formatLastRun(job.lastRun)}</td>
+              <td className="px-6 py-4">
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-800 capitalize">
+                  <span className="text-sm font-bold text-slate-700 capitalize">
                     {job.schedule?.type || "Manual"}
                   </span>
-                  <span className="text-[11px] text-slate-400 font-bold">
-                    {job.blogs?.numberOfBlogs} {job.blogs?.numberOfBlogs === 1 ? "blog" : "blogs"}/d
+                  <span className="text-xs text-slate-400 font-medium">
+                    {job.blogs?.numberOfBlogs} {job.blogs?.numberOfBlogs === 1 ? "blog" : "blogs"}
+                    /day
                   </span>
                 </div>
               </td>
-              <td className="px-8 py-6 max-w-[220px]">{renderArray(job.blogs?.topics, 2)}</td>
-              <td className="px-8 py-6 text-right">
-                <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 duration-300">
+              <td className="px-6 py-4 max-w-[200px]">{renderArray(job.blogs?.topics, 2)}</td>
+              <td className="px-6 py-4">
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                  {getTrueOptions(job.options).length > 0 ? (
+                    getTrueOptions(job.options)
+                      .slice(0, 3)
+                      .map((opt, i) => (
+                        <span
+                          key={i}
+                          className="px-1.5 py-0.5 bg-white text-slate-500 rounded text-[10px] font-medium border border-slate-200 shadow-xs"
+                        >
+                          {opt}
+                        </span>
+                      ))
+                  ) : (
+                    <span className="text-slate-300 text-[10px]">Basic</span>
+                  )}
+                  {getTrueOptions(job.options).length > 3 && (
+                    <span className="text-[10px] text-slate-400 px-1">+More</span>
+                  )}
+                </div>
+              </td>
+              <td className="px-6 py-4 text-right">
+                <div className="flex justify-end gap-2">
                   <button
                     onClick={() => onEdit(job)}
-                    className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-90"
+                    className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Edit Job"
                   >
                     <Pencil size={18} />
                   </button>
                   <button
                     onClick={() => onDelete(job)}
-                    className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all active:scale-90"
+                    className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="Delete Job"
                   >
                     <Trash2 size={18} />
                   </button>

@@ -192,7 +192,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
         {aiResultModalOpen && (
           <div className="modal modal-open z-9999">
             <div className="modal-box w-11/12 max-w-5xl h-[80vh] flex flex-col p-0">
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between p-4 border-b border-gray-300">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-purple-600" />
                   Review AI Changes - {currentOperation}
@@ -289,7 +289,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       {aiResultModalOpen && (
         <div className="modal modal-open z-9999">
           <div className="modal-box w-11/12 max-w-5xl h-[80vh] flex flex-col p-0">
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b border-gray-300">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-600" />
                 Review AI Changes - {currentOperation}

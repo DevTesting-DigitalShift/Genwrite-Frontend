@@ -620,7 +620,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   }, [normalEditor])
 
   const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
+    <div className="bg-white border-x border-gray-200 overflow-hidden shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
       <div className="flex gap-1 shrink-0">
         {[1, 2, 3, 4].map(level => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
@@ -937,7 +937,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   if (isEditorLoading || !editorReady) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
+      <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border border-gray-200 rounded-lg">
         <LoadingScreen />
       </div>
     )
@@ -950,7 +950,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="sticky top-0 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
+      <div className="sticky top-0 bg-white shadow-sm shrink-0 z-10">{renderToolbar()}</div>
 
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
         {normalEditor && (
@@ -1027,7 +1027,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <div className="flex flex-col h-[calc(80vh-100px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-y-auto">
                 {/* Left Col */}
-                <div className="border rounded-lg bg-gray-50 p-2 flex flex-col items-center justify-center gap-3">
+                <div className="border border-gray-200 rounded-lg bg-gray-50 p-2 flex flex-col items-center justify-center gap-3">
                   <img
                     src={imageUrl}
                     alt={imageAlt || "Preview"}

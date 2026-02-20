@@ -10,6 +10,8 @@ import {
   BarChart3,
 } from "lucide-react"
 import { useState } from "react"
+import { motion } from "framer-motion"
+import clsx from "clsx"
 
 /**
  *
@@ -64,33 +66,29 @@ export default function GSCAnalyticsTabs({
         title: "Clicks",
         dataIndex: "clicks",
         key: "clicks",
-        render: clicks => (
-          <span className="text-blue-600 font-semibold">
-            {new Intl.NumberFormat().format(clicks)}
-          </span>
-        ),
+        render: clicks => <span>{new Intl.NumberFormat().format(clicks)}</span>,
       },
       {
         title: "Impressions",
         dataIndex: "impressions",
         key: "impressions",
-        render: impressions => (
-          <span className="text-blue-600 font-semibold">
-            {new Intl.NumberFormat().format(impressions)}
-          </span>
-        ),
+        render: impressions => <span>{new Intl.NumberFormat().format(impressions)}</span>,
       },
       {
         title: "CTR (%)",
         dataIndex: "ctr",
         key: "ctr",
-        render: ctr => <span className="text-gray-700">{`${Number(ctr).toFixed(2)}%`}</span>,
+        render: ctr => (
+          <span className="text-slate-500 font-medium">{`${Number(ctr).toFixed(2)}%`}</span>
+        ),
       },
       {
         title: "Position",
         dataIndex: "position",
         key: "position",
-        render: position => <span className="text-gray-700">{Number(position).toFixed(2)}</span>,
+        render: position => (
+          <span className="text-slate-500 font-medium">{Number(position).toFixed(2)}</span>
+        ),
       },
       ...(tab !== "country"
         ? [
@@ -140,71 +138,99 @@ export default function GSCAnalyticsTabs({
   const columns = getColumns(activeTab)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-sm">
       {/* Tabs Header */}
-      <div className="bg-gray-50 border-b border-gray-200 p-1 flex items-center justify-between">
-        <div className="tabs tabs-boxed bg-transparent gap-1">
+      <div className="bg-[#F8FAFC] border-b border-slate-100 flex items-center justify-between px-2">
+        <div className="flex gap-8 px-4">
           {items.map(item => (
             <button
               key={item.key}
               onClick={() => handleTabChange(item.key)}
-              className={`tab tab-sm md:tab-md font-medium transition-all ${
-                activeTab === item.key
-                  ? "tab-active bg-white! text-blue-600! shadow-xs"
-                  : "text-gray-500 hover:text-gray-700"
+              className={`py-6 text-sm font-bold transition-all relative ${
+                activeTab === item.key ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
               }`}
             >
               {item.label}
+              {activeTab === item.key && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full"
+                />
+              )}
             </button>
           ))}
         </div>
-
-        {filteredData?.length > 0 && (
-          <div className="px-4 text-xs font-medium text-gray-500 hidden sm:block">
-            Total {filteredData.length} items
-          </div>
-        )}
       </div>
 
       {/* Table Content */}
       <div className="overflow-x-auto min-h-[400px]">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-20 gap-4">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <p className="text-sm font-medium text-gray-500 italic">Fetching analytics data...</p>
+            <span className="loading loading-spinner loading-lg text-indigo-600"></span>
+            <p className="text-sm font-bold text-slate-400 italic">
+              Analyzing your performance data...
+            </p>
           </div>
         ) : filteredData?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center">
-            <div className="bg-gray-50 p-6 rounded-full mb-4">
-              <BarChart3 className="size-10 text-gray-300" />
+          <div className="flex flex-col items-center justify-center p-24 text-center">
+            <div className="relative mb-6">
+              <div className="absolute -inset-4 bg-slate-50 rounded-full blur-xl opacity-50" />
+              <div className="relative w-20 h-20 bg-white shadow-xl shadow-slate-200/50 rounded-2xl flex items-center justify-center border border-slate-100">
+                <FileText className="size-10 text-slate-200" strokeWidth={1} />
+                <div className="absolute -top-2 -right-2 bg-slate-100 rounded-lg p-1 border border-white">
+                  <MoreHorizontal className="size-4 text-slate-400" />
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No Data Available</h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              We couldn't find any performance data for the selected filters.
+            <h3 className="text-lg font-black text-slate-800 mb-2">No data available</h3>
+            <p className="text-sm text-slate-400 font-medium max-w-[240px]">
+              We couldn't find any performance records for the current filters.
             </p>
           </div>
         ) : (
-          <table className="table table-zebra w-full border-separate border-spacing-0">
+          <table className="table w-full border-separate border-spacing-0">
             <thead>
-              <tr>
+              <tr className="border-b border-slate-100 bg-white">
                 {columns.map(col => (
                   <th
                     key={col.key}
-                    className="bg-white border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-bold py-4"
+                    className={`bg-white border-b border-slate-100 text-[10px] uppercase font-black tracking-widest text-slate-500 py-6 px-4 ${
+                      col.key === "actions" ? "text-right" : "text-left"
+                    }`}
                   >
-                    {col.title}
+                    <div
+                      className={clsx(
+                        "flex items-center gap-2",
+                        col.key === "actions" && "justify-end"
+                      )}
+                    >
+                      {col.title}
+                      {col.key !== "actions" && (
+                        <div className="flex flex-col -gap-1 opacity-30 group-hover:opacity-100">
+                          <ChevronDown className="size-3 rotate-180" />
+                          <ChevronDown className="size-3 -mt-1.5" />
+                        </div>
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {filteredData.map((record, index) => (
-                <tr key={record.id || index} className="hover:bg-blue-50/30 transition-colors">
+                <tr key={record.id || index} className="hover:bg-slate-50 group transition-all">
                   {columns.map(col => (
-                    <td key={col.key} className="py-4 border-b border-gray-50">
-                      {col.render
-                        ? col.render(record[col.dataIndex], record)
-                        : record[col.dataIndex]}
+                    <td key={col.key} className="py-6 px-4 border-b border-slate-50">
+                      <div
+                        className={clsx(
+                          "text-[13px] font-bold text-slate-700",
+                          col.key === "actions" && "flex justify-end"
+                        )}
+                      >
+                        {col.render
+                          ? col.render(record[col.dataIndex], record)
+                          : record[col.dataIndex]}
+                      </div>
                     </td>
                   ))}
                 </tr>

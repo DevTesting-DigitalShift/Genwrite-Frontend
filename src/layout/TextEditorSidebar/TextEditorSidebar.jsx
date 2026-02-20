@@ -31,10 +31,10 @@ import {
 import toast from "@utils/toast"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
+import { retryBlogById, getBlogPostings, exportBlog, proofreadBlogContent } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { ScoreCard, CompetitorsList } from "./FeatureComponents"
+import { ScoreCard, CompetitorsList, ProofreadingSuggestion } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
@@ -284,6 +284,7 @@ const TextEditorSidebar = ({
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
   const [availableSections, setAvailableSections] = useState([])
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
 
   // Diff Viewer State
   const [showDiff, setShowDiff] = useState(false)
@@ -292,17 +293,18 @@ const TextEditorSidebar = ({
   // Sidebar navigation items
   const NAV_ITEMS = [
     { id: "overview", icon: BarChart3, label: "Overview" },
-    { id: "seo", icon: TrendingUp, label: "SEO" },
-    { id: "bloginfo", icon: Info, label: "Blog Info" },
+    { id: "seo", icon: TrendingUp, label: "SEO Settings" },
+    { id: "suggestions", icon: Lightbulb, label: "AI Proofread" },
+    { id: "bloginfo", icon: Info, label: "Blog Details" },
     ...(blog?.brandId || blog?.nameOfVoice
       ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
       : []),
-    { id: "posting", icon: Send, label: "Posting" },
-    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+    { id: "posting", icon: Send, label: "Publish" },
     // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
     ...(availableSections.length > 0 && activeEditorVersion === 1
       ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
       : []),
+    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
   ]
 
   // Clear section selection when switching tabs to simple cleanup
@@ -608,7 +610,7 @@ const TextEditorSidebar = ({
   const hasAnyIntegration =
     integrations?.integrations && Object.keys(integrations.integrations).length > 0
   const isDisabled = isPosting || !hasAnyIntegration
-  const isPro = ["free", "basic"].includes(userPlan)
+  const isPro = !["free", "basic"].includes(userPlan)
 
   const PLATFORM_LABELS = {
     WORDPRESS: "WordPress",
@@ -1373,11 +1375,6 @@ const TextEditorSidebar = ({
     const brand = isBrandPopulated ? blog.brandId : {}
 
     const nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
-    const describeBrand =
-      brand.describeBrand || blog.describeBrand || brand.description || blog.description
-    const persona = brand.persona || blog.persona
-    const postLink = brand.postLink || blog.postLink || brand.url
-    const brandKeywords = brand.keywords || (isBrandPopulated ? [] : []) // Don't fall back to blog keywords here
 
     if (!blog?.brandId && !blog?.nameOfVoice) {
       return (
@@ -1403,19 +1400,29 @@ const TextEditorSidebar = ({
     return (
       <div className="flex flex-col h-full bg-white">
         {/* Header */}
-        <div className="p-4 border-b bg-linear-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
-              <Crown className="w-5 h-5 text-white" />
+        <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
+                <Crown className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 line-clamp-1">
+                  {brand.nameOfVoice || brand.name || "Brand Voice"}
+                </h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                  Brand Identity
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-gray-900 line-clamp-1">
-                {brand.nameOfVoice || brand.name || "Brand Voice"}
-              </h3>
-              <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">
-                Authenticated Identity
-              </p>
-            </div>
+            {setIsSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1481,8 +1488,8 @@ const TextEditorSidebar = ({
 
   const renderOverviewPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-white sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
               <BarChart3 className="w-5 h-5 text-white" />
@@ -1504,9 +1511,9 @@ const TextEditorSidebar = ({
           {setIsSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -1690,33 +1697,40 @@ const TextEditorSidebar = ({
 
   const renderSeoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-linear-to-br from-indigo-500 to-purple-600 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-100">
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">SEO & Export</h3>
+                <h3 className="font-bold text-gray-900">SEO & Export</h3>
                 {isPro && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    <Crown className="w-4 h-4" />
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
+                    PRO
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 font-medium">
-                Metadata, analysis & export options
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Metadata & Assets
               </p>
             </div>
           </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* SEO Metadata Section */}
-        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-600" />
@@ -1754,7 +1768,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Export Section */}
-        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
             <Download className="w-4 h-4 text-green-600" />
             <span className="text-sm font-semibold text-gray-900">Export Blog</span>
@@ -2022,6 +2036,28 @@ const TextEditorSidebar = ({
       }
     }
 
+    const handleProofreading = async () => {
+      if (!blog?._id) return
+      setIsAnalyzingProofreading(true)
+      try {
+        const results = await proofreadBlogContent({ id: blog._id })
+        // The API returns the suggestions directly or wrapped in data
+        const suggestions = Array.isArray(results) ? results : results?.suggestions || []
+        setProofreadingResults(suggestions)
+
+        if (suggestions.length > 0) {
+          toast.success(`Found ${suggestions.length} suggestions!`)
+        } else {
+          toast.info("No suggestions found. Your content looks great!")
+        }
+      } catch (error) {
+        console.error("Proofreading error:", error)
+        toast.error(error.message || "Failed to analyze content")
+      } finally {
+        setIsAnalyzingProofreading(false)
+      }
+    }
+
     // Add original index to each suggestion for tracking
     const suggestionsWithIndex =
       proofreadingResults?.map((s, i) => ({ ...s, originalIndex: i })) || []
@@ -2029,35 +2065,40 @@ const TextEditorSidebar = ({
     return (
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-linear-to-br from-amber-400 to-orange-500 rounded-lg">
-                <Lightbulb className="w-4 h-4 text-white" />
+        <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-500 rounded-xl shadow-lg shadow-amber-100">
+                <Lightbulb className="w-5 h-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-gray-900">AI Proofreading</h3>
+                  <h3 className="font-bold text-gray-900">Proofreading</h3>
                   {isPro && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                      <Crown className="w-4 h-4" />
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
+                      PRO
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">Grammar & style suggestions</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                  AI Grammar & Style
+                </p>
               </div>
             </div>
-            {proofreadingResults?.length > 0 && (
-              <span className="px-2.5 py-1 bg-linear-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full">
-                {proofreadingResults.length}
-              </span>
+            {setIsSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
             )}
           </div>
 
           {proofreadingResults?.length > 0 && (
             <button
               onClick={handleApplyAll}
-              className="w-full mt-2 px-4 py-2.5 bg-linear-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+              className="w-full mt-4 px-4 py-2.5 bg-linear-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
               Apply All {proofreadingResults.length} Changes
@@ -2112,23 +2153,33 @@ const TextEditorSidebar = ({
 
   const renderBlogInfoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg">
-            <Info className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-orange-600 rounded-xl shadow-lg shadow-slate-100">
+              <Info className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Blog Content</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Technical Data
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Blog Information</h3>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">
-              Metadata and settings used for this blog
-            </p>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
         {/* Blog Slug */}
-        <div className="p-3 bg-white border rounded-lg">
+        <div className="p-3 bg-white border border-gray-300 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-gray-500">Blog Slug</div>
             {!hasPublishedLinks && (
@@ -2182,11 +2233,11 @@ const TextEditorSidebar = ({
 
         {/* Template & Category */}
         <div className="space-y-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Template</div>
             <div className="font-semibold text-gray-900">{blog?.template || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Category</div>
             <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
           </div>
@@ -2216,7 +2267,7 @@ const TextEditorSidebar = ({
 
         {/* Tags */}
         {blog?.tags && blog.tags.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.tags.map((tag, i) => (
@@ -2234,7 +2285,7 @@ const TextEditorSidebar = ({
 
         {/* Keywords */}
         {blog?.keywords && blog.keywords.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.keywords.map((kw, i) => (
@@ -2248,7 +2299,7 @@ const TextEditorSidebar = ({
 
         {/* Focus Keywords */}
         {blog?.focusKeywords && blog.focusKeywords.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.focusKeywords.map((kw, i) => (
@@ -2265,11 +2316,11 @@ const TextEditorSidebar = ({
 
         {/* Tone & Word Count */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Tone</div>
             <div className="font-semibold text-gray-900">{blog?.tone || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Target Length</div>
             <div className="font-semibold text-gray-900">{blog?.userDefinedLength || 0} words</div>
           </div>
@@ -2277,11 +2328,11 @@ const TextEditorSidebar = ({
 
         {/* AI Model & Image Source */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">AI Model</div>
             <div className="font-semibold text-gray-900 capitalize">{blog?.aiModel || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Image Source</div>
             <div className="font-semibold text-gray-900 capitalize">
               {blog?.imageSource || "none"}
@@ -2384,15 +2435,27 @@ const TextEditorSidebar = ({
 
   const renderSectionToolsPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-4 border-b bg-linear-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-linear-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
-            <Wand2 className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
+              <Wand2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Section Tools</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                AI Modification
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">AI Section Tools</h3>
-            <p className="text-xs text-blue-600 font-medium">Edit specific sections</p>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -2588,14 +2651,27 @@ const TextEditorSidebar = ({
 
   const renderPostingPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-3 border-b bg-linear-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-linear-to-br from-green-600 to-emerald-600 rounded-lg">
-            <Send className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-green-600 rounded-xl shadow-lg shadow-green-100">
+              <Send className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Publishing</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Distribution & History
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Publishing</h3>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -2875,7 +2951,7 @@ const TextEditorSidebar = ({
         return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
-      case "regenerate":
+      case "suggestions":
         return renderSuggestionsPanel()
       case "sectionTools":
         return renderSectionToolsPanel()
@@ -2884,56 +2960,55 @@ const TextEditorSidebar = ({
     }
   }
 
-  // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 border-l border-gray-200 flex flex-col items-center gap-2">
+      <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 shadow-xs bg-gray-50/50 h-full">
         <div className="flex flex-col gap-2">
           <div className="tooltip tooltip-left" data-tip="Expand Sidebar">
             <button
               onClick={() => setIsCollapsed(false)}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-300 group"
             >
               <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
             </button>
           </div>
-          {/* Divider */}
-          <div className="w-8 h-px bg-gray-300 my-2" />
+          <div className="w-8 h-px bg-gray-300 mx-auto my-2" />
         </div>
-
-        {NAV_ITEMS.map(item => {
-          const Icon = item.icon
-          const isActive = activePanel === item.id
-          return (
-            <Tooltip key={item.id} title={item.label} placement="left">
-              <button
-                onClick={() => {
-                  if (item.id === "regenerate") {
-                    setIsRegenerateModalOpen(true)
-                  } else {
-                    if (isActive && !isCollapsed) {
-                      setIsCollapsed(true)
+        <div className="flex flex-col gap-3">
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon
+            const isActive = activePanel === item.id
+            return (
+              <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
+                <button
+                  onClick={() => {
+                    if (item.id === "regenerate") {
+                      setIsRegenerateModalOpen(true)
                     } else {
-                      setActivePanel(item.id)
-                      setIsCollapsed(false)
+                      if (isActive && !isCollapsed) {
+                        setIsCollapsed(true)
+                      } else {
+                        setActivePanel(item.id)
+                        setIsCollapsed(false)
+                      }
                     }
-                  }
-                }}
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                  isActive && !isCollapsed
-                    ? "bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
-                    : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 transition-transform ${
-                    isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                  }}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 relative group ${
+                    isActive && !isCollapsed
+                      ? "bg-linear-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200"
+                      : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                   }`}
-                />
-              </button>
-            </Tooltip>
-          )
-        })}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-transform duration-300 ${
+                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                    }`}
+                  />
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
     )
   }
@@ -2942,7 +3017,7 @@ const TextEditorSidebar = ({
     <>
       <div className="flex h-full">
         {/* Content Panel */}
-        <div className="flex-1 w-80 bg-white border-l overflow-hidden flex flex-col">
+        <div className="flex-1 w-80 bg-white border-l border-gray-300 overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={activePanel}
@@ -2958,7 +3033,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Icon Navigation Bar - Premium Theme */}
-        <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+        <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 shadow-xs bg-gray-50/50 h-full">
           <div className="flex flex-col gap-2">
             {/* Mobile close */}
             <div className="md:hidden">
@@ -2969,43 +3044,50 @@ const TextEditorSidebar = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Divider */}
-            <div className="w-full h-px bg-gray-300 my-2" />
           </div>
-          {NAV_ITEMS.map(item => {
-            const Icon = item.icon
-            const isActive = activePanel === item.id
-            return (
-              <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
-                <button
-                  onClick={() => {
-                    if (item.id === "regenerate") {
-                      // Open the regenerate modal
-                      setIsRegenerateModalOpen(true)
-                    } else {
-                      if (isActive && !isCollapsed) {
-                        setIsCollapsed(true)
+          <div className="flex flex-col gap-3 mt-5">
+            {NAV_ITEMS.map(item => {
+              const Icon = item.icon
+              const isActive = activePanel === item.id
+              return (
+                <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
+                  <button
+                    onClick={() => {
+                      if (item.id === "regenerate") {
+                        // Open the regenerate modal
+                        setIsRegenerateModalOpen(true)
                       } else {
-                        setActivePanel(item.id)
-                        setIsCollapsed(false)
+                        if (isActive && !isCollapsed) {
+                          setIsCollapsed(true)
+                        } else {
+                          setActivePanel(item.id)
+                          setIsCollapsed(false)
+                        }
                       }
-                    }
-                  }}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                    isActive && !isCollapsed
-                      ? "bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
-                      : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-transform ${
-                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                    }}
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 relative group ${
+                      isActive && !isCollapsed
+                        ? "text-white"
+                        : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                     }`}
-                  />
-                </button>
-              </div>
-            )
-          })}
+                  >
+                    {isActive && !isCollapsed && (
+                      <motion.div
+                        layoutId="activeTabIndicator"
+                        className="absolute inset-0 bg-linear-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg shadow-blue-200"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <Icon
+                      className={`w-5 h-5 transition-transform duration-300 relative z-10 ${
+                        isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                      }`}
+                    />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 

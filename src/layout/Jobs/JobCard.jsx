@@ -12,7 +12,6 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from "lucide-react"
 import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -22,12 +21,12 @@ import toast from "@utils/toast"
 const Badge = ({ children, variant = "gray" }) => {
   const variants = {
     gray: "bg-slate-100 text-slate-600 border border-slate-200/60",
-    blue: "bg-blue-50 text-blue-700 border border-blue-100",
+    indigo: "bg-indigo-50 text-indigo-700 border border-indigo-100",
     emerald: "bg-emerald-50 text-emerald-700 border border-emerald-100",
   }
   return (
     <span
-      className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${variants[variant]}`}
+      className={`px-2.5 py-1 text-[10px] font-semibold rounded-full uppercase tracking-wider ${variants[variant]}`}
     >
       {children}
     </span>
@@ -37,6 +36,7 @@ const Badge = ({ children, variant = "gray" }) => {
 const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
+  const [showAllTopics, setShowAllTopics] = useState(false)
 
   const isRunning = job.status === "active"
 
@@ -69,25 +69,19 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
 
   const formatDate = dateStr => {
     if (!dateStr) return "N/A"
-    return new Date(dateStr).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    return new Date(dateStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
   }
-
   const getTrueOptions = options => {
     if (!options) return []
     const mapping = {
-      wordpressPosting: "WP Posting",
+      wordpressPosting: "WordPress Posting",
       includeFaqs: "FAQs",
       includeCompetitorResearch: "Comp. Research",
       includeInterlinks: "Interlinks",
       performKeywordResearch: "Keyword Research",
       includeTableOfContents: "TOC",
-      addOutBoundLinks: "Outbound",
-      embedYouTubeVideos: "YouTube",
+      addOutBoundLinks: "Outbound Links",
+      embedYouTubeVideos: "YouTube Emb.",
       easyToUnderstand: "Simple Style",
     }
     return Object.entries(options)
@@ -98,62 +92,60 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const activeOptions = getTrueOptions(job.options)
 
   return (
-    <motion.div className="group bg-white rounded-xl border border-slate-200/60 p-6 flex flex-col shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col hover:shadow-xl transition-all duration-300 relative"
+    >
       {/* Header */}
-      <div className="flex justify-between items-start mb-6 relative z-10">
+      <div className="flex justify-between items-start mb-6">
         <div className="flex-1 min-w-0 pr-4">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight truncate capitalize">
-              {job.name}
-            </h3>
-          </div>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-            <Hash size={10} />
-            {(job._id || "").toString().slice(-6)}
+          <h3 className="font-black text-slate-900 text-xl tracking-tight mb-1 truncate capitalize">
+            {job.name}
+          </h3>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            ID: {(job._id || "").toString().slice(-6)}
           </p>
         </div>
         <button
           onClick={handleToggleStatus}
           disabled={isToggling}
-          className={`group/btn flex items-center justify-center w-12 h-12 rounded-xl transition-all ${
+          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all ${
             isRunning
-              ? "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-100"
-              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100"
-          } shadow-sm active:scale-95`}
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
+          }`}
           title={isRunning ? "Stop Job" : "Start Job"}
         >
           {isToggling ? (
             <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : isRunning ? (
-            <Square size={18} fill="currentColor" className="opacity-80" />
+            <Square size={16} fill="currentColor" />
           ) : (
-            <Play size={18} fill="currentColor" className="ml-0.5 opacity-80" />
+            <Play size={16} fill="currentColor" className="ml-0.5" />
           )}
         </button>
       </div>
 
-      {/* Topics & Keywords - Enhanced Grid */}
-      <div className="space-y-4 mb-6 pt-4 border-t border-slate-50 relative z-10 flex-1">
+      {/* Topics & Keywords - starting 5 +n */}
+      <div className="space-y-4 mb-6 pt-4 border-t border-slate-100">
         {job.blogs?.topics?.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Tag size={12} className="text-slate-400" />
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Topics
-              </p>
-            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Topics
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.topics.slice(0, 4).map((topic, i) => (
+              {job.blogs.topics.slice(0, 5).map((topic, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 bg-slate-50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100 transition-colors"
+                  className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-100"
                 >
                   {topic}
                 </span>
               ))}
-              {job.blogs.topics.length > 4 && (
-                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                  +{job.blogs.topics.length - 4}
+              {job.blogs.topics.length > 5 && (
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
+                  +{job.blogs.topics.length - 5}
                 </span>
               )}
             </div>
@@ -162,24 +154,21 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
 
         {job.blogs?.keywords?.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles size={12} className="text-slate-400" />
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Focus Keywords
-              </p>
-            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Focus Keywords
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.keywords.slice(0, 4).map((kw, i) => (
+              {job.blogs.keywords.slice(0, 5).map((kw, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 bg-blue-50/30 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100/30 group-hover:bg-blue-600 group-hover:text-white transition-all"
+                  className="px-2 py-1 bg-indigo-50/50 text-indigo-700 text-[11px] font-bold rounded-lg border border-indigo-100/50"
                 >
                   {kw}
                 </span>
               ))}
-              {job.blogs.keywords.length > 4 && (
-                <span className="text-[10px] font-black text-blue-600">
-                  +{job.blogs.keywords.length - 4}
+              {job.blogs.keywords.length > 5 && (
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
+                  +{job.blogs.keywords.length - 5}
                 </span>
               )}
             </div>
@@ -187,93 +176,91 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
         )}
 
         {activeOptions.length > 0 && (
-          <div className="pt-2">
-            <div className="flex flex-wrap gap-1">
-              {activeOptions.slice(0, 3).map((opt, i) => (
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Active Settings
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeOptions.map((opt, i) => (
                 <span
                   key={i}
-                  className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[9px] font-black uppercase tracking-tight border border-slate-200"
+                  className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold border border-slate-200"
                 >
                   {opt}
                 </span>
               ))}
-              {activeOptions.length > 3 && (
-                <span className="text-[9px] font-black text-slate-400">
-                  +{activeOptions.length - 3}
-                </span>
-              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Intelligence & Schedule - Premium Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-2xl bg-slate-50/50 border border-slate-100 relative z-10">
+      {/* Intelligence & Schedule - Clean Layout */}
+      <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-slate-100">
         <div className="flex flex-col">
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-            <Cpu size={10} /> Model
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Intelligence
           </span>
-          <span className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">
-            {job.blogs?.aiModel}
+          <span className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">
+            {job.blogs?.aiModel} / {job.blogs?.languageToWrite}
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-            <CalendarDays size={10} /> Frequency
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Schedule
           </span>
-          <span className="text-[11px] font-bold text-slate-900 truncate capitalize tracking-tight">
-            {job.schedule?.type}
+          <span className="text-xs font-bold text-slate-900 truncate capitalize tracking-tight">
+            {job.schedule?.type} ({job.blogs?.numberOfBlogs})
           </span>
         </div>
-        <div className="flex flex-col col-span-2 mt-2 pt-2 border-t border-slate-200/10">
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-            <Clock size={10} /> Last Run
+        <div className="flex flex-col col-span-2 mt-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Last Run
           </span>
-          <span className="text-[11px] font-bold text-slate-700">{formatDate(job.lastRun)}</span>
+          <div className="flex items-center gap-2">
+            <Clock size={14} className="text-slate-400" />
+            <span className="text-xs font-bold text-slate-700">{formatDate(job.lastRun)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Footer - Sophisticated Stats & Actions */}
-      <div className="mt-auto relative z-10">
-        <div className="flex justify-between items-center mb-5">
+      {/* Footer - Minimalist */}
+      <div className="mt-auto">
+        <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <div
-              className={`w-2 h-2 rounded-full animate-pulse ${isRunning ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" : "bg-slate-300"}`}
+              className={`w-2 h-2 rounded-full ${isRunning ? "bg-emerald-500" : "bg-slate-300"}`}
             />
             <span
-              className={`text-[10px] font-black uppercase tracking-widest ${isRunning ? "text-emerald-600" : "text-slate-400"}`}
+              className={`text-[11px] font-black uppercase tracking-widest ${isRunning ? "text-emerald-600" : "text-slate-400"}`}
             >
-              {isRunning ? "Active Pipeline" : "Paused"}
+              {isRunning ? "Running" : "Stopped"}
             </span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
-              {job?.createdBlogs?.length || 0} GENERATED
-            </span>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+            {job?.createdBlogs?.length || 0} GENERATED
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleEditJob}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-all border border-slate-200 active:scale-95 shadow-xs"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
           >
-            <PenTool size={14} />
-            Configure
+            Edit Job
           </button>
           <button
             onClick={() =>
               handlePopup({
-                title: "Terminate Pipeline",
-                description: `This will permanently delete the pipeline "${job.name}". This action cannot be undone.`,
-                confirmText: "Terminate",
+                title: "Delete Job",
+                description: "Are you sure you want to delete this job?",
+                confirmText: "Delete",
                 onConfirm: () => handleDeleteJob(job._id),
-                confirmProps: { className: "btn-error" },
+                confirmProps: { danger: true },
               })
             }
-            className="aspect-square flex items-center justify-center rounded-2xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-100 active:scale-95"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"
           >
-            <Trash2 size={16} />
+            Delete
           </button>
         </div>
       </div>
