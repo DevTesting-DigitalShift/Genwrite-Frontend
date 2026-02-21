@@ -140,7 +140,7 @@ const PromptContent = () => {
       >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 bg-linear-to-tr from-blue-600 to-indigo-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-blue-200">
+            <div className="w-14 h-14 bg-linear-to-tr from-blue-600 to-indigo-600 rounded-2xl text-white flex items-center justify-center">
               <Sparkles className="w-7 h-7" />
             </div>
             <div>
@@ -154,7 +154,7 @@ const PromptContent = () => {
           </div>
           <button
             onClick={handleReset}
-            className="btn btn-ghost hover:bg-slate-100 text-slate-600 font-bold normal-case gap-2"
+            className="btn btn-ghost rounded-lg bg-slate-100 text-slate-600 font-bold normal-case gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             Reset Canvas
@@ -178,7 +178,7 @@ const PromptContent = () => {
                   <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
                     <Send className="w-5 h-5 text-blue-600" />
                   </div>
-                  <h2 className="text-xl font-black text-slate-800">Your AI Instruction</h2>
+                  <h2 className="text-xl font-semibold text-slate-800">Your AI Instruction</h2>
                 </div>
                 <div
                   className={`badge badge-lg font-bold border-none py-4 px-4 ${promptLength >= 10 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
@@ -191,7 +191,7 @@ const PromptContent = () => {
                 onChange={e => setPrompt(e.target.value)}
                 placeholder="Example: 'Rewrite this content to be more witty and include 3 actionable tips for marketing managers...'"
                 rows={3}
-                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-300 min-h-[120px] ${
+                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-lg outline-0 min-h-[120px] ${
                   prompt.trim() && !isPromptValid ? "border-rose-300" : "border-slate-200"
                 }`}
               />
@@ -204,10 +204,10 @@ const PromptContent = () => {
                   <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
                     <FileText className="w-5 h-5 text-indigo-600" />
                   </div>
-                  <h2 className="text-xl font-black text-slate-800">Source Content</h2>
+                  <h2 className="text-xl font-semibold text-slate-800">Source Content</h2>
                 </div>
                 <div
-                  className={`badge badge-lg font-bold border-none py-4 px-4 ${wordCount >= 300 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
+                  className={`badge badge-lg font-semibold border-none py-4 px-4 ${wordCount >= 300 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
                 >
                   {wordCount}/300 Words
                 </div>
@@ -217,7 +217,7 @@ const PromptContent = () => {
                 onChange={e => setContent(e.target.value)}
                 placeholder="Paste your existing content here that you want to transform..."
                 rows={10}
-                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 min-h-[300px] ${
+                className={`textarea textarea-bordered w-full p-5 text-lg font-medium rounded-lg outline-0 min-h-[300px] ${
                   content.trim() && !isContentWordsValid ? "border-rose-300" : "border-slate-200"
                 }`}
               />
@@ -227,9 +227,9 @@ const PromptContent = () => {
             <button
               onClick={() => handleGenerateContent()}
               disabled={!canGenerate}
-              className={`btn btn-lg w-full h-16 rounded-2xl font-black text-xl normal-case gap-3 shadow-xl transition-all ${
+              className={`btn w-full h-12 rounded-xl text-base gap-3 ${
                 canGenerate
-                  ? "bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-blue-200 hover:scale-[1.01] hover:shadow-2xl"
+                  ? "bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white"
                   : "bg-slate-100 text-slate-400 border-none cursor-not-allowed"
               }`}
             >
@@ -240,7 +240,7 @@ const PromptContent = () => {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-6 h-6" />
+                  <Sparkles className="w-4 h-4" />
                   Generate Refined Content
                 </>
               )}
@@ -261,12 +261,12 @@ const PromptContent = () => {
             <div className="p-8 space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-linear-to-tr from-emerald-500 to-teal-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-emerald-100">
+                  <div className="w-12 h-12 bg-linear-to-tr from-emerald-500 to-teal-600 rounded-2xl text-white flex items-center justify-center">
                     <Check className="w-6 h-6" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-black text-slate-800">Result Unlocked</h2>
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-md font-bold text-slate-400">
                       Optimized by GenWrite AI
                     </p>
                   </div>

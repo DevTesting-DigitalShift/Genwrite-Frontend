@@ -251,11 +251,8 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-        onClick={closeFnc}
-      />
+    <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={closeFnc} />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -266,7 +263,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0 bg-white">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/30">
+            <div className="p-2.5 bg-blue-600 rounded-xl text-white">
               <Search size={20} />
             </div>
             <div>
@@ -302,9 +299,9 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
               </div>
               <button
                 onClick={addKeyword}
-                className="btn bg-gray-300 text-black border-none rounded-lg h-12 shadow-md shadow-gray-900/10 px-6 font-medium"
+                className="btn bg-blue-500 text-md text-white rounded-lg h-12 px-6 font-medium"
               >
-                <Plus size={18} className="mr-1" /> Add
+                Add
               </button>
             </div>
 
@@ -335,11 +332,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
               <button
                 onClick={analyzeKeywords}
                 disabled={keywords.length === 0 || analyzing}
-                className={`btn w-full h-12 text-base rounded-lg shadow-lg transition-all
+                className={`btn w-full h-12 text-base font-medium rounded-lg transition-all
                         ${
                           analyzing || keywords.length === 0
                             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed shadow-none"
-                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30 border-none"
+                            : "bg-blue-500 text-white"
                         }`}
               >
                 {analyzing ? (
@@ -365,7 +362,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                   <label className="label cursor-pointer gap-2 justify-start">
                     <input
                       type="checkbox"
-                      className="toggle toggle-primary bg-gray-300 toggle-sm"
+                      className="toggle bg-gray-300 toggle-sm"
                       checked={showSelectedOnly}
                       onChange={e => setShowSelectedOnly(e.target.checked)}
                       disabled={!hasSelectedKeywords}
@@ -407,7 +404,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                           <td className="text-center">
                             <input
                               type="checkbox"
-                              className="checkbox checkbox-sm checkbox-primary rounded-md"
+                              className="checkbox checkbox-sm rounded-md"
                               checked={!!isSelected}
                               onChange={() => toggleRowSelection(row.keyword)}
                             />
@@ -418,13 +415,13 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                           </td>
                           <td className="text-center">
                             <span
-                              className={`badge badge-sm font-semibold border-none text-white
+                              className={`badge rounded-sm font-medium text-sm border
                                                 ${
                                                   row.competition === "LOW"
-                                                    ? "bg-green-500"
+                                                    ? "bg-green-100 text-green-600 border-green-300"
                                                     : row.competition === "MEDIUM"
-                                                      ? "bg-amber-500"
-                                                      : "bg-red-500"
+                                                      ? "bg-amber-100 text-amber-600 border-amber-300"
+                                                      : "bg-red-100 text-red-600 border-red-300"
                                                 }`}
                             >
                               {row.competition}
@@ -498,26 +495,25 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           <div className="flex w-full sm:w-auto gap-3">
             <button
               onClick={closeFnc}
-              className="btn bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 flex-1 sm:flex-none"
+              className="btn bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 flex-1 sm:flex-none font-medium"
             >
               Close
             </button>
-            <div className="join shadow-sm hover:shadow-md transition-shadow">
-              <button
-                onClick={handleCreateBlog}
-                disabled={!hasSelectedKeywords}
-                className="btn join-item bg-gray-900 border-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500"
-              >
-                Create Blog
-              </button>
-              <button
-                onClick={handleCreateJob}
-                disabled={!hasSelectedKeywords}
-                className="btn join-item bg-gray-300 border-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 border-l-gray-700"
-              >
-                Job
-              </button>
-            </div>
+
+            <button
+              onClick={handleCreateBlog}
+              disabled={!hasSelectedKeywords}
+              className="btn bg-blue-500 border-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 font-medium"
+            >
+              Create Blog
+            </button>
+            <button
+              onClick={handleCreateJob}
+              disabled={!hasSelectedKeywords}
+              className="btn bg-blue-500 border-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 font-medium"
+            >
+              Job
+            </button>
           </div>
         </div>
       </motion.div>

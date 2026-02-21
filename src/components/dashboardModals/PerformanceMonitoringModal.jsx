@@ -296,7 +296,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                           <td className="py-3 px-4 font-medium text-gray-800">{row.keyword}</td>
                           <td className="py-3 px-4 text-center text-gray-800">{row.count}</td>
                           <td className="py-3 px-4 text-center">
-                            <div className="badge badge-sm badge-primary">
+                            <div>
                               {row.density.toFixed(2)}%
                             </div>
                           </td>
@@ -387,7 +387,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
     <div className="fixed inset-0 z-999 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60"
         onClick={closeFnc}
       />
 
@@ -400,8 +400,8 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/30">
-              <Activity size={20} />
+            <div className="p-2.5 bg-blue-600 rounded-lg text-white">
+              <Activity size={15} />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Performance Dashboard</h2>
           </div>
@@ -424,12 +424,14 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
               Select Blog Post to Analyze
             </label>
             <select
-              className="select text-gray-800 w-full h-12 text-base rounded-xl border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-white"
+              className="select text-gray-800 w-full h-12 text-base rounded-xl border-gray-300 focus:border-blue-500 outline-0 focus:ring-0 transition-all bg-white"
               onChange={handleBlogSelect}
               value={formData.selectedBlog?._id || ""}
               disabled={blogsLoading}
             >
-              <option value="" disabled>Select a blog...</option>
+              <option value="" disabled>
+                Select a blog...
+              </option>
               {allBlogs?.map(blog => (
                 <option key={blog._id} value={blog._id}>
                   {blog.title || "Untitled"}
@@ -501,7 +503,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.05 }}
-                        className="badge badge-lg bg-blue-50 text-blue-600 border-blue-100 px-4 py-3 h-auto"
+                        className="badge bg-blue-50 text-blue-600 border-blue-100 px-4 py-2 h-auto"
                       >
                         {keyword}
                       </motion.span>
@@ -520,16 +522,14 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                   <button
                     onClick={handleGetInsights}
                     disabled={isStatsLoading}
-                    className="btn btn-primary rounded-lg btn-lg bg-blue-600 border-none hover:bg-blue-700 text-white w-full sm:w-auto px-8"
+                    className="p-4 py-2 rounded-lg bg-blue-500 text-white text-base"
                   >
                     {isStatsLoading ? (
                       <>
                         <Loader2 className="animate-spin mr-2" />
-                        Analyzing Performance...
                       </>
                     ) : (
                       <>
-                        <Activity className="mr-2" />
                         Get Performance Insights
                       </>
                     )}
@@ -544,7 +544,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
 
         {/* Footer Actions if needed, mostly redundant as scroll handles content */}
         <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-          <button onClick={closeFnc} className="btn btn-ghost border border-gray-300 text-gray-500 hover:bg-gray-200">
+          <button
+            onClick={closeFnc}
+            className="btn btn-ghost rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-200"
+          >
             Close
           </button>
         </div>

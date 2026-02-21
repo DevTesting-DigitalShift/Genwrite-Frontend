@@ -309,7 +309,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 sm:p-6 font-sans">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 transition-opacity"
         onClick={closeFnc}
       />
 
@@ -322,10 +322,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0 bg-white z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
+            <div className="p-2.5 bg-blue-600 rounded-xl text-white">
               <Activity size={20} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Competitive Analysis Dashboard</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Competitive Analysis Dashboard</h2>
           </div>
           <button
             onClick={closeFnc}
@@ -349,7 +349,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             </label>
             <div className="relative">
               <select
-                className="select bg-white text-black w-full h-12 text-base rounded-lg border border-gray-300 transition-all pl-4 pr-10"
+                className="select bg-white text-black w-full h-12 text-base rounded-lg border border-gray-300 outline-0 pl-4 pr-10"
                 onChange={handleProjectSelect}
                 value={formData.selectedProject?._id || ""}
               >
@@ -429,7 +429,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   </div>
                   <div className="p-5 space-y-4">
                     <div>
-                      <span className="text-xs font-bold text-gray-500 uppercase mb-1 block">
+                      <span className="text-xs font-semibold text-gray-500 uppercase mb-1 block">
                         Meta Title
                       </span>
                       <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200/60">
@@ -437,7 +437,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-gray-500 uppercase mb-1 block">
+                      <span className="text-xs font-semibold text-gray-500 uppercase mb-1 block">
                         Meta Description
                       </span>
                       <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200/60">
@@ -511,17 +511,19 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                                 "--thickness": "0.8rem",
                               }}
                             >
-                              <span className="text-2xl font-bold text-gray-800">
+                              <span className="text-2xl font-semibold text-gray-800">
                                 {Number(analysisResults.insights?.blogScore ?? 0)}%
                               </span>
                             </div>
                           </div>
-                          <h4 className="text-lg font-bold text-gray-800 mb-1">Blog SEO Score</h4>
+                          <h4 className="text-lg font-semibold text-gray-800 mb-1">
+                            Blog SEO Score
+                          </h4>
                           <p className="text-sm text-gray-500">Based on competitive analysis</p>
                         </div>
 
                         <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6 shadow-sm">
-                          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                             <div className="p-1.5 bg-green-100 rounded-lg text-green-700 shadow-sm">
                               <Check size={18} />
                             </div>
@@ -539,7 +541,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                                     key={index}
                                     className="flex gap-3 text-sm text-gray-700 items-start"
                                   >
-                                    <span className="text-green-500 font-bold mt-0.5">•</span>
+                                    <span className="text-green-500 font-semibold mt-0.5">•</span>
                                     <span
                                       dangerouslySetInnerHTML={{
                                         __html: cleanMarkdown(point.trim()).replace(
@@ -558,7 +560,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         {analysisResults?.insights?.analysis && (
                           <div className="space-y-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-bold text-gray-800">
+                              <h3 className="text-lg font-semibold text-gray-800">
                                 Detailed Breakdown
                               </h3>
                               <div className="h-px flex-1 bg-gray-200"></div>
@@ -571,7 +573,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                                   topRightContent={
                                     value.score &&
                                     value.maxScore && (
-                                      <div className="badge badge-primary badge-sm font-semibold">
+                                      <div className="badge badge-sm bg-blue-100 text-blue-600 border border-blue-400 rounded-md font-semibold">
                                         {value.score}/{value.maxScore}
                                       </div>
                                     )
@@ -659,7 +661,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                                   >
                                     <LinkIcon size={16} />
                                   </div>
-                                  <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide">
+                                  <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
                                     {section.title}
                                   </h3>
                                 </div>
@@ -725,7 +727,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         {/* Suggestions */}
                         {formData?.generatedMetadata?.competitorsAnalysis?.suggestions && (
                           <div className="bg-amber-50 rounded-xl border border-amber-100 p-5">
-                            <h3 className="text-amber-800 font-bold mb-3 flex items-center gap-2">
+                            <h3 className="text-amber-800 font-semibold mb-3 flex items-center gap-2">
                               <Activity size={18} /> Initial Suggestions
                             </h3>
                             <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700 marker:text-amber-500">
@@ -764,7 +766,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
                 <Activity size={32} className="text-blue-500/50" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">No Blog Selected</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No Blog Selected</h3>
               <p className="text-gray-500 max-w-sm text-sm">
                 Please select a blog post from the dropdown above to view details and run
                 competitive analysis.
@@ -777,21 +779,21 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         <div className="p-5 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
           <div className="flex items-center gap-2 text-sm bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
             <span className="text-gray-500 font-medium">Estimated Cost:</span>
-            <span className="font-bold text-blue-600">
+            <span className="font-semibold text-blue-600">
               {getEstimatedCost("analysis.competitors")} credits
             </span>
           </div>
           <div className="flex w-full sm:w-auto gap-3">
             <button
               onClick={closeFnc}
-              className="btn btn-ghost border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 flex-1 sm:flex-none font-medium"
+              className="btn btn-ghost border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 rounded-lg flex-1 sm:flex-none font-medium"
             >
               Close
             </button>
             <button
               onClick={handleSubmit}
               disabled={isLoading || blogLoading || analysisLoading || !formData.selectedProject}
-              className="btn bg-blue-600 hover:bg-blue-700 text-white border-none flex-1 sm:flex-none shadow-lg shadow-blue-500/30 font-semibold px-6"
+              className="btn bg-blue-600 hover:bg-blue-700 text-white border-none flex-1 sm:flex-none rounded-lg font-semibold px-6"
             >
               {isLoading || blogLoading || analysisLoading ? (
                 <>

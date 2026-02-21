@@ -141,7 +141,7 @@ const ComparisonTable = ({ plans }) => {
                       key={plan.name}
                       className="p-2 sm:p-3 md:p-4 text-center min-w-[120px] sm:min-w-[150px]"
                     >
-                      <div className={`text-lg sm:text-xl md:text-2xl font-bold ${styles.text}`}>
+                      <div className={`text-lg sm:text-xl md:text-2xl font-semibold ${styles.text}`}>
                         {plan.name}
                       </div>
                       {plan?.seats && (

@@ -88,7 +88,7 @@ const ScheduleDemoButton = ({
 
       {!iconOnly && (
         <>
-          <span className="hidden sm:inline">{buttonText}</span>
+          <span className="hidden sm:inline text-base">{buttonText}</span>
           <span className="sm:hidden">{mobileText || buttonText}</span>
         </>
       )}

@@ -1,22 +1,8 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import axiosInstance from "@api/index"
 import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
 import { loadStripe } from "@stripe/stripe-js"
-import {
-  Check,
-  Coins,
-  Crown,
-  Mail,
-  Shield,
-  Star,
-  Zap,
-  ArrowRight,
-  ChevronRight,
-  Info,
-  AlertTriangle,
-  X,
-} from "lucide-react"
+import { Check, Mail, Star, Zap, ChevronRight, Info, AlertTriangle, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
@@ -24,6 +10,7 @@ import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import toast from "@utils/toast"
+import clsx from "clsx"
 
 const PricingCard = ({
   plan,
@@ -81,31 +68,41 @@ const PricingCard = ({
   })()
 
   const getCardStyles = () => {
-    const baseTransitions = "transition-all duration-300 transform hover:scale-[1.02]"
     switch (plan.tier) {
+      case "basic":
+        return {
+          container: `bg-white border ${isDisabled ? "border-gray-100 opacity-60" : "border-green-100 hover:border-green-200 shadow-sm"}`,
+          price: "text-green-600",
+          button: `bg-green-600 hover:bg-green-700 text-white`,
+          title: "text-green-700",
+        }
       case "pro":
         return {
-          container: `bg-linear-to-br from-indigo-50/50 to-white border-2 ${isDisabled ? "border-gray-100 opacity-60" : "border-indigo-200 hover:border-indigo-400 shadow-lg shadow-indigo-100/20"}`,
-          price: "text-indigo-600",
-          button: `btn btn-primary bg-indigo-600 hover:bg-indigo-700 border-none text-white shadow-lg shadow-indigo-200`,
+          container: `bg-white border ${isDisabled ? "border-gray-100 opacity-60" : "border-blue-100 hover:border-blue-200 shadow-sm"}`,
+          price: "text-blue-600",
+          button: `bg-blue-600 hover:bg-blue-700 text-white`,
+          title: "text-blue-700",
         }
       case "enterprise":
         return {
-          container: `bg-linear-to-br from-purple-50/50 to-white border-2 ${isDisabled ? "border-gray-100 opacity-60" : "border-purple-200 hover:border-purple-400 shadow-lg shadow-purple-100/20"}`,
+          container: `bg-[#FDF4FF] border ${isDisabled ? "border-gray-100 opacity-60" : "border-purple-100 hover:border-purple-200 shadow-sm"}`,
           price: "text-purple-600",
-          button: `btn btn-primary bg-purple-600 hover:bg-purple-700 border-none text-white shadow-lg shadow-purple-200`,
+          button: `bg-purple-600 hover:bg-purple-700 text-white`,
+          title: "text-purple-700",
         }
       case "credits":
         return {
-          container: `bg-linear-to-br from-emerald-50/50 to-white border-2 border-emerald-200 hover:border-emerald-400 shadow-lg shadow-emerald-100/20`,
+          container: `bg-[#F0FDF4] border border-emerald-100 hover:border-emerald-200 shadow-sm`,
           price: "text-emerald-600",
-          button: `btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none text-white shadow-lg shadow-emerald-200`,
+          button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
+          title: "text-emerald-700",
         }
       default:
         return {
-          container: `bg-linear-to-br from-blue-50/50 to-white border-2 ${isDisabled ? "border-gray-100 opacity-60" : "border-blue-200 hover:border-blue-400 shadow-lg shadow-blue-100/20"}`,
+          container: `bg-white border border-gray-100 shadow-sm`,
           price: "text-blue-600",
-          button: `btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white shadow-lg shadow-blue-200`,
+          button: `bg-blue-600 hover:bg-blue-700 text-white`,
+          title: "text-blue-700",
         }
     }
   }
@@ -196,44 +193,43 @@ const PricingCard = ({
     >
       {plan.featured && !isDisabled && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
-          <div className="bg-linear-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-full text-xs font-black tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-200 uppercase">
-            <Star className="size-3 fill-current" /> Most Popular
+          <div className="bg-linear-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-base font-semibold flex items-center gap-1">
+            <Star size={16} /> Most Popular
           </div>
         </div>
       )}
 
-      <div className={`flex flex-col h-full rounded-[32px] p-8 ${styles.container}`}>
-        <div className="mb-8">
-          <h3 className="text-2xl font-black text-gray-900 mb-2">{plan.name}</h3>
-          <p className="text-gray-500 font-medium text-sm leading-relaxed min-h-[44px]">
+      <div
+        className={`flex flex-col h-full rounded-xl p-8 transition-all duration-300 ${styles.container}`}
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">{plan.name}</h3>
+          <p className="text-slate-500 font-medium text-xs leading-relaxed min-h-[40px]">
             {plan.description}
           </p>
         </div>
 
-        <div className="mb-10 min-h-[100px] flex flex-col justify-center">
+        <div className="mb-8 min-h-[90px] flex flex-col justify-center items-center">
           {plan.type === "credit_purchase" ? (
-            <div className="space-y-4">
-              <div className="relative">
+            <div className="space-y-4 w-full">
+              <div className="flex justify-center">
                 <input
                   type="number"
                   min="500"
                   value={customCredits}
                   onChange={handleCustomCreditsChange}
-                  className="input input-bordered w-full h-16 text-center text-2xl font-black text-emerald-600 rounded-2xl border-emerald-100 focus:border-emerald-500 pr-16"
+                  className="w-32 h-12 text-center text-xl font-semibold text-emerald-600 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-500"
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xs">
-                  CREDITS
-                </div>
               </div>
               <div className="text-center">
                 {customCredits >= 500 ? (
-                  <p className="text-3xl font-black text-emerald-600">
+                  <p className="text-3xl font-semibold text-emerald-600">
                     {currency === "INR" ? "₹" : "$"}
                     {calculateCustomPrice()}
                   </p>
                 ) : (
-                  <p className="text-rose-500 text-xs font-bold uppercase tracking-widest">
-                    Minimum 500 Credits required
+                  <p className="text-rose-500 text-[10px] font-semibold uppercase tracking-widest">
+                    Min 500 Credits required
                   </p>
                 )}
               </div>
@@ -243,21 +239,22 @@ const PricingCard = ({
               {typeof displayPrice === "number" ? (
                 <>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className={`text-5xl font-black ${styles.price}`}>
+                    <span className={`text-5xl font-semibold ${styles.price}`}>
                       {currency === "INR"
                         ? `₹${plan[billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"]}`
                         : `$${displayPrice}`}
                     </span>
-                    <span className="text-gray-400 font-bold text-sm tracking-widest uppercase">
-                      /mon
-                    </span>
+                    <span className="text-gray-400 font-medium text-sm">/month</span>
                   </div>
-                  <p className="text-xs font-bold text-gray-400 mt-2 uppercase tracking-widest">
-                    Billed {billingPeriod === "annual" ? "annually" : "monthly"}
+                  <p className="text-[11px] font-semibold text-gray-400 mt-2 uppercase tracking-wide">
+                    Billed{" "}
+                    {billingPeriod === "annual"
+                      ? `$${(displayPrice * 12).toFixed(2)} annually`
+                      : "monthly"}
                   </p>
                 </>
               ) : (
-                <span className={`text-4xl font-black ${styles.price}`}>{displayPrice}</span>
+                <span className={`text-4xl font-semibold ${styles.price}`}>{displayPrice}</span>
               )}
             </div>
           )}
@@ -266,23 +263,30 @@ const PricingCard = ({
         <button
           onClick={handleButtonClick}
           disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
-          className={`btn btn-lg rounded-2xl normal-case font-black text-lg h-16 w-full gap-2 transition-all ${isDisabled ? "btn-ghost bg-gray-100 text-gray-400" : styles.button}`}
+          className={clsx(
+            "w-full h-12 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2",
+            isDisabled ? "bg-blue-100 text-blue-400 cursor-default" : styles.button
+          )}
         >
-          {plan.name.toLowerCase().includes("enterprise") && <Mail className="size-5" />}
-          {isDisabled ? "Current Active Plan" : plan.cta}
+          {plan.name.toLowerCase().includes("enterprise") ? (
+            <>
+              {" "}
+              <Mail size={16} /> Contact Sales{" "}
+            </>
+          ) : isDisabled ? (
+            "Current Plan"
+          ) : plan.type === "credit_purchase" ? (
+            "Buy Credits"
+          ) : (
+            "Get Started"
+          )}
         </button>
 
-        <div className="mt-10 space-y-4 grow">
+        <div className="mt-8 space-y-3 grow">
           {plan.features.map((feature, idx) => (
             <div key={idx} className="flex gap-3 items-start">
-              <div className="mt-1 w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                <Check className="size-3 text-emerald-600 stroke-4" />
-              </div>
-              <span
-                className={`text-sm ${feature.includes("Everything in") ? "font-black text-gray-900" : "font-medium text-gray-500"}`}
-              >
-                {feature}
-              </span>
+              <Check className="size-4 text-emerald-500 mt-0.5 shrink-0" />
+              <span className="text-xs font-medium text-slate-500">{feature}</span>
             </div>
           ))}
         </div>
@@ -291,51 +295,39 @@ const PricingCard = ({
       {/* Confirmation Modal */}
       <AnimatePresence>
         {showConfirmModal && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowConfirmModal(false)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
             ></motion.div>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white w-full max-w-sm rounded-xl p-6 shadow-xl"
             >
-              <div className="absolute top-0 right-0 p-4">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="btn btn-ghost btn-circle btn-sm"
-                >
-                  <X className="size-5 text-gray-400" />
-                </button>
-              </div>
-
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
-                  <Info className="size-8 text-blue-600" />
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+                  <Info className="size-6 text-blue-600" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">{modalMessage.title}</h3>
-                <div className="bg-gray-50 p-4 rounded-2xl mb-8 w-full">
-                  <p className="text-gray-600 font-medium leading-relaxed">{modalMessage.body}</p>
-                </div>
-
-                <div className="flex flex-col w-full gap-3">
+                <h3 className="text-xl font-semibold text-slate-800">{modalMessage.title}</h3>
+                <p className="text-slate-500 text-sm">{modalMessage.body}</p>
+                <div className="flex w-full gap-3 pt-2">
                   <button
                     onClick={() => {
                       setShowConfirmModal(false)
                       proceedToBuy(pendingPlan)
                     }}
-                    className="btn btn-primary btn-lg rounded-2xl bg-blue-600 border-none text-white font-black h-16 normal-case"
+                    className="flex-1 h-12 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
                   >
-                    Confirm Change
+                    Confirm
                   </button>
                   <button
                     onClick={() => setShowConfirmModal(false)}
-                    className="btn btn-ghost btn-lg rounded-2xl font-bold text-gray-400 h-16 normal-case"
+                    className="flex-1 h-12 bg-white text-slate-500 border border-slate-200 rounded-lg font-semibold hover:bg-slate-50 transition-all"
                   >
                     Cancel
                   </button>
@@ -362,87 +354,99 @@ const Upgrade = () => {
   }, [user?.countryCode])
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800)
+    const timer = setTimeout(() => setLoading(false), 600)
     return () => clearTimeout(timer)
   }, [])
 
-  const getPlans = (billing, userTier) => {
-    const isProUser = userTier === "pro"
+  const getPlans = billing => {
     return [
       {
-        name: "Basic Plan",
+        name: "GenWrite Basic",
         priceMonthly: 20,
         priceAnnual: 16.66,
         priceMonthlyINR: 1799,
         priceAnnualINR: 1499,
         credits: 1000,
-        description: "Perfect for individuals and solo creators getting started.",
+        description: "Perfect for individuals getting started with AI content creation.",
         features: [
           billing === "annual" ? "12,000 annual credits" : "1,000 monthly credits",
-          "Blog generation: single & quick",
-          "Up to 10 blogs (1k words) / mon",
-          "Keyword research tools",
-          "Humanize content module",
-          "Standard export templates",
-          "Email support access",
+          "Blog generation: single, quick, multiple",
+          "upto 10 blog of 1000 words",
+          "Keyword research",
+          "Performance monitoring",
+          "Humanized pocket content",
+          "Email support",
+          "Standard templates",
+          "Automatic Blog Posting",
           "Basic content analytics",
         ],
-        cta: "Start Basic",
+        cta: "Get Started",
         tier: "basic",
         featured: false,
       },
       {
-        name: "Pro Plan",
+        name: "GenWrite Pro",
         priceMonthly: 50,
         priceAnnual: 41.58,
         priceMonthlyINR: 4499,
         priceAnnualINR: 3749,
         credits: 4500,
-        description: "Advanced AI power with priority support for scaling teams.",
+        description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, additionally:",
           billing === "annual" ? "54,000 annual credits" : "4,500 monthly credits",
-          "Up to 45 blogs (1k words) / mon",
-          "Competitor site analysis",
-          "Regenerate & Rewrite tools",
-          "Proofreading AI engine",
-          "Job scheduling & scheduling",
-          "Priority 24/7 support",
-          "Advanced SEO insights",
+          "upto 45 blog of 1000 words",
+          "Competitor analysis",
+          "Retry blog",
+          "Regenerate content",
+          "Rewrite blog",
+          "Proofreading",
+          "Job scheduling",
+          "Priority support",
+          "Advanced export options",
+          "30+ templates",
+          "SEO optimization",
+          "A/B test suggestions",
+          "Advanced content insights",
         ],
         cta: "Scale with Pro",
         tier: "pro",
-        featured: !isProUser && userTier !== "enterprise",
+        featured: false,
       },
       {
-        name: "Enterprise",
+        name: "GenWrite Enterprise",
         priceMonthly: "Custom",
         priceAnnual: "Custom",
         credits: "Unlimited",
-        description: "Bespoke AI solutions for high-volume publishing agencies.",
+        description: "Tailored solutions with unlimited access and dedicated support.",
         features: [
           "Everything in Pro, additionally:",
-          "Custom usage scalability",
-          "Dedicated Account Manager",
-          "Custom API integrations",
-          "White-label options",
+          "Flexible usage based on your needs",
+          "Dedicated support manager",
+          "Custom Integrations",
           "Early access to beta tools",
-          "Advanced approval workflows",
+          "Automatic Blog Posting",
+          "Approval workflows",
         ],
-        cta: "Talk to Sales",
+        cta: "Contact Sales",
         tier: "enterprise",
-        featured: isProUser || userTier === "basic",
+        featured: true,
       },
       {
         name: "Credit Pack",
-        description: "One-time flexible credit purchase. No commitment.",
+        description: "Flexible one-time credit purchase for occasional users.",
         features: [
-          "Custom credit amounts",
-          "No recurrent subscription",
-          "Credits never expires",
-          "Full feature access enabled",
-          "Occasional power usage",
-          "Ideal for spill-overs",
+          "Custom credit amount",
+          "No subscription required",
+          "Credits never expire",
+          "All features unlocked based on usage",
+          "Automatic Blog Posting",
+          "Blog generation: single, quick, multiple",
+          "Keyword research",
+          "Performance monitoring",
+          "Humanized pocket content",
+          "Email support",
+          "Basic content analytics",
         ],
         cta: "Buy Credits",
         type: "credit_purchase",
@@ -452,7 +456,7 @@ const Upgrade = () => {
     ]
   }
 
-  const plans = getPlans(billingPeriod, user?.subscription?.plan)
+  const plans = getPlans(billingPeriod)
 
   const handleBuy = async (plan, credits, period) => {
     if (user?.emailVerified === false) {
@@ -494,53 +498,54 @@ const Upgrade = () => {
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-20 px-4 sm:px-6 lg:px-8 bg-linear-to-b from-white to-gray-50/50">
+    <div className="min-h-screen bg-slate-50/30 p-6 md:p-10 font-sans text-slate-700">
       <Helmet>
-        <title>Flexible Pricing | GenWrite</title>
+        <title>Pricing Plans | GenWrite</title>
       </Helmet>
 
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16 px-4">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-6 tracking-tight">
-              Powerful Plans for{" "}
-              <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Every Creator
-              </span>
-            </h1>
-            <p className="max-w-2xl mx-auto text-gray-500 text-lg sm:text-xl font-medium leading-relaxed">
-              Unlock the full potential of Generative AI. Choose from flexible subscriptions or
-              pay-as-you-go credits.
-            </p>
-          </motion.div>
+      <div className="space-y-12">
+        {/* Simple Header */}
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center px-4">
+            Flexible Pricing Plans
+          </h1>
+          <div className="h-1 bg-linear-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"></div>
+          <p className="text-gray-600 font-medium mt-2 text-sm sm:text-base md:text-lg max-w-2xl mx-auto text-center px-4">
+            Choose the perfect plan for your team. Scale seamlessly as your needs grow.
+          </p>
         </div>
 
         {/* Billing Toggle */}
-        <div className="flex justify-center mb-16 px-4">
-          <div className="bg-gray-100/80 backdrop-blur-md p-1.5 rounded-3xl flex items-center border border-gray-100 shadow-inner w-full max-w-sm">
+        <div className="flex justify-center">
+          <div className="bg-slate-100 p-1 rounded-full flex items-center shadow-inner">
             <button
               onClick={() => setBillingPeriod("monthly")}
-              className={`flex-1 h-14 rounded-2xl font-black text-sm transition-all normal-case ${billingPeriod === "monthly" ? "bg-white shadow-xl text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+              className={clsx(
+                "px-6 py-2 rounded-full text-xs font-semibold transition-all",
+                billingPeriod === "monthly" ? "bg-white text-slate-800 shadow-sm" : "text-slate-400"
+              )}
             >
               Monthly
             </button>
-            <button
-              onClick={() => setBillingPeriod("annual")}
-              className={`flex-1 h-14 rounded-2xl font-black text-sm transition-all normal-case relative group ${billingPeriod === "annual" ? "bg-white shadow-xl text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-            >
-              Annually
-              <span className="absolute -top-3 -right-2 bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
-                SAVE 20%
+            <div className="relative group">
+              <button
+                onClick={() => setBillingPeriod("annual")}
+                className={clsx(
+                  "px-6 py-2 rounded-full text-xs font-semibold transition-all",
+                  billingPeriod === "annual" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400"
+                )}
+              >
+                Annual
+              </button>
+              <span className="absolute -top-4 -right-2 bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-semibold shadow-sm">
+                Save 20%
               </span>
-            </button>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20 px-2 lg:px-0">
+        {/* Pricing Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -560,20 +565,20 @@ const Upgrade = () => {
           </AnimatePresence>
         </div>
 
-        <div className="mt-32">
-          <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
+        {/* Comparison Table */}
+        <div className="mt-20">
+          <ComparisonTable plans={plans} />
         </div>
 
-        {user?.subscription?.plan !== "free" && user?.subscription?.status !== "trialing" && (
-          <div className="mt-12 text-center">
-            <button
-              onClick={() => navigate("/cancel-subscription")}
-              className="btn btn-ghost btn-sm text-gray-400 hover:text-rose-600 font-bold transition-colors gap-2"
-            >
-              <AlertTriangle className="size-4" /> Thinking of canceling subscription?
-            </button>
-          </div>
-        )}
+        {/* Footer Link */}
+        <div className="flex justify-end pt-10">
+          <button
+            onClick={() => navigate("/cancel-subscription")}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-4 py-2 rounded-lg transition-all shadow-md"
+          >
+            Thinking of leaving GenWrite?
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -28,7 +28,7 @@ import { AnimatePresence, motion } from "framer-motion"
 // Skeleton Loader Component
 const ImageSkeleton = () => {
   return (
-    <div className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse">
+    <div className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse">
       <div className="w-full aspect-3/4 bg-linear-to-br from-gray-200 to-gray-300"></div>
     </div>
   )
@@ -43,7 +43,7 @@ const SkeletonGrid = ({ count = 12 }) => {
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse"
+          className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse"
         >
           <div
             className={`w-full ${
@@ -331,7 +331,7 @@ const ImageGallery = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center"
+            className="fixed inset-0 z-50 bg-white/90 flex flex-col items-center justify-center"
           >
             <div className="relative">
               <div className="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
@@ -347,35 +347,33 @@ const ImageGallery = () => {
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="min-h-screen p-6">
         {/* Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Creation Gallery</h1>
-            <p className="text-slate-500 text-lg font-medium max-w-lg leading-relaxed">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Creation Gallery
+            </h1>
+            <p className="text-slate-500 text-sm font-medium max-w-lg leading-relaxed">
               Explore high-quality AI generations and bring your vision to life with our premium
               creative tools.
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-black text-sm uppercase tracking-wider">
-              {userCredits} Credits
-            </div>
+          <div className="px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-300 rounded-lg font-black text-sm">
+            {userCredits} Credits
           </div>
         </div>
 
         <div className="mb-12">
-          <div className="bg-white rounded-[32px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <div className="p-8">
+          <div className="rounded-lg border border-gray-300">
+            <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text font-bold text-slate-700 uppercase tracking-wider text-xs">
-                      Style
-                    </span>
+                    <span className="label-text font-semibold">Style</span>
                   </label>
                   <select
-                    className="select select-bordered w-full h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-500/20"
+                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
                     value={genForm.style}
                     onChange={e => setGenForm({ ...genForm, style: e.target.value })}
                   >
@@ -388,12 +386,10 @@ const ImageGallery = () => {
                 </div>
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text font-bold text-slate-700 uppercase tracking-wider text-xs">
-                      Dimension
-                    </span>
+                    <span className="label-text font-semibold">Dimension</span>
                   </label>
                   <select
-                    className="select select-bordered w-full h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-500/20"
+                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
                     value={genForm.aspectRatio}
                     onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                   >
@@ -406,12 +402,10 @@ const ImageGallery = () => {
                 </div>
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text font-bold text-slate-700 uppercase tracking-wider text-xs">
-                      Quality
-                    </span>
+                    <span className="label-text font-semibold">Quality</span>
                   </label>
                   <select
-                    className="select select-bordered w-full h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-500/20"
+                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
                     value={genForm.imageSize}
                     onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
                   >
@@ -424,22 +418,22 @@ const ImageGallery = () => {
 
               <div className="space-y-2 mb-8">
                 <label className="label">
-                  <span className="label-text font-bold text-slate-700 uppercase tracking-wider text-xs">
-                    Creative Prompt <span className="text-rose-500">*</span>
+                  <span className="label-text font-semibold">
+                    Creative Prompt <span className="text-rose-500 text-lg">*</span>
                   </span>
                 </label>
                 <textarea
-                  className={`textarea textarea-bordered w-full min-h-[160px] rounded-2xl p-6 text-lg border-2 transition-all ${
+                  className={`textarea w-full min-h-[160px] rounded-2xl p-6 outline-0 border resize-none ${
                     showErrors && countWords(genForm.prompt) < 10
                       ? "border-rose-200 bg-rose-50"
-                      : "border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      : "border-slate-200 bg-slate-50"
                   }`}
                   value={genForm.prompt}
                   onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
                   placeholder="Describe your masterpiece in detail... (Minimum 10 words for best results)"
                 />
                 {showErrors && countWords(genForm.prompt) < 10 && (
-                  <p className="text-xs text-rose-500 font-bold flex items-center gap-1 mt-2">
+                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-2">
                     <X size={14} /> Prompt must be at least 10 words.
                   </p>
                 )}
@@ -447,7 +441,7 @@ const ImageGallery = () => {
 
               <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 px-4 bg-slate-100 rounded-xl flex items-center justify-center text-xs font-black text-slate-500 uppercase tracking-widest border border-slate-200">
+                  <div className="h-10 px-4 bg-slate-100 rounded-lg flex items-center justify-center text-xs font-black text-slate-500 uppercase tracking-widest border border-slate-200">
                     Gen {user?.usage?.aiImages || 0} / {user?.usageLimits?.aiImages || 0}
                   </div>
                 </div>
@@ -463,17 +457,17 @@ const ImageGallery = () => {
                       })
                       setShowErrors(false)
                     }}
-                    className="btn btn-ghost h-14 px-8 rounded-2xl text-slate-500 font-bold border border-slate-100"
+                    className="btn btn-ghost bg-gray-100 h-12 px-8 rounded-lg text-slate-500 font-bold border border-slate-100 text-md"
                   >
                     Reset
                   </button>
                   <button
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
-                    className="btn btn-primary flex-1 md:flex-none h-14 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-xl shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all"
+                    className="btn btn-primary flex-1 md:flex-none h-12 px-8 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-semibold text-md"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Generate Art
+                    Generate
                   </button>
                 </div>
               </div>
@@ -482,7 +476,7 @@ const ImageGallery = () => {
         </div>
 
         {/* Search and Filters Bar */}
-        <div className="mb-6 sticky top-2 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-gray-100 shadow-sm">
+        <div className="mb-6 sticky top-2 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-lg border border-gray-100 shadow-sm">
           <DebouncedSearchInput
             onSearch={setSearchQuery}
             placeholder="Search gallery..."
@@ -497,7 +491,7 @@ const ImageGallery = () => {
             {images.map((image, index) => (
               <div
                 key={image._id}
-                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100 mb-4"
+                className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
                 onClick={() => handleImageClick(image)}
               >
                 <img
@@ -563,7 +557,7 @@ const ImageGallery = () => {
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
+                  className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -580,7 +574,7 @@ const ImageGallery = () => {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`join-item btn h-12 w-12 rounded-xl text-sm font-black transition-all border-none ${
+                      className={`join-item btn h-12 w-12 rounded-lg text-sm font-black transition-all border-none ${
                         currentPage === pageNum
                           ? "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
                           : "btn-ghost text-slate-500 hover:bg-slate-50"
@@ -594,7 +588,7 @@ const ImageGallery = () => {
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
+                  className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
                 >
                   <ChevronRight size={20} />
                 </button>
@@ -612,13 +606,13 @@ const ImageGallery = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setPreviewImage(null)}
-                className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl"
+                className="absolute inset-0 bg-slate-900/80"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 40 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                className="relative w-full max-w-6xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[800px] border border-white/20"
+                className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[800px]"
               >
                 {/* Left Side: Visual Canvas */}
                 <div className="flex-1 bg-slate-950 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden group">
@@ -649,7 +643,7 @@ const ImageGallery = () => {
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 z-20">
                     <button
                       onClick={() => handleCopyLink(previewImage)}
-                      className="p-3 hover:bg-white/20 text-white rounded-xl transition-colors"
+                      className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Copy Link"
                     >
                       <Copy size={20} />
@@ -657,7 +651,7 @@ const ImageGallery = () => {
                     <div className="w-px h-6 bg-white/10" />
                     <button
                       onClick={() => handleDownload(previewImage)}
-                      className="p-3 hover:bg-white/20 text-white rounded-xl transition-colors"
+                      className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Download"
                     >
                       <Download size={20} />
@@ -668,17 +662,7 @@ const ImageGallery = () => {
                 {/* Right Side: Configuration & AI Tools */}
                 <div className="w-full lg:w-[450px] bg-white flex flex-col h-full overflow-hidden border-l border-slate-100">
                   {/* Panel Header */}
-                  <div className="p-8 pb-6 border-b border-slate-50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div
-                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isEnhanceMode ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-blue-50 text-blue-600 border-blue-100"}`}
-                      >
-                        {isEnhanceMode ? "AI Enhancement" : "Generation Details"}
-                      </div>
-                      <div className="px-3 py-1 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-slate-100">
-                        HD+ Quality
-                      </div>
-                    </div>
+                  <div className="p-8 pb-6">
                     <h2 className="text-2xl font-black text-slate-900 leading-tight">
                       {isEnhanceMode
                         ? "Optimize Vision"
@@ -687,15 +671,15 @@ const ImageGallery = () => {
                   </div>
 
                   {/* Scrollable Intelligence Area */}
-                  <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
                     {isEnhanceMode ? (
                       <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
                         <div className="space-y-4">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                          <label className="text-sm font-medium text-slate-400">
                             Refinement Instruction
                           </label>
                           <textarea
-                            className="textarea textarea-bordered w-full h-32 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white focus:border-purple-500 transition-all p-4 font-medium"
+                            className="textarea mt-1 w-full h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-4 font-medium"
                             value={enhanceForm.prompt}
                             onChange={e =>
                               setEnhanceForm({ ...enhanceForm, prompt: e.target.value })
@@ -706,11 +690,11 @@ const ImageGallery = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-3">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                            <label className="font-medium text-slate-400 text-sm mb-2">
                               Target Style
                             </label>
                             <select
-                              className="select select-bordered w-full h-12 rounded-xl border-slate-100 font-bold"
+                              className="select outline-0 mt-1 w-full h-12 rounded-lg border-gray-300 font-medium"
                               value={enhanceForm.style}
                               onChange={e =>
                                 setEnhanceForm({ ...enhanceForm, style: e.target.value })
@@ -723,11 +707,11 @@ const ImageGallery = () => {
                             </select>
                           </div>
                           <div className="space-y-3">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                            <label className="font-medium text-slate-400 text-sm mb-2">
                               Resolution
                             </label>
                             <select
-                              className="select select-bordered w-full h-12 rounded-xl border-slate-100 font-bold"
+                              className="select outline-0 mt-1 w-full h-12 rounded-lg border-gray-300 font-medium"
                               value={enhanceForm.imageSize}
                               onChange={e =>
                                 setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
@@ -748,19 +732,17 @@ const ImageGallery = () => {
                             </span>
                           </div>
                           <span className="px-3 py-1 bg-white rounded-lg text-xs font-black text-purple-600 border border-purple-200 shadow-sm">
-                            {COSTS.ENHANCE} CR
+                            {COSTS.ENHANCE} Credits
                           </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-10">
+                      <div className="space-y-10 custom-scrollbar">
                         {/* Prompt Trace */}
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 text-slate-400">
                             <Bot size={16} />
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">
-                              Intelligence Prompt
-                            </span>
+                            <span className="text-sm font-medium">Intelligence Prompt</span>
                           </div>
                           <div className="p-6 bg-slate-50 rounded-[24px] border border-slate-100 text-slate-700 font-medium leading-relaxed italic">
                             "{previewImage.description || "Synthetically generated vision."}"
@@ -828,25 +810,21 @@ const ImageGallery = () => {
                       <div className="flex gap-4">
                         <button
                           onClick={() => setIsEnhanceMode(false)}
-                          className="btn btn-ghost h-14 flex-1 rounded-2xl font-bold border border-slate-200 bg-white"
+                          className="btn btn-ghost h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-base"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleEnhanceImage}
-                          className="btn btn-primary h-14 flex-2 rounded-2xl bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-black shadow-xl shadow-purple-200"
+                          className="btn btn-primary h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-base"
                         >
-                          {isEnhancing ? (
-                            <Loader2 className="animate-spin" />
-                          ) : (
-                            "Initiate Enhancement"
-                          )}
+                          {isEnhancing ? <Loader2 className="animate-spin" /> : "Enhance"}
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => handleDownload(previewImage)}
-                        className="btn btn-primary w-full h-15 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all"
+                        className="btn btn-primary w-full h-15 rounded-lg bg-slate-900 border-none text-white font-medium text-base hover:bg-black transition-all"
                       >
                         <Download className="w-5 h-5 mr-3" />
                         Download 4K Vision

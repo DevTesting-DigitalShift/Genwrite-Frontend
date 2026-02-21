@@ -1,17 +1,7 @@
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import toast from "@utils/toast"
-import {
-  Bold,
-  Italic,
-  List,
-  Plus,
-  Sparkles,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Export,
-} from "lucide-react"
+import { Plus, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import React, { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"

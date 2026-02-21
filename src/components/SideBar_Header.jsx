@@ -305,10 +305,7 @@ const SideBar_Header = () => {
 
       {/* Main Content */}
       <div className="flex-1 md:ml-20">
-        <header
-          className="fixed top-0 z-20 p-4 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
- border-gray-200 w-full md:w-[calc(100%-5rem)]"
-        >
+        <header className="fixed top-0 z-20 px-4 py-3 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg border-gray-200 w-full md:w-[calc(100%-5rem)]">
           <div className="flex items-center gap-2">
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
               <FiMenu size={24} className="text-gray-700" />
@@ -337,7 +334,7 @@ const SideBar_Header = () => {
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
                   >
                     <RiCoinsFill size={24} color="orange" />
-                    <span className="font-semibold">
+                    <span className="font-semibold text-base">
                       {user?.credits?.base + user?.credits?.extra || 0}
                     </span>
                   </button>
@@ -406,7 +403,7 @@ const SideBar_Header = () => {
                     <li>
                       <button
                         onClick={() => navigate("/pricing")}
-                        className="text-sm font-bold text-amber-600 py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
+                        className="text-sm font-medium py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
                       >
                         <Sparkles className="w-4 h-4 text-amber-500" /> Upgrade Plan
                       </button>
@@ -415,7 +412,7 @@ const SideBar_Header = () => {
                     <li>
                       <button
                         onClick={handleLogout}
-                        className="text-sm font-bold text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
+                        className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
                       >
                         <LogOut className="w-4 h-4" /> Sign Out
                       </button>

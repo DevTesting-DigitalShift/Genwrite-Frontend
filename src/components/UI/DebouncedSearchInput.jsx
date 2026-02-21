@@ -58,11 +58,11 @@ const DebouncedSearchInput = ({
         placeholder={placeholder}
         disabled={disabled}
         className={clsx(
-          "w-full pl-9 pr-3 py-2.5 text-sm rounded-lg transition-all",
+          "w-full pl-9 pr-3 py-2.5 text-sm rounded-xl transition-all",
           "placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100",
           bordered ? "border border-gray-300 focus:border-blue-500" : "border-none bg-slate-50",
           disabled && "bg-gray-100 text-gray-500 cursor-not-allowed",
-          className,
+          className
         )}
         {...rest}
       />

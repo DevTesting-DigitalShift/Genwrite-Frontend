@@ -325,7 +325,7 @@ const AnalyticsPage = () => {
       progress: usage.createdJobs,
       icon: <FilePlus className="w-5 h-5 text-white" />,
       iconBg: "bg-purple-500",
-      cardBg: "bg-purple-100",
+      cardBg: "bg-purple-50",
       ringColor: "ring-purple-200",
     },
     {
@@ -335,7 +335,7 @@ const AnalyticsPage = () => {
       progress: usage.aiImages,
       icon: <ImageIcon className="w-5 h-5 text-white" />,
       iconBg: "bg-teal-600",
-      cardBg: "bg-teal-100",
+      cardBg: "bg-teal-50",
       ringColor: "ring-teal-200",
     },
   ]

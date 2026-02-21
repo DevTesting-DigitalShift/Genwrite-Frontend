@@ -2,9 +2,9 @@ import React, { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { useNavigate } from "react-router-dom"
-import toast from "@utils/toast"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
+import toast from "@utils/toast"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 // Helper to detect if input is URL
@@ -12,8 +12,6 @@ const isUrl = text => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
-  const [keywords, setKeywords] = useState([])
-  const [newKeyword, setNewKeyword] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -22,13 +20,10 @@ const GenerateMetaData = () => {
 
   // Calculate word count
   const wordCount = useCallback(() => {
-    // If URL, word count is 0 or we can just return a dummy valid number so it doesn't block
-    if (isUrl(content)) return 300 // Return sufficient length for URL
-    const words = content
-      .trim()
-      .split(/\s+/)
-      .filter(word => word.length > 0)
-    return words.length
+    if (isUrl(content)) return 300 // Sufficient for URL to pass backend validation
+    const text = content.trim()
+    if (!text) return 0
+    return text.split(/\s+/).filter(word => word.length > 0).length
   }, [content])
 
   const handleGenerateMetadata = useCallback(async () => {
@@ -37,8 +32,8 @@ const GenerateMetaData = () => {
       return
     }
 
-    if (!isUrl(content) && content.length < 300) {
-      toast.error("Content must be at least 300 characters long.")
+    if (!isUrl(content) && wordCount() < 300) {
+      toast.error("Content must be at least 300 words long.")
       return
     }
 
@@ -49,7 +44,6 @@ const GenerateMetaData = () => {
 
     setIsGenerating(true)
     try {
-      // If content is URL, send as url param, otherwise content
       const payload = isUrl(content) ? { url: content } : { content }
       await generateMetadata(payload)
       toast.success("Metadata generated successfully!")
@@ -59,34 +53,7 @@ const GenerateMetaData = () => {
     } finally {
       setIsGenerating(false)
     }
-  }, [content, userPlan, navigate, generateMetadata])
-
-  const addKeyword = useCallback(() => {
-    if (newKeyword.trim()) {
-      const newKeywordsArray = newKeyword
-        .split(",")
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
-      if (newKeywordsArray.length > 0) {
-        setKeywords(prev => [...prev, ...newKeywordsArray])
-      }
-      setNewKeyword("")
-    }
-  }, [newKeyword, keywords])
-
-  const handleKeyDown = useCallback(
-    e => {
-      if (e.key === "Enter") {
-        e.preventDefault()
-        addKeyword()
-      }
-    },
-    [addKeyword]
-  )
-
-  const removeKeyword = useCallback(keyword => {
-    setKeywords(prev => prev.filter(k => k !== keyword))
-  }, [])
+  }, [content, userPlan, navigate, generateMetadata, wordCount])
 
   const copyToClipboard = (text, label) => {
     if (!text) return
@@ -102,8 +69,6 @@ const GenerateMetaData = () => {
 
   const handleReset = useCallback(() => {
     setContent("")
-    setKeywords([])
-    setNewKeyword("")
     resetMetadata()
     toast.success("Content and metadata reset!")
   }, [resetMetadata])
@@ -117,197 +82,155 @@ const GenerateMetaData = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 font-inter">
+    <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-12 px-4 md:px-6">
       {/* Header Card */}
-      <div className="bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 border border-slate-50 p-8 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32 transition-transform group-hover:scale-110 duration-700" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-200 group-hover:scale-110 transition-transform duration-500">
-              <Sparkles className="w-8 h-8 text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">SEO Meta Intel</h1>
-              <p className="text-slate-500 font-medium">
-                Generate conversion-optimized metadata in seconds.
-              </p>
-            </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#6366f1] rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-
-          <button
-            onClick={handleReset}
-            className="btn btn-ghost btn-sm text-slate-400 hover:text-rose-500 font-bold uppercase tracking-widest text-[10px]"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset Canvas
-          </button>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-[#0f172a] tracking-tight">
+              SEO Metadata Generator
+            </h1>
+            <p className="text-gray-400 text-sm font-medium">
+              Create SEO-friendly metadata for your content
+            </p>
+          </div>
         </div>
+
+        <button
+          onClick={handleReset}
+          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors py-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reset
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="space-y-6">
         {/* Input Section */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-50 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-50 p-2 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                {isUrl(content) ? "Target Source" : "Source Content"}
-              </h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-6 md:p-8 space-y-6">
+            <div className="flex items-center gap-2 text-[#4f46e5]">
+              <FileText className="w-5 h-5" />
+              <h2 className="text-sm font-bold uppercase tracking-wider">Content</h2>
             </div>
 
-            <div className="form-control w-full space-y-4">
-              {isUrl(content) ? (
-                <input
-                  type="text"
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  placeholder="Enter URL (e.g., https://example.com/blog)..."
-                  className="input input-bordered h-16 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-slate-800"
-                />
-              ) : (
-                <textarea
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  placeholder="Paste your content or enter a URL to analyze..."
-                  className="textarea textarea-bordered min-h-[400px] rounded-3xl bg-slate-50 border-slate-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-800 p-6 leading-relaxed custom-scroll"
-                />
-              )}
+            <div className="relative">
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Paste content or enter URL..."
+                className="w-full min-h-[350px] p-5 text-gray-600 bg-white border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-gray-300 text-base leading-relaxed"
+              />
 
-              <div className="flex justify-between items-center px-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2 h-2 rounded-full ${!isUrl(content) && wordCount() < 300 ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`}
-                  />
-                  <span
-                    className={`text-[10px] font-black uppercase tracking-widest ${!isUrl(content) && wordCount() < 300 ? "text-amber-500" : "text-slate-400"}`}
-                  >
-                    {isUrl(content) ? "URL MODE ACTIVE" : `Word Count: ${wordCount()}`}
-                  </span>
-                </div>
-                {!isUrl(content) && wordCount() < 300 && (
-                  <span className="text-[10px] font-bold text-amber-500">
-                    Min 300 chars for optimal results
-                  </span>
-                )}
+              <div className="mt-4 flex justify-end">
+                <span
+                  className={`text-[11px] font-semibold tracking-tight ${wordCount() < 300 && content.length > 0 ? "text-amber-500" : "text-gray-300"}`}
+                >
+                  Word count: {wordCount()} (Minimum 300 words required)
+                </span>
               </div>
             </div>
 
             <button
               onClick={handleGenerateMetadata}
-              disabled={
-                isGenerating || !content.trim() || (!isUrl(content) && content.length < 300)
-              }
-              className="btn btn-primary w-full h-16 rounded-2xl bg-slate-900 border-none text-white font-black shadow-2xl hover:bg-black transition-all group disabled:bg-slate-100 disabled:text-slate-400"
+              disabled={isGenerating || !content.trim() || (!isUrl(content) && wordCount() < 300)}
+              className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
+                disabled:bg-[#f8fafc] disabled:text-gray-300 disabled:cursor-not-allowed
+                ${
+                  wordCount() >= 300 || isUrl(content)
+                    ? "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-indigo-200"
+                    : "bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9]"
+                }`}
             >
-              {isGenerating ? (
-                <span className="loading loading-spinner"></span>
-              ) : (
-                <>
-                  Generate SEO Patterns
-                  <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
-                </>
-              )}
+              Generate Metadata
             </button>
           </div>
         </div>
 
         {/* Results Section */}
-        <div className="lg:col-span-5">
-          <AnimatePresence mode="wait">
-            {metadata ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
-                {/* Title Result */}
-                <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-100 border border-slate-50 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4">
-                    <button
-                      onClick={() => copyToClipboard(metadata.title, "Meta Title")}
-                      className="btn btn-circle btn-ghost btn-sm text-slate-400 hover:text-blue-600"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+        <AnimatePresence mode="wait">
+          {metadata && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              {/* Title Result */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
+                <button
+                  onClick={() => copyToClipboard(metadata.title, "Meta Title")}
+                  className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
+                >
+                  <Copy size={16} />
+                </button>
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-400 uppercase">
                     Meta Title
                   </p>
-                  <p className="text-slate-900 font-black text-lg leading-tight pr-8">
-                    {metadata.title || "Inference failed"}
+                  <p className="text-[#0f172a] font-bold text-lg leading-snug pr-8">
+                    {metadata.title || "No title generated"}
                   </p>
                 </div>
+              </div>
 
-                {/* Description Result */}
-                <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-100 border border-slate-50 relative">
-                  <div className="absolute top-0 right-0 p-4">
-                    <button
-                      onClick={() => copyToClipboard(metadata.description, "Meta Description")}
-                      className="btn btn-circle btn-ghost btn-sm text-slate-400 hover:text-blue-600"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+              {/* Description Result */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
+                <button
+                  onClick={() => copyToClipboard(metadata.description, "Meta Description")}
+                  className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
+                >
+                  <Copy size={16} />
+                </button>
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-400 uppercase">
                     Meta Description
                   </p>
-                  <p className="text-slate-700 font-bold text-sm leading-relaxed italic border-l-4 border-blue-500 pl-4 pr-4">
-                    {metadata.description || "Inference failed"}
+                  <p className="text-gray-600 font-medium text-sm leading-relaxed pr-8">
+                    {metadata.description || "No description generated"}
                   </p>
                 </div>
-
-                {/* Tags Result */}
-                {metadata.tags && metadata.tags.length > 0 && (
-                  <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-100 border border-slate-50">
-                    <div className="flex justify-between items-center mb-4">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Semantic Tags
-                      </p>
-                      <button
-                        onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
-                        className="btn btn-ghost btn-xs text-blue-600 font-black uppercase tracking-widest text-[9px]"
-                      >
-                        Copy All
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {metadata.tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="px-4 py-2 bg-slate-50 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 shadow-sm hover:border-blue-200 transition-colors"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-center gap-2 py-4">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Optimization Complete
-                  </span>
-                </div>
-              </motion.div>
-            ) : (
-              <div className="h-full min-h-[300px] flex flex-col items-center justify-center bg-slate-50 rounded-[48px] border-2 border-dashed border-slate-200 p-12 text-center">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-slate-50 mb-6">
-                  <Sparkles className="w-8 h-8 text-slate-200" />
-                </div>
-                <h3 className="text-slate-900 font-black tracking-tight mb-2">
-                  Ready for Intelligence
-                </h3>
-                <p className="text-slate-400 text-sm font-medium">
-                  Input your source content to generate optimized SEO structures.
-                </p>
               </div>
-            )}
-          </AnimatePresence>
-        </div>
+
+              {/* Tags Result */}
+              {metadata.tags && metadata.tags.length > 0 && (
+                <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm font-bold text-gray-400 uppercase">
+                      Keywords & Tags
+                    </p>
+                    <button
+                      onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
+                      className="text-[#4f46e5] font-bold uppercase text-sm hover:underline"
+                    >
+                      Copy All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {metadata.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-100"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="md:col-span-2 flex items-center justify-center gap-2 py-4">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-bold text-gray-400 uppercase">
+                  Metadata successfully optimized
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

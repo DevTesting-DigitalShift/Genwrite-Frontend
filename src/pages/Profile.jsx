@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   CreditCard,
-  Banknotes,
   Check,
   ShieldCheck,
   Lock,
@@ -10,7 +9,6 @@ import {
   Mail,
   Share2,
   Copy,
-  RefreshCw,
   User,
   Phone,
   Briefcase,
@@ -18,9 +16,14 @@ import {
   Calendar,
   Heart,
   Camera,
-  LogOut,
   ChevronRight,
   Info,
+  Type,
+  Layout,
+  Clock,
+  Coins,
+  Minus,
+  X,
 } from "lucide-react"
 import isEqual from "lodash-es/isEqual"
 import useAuthStore from "@store/useAuthStore"
@@ -38,19 +41,12 @@ import {
 import toast from "@utils/toast"
 
 const INTEREST_OPTIONS = [
-  { value: "technology", label: "Technology", color: "blue" },
-  { value: "sports", label: "Sports", color: "emerald" },
-  { value: "music", label: "Music", color: "purple" },
-  { value: "art", label: "Art", color: "rose" },
-  { value: "other", label: "Other", color: "orange" },
+  { value: "technology", label: "Technology" },
+  { value: "sports", label: "Sports" },
+  { value: "music", label: "Music" },
+  { value: "art", label: "Art" },
+  { value: "other", label: "Other" },
 ]
-
-const PLAN_THEMES = {
-  free: { bg: "bg-slate-500", text: "text-white", label: "Basic Tier" },
-  basic: { bg: "bg-blue-600", text: "text-white", label: "Basic Pro" },
-  pro: { bg: "bg-indigo-600", text: "text-white", label: "Professional" },
-  enterprise: { bg: "bg-amber-500", text: "text-white", label: "Corporate" },
-}
 
 const Profile = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
@@ -68,6 +64,8 @@ const Profile = () => {
       dob: "",
       interests: [],
     },
+    subscription: { plan: "free", status: "active" },
+    emailVerified: false,
   })
   const [initialProfileData, setInitialProfileData] = useState(null)
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
@@ -150,7 +148,7 @@ const Profile = () => {
       toast.success("Profile synchronized successfully!")
       setInitialProfileData(profileData)
     } catch (err) {
-      toast.error("Deployment of changes failed. Try again.")
+      toast.error("Update failed. Try again.")
     }
   }
 
@@ -185,7 +183,7 @@ const Profile = () => {
         : { newPassword: values.newPassword }
       const res = await updatePasswordAPI(payload)
       if (!res.success) throw new Error(res.message)
-      toast.success("Security credentials updated")
+      toast.success("Password updated successfully")
       loadAuthenticatedUser()
     } catch (error) {
       throw error
@@ -207,7 +205,7 @@ const Profile = () => {
     if (!referralCode) return
     const link = `${window.location.origin}/signup?referal=${referralCode}`
     navigator.clipboard.writeText(link)
-    toast.success("Affiliate link ready to share!")
+    toast.success("Affiliate link copied!")
   }
 
   const handleEmailPreferenceChange = async (key, checked) => {
@@ -222,261 +220,299 @@ const Profile = () => {
     }
   }
 
+  const isChanged = !initialProfileData || !isEqual(profileData, initialProfileData)
+
   return (
-    <div className="min-h-screen bg-linear-to-b from-white to-slate-50 p-6 lg:p-12 mb-32">
+    <div className="min-h-screen bg-slate-50/50 p-4 lg:p-12 mb-20 font-sans antialiased text-slate-800">
       <Helmet>
-        <title>Settings & Identity | GenWrite</title>
+        <title>Profile Settings | GenWrite</title>
       </Helmet>
 
-      <div className="max-w-5xl mx-auto space-y-10">
-        {/* Profile Card */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Top Header Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[40px] shadow-2xl shadow-indigo-100/40 border border-slate-100 overflow-hidden"
+          className="bg-white rounded-xl p-8 shadow-sm border border-slate-200"
         >
-          <div className="h-40 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
-          <div className="px-10 pb-10">
-            <div className="relative -mt-20 mb-8 flex flex-col md:flex-row items-end gap-6">
-              <div className="relative group">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+            {/* Avatar Section */}
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 flex items-center justify-center text-4xl font-semibold text-slate-400">
                 {profileData.profilePicture ? (
                   <img
                     src={profileData.profilePicture}
-                    className="w-40 h-40 rounded-[32px] border-8 border-white object-cover shadow-xl"
-                    alt="PFP"
+                    className="w-full h-full object-cover"
+                    alt="Profile"
                   />
                 ) : (
-                  <div className="w-40 h-40 rounded-[32px] border-8 border-white bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-6xl font-black shadow-xl uppercase">
-                    {profileData.personalDetails.name?.[0] || "G"}
-                  </div>
+                  profileData.personalDetails.name?.[0] || <User size={48} />
                 )}
-                <div className="absolute inset-0 bg-black/20 rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                  <Camera className="text-white size-8" />
-                </div>
               </div>
-              <div className="flex-1 pb-2">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-black text-slate-900">
-                    {profileData.personalDetails.name || "Identified User"}
+              <button className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg border border-slate-100 text-slate-500 hover:text-blue-600 transition-colors">
+                <Camera size={18} />
+              </button>
+            </div>
+
+            {/* Profile Info Section */}
+            <div className="flex-1 space-y-4 text-center md:text-left">
+              <div className="space-y-1">
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-2">
+                  <h1 className="text-3xl font-semibold">
+                    {profileData.personalDetails.name || "Set your name"}
                   </h1>
                   {profileData.emailVerified && (
-                    <div className="tooltip tooltip-right" data-tip="Enterprise Verified Account">
-                      <ShieldCheck className="size-8 text-blue-500 fill-blue-50" />
-                    </div>
+                    <ShieldCheck className="size-6 text-blue-500 fill-blue-50" />
                   )}
                 </div>
-                <p className="text-slate-500 font-bold mt-1">
-                  {profileData.personalDetails.jobTitle || "Citizen of GenWrite"} @{" "}
-                  {profileData.personalDetails.company || "Stealth Startup"}
-                </p>
+                <button className="font-semibold text-gray-500">
+                  {profileData.personalDetails.bio}
+                </button>
               </div>
-              <div className="flex gap-2">
-                <div
-                  className={`badge h-12 px-6 rounded-2xl font-black border-none uppercase tracking-widest text-xs ${PLAN_THEMES[profileData.subscription?.plan]?.bg} text-white`}
-                >
-                  {profileData.subscription?.plan} tier
+
+              {/* Badges Row */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                <div className="flex items-center gap-2 bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm">
+                  <CreditCard size={14} className="opacity-80" />
+                  {profileData.subscription?.plan}
                 </div>
-                <div className="badge h-12 px-6 rounded-2xl font-black border-none bg-emerald-100 text-emerald-700 uppercase tracking-widest text-xs">
-                  Auto-Active
+                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-100 shadow-sm">
+                  <Coins size={14} />
+                  {(user?.credits?.base || 0) + (user?.credits?.extra || 0)} Credits
+                </div>
+                <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm tracking-wide">
+                  Active
                 </div>
               </div>
             </div>
+          </div>
+        </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-8">
-                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                  <User className="size-6 text-blue-600" /> Identity Matrix
-                </h3>
-                <div className="grid grid-cols-1 gap-6">
-                  <ProfileInput
-                    label="Full Identity Name"
-                    name="personalDetails.name"
-                    value={profileData.personalDetails.name}
-                    onChange={handleInputChange}
-                    icon={<User className="size-4" />}
-                  />
-                  <ProfileInput
-                    label="Primary Email"
-                    value={profileData.personalDetails.email}
-                    disabled
-                    icon={<Mail className="size-4" />}
-                  />
-                  <ProfileInput
-                    label="Mobile Access"
-                    name="personalDetails.phone"
-                    value={profileData.personalDetails.phone}
-                    onChange={handleInputChange}
-                    icon={<Phone className="size-4" />}
-                  />
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-                      Current Job Role
-                    </label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                      <input
-                        name="personalDetails.jobTitle"
-                        value={profileData.personalDetails.jobTitle}
-                        onChange={handleInputChange}
-                        className="input input-bordered w-full h-14 pl-12 rounded-2xl font-bold bg-slate-50 border-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all text-slate-700"
-                      />
-                    </div>
-                  </div>
-                </div>
+        {/* Detailed Info Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-xl p-8 shadow-sm border border-slate-200"
+        >
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4 border-b border-slate-100 pb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                <Users size={24} />
               </div>
-
-              <div className="space-y-8">
-                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                  <Heart className="size-6 text-rose-500" /> Engagement Layer
-                </h3>
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-                      Neural Bio
-                    </label>
-                    <textarea
-                      name="personalDetails.bio"
-                      value={profileData.personalDetails.bio}
-                      onChange={handleInputChange}
-                      className="textarea textarea-bordered w-full h-40 rounded-3xl font-bold bg-slate-50 border-none focus:bg-white focus:ring-4 focus:ring-rose-100 transition-all text-slate-700 p-5"
-                      placeholder="Tell us about your digital footprint..."
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-                      Interest Nodes
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {INTEREST_OPTIONS.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => toggleInterest(opt.value)}
-                          className={`btn btn-sm rounded-xl border-none font-bold normal-case px-4 h-10 transition-all ${profileData.personalDetails.interests.includes(opt.value) ? `bg-${opt.color}-500 text-white shadow-lg shadow-${opt.color}-100` : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-2xl font-semibold text-slate-900">Personal Details</h2>
             </div>
-
-            <div className="mt-12 pt-10 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setPasswordModalVisible(true)}
-                className="btn btn-ghost h-14 rounded-2xl px-8 font-black text-slate-500 hover:bg-slate-100 gap-3"
+                className="btn bg-slate-600 hover:bg-slate-700 text-white border-none rounded-lg font-semibold px-6 h-12 gap-2"
               >
-                <Lock className="size-5" /> Security Vault
+                <Lock size={18} /> Change Password
               </button>
               <button
-                disabled={!initialProfileData || isEqual(profileData, initialProfileData)}
+                disabled={!isChanged}
                 onClick={handleSave}
-                className="btn btn-primary h-14 rounded-2xl px-12 font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] transition-transform"
+                className={`btn ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} border-none rounded-lg font-semibold px-8 h-12 gap-2 shadow-sm transition-all`}
               >
-                Finalize Synchronization
+                <Check size={18} /> Save Changes
               </button>
+            </div>
+          </div>
+
+          {/* Form Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ProfileInput
+              label="Full Name"
+              name="personalDetails.name"
+              value={profileData.personalDetails.name}
+              onChange={handleInputChange}
+              placeholder="Your full name"
+            />
+            <ProfileInput
+              label="Email"
+              value={profileData.personalDetails.email}
+              disabled
+              placeholder="your@email.com"
+            />
+            <ProfileInput
+              label="Phone"
+              name="personalDetails.phone"
+              value={profileData.personalDetails.phone}
+              onChange={handleInputChange}
+              placeholder="eg : +91 9990292929"
+            />
+            <ProfileInput
+              label="Job Title"
+              name="personalDetails.jobTitle"
+              value={profileData.personalDetails.jobTitle}
+              onChange={handleInputChange}
+              placeholder="eg : Senior UX Engineer"
+            />
+            <ProfileInput
+              label="Company"
+              name="personalDetails.company"
+              value={profileData.personalDetails.company}
+              onChange={handleInputChange}
+              placeholder="eg : Tech Innovators Inc"
+            />
+            <ProfileInput
+              label="Date of Birth"
+              name="personalDetails.dob"
+              type="date"
+              value={profileData.personalDetails.dob}
+              onChange={handleInputChange}
+            />
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-1">Bio</label>
+              <textarea
+                name="personalDetails.bio"
+                value={profileData.personalDetails.bio}
+                onChange={handleInputChange}
+                className="textarea w-full h-32 font-semibold rounded-lg mt-1 bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-700 p-4 transition-all"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-1">Interests</label>
+              <div className="relative">
+                <div className="flex flex-wrap gap-2 p-3 min-h-[56px] mt-1 bg-white border border-slate-200 rounded-lg items-center">
+                  {profileData.personalDetails.interests.map(val => (
+                    <div
+                      key={val}
+                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-medium border border-slate-200"
+                    >
+                      {INTEREST_OPTIONS.find(o => o.value === val)?.label || val}
+                      <button onClick={() => toggleInterest(val)} className="hover:text-red-500">
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="relative">
+                    <select
+                      className="select select-sm focus:ring-0 outline-0 select-bordered w-full min-w-[140px] bg-base-100 text-slate-700 font-semibold shadow-sm focus:outline-none"
+                      onChange={e => {
+                        if (e.target.value) toggleInterest(e.target.value)
+                        e.target.value = ""
+                      }}
+                      defaultValue=""
+                    >
+                      <option disabled value="">
+                        Add Interest
+                      </option>
+
+                      {INTEREST_OPTIONS.filter(
+                        o => !profileData.personalDetails.interests.includes(o.value)
+                      ).map(o => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
 
         {/* Action Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Referral */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Referral Card */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-[40px] p-10 shadow-2xl shadow-indigo-100/30 border border-slate-100"
+            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6"
           >
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 bg-emerald-100 rounded-[20px] flex items-center justify-center">
-                <Share2 className="size-6 text-emerald-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                <Share2 size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-800">Affiliate Loop</h3>
-                <p className="text-slate-400 font-bold text-sm">Grow our ecosystem & earn fuel.</p>
+                <h3 className="text-xl font-semibold text-slate-900">Referral Loop</h3>
+                <p className="text-slate-500 text-sm">Grow our community & earn bonuses.</p>
               </div>
             </div>
 
-            <AnimatePresence mode="wait">
-              {referralCode ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                  <div className="flex items-center gap-3 bg-slate-50 p-6 rounded-3xl border border-dashed border-slate-200">
-                    <code className="text-2xl font-black text-slate-700 font-mono tracking-widest flex-1">
-                      {referralCode}
-                    </code>
-                    <button
-                      onClick={copyReferralCode}
-                      className="btn btn-primary btn-square rounded-2xl bg-blue-600 border-none text-white shadow-lg shadow-blue-100"
-                    >
-                      <Copy className="size-5" />
-                    </button>
+            {referralCode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <code className="text-lg font-semibold text-slate-700 font-mono flex-1">
+                    {referralCode}
+                  </code>
+                  <button
+                    onClick={copyReferralCode}
+                    className="btn btn-sm btn-ghost hover:bg-blue-50 text-blue-600 rounded-xl"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50/50 p-4 rounded-2xl text-center">
+                    <span className="block text-2xl font-medium text-blue-600">
+                      {referralStats.totalJoined}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400">
+                      Joined
+                    </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50/50 p-6 rounded-3xl text-center">
-                      <p className="text-3xl font-black text-blue-600">
-                        {referralStats.totalJoined}
-                      </p>
-                      <p className="text-xs font-black uppercase text-slate-400 tracking-widest mt-1">
-                        Involved
-                      </p>
-                    </div>
-                    <div className="bg-emerald-50/50 p-6 rounded-3xl text-center">
-                      <p className="text-3xl font-black text-emerald-600">
-                        {referralStats.converted}
-                      </p>
-                      <p className="text-xs font-black uppercase text-slate-400 tracking-widest mt-1">
-                        Converted
-                      </p>
-                    </div>
+                  <div className="bg-emerald-50/50 p-4 rounded-2xl text-center">
+                    <span className="block text-2xl font-medium text-emerald-600">
+                      {referralStats.converted}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400">
+                      Converted
+                    </span>
                   </div>
-                </motion.div>
-              ) : (
-                <button
-                  onClick={handleGenerateReferral}
-                  className="btn btn-block h-20 rounded-3xl bg-slate-900 border-none text-white font-black text-xl hover:bg-slate-800 shadow-xl shadow-slate-200"
-                >
-                  Initialize Program <ChevronRight className="ml-2 size-6" />
-                </button>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleGenerateReferral}
+                className="w-full h-16 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+              >
+                Activate Referral <ChevronRight size={20} />
+              </button>
+            )}
           </motion.div>
 
-          {/* Preferences */}
+          {/* Preferences Card */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-[40px] p-10 shadow-2xl shadow-indigo-100/30 border border-slate-100"
+            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6"
           >
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 bg-blue-100 rounded-[20px] flex items-center justify-center">
-                <Mail className="size-6 text-blue-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                <Mail size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-800">Signal Filters</h3>
-                <p className="text-slate-400 font-bold text-sm">Manage internal communications.</p>
+                <h3 className="text-xl font-semibold text-slate-900">Communication</h3>
+                <p className="text-slate-500 text-sm">Manage your email preferences.</p>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <SignalToggle
-                label="Force System Alerts"
-                desc="Critical security and server status updates."
+            <div className="space-y-1">
+              <MinimalToggle
+                label="System Alerts"
+                desc="Security & server updates."
                 checked={emailPreferences.accountAlerts}
                 onChange={() => {}}
                 disabled
               />
-              <SignalToggle
-                label="Signal Transmissions"
-                desc="Exclusive promotional data and upgrade loops."
+              <MinimalToggle
+                label="Marketing"
+                desc="Promotions & tips."
                 checked={emailPreferences.promotionalEmails}
                 onChange={c => handleEmailPreferenceChange("promotionalEmails", c)}
               />
-              <SignalToggle
-                label="Protocol Updates"
-                desc="New feature documentation and API rollouts."
+              <MinimalToggle
+                label="Feature Updates"
+                desc="New tools & protocols."
                 checked={emailPreferences.newFeatureUpdates}
                 onChange={c => handleEmailPreferenceChange("newFeatureUpdates", c)}
               />
@@ -495,33 +531,28 @@ const Profile = () => {
   )
 }
 
-const ProfileInput = ({ label, icon, ...props }) => (
+const ProfileInput = ({ label, ...props }) => (
   <div className="space-y-2">
-    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-      {label}
-    </label>
-    <div className="relative">
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{icon}</div>
-      <input
-        {...props}
-        className="input input-bordered w-full h-14 pl-12 rounded-2xl font-bold bg-slate-50 border-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all text-slate-700 disabled:bg-slate-100/50 disabled:text-slate-400 placeholder:text-slate-300"
-      />
-    </div>
+    <label className="text-sm font-semibold text-slate-600 ml-1">{label}</label>
+    <input
+      {...props}
+      className="w-full mt-1 h-14 px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
+    />
   </div>
 )
 
-const SignalToggle = ({ label, desc, checked, onChange, disabled }) => (
-  <div className="flex items-center justify-between group p-2 hover:bg-slate-50 rounded-2xl transition-all">
+const MinimalToggle = ({ label, desc, checked, onChange, disabled }) => (
+  <div className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all">
     <div>
-      <h4 className="font-black text-slate-800">{label}</h4>
-      <p className="text-xs font-bold text-slate-400">{desc}</p>
+      <h4 className="font-semibold text-sm">{label}</h4>
+      <p className="text-xs text-slate-400 font-medium">{desc}</p>
     </div>
     <input
       type="checkbox"
       checked={checked}
       onChange={e => onChange(e.target.checked)}
       disabled={disabled}
-      className="toggle toggle-primary h-8 w-14"
+      className="toggle toggle-primary toggle-sm"
     />
   </div>
 )
