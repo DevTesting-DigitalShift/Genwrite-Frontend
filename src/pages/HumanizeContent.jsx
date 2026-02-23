@@ -15,7 +15,8 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useHumanizeStore from "@store/useHumanizeStore"
 import useAuthStore from "@store/useAuthStore"
 import { useHumanizeMutation } from "@api/queries/humanizeQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import { Helmet } from "react-helmet"
 
 const HumanizeContent = () => {
   const navigate = useNavigate()
@@ -143,152 +144,162 @@ const HumanizeContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
+      <Helmet>
+        <title>Humanize Content | GenWrite</title>
+        <meta
+          name="description"
+          content="Humanize AI-generated content to bypass AI detectors and engage readers."
+        />
+      </Helmet>
       <div className="max-w-7xl mx-auto space-y-8 p-6 md:p-10">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-linear-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <Sparkles className="w-6 h-6 text-white" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col gap-2">
+            {/* Top row: icon + heading */}
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div className="mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Humanize Content</h1>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Transform your content with AI-powered processing
+                  </p>
+                </div>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                Humanize Content
-              </h1>
-            </div>
-            <p className="text-slate-500 text-lg font-medium max-w-2xl">
-              Transform AI-generated text into natural, human-like content that bypasses AI
-              detectors and engages readers.
-            </p>
-          </div>
-
-          <button
-            onClick={handleReset}
-            className="btn btn-ghost hover:bg-slate-100 text-slate-500 font-bold border border-slate-200 h-12 px-6 rounded-2xl transition-all"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset Editor
-          </button>
-        </div>
-
-        {/* Input Card */}
-        <div className="bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden group">
-          <div className="p-8 pb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800">Source Content</h2>
-            </div>
-            <div
-              className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${
-                wordCount < 300 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
-              }`}
-            >
-              {wordCount} words {wordCount < 300 && "(Min 300 required)"}
-            </div>
-          </div>
-
-          <div className="px-8 pb-8">
-            <div className="relative">
-              <textarea
-                value={inputContent}
-                onChange={e => setInputContent(e.target.value)}
-                placeholder="Paste your AI-generated content here to make it sound human..."
-                className="w-full h-80 p-6 bg-slate-50 border-2 border-slate-100 rounded-[24px] resize-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 text-lg leading-relaxed placeholder:text-slate-400"
-              />
-            </div>
-
-            <div className="mt-6">
               <button
-                onClick={handleMagicWandClick}
-                disabled={isPending || !inputContent.trim() || wordCount < 300}
-                className="btn btn-primary w-full h-16 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black text-xl shadow-xl shadow-blue-200 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50"
+                onClick={handleReset}
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
+                title="Reset all content"
               >
-                {isPending ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6 mr-2" />
-                    Humanize My Content
-                  </>
-                )}
+                <RefreshCw className="w-4 h-4" />
+                Reset
               </button>
             </div>
           </div>
         </div>
 
+        {/* Input Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Input Content</h2>
+          </div>
+          <div className="space-y-4">
+            <textarea
+              value={inputContent}
+              onChange={e => setInputContent(e.target.value)}
+              placeholder="Paste or type your content here (300–500 words)..."
+              className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+            />
+            <div className="flex justify-end items-center">
+              <p
+                className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}
+              >
+                Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
+              </p>
+            </div>
+            <button
+              onClick={handleMagicWandClick}
+              disabled={isPending || !inputContent.trim() || wordCount < 300}
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+                !inputContent.trim() || wordCount < 300
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
+              }`}
+            >
+              Process Content
+            </button>
+          </div>
+        </div>
+
         {/* Results Section */}
         {(outputContent || isPending) && (
-          <div className="grid lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Original Card */}
-            <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/40 border border-slate-100 flex flex-col h-[600px]">
-              <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-slate-800">Original</span>
-                  {outputContent?.originalHumanizationScore && (
-                    <div className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-rose-100">
-                      Score: {outputContent.originalHumanizationScore}%
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleCopy(inputContent, "original")}
-                  className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"
-                >
-                  <Copy size={20} />
-                </button>
-              </div>
-              <div className="flex-1 p-8 overflow-y-auto text-slate-600 leading-relaxed custom-scrollbar">
-                {inputContent}
-              </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Processing Results
+              </h2>
             </div>
-
-            {/* Processed Card */}
-            <div className="bg-white rounded-[32px] shadow-xl shadow-blue-100/50 border border-blue-100 flex flex-col h-[600px] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50 blur-3xl pointer-events-none" />
-
-              <div className="p-6 border-b border-blue-50 flex items-center justify-between bg-blue-50/10">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-blue-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    Humanized Result
-                  </span>
-                  {outputContent?.rewrittenHumanizationScore && (
-                    <div className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-100">
-                      Score: {outputContent.rewrittenHumanizationScore}%
-                    </div>
-                  )}
+            <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
+              {/* Original Content Panel */}
+              <div className="flex flex-col border-r border-gray-200">
+                <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-gray-600" />
+                      Original Content
+                    </h3>
+                    {outputContent?.originalHumanizationScore && (
+                      <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                        Score: {outputContent.originalHumanizationScore}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleCopy(inputContent, "original")}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                    title="Copy original content"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
-                    disabled={!outputContent?.rewrittenContent}
-                    className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl transition-colors disabled:opacity-30"
-                  >
-                    <Copy size={20} />
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleDownload(outputContent?.rewrittenContent, "humanized-content.txt")
-                    }
-                    disabled={!outputContent?.rewrittenContent}
-                    className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl transition-colors disabled:opacity-30"
-                  >
-                    <Download size={20} />
-                  </button>
+                <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {inputContent}
                 </div>
               </div>
 
-              <div className="flex-1 p-8 overflow-y-auto text-slate-900 font-medium leading-relaxed custom-scrollbar">
-                {isPending ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                    <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-                    <p className="text-slate-500 font-bold">Rewriting your content...</p>
+              {/* Processed Content Panel */}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      Processed Content
+                    </h3>
+                    {outputContent?.rewrittenHumanizationScore && (
+                      <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                        Score: {outputContent.rewrittenHumanizationScore}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  outputContent?.rewrittenContent
-                )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
+                      disabled={!outputContent?.rewrittenContent}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Copy processed content"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
+                      }
+                      disabled={!outputContent?.rewrittenContent}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Download processed content"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {isPending ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                        <p className="text-gray-600 font-medium">Processing your content...</p>
+                        <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
+                      </div>
+                    </div>
+                  ) : (
+                    outputContent?.rewrittenContent
+                  )}
+                </div>
               </div>
             </div>
           </div>

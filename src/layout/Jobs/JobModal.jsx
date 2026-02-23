@@ -285,7 +285,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   return (
     <div className="modal modal-open z-50">
       <div className="modal-box w-11/12 max-w-4xl p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex justify-between items-center p-4 border-b border-gray-300">
           <h3 className="font-bold text-lg">
             Step {currentStep}:{" "}
             {currentStep === 1
@@ -323,7 +323,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
           />
         </div>
 
-        <div className="modal-action p-4 border-t mt-0 bg-gray-50 flex justify-end gap-2">
+        <div className="modal-action p-4 border-t border-gray-300 mt-0 bg-gray-50 flex justify-end gap-2">
           {currentStep > 1 && (
             <button
               key="previous"

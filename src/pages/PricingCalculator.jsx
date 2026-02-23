@@ -122,13 +122,13 @@ const PricingCalculator = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 mt-12 mb-32">
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           <div className="text-center mb-16">
-            <h1 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-tight mb-4">
+            <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight mb-4">
               Interactive{" "}
               <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
                 Cost Estimator
               </span>
             </h1>
-            <p className="text-gray-500 font-bold text-lg max-w-2xl mx-auto">
+            <p className="text-gray-500 font-bold text-md max-w-2xl mx-auto">
               Precise credit calculation for your generating needs. Toggle features and models in
               real-time.
             </p>
@@ -137,7 +137,7 @@ const PricingCalculator = () => {
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
             {/* LEFT SIDE - Options */}
             <div className="xl:col-span-8 space-y-8">
-              <div className="bg-white rounded-[40px] shadow-2xl shadow-indigo-100/30 border border-slate-100 p-8 sm:p-12">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 {/* 1. WORD COUNT */}
                 <div className="space-y-8">
                   <div className="flex items-center gap-4">
@@ -157,7 +157,7 @@ const PricingCalculator = () => {
                       key={wordCountNum}
                       initial={{ scale: 1.05, opacity: 0.5 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="text-center p-10 bg-linear-to-br from-blue-50/50 to-indigo-50/50 rounded-[32px] border-2 border-dashed border-blue-200"
+                      className="text-center p-10 bg-linear-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border-2 border-dashed border-blue-200"
                     >
                       <p className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600 tracking-tighter">
                         {wordCountNum.toLocaleString()}
@@ -209,7 +209,7 @@ const PricingCalculator = () => {
                       <div
                         key={key}
                         onClick={() => toggleFeature(key)}
-                        className={`group p-6 rounded-3xl border-2 cursor-pointer transition-all ${
+                        className={`group p-4 rounded-xl border-2 cursor-pointer transition-all ${
                           selectedFeatures[key]
                             ? "bg-purple-50 border-purple-500 shadow-lg shadow-purple-100"
                             : "bg-white border-gray-50 hover:border-purple-200"
@@ -261,9 +261,9 @@ const PricingCalculator = () => {
                         <button
                           key={opt.key}
                           onClick={() => setImageType(opt.key)}
-                          className={`flex flex-col items-center justify-center p-6 gap-3 rounded-3xl border-2 transition-all ${
+                          className={`flex flex-col items-center justify-center p-4 gap-3 rounded-xl border-2 transition-all ${
                             isActive
-                              ? "bg-emerald-50 border-emerald-500 shadow-lg shadow-emerald-100 text-emerald-700"
+                              ? "bg-emerald-50 border-emerald-500 text-emerald-700"
                               : "bg-white border-gray-50 hover:border-emerald-200 text-gray-500"
                           }`}
                         >
@@ -337,16 +337,16 @@ const PricingCalculator = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {Object.entries(pricingConfig.aiModels).map(([key, cfg]) => {
                       const isActive = aiModel === key
                       return (
                         <button
                           key={key}
                           onClick={() => setAiModel(key)}
-                          className={`p-6 rounded-3xl border-2 text-left transition-all ${
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
                             isActive
-                              ? "bg-orange-50 border-orange-500 shadow-lg shadow-orange-100"
+                              ? "bg-orange-50 border-orange-500"
                               : "bg-white border-gray-50 hover:border-orange-200"
                           }`}
                         >
@@ -374,8 +374,7 @@ const PricingCalculator = () => {
             {/* RIGHT SIDE (STICKY SUMMARY) */}
             <div className="xl:col-span-4">
               <div className="sticky top-24 space-y-6">
-                <div className="bg-linear-to-br from-gray-900 to-blue-900 rounded-[40px] p-10 text-white shadow-2xl shadow-blue-200 overflow-hidden relative group">
-                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/10 blur-[100px] group-hover:bg-blue-500/20 transition-all"></div>
+                <div className="bg-linear-to-br from-gray-900 to-blue-900 rounded-xl p-10 text-white shadow-2xl shadow-blue-200 overflow-hidden relative group">
 
                   <h3 className="text-gray-400 font-black uppercase tracking-[0.2em] text-xs mb-8 text-center">
                     Estimated Total Cost

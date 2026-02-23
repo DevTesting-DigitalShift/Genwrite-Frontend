@@ -118,7 +118,7 @@ const ShopifyVerification = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="w-full max-w-7xl"
       >
-        <div className="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/40">
+        <div className="bg-white/70 backdrop-blur-xl shadow rounded-3xl overflow-hidden border border-white/40">
           <AnimatePresence mode="wait">
             {/* ⏳ LOADING STATE */}
             {loading && (
@@ -132,11 +132,7 @@ const ShopifyVerification = () => {
                 <div className="flex flex-col items-center">
                   <div className="relative mb-8">
                     <div className="absolute inset-0 bg-purple-200 blur-2xl opacity-50 rounded-full animate-pulse"></div>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="relative bg-white p-6 rounded-3xl shadow-xl"
-                    >
+                    <motion.div className="relative bg-white p-6 rounded-3xl shadow-xl">
                       <Store className="size-16 text-purple-600" />
                     </motion.div>
                   </div>

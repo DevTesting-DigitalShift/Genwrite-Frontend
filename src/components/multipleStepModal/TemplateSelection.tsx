@@ -1,4 +1,5 @@
 import { packages } from "@/data/templates"
+import { Switch } from "@components/ui/switch"
 import toast from "@utils/toast"
 import clsx from "clsx"
 import { Crown, Search } from "lucide-react"
@@ -123,11 +124,11 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   return (
     <div className={`relative ${className}`}>
       {/* Header Section - Responsive */}
-      <div className="sticky top-0 pb-4 bg-white z-30 flex flex-col sm:flex-row justify-around items-center gap-4">
-        <label className="input input-bordered flex items-center gap-2 w-full">
+      <div className="sticky top-0 pb-4 bg-white z-30 flex sm:flex-row items-center gap-4">
+        <label className="input border border-gray-300 flex items-center gap-2 w-full">
           <input
             type="text"
-            className="grow"
+            className="grow rounded-lg"
             placeholder="search template by name"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -135,20 +136,19 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
           <Search className="w-4 h-4 opacity-70" />
         </label>
 
-        <div className="flex justify-around gap-2 items-center w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-1/3">
           <label
             htmlFor="show-template"
-            className="text-sm sm:text-base font-normal tracking-wide whitespace-nowrap cursor-pointer"
+            className="text-sm font-medium text-slate-700 cursor-pointer"
           >
-            Show Selected:{" "}
+            Show Selected
           </label>
-          <input
-            type="checkbox"
-            className="toggle toggle-primary"
+
+          <Switch
             id="show-template"
             disabled={selectedIds?.length === 0}
             checked={showSelected}
-            onChange={e => setShowSelected(e.target.checked)}
+            onCheckedChange={(checked: boolean) => setShowSelected(checked)}
           />
         </div>
       </div>

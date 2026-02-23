@@ -146,15 +146,6 @@ const ContactUs = () => {
       {/* Hero Section */}
       <div className="pt-8 md:pt-12 py-12 md:py-16 lg:py-20 px-4">
         <div className="max-w-7xl mx-auto text-center mt-6 md:mt-0">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-xs sm:text-sm font-medium text-blue-800 mb-6 shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            We'd Love to Hear From You
-          </motion.div>
-
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-gray-900 leading-tight">
             <span className="bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Get in Touch
@@ -180,7 +171,7 @@ const ContactUs = () => {
 
               <div className="relative">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-                  <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -200,7 +191,7 @@ const ContactUs = () => {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3 overflow-hidden"
+                      className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 overflow-hidden"
                     >
                       <CheckCircle className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
                       <div>
@@ -229,7 +220,7 @@ const ContactUs = () => {
                             name="name"
                             value={formData.name}
                             onChange={handleInputChange}
-                            className={`input border border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 ${
+                            className={`input border mt-2 border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 ${
                               errors.name ? "input-error" : "focus:border-blue-500"
                             }`}
                             placeholder="Your full name"
@@ -253,7 +244,7 @@ const ContactUs = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            className={`input border border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 ${
+                            className={`input border mt-2 border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 ${
                               errors.email ? "input-error" : "focus:border-blue-500"
                             }`}
                             placeholder="you@example.com"
@@ -276,7 +267,7 @@ const ContactUs = () => {
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
-                        className="input border border-gray-300 h-14 w-full px-5 bg-gray-50 focus:bg-white rounded-2xl focus:outline-none focus:ring-0 focus:border-blue-500"
+                        className="input border mt-2 border-gray-300 h-14 w-full px-5 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 focus:border-blue-500"
                         placeholder="What is this about? (optional)"
                       />
                     </div>
@@ -292,7 +283,7 @@ const ContactUs = () => {
                         rows={5}
                         value={formData.message}
                         onChange={handleInputChange}
-                        className={`textarea border border-gray-300 w-full bg-gray-50 focus:bg-white rounded-2xl resize-none px-5 py-4 focus:outline-none focus:ring-0 ${
+                        className={`textarea border border-gray-300 w-full bg-gray-50 focus:bg-white rounded-lg mt-2 resize-none px-5 py-4 focus:outline-none focus:ring-0 ${
                           errors.message ? "textarea-error" : "focus:border-blue-500"
                         }`}
                         placeholder="Tell us how we can help you..."
@@ -306,15 +297,11 @@ const ContactUs = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`btn h-14 btn-block bg-linear-to-r from-blue-600 to-purple-600 text-white border-none rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.01] w-full transition-all normal-case font-bold text-base ${
+                      className={`btn h-14 btn-block bg-linear-to-r from-blue-600 to-purple-600 text-white border-none rounded-lg shadow-lg hover:shadow-xl hover:scale-[1.01] w-full transition-all normal-case font-bold text-base ${
                         isSubmitting ? "loading" : ""
                       }`}
                     >
-                      {!isSubmitting && (
-                        <>
-                          Send Message
-                        </>
-                      )}
+                      {!isSubmitting && <>Send Message</>}
                       {isSubmitting && "Processing..."}
                     </button>
                   </div>
@@ -328,7 +315,7 @@ const ContactUs = () => {
             {/* Contact Info Card */}
             <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Contact Details</h3>
@@ -342,7 +329,7 @@ const ContactUs = () => {
                   </p>
                   <a
                     href={`mailto:${companyInfo.email.trim()}`}
-                    className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-2xl transition-all"
+                    className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all"
                   >
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-none">
                       <Mail className="w-5 h-5 text-blue-500" />
@@ -358,7 +345,7 @@ const ContactUs = () => {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Working Hours
                   </p>
-                  <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-2xl transition-all">
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-lg transition-all">
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">
                       <Clock className="w-5 h-5 text-orange-500" />
                     </div>
@@ -374,7 +361,7 @@ const ContactUs = () => {
             {/* Social Media Card */}
             <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-pink-50 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-pink-500" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Follow Us</h3>
@@ -389,7 +376,7 @@ const ContactUs = () => {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow border border-transparent hover:border-gray-100 group`}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 rounded-lg transition-all duration-300 hover:bg-white hover:shadow border border-transparent hover:border-gray-100 group`}
                     >
                       <Icon className={`w-6 h-6 text-gray-400 transition-colors ${social.color}`} />
                       <span className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-tighter sm:tracking-normal">
@@ -416,7 +403,7 @@ const ContactUs = () => {
                   href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-white text-indigo-600 font-bold rounded-2xl shadow hover:bg-indigo-50 transition-all border-none"
+                  className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-white text-indigo-600 font-bold rounded-lg shadow hover:bg-indigo-50 transition-all border-none"
                 >
                   Join the Survey
                   <ArrowRight className="w-4 h-4" />

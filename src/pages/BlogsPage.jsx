@@ -28,8 +28,8 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
-import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
-import DateRangePicker from "@components/UI/DateRangePicker"
+import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
+import DateRangePicker from "@components/ui/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
 import toast from "@utils/toast"
 import {

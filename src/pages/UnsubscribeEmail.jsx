@@ -68,11 +68,11 @@ const UnsubscribeEmail = () => {
           </div>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight">
+        <h1 className="text-4xl sm:text-5xl font-semibold text-gray-900 mb-4 tracking-tight">
           We’re sad to see you go <span className="inline-block animate-bounce">😔</span>
         </h1>
 
-        <p className="text-gray-500 mb-12 text-lg sm:text-xl font-medium leading-relaxed">
+        <p className="text-gray-500 mb-12 text-lg sm:text-xl font-medium">
           You’re about to unsubscribe from our emails. Are you sure you want to miss out on our
           latest updates?
         </p>
@@ -81,14 +81,14 @@ const UnsubscribeEmail = () => {
           <button
             onClick={handleStaySubscribed}
             disabled={loading}
-            className="btn btn-primary btn-lg w-full sm:w-auto rounded-2xl font-black text-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white shadow-xl shadow-purple-200 hover:scale-[1.05] transition-all normal-case h-16 min-w-[200px]"
+            className="btn btn-primary btn-lg w-full sm:w-auto rounded-2xl font-semibold text-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white shadow-xl shadow-purple-200 hover:scale-[1.05] transition-all normal-case h-16 min-w-[200px]"
           >
             Stay Subscribed
           </button>
           <button
             onClick={handleUnsubscribe}
             disabled={loading || !email || !isValidEmail(email)}
-            className="btn btn-ghost btn-lg w-full sm:w-auto rounded-2xl font-bold text-lg text-purple-800 hover:bg-purple-100/50 normal-case h-16 min-w-[180px]"
+            className="btn btn-ghost btn-lg w-full sm:w-auto rounded-2xl font-semibold text-lg text-purple-800 hover:bg-purple-100/50 normal-case h-16 min-w-[180px]"
           >
             {loading ? <span className="loading loading-spinner"></span> : "Unsubscribe"}
           </button>

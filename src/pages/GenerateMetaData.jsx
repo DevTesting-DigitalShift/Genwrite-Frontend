@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
 import toast from "@utils/toast"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 // Helper to detect if input is URL
 const isUrl = text => text.trim().startsWith("http")
@@ -101,7 +101,7 @@ const GenerateMetaData = () => {
 
         <button
           onClick={handleReset}
-          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors py-2"
+          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors py-2 border-gray-300 border p-3 rounded-lg"
         >
           <RefreshCw className="w-4 h-4" />
           Reset
@@ -168,9 +168,7 @@ const GenerateMetaData = () => {
                   <Copy size={16} />
                 </button>
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-gray-400 uppercase">
-                    Meta Title
-                  </p>
+                  <p className="text-sm font-bold text-gray-400 uppercase">Meta Title</p>
                   <p className="text-[#0f172a] font-bold text-lg leading-snug pr-8">
                     {metadata.title || "No title generated"}
                   </p>
@@ -186,9 +184,7 @@ const GenerateMetaData = () => {
                   <Copy size={16} />
                 </button>
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-gray-400 uppercase">
-                    Meta Description
-                  </p>
+                  <p className="text-sm font-bold text-gray-400 uppercase">Meta Description</p>
                   <p className="text-gray-600 font-medium text-sm leading-relaxed pr-8">
                     {metadata.description || "No description generated"}
                   </p>
@@ -199,9 +195,7 @@ const GenerateMetaData = () => {
               {metadata.tags && metadata.tags.length > 0 && (
                 <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative">
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-sm font-bold text-gray-400 uppercase">
-                      Keywords & Tags
-                    </p>
+                    <p className="text-sm font-bold text-gray-400 uppercase">Keywords & Tags</p>
                     <button
                       onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
                       className="text-[#4f46e5] font-bold uppercase text-sm hover:underline"

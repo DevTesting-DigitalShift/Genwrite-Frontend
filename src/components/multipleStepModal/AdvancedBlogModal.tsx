@@ -1,19 +1,7 @@
-import { motion, AnimatePresence } from "framer-motion"
-import {
-  Crown,
-  Sparkles,
-  ChevronRight,
-  X,
-  Layers,
-  Zap,
-  AlertCircle,
-  HelpCircle,
-} from "lucide-react"
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
-import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -28,6 +16,8 @@ import useBlogStore from "@store/useBlogStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { getGeneratedTitles } from "@api/blogApi"
 import clsx from "clsx"
+import { Switch } from "@components/ui/switch"
+import { X } from "lucide-react"
 
 interface AdvancedBlogModalProps {
   onSubmit: (data: unknown) => void
@@ -36,7 +26,12 @@ interface AdvancedBlogModalProps {
 
 // Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
-  const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
+  const STEP_TITLES = [
+    "Step 1  : Template Selection",
+    "Step 2: Basic Information",
+    "Step 3: Customization",
+    "Step 4: Blog Options",
+  ]
 
   const initialData = {
     templateIds: [] as number[],
@@ -354,76 +349,54 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     switch (currentStep) {
       case 0:
         return (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
+          <div className="space-y-6">
             <div
               className={clsx("p-2", errors?.template && "border-2 border-rose-500 rounded-2xl")}
             >
-              <label className="flex flex-col gap-1 mb-6">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  {errors?.template ? (
-                    <span className="text-rose-500">{errors.template}</span>
-                  ) : (
-                    "Active Framework"
-                  )}
-                </span>
-                <span className="text-2xl font-black text-slate-900 tracking-tight">
-                  {formData.template || "Select Template Architecture"}
-                </span>
-              </label>
-
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handleTemplateSelection}
               />
             </div>
-          </motion.div>
+          </div>
         )
       case 1:
         return (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-8 p-1"
-          >
-            {/* Topic Section */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                Source Objective <span className="text-rose-500">*</span>
+          <div className="space-y-3 p-4 pt-0">
+            {/* Topic */}
+            <div>
+              <label className="text-sm font-semibold text-slate-800">
+                Topic <span className="text-red-500">*</span>
               </label>
               <input
                 name="topic"
-                placeholder="e.g., Quantum Computing Architecture"
+                placeholder="e.g., Tech Blog"
                 value={formData.topic}
-                onChange={handleInputChange as any}
-                className={clsx(
-                  "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
-                  errors.topic && "ring-rose-500 focus:ring-rose-500/20"
-                )}
+                onChange={handleInputChange}
+                className={`w-full mt-2 p-2 rounded-md border bg-white text-sm 
+        focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600
+        ${errors.topic ? "border-red-500" : "border-slate-300"}`}
               />
-              {errors.topic && (
-                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
-                  {errors.topic}
-                </p>
-              )}
+              {errors.topic && <p className="text-xs mt-1 text-red-500">{errors.topic}</p>}
             </div>
 
-            {/* Language Section */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                Output Dialect <span className="text-rose-500">*</span>
+            {/* Language */}
+            <div className="form-control space-y-2">
+              <label className="label pb-0">
+                <span className="label-text font-semibold text-slate-800">
+                  Language <span className="text-error">*</span>
+                </span>
               </label>
+
               <select
                 value={formData.languageToWrite}
                 onChange={e =>
                   handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
                 }
-                className="select select-bordered w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition-all font-medium flex items-center"
+                className="select w-full rounded-lg focus:outline-none focus:border-0"
               >
+                <option value="">Select language</option>
                 {LANGUAGES.map(lang => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
@@ -433,103 +406,66 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             </div>
 
             {/* Auto Generate Toggle */}
-            <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:bg-slate-100/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                  <Zap className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900 tracking-tight">
-                    Neural Auto-Key
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    Machine Title Generation
-                  </p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
+            <div className="flex items-center justify-between mt-4">
+              <label className="text-sm font-semibold text-slate-800">
+                Auto Generate Title & Keywords
+              </label>
+              <Switch
                 checked={formData.options.performKeywordResearch}
-                onChange={e =>
+                onCheckedChange={(checked: boolean) =>
                   handleInputChange({
-                    target: { name: "options.performKeywordResearch", value: e.target.checked },
+                    target: { name: "options.performKeywordResearch", value: checked },
                   })
                 }
               />
             </div>
 
-            {/* Focus Keywords */}
             {!formData.options.performKeywordResearch && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                    Core Metrics (Focus Keywords) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      placeholder="Type and press comma..."
-                      className={clsx(
-                        "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
-                        errors.focusKeywords && "ring-rose-500"
-                      )}
-                      onKeyDown={e => {
-                        if (e.key === "," || e.key === "Enter") {
-                          e.preventDefault()
-                          const val = (e.target as HTMLInputElement).value.trim()
-                          if (val && formData.focusKeywords.length < 3) {
-                            handleInputChange({
-                              target: {
-                                name: "focusKeywords",
-                                value: [...formData.focusKeywords, val],
-                              },
-                            })
-                            ;(e.target as HTMLInputElement).value = ""
-                          }
-                        }
-                      }}
-                    />
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {formData.focusKeywords.map((kw, i) => (
-                        <div
-                          key={i}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
-                        >
-                          {kw}
-                          <X
-                            size={12}
-                            className="cursor-pointer hover:text-rose-400 transition-colors"
-                            onClick={() =>
-                              handleInputChange({
-                                target: {
-                                  name: "focusKeywords",
-                                  value: formData.focusKeywords.filter((_, idx) => idx !== i),
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {errors.focusKeywords && (
-                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
-                      {errors.focusKeywords}
-                    </p>
-                  )}
-                </div>
-
-                {/* Secondary Keywords */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                    Latent Semantic Keywords <span className="text-rose-500">*</span>
+              <>
+                {/* Focus Keywords */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Focus Keywords (max 3)
                   </label>
                   <input
-                    placeholder="Type and press comma..."
-                    className={clsx(
-                      "w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
-                      errors.keywords && "ring-rose-500"
-                    )}
+                    placeholder="Type and press comma"
+                    className="w-full mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
+                    onKeyDown={e => {
+                      if (e.key === "," || e.key === "Enter") {
+                        e.preventDefault()
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (val && formData.focusKeywords.length < 3) {
+                          handleInputChange({
+                            target: {
+                              name: "focusKeywords",
+                              value: [...formData.focusKeywords, val],
+                            },
+                          })
+                          ;(e.target as HTMLInputElement).value = ""
+                        }
+                      }
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.focusKeywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keywords */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-800">Keywords</label>
+                  <input
+                    placeholder="Type and press comma"
+                    className="w-full mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
@@ -543,82 +479,42 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       }
                     }}
                   />
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {formData.keywords.map((kw, i) => (
-                      <div
-                        key={i}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest"
-                      >
-                        {kw}
-                        <X
-                          size={12}
-                          className="cursor-pointer hover:text-rose-500 transition-colors"
-                          onClick={() =>
-                            handleInputChange({
-                              target: {
-                                name: "keywords",
-                                value: formData.keywords.filter((_, idx) => idx !== i),
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {errors.keywords && (
-                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
-                      {errors.keywords}
-                    </p>
-                  )}
                 </div>
 
-                {/* Title Section */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                    Signature Title <span className="text-rose-500">*</span>
-                  </label>
+                {/* Title */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-800">Blog Title</label>
                   <div className="flex gap-2">
                     <input
                       name="title"
-                      placeholder="Initiate Title Concept..."
+                      placeholder="e.g., How to create a blog"
                       value={formData.title}
-                      onChange={handleInputChange as any}
-                      className={clsx(
-                        "flex-1 h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium",
-                        errors.title && "ring-rose-500"
-                      )}
+                      onChange={handleInputChange}
+                      className="flex-1 mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
                     />
                     <button
                       onClick={handleGenerateTitles}
                       disabled={isGenerating}
-                      className="px-6 h-14 bg-slate-950 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 group disabled:opacity-50"
+                      className="mt-2 p-2 rounded-md bg-blue-600 text-white text-sm font-semibold
+              hover:bg-blue-700 transition disabled:opacity-50"
                     >
-                      {isGenerating ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      {generatedTitles?.length ? "Refresh" : "Synthesize"}
+                      {isGenerating ? "Generating..." : "Generate"}
                     </button>
                   </div>
-                  {errors.title && (
-                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
-                      {errors.title}
-                    </p>
-                  )}
 
                   {generatedTitles.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4 max-h-40 overflow-y-auto custom-scroll p-1">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {generatedTitles.map((t, i) => (
                         <button
                           key={i}
                           onClick={() => handleInputChange({ target: { name: "title", value: t } })}
-                          className={clsx(
-                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
-                            formData.title === t
-                              ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/30"
-                              : "bg-white text-slate-600 border-slate-100 hover:border-blue-200"
-                          )}
+                          className={`px-3 py-1 text-xs rounded-md border transition
+                  ${
+                    formData.title === t
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white border-slate-300 hover:bg-slate-100"
+                  }`}
                         >
                           {t}
                         </button>
@@ -627,63 +523,54 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
-                    Maintain Absolute Title Literal
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-sm"
+                {/* Exact Title Toggle */}
+                <div className="flex items-center justify-between my-4">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Use Exact Title for Blog
+                  </label>
+                  <Switch
                     checked={formData.options.exactTitle}
-                    onChange={e =>
-                      handleInputChange({
-                        target: { name: "options.exactTitle", value: e.target.checked },
-                      })
+                    onCheckedChange={(checked: boolean) =>
+                      handleInputChange({ target: { name: "options.exactTitle", value: checked } })
                     }
                   />
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Tone & Word Length */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                  Vocal Signature <span className="text-rose-500">*</span>
+            {/* Tone + Length */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Tone */}
+              <div className="form-control space-y-2">
+                <label className="label pb-0">
+                  <span className="label-text font-semibold text-slate-800">Tone of Voice</span>
                 </label>
+
                 <select
                   value={formData.tone}
                   onChange={e =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
-                  className="select select-bordered w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition-all font-medium"
+                  className="select select-bordered w-full rounded-lg"
                 >
-                  <option value="" disabled>
-                    Select Resonance...
-                  </option>
+                  <option value="">Select tone</option>
                   {TONES.map(t => (
                     <option key={t} value={t}>
                       {t}
                     </option>
                   ))}
                 </select>
-                {errors.tone && (
-                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2">
-                    {errors.tone}
-                  </p>
-                )}
               </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-end mb-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Unit Magnitude
-                  </label>
-                  <span className="text-lg font-black text-blue-600 tracking-tighter">
-                    {formData.userDefinedLength}{" "}
-                    <span className="text-[10px] uppercase">Words</span>
+              {/* Blog Length */}
+              <div className="form-control space-y-3">
+                <label className="label">
+                  <span className="label-text font-semibold text-slate-800">Blog Length</span>
+                  <span className="label-text-alt font-semibold text-primary">
+                    {formData.userDefinedLength} words
                   </span>
-                </div>
+                </label>
+
                 <input
                   type="range"
                   min="500"
@@ -692,390 +579,195 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   value={formData.userDefinedLength}
                   onChange={e =>
                     handleInputChange({
-                      target: { name: "userDefinedLength", value: parseInt(e.target.value) },
+                      target: { name: "userDefinedLength", value: Number(e.target.value) },
                     })
                   }
-                  className="range range-xs range-primary"
+                  className="range range-primary"
                 />
-                <div className="flex justify-between w-full px-2 text-[8px] font-black text-slate-300 uppercase tracking-widest">
+
+                <div className="flex justify-between text-xs text-slate-400">
                   <span>500</span>
-                  <span>2500</span>
                   <span>5000</span>
                 </div>
               </div>
             </div>
 
-            {/* Brief Section */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                Instructional Protocol (Brief)
-              </label>
+            {/* Brief */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-800">Add Brief Section</label>
               <textarea
                 name="brief"
+                rows={3}
                 value={formData.brief}
-                onChange={handleInputChange as any}
-                placeholder="Neural directives for logic steering..."
-                className="w-full min-h-[100px] bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl p-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium resize-none shadow-inner"
+                onChange={handleInputChange}
+                placeholder="Enter the brief info or instructions"
+                className="w-full mt-2 px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm
+        focus:outline-none resize-none"
               />
             </div>
-          </motion.div>
+          </div>
         )
 
       case 2: {
-        const isValidURL = (str: string) => {
-          try {
-            const url = new URL(str)
-            return url.protocol === "http:" || url.protocol === "https:"
-          } catch {
-            return false
-          }
-        }
-
         return (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-8 p-1"
-          >
+          <div className="space-y-3 p-4 pt-0">
             {/* AI Model Selection */}
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                Neural Processor Engine <span className="text-rose-500">*</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {AI_MODELS.map(model => (
-                  <button
-                    key={model.id}
-                    onClick={() =>
-                      handleInputChange({ target: { name: "aiModel", value: model.id } })
-                    }
-                    className={clsx(
-                      "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left group",
-                      formData.aiModel === model.id
-                        ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-200"
-                        : "bg-white border-slate-100 hover:border-blue-200 text-slate-600"
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        "w-10 h-10 rounded-xl flex items-center justify-center border transition-colors",
-                        formData.aiModel === model.id
-                          ? "bg-white/10 border-white/20"
-                          : "bg-slate-50 border-slate-100 group-hover:border-blue-100"
-                      )}
+              <h3 className="text-sm font-semibold text-slate-800">Select AI Model</h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {AI_MODELS.map(model => {
+                  const isActive = formData.aiModel === model.id
+
+                  return (
+                    <button
+                      key={model.id}
+                      onClick={() =>
+                        handleInputChange({ target: { name: "aiModel", value: model.id } })
+                      }
+                      className={`flex items-center gap-3 px-5 py-4 rounded-lg border transition
+              ${
+                isActive ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:border-slate-300"
+              }`}
                     >
-                      <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black tracking-tight">{model.label}</h4>
-                      <p
-                        className={clsx(
-                          "text-[9px] font-bold uppercase tracking-widest",
-                          formData.aiModel === model.id ? "text-slate-400" : "text-slate-400"
-                        )}
-                      >
-                        {model.id.includes("pro") ? "Pro Logic" : "Standard"}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+                      <img src={model.logo} alt={model.label} className="w-6 h-6" />
+                      <span className="font-semibold text-sm">{model.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Feature Toggles */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-[28px] p-6 group hover:bg-emerald-50 transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-emerald-200 flex items-center justify-center shadow-sm">
-                      <Zap className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">Cost Cutter</h4>
-                      <p className="text-[10px] text-emerald-600/70 font-bold uppercase tracking-widest">
-                        25% Logic Savings
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-success"
-                    checked={formData.costCutter}
-                    onChange={e => updateFormData({ costCutter: e.target.checked })}
-                  />
-                </div>
+            {/* Cost Cutter */}
+            <div className="flex items-center justify-between p-5 rounded-lg bg-green-50 border border-green-200">
+              <div>
+                <p className="font-semibold text-sm text-green-800">Cost Cutter</p>
+                <p className="text-xs text-green-600 mt-1">Use AI Flash model for 25% savings</p>
               </div>
 
-              <div className="bg-blue-50/50 border border-blue-100 rounded-[28px] p-6 group hover:bg-blue-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center shadow-sm">
-                      <HelpCircle className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">Adaptive Clarity</h4>
-                      <p className="text-[10px] text-blue-600/70 font-bold uppercase tracking-widest">
-                        Easy to Understand
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
-                    checked={formData.options.easyToUnderstand}
-                    onChange={e =>
-                      handleInputChange({
-                        target: { name: "options.easyToUnderstand", value: e.target.checked },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-[28px] group hover:bg-slate-100 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                  <Sparkles className="w-5 h-5 text-slate-600" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900">Visual Synthesis</h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    AI Guided Image Injection
-                  </p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                className="toggle"
-                checked={formData.isCheckedGeneratedImages}
-                onChange={e => {
-                  const val = e.target.checked
-                  ;[
-                    { name: "isCheckedGeneratedImages", value: val },
-                    { name: "blogImages", value: [] },
-                  ].map(t => handleInputChange({ target: t }))
-                }}
+              <Switch
+                checked={formData.costCutter}
+                onCheckedChange={(checked: boolean) => updateFormData({ costCutter: checked })}
               />
             </div>
 
-            {/* Image Source Settings */}
-            <AnimatePresence>
-              {formData.isCheckedGeneratedImages && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-6 overflow-hidden"
-                >
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                    Image Source Origin
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {IMAGE_OPTIONS.map((option, index) => {
-                      const isRestricted = option.restrict && user?.subscription?.plan === "free"
-                      const isLimitReached =
-                        index === 1 && user?.usage?.aiImages >= user?.usageLimits?.aiImages
-                      const isDisabled = isRestricted || isLimitReached
+            {/* Feature Toggles */}
+            <div className="space-y-5 my-5">
+              {[
+                { label: "Easy to Understand", name: "options.easyToUnderstand" },
+                { label: "Embed YouTube Videos", name: "options.embedYouTubeVideos" },
+                { label: "Add Images", name: "isCheckedGeneratedImages" },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">{item.label}</span>
 
-                      return (
-                        <button
-                          key={option.id}
-                          disabled={isDisabled}
-                          onClick={() => {
-                            handleInputChange({ target: { name: "imageSource", value: option.id } })
-                            if (option.id !== IMAGE_OPTIONS.at(-1)?.id) {
-                              handleInputChange({ target: { name: "blogImages", value: [] } })
-                            }
-                          }}
-                          className={clsx(
-                            "relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all group overflow-hidden",
-                            formData.imageSource === option.id
-                              ? "bg-slate-900 border-slate-900 text-white"
-                              : "bg-white border-slate-100 hover:border-blue-200 text-slate-600",
-                            isDisabled &&
-                              "opacity-50 cursor-not-allowed bg-slate-50 border-slate-100"
-                          )}
-                        >
-                          {isRestricted && (
-                            <div className="absolute top-2 right-2">
-                              <Crown className="w-4 h-4 text-amber-500" />
-                            </div>
-                          )}
-                          {isLimitReached && (
-                            <div className="absolute top-2 right-2">
-                              <AlertCircle className="w-4 h-4 text-rose-500" />
-                            </div>
-                          )}
-                          <span className="text-xs font-black uppercase tracking-widest text-center">
-                            {option.label}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id ? (
-                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-[28px] space-y-4">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
-                          Injection Count (0 = Neural Choice)
-                        </label>
-                        <span className="text-xl font-black text-blue-600 tracking-tighter">
-                          {formData.numberOfImages}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="15"
-                        value={formData.numberOfImages}
-                        onChange={e =>
-                          handleInputChange({
-                            target: { name: "numberOfImages", value: parseInt(e.target.value) },
-                          })
-                        }
-                        className="range range-xs range-primary"
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <BlogImageUpload
-                        id="blog-upload-images"
-                        label="Upload Custom Images"
-                        maxCount={15}
-                        initialFiles={formData.blogImages}
-                        onChange={file =>
-                          handleInputChange({ target: { name: "blogImages", value: file } })
-                        }
-                      />
-                      {errors.blogImages && (
-                        <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
-                          {errors.blogImages}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Reference Links */}
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">
-                Evidence Protocol (Reference Links - max 3)
-              </label>
-              <div className="space-y-4">
-                <input
-                  placeholder="Paste URL and press Enter..."
-                  className="w-full h-14 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl px-6 focus:ring-2 focus:ring-blue-600/20 focus:bg-white outline-none transition-all font-medium"
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      const val = (e.target as HTMLInputElement).value.trim()
-                      if (val && formData.referenceLinks.length < 3) {
-                        if (isValidURL(val)) {
-                          handleInputChange({
-                            target: {
-                              name: "referenceLinks",
-                              value: [...formData.referenceLinks, val],
-                            },
-                          })
-                          ;(e.target as HTMLInputElement).value = ""
-                        } else {
-                          toast.error("Please enter a valid URL protocol")
-                        }
-                      }
+                  <Switch
+                    checked={
+                      item.name.includes("options")
+                        ? formData.options[item.name.split(".")[1]]
+                        : formData[item.name]
                     }
-                  }}
-                />
-                <div className="flex flex-col gap-2">
-                  {formData.referenceLinks.map((link, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl group hover:border-blue-100 transition-colors"
-                    >
-                      <span className="text-xs text-slate-500 truncate max-w-[90%] font-medium">
-                        {link}
-                      </span>
-                      <X
-                        size={14}
-                        className="text-slate-300 hover:text-rose-500 cursor-pointer transition-colors"
-                        onClick={() =>
-                          handleInputChange({
-                            target: {
-                              name: "referenceLinks",
-                              value: formData.referenceLinks.filter((_, idx) => idx !== i),
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )
-      }
-      case 3:
-        return (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-4 p-1"
-          >
-            <div className="grid grid-cols-1 gap-4">
-              {BLOG_OPTIONS.map((option, index) => (
-                <div
-                  key={option.key + index}
-                  className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-[28px] hover:bg-slate-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                      <Layers size={14} className="text-slate-400" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">
-                      {option.label}
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-sm toggle-primary"
-                    checked={getValueByPath(formData, option.key)}
-                    onChange={e =>
-                      handleInputChange({ target: { name: option.key, value: e.target.checked } })
+                    onCheckedChange={(checked: boolean) =>
+                      handleInputChange({ target: { name: item.name, value: checked } })
                     }
                   />
                 </div>
               ))}
             </div>
 
-            <div className="p-6 bg-slate-900 rounded-[32px] text-white shadow-xl shadow-slate-200 mt-6 overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
-              <div className="relative z-10">
-                <BrandVoiceSelector
-                  label=""
-                  value={{
-                    isCheckedBrand: formData.isCheckedBrand,
-                    brandId: formData.brandId,
-                    addCTA: formData.options.addCTA,
-                  }}
-                  size="default"
-                  onChange={val => {
-                    const opts = formData.options
-                    updateFormData({
-                      isCheckedBrand: val.isCheckedBrand,
-                      brandId: val.brandId,
-                      options: { ...opts, addCTA: val.addCTA },
-                    })
-                    updateErrors({ brandId: "" })
-                  }}
-                  errorText={errors.brandId}
-                />
+            {/* Reference Links */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Reference Links (max 3)</h4>
+
+              <input
+                placeholder="Add reference links"
+                className="input input-bordered w-full rounded-lg"
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    const val = (e.target as HTMLInputElement).value.trim()
+
+                    if (val && formData.referenceLinks.length < 3) {
+                      handleInputChange({
+                        target: {
+                          name: "referenceLinks",
+                          value: [...formData.referenceLinks, val],
+                        },
+                      })
+                      ;(e.target as HTMLInputElement).value = ""
+                    }
+                  }
+                }}
+              />
+
+              <div className="space-y-2">
+                {formData.referenceLinks.map((link, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-md"
+                  >
+                    <span className="text-sm text-slate-600 truncate">{link}</span>
+
+                    <button
+                      onClick={() =>
+                        handleInputChange({
+                          target: {
+                            name: "referenceLinks",
+                            value: formData.referenceLinks.filter((_, idx) => idx !== i),
+                          },
+                        })
+                      }
+                      className="text-slate-400 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-          </motion.div>
+          </div>
+        )
+      }
+      case 3:
+        return (
+          <div className="space-y-8 p-4 pt-0">
+            {/* Options List */}
+            <div className="space-y-6">
+              {BLOG_OPTIONS.map((option, index) => (
+                <div key={option.key + index} className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">{option.label}</span>
+
+                  <Switch
+                    checked={getValueByPath(formData, option.key)}
+                    onCheckedChange={(checked: boolean) =>
+                      handleInputChange({ target: { name: option.key, value: checked } })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+
+            <BrandVoiceSelector
+              label="Write with Brand Voice"
+              value={{
+                isCheckedBrand: formData.isCheckedBrand,
+                brandId: formData.brandId,
+                addCTA: formData.options.addCTA,
+              }}
+              size="default"
+              labelClass="text-sm font-semibold"
+              onChange={val => {
+                const opts = formData.options
+                updateFormData({
+                  isCheckedBrand: val.isCheckedBrand,
+                  brandId: val.brandId,
+                  options: { ...opts, addCTA: val.addCTA },
+                })
+                updateErrors({ brandId: "" })
+              }}
+              errorText={errors.brandId}
+            />
+          </div>
         )
       default:
         return null
@@ -1083,128 +775,59 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   }
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={handleClose}
-          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        />
+    <dialog className="modal modal-open bg-black/60">
+      <div className="modal-box w-full max-w-3xl p-0 overflow-hidden bg-white">
+        <div className="flex items-center justify-between p-4 px-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-md font-black text-slate-900 tracking-tight">
+              Generate Advanced Blog | {STEP_TITLES[currentStep]}
+            </h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors group"
+          >
+            <X className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+          </button>
+        </div>
 
-        {/* Modal Content */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        <div
+          className="p-4 pt-0 max-h-[70vh] overflow-y-auto custom-scroll space-y-4"
+          style={{ scrollbarWidth: "none" }}
         >
-          {/* Neural Header */}
-          <div className="p-8 pb-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                  {STEP_TITLES[currentStep]}
-                </h2>
+          {renderSteps()}
+        </div>
+
+        <div className="p-4 border-t bg-gray-50 flex justify-between border-gray-300">
+          <div className="flex items-center gap-6">
+            {(currentStep === 2 || currentStep === 3) && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="font-bold text-blue-600"> {estimatedCost}</span>
+                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-11">
-                Step 0{currentStep + 1} of 04 • Neural Configuration
-              </p>
-            </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {currentStep > 0 && (
+              <button
+                onClick={handlePrev}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-200/90 transition-colors border border-gray-300"
+              >
+                Previous
+              </button>
+            )}
             <button
-              onClick={handleClose}
-              className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors group"
+              onClick={currentStep === 3 ? handleSubmit : handleNext}
+              className="px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
             >
-              <X className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              {currentStep === 3 ? <>Initialize Generation</> : <>Next</>}
             </button>
           </div>
-
-          {/* Progress Indicator */}
-          <div className="px-8 pt-6">
-            <div className="flex gap-2 mb-2">
-              {STEP_TITLES.map((_, i) => (
-                <div
-                  key={i}
-                  className={clsx(
-                    "h-1.5 flex-1 rounded-full transition-all duration-500",
-                    i <= currentStep ? "bg-slate-900" : "bg-slate-100"
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Main Body */}
-          <div
-            className="flex-1 overflow-y-auto p-8 custom-scroll"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {renderSteps()}
-          </div>
-
-          {/* Premium Glass Footer */}
-          <div className="p-8 pt-4 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between sticky bottom-0 z-20">
-            <div className="flex items-center gap-6">
-              {(currentStep === 2 || currentStep === 3) && (
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    Resource Commitment
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-black text-slate-900 tracking-tighter">
-                      {estimatedCost}
-                    </span>
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                      Credits
-                    </span>
-                    {formData.costCutter && (
-                      <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest rounded-full">
-                        -25% Logic Savings
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {currentStep > 0 && (
-                <button
-                  onClick={handlePrev}
-                  className="px-8 h-12 rounded-2xl border-2 border-slate-100 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:border-slate-200 hover:bg-slate-50 transition-all"
-                >
-                  Previous Phase
-                </button>
-              )}
-              <button
-                onClick={currentStep === 3 ? handleSubmit : handleNext}
-                className="px-8 h-12 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 group"
-              >
-                {currentStep === 3 ? (
-                  <>
-                    <Zap className="w-4 h-4 group-hover:animate-pulse" />
-                    Initialize Generation
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ChevronRight
-                      size={14}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </motion.div>
+        </div>
       </div>
-    </AnimatePresence>
+    </dialog>
   )
 }
 

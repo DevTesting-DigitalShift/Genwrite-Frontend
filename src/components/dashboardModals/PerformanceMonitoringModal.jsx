@@ -421,10 +421,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
             transition={{ delay: 0.1 }}
           >
             <label className="block text-sm font-bold text-gray-700 mb-2">
-              Select Blog Post to Analyze
+              Select Blog
             </label>
             <select
-              className="select text-gray-800 w-full h-12 text-base rounded-xl border-gray-300 focus:border-blue-500 outline-0 focus:ring-0 transition-all bg-white"
+              className="select border border-gray-300 text-gray-800 w-full h-12 text-base rounded-lg outline-0 focus:ring-0 transition-all bg-white"
               onChange={handleBlogSelect}
               value={formData.selectedBlog?._id || ""}
               disabled={blogsLoading}

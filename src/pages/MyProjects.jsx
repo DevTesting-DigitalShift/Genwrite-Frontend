@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import SkeletonLoader from "../components/UI/SkeletonLoader"
+import SkeletonLoader from "../components/ui/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
 import toast from "@utils/toast"
 import {
@@ -28,8 +28,8 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
-import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
-import DateRangePicker from "@components/UI/DateRangePicker"
+import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
+import DateRangePicker from "@components/ui/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
 import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
 import {

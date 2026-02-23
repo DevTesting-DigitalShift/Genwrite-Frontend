@@ -2,15 +2,15 @@ import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import toast from "@utils/toast"
 import { Plus, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react"
-import { AnimatePresence, motion } from "framer-motion"
 import React, { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
+import { Helmet } from "react-helmet"
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
@@ -283,443 +283,438 @@ const OutlineEditor = () => {
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
+  const min = 500
+  const max = 5000
+  const percent = ((formData.userDefinedLength - min) / (max - min)) * 100
+
   return (
     <>
-      {isSubmitting && <ProgressLoadingScreen message="Generating your outline..." />}
-      <div className="px-4 sm:px-6 lg:px-8">
-        <AnimatePresence>
-          {isOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={handleClose}
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
-              >
-                {/* Header */}
-                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-                  <h2 className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    {currentStep === 0
-                      ? "Select Template"
-                      : currentStep === 1
-                        ? "Blog Details"
-                        : currentStep === 2
-                          ? "Brand Voice & Resources"
-                          : "Generated Outline"}
-                  </h2>
-                  <button
-                    onClick={handleClose}
-                    className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
+      <Helmet>
+        <title>Outline Editor | GenWrite</title>
+      </Helmet>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-8 py-6">
-                  {currentStep === 0 && (
-                    <div className="space-y-6">
-                      <TemplateSelection
-                        userSubscriptionPlan={user?.subscription?.plan || "free"}
-                        preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
-                        onClick={handlePackageSelect}
+      {isSubmitting && <ProgressLoadingScreen message="Generating your outline..." />}
+
+      <div className="px-6">
+        {isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div onClick={handleClose} className="absolute inset-0 bg-black/60" />
+            <div className="relative gap-2 w-full max-w-3xl bg-white rounded-lg flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
+                <h2 className="text-xl font-bold">
+                  {currentStep === 0
+                    ? "Select Template"
+                    : currentStep === 1
+                      ? "Blog Details"
+                      : currentStep === 2
+                        ? "Brand Voice & Resources"
+                        : "Generated Outline"}
+                </h2>
+                <button
+                  onClick={handleClose}
+                  className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto px-8 pb-6">
+                {currentStep === 0 && (
+                  <div className="space-y-6">
+                    <TemplateSelection
+                      userSubscriptionPlan={user?.subscription?.plan || "free"}
+                      preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+                      onClick={handlePackageSelect}
+                    />
+                    {errors.template && (
+                      <p className="text-rose-500 text-sm font-medium">
+                        Please select a template to continue.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {currentStep === 1 && (
+                  <div className="space-y-5">
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Blog Topic <span className="text-rose-500">*</span>
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.topic}
+                        onChange={e => handleInputChange(e, "topic")}
+                        placeholder="e.g. How to use AI for content marketing"
+                        className={`input outline-0 w-full rounded-lg focus:ring ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       />
-                      {errors.template && (
-                        <p className="text-rose-500 text-sm font-medium">
-                          Please select a template to continue.
-                        </p>
+                      {errors.topic && (
+                        <span className="text-rose-500 text-xs">Topic is required</span>
                       )}
                     </div>
-                  )}
 
-                  {currentStep === 1 && (
-                    <div className="space-y-5">
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Blog Topic <span className="text-rose-500">*</span>
-                          </span>
-                        </label>
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Writing Tone <span className="text-rose-500">*</span>
+                        </span>
+                      </label>
+                      <select
+                        value={formData.tone}
+                        onChange={e => handleSelectChange(e.target.value)}
+                        className={`select select-bordered w-full rounded-lg focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                      >
+                        <option value="Informative">Informative</option>
+                        <option value="Casual">Casual</option>
+                        <option value="Professional">Professional</option>
+                        <option value="Persuasive">Persuasive</option>
+                        <option value="Humorous">Humorous</option>
+                      </select>
+                    </div>
+
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Focus Keywords (Max 3) <span className="text-rose-500">*</span>
+                        </span>
+                      </label>
+                      <div className="relative flex gap-2">
                         <input
                           type="text"
-                          value={formData.topic}
-                          onChange={e => handleInputChange(e, "topic")}
-                          placeholder="e.g. How to use AI for content marketing"
-                          className={`input input-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          value={formData.focusKeywordInput}
+                          onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                          onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                          placeholder="Type and press Enter..."
+                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
-                        {errors.topic && (
-                          <span className="text-rose-500 text-xs mt-1">Topic is required</span>
-                        )}
-                      </div>
-
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Writing Tone <span className="text-rose-500">*</span>
-                          </span>
-                        </label>
-                        <select
-                          value={formData.tone}
-                          onChange={e => handleSelectChange(e.target.value)}
-                          className={`select select-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        <button
+                          onClick={() => handleAddKeyword("focusKeywords")}
+                          className="w-10 p-1.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
                         >
-                          <option value="Informative">Informative</option>
-                          <option value="Casual">Casual</option>
-                          <option value="Professional">Professional</option>
-                          <option value="Persuasive">Persuasive</option>
-                          <option value="Humorous">Humorous</option>
-                        </select>
+                          <Plus size={20} className="ml-1" />
+                        </button>
                       </div>
-
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Focus Keywords (Max 3) <span className="text-rose-500">*</span>
-                          </span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.focusKeywordInput}
-                            onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                            onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                            placeholder="Type and press Enter..."
-                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
-                          />
-                          <button
-                            onClick={() => handleAddKeyword("focusKeywords")}
-                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {formData.focusKeywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
                           >
-                            <Plus size={20} />
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {formData.focusKeywords.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
-                            >
-                              {keyword}
-                              <X
-                                size={12}
-                                className="cursor-pointer hover:text-blue-900"
-                                onClick={() => handleRemoveKeyword(index, "focusKeywords")}
-                              />
-                            </span>
-                          ))}
-                        </div>
-                        {errors.focusKeywords && (
-                          <span className="text-rose-500 text-xs mt-1">
-                            At least one focus keyword is required
+                            {keyword}
+                            <X
+                              size={12}
+                              className="cursor-pointer hover:text-blue-900"
+                              onClick={() => handleRemoveKeyword(index, "focusKeywords")}
+                            />
                           </span>
-                        )}
+                        ))}
                       </div>
+                      {errors.focusKeywords && (
+                        <span className="text-rose-500 text-xs">
+                          At least one focus keyword is required
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Secondary Keywords <span className="text-rose-500">*</span>
-                          </span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.keywordInput}
-                            onChange={e => handleKeywordInputChange(e, "keywords")}
-                            onKeyDown={e => handleKeyPress(e, "keywords")}
-                            placeholder="Add secondary keywords..."
-                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
-                          />
-                          <button
-                            onClick={() => handleAddKeyword("keywords")}
-                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            <Plus size={20} />
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {visibleKeywords.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
-                            >
-                              {keyword}
-                              <X
-                                size={12}
-                                className="cursor-pointer hover:text-slate-900"
-                                onClick={() => handleRemoveKeyword(index, "keywords")}
-                              />
-                            </span>
-                          ))}
-                          {formData.keywords.length > 18 && (
-                            <button
-                              onClick={() => setShowAllKeywords(!showAllKeywords)}
-                              className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
-                            >
-                              {showAllKeywords
-                                ? "Show Less"
-                                : `+${formData.keywords.length - 18} more`}
-                            </button>
-                          )}
-                        </div>
-                        {errors.keywords && (
-                          <span className="text-rose-500 text-xs mt-1">Keywords are required</span>
-                        )}
-                      </div>
-
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Suggested Title <span className="text-rose-500">*</span>
-                          </span>
-                        </label>
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Secondary Keywords <span className="text-rose-500">*</span>
+                        </span>
+                      </label>
+                      <div className="relative flex gap-2">
                         <input
                           type="text"
-                          value={formData.title}
-                          onChange={e => handleInputChange(e, "title")}
-                          placeholder="Project title..."
-                          className={`input input-bordered w-full h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          value={formData.keywordInput}
+                          onChange={e => handleKeywordInputChange(e, "keywords")}
+                          onKeyDown={e => handleKeyPress(e, "keywords")}
+                          placeholder="Add secondary keywords..."
+                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
-                        {errors.title && (
-                          <span className="text-rose-500 text-xs mt-1">Title is required</span>
-                        )}
+                        <button
+                          onClick={() => handleAddKeyword("keywords")}
+                          className="w-10 p-1.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-blue-700/90"
+                        >
+                          <Plus size={20} className="ml-1" />
+                        </button>
                       </div>
-
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Target Length:{" "}
-                            <span className="text-blue-600">
-                              {formData.userDefinedLength} words
-                            </span>
-                          </span>
-                        </label>
-                        <input
-                          type="range"
-                          min="500"
-                          max="5000"
-                          step="100"
-                          value={formData.userDefinedLength}
-                          onChange={e => handleInputChange(e, "userDefinedLength")}
-                          className="range h-1.5 range-primary bg-slate-100"
-                        />
-                        <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">
-                          <span>500 words</span>
-                          <span>5000 words</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {currentStep === 2 && (
-                    <div className="space-y-6">
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">Brand Voice</span>
-                        </label>
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4">
-                          {brands?.length > 0 ? (
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                              {brands.map(voice => (
-                                <label
-                                  key={voice._id}
-                                  className={`flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all border ${
-                                    formData.brandId === voice._id
-                                      ? "bg-blue-50 border-blue-200 shadow-sm"
-                                      : "bg-white border-slate-100 hover:border-slate-200"
-                                  }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    className="radio radio-primary radio-sm mt-1"
-                                    checked={formData.brandId === voice._id}
-                                    onChange={() => handleBrandSelect(voice._id)}
-                                  />
-                                  <div>
-                                    <div className="font-bold text-slate-700 text-sm">
-                                      {voice.nameOfVoice}
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                                      {voice.describeBrand}
-                                    </p>
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 text-slate-400">
-                              <Sparkles className="mx-auto mb-2 opacity-20" size={32} />
-                              <p className="text-sm font-medium italic">
-                                No brand voices found. Using default voice.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-bold text-slate-700">
-                            Resource Links (Max 4)
-                          </span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.resourceInput}
-                            onChange={e => handleKeywordInputChange(e, "resources")}
-                            onKeyDown={e => handleKeyPress(e, "resources")}
-                            placeholder="Add URLs to context or sources..."
-                            className={`input input-bordered w-full h-12 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
-                          />
-                          <button
-                            onClick={() => handleAddKeyword("resources")}
-                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {visibleKeywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
                           >
-                            <Plus size={20} />
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {formData.resources.map((resource, index) => (
-                            <div
-                              key={index}
-                              className="badge h-auto py-2 bg-slate-50 text-blue-600 border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
-                            >
-                              <span className="max-w-[150px] truncate">{resource}</span>
-                              <X
-                                size={12}
-                                className="cursor-pointer hover:text-rose-500"
-                                onClick={() => handleRemoveKeyword(index, "resources")}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        {errors.resources && (
-                          <span className="text-rose-500 text-xs mt-1">
-                            Invalid URL or maximum reached (4)
+                            {keyword}
+                            <X
+                              size={12}
+                              className="cursor-pointer hover:text-slate-900"
+                              onClick={() => handleRemoveKeyword(index, "keywords")}
+                            />
                           </span>
+                        ))}
+                        {formData.keywords.length > 18 && (
+                          <button
+                            onClick={() => setShowAllKeywords(!showAllKeywords)}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
+                          >
+                            {showAllKeywords
+                              ? "Show Less"
+                              : `+${formData.keywords.length - 18} more`}
+                          </button>
                         )}
                       </div>
+                      {errors.keywords && (
+                        <span className="text-rose-500 text-xs">Keywords are required</span>
+                      )}
                     </div>
-                  )}
 
-                  {currentStep === 3 && (
-                    <div className="space-y-4">
-                      <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        {markdownContent ? (
-                          <div
-                            className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
-                            dangerouslySetInnerHTML={{
-                              __html: markdownContent
-                                .replace(
-                                  /^#+\s+/gm,
-                                  match =>
-                                    `<h${match.length} class="font-bold text-slate-900 mt-4 outline-header">`
-                                )
-                                .replace(/\n/gm, "<br>")
-                                .replace(
-                                  /\*\*(.*?)\*\*/g,
-                                  "<strong class='text-slate-900'>$1</strong>"
-                                )
-                                .replace(/\*(.*?)\*/g, "<em class='italic'>$1</em>")
-                                .replace(/^- (.*)$/gm, "<li class='list-disc ml-4 mt-1'>$1</li>")
-                                .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>"),
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Suggested Title <span className="text-rose-500">*</span>
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={e => handleInputChange(e, "title")}
+                        placeholder="Project title..."
+                        className={`input outline-0 w-full rounded-lg focus:ring ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                      />
+                      {errors.title && (
+                        <span className="text-rose-500 text-xs">Title is required</span>
+                      )}
+                    </div>
+
+                    <div className="w-full">
+                      <label className="block mb-3 text-sm font-semibold text-slate-700">
+                        Choose length of Blog <span className="text-red-500">*</span>
+                      </label>
+
+                      <div className="flex items-center gap-6">
+                        <div className="relative flex-1">
+                          <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            step="100"
+                            value={formData.userDefinedLength}
+                            onChange={e => handleInputChange(e, "userDefinedLength")}
+                            className="custom-slider w-full"
+                            style={{
+                              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percent}%, #e5e7eb ${percent}%, #e5e7eb 100%)`,
                             }}
                           />
+                        </div>
+
+                        <div className="text-sm font-semibold text-slate-600 min-w-[90px] text-right">
+                          {formData.userDefinedLength} <span className="text-slate-400">words</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">Brand Voice</span>
+                      </label>
+                      <div className="mt-2 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
+                        {brands?.length > 0 ? (
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            {brands.map(voice => (
+                              <label
+                                key={voice._id}
+                                className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all border ${
+                                  formData.brandId === voice._id
+                                    ? "bg-blue-50 border-blue-200 shadow-sm"
+                                    : "bg-white border-slate-100 hover:border-slate-200"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  className="radio radio-primary radio-sm"
+                                  checked={formData.brandId === voice._id}
+                                  onChange={() => handleBrandSelect(voice._id)}
+                                />
+                                <div>
+                                  <div className="font-bold text-slate-700 text-sm">
+                                    {voice.nameOfVoice}
+                                  </div>
+                                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                                    {voice.describeBrand}
+                                  </p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
                         ) : (
-                          <div className="text-center py-10 text-slate-400">
-                            <p className="text-sm font-medium italic">No content generated yet.</p>
+                          <div className="text-center py-6 text-slate-400">
+                            <Sparkles className="mx-auto mb-2 opacity-20" size={32} />
+                            <p className="text-sm font-medium italic">
+                              No brand voices found. Using default voice.
+                            </p>
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Footer */}
-                <div className="px-8 py-6 border-t border-slate-50 flex items-center justify-between gap-3 bg-slate-50/10">
-                  {currentStep > 0 && currentStep < 4 ? (
-                    <button
-                      onClick={handlePrev}
-                      className="btn btn-ghost h-12 px-6 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 border border-slate-200"
-                    >
-                      <ChevronLeft size={20} className="mr-2" />
-                      Back
-                    </button>
-                  ) : (
-                    <div />
-                  )}
-
-                  <div className="flex gap-3">
-                    {currentStep === 0 && (
-                      <button
-                        onClick={handleNext}
-                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all"
-                      >
-                        Next Step
-                        <ChevronRight size={20} className="ml-2" />
-                      </button>
-                    )}
-
-                    {currentStep === 1 && (
-                      <button
-                        onClick={handleNext}
-                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all"
-                      >
-                        Brand & Sources
-                        <ChevronRight size={20} className="ml-2" />
-                      </button>
-                    )}
-
-                    {currentStep === 2 && (
-                      <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="btn btn-primary h-12 px-10 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <span className="loading loading-spinner"></span>
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            Generate Outline
-                            <Sparkles size={20} className="ml-2" />
-                          </>
-                        )}
-                      </button>
-                    )}
-
-                    {currentStep === 3 && (
-                      <>
+                    <div className="form-control w-full">
+                      <label className="label text-sm mb-2">
+                        <span className="label-text font-bold text-slate-700">
+                          Resource Links (Max 4)
+                        </span>
+                      </label>
+                      <div className="relative flex gap-2">
+                        <input
+                          type="text"
+                          value={formData.resourceInput}
+                          onChange={e => handleKeywordInputChange(e, "resources")}
+                          onKeyDown={e => handleKeyPress(e, "resources")}
+                          placeholder="Add URLs to context or sources..."
+                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        />
                         <button
-                          onClick={handleExportMarkdown}
-                          className="btn btn-ghost h-12 px-6 rounded-2xl text-emerald-600 font-bold hover:bg-emerald-50 border border-emerald-100"
+                          onClick={() => handleAddKeyword("resources")}
+                          className="w-10 p-1 bg-[#1B6FC9] text-white rounded-lg hover:bg-blue-700/90"
                         >
-                          Export .MD
+                          <Plus size={20} className="ml-1" />
                         </button>
-                        <button
-                          onClick={handleClose}
-                          className="btn btn-primary h-12 px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-lg hover:bg-slate-800"
-                        >
-                          Finish Editor
-                        </button>
-                      </>
-                    )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {formData.resources.map((resource, index) => (
+                          <div
+                            key={index}
+                            className="badge h-auto py-2 bg-slate-50 text-blue-600 border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
+                          >
+                            <span className="max-w-[150px] truncate">{resource}</span>
+                            <X
+                              size={12}
+                              className="cursor-pointer hover:text-rose-500"
+                              onClick={() => handleRemoveKeyword(index, "resources")}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {errors.resources && (
+                        <span className="text-rose-500 text-xs">
+                          Invalid URL or maximum reached (4)
+                        </span>
+                      )}
+                    </div>
                   </div>
+                )}
+
+                {currentStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                      {markdownContent ? (
+                        <div
+                          className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: markdownContent
+                              .replace(
+                                /^#+\s+/gm,
+                                match =>
+                                  `<h${match.length} class="font-bold text-slate-900 mt-4 outline-header">`
+                              )
+                              .replace(/\n/gm, "<br>")
+                              .replace(
+                                /\*\*(.*?)\*\*/g,
+                                "<strong class='text-slate-900'>$1</strong>"
+                              )
+                              .replace(/\*(.*?)\*/g, "<em class='italic'>$1</em>")
+                              .replace(/^- (.*)$/gm, "<li class='list-disc ml-4'>$1</li>")
+                              .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>"),
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center py-10 text-slate-400">
+                          <p className="text-sm font-medium italic">No content generated yet.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-8 py-6 border-t border-gray-300 flex items-center justify-between gap-3 bg-slate-50/10">
+                {currentStep > 0 && currentStep < 4 ? (
+                  <button
+                    onClick={handlePrev}
+                    className="px-6 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                <div className="flex gap-3">
+                  {currentStep === 0 && (
+                    <button
+                      onClick={handleNext}
+                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                    >
+                      Next
+                    </button>
+                  )}
+
+                  {currentStep === 1 && (
+                    <button
+                      onClick={handleNext}
+                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                    >
+                      Next
+                    </button>
+                  )}
+
+                  {currentStep === 2 && (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="loading loading-spinner"></span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          Generate Outline
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {currentStep === 3 && (
+                    <>
+                      <button
+                        onClick={handleExportMarkdown}
+                        className="btn btn-ghost px-6 rounded-2xl text-emerald-600 font-bold hover:bg-emerald-50 border border-emerald-100"
+                      >
+                        Export .MD
+                      </button>
+                      <button
+                        onClick={handleClose}
+                        className="btn btn-primary px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-lg hover:bg-slate-800"
+                      >
+                        Finish Editor
+                      </button>
+                    </>
+                  )}
                 </div>
-              </motion.div>
+              </div>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
         <div className="py-6 min-h-screen flex flex-col">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
             <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">

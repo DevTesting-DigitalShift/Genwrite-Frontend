@@ -6,7 +6,7 @@ import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import GoThrough from "../components/dashboardModals/GoThrough"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
@@ -262,7 +262,7 @@ const Dashboard = () => {
         animate="visible"
       >
         {/* Header / Hero Section */}
-        <motion.div variants={itemVariants} className="mt-4">
+        <motion.div variants={itemVariants}>
           <h1 className="text-3xl font-semibold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {getGreeting()},{" "}
             <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
@@ -285,10 +285,10 @@ const Dashboard = () => {
               <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
               <div className="relative flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-indigo-600 font-bold">Analytics</p>
+                  <p className="text-base text-indigo-600 font-bold">Analytics</p>
                   <p className="text-xs text-slate-400 mt-1 font-medium">Insights & Trends</p>
                 </div>
-                <div className="p-3 rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                <div className="p-3 rounded-xl bg-indigo-500 text-white">
                   <TrendingUp className="w-5 h-5" />
                 </div>
               </div>

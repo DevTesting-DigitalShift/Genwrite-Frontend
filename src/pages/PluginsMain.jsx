@@ -334,7 +334,7 @@ const PluginsMain = () => {
                   disabled={!domain || !isValidDomain || localLoading}
                   className="flex-1 py-3 bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg font-semibold shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  <Server className="size-4" /> Install Protocol
+                  <Server className="size-4" /> Install Shopify
                 </button>
                 <button
                   onClick={handleInternalPing}
@@ -346,7 +346,7 @@ const PluginsMain = () => {
                   ) : (
                     <RefreshCw className="size-4" />
                   )}
-                  Sync Status
+                  Check Status
                 </button>
               </div>
             </div>
@@ -509,7 +509,7 @@ const PluginsMain = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10">
+    <div className="min-h-screen p-6">
       <Helmet>
         <title>Plugin Center | GenWrite</title>
       </Helmet>

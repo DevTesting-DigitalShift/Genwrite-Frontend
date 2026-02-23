@@ -189,7 +189,7 @@ const SideBar_Header = () => {
         }}
       >
         {/* Logo Header */}
-        <div className="flex items-center mt-3 justify-center h-16 border-b border-gray-200 px-4">
+        <div className="flex items-center mt-2 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
             <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <Menu className="w-5 h-5 text-white" />

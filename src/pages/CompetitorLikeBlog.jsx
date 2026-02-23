@@ -9,24 +9,21 @@ import {
   PenTool,
   Layout,
   Palette,
-  CheckCircle2,
-  Zap,
 } from "lucide-react"
-import toast from "@utils/toast"
 
 import useToolsStore from "@store/useToolsStore"
 import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { motion, AnimatePresence } from "framer-motion"
+import toast from "@utils/toast"
 
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")
   const [topic, setTopic] = useState("")
 
   const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
-  const { result } = competitorLikeBlog
+  const { result, error } = competitorLikeBlog
   const {
     mutate: generateContent,
     isPending,
@@ -39,7 +36,7 @@ const CompetitorLikeBlog = () => {
     return () => {
       resetCompetitorLikeBlog()
     }
-  }, [resetCompetitorLikeBlog])
+  }, [])
 
   const isValidUrl = str => {
     try {
@@ -78,7 +75,7 @@ const CompetitorLikeBlog = () => {
         toast.success("Content generated successfully!")
       },
       onError: err => {
-        toast.error(err?.message || "Failed to generate content. Please try again.")
+        toast.error(err?.toast || "Failed to generate content. Please try again.")
         console.error(err)
       },
     })
@@ -87,7 +84,7 @@ const CompetitorLikeBlog = () => {
   const handleCopy = async content => {
     try {
       await navigator.clipboard.writeText(content)
-      toast.success("Content copied into spectral buffer")
+      toast.success("Content copied to clipboard")
     } catch (err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
@@ -98,7 +95,7 @@ const CompetitorLikeBlog = () => {
     setUrl("")
     setTopic("")
     resetCompetitorLikeBlog()
-    toast.success("Workspace reset initiated")
+    toast.info("Reset successfully")
   }
 
   const [timer, setTimer] = useState(0)
@@ -113,6 +110,7 @@ const CompetitorLikeBlog = () => {
 
       interval = setInterval(() => {
         setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
           if (index < specificPoints.length) {
             const nextPoint = specificPoints[index]
             if (prev < nextPoint) {
@@ -121,12 +119,14 @@ const CompetitorLikeBlog = () => {
             index++
             return prev
           }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
           if (prev < 90) {
             return prev + 1
           }
           return prev
         })
-      }, 800)
+      }, 800) // Adjust speed as needed
     } else {
       setTimer(0)
     }
@@ -138,7 +138,7 @@ const CompetitorLikeBlog = () => {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen
-          message="Reverse-engineering competitor style and synthesis..."
+          toast="Analyzing competitor style and generating content..."
           timer={timer}
         />
       </div>
@@ -146,215 +146,241 @@ const CompetitorLikeBlog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10 font-inter">
-      <div className="max-w-6xl mx-auto space-y-10">
-        {/* Header Section */}
-        <div className="bg-white rounded-[40px] p-8 sm:p-12 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.06)] border border-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-blue-50 rounded-full blur-[100px] opacity-50 -mr-40 -mt-40 transition-transform duration-1000 group-hover:scale-110" />
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
+      <div className="max-w-7xl mx-auto space-y-6 p-0 mt-10 md:mt-0 md:p-5">
+        {/* Header */}
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-4">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-900 rounded-2xl shadow-xl shadow-slate-200">
-                <PenTool className="w-7 h-7 text-blue-400" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <PenTool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Competitor Like Blog
+                  </h1>
+                  <p className="text-sm sm:text-md text-gray-600">
+                    Analyze a competitor's blog style and generate new content on your topic using
+                    that style.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tighter">
-                  Style <span className="text-blue-600">Clone</span>
-                </h1>
-                <p className="text-slate-500 font-medium max-w-xl">
-                  Analyze competitor DNA and synthesize new content with matching structural
-                  patterns.
-                </p>
-              </div>
-            </div>
 
-            <button
-              onClick={handleReset}
-              className="btn btn-ghost btn-sm text-slate-400 hover:text-rose-500 font-bold uppercase tracking-widest text-[10px]"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reset Analysis
-            </button>
-          </div>
-        </div>
-
-        {/* Configuration Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-12 lg:col-span-12 bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-50 flex flex-col md:flex-row gap-6">
-            <div className="form-control flex-1 space-y-4">
-              <label className="label">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <LinkIcon size={12} className="text-blue-600" /> Competitor Source
-                </span>
-              </label>
-              <input
-                type="url"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                placeholder="https://competitor.com/blog-post"
-                className="input input-bordered h-16 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-800"
-              />
-            </div>
-
-            <div className="form-control flex-1 space-y-4">
-              <label className="label">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Type size={12} className="text-purple-600" /> Your Target Topic
-                </span>
-              </label>
-              <input
-                type="text"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                placeholder="e.g. Scaling Microservices in 2026"
-                className="input input-bordered h-16 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white focus:border-purple-500 transition-all font-bold text-slate-800"
-              />
-            </div>
-
-            <div className="flex items-end">
               <button
-                onClick={handleSubmit}
-                disabled={isLoading || !url.trim() || !topic.trim()}
-                className="btn btn-primary h-16 px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-2xl hover:bg-black transition-all group disabled:bg-slate-100 disabled:text-slate-400"
+                onClick={handleReset}
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
+                title="Reset all content"
               >
-                {isLoading ? (
-                  <span className="loading loading-spinner"></span>
-                ) : (
-                  <>
-                    Clone Style
-                    <Zap className="w-5 h-5 ml-2 group-hover:scale-125 transition-transform" />
-                  </>
-                )}
+                <RefreshCw className="w-4 h-4" />
+                Reset
               </button>
             </div>
           </div>
         </div>
 
+        {/* Input Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <LinkIcon className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Competitor URL</h2>
+            </div>
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://example.com/competitor-blog-post"
+              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Type className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Your Topic</h2>
+            </div>
+            <input
+              type="text"
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              placeholder="e.g., The Future of AI in Marketing"
+              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading || !url.trim() || !topic.trim()}
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg h-12 text-lg ${
+                !url.trim() || !topic.trim()
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:from-blue-700 hover:to-purple-700 hover:scale-[1.01]"
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              Generate Content
+            </button>
+          </div>
+        </div>
+
         {/* Results Section */}
-        <AnimatePresence mode="wait">
-          {result ? (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
-            >
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                {/* Analysis Grid */}
-                <div className="xl:col-span-4 space-y-6">
-                  <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-50 space-y-8">
-                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                      <Layout size={14} className="text-blue-600" /> Pattern Analysis
-                    </h2>
+        {result && (
+          <div className="gap-6">
+            {/* Analysis Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 border-b pb-4 border-gray-100">
+                <Layout className="w-5 h-5 text-purple-600" />
+                Style Analysis
+              </h2>
 
-                    <div className="space-y-6">
-                      <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-50">
-                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                          <Palette size={12} /> Tone & Resonance
-                        </p>
-                        <p className="text-sm font-bold text-slate-700 italic leading-relaxed">
-                          {result.analysis?.tone?.replace(
-                            /[\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD10-\uDDFF]/g,
-                            ""
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="p-5 bg-purple-50/50 rounded-2xl border border-purple-50">
-                        <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                          <Layout size={12} /> Structural Blueprint
-                        </p>
-                        <p className="text-sm font-bold text-slate-700 italic leading-relaxed">
-                          {result.analysis?.structure?.replace(
-                            /[\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD10-\uDDFF]/g,
-                            ""
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-50">
-                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                          <PenTool size={12} /> Sentence Architect
-                        </p>
-                        <p className="text-sm font-bold text-slate-700 italic leading-relaxed">
-                          {result.analysis?.style?.replace(
-                            /[\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD10-\uDDFF]/g,
-                            ""
-                          )}
-                        </p>
-                      </div>
-                    </div>
+              {result.analysis && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 h-full">
+                    <h3 className="text-sm font-bold text-purple-800 mb-1 flex items-center gap-2">
+                      <Palette className="w-4 h-4" /> Tone
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {result.analysis.tone.replace(
+                        /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+                        ""
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 h-full">
+                    <h3 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2">
+                      <Layout className="w-4 h-4" /> Structure
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {result.analysis.structure.replace(
+                        /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+                        ""
+                      )}
+                    </p>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 h-full">
+                    <h3 className="text-sm font-bold text-indigo-800 mb-1 flex items-center gap-2">
+                      <PenTool className="w-4 h-4" /> Style
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {result.analysis.style.replace(
+                        /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+                        ""
+                      )}
+                    </p>
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* Content Section */}
-                <div className="xl:col-span-8">
-                  <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 overflow-hidden">
-                    <div className="px-10 py-8 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
-                          Synthesized Content
-                        </h2>
+            {/* Content Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-10">
+              <div className="flex items-center justify-between mb-4 border-b pb-4 border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Generated Content
+                </h2>
+                <button
+                  onClick={() => handleCopy(result.content)}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                  title="Copy content"
+                >
+                  <Copy className="w-4 h-4" /> Copy
+                </button>
+              </div>
+
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  className="markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed"
+                  components={{
+                    h1: ({ node, ...props }) => (
+                      <h1
+                        className="text-3xl font-black text-gray-900 mt-8 mb-4 border-b pb-2"
+                        {...props}
+                      />
+                    ),
+                    h2: ({ node, ...props }) => (
+                      <h2
+                        className="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center gap-2"
+                        {...props}
+                      />
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <h3 className="text-xl font-bold text-gray-800 mt-6 mb-3" {...props} />
+                    ),
+                    h4: ({ node, ...props }) => (
+                      <h4 className="text-lg font-bold text-gray-800 mt-4 mb-2" {...props} />
+                    ),
+                    p: ({ node, ...props }) => (
+                      <p className="mb-4 text-gray-700 leading-relaxed font-medium" {...props} />
+                    ),
+                    ul: ({ node, ...props }) => (
+                      <ul
+                        className="list-disc pl-6 space-y-2 mb-4 text-gray-700 font-medium"
+                        {...props}
+                      />
+                    ),
+                    ol: ({ node, ...props }) => (
+                      <ol
+                        className="list-decimal pl-6 space-y-2 mb-4 text-gray-700 font-medium"
+                        {...props}
+                      />
+                    ),
+                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                    blockquote: ({ node, ...props }) => (
+                      <blockquote
+                        className="border-l-4 border-blue-500 pl-4 py-1 my-6 italic bg-blue-50/50 rounded-r-lg text-gray-700"
+                        {...props}
+                      />
+                    ),
+                    a: ({ node, ...props }) => (
+                      <a
+                        className="text-blue-600 font-bold hover:underline decoration-2 underline-offset-2 transition-all"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                      />
+                    ),
+                    table: ({ node, ...props }) => (
+                      <div className="overflow-x-auto my-8 rounded-xl border border-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200" {...props} />
                       </div>
-
-                      <button
-                        onClick={() => handleCopy(result.content)}
-                        className="btn btn-ghost btn-sm text-blue-600 font-black uppercase tracking-widest text-[10px] gap-2"
-                      >
-                        <Copy size={16} /> Copy Buffer
-                      </button>
-                    </div>
-
-                    <div className="p-10 bg-white max-h-[800px] overflow-y-auto custom-scroll">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        className="prose prose-slate max-w-none prose-h1:text-4xl prose-h1:font-black prose-h1:tracking-tight prose-h2:text-2xl prose-h2:font-black prose-p:text-slate-700 prose-p:leading-relaxed prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50/30 prose-blockquote:p-6 prose-blockquote:rounded-r-3xl prose-blockquote:italic"
-                        components={{
-                          table: ({ node, ...props }) => (
-                            <div className="overflow-x-auto my-8 rounded-3xl border border-slate-100 shadow-sm">
-                              <table className="table table-zebra w-full" {...props} />
-                            </div>
-                          ),
-                        }}
-                      >
-                        {result.content}
-                      </ReactMarkdown>
-                    </div>
-
-                    <div className="px-10 py-6 bg-slate-50/30 border-t border-slate-50 flex items-center justify-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Synthesis Complete • Optimized for Engagement
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                    ),
+                    thead: ({ node, ...props }) => <thead className="bg-gray-100" {...props} />,
+                    th: ({ node, ...props }) => (
+                      <th
+                        className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider border-b"
+                        {...props}
+                      />
+                    ),
+                    td: ({ node, ...props }) => (
+                      <td
+                        className="px-6 py-4 text-sm text-gray-700 border-b border-gray-100 font-medium"
+                        {...props}
+                      />
+                    ),
+                    code: ({ node, inline, ...props }) =>
+                      inline ? (
+                        <code
+                          className="bg-gray-200 text-pink-600 px-1.5 py-0.5 rounded text-sm font-mono"
+                          {...props}
+                        />
+                      ) : (
+                        <pre className="bg-gray-900 text-gray-100 p-4 rounded-xl overflow-x-auto my-6 font-mono text-sm leading-relaxed shadow-lg">
+                          <code {...props} />
+                        </pre>
+                      ),
+                  }}
+                >
+                  {result.content}
+                </ReactMarkdown>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-32 flex flex-col items-center justify-center text-center space-y-6"
-            >
-              <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center shadow-xl border border-slate-50 mb-4 opacity-50 group-hover:scale-110 transition-transform">
-                <Sparkles className="w-10 h-10 text-slate-200" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-slate-900 font-black text-2xl tracking-tight">
-                  Ready for Style Injection
-                </h3>
-                <p className="text-slate-400 font-medium max-w-sm">
-                  Provide a competitor URL to analyze their structural patterns and begin synthesis.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

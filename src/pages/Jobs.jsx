@@ -26,7 +26,7 @@ import {
   useToggleJobStatusMutation,
   useDeleteJobMutation,
 } from "@api/queries/jobQueries"
-import SkeletonLoader from "@components/UI/SkeletonLoader"
+import SkeletonLoader from "@components/ui/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"

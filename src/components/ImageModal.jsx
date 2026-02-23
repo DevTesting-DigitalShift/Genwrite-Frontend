@@ -4,7 +4,7 @@ import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import { generateImage, generateAltText, enhanceImage } from "@api/imageGalleryApi"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { COSTS } from "@/data/blogData"
 
 // View Constants

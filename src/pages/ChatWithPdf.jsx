@@ -5,16 +5,18 @@ import {
   Send,
   Trash2,
   Upload,
+  MessageSquare,
   User,
   Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Shield,
   File as FileIcon,
   Loader2,
   ArrowRight,
   BrainCircuit,
-  Plus,
-  Zap,
 } from "lucide-react"
-import toast from "@utils/toast"
 import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
 import { usePdfChatMutation } from "@api/queries/toolsQueries"
@@ -23,15 +25,17 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import toast from "@utils/toast"
 
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
   const { cacheKey } = pdfChat
-  const { mutateAsync: sendMessage, isPending: loading } = usePdfChatMutation()
+  const { mutateAsync: sendMessage, isLoading: loading } = usePdfChatMutation()
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
   const [file, setFile] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -42,9 +46,8 @@ const ChatWithPdf = () => {
     },
   ])
   const [input, setInput] = useState("")
-  const [isDragging, setIsDragging] = useState(false)
-  const fileInputRef = useRef(null)
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -55,8 +58,10 @@ const ChatWithPdf = () => {
   }, [messages, loading])
 
   const processFile = uploadedFile => {
-    if (!uploadedFile || uploadedFile.type !== "application/pdf") {
-      toast.error("Please upload a valid PDF file.")
+    if (!uploadedFile) return
+
+    if (uploadedFile.type !== "application/pdf") {
+      toast.error("Please upload a PDF file.")
       return
     }
 
@@ -69,7 +74,7 @@ const ChatWithPdf = () => {
     }
 
     setFile(uploadedFile)
-    toast.success(`${uploadedFile.name} added to spectral memory`)
+    toast.success(`${uploadedFile.name} uploaded successfully!`)
     setMessages([
       {
         id: 1,
@@ -80,8 +85,8 @@ const ChatWithPdf = () => {
     ])
   }
 
-  const handleFileUpload = e => {
-    const uploadedFile = e.target.files?.[0]
+  const handleFileChange = e => {
+    const uploadedFile = e.target.files[0]
     processFile(uploadedFile)
   }
 
@@ -90,15 +95,16 @@ const ChatWithPdf = () => {
     setIsDragging(true)
   }
 
-  const handleDragLeave = () => {
+  const handleDragLeave = e => {
+    e.preventDefault()
     setIsDragging(false)
   }
 
   const handleDrop = e => {
     e.preventDefault()
     setIsDragging(false)
-    const droppedFile = e.dataTransfer.files?.[0]
-    processFile(droppedFile)
+    const uploadedFile = e.dataTransfer.files[0]
+    processFile(uploadedFile)
   }
 
   const handleSendMessage = async () => {
@@ -115,7 +121,8 @@ const ChatWithPdf = () => {
       handlePopup({
         ...popupConfig,
         onConfirm: () => {
-          window.location.href = "/pricing"
+          // Navigate to pricing or handle confirm
+          window.location.href = "/pricing" // Or use navigate from router
         },
       })
       return
@@ -145,7 +152,7 @@ const ChatWithPdf = () => {
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
       ])
     } catch (err) {
-      toast.error(err?.message || "Failed to get response")
+      toast.error(err?.toast || "Failed to get response")
     }
   }
 
@@ -171,245 +178,217 @@ const ChatWithPdf = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter overflow-hidden flex flex-col">
+    <div className="min-h-screen">
       <Helmet>
-        <title>Docu-Intelligence | GenWrite</title>
+        <title>Chat with PDF | GenWrite</title>
       </Helmet>
 
-      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col p-4 md:p-8 gap-6 h-screen">
-        {/* Header - Glassmorphism */}
-        <header className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200/50 border border-white flex items-center justify-between relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32 transition-transform duration-1000 group-hover:scale-110" />
-
-          <div className="relative z-10 flex items-center gap-5">
-            <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-200">
-              <FileText className="w-7 h-7 text-blue-400" />
+      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 h-screen flex flex-col gap-6">
+        {/* Header - Always visible but adaptable */}
+        <header className="flex items-center justify-between bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-white/20 shadow-sm sticky top-0 z-10 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white transform hover:scale-105 transition-transform duration-300">
+              <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Docu-Intel</h1>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                Neural Document Processor
-              </p>
+              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Chat with PDF</h1>
+              <p className="text-sm text-slate-500 font-medium">Research Assistant</p>
             </div>
           </div>
 
-          <div className="relative z-10 flex items-center gap-4">
-            {file && (
-              <button
-                onClick={clearFile}
-                className="btn btn-ghost btn-sm text-slate-400 hover:text-rose-500 font-bold uppercase tracking-widest text-[10px]"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eject Session
-              </button>
-            )}
-          </div>
+          {file && (
+            <button
+              danger
+              type="text"
+              className="hover:bg-red-50 text-red-600 rounded-xl font-medium flex items-center gap-2"
+              onClick={clearFile}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">End Session</span>
+            </button>
+          )}
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 relative overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
             {!file ? (
-              /* LANDING / UPLOAD STATE */
+              /* EMPTY STATE / LANDING */
               <motion.div
-                key="landing"
-                initial={{ opacity: 0, y: 20 }}
+                key="upload-view"
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="h-full flex items-center justify-center"
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="items-center justify-center"
               >
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`w-full max-w-2xl bg-white rounded-[48px] p-12 shadow-2xl shadow-slate-200/60 border-2 border-dashed transition-all duration-500 flex flex-col items-center text-center space-y-8 ${
-                    isDragging ? "bg-blue-50 border-blue-400 scale-[1.02]" : "border-slate-100"
-                  }`}
-                >
-                  <div className="w-24 h-24 bg-slate-900 rounded-[32px] flex items-center justify-center shadow-2xl shadow-slate-200 group relative">
-                    <Upload className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform" />
-                    <div className="absolute -inset-1 bg-blue-400 rounded-[32px] blur opacity-20 group-hover:opacity-40 transition-opacity" />
-                  </div>
+                <div className="w-full">
+                  <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+                    <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                      Neural PDF Core
-                    </h2>
-                    <p className="text-slate-400 font-medium max-w-xs">
-                      Drag your source document here or click to initiate spectral scan.
-                    </p>
-                  </div>
+                    <div className="p-4 md:p-8 h-140">
+                      <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
+                          <Upload className="w-8 h-8 text-indigo-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">Upload your PDF</h3>
+                        <p className="text-slate-500 mt-2">Up to 2MB • Auto-OCR included</p>
+                      </div>
 
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept=".pdf"
-                    className="hidden"
-                  />
-
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn btn-primary px-10 h-16 rounded-2xl bg-slate-900 border-none text-white font-black shadow-2xl hover:bg-black transition-all gap-3"
-                  >
-                    Select PDF Source
-                    <Plus className="w-5 h-5" />
-                  </button>
-
-                  <div className="flex items-center gap-6 pt-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <Shield className="w-4 h-4 text-slate-300" />
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                        Encrypted
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Zap className="w-4 h-4 text-slate-300" />
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                        Instant OCR
-                      </span>
+                      <div className="relative group">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept=".pdf"
+                          className="hidden"
+                        />
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          className={`border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
+                            isDragging
+                              ? "bg-indigo-50 border-indigo-500 shadow-inner scale-[1.01]"
+                              : "bg-slate-50/50 border-slate-200 group-hover:bg-indigo-50/30 group-hover:border-indigo-400"
+                          }`}
+                        >
+                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
+                          <p className="text-slate-400 text-sm">or drag and drop here</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </motion.div>
             ) : (
-              /* CHAT INTERFACE */
+              /* CHAT STATE */
               <motion.div
-                key="chat"
+                key="chat-interface"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="h-full bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 flex flex-col overflow-hidden"
+                exit={{ opacity: 0 }}
+                className="flex flex-col h-full bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden"
               >
-                {/* Active Context Bar */}
-                <div className="h-16 bg-slate-900 px-8 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center shadow-lg shadow-rose-500/20">
-                      <FileIcon size={16} className="text-white" />
+                {/* File Context Bar */}
+                <div className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-50 p-1.5 rounded text-red-500">
+                      <FileIcon className="w-4 h-4" />
                     </div>
-                    <div className="flex flex-col">
-                      <h2 className="text-sm font-black text-white truncate max-w-[200px] md:max-w-md tracking-tight">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-700 truncate max-w-[200px] md:max-w-md">
                         {file.name}
                       </h2>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • Sync Active
-                      </span>
                     </div>
+                  </div>
+                  <div className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
                   </div>
                 </div>
 
-                {/* Message Stream */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 bg-slate-50/30 custom-scroll">
-                  {messages.map(msg => (
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50/30 scroll-smooth">
+                  {messages.map((msg, idx) => (
                     <motion.div
                       key={msg.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex gap-6 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       {msg.role === "model" && (
-                        <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 shadow-lg shadow-slate-200 mt-1">
-                          <BrainCircuit className="w-5 h-5 text-blue-400" />
+                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                          <BrainCircuit className="w-4 h-4" />
                         </div>
                       )}
 
+                      {/* Bubble */}
                       <div
-                        className={`
-                        max-w-[85%] md:max-w-[70%] p-6 rounded-3xl text-[15px] leading-relaxed shadow-sm
-                        ${
-                          msg.role === "user"
-                            ? "bg-slate-900 text-white rounded-tr-none"
-                            : "bg-white text-slate-700 border border-slate-100 rounded-tl-none font-medium"
-                        }
-                      `}
+                        className={`max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm ${ msg.role === "user" ? "bg-linear-to-br from-slate-900 to-slate-800 text-white rounded-tr-none": "bg-white text-slate-700 border border-slate-100 rounded-tl-none"}`}
                       >
                         {msg.role === "model" ? (
-                          <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-strong:text-slate-900 prose-pre:bg-slate-900">
+                          <div className="prose prose-sm max-w-none prose-slate">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                           </div>
                         ) : (
-                          <p className="font-bold">{msg.content}</p>
+                          msg.content
                         )}
-                        <p
-                          className={`text-[9px] font-black uppercase tracking-widest mt-4 opacity-30 ${msg.role === "user" ? "text-white" : "text-slate-400"}`}
-                        >
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
                       </div>
 
                       {msg.role === "user" && (
-                        <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 mt-1">
-                          <User className="w-5 h-5 text-white" />
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-1">
+                          <User className="w-4 h-4 text-slate-500" />
                         </div>
                       )}
                     </motion.div>
                   ))}
 
-                  {/* Neural Processing State */}
+                  {/* Loading Indicator */}
                   {loading && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex gap-6"
+                      className="flex gap-4"
                     >
-                      <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 shadow-lg shadow-slate-200 mt-1 animate-pulse">
-                        <BrainCircuit className="w-5 h-5 text-blue-400" />
+                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                        <BrainCircuit className="w-4 h-4" />
                       </div>
-                      <div className="bg-white p-6 rounded-3xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-3">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Neural Synthesis
-                        </span>
-                        <div className="flex gap-1">
-                          <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                          <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                          <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" />
-                        </div>
+                      <div className="bg-white px-6 py-4 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
                       </div>
                     </motion.div>
                   )}
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Matrix */}
-                <div className="p-6 md:p-10 bg-white border-t border-slate-50">
-                  <div className="max-w-4xl mx-auto relative flex items-end gap-4">
-                    <div className="relative flex-1">
-                      <textarea
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Inquire about document semantics..."
-                        rows={1}
-                        className="w-full bg-slate-50 border-slate-100 rounded-[28px] pl-8 pr-16 py-5 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none resize-none font-bold text-slate-800 custom-scroll min-h-[64px] max-h-48"
-                        disabled={loading}
-                      />
-                      <button
-                        onClick={handleSendMessage}
-                        disabled={!input.trim() || loading}
-                        className={`absolute right-2.5 bottom-2.5 w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-xl ${
-                          !input.trim() || loading
-                            ? "bg-slate-100 text-slate-300"
-                            : "bg-slate-900 text-white hover:bg-black hover:scale-105 active:scale-95"
-                        }`}
-                      >
-                        {loading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <Send className="w-5 h-5 rotate-12" />
-                        )}
-                      </button>
-                    </div>
+                {/* input Area */}
+                <div className="p-4 md:p-6 bg-white border-t border-slate-100">
+                  <div className="relative">
+                    <textarea
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder="Ask a question about your document..."
+                      rows={1}
+                      onInput={e => {
+                        e.target.style.height = "auto"
+                        e.target.style.height = e.target.scrollHeight + "px"
+                      }}
+                      disabled={loading}
+                      className="w-full pr-14 pl-5 py-4 rounded-2xl bg-slate-100 border border-slate-200 
+                 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
+                 hover:border-indigo-300 text-slate-800 text-sm resize-none 
+                 shadow-sm transition-all outline-none max-h-40 overflow-y-auto custom-scroll"
+                    />
+
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!input.trim() || loading}
+                      className={`absolute right-3 bottom-3 flex items-center justify-center 
+                  w-9 h-9 rounded-xl shadow-md transition-all duration-200
+                  ${
+                    !input.trim() || loading
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-linear-to-r from-indigo-600 to-violet-600 text-white hover:scale-105"
+                  }`}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
-                  <div className="flex items-center justify-center gap-6 mt-4 opacity-50">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      1 Credit / Prompt
-                    </span>
-                    <div className="h-1 w-1 bg-slate-300 rounded-full" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      Context Window High
-                    </span>
+
+                  <div className="text-center mt-3">
+                    <p className="text-xs text-slate-400">
+                      AI can assist with summaries and insights. (Cost: 1 credit)
+                    </p>
                   </div>
                 </div>
               </motion.div>

@@ -4,7 +4,7 @@ import toast from "@utils/toast"
 
 import useToolsStore from "@store/useToolsStore"
 import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
@@ -127,22 +127,22 @@ const KeywordScraping = () => {
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Keyword Scraping</h1>
+                  <p className="text-sm sm:text-md text-gray-600">
+                    Extract high-intent SEO keywords and clusters to build content that ranks.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Keyword Scraping</h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Extract high-intent SEO keywords and clusters to build content that ranks.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />

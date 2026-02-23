@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
-import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
+import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import useAuthStore from "@store/useAuthStore"
 import useImageStore from "@store/useImageStore"
 import { useNavigate } from "react-router-dom"
@@ -373,7 +373,7 @@ const ImageGallery = () => {
                     <span className="label-text font-semibold">Style</span>
                   </label>
                   <select
-                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.style}
                     onChange={e => setGenForm({ ...genForm, style: e.target.value })}
                   >
@@ -389,7 +389,7 @@ const ImageGallery = () => {
                     <span className="label-text font-semibold">Dimension</span>
                   </label>
                   <select
-                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.aspectRatio}
                     onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                   >
@@ -405,7 +405,7 @@ const ImageGallery = () => {
                     <span className="label-text font-semibold">Quality</span>
                   </label>
                   <select
-                    className="select outline-0 w-full h-12 rounded-lg border-slate-200 mt-1"
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.imageSize}
                     onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
                   >
@@ -457,16 +457,15 @@ const ImageGallery = () => {
                       })
                       setShowErrors(false)
                     }}
-                    className="btn btn-ghost bg-gray-100 h-12 px-8 rounded-lg text-slate-500 font-bold border border-slate-100 text-md"
+                    className="btn btn-primary flex-1 md:flex-none p-4 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-200 shadow-none text-slate-500 font-semibold text-md"
                   >
                     Reset
                   </button>
                   <button
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
-                    className="btn btn-primary flex-1 md:flex-none h-12 px-8 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-semibold text-md"
+                    className="btn btn-primary flex-1 md:flex-none p-4 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 rounded-md border-0 shadow-none text-white font-semibold text-md"
                   >
-                    <Sparkles className="w-5 h-5 mr-2" />
                     Generate
                   </button>
                 </div>

@@ -3,6 +3,7 @@ import type { Brand } from "@/types/brand"
 import React, { FC, useEffect, useMemo, useState } from "react"
 import toast from "@utils/toast"
 import clsx from "clsx"
+import { Switch } from "@components/ui/switch"
 
 interface BrandVoiceSelectorProps {
   label: string
@@ -56,16 +57,12 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
         <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
           {label}
         </label>
-        <input
-          type="checkbox"
-          id={`blog-isCheckedBrand`}
-          className={clsx(
-            "toggle toggle-primary",
-            size === "small" && "toggle-sm",
-            size === "large" && "toggle-md"
-          )}
+        <Switch
+          id="blog-isCheckedBrand"
           checked={state.isCheckedBrand}
-          onChange={handleBrandToggle}
+          onCheckedChange={(checked: boolean) => {
+            handleBrandToggle({ target: { checked } } as any)
+          }}
           disabled={isLoading || !brands || brands.length === 0}
         />
       </div>
@@ -82,7 +79,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           </label>
 
           <div
-            className="w-full h-[200px] overflow-y-auto p-1 space-y-2 border border-gray-300 p-3 rounded-md bg-base-100"
+            className="w-full h-[200px] overflow-y-auto p-3 space-y-2 border border-gray-300 rounded-md bg-base-100"
             style={{ scrollbarWidth: "thin", scrollBehavior: "smooth" }}
           >
             {brands.map((brand: Brand) => (
@@ -105,12 +102,10 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
                     onChange={() => handleUpdate({ brandId: brand._id })}
                   />
                   <div className="flex flex-col gap-0.5 overflow-hidden">
-                    <span className="font-montserrat font-medium uppercase truncate text-sm">
+                    <span className="font-semibold uppercase truncate text-sm">
                       {brand.nameOfVoice}
                     </span>
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-tight">
-                      {brand.describeBrand}
-                    </p>
+                    <p className="text-xs text-gray-500">{brand.describeBrand}</p>
                   </div>
                 </div>
               </div>
@@ -128,16 +123,10 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
             Add CTA at the End
           </label>
-          <input
-            type="checkbox"
+          <Switch
             id="blog-brand-add-cta"
-            className={clsx(
-              "toggle toggle-primary",
-              size === "small" && "toggle-sm",
-              size === "large" && "toggle-md"
-            )}
             checked={state.addCTA}
-            onChange={e => handleUpdate({ addCTA: e.target.checked })}
+            onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
           />
         </div>
       )}

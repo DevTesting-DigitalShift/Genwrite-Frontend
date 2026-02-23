@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Search, Image as ImageIcon, Check } from "lucide-react"
 import { getImages, searchImages } from "@api/imageGalleryApi"
-import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
+import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import toast from "@utils/toast"
 
 // Skeleton Loader Component

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
 

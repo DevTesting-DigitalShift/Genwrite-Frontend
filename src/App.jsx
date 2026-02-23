@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { Outlet } from "react-router-dom"
 import { Helmet } from "react-helmet"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { LoadingProvider, useLoading } from "@/context/LoadingContext"
 import { X } from "lucide-react"
