@@ -24,6 +24,7 @@ import useAuthStore from "@store/useAuthStore"
 import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"
 import { clsx } from "clsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 
 const Transactions = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
@@ -242,12 +243,12 @@ const Transactions = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr className="bg-slate-50/50 border-y border-slate-100">
-                    <th
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/50 border-y border-slate-100 hover:bg-slate-50/50">
+                    <TableHead
                       onClick={() => requestSort("createdAt")}
-                      className="cursor-pointer hover:text-blue-600 py-5 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400"
+                      className="cursor-pointer hover:text-blue-600 py-5 pl-8 text-sm text-slate-400 font-semibold"
                     >
                       <div className="flex items-center gap-2">
                         Date{" "}
@@ -258,73 +259,73 @@ const Transactions = () => {
                             <ChevronDown size={12} />
                           ))}
                       </div>
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">
                       Type
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">
                       Plan
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">
                       Credits
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400 text-right">
                       Amount
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">
                       Payment Method
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400 text-center">
                       Status
-                    </th>
-                    <th className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center pr-8">
+                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400 text-center pr-8">
                       Invoice
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan="8" className="py-24 text-center">
+                    <TableRow>
+                      <TableCell colSpan="8" className="py-24 text-center">
                         <span className="loading loading-spinner text-blue-600"></span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : sortedTransactions.length > 0 ? (
                     sortedTransactions.map((t, idx) => (
-                      <tr
+                      <TableRow
                         key={t._id || idx}
                         className="hover:bg-slate-50/50 transition-colors border-b border-slate-50"
                       >
-                        <td className="py-4 pl-8 text-sm font-semibold text-slate-700 whitespace-nowrap">
+                        <TableCell className="py-4 pl-8 text-sm font-semibold text-slate-700 whitespace-nowrap">
                           {new Date(t.createdAt).toLocaleDateString("en-US", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
                           })}
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <span className="text-sm font-medium text-slate-600 capitalize">
                             {t.type?.replace(/_/g, " ")}
                           </span>
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <span className="text-sm font-medium text-slate-600 capitalize">
                             {t.plan || "-"}
                           </span>
-                        </td>
-                        <td className="text-sm font-semibold text-slate-600">
+                        </TableCell>
+                        <TableCell className="text-sm font-semibold text-slate-600">
                           {t.creditsAdded || 0}
-                        </td>
-                        <td className="text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
                           <span className="text-sm font-bold text-slate-900">
                             ${((t.amount || 0) / 100).toFixed(2)}
                           </span>
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <span className="text-sm font-medium text-slate-500 italic">Card</span>
-                        </td>
-                        <td className="text-center">{getStatusBadge(t.status)}</td>
-                        <td className="text-center pr-8">
+                        </TableCell>
+                        <TableCell className="text-center">{getStatusBadge(t.status)}</TableCell>
+                        <TableCell className="text-center pr-8">
                           {t.invoiceUrl ? (
                             <a
                               href={t.invoiceUrl}
@@ -338,22 +339,22 @@ const Transactions = () => {
                           ) : (
                             <span className="text-slate-300">-</span>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan="8" className="py-32 text-center">
+                    <TableRow>
+                      <TableCell colSpan="8" className="py-32 text-center">
                         <div className="max-w-xs mx-auto space-y-2">
                           <p className="text-slate-400 font-medium italic">
                             No transactions yet. Your purchase history will appear here.
                           </p>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>

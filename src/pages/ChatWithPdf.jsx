@@ -25,7 +25,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
@@ -307,7 +307,7 @@ const ChatWithPdf = () => {
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm ${ msg.role === "user" ? "bg-linear-to-br from-slate-900 to-slate-800 text-white rounded-tr-none": "bg-white text-slate-700 border border-slate-100 rounded-tl-none"}`}
+                        className={`max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm ${msg.role === "user" ? "bg-linear-to-br from-slate-900 to-slate-800 text-white rounded-tr-none" : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"}`}
                       >
                         {msg.role === "model" ? (
                           <div className="prose prose-sm max-w-none prose-slate">

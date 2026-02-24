@@ -34,7 +34,7 @@ import JobCard from "@/layout/Jobs/JobCard"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getSocket } from "@utils/socket"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const PAGE_SIZE = 12
 
@@ -135,7 +135,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
             <tr key={job._id} className="hover:bg-slate-50/60 transition-colors group">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                     <Briefcase size={18} />
                   </div>
                   <div>
@@ -404,12 +404,8 @@ const Jobs = () => {
               <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-slate-800">
-                      Usage Overview
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm">
-                      Monthly Subscription Metrics
-                    </p>
+                    <h3 className="text-2xl font-black text-slate-800">Usage Overview</h3>
+                    <p className="text-slate-500 font-bold text-sm">Monthly Subscription Metrics</p>
                   </div>
                   <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100 shadow-sm">
                     <Briefcase size={20} />

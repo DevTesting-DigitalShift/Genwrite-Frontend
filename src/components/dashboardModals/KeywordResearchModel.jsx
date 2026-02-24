@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import useAnalysisStore from "@store/useAnalysisStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { X, ChevronLeft, ChevronRight, Search, Info } from "lucide-react"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {

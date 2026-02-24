@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const ShopifyDashboard = () => {
   const navigate = useNavigate()

@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { X } from "lucide-react"
 

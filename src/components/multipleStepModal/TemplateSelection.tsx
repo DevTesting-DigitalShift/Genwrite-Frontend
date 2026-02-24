@@ -1,6 +1,6 @@
 import { packages } from "@/data/templates"
 import { Switch } from "@components/ui/switch"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import clsx from "clsx"
 import { Crown, Search } from "lucide-react"
 import { FC, useEffect, useState, useMemo } from "react"

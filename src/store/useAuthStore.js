@@ -17,7 +17,7 @@ import {
 } from "@api/userApi"
 import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 // Utils
 const saveToken = token => localStorage.setItem("token", token)

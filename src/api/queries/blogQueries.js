@@ -16,7 +16,7 @@ import {
   getBlogPrompt,
   getBlogStatsById,
 } from "@api/blogApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 // ----------------------- Queries -----------------------
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 export const useCompetitiveAnalysisMutation = () => {
   return useMutation({

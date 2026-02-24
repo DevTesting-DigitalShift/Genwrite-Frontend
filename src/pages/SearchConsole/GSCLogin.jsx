@@ -1,5 +1,5 @@
 import useGscStore from "@store/useGscStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { LogIn } from "lucide-react"
 import { useCallback, useState } from "react"
 import { FcGoogle } from "react-icons/fc"

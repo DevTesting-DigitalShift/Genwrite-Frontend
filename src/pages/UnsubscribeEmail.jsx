@@ -2,7 +2,7 @@ import React, { useEffect } from "react"
 import { MailMinus, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import useAuthStore from "@store/useAuthStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const UnsubscribeEmail = () => {
   const navigate = useNavigate()

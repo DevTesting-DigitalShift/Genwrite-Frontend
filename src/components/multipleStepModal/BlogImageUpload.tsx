@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import {
   Upload as UploadIcon,

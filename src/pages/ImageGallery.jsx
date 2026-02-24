@@ -22,7 +22,7 @@ import useImageStore from "@store/useImageStore"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { COSTS } from "@/data/blogData"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { AnimatePresence, motion } from "framer-motion"
 
 // Skeleton Loader Component

@@ -64,30 +64,12 @@ const PrivateRoutesLayout = () => {
         <LayoutWithSidebarAndHeader />
 
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 px-3 md:px-6">
-          {/* Chatbot Button (hidden on /toolbox/:id) */}
-          {/* {!isToolboxRoute && (
-            <>
-              <div className="tooltip" data-tip="Chatbot">
-                <div
-                  onClick={() => setChatOpen(true)}
-                  className="rounded-full bg-blue-500 fixed z-40 bottom-4 sm:bottom-6 right-4 sm:right-6 transition ease-linear duration-300 cursor-pointer hover:shadow-lg shadow-md hover:translate-y-0.5"
-                >
-                  <RiChatAiLine className="p-2 sm:p-3 size-10 sm:size-12 text-white" />
-                </div>
-              </div>
-
-              <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
-            </>
-          )} */}
-
           <main>
             <Outlet />
           </main>
         </div>
-
-        {/* WhatsApp Floating Button - responsive, visible on all private screens */}
         <WhatsAppFloatButton
-          phoneNumber="917530003383" // TODO: Replace with your actual WhatsApp number
+          phoneNumber="917530003383"
           message="Hi! I'm interested in learning more about GenWrite."
           tooltipText="Chat with us on WhatsApp"
           position="bottom-right"

@@ -5,7 +5,7 @@ import TurndownService from "turndown"
 import { marked } from "marked"
 import { DOMSerializer } from "@tiptap/pm/model"
 import { Sparkles, Loader2 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
 const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) => {
@@ -231,7 +231,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
                 />
               </div>
 
-              <div className="modal-action p-4 border-t mt-0 bg-gray-50 flex justify-end gap-2">
+              <div className="modal-action p-4 border-t border-gray-300 mt-0 bg-gray-50 flex justify-end gap-2">
                 <button onClick={handleDeclineAIChanges} className="btn btn-ghost">
                   Decline
                 </button>

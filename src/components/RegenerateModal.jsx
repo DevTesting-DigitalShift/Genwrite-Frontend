@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { RefreshCw, Plus, X, Zap } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { TONES } from "@/data/blogData"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -102,7 +103,7 @@ const RegenerateModal = ({
 
   return (
     <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-3xl p-0 overflow-hidden">
+      <div className="modal-box w-11/12 max-w-2xl p-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-base-100">
           <div className="flex items-center gap-2">
@@ -138,7 +139,7 @@ const RegenerateModal = ({
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">Topic</label>
                   <input
                     type="text"
-                    className="input input-bordered w-full"
+                    className="input outline-0 w-full"
                     value={regenForm.topic}
                     onChange={e => updateRegenField("topic", e.target.value)}
                     placeholder="Blog topic..."
@@ -155,13 +156,12 @@ const RegenerateModal = ({
                       AI will auto-generate title and keywords based on your topic
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.options.performKeywordResearch}
-                    onChange={e =>
-                      updateRegenField("options.performKeywordResearch", e.target.checked)
+                    onCheckedChange={checked =>
+                      updateRegenField("options.performKeywordResearch", checked)
                     }
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -171,7 +171,7 @@ const RegenerateModal = ({
                     <label className="text-sm font-semibold text-gray-700 mb-2 block">Title</label>
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input outline-0 w-full"
                       value={regenForm.title}
                       onChange={e => updateRegenField("title", e.target.value)}
                       placeholder="Blog title..."
@@ -189,7 +189,7 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input outline-0 w-full"
                       value={focusKeywordInput}
                       onChange={e => setFocusKeywordInput(e.target.value)}
                       onKeyDown={e =>
@@ -224,7 +224,7 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input outline-0 w-full"
                       value={keywordInput}
                       onChange={e => setKeywordInput(e.target.value)}
                       onKeyDown={e =>
@@ -388,7 +388,7 @@ const RegenerateModal = ({
                       onChange={e =>
                         updateRegenField("numberOfImages", parseInt(e.target.value) ?? 0)
                       }
-                      className="input input-bordered w-full"
+                      className="input outline-0 w-full"
                     />
                   </div>
                 )}
@@ -428,11 +428,10 @@ const RegenerateModal = ({
                       Add FAQs (Frequently Asked Questions)
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.options.includeFaqs}
-                    onChange={e => updateRegenField("options.includeFaqs", e.target.checked)}
+                    onCheckedChange={checked => updateRegenField("options.includeFaqs", checked)}
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -440,11 +439,12 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-3 mt-3">
                     <span className="text-sm font-semibold text-gray-700">Include Interlinks</span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.options.includeInterlinks}
-                    onChange={e => updateRegenField("options.includeInterlinks", e.target.checked)}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.includeInterlinks", checked)
+                    }
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -456,13 +456,12 @@ const RegenerateModal = ({
                       </span>
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.options.includeCompetitorResearch}
-                    onChange={e =>
-                      updateRegenField("options.includeCompetitorResearch", e.target.checked)
+                    onCheckedChange={checked =>
+                      updateRegenField("options.includeCompetitorResearch", checked)
                     }
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -470,11 +469,12 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-3 mt-3">
                     <span className="text-sm font-semibold text-gray-700">Show Outbound Links</span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.options.addOutBoundLinks}
-                    onChange={e => updateRegenField("options.addOutBoundLinks", e.target.checked)}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.addOutBoundLinks", checked)
+                    }
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -482,11 +482,10 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-3 mt-3">
                     <span className="text-sm font-semibold text-gray-700">Add a Quick Summary</span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.isCheckedQuick}
-                    onChange={e => updateRegenField("isCheckedQuick", e.target.checked)}
+                    onCheckedChange={checked => updateRegenField("isCheckedQuick", checked)}
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -494,11 +493,10 @@ const RegenerateModal = ({
                   <div className="flex items-center gap-3 mt-3">
                     <span className="text-sm font-semibold text-gray-700">Easy to Understand</span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.easyToUnderstand}
-                    onChange={e => updateRegenField("easyToUnderstand", e.target.checked)}
+                    onCheckedChange={checked => updateRegenField("easyToUnderstand", checked)}
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -508,11 +506,10 @@ const RegenerateModal = ({
                       Embed YouTube Videos
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+                  <Switch
                     checked={regenForm.embedYouTubeVideos}
-                    onChange={e => updateRegenField("embedYouTubeVideos", e.target.checked)}
+                    onCheckedChange={checked => updateRegenField("embedYouTubeVideos", checked)}
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
 
@@ -524,11 +521,10 @@ const RegenerateModal = ({
                         Enable Automate Posting
                       </span>
                     </div>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-primary"
+                    <Switch
                       checked={regenForm.wordpressPostStatus}
-                      onChange={e => updateRegenField("wordpressPostStatus", e.target.checked)}
+                      onCheckedChange={checked => updateRegenField("wordpressPostStatus", checked)}
+                      className="data-[state=checked]:bg-[#1B6FC9]"
                     />
                   </div>
 
@@ -538,13 +534,12 @@ const RegenerateModal = ({
                         <span className="text-sm font-semibold text-gray-700">
                           Show Table of Content
                         </span>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-primary"
+                        <Switch
                           checked={regenForm.includeTableOfContents}
-                          onChange={e =>
-                            updateRegenField("includeTableOfContents", e.target.checked)
+                          onCheckedChange={checked =>
+                            updateRegenField("includeTableOfContents", checked)
                           }
+                          className="data-[state=checked]:bg-[#1B6FC9]"
                         />
                       </div>
 
@@ -552,7 +547,7 @@ const RegenerateModal = ({
                         Choose Platform
                       </label>
                       <select
-                        className="select select-bordered w-full mb-3"
+                        className="select outline-0 w-full mb-3"
                         value={regenForm.postingType}
                         onChange={e => updateRegenField("postingType", e.target.value)}
                       >
@@ -578,11 +573,10 @@ const RegenerateModal = ({
                       </p>
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-success"
+                  <Switch
                     checked={regenForm.costCutter}
-                    onChange={e => updateRegenField("costCutter", e.target.checked)}
+                    onCheckedChange={checked => updateRegenField("costCutter", checked)}
+                    className="data-[state=checked]:bg-[#1B6FC9]"
                   />
                 </div>
               </div>

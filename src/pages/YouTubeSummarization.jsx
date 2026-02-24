@@ -10,7 +10,7 @@ import {
   ListChecks,
   Shield,
 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 import useToolsStore from "@store/useToolsStore"
 import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"

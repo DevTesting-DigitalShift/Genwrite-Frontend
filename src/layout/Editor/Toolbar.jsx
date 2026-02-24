@@ -16,7 +16,7 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const Toolbar = ({ editor, onOpenImageModal }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)

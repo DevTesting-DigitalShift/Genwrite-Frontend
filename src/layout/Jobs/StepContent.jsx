@@ -11,7 +11,7 @@ import { fetchIntegrations } from "@api/otherApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const StepContent = ({
   currentStep,

@@ -13,7 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()

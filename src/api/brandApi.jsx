@@ -6,7 +6,7 @@ export const getBrands = async () => {
   return Array.isArray(data) ? data : data ? [data] : []
 }
 
-export const createBrandVoice = async (payload) => {
+export const createBrandVoice = async payload => {
   const res = await axiosInstance.post("/brand/addBrand", payload)
   return res.data
 }
@@ -16,14 +16,12 @@ export const updateBrandVoice = async (id, payload) => {
   return res.data
 }
 
-export const deleteBrandVoice = async (id) => {
+export const deleteBrandVoice = async id => {
   const res = await axiosInstance.delete(`/brand/${id}`)
   return res.data
 }
 
-export const getSiteInfo = async (url) => {
-  const res = await axiosInstance.get("/brand/site-info", {
-    params: { url },
-  })
+export const getSiteInfo = async url => {
+  const res = await axiosInstance.get("/brand/site-info", { params: { url } })
   return res.data
 }

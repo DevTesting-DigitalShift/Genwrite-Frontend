@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { Reorder } from "framer-motion"
 import { Edit3, Trash2, Image as ImageIcon, Check, X, ChevronUp, ChevronDown } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 export const parseImagesFromHtml = html => {
   if (!html) return []

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Plus, X, AlertCircle } from "lucide-react"
 import useContentStore from "@store/useContentStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [

@@ -1,26 +1,9 @@
-import {
-  Pencil,
-  ExternalLink,
-  ChevronDown,
-  MoreHorizontal,
-  FileText,
-  Globe,
-  MousePointer2,
-  Eye,
-  BarChart3,
-} from "lucide-react"
+import { Pencil, ExternalLink, ChevronDown, MoreHorizontal, FileText } from "lucide-react"
 import { useState } from "react"
 import { motion } from "framer-motion"
 import clsx from "clsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 
-/**
- *
- * @param {Object} props
- * @param {Array} props.items - Array of tab items with keys and labels.
- * @param {Array} props.filteredData - Data to be displayed in the table.
- * @param {string} props.activeTab - Currently active tab key.
- * @returns
- */
 export default function GSCAnalyticsTabs({
   items,
   filteredData,
@@ -38,7 +21,7 @@ export default function GSCAnalyticsTabs({
               key: tab,
               render: (text, row) => (
                 <div className="tooltip tooltip-right" data-tip={text}>
-                  <span className="text-gray-700 line-clamp-1 max-w-[200px]">
+                  <span className="text-gray-700 line-clamp-1 max-w-[200px] text-left">
                     {text + (tab === "country" ? ` (${row.country})` : "")}
                   </span>
                 </div>
@@ -46,7 +29,7 @@ export default function GSCAnalyticsTabs({
             },
           ]
         : []),
-      ...(tab === "page"
+      ...(["page"].includes(tab)
         ? [
             {
               title: "Blog Title",
@@ -54,7 +37,7 @@ export default function GSCAnalyticsTabs({
               key: "blogTitle",
               render: text => (
                 <div className="tooltip tooltip-right" data-tip={text}>
-                  <span className="font-medium text-gray-700 line-clamp-1 max-w-[300px]">
+                  <span className="font-medium text-gray-700 line-clamp-1 max-w-[300px] text-left">
                     {text}
                   </span>
                 </div>
@@ -66,20 +49,28 @@ export default function GSCAnalyticsTabs({
         title: "Clicks",
         dataIndex: "clicks",
         key: "clicks",
-        render: clicks => <span>{new Intl.NumberFormat().format(clicks)}</span>,
+        render: clicks => (
+          <span className="text-blue-600 font-semibold">
+            {new Intl.NumberFormat().format(clicks)}
+          </span>
+        ),
       },
       {
         title: "Impressions",
         dataIndex: "impressions",
         key: "impressions",
-        render: impressions => <span>{new Intl.NumberFormat().format(impressions)}</span>,
+        render: impressions => (
+          <span className="text-blue-600 font-semibold">
+            {new Intl.NumberFormat().format(impressions)}
+          </span>
+        ),
       },
       {
         title: "CTR (%)",
         dataIndex: "ctr",
         key: "ctr",
         render: ctr => (
-          <span className="text-slate-500 font-medium">{`${Number(ctr).toFixed(2)}%`}</span>
+          <span className="text-gray-700 font-medium">{`${Number(ctr).toFixed(2)}%`}</span>
         ),
       },
       {
@@ -87,7 +78,7 @@ export default function GSCAnalyticsTabs({
         dataIndex: "position",
         key: "position",
         render: position => (
-          <span className="text-slate-500 font-medium">{Number(position).toFixed(2)}</span>
+          <span className="text-gray-700 font-medium">{Number(position).toFixed(2)}</span>
         ),
       },
       ...(tab !== "country"
@@ -95,21 +86,22 @@ export default function GSCAnalyticsTabs({
             {
               title: "Actions",
               key: "actions",
+              align: "right",
               render: (_, record) => (
                 <div className="dropdown dropdown-left dropdown-end">
-                  <div tabIndex={0} role="button" className="btn btn-ghost btn-xs">
+                  <div tabIndex={0} role="button" className="btn btn-ghost btn-xs rounded-lg">
                     <MoreHorizontal className="size-4 text-gray-600" />
                   </div>
                   <ul
                     tabIndex={0}
-                    className="dropdown-content z-50 menu p-2 shadow-sm bg-base-100 rounded-box w-40 border border-gray-100"
+                    className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100"
                   >
                     <li>
                       <a
                         href={record.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                       >
                         <ExternalLink className="size-4" />
                         Go to Blog
@@ -119,7 +111,7 @@ export default function GSCAnalyticsTabs({
                       <a
                         href={`${import.meta.env.VITE_FRONTEND_URL}/blog/${record.blogId}`}
                         target="_blank"
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                       >
                         <Pencil className="size-4" />
                         Edit Blog
@@ -138,7 +130,7 @@ export default function GSCAnalyticsTabs({
   const columns = getColumns(activeTab)
 
   return (
-    <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-sm">
+    <div className="bg-white rounded-xl overflow-hidden border border-slate-200/60 shadow-sm">
       {/* Tabs Header */}
       <div className="bg-[#F8FAFC] border-b border-slate-100 flex items-center justify-between px-2">
         <div className="flex gap-8 px-4">
@@ -146,7 +138,7 @@ export default function GSCAnalyticsTabs({
             <button
               key={item.key}
               onClick={() => handleTabChange(item.key)}
-              className={`py-6 text-sm font-bold transition-all relative ${
+              className={`py-5 text-[15px] font-bold transition-all relative ${
                 activeTab === item.key ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
               }`}
             >
@@ -154,7 +146,7 @@ export default function GSCAnalyticsTabs({
               {activeTab === item.key && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full"
+                  className="absolute bottom-0 left-0 right-0 h-[3px] bg-indigo-600 rounded-t-full"
                 />
               )}
             </button>
@@ -165,14 +157,14 @@ export default function GSCAnalyticsTabs({
       {/* Table Content */}
       <div className="overflow-x-auto min-h-[400px]">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center p-20 gap-4">
+          <div className="flex flex-col items-center justify-center p-20 gap-4 min-h-[400px]">
             <span className="loading loading-spinner loading-lg text-indigo-600"></span>
             <p className="text-sm font-bold text-slate-400 italic">
               Analyzing your performance data...
             </p>
           </div>
         ) : filteredData?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-24 text-center">
+          <div className="flex flex-col items-center justify-center p-24 text-center min-h-[400px]">
             <div className="relative mb-6">
               <div className="absolute -inset-4 bg-slate-50 rounded-full blur-xl opacity-50" />
               <div className="relative w-20 h-20 bg-white shadow-xl shadow-slate-200/50 rounded-2xl flex items-center justify-center border border-slate-100">
@@ -188,55 +180,56 @@ export default function GSCAnalyticsTabs({
             </p>
           </div>
         ) : (
-          <table className="table w-full border-separate border-spacing-0">
-            <thead>
-              <tr className="border-b border-slate-100 bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-slate-100 bg-white hover:bg-white">
                 {columns.map(col => (
-                  <th
+                  <TableHead
                     key={col.key}
-                    className={`bg-white border-b border-slate-100 text-[10px] uppercase font-black tracking-widest text-slate-500 py-6 px-4 ${
-                      col.key === "actions" ? "text-right" : "text-left"
-                    }`}
+                    className={clsx(
+                      "bg-white text-[11px] uppercase font-bold tracking-widest text-slate-500 py-4 px-4 h-auto align-middle",
+                      col.align === "right" ? "text-right" : "text-left"
+                    )}
                   >
                     <div
                       className={clsx(
                         "flex items-center gap-2",
-                        col.key === "actions" && "justify-end"
+                        col.align === "right" && "justify-end"
                       )}
                     >
                       {col.title}
-                      {col.key !== "actions" && (
-                        <div className="flex flex-col -gap-1 opacity-30 group-hover:opacity-100">
-                          <ChevronDown className="size-3 rotate-180" />
-                          <ChevronDown className="size-3 -mt-1.5" />
-                        </div>
-                      )}
                     </div>
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredData.map((record, index) => (
-                <tr key={record.id || index} className="hover:bg-slate-50 group transition-all">
+                <TableRow
+                  key={record.id || index}
+                  className="hover:bg-slate-50/80 transition-all border-b border-slate-50"
+                >
                   {columns.map(col => (
-                    <td key={col.key} className="py-6 px-4 border-b border-slate-50">
+                    <TableCell
+                      key={col.key}
+                      className={clsx("py-5 px-4", col.align === "right" && "text-right")}
+                    >
                       <div
                         className={clsx(
-                          "text-[13px] font-bold text-slate-700",
-                          col.key === "actions" && "flex justify-end"
+                          "text-[14px] font-medium text-slate-700",
+                          col.align === "right" && "flex justify-end"
                         )}
                       >
                         {col.render
                           ? col.render(record[col.dataIndex], record)
                           : record[col.dataIndex]}
                       </div>
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>

@@ -6,7 +6,7 @@ import {
   generatePromptContent,
   fetchCategories,
 } from "@api/otherApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const useContentStore = create(
   devtools(

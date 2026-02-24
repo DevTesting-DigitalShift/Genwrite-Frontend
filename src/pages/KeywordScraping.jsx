@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 import useToolsStore from "@store/useToolsStore"
 import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"

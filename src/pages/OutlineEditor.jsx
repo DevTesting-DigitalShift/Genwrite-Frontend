@@ -1,6 +1,6 @@
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { Plus, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react"
 import React, { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -687,9 +687,7 @@ const OutlineEditor = () => {
                           Generating...
                         </>
                       ) : (
-                        <>
-                          Generate Outline
-                        </>
+                        <>Generate Outline</>
                       )}
                     </button>
                   )}

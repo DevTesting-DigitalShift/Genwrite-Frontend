@@ -5,7 +5,7 @@ import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { Plus, X, Crown } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
@@ -467,7 +467,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-semibold text-gray-700">
                   Perform Keyword Research
                 </label>

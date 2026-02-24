@@ -8,7 +8,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import useAuthStore from "@store/useAuthStore"
@@ -18,6 +18,7 @@ import { getGeneratedTitles } from "@api/blogApi"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 import { X } from "lucide-react"
+import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 
 interface AdvancedBlogModalProps {
   onSubmit: (data: unknown) => void
@@ -675,8 +676,84 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               ))}
             </div>
 
+            {/* Image Source Settings */}
+            {formData.isCheckedGeneratedImages && (
+              <div className="space-y-6 overflow-hidden mt-6">
+                <label className="text-sm font-semibold text-slate-800">Select Image Mode</label>
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {IMAGE_OPTIONS.map((option, index) => {
+                    const isRestricted = option.restrict && user?.subscription?.plan === "free"
+                    const isLimitReached =
+                      index === 1 &&
+                      (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
+                    const isDisabled = isRestricted || isLimitReached
+
+                    return (
+                      <button
+                        key={option.id}
+                        disabled={isDisabled}
+                        onClick={() => {
+                          handleInputChange({ target: { name: "imageSource", value: option.id } })
+                          if (option.id !== IMAGE_OPTIONS.at(-1)?.id) {
+                            handleInputChange({ target: { name: "blogImages", value: [] } })
+                          }
+                        }}
+                        className={clsx(
+                          "relative flex flex-col items-center justify-center p-4 rounded-xl border transition-all text-sm",
+                          formData.imageSource === option.id
+                            ? "border-blue-600 bg-blue-50 text-blue-900 font-semibold"
+                            : "bg-white border-slate-200 hover:border-blue-200 text-slate-600",
+                          isDisabled && "opacity-50 cursor-not-allowed bg-slate-50 border-slate-100"
+                        )}
+                      >
+                        <span className="text-center">{option.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id ? (
+                  <div className="flex items-center justify-between mt-4">
+                    <label className="text-sm font-semibold text-slate-800">
+                      Number of Images (0 = Decided by AI) :
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="15"
+                      value={formData.numberOfImages}
+                      onChange={e =>
+                        handleInputChange({
+                          target: {
+                            name: "numberOfImages",
+                            value: e.target.value ? parseInt(e.target.value) : 0,
+                          },
+                        })
+                      }
+                      className="w-48 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <BlogImageUpload
+                      id="blog-upload-images"
+                      label="Upload Custom Images"
+                      maxCount={15}
+                      initialFiles={formData.blogImages}
+                      onChange={(file: any) =>
+                        handleInputChange({ target: { name: "blogImages", value: file } })
+                      }
+                    />
+                    {errors.blogImages && (
+                      <p className="text-xs text-red-500 font-semibold mt-1">{errors.blogImages}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Reference Links */}
-            <div className="space-y-4">
+            <div className="space-y-4 mt-8">
               <h4 className="text-sm font-semibold">Reference Links (max 3)</h4>
 
               <input
@@ -822,7 +899,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               onClick={currentStep === 3 ? handleSubmit : handleNext}
               className="px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
             >
-              {currentStep === 3 ? <>Initialize Generation</> : <>Next</>}
+              {currentStep === 3 ? <>Generate Blog</> : <>Next</>}
             </button>
           </div>
         </div>

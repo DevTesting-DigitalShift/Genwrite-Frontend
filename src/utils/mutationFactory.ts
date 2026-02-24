@@ -1,4 +1,4 @@
-import toast from "@/utils/toast"
+import { toast } from "sonner"
 import type { BaseCRUDQuery } from "@/api/BaseCRUDQuery"
 interface CustomHandlers {
   onCreateSuccess?: () => void

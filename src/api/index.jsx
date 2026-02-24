@@ -1,4 +1,5 @@
 import axios from "axios"
+import { toast } from "sonner"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -37,13 +38,8 @@ axiosInstance.interceptors.response.use(
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
-      // Use toast store directly if possible or import it.
-      // Since this is a non-React file, we can import the store directly.
-      window.dispatchEvent(
-        new CustomEvent("show-toast", {
-          detail: { message: "Session expired. Please login again.", type: "alert-error" },
-        })
-      )
+      // Use sonner toast
+      toast.error("Session expired. Please login again.")
 
       // Redirect to login handled below
       if (window.location.pathname !== "/login") {

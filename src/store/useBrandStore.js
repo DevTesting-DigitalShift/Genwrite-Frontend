@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { getSiteInfo } from "@api/brandApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const useBrandStore = create(
   devtools(

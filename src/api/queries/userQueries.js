@@ -5,7 +5,7 @@ import {
   getTransactions,
   updateUserProfile,
 } from "@api/userApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 export const useProfileQuery = () => {
   return useQuery({ queryKey: ["userProfile"], queryFn: getProfile })

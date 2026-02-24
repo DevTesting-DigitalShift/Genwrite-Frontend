@@ -9,7 +9,7 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useHumanizeStore from "@store/useHumanizeStore"

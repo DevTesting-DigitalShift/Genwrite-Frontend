@@ -5,7 +5,7 @@ import StepContent from "./StepContent"
 import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { validateJobData } from "@/types/forms.schemas"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()

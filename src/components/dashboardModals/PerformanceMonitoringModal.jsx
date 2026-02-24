@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Tag, Tags, X, Activity, Info, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   const [formData, setFormData] = useState({
@@ -296,9 +296,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                           <td className="py-3 px-4 font-medium text-gray-800">{row.keyword}</td>
                           <td className="py-3 px-4 text-center text-gray-800">{row.count}</td>
                           <td className="py-3 px-4 text-center">
-                            <div>
-                              {row.density.toFixed(2)}%
-                            </div>
+                            <div>{row.density.toFixed(2)}%</div>
                           </td>
                         </tr>
                       ))
@@ -386,10 +384,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   return (
     <div className="fixed inset-0 z-999 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={closeFnc}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={closeFnc} />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -420,9 +415,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Select Blog
-            </label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Select Blog</label>
             <select
               className="select border border-gray-300 text-gray-800 w-full h-12 text-base rounded-lg outline-0 focus:ring-0 transition-all bg-white"
               onChange={handleBlogSelect}
@@ -529,9 +522,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
                         <Loader2 className="animate-spin mr-2" />
                       </>
                     ) : (
-                      <>
-                        Get Performance Insights
-                      </>
+                      <>Get Performance Insights</>
                     )}
                   </button>
                 </motion.div>

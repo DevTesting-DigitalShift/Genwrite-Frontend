@@ -14,7 +14,7 @@ import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import Highlight from "@tiptap/extension-highlight"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import {
   Bold,
   Italic,

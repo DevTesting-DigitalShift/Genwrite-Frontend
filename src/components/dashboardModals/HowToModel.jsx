@@ -33,14 +33,14 @@ const FeatureCarousel = ({ features }) => {
     setCurrentIndex(newIndex)
   }
 
-  const goToSlide = (slideIndex) => {
+  const goToSlide = slideIndex => {
     setCurrentIndex(slideIndex)
   }
 
   return (
     <div className="relative h-[450px] w-full max-w-3xl mx-auto mb-8">
       {/* Carousel container */}
-      <div className="relative h-full overflow-hidden rounded-lg shadow-lg bg-black">
+      <div className="relative h-full overflow-hidden">
         {/* Slides */}
         {features.map((feature, index) => (
           <div
@@ -56,7 +56,7 @@ const FeatureCarousel = ({ features }) => {
               allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             ></iframe>
-            <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/70 to-transparent text-white">
+            <div className="absolute bottom-0 left-0 w-full p-4 bg-linear-to-t from-black/70 to-transparent text-white">
               <h3 className="text-xl font-bold">{feature.title}</h3>
               <p className="text-sm">{feature.description}</p>
             </div>
@@ -144,7 +144,7 @@ const WhatsNewModal = ({ onClose }) => {
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 bg-opacity-60 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-4xl transform rounded-xl bg-gray-100 p-6 pt-12 text-left align-middle shadow-2xl transition-all duration-300 ease-in-out scale-95 animate-scale-in">
         <button
           onClick={onClose}
@@ -160,13 +160,8 @@ const WhatsNewModal = ({ onClose }) => {
           </p>
         </div>
 
-        {/* Carousel Component */}
         <FeatureCarousel features={features} />
       </div>
-      <style>{`
-        @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-      `}</style>
     </div>
   )
 }

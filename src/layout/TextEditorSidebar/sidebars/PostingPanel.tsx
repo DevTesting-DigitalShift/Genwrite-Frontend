@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { useAnimations } from "../hooks/useAnimations"
 import type { PostingPanelProps } from "../types"
 import { PLATFORM_LABELS, POPULAR_CATEGORIES } from "../constants"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 /**
  * Posting Panel - Complex publishing workflow

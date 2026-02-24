@@ -27,7 +27,7 @@ import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
 import { FaShopify, FaWix, FaYoutube, FaWordpress } from "react-icons/fa"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})

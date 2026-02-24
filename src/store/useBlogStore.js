@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { createBlog, createBlogMultiple, createQuickBlog } from "@api/blogApi"
 
 const useBlogStore = create(

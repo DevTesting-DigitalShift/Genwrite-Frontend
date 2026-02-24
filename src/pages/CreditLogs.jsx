@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import Fuse from "fuse.js"
 import { clsx } from "clsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 
 const CreditLogsTable = () => {
   const {
@@ -191,79 +192,79 @@ const CreditLogsTable = () => {
 
         {/* Table Section */}
         <div className="bg-white rounded-xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table w-full">
-              <thead>
-                <tr className="bg-slate-50/50 border-y border-slate-100">
-                  <th className="py-5 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="overflow-x-auto min-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 border-y border-slate-100 hover:bg-slate-50/50">
+                  <TableHead className="py-5 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Blog Topic
-                  </th>
-                  <th className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     <div className="flex items-center gap-2">
                       Date <ArrowUpDown size={12} />
                     </div>
-                  </th>
-                  <th className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     <div className="flex items-center gap-2">
                       Type <Filter size={12} />
                     </div>
-                  </th>
-                  <th className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     <div className="flex items-center gap-2">
                       Purpose <Filter size={12} />
                     </div>
-                  </th>
-                  <th className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     <div className="flex items-center gap-2">
                       Amount <ArrowUpDown size={12} />
                     </div>
-                  </th>
-                  <th className="py-5 pr-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  </TableHead>
+                  <TableHead className="py-5 pr-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Remaining Credits
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="py-32 text-center">
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-32 text-center">
                       <span className="loading loading-spinner text-blue-600"></span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : paginatedData.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-24 text-center">
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-24 text-center">
                       <div className="flex flex-col items-center gap-4">
                         <img src="/Images/trash-can.webp" alt="Empty" className="w-20 opacity-40" />
                         <p className="text-slate-400 font-medium text-sm">No Logs Found</p>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   paginatedData.map(log => (
-                    <tr
+                    <TableRow
                       key={log._id}
                       className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0"
                     >
-                      <td className="py-4 pl-8">
+                      <TableCell className="py-4 pl-8">
                         <span className="font-semibold text-slate-700 text-sm">
                           {log.metadata?.title || "System Transaction"}
                         </span>
-                      </td>
-                      <td className="py-4 font-medium text-slate-600 text-sm whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-4 font-medium text-slate-600 text-sm whitespace-nowrap">
                         {dayjs(log.createdAt).format("MMM DD, YYYY")}
-                      </td>
-                      <td className="py-4">
+                      </TableCell>
+                      <TableCell className="py-4">
                         <span className="text-sm font-medium text-slate-500 capitalize">
                           {log.amount < 0 ? "Debit" : "Credit"}
                         </span>
-                      </td>
-                      <td className="py-4">
+                      </TableCell>
+                      <TableCell className="py-4">
                         <span className="text-sm font-medium text-slate-600 capitalize">
                           {log.purpose?.replace(/_/g, " ").toLowerCase()}
                         </span>
-                      </td>
-                      <td className="py-4">
+                      </TableCell>
+                      <TableCell className="py-4">
                         <span
                           className={clsx(
                             "text-sm font-bold",
@@ -273,15 +274,15 @@ const CreditLogsTable = () => {
                           {log.amount < 0 ? "" : "+"}
                           {log.amount}
                         </span>
-                      </td>
-                      <td className="py-4 pr-8 font-semibold text-slate-700 text-sm">
+                      </TableCell>
+                      <TableCell className="py-4 pr-8 font-semibold text-slate-700 text-sm">
                         {log.remainingCredits}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}

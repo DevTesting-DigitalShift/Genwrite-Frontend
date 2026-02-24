@@ -16,7 +16,7 @@ import {
 import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useQueryClient } from "@tanstack/react-query"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const Badge = ({ children, variant = "gray" }) => {
   const variants = {

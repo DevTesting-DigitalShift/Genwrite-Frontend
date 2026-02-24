@@ -244,7 +244,7 @@ const SideBar_Header = () => {
                       }`}
                     />
                     {sidebarOpen && (
-                      <span className="text-sm font-medium whitespace-nowrap">{Menu.title}</span>
+                      <span className="text-sm font-semibold whitespace-nowrap">{Menu.title}</span>
                     )}
                   </NavLink>
                 </li>
@@ -352,23 +352,20 @@ const SideBar_Header = () => {
                     <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
                   </button>
                 </div>
-                <div className="dropdown dropdown-end">
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="avatar placeholder cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition rounded-full ml-5 mr-5"
-                  >
-                    <div className="bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold w-12 rounded-full">
+                <div className="dropdown dropdown-end relative">
+                  <div tabIndex={0} role="button" className="avatar cursor-pointer ml-5 mr-5">
+                    <div className="w-12 rounded-full bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold flex items-center justify-center">
                       {user?.avatar ? (
-                        <img src={user.avatar} alt="avatar" />
+                        <img src={user.avatar} alt="avatar" className="rounded-full" />
                       ) : (
                         <span>{user?.name?.[0]?.toUpperCase()}</span>
                       )}
                     </div>
                   </div>
+
                   <ul
                     tabIndex={0}
-                    className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-64 mt-4 border border-gray-100"
+                    className="dropdown-content right-0 z-50 menu p-3 shadow-xl bg-white rounded-xl w-64 mt-2 border border-gray-200"
                   >
                     <li className="menu-title px-4 py-2 border-b border-gray-100">
                       <span className="font-semibold text-gray-900 text-lg truncate leading-tight block">

@@ -4,7 +4,7 @@ import useContentStore from "@store/useContentStore"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 // Helper to detect if input is URL

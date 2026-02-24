@@ -1,28 +1,17 @@
-import toast from "@utils/toast"
-import {
-  RefreshCw,
-  Search,
-  Download,
-  Calendar,
-  Filter,
-  X,
-  MousePointer2,
-  Eye,
-  TrendingUp,
-  BarChart3,
-  AlertCircle,
-} from "lucide-react"
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
+import { Helmet } from "react-helmet"
+import useAuthStore from "@store/useAuthStore"
+import useGscStore from "@store/useGscStore"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { RefreshCw, Search, Download } from "lucide-react"
+import DateRangePicker from "@components/ui/DateRangePicker"
 import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
-import LoadingScreen from "@components/ui/LoadingScreen"
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
-import useAuthStore from "@store/useAuthStore"
-import useGscStore from "@store/useGscStore"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Helmet } from "react-helmet"
+import LoadingScreen from "@components/UI/LoadingScreen"
+import { toast } from "sonner"
 
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
@@ -194,16 +183,14 @@ const SearchConsole = () => {
   }
 
   // Handle custom date range change
-  const handleCustomDateRangeChange = (type, val) => {
-    const newRange = [...customDateRange]
-    if (type === "start") newRange[0] = val ? dayjs(val) : null
-    else newRange[1] = val ? dayjs(val) : null
-
-    setCustomDateRange(newRange)
-    if (newRange[0] && newRange[1]) {
+  const handleCustomDateRangeChange = dates => {
+    if (dates && dates[0] && dates[1]) {
+      setCustomDateRange(dates)
       setDateRange("custom")
-      setCurrentPage(1)
+      setCurrentPage(1) // Reset to first page on custom date range change
       refetch()
+    } else {
+      setError("Please select both start and end dates.")
     }
   }
 
@@ -379,110 +366,128 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-4 md:p-6 min-h-screen bg-[#FDFDFF]">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <h1 className="text-2xl font-bold text-indigo-600">Search Performance</h1>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleExport}
-                disabled={isLoading}
-                className="btn btn-sm h-10 px-6 bg-indigo-100 text-indigo-600 border-none hover:bg-indigo-200 normal-case font-bold rounded-lg gap-2"
-              >
-                <Download className="size-4" />
-                Export
-              </button>
-              <button
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="btn btn-sm h-10 px-6 bg-blue-100 text-blue-600 border-none hover:bg-blue-200 normal-case font-bold rounded-lg gap-2"
-              >
-                <RefreshCw className={clsx("size-4", isLoading && "animate-spin")} />
-                Refresh
-              </button>
+        <div className="p-2 md:p-6 min-h-screen mt-5 md:mt-0">
+          <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Search Performance
+              </h1>
+              <div className="flex gap-3 items-stretch sm:items-center mt-2 md:mt-0">
+                <button
+                  title="Export"
+                  onClick={handleExport}
+                  disabled={isLoading}
+                  type="dashed"
+                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
+                >
+                  Export
+                </button>
+                <button
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                  type="dashed"
+                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-blue-100/70 to-blue-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Total Clicks
+                </span>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                  {new Intl.NumberFormat().format(metrics.totalClicks)}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total clicks on filtered data
+                </p>
+              </div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-[#ebf5ff] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-blue-100/50 shadow-sm transition-all hover:shadow-md">
-              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
-                Total Clicks
-              </span>
-              <p className="text-4xl font-black text-blue-600 mb-3 tabular-nums">
-                {new Intl.NumberFormat().format(metrics.totalClicks)}
-              </p>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Total clicks on filtered data
-              </span>
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-purple-100/70 to-purple-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Total Impressions
+                </span>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
+                  {new Intl.NumberFormat().format(metrics.totalImpressions)}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total impressions on filtered data
+                </p>
+              </div>
+
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-teal-100/70 to-teal-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Average CTR
+                </span>
+                <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average click-through rate
+                </p>
+              </div>
+
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-amber-100/70 to-amber-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Average Position
+                </span>
+                <p className="text-xl sm:text-2xl font-bold text-amber-600">
+                  {metrics.avgPosition}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average search result position
+                </p>
+              </div>
             </div>
 
-            <div className="bg-[#f5f3ff] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-purple-100/50 shadow-sm transition-all hover:shadow-md">
-              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
-                Total Impressions
-              </span>
-              <p className="text-4xl font-black text-purple-600 mb-3 tabular-nums">
-                {new Intl.NumberFormat().format(metrics.totalImpressions)}
-              </p>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Total impressions on filtered data
-              </span>
-            </div>
-
-            <div className="bg-[#f0fdf4] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-emerald-100/50 shadow-sm transition-all hover:shadow-md">
-              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
-                Average CTR
-              </span>
-              <p className="text-4xl font-black text-emerald-600 mb-3 tabular-nums">
-                {metrics.avgCtr}%
-              </p>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Average click-through rate
-              </span>
-            </div>
-
-            <div className="bg-[#fffbeb] rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-amber-100/50 shadow-sm transition-all hover:shadow-md">
-              <span className="text-sm font-medium text-slate-500 mb-6 uppercase tracking-wider">
-                Average Position
-              </span>
-              <p className="text-4xl font-black text-amber-500 mb-3 tabular-nums">
-                {metrics.avgPosition}
-              </p>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Average search result position
-              </span>
-            </div>
-          </div>
-
-          {/* Filters Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-2 mb-8 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={dateRange}
-                onChange={e => handleDateRangeChange(e.target.value)}
-                className="select select-bordered select-sm h-10 border-slate-200 bg-white text-slate-600 font-bold focus:outline-none focus:border-indigo-400 rounded-lg min-w-[140px]"
-              >
-                <option value="7d">Last 7 Days</option>
-                <option value="30d">Last 30 Days</option>
-                <option value="180d">Last 180 Days</option>
-                <option value="custom">Custom Range</option>
-              </select>
-
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <div className="flex flex-wrap gap-3 items-center justify-between w-full">
+              <div className="flex gap-2 flex-1 min-w-[300px] items-center">
+                <select
+                  value={dateRange}
+                  onChange={e => handleDateRangeChange(e.target.value)}
+                  className={clsx(
+                    "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg min-w-[140px]",
+                    dateRange && "border-blue-500"
+                  )}
+                >
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                  <option value="180d">Last 6 Months</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {showDatePicker && (
+                  <div className="flex-1 w-full min-w-56">
+                    <DateRangePicker
+                      value={customDateRange}
+                      onChange={handleCustomDateRangeChange}
+                      maxDate={dayjs().endOf("day")}
+                      className={clsx(
+                        customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="relative flex-1 min-w-[200px] max-w-1/2">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => handleSearch(e.target.value)}
                   placeholder="Search title, query, or country"
-                  className="input input-bordered input-sm w-full pl-10 h-10 border-slate-200 bg-white text-slate-600 font-bold placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 rounded-lg"
+                  className={`pl-9 pr-4 py-1 h-10 w-full bg-white border ${
+                    searchQuery ? "border-blue-500" : "border-gray-300"
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 />
               </div>
 
               <select
                 value={blogTitleFilter || ""}
                 onChange={e => handleBlogTitleChange(e.target.value || null)}
-                className="select select-bordered select-sm h-10 border-slate-200 bg-white text-slate-600 font-bold focus:outline-none focus:border-indigo-400 rounded-lg flex-1 min-w-[200px]"
+                className={clsx(
+                  "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[200px]",
+                  blogTitleFilter && "border-blue-500"
+                )}
               >
                 <option value="">Select Blog Title</option>
                 {blogTitles.map(title => (
@@ -494,91 +499,78 @@ const SearchConsole = () => {
 
               <button
                 onClick={handleResetFilters}
-                className={`btn btn-sm h-10 px-6 rounded-lg font-bold border-none transition-all ${
+                type="default"
+                className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
                   isFilterApplied
-                    ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                    : "bg-slate-50 text-slate-400 cursor-not-allowed"
+                    ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
+                    : "bg-gray-100 hover:bg-gray-200 border-gray-300"
                 }`}
               >
                 Reset Filters
               </button>
             </div>
           </div>
-
-          {/* Custom Date Picker (conditional) */}
-          {showDatePicker && (
-            <div className="flex gap-4 mb-6 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-top-2">
-              <div className="flex flex-col gap-1 flex-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  className="input input-bordered h-10 border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
-                  value={customDateRange[0]?.format("YYYY-MM-DD") || ""}
-                  onChange={e => handleCustomDateRangeChange("start", e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  className="input input-bordered h-10 border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400"
-                  value={customDateRange[1]?.format("YYYY-MM-DD") || ""}
-                  onChange={e => handleCustomDateRangeChange("end", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
           {error && (
-            <div className="alert alert-error shadow-sm mb-6 rounded-2xl border-none text-white font-bold bg-rose-500">
-              <AlertCircle className="size-5" />
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
               <span>{error}</span>
             </div>
           )}
-
-          <div className="bg-white rounded-[32px] shadow-2xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden">
-            <GSCAnalyticsTabs
-              items={[
-                { key: "query", label: "Queries" },
-                { key: "page", label: "Pages" },
-                { key: "country", label: "Countries" },
-              ]}
-              filteredData={paginatedData}
-              activeTab={activeTab}
-              handleTabChange={handleTabChange}
-              isLoading={isLoading}
-            />
-          </div>
-
-          {/* Pagination */}
+          {blogTitleFilter && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
+              </h2>
+            </div>
+          )}
+          <GSCAnalyticsTabs
+            items={[
+              { key: "query", label: "Queries" },
+              { key: "page", label: "Pages" },
+              { key: "country", label: "Countries" },
+            ]}
+            filteredData={paginatedData} // Use paginated data instead of filteredData
+            activeTab={activeTab}
+            handleTabChange={handleTabChange}
+            isLoading={isLoading}
+          />
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
             <div className="text-sm font-medium text-gray-500">
               Showing {Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)} to{" "}
               {Math.min(filteredData.length, currentPage * pageSize)} of {filteredData.length}{" "}
               records
             </div>
-            <div className="join shadow-sm border border-gray-100">
-              <button
-                className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="join border border-gray-100">
+                <button
+                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                  Previous
+                </button>
+                <button className="join-item btn btn-sm bg-white border-gray-200 no-animation">
+                  Page {currentPage} of {Math.ceil(filteredData.length / pageSize) || 1}
+                </button>
+                <button
+                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
+                  disabled={currentPage >= Math.ceil(filteredData.length / pageSize)}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                  Next
+                </button>
+              </div>
+              <select
+                className="select select-bordered select-sm ml-10 border-gray-200 rounded-lg min-w-24"
+                value={pageSize}
+                onChange={e => {
+                  setPageSize(parseInt(e.target.value))
+                  setCurrentPage(1)
+                }}
               >
-                Previous
-              </button>
-              <button className="join-item btn btn-sm bg-white border-gray-200 no-animation">
-                Page {currentPage} of {Math.ceil(filteredData.length / pageSize) || 1}
-              </button>
-              <button
-                className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
-                disabled={currentPage >= Math.ceil(filteredData.length / pageSize)}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                Next
-              </button>
+                <option value={10}>10 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
             </div>
           </div>
         </div>

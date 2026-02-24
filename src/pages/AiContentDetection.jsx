@@ -13,7 +13,7 @@ import {
 import useToolsStore from "@store/useToolsStore"
 import { useAiDetectionMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { Helmet } from "react-helmet"
 
 const AiContentDetection = () => {

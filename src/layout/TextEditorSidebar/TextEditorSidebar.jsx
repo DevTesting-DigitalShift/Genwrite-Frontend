@@ -28,13 +28,13 @@ import {
   CheckCircle,
   MessageSquare,
 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { retryBlogById, getBlogPostings, exportBlog, proofreadBlogContent } from "@api/blogApi"
+import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { ScoreCard, CompetitorsList, ProofreadingSuggestion } from "./FeatureComponents"
+import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
@@ -294,7 +294,6 @@ const TextEditorSidebar = ({
   const NAV_ITEMS = [
     { id: "overview", icon: BarChart3, label: "Overview" },
     { id: "seo", icon: TrendingUp, label: "SEO Settings" },
-    { id: "suggestions", icon: Lightbulb, label: "AI Proofread" },
     { id: "bloginfo", icon: Info, label: "Blog Details" },
     ...(blog?.brandId || blog?.nameOfVoice
       ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
@@ -610,7 +609,9 @@ const TextEditorSidebar = ({
   const hasAnyIntegration =
     integrations?.integrations && Object.keys(integrations.integrations).length > 0
   const isDisabled = isPosting || !hasAnyIntegration
-  const isPro = !["free", "basic"].includes(userPlan)
+  const isPro = ["free", "basic"].includes(userPlan)
+
+  console.log(isPro)
 
   const PLATFORM_LABELS = {
     WORDPRESS: "WordPress",
@@ -1931,7 +1932,7 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Detailed Analysis Breakdown */}
             {result.insights?.analysis && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart className="w-4 h-4 text-purple-600" />
                   <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
@@ -1964,11 +1965,11 @@ const TextEditorSidebar = ({
 
             {/* Actionable Suggestions */}
             {result.insights?.suggestions && result.insights.suggestions.length > 0 && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Lightbulb className="w-4 h-4 text-amber-600" />
                   <span className="text-sm font-semibold text-gray-900">
-                    Actionable Suggestions
+                    Suggestions
                   </span>
                   <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                     {result.insights.suggestions.length}
@@ -1995,7 +1996,7 @@ const TextEditorSidebar = ({
 
             {/* Competitors Analysis */}
             {result.competitors && result.competitors.length > 0 && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="w-4 h-4 text-blue-600" />
                   <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
@@ -2012,145 +2013,7 @@ const TextEditorSidebar = ({
     </div>
   )
 
-  const renderSuggestionsPanel = () => {
-    // Handle applying a single suggestion
-    const handleApplySuggestion = (index, suggestion) => {
-      if (handleReplace && suggestion) {
-        // handleReplace in MainEditorPage already removes the suggestion from the list
-        handleReplace(suggestion.original, suggestion.change)
-        toast.success("Change applied successfully!")
-      }
-    }
-
-    // Handle rejecting a suggestion
-    const handleRejectSuggestion = index => {
-      setProofreadingResults(prev => prev.filter((_, i) => i !== index))
-    }
-
-    // Handle applying all suggestions
-    const handleApplyAll = () => {
-      if (proofreadingResults?.length > 0) {
-        proofreadingResults.forEach(s => handleReplace(s.original, s.change))
-        setProofreadingResults([])
-        toast.success(`Applied ${proofreadingResults.length} changes!`)
-      }
-    }
-
-    const handleProofreading = async () => {
-      if (!blog?._id) return
-      setIsAnalyzingProofreading(true)
-      try {
-        const results = await proofreadBlogContent({ id: blog._id })
-        // The API returns the suggestions directly or wrapped in data
-        const suggestions = Array.isArray(results) ? results : results?.suggestions || []
-        setProofreadingResults(suggestions)
-
-        if (suggestions.length > 0) {
-          toast.success(`Found ${suggestions.length} suggestions!`)
-        } else {
-          toast.info("No suggestions found. Your content looks great!")
-        }
-      } catch (error) {
-        console.error("Proofreading error:", error)
-        toast.error(error.message || "Failed to analyze content")
-      } finally {
-        setIsAnalyzingProofreading(false)
-      }
-    }
-
-    // Add original index to each suggestion for tracking
-    const suggestionsWithIndex =
-      proofreadingResults?.map((s, i) => ({ ...s, originalIndex: i })) || []
-
-    return (
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-500 rounded-xl shadow-lg shadow-amber-100">
-                <Lightbulb className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-gray-900">Proofreading</h3>
-                  {isPro && (
-                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
-                      PRO
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                  AI Grammar & Style
-                </p>
-              </div>
-            </div>
-            {setIsSidebarOpen && (
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-
-          {proofreadingResults?.length > 0 && (
-            <button
-              onClick={handleApplyAll}
-              className="w-full mt-4 px-4 py-2.5 bg-linear-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Apply All {proofreadingResults.length} Changes
-            </button>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-          {isAnalyzingProofreading ? (
-            <div className="text-center py-16">
-              <div className="relative w-16 h-16 mx-auto mb-4">
-                <div className="absolute inset-0 border-4 border-blue-200 rounded-full" />
-                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              </div>
-              <p className="text-sm font-medium text-gray-700 mb-1">Analyzing your content...</p>
-              <p className="text-xs text-gray-500">This may take a moment</p>
-            </div>
-          ) : suggestionsWithIndex.length > 0 ? (
-            <AnimatePresence mode="popLayout">
-              {suggestionsWithIndex.map((suggestion, i) => (
-                <ProofreadingSuggestion
-                  key={`${suggestion.original}-${i}`}
-                  suggestion={suggestion}
-                  index={suggestion.originalIndex}
-                  onApply={handleApplySuggestion}
-                  onReject={handleRejectSuggestion}
-                />
-              ))}
-            </AnimatePresence>
-          ) : (
-            <div className="text-center py-16 h-[80vh] flex flex-col items-center justify-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-linear-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
-                <Lightbulb className="w-10 h-10 text-gray-400" />
-              </div>
-              <h4 className="font-semibold text-gray-700 mb-1">No suggestions yet</h4>
-              <p className="text-xs text-gray-500 mb-4 max-w-[200px] mx-auto">
-                Run AI proofreading to get grammar and style suggestions
-              </p>
-              <button
-                onClick={handleProofreading}
-                className="px-5 py-2.5 bg-linear-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
-              >
-                Run AI Proofreading
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
+  // Suggestions panel removed
   const renderBlogInfoPanel = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
@@ -2788,7 +2651,7 @@ const TextEditorSidebar = ({
               </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
-                  className={`select select-bordered w-full ${platformError ? "select-error" : ""}`}
+                  className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""}`}
                   value={selectedIntegration?.rawPlatform || ""}
                   onChange={e => {
                     const v = e.target.value
@@ -2843,7 +2706,7 @@ const TextEditorSidebar = ({
 
               <input
                 type="text"
-                className={`input input-bordered w-full ${categoryError ? "input-error" : ""}`}
+                className={`input input-bordered outline-0 w-full ${categoryError ? "input-error" : ""}`}
                 placeholder="Select or type..."
                 value={selectedCategory || ""}
                 onChange={e => handleCategoryChange([e.target.value])}
@@ -2951,8 +2814,6 @@ const TextEditorSidebar = ({
         return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
-      case "suggestions":
-        return renderSuggestionsPanel()
       case "sectionTools":
         return renderSectionToolsPanel()
       default:
@@ -3126,7 +2987,7 @@ const TextEditorSidebar = ({
             <div>
               <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
               <select
-                className="select select-bordered w-full"
+                className="select select-bordered outline-0 w-full"
                 value={repostSettings.platform}
                 onChange={e => setRepostSettings({ ...repostSettings, platform: e.target.value })}
               >

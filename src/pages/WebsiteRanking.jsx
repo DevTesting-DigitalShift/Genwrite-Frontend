@@ -23,7 +23,7 @@ import {
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 /* --- Custom UI Components replacing antd --- */
 
@@ -571,7 +571,9 @@ const WebsiteRanking = () => {
                 <Card className="rounded-xl shadow-sm border-gray-200 p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-700">Target Website URL</label>
+                      <label className="text-sm font-semibold text-gray-700">
+                        Target Website URL
+                      </label>
                       <input
                         placeholder="https://example.com"
                         value={url}
@@ -589,7 +591,9 @@ const WebsiteRanking = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Keywords to Check</label>
+                        <label className="text-sm font-semibold text-gray-700">
+                          Keywords to Check
+                        </label>
                         <input
                           type="number"
                           min={1}

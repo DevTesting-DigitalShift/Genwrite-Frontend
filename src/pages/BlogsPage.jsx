@@ -30,8 +30,8 @@ import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import DateRangePicker from "@components/ui/DateRangePicker"
+import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { useProAction } from "@/hooks/useProAction"
-import toast from "@utils/toast"
 import {
   archiveBlogById,
   getAllBlogs,
@@ -46,6 +46,7 @@ import {
   ITEMS_PER_PAGE,
   SORT_OPTIONS,
 } from "@/data/blogFilters"
+import { toast } from "sonner"
 
 dayjs.extend(isBetween)
 
@@ -304,41 +305,76 @@ const BlogsPage = () => {
 
   const handleArchive = useCallback(
     async id => {
+      // Optimistic UI Update
+      queryClient.setQueryData(["blogs", userId, blogFilters], oldData => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            data: page.data.filter(blog => blog._id !== id),
+            totalItems: Math.max(0, page.totalItems - 1),
+          })),
+        }
+      })
+      toast.success("Article archived")
+
       try {
         await archiveBlogById(id)
-        toast.success("Article archived")
-        refetchActive()
       } catch (err) {
         toast.error("Failed to archive")
+        refetchActive()
       }
     },
-    [refetchActive]
+    [queryClient, userId, blogFilters, refetchActive]
   )
 
   const handleRestore = useCallback(
     async id => {
+      // Optimistic UI Update
+      queryClient.setQueryData(
+        ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
+        oldData => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            trashedBlogs: oldData.trashedBlogs.filter(blog => blog._id !== id),
+            totalBlogs: Math.max(0, oldData.totalBlogs - 1),
+          }
+        }
+      )
+      toast.success("Article restored to main grid")
+
       try {
         await restoreBlogById(id)
-        toast.success("Article restored to main grid")
-        queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       } catch (err) {
         toast.error("Restoration failed")
+        queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       }
     },
-    [queryClient]
+    [queryClient, userId, blogFilters, currentPage, pageSize]
   )
 
   const handleBulkDelete = useCallback(async () => {
+    // Optimistic UI Update
+    queryClient.setQueryData(
+      ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
+      oldData => {
+        if (!oldData) return oldData
+        return { ...oldData, trashedBlogs: [], totalBlogs: 0 }
+      }
+    )
+    setCurrentPage(1)
+    toast.success("Trash emptied. Permanent deletion complete.")
+
     try {
       await deleteAllBlogs()
-      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
-      setCurrentPage(1)
-      toast.success("Trash emptied. Permanent deletion complete.")
     } catch (err) {
       toast.error("delete failed")
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
     }
-  }, [queryClient])
+  }, [queryClient, userId, blogFilters, currentPage, pageSize])
 
   // Total pages for trashcan pagination
   const totalTrashPages = Math.ceil(totalItems / pageSize)
@@ -421,7 +457,7 @@ const BlogsPage = () => {
             <select
               value={blogFilters.status}
               onChange={e => updateBlogFilters({ status: e.target.value })}
-              className="select min-w-[180px] focus:none outline-0"
+              className="select min-w-[180px] focus:none rounded-lg outline-0"
             >
               {BLOG_STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -433,7 +469,7 @@ const BlogsPage = () => {
             <select
               value={blogFilters.sort}
               onChange={e => updateBlogFilters({ sort: e.target.value })}
-              className="select min-w-[200px] focus:none outline-0"
+              className="select min-w-[200px] focus:none rounded-lg outline-0"
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -443,27 +479,28 @@ const BlogsPage = () => {
             </select>
           </div>
 
-          <div className="dropdown dropdown-end focus:none outline-0">
-            <div
-              tabIndex={0}
-              role="button"
-              className={clsx(
-                "btn gap-3 transition-all",
-                hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
-                  ? "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              )}
-            >
-              <Filter size={18} />
-              Advanced
-              {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              )}
-            </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={clsx(
+                  "btn gap-3 transition-all rounded-lg",
+                  hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
+                    ? "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                )}
+              >
+                <Filter size={18} />
+                Advanced
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                )}
+              </button>
+            </PopoverTrigger>
 
-            <div
-              tabIndex={0}
-              className="menu dropdown-content z-50 card card-compact w-80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-white border border-slate-100 mt-2 gap-4 block"
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              className="w-80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-white border border-slate-100 rounded-2xl z-100"
             >
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
                 <h4 className="font-bold text-slate-800 text-sm">Detailed Filters</h4>
@@ -481,7 +518,7 @@ const BlogsPage = () => {
                   <select
                     value={blogFilters.status}
                     onChange={e => updateBlogFilters({ status: e.target.value })}
-                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
+                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold outline-0"
                   >
                     {BLOG_STATUS_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -492,7 +529,7 @@ const BlogsPage = () => {
                   <select
                     value={blogFilters.sort}
                     onChange={e => updateBlogFilters({ sort: e.target.value })}
-                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold"
+                    className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold outline-0"
                   >
                     {SORT_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -511,7 +548,7 @@ const BlogsPage = () => {
                     value={tempGscClicks || ""}
                     onChange={e => setTempGscClicks(parseInt(e.target.value) || null)}
                     placeholder="e.g. 50"
-                    className="input input-sm h-10 w-full rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all"
+                    className="input input-sm h-10 w-full rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all outline-0"
                   />
                 </div>
 
@@ -524,7 +561,7 @@ const BlogsPage = () => {
                     value={tempGscImpressions || ""}
                     onChange={e => setTempGscImpressions(parseInt(e.target.value) || null)}
                     placeholder="e.g. 1000"
-                    className="input input-sm h-10 w-full rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all"
+                    className="input input-sm h-10 w-full rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all outline-0"
                   />
                 </div>
 
@@ -548,8 +585,8 @@ const BlogsPage = () => {
                   />
                 </div>
               </div>
-            </div>
-          </div>
+            </PopoverContent>
+          </Popover>
 
           {hasActiveFilters && (
             <button
@@ -612,7 +649,7 @@ const BlogsPage = () => {
             </button>
           </motion.div>
         ) : (
-          <div className="space-y-20">
+          <div>
             <div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {allBlogs.map(blog => (
                 <BlogCard

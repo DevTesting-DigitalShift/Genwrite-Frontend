@@ -16,7 +16,7 @@ import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")

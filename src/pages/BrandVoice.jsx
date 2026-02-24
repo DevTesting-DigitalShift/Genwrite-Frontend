@@ -10,6 +10,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
+import { toast } from "sonner"
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -96,12 +97,6 @@ const BrandVoice = () => {
     resetSiteInfo()
   }, [brands, resetSiteInfo])
 
-  // Helper to show toast
-  // Helper to show toast
-  const showToast = (msg, type = "alert-info") => {
-    window.dispatchEvent(new CustomEvent("show-toast", { detail: { message: msg, type } }))
-  }
-
   const validateForm = useCallback(() => {
     const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
@@ -185,18 +180,18 @@ const BrandVoice = () => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      showToast("Invalid file type. Please upload a .csv file.", "alert-error")
+      toast.error("Invalid file type. Please upload a .csv file.")
       event.target.value = null
       return
     }
     const maxSizeInBytes = 20 * 1024
     if (file.size > maxSizeInBytes) {
-      showToast("File size exceeds 20KB limit. Please upload a smaller file.", "alert-error")
+      toast.error("File size exceeds 20KB limit. Please upload a smaller file.")
       event.target.value = null
       return
     }
     if (file.type !== "text/csv") {
-      showToast("Please upload a valid CSV file.", "alert-error")
+      toast.error("Please upload a valid CSV file.")
       event.target.value = null
       return
     }
@@ -211,7 +206,7 @@ const BrandVoice = () => {
       setErrors(prev => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
-    reader.onerror = () => showToast("Error reading CSV file.", "alert-error")
+    reader.onerror = () => toast.error("Error reading CSV file.")
     reader.readAsText(file)
     event.target.value = null
   }, [])
@@ -234,7 +229,7 @@ const BrandVoice = () => {
     )
 
     if (isDuplicate) {
-      showToast("A brand voice already exists with that name and link.", "alert-error")
+      toast.error("A brand voice already exists with that name and link.")
       setIsUploading(false)
       return
     }
@@ -289,7 +284,7 @@ const BrandVoice = () => {
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
-            showToast("Failed to delete Brand Voice", "alert-error")
+            toast.error("Failed to delete Brand Voice")
           }
         },
         confirmProps: {
@@ -314,7 +309,7 @@ const BrandVoice = () => {
       return
     }
     if (url === lastScrapedUrl) {
-      showToast("This URL has already been fetched.", "alert-info")
+      toast.info("This URL has already been fetched.")
       return
     }
     try {
@@ -323,9 +318,7 @@ const BrandVoice = () => {
         .then(() => {
           setIsFormReset(false)
         })
-        .catch(() =>
-          showToast("Failed to fetch site info. Please try a different URL.", "alert-error")
-        )
+        .catch(() => toast.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setErrors(prev => ({
         ...prev,

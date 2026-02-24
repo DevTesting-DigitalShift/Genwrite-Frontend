@@ -38,7 +38,7 @@ import {
   getEmailPreferencesAPI,
   updateEmailPreferencesAPI,
 } from "@api/userApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const INTEREST_OPTIONS = [
   { value: "technology", label: "Technology" },
@@ -455,17 +455,13 @@ const Profile = () => {
                     <span className="block text-2xl font-medium text-blue-600">
                       {referralStats.totalJoined}
                     </span>
-                    <span className="text-sm font-semibold text-slate-400">
-                      Joined
-                    </span>
+                    <span className="text-sm font-semibold text-slate-400">Joined</span>
                   </div>
                   <div className="bg-emerald-50/50 p-4 rounded-2xl text-center">
                     <span className="block text-2xl font-medium text-emerald-600">
                       {referralStats.converted}
                     </span>
-                    <span className="text-sm font-semibold text-slate-400">
-                      Converted
-                    </span>
+                    <span className="text-sm font-semibold text-slate-400">Converted</span>
                   </div>
                 </div>
               </div>

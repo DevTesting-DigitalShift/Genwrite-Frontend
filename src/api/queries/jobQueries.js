@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getJobs, createJob, updateJob, startJob, stopJob, deleteJob } from "@api/jobApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { pushToDataLayer } from "@utils/DataLayer"
 
 export const useJobsQuery = (enabled = true) => {

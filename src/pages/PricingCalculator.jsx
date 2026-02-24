@@ -175,7 +175,10 @@ const PricingCalculator = () => {
                         step="100"
                         value={wordCount}
                         onChange={e => setWordCount(parseInt(e.target.value))}
-                        className="range range-primary h-3 rounded-full"
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                        style={{
+                          background: `linear-gradient(to right, #4f46e5 ${((wordCount - 500) / 4500) * 100}%, #e0e7ff ${((wordCount - 500) / 4500) * 100}%)`,
+                        }}
                       />
                       <div className="flex justify-between mt-4 px-2">
                         <span className="text-xs font-black text-gray-400">500</span>
@@ -303,7 +306,10 @@ const PricingCalculator = () => {
                           max="20"
                           value={imageCount}
                           onChange={e => setImageCount(parseInt(e.target.value))}
-                          className="range range-accent h-3 rounded-full"
+                          className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-none"
+                          style={{
+                            background: `linear-gradient(to right, #059669 ${(imageCount / 20) * 100}%, #d1fae5 ${(imageCount / 20) * 100}%)`,
+                          }}
                         />
                         <div className="flex justify-between mt-4 px-2">
                           {[0, 5, 10, 15, 20].map(v => (
@@ -374,9 +380,8 @@ const PricingCalculator = () => {
             {/* RIGHT SIDE (STICKY SUMMARY) */}
             <div className="xl:col-span-4">
               <div className="sticky top-24 space-y-6">
-                <div className="bg-linear-to-br from-gray-900 to-blue-900 rounded-xl p-10 text-white shadow-2xl shadow-blue-200 overflow-hidden relative group">
-
-                  <h3 className="text-gray-400 font-black uppercase tracking-[0.2em] text-xs mb-8 text-center">
+                <div className="bg-white rounded-xl p-10 border border-gray-200 text-gray-900 shadow-xl overflow-hidden relative group">
+                  <h3 className="text-gray-500 font-black uppercase tracking-[0.2em] text-xs mb-8 text-center">
                     Estimated Total Cost
                   </h3>
 
@@ -386,34 +391,36 @@ const PricingCalculator = () => {
                     animate={{ y: 0, opacity: 1 }}
                     className="text-center mb-10"
                   >
-                    <p className="text-8xl font-black tracking-tighter mb-2">{totalCost}</p>
-                    <p className="text-blue-300 font-black tracking-widest uppercase">
+                    <p className="text-8xl font-black tracking-tighter mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                      {totalCost}
+                    </p>
+                    <p className="text-blue-600 font-black tracking-widest uppercase">
                       Credits per Article
                     </p>
                   </motion.div>
 
                   <div className="space-y-6 mb-10">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400 font-bold">Base Engine</span>
-                      <span className="font-black text-blue-100">{baseCost}</span>
+                      <span className="text-gray-500 font-bold">Base Engine</span>
+                      <span className="font-black text-blue-600">{baseCost}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400 font-bold">Feature Stack</span>
-                      <span className="font-black text-purple-300">{featuresCost}</span>
+                      <span className="text-gray-500 font-bold">Feature Stack</span>
+                      <span className="font-black text-purple-600">{featuresCost}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm border-b border-white/10 pb-6">
-                      <span className="text-gray-400 font-bold">Visual Assets</span>
-                      <span className="font-black text-emerald-300">{imagesCost}</span>
+                    <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-6">
+                      <span className="text-gray-500 font-bold">Visual Assets</span>
+                      <span className="font-black text-emerald-600">{imagesCost}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={() => navigate("/signup")}
-                    className="btn btn-primary btn-lg w-full h-16 rounded-2xl bg-white border-none text-blue-900 font-black text-xl normal-case gap-3 hover:bg-blue-50 hover:scale-[1.02] transition-all shadow-xl shadow-blue-500/20 mb-4"
+                    className="btn w-full h-16 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black text-lg gap-3"
                   >
                     Start Generating <Rocket className="size-6" />
                   </button>
-                  <p className="text-[10px] text-center text-gray-500 font-bold uppercase tracking-widest">
+                  <p className="text-sm mt-2 text-center text-gray-400 font-semibold">
                     No credit card required for trial
                   </p>
                 </div>

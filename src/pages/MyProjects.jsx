@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/ui/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import {
   ArrowDownUp,
   Calendar,

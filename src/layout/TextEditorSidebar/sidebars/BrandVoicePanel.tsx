@@ -65,7 +65,7 @@ const BrandVoicePanel: React.FC<BrandVoicePanelProps> = ({ blog, onRegenerateWit
       className="flex flex-col h-full bg-white"
     >
       {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
+      <div className="p-4 border-b bg-linear-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
             <Crown className="w-5 h-5 text-white" />

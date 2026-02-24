@@ -12,7 +12,7 @@ import {
   Clock,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("")

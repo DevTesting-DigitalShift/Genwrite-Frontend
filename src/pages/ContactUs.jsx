@@ -18,18 +18,13 @@ import {
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-
-  const addToast = (msg, type) => {
-    window.dispatchEvent(
-      new CustomEvent("show-toast", { detail: { message: msg, type: `alert-${type}` } })
-    )
-  }
 
   const handleInputChange = e => {
     const { name, value } = e.target
@@ -80,13 +75,13 @@ const ContactUs = () => {
         formData,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
-      addToast("Message sent successfully!", "success")
+      toast.success("Message sent successfully!")
       setFormData({ name: "", email: "", subject: "", message: "" })
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 5000)
     } catch (error) {
       console.error("FAILED...", error)
-      addToast("Failed to send message. Try again.", "error")
+      toast.error("Failed to send message. Try again.")
     } finally {
       setIsSubmitting(false)
     }

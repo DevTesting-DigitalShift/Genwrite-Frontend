@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 const useAnalysisStore = create(
   devtools(

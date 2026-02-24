@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import { generateImage, generateAltText, enhanceImage } from "@api/imageGalleryApi"

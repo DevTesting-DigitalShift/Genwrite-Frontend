@@ -30,7 +30,7 @@ import {
   Check,
   ExternalLink,
 } from "lucide-react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -620,7 +620,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   }, [normalEditor])
 
   const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 overflow-hidden shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
+    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2">
       <div className="flex gap-1 shrink-0">
         {[1, 2, 3, 4].map(level => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
@@ -924,7 +924,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       <select
         value={selectedFont}
         onChange={e => safeEditorAction(() => setSelectedFont(e.target.value))}
-        className="select select-bordered select-sm w-32 shrink-0"
+        className="select select-bordered outline-0 select-sm w-32 shrink-0"
       >
         {FONT_OPTIONS.map(font => (
           <option key={font.value} value={font.value}>
@@ -952,7 +952,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     >
       <div className="sticky top-0 bg-white shadow-sm shrink-0 z-10">{renderToolbar()}</div>
 
-      <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
+      <div className="flex-1 overflow-auto custom-scroll bg-white p-4 border border-gray-300">
         {normalEditor && (
           <AIBubbleMenu
             editor={normalEditor}
@@ -1000,13 +1000,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               value={linkUrl}
               onChange={e => setLinkUrl(e.target.value)}
               placeholder="https://example.com"
-              className="input input-bordered w-full mb-6"
+              className="input outline-0 w-full mb-6"
             />
             <div className="modal-action flex justify-end gap-2">
               <button className="btn btn-ghost" onClick={() => setLinkModalOpen(false)}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleConfirmLink}>
+              <button
+                className="btn bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white"
+                onClick={handleConfirmLink}
+              >
                 Ok
               </button>
             </div>

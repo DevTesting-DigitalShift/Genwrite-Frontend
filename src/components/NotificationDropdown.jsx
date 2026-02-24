@@ -94,7 +94,7 @@ const NotificationDropdown = ({ notifications }) => {
             className={`w-6 h-6 transition-colors ${unreadCount > 0 ? "text-blue-600 fill-blue-600/10" : "text-gray-600"}`}
           />
           {unreadCount > 0 && (
-            <span className="badge badge-sm badge-primary indicator-item border-white shadow-sm bg-blue-600">
+            <span className="badge badge-sm badge-primary rounded-full! indicator-item border-white shadow-sm bg-blue-600">
               {unreadCount}
             </span>
           )}

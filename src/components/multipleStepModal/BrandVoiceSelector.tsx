@@ -1,7 +1,7 @@
 import { brandsQuery } from "@api/Brand/Brand.query"
 import type { Brand } from "@/types/brand"
 import React, { FC, useEffect, useMemo, useState } from "react"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 

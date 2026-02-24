@@ -21,7 +21,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAllBlogsQuery } from "@api/queries/blogQueries"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 import {
   Dialog,

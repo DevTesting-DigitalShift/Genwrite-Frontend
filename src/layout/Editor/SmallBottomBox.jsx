@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useAuthStore from "@store/useAuthStore"
 import { useRetryBlogMutation } from "@api/queries/blogQueries"
-import toast from "@utils/toast"
+import { toast } from "sonner"
 
 import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
 // import ChatBox from "../generateBlog/ChatBox"
