@@ -2,21 +2,16 @@ import React, { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { useNavigate } from "react-router-dom"
-import { Button, message, Input } from "antd"
-import { CopyOutlined } from "@ant-design/icons"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { RefreshCw, Sparkles } from "lucide-react"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
-
-const { TextArea } = Input
+import { motion, AnimatePresence } from "framer-motion"
+import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 // Helper to detect if input is URL
 const isUrl = text => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
-  const [keywords, setKeywords] = useState([])
-  const [newKeyword, setNewKeyword] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -25,264 +20,211 @@ const GenerateMetaData = () => {
 
   // Calculate word count
   const wordCount = useCallback(() => {
-    // If URL, word count is 0 or we can just return a dummy valid number so it doesn't block
-    if (isUrl(content)) return 300 // Return sufficient length for URL
-    const words = content
-      .trim()
-      .split(/\s+/)
-      .filter(word => word.length > 0)
-    return words.length
+    if (isUrl(content)) return 300 // Sufficient for URL to pass backend validation
+    const text = content.trim()
+    if (!text) return 0
+    return text.split(/\s+/).filter(word => word.length > 0).length
   }, [content])
 
   const handleGenerateMetadata = useCallback(async () => {
     if (!content.trim()) {
-      message.error("Please enter some content to generate metadata.")
+      toast.error("Please enter some content to generate metadata.")
       return
     }
 
-    if (!isUrl(content) && content.length < 300) {
-      message.error("Content must be at least 300 characters long.")
+    if (!isUrl(content) && wordCount() < 300) {
+      toast.error("Content must be at least 300 words long.")
       return
     }
 
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      openUpgradePopup({ featureName: "Metadata Generation", navigate })
+      navigate("/pricing")
       return
     }
 
     setIsGenerating(true)
     try {
-      // If content is URL, send as url param, otherwise content
       const payload = isUrl(content) ? { url: content } : { content }
       await generateMetadata(payload)
-      message.success("Metadata generated successfully!")
+      toast.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
-      message.error("Failed to generate metadata.")
+      toast.error("Failed to generate metadata.")
     } finally {
       setIsGenerating(false)
     }
-  }, [content, userPlan, navigate])
-
-  const addKeyword = useCallback(() => {
-    if (newKeyword.trim()) {
-      const newKeywordsArray = newKeyword
-        .split(",")
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
-      if (newKeywordsArray.length > 0) {
-        setKeywords(prev => [...prev, ...newKeywordsArray])
-      }
-      setNewKeyword("")
-    }
-  }, [newKeyword, keywords])
-
-  const handleKeyDown = useCallback(
-    e => {
-      if (e.key === "Enter") {
-        e.preventDefault()
-        addKeyword()
-      }
-    },
-    [addKeyword]
-  )
-
-  const removeKeyword = useCallback(keyword => {
-    setKeywords(prev => prev.filter(k => k !== keyword))
-  }, [])
+  }, [content, userPlan, navigate, generateMetadata, wordCount])
 
   const copyToClipboard = (text, label) => {
+    if (!text) return
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        message.success(`${label} copied to clipboard!`)
+        toast.success(`${label} copied to clipboard!`)
       })
       .catch(() => {
-        message.error(`Failed to copy ${label}.`)
+        toast.error(`Failed to copy ${label}.`)
       })
   }
 
   const handleReset = useCallback(() => {
     setContent("")
-    setKeywords([])
-    setNewKeyword("")
     resetMetadata()
-    message.success("Content and metadata reset!")
+    toast.success("Content and metadata reset!")
   }, [resetMetadata])
 
   if (isGenerating) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Generating metadata..." />
+        <ProgressLoadingScreen message="Generating high-impact metadata..." />
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-5">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          {/* Left section */}
-          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                SEO Metadata Generator
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Create SEO-friendly metadata for your content
-              </p>
-            </div>
+    <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-12 px-4 md:px-6">
+      {/* Header Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#6366f1] rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-
-          {/* Reset button row for mobile */}
-          <div className="flex justify-end mt-2 lg:mt-0 flex-shrink-0">
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Reset all content"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Reset
-            </button>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-[#0f172a] tracking-tight">
+              SEO Metadata Generator
+            </h1>
+            <p className="text-gray-400 text-sm font-medium">
+              Create SEO-friendly metadata for your content
+            </p>
           </div>
         </div>
+
+        <button
+          onClick={handleReset}
+          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors py-2 border-gray-300 border p-3 rounded-lg"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reset
+        </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-file-text w-5 h-5 text-blue-600"
-              >
-                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
-                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
-                <path d="M10 9H8"></path>
-                <path d="M16 13H8"></path>
-                <path d="M16 17H8"></path>
-              </svg>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {isUrl(content) ? "Target URL" : "Content"}
-              </h2>
+      <div className="space-y-6">
+        {/* Input Section */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-6 md:p-8 space-y-6">
+            <div className="flex items-center gap-2 text-[#4f46e5]">
+              <FileText className="w-5 h-5" />
+              <h2 className="text-sm font-bold uppercase tracking-wider">Content</h2>
             </div>
-            {isUrl(content) ? (
-              <Input
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="Enter URL (e.g., https://example.com/blog)..."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            ) : (
-              <TextArea
+
+            <div className="relative">
+              <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="Paste content or enter URL..."
-                rows={12}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
+                className="w-full min-h-[350px] p-5 text-gray-600 bg-white border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-gray-300 text-base leading-relaxed"
               />
-            )}
-          </div>
 
-          <div className="flex justify-end items-center">
-            <p
-              className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}
+              <div className="mt-4 flex justify-end">
+                <span
+                  className={`text-[11px] font-semibold tracking-tight ${wordCount() < 300 && content.length > 0 ? "text-amber-500" : "text-gray-300"}`}
+                >
+                  Word count: {wordCount()} (Minimum 300 words required)
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleGenerateMetadata}
+              disabled={isGenerating || !content.trim() || (!isUrl(content) && wordCount() < 300)}
+              className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
+                disabled:bg-[#f8fafc] disabled:text-gray-300 disabled:cursor-not-allowed
+                ${
+                  wordCount() >= 300 || isUrl(content)
+                    ? "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-indigo-200"
+                    : "bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9]"
+                }`}
             >
-              {!isUrl(content) && (
-                <>
-                  Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
-                </>
-              )}
-            </p>
+              Generate Metadata
+            </button>
           </div>
-
-          <Button
-            onClick={() => handleGenerateMetadata()}
-            loading={isGenerating}
-            disabled={isGenerating || !content.trim() || (!isUrl(content) && content.length < 300)}
-            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
-              !content.trim() || (!isUrl(content) && content.length < 300)
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            {isGenerating ? "Generating..." : "Generate Metadata"}
-          </Button>
         </div>
 
-        {metadata && (
-          <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">Meta Title</label>
-                <Button
-                  type="link"
+        {/* Results Section */}
+        <AnimatePresence mode="wait">
+          {metadata && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              {/* Title Result */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
+                <button
                   onClick={() => copyToClipboard(metadata.title, "Meta Title")}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 p-0"
+                  className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
                 >
-                  <CopyOutlined className="w-4 h-4" />
-                  Copy
-                </Button>
+                  <Copy size={16} />
+                </button>
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-400 uppercase">Meta Title</p>
+                  <p className="text-[#0f172a] font-bold text-lg leading-snug pr-8">
+                    {metadata.title || "No title generated"}
+                  </p>
+                </div>
               </div>
-              <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
-                {metadata.title || "No title generated"}
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">Meta Description</label>
-                <Button
-                  type="link"
-                  onClick={() => copyToClipboard(metadata.description, "Meta Description")}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 p-0"
-                >
-                  <CopyOutlined className="w-4 h-4" />
-                  Copy
-                </Button>
-              </div>
-              <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
-                {metadata.description || "No description generated"}
-              </div>
-            </div>
 
-            {metadata.tags && metadata.tags.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Tags</label>
-                  <Button
-                    type="link"
-                    onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 p-0"
-                  >
-                    <CopyOutlined className="w-4 h-4" />
-                    Copy All
-                  </Button>
-                </div>
-                <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 flex flex-wrap gap-2">
-                  {metadata.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-blue-200"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+              {/* Description Result */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
+                <button
+                  onClick={() => copyToClipboard(metadata.description, "Meta Description")}
+                  className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
+                >
+                  <Copy size={16} />
+                </button>
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-400 uppercase">Meta Description</p>
+                  <p className="text-gray-600 font-medium text-sm leading-relaxed pr-8">
+                    {metadata.description || "No description generated"}
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Tags Result */}
+              {metadata.tags && metadata.tags.length > 0 && (
+                <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm font-bold text-gray-400 uppercase">Keywords & Tags</p>
+                    <button
+                      onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
+                      className="text-[#4f46e5] font-bold uppercase text-sm hover:underline"
+                    >
+                      Copy All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {metadata.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-100"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="md:col-span-2 flex items-center justify-center gap-2 py-4">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-bold text-gray-400 uppercase">
+                  Metadata successfully optimized
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

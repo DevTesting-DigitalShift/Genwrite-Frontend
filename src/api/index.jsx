@@ -1,4 +1,5 @@
 import axios from "axios"
+import { toast } from "sonner"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -37,9 +38,14 @@ axiosInstance.interceptors.response.use(
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
+      // Use sonner toast
+      toast.error("Session expired. Please login again.")
+
       // Redirect to login handled below
       if (window.location.pathname !== "/login") {
-        window.location.href = "/login"
+        setTimeout(() => {
+          window.location.href = "/login"
+        }, 1500)
       }
     }
 

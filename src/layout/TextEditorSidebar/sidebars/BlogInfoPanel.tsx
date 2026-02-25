@@ -1,12 +1,8 @@
 import { motion } from "framer-motion"
 import { Info, Crown, TagIcon } from "lucide-react"
-import { Button, Input, message } from "antd"
 import { useAnimations } from "../hooks/useAnimations"
 import type { BlogInfoPanelProps } from "../types"
 
-/**
- * Blog Info Panel - Display and edit blog metadata like slug, template, category, etc.
- */
 const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
   blog,
   blogSlug,
@@ -20,15 +16,15 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
 
   const handleSlugSave = async () => {
     if (!blogSlug.trim()) {
-      return message.error("Slug cannot be empty")
+      return alert("Slug cannot be empty")
     }
     try {
       await onSlugSave(blogSlug)
       setIsEditingSlug(false)
-      message.success("Slug updated successfully")
+      alert("Slug updated successfully")
     } catch (error) {
       console.error("Failed to update slug:", error)
-      message.error("Failed to update slug")
+      alert("Failed to update slug")
     }
   }
 
@@ -72,16 +68,16 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
           </div>
           {isEditingSlug && !hasPublishedLinks ? (
             <div className="space-y-2">
-              <Input
-                size="small"
+              <input
+                type="text"
                 value={blogSlug}
                 onChange={e => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
-                className="text-sm font-mono"
+                className="input input-bordered input-sm w-full text-sm font-mono focus:outline-hidden"
               />
-              <Button size="small" type="primary" block onClick={handleSlugSave}>
+              <button onClick={handleSlugSave} className="btn btn-sm btn-primary w-full text-white">
                 Save Slug
-              </Button>
+              </button>
             </div>
           ) : (
             <div>

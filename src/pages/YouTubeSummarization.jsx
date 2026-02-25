@@ -8,12 +8,13 @@ import {
   Link as LinkIcon,
   FileText,
   ListChecks,
+  Shield,
 } from "lucide-react"
-import { Button, message } from "antd"
+import { toast } from "sonner"
 
 import useToolsStore from "@store/useToolsStore"
 import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
@@ -42,12 +43,12 @@ const YouTubeSummarization = () => {
 
   const handleSubmit = async () => {
     if (!inputUrl.trim()) {
-      message.error("Please enter a YouTube URL")
+      toast.error("Please enter a YouTube URL")
       return
     }
 
     if (!isValidYoutubeUrl(inputUrl)) {
-      message.error(
+      toast.error(
         "Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
       )
       return
@@ -57,10 +58,10 @@ const YouTubeSummarization = () => {
 
     summarizeVideo(payload, {
       onSuccess: () => {
-        message.success("Video summarized successfully!")
+        toast.success("Video summarized successfully!")
       },
       onError: err => {
-        message.error(err?.message || "Failed to summarize video. Please try again.")
+        toast.error(err?.message || "Failed to summarize video. Please try again.")
         console.error(err)
       },
     })
@@ -69,10 +70,10 @@ const YouTubeSummarization = () => {
   const handleCopy = async content => {
     try {
       await navigator.clipboard.writeText(content)
-      message.success("Content copied to clipboard")
+      toast.success("Content copied to clipboard")
     } catch (err) {
       console.error("Failed to copy content")
-      message.error("Failed to copy content")
+      toast.error("Failed to copy content")
     }
   }
 
@@ -85,7 +86,7 @@ const YouTubeSummarization = () => {
   const handleReset = () => {
     setInputUrl("")
     resetYoutubeSummary()
-    message.info("Content reset")
+    toast.info("Content reset")
   }
 
   const [timer, setTimer] = useState(0)
@@ -137,29 +138,30 @@ const YouTubeSummarization = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-red-50/20 to-purple-50/30">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-red-50/20 to-purple-50/30">
       <div className="max-w-7xl mx-auto space-y-6 p-5">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Youtube className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-red-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    YouTube Summarization
+                  </h1>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Summarize long YouTube videos into clear insights, highlights, and key
+                    takeaways.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  YouTube Summarization
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Summarize long YouTube videos into clear insights, highlights, and key takeaways.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -181,15 +183,15 @@ const YouTubeSummarization = () => {
               value={inputUrl}
               onChange={e => setInputUrl(e.target.value)}
               placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-red-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+              className={`btn btn-primary h-auto py-3 w-full bg-linear-to-r from-red-600 to-purple-600 border-none text-white font-bold rounded-xl transition-all duration-300 hover:shadow-lg shadow-red-200/50 normal-case ${
                 !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:from-red-700 hover:to-purple-700 hover:scale-105"
+                  : "hover:scale-[1.02]"
               }`}
             >
               {isLoading ? (
@@ -200,7 +202,7 @@ const YouTubeSummarization = () => {
               ) : (
                 <>Summarize Video</>
               )}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -233,14 +235,14 @@ const YouTubeSummarization = () => {
                       e.target.style.display = "none"
                     }}
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                  <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4">
                     <h3 className="text-white font-semibold text-lg">{summaryResult.title}</h3>
                   </div>
                 </div>
               )}
 
               {!summaryResult.thumbnail && (
-                <div className="bg-gradient-to-br from-red-50 to-purple-50 p-6 rounded-xl border border-red-100">
+                <div className="bg-linear-to-br from-red-50 to-purple-50 p-6 rounded-xl border border-red-100">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <Youtube className="w-5 h-5 text-red-600" />
                     {summaryResult.title}
@@ -260,7 +262,7 @@ const YouTubeSummarization = () => {
               </div>
 
               {/* Key Points */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              <div className="bg-linear-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <ListChecks className="w-5 h-5 text-blue-600" />
@@ -274,7 +276,7 @@ const YouTubeSummarization = () => {
                 <ul className="space-y-3">
                   {summaryResult.keyPoints.map((point, idx) => (
                     <li key={idx} className="flex gap-3 text-gray-700">
-                      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                      <span className="shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>
                       <span className="leading-relaxed">{point}</span>

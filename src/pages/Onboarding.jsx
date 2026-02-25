@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Input, Button, message, Select } from "antd"
 import {
   Building2,
   Globe,
@@ -14,8 +13,7 @@ import {
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
-
-const { TextArea } = Input
+import { toast } from "sonner"
 
 const Onboarding = () => {
   const navigate = useNavigate()
@@ -68,7 +66,7 @@ const Onboarding = () => {
 
   const handleFetchSiteInfo = async () => {
     if (!formData.postLink) {
-      message.error("Please enter your company website URL")
+      toast.error("Please enter your company website URL")
       return
     }
 
@@ -86,12 +84,12 @@ const Onboarding = () => {
         sitemap: siteInfo.sitemap || prev.sitemap,
       }))
 
-      message.success("Company information fetched successfully!")
+      toast.success("Company information fetched successfully!")
       setCurrentStep(1)
     } catch (error) {
       // Show error but still allow user to proceed to manually enter information
-      message.warning(
-        error.message ||
+      toast.warning(
+        error.toast ||
           "Couldn't fetch company information automatically. Please enter details manually."
       )
       // Proceed to next step anyway
@@ -119,32 +117,25 @@ const Onboarding = () => {
 
   const handleStep1Continue = () => {
     if (!formData.describeBrand?.trim()) {
-      message.error("Please enter your brand description")
+      toast.error("Please enter your brand description")
       return
     }
     if (!formData.persona?.trim()) {
-      message.error("Please enter your author persona")
+      toast.error("Please enter your author persona")
       return
     }
     if (!formData.keywords?.length) {
-      message.error("Please add at least one keyword")
+      toast.error("Please add at least one keyword")
       return
     }
     setCurrentStep(2)
   }
 
   const handleSubmit = async () => {
-    // ... validation logic already exists for name, link, keywords, persona ...
-    // BUT the user says "validation error on that step".
-    // I added handleStep1Continue above for step 1 validation.
-    // The previously existing validations in handleSubmit are fine as a final check.
-
-    // Fix the sitemap crash
     if (!formData.sitemap?.trim()?.length) {
       delete formData.sitemap
     }
 
-    // ... rest of handleSubmit
     setLoading(true)
     try {
       const submissionData = {
@@ -152,9 +143,8 @@ const Onboarding = () => {
         postLink: `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`,
       }
       await createBrandVoice(submissionData)
-      message.success("Brand voice created successfully!")
+      toast.success("Brand voice created successfully!")
 
-      // Mark that user has completed onboarding (user-specific)
       if (user?._id) {
         localStorage.setItem(`hasCompletedOnboarding_${user._id}`, "true")
       }
@@ -162,7 +152,7 @@ const Onboarding = () => {
 
       navigate("/dashboard", { replace: true })
     } catch (error) {
-      message.error(error.message || "Failed to create brand voice")
+      toast.error(error.toast || "Failed to create brand voice")
     } finally {
       setLoading(false)
     }
@@ -184,14 +174,14 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6 relative">
-      <Button
+      <button
         type="text"
         onClick={handleSkip}
         disabled={!user?._id}
         className="absolute top-6 right-6 text-gray-500 hover:text-gray-900"
       >
         Skip
-      </Button>
+      </button>
       <div className="w-full max-w-xl">
         {/* Logo */}
         <div className="text-center mb-16">
@@ -237,12 +227,11 @@ const Onboarding = () => {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Company Name
                   </label>
-                  <Input
-                    size="large"
+                  <input
                     placeholder="Acme Corporation"
                     value={formData.nameOfVoice}
                     onChange={e => setFormData(prev => ({ ...prev, nameOfVoice: e.target.value }))}
-                    className="rounded-lg"
+                    className="input outline-0 w-full rounded-lg"
                   />
                 </div>
 
@@ -251,51 +240,48 @@ const Onboarding = () => {
                     Website URL
                   </label>
 
-                  <Input
-                    size="large"
-                    placeholder="www.example.com"
-                    addonBefore={
-                      <Select
-                        value={protocol}
-                        onChange={setProtocol}
-                        dropdownMatchSelectWidth={false}
-                        className="protocol-select"
-                      >
-                        <Select.Option value="https://">https://</Select.Option>
-                        <Select.Option value="http://">http://</Select.Option>
-                      </Select>
-                    }
-                    value={formData.postLink}
-                    onChange={e => setFormData(prev => ({ ...prev, postLink: e.target.value }))}
-                    className="url-input"
-                  />
+                  <div className="join w-full">
+                    <select
+                      value={protocol}
+                      onChange={e => setProtocol(e.target.value)}
+                      className="select outline-0 w-30 focus:outline-0 join-item bg-gray-50"
+                    >
+                      <option value="https://">https://</option>
+                      <option value="http://">http://</option>
+                    </select>
+                    <input
+                      placeholder="www.example.com"
+                      value={formData.postLink}
+                      onChange={e => setFormData(prev => ({ ...prev, postLink: e.target.value }))}
+                      className="input outline-0 join-item w-full"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Sitemap URL <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
-                  <Input
-                    size="large"
+                  <input
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
                     onChange={e => setFormData(prev => ({ ...prev, sitemap: e.target.value }))}
-                    className="rounded-lg"
+                    className="input outline-0 w-full rounded-lg"
                   />
                 </div>
               </div>
 
-              <Button
+              <button
                 type="primary"
                 size="large"
                 block
                 onClick={handleFetchSiteInfo}
                 loading={fetchingInfo}
                 disabled={!formData.postLink || !formData.nameOfVoice}
-                className="h-12 bg-gray-900 hover:bg-gray-800 rounded-lg font-medium"
+                className="h-12 text-white w-full bg-gray-900 hover:bg-gray-800 rounded-lg font-medium"
               >
                 {fetchingInfo ? "Analyzing..." : "Continue"}
-              </Button>
+              </button>
             </motion.div>
           )}
 
@@ -319,14 +305,14 @@ const Onboarding = () => {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Brand Description
                   </label>
-                  <TextArea
+                  <textarea
                     rows={4}
                     placeholder="Describe what your company does..."
                     value={formData.describeBrand}
                     onChange={e =>
                       setFormData(prev => ({ ...prev, describeBrand: e.target.value }))
                     }
-                    className="rounded-lg"
+                    className="textarea outline-0 w-full rounded-lg text-base"
                   />
                 </div>
 
@@ -334,28 +320,31 @@ const Onboarding = () => {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Author Persona
                   </label>
-                  <TextArea
+                  <textarea
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
                     onChange={e => setFormData(prev => ({ ...prev, persona: e.target.value }))}
-                    className="rounded-lg"
+                    className="textarea outline-0 w-full rounded-lg text-base"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">Keywords</label>
                   <div className="flex gap-2 mb-3">
-                    <Input
+                    <input
                       placeholder="Add keywords (comma-separated)"
                       value={keywordInput}
                       onChange={e => setKeywordInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && addKeyword()}
-                      className="rounded-lg"
+                      className="input outline-0 flex-1 rounded-lg"
                     />
-                    <Button onClick={addKeyword} className="rounded-lg">
+                    <button
+                      onClick={addKeyword}
+                      className="btn bg-gray-100 border broder-gray-300 hover:bg-gray-200 rounded-lg text-gray-800"
+                    >
                       Add
-                    </Button>
+                    </button>
                   </div>
                   {formData.keywords.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -379,21 +368,18 @@ const Onboarding = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button
-                  size="large"
+                <button
                   onClick={() => setCurrentStep(0)}
-                  className="flex-1 rounded-lg"
+                  className="btn flex-1 border border-gray-200 rounded-lg"
                 >
                   Back
-                </Button>
-                <Button
-                  type="primary"
-                  size="large"
+                </button>
+                <button
                   onClick={handleStep1Continue}
-                  className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 rounded-lg font-medium"
+                  className="btn flex-1 text-white! bg-gray-900 border-none hover:bg-gray-800 rounded-lg font-medium"
                 >
                   Continue
-                </Button>
+                </button>
               </div>
             </motion.div>
           )}
@@ -471,22 +457,23 @@ const Onboarding = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button
-                  size="large"
+                <button
                   onClick={() => setCurrentStep(1)}
-                  className="flex-1 rounded-lg"
+                  className="btn flex-1 rounded-lg border border-gray-200"
                 >
                   Back
-                </Button>
-                <Button
-                  type="primary"
-                  size="large"
+                </button>
+                <button
                   onClick={handleSubmit}
-                  loading={loading}
-                  className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 rounded-lg font-medium"
+                  disabled={loading}
+                  className="btn flex-1 bg-gray-900 border-none hover:bg-gray-800 text-white rounded-lg font-medium"
                 >
-                  {loading ? "Creating..." : "Create Brand Voice"}
-                </Button>
+                  {loading ? (
+                    <span className="loading loading-spinner text-white loading-sm"></span>
+                  ) : (
+                    "Create Brand Voice"
+                  )}
+                </button>
               </div>
             </motion.div>
           )}

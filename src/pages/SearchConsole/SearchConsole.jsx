@@ -3,20 +3,18 @@ import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import useGscStore from "@store/useGscStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button, message, Select, DatePicker, Card, Pagination } from "antd"
 import { RefreshCw, Search, Download } from "lucide-react"
+import DateRangePicker from "@components/ui/DateRangePicker"
 import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { toast } from "sonner"
 
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
-
-const { Option } = Select
-const { RangePicker } = DatePicker
 
 // Configure Fuse.js for frontend search
 const fuseOptions = { keys: ["url", "query", "countryName", "blogTitle"], threshold: 0.3 }
@@ -156,7 +154,7 @@ const SearchConsole = () => {
     onError: err => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
-        message.error("Your Google Search Console session has expired. Please reconnect.")
+        toast.error("Your Google Search Console session has expired. Please reconnect.")
         clearAnalytics()
         queryClient.clear()
       }
@@ -371,122 +369,105 @@ const SearchConsole = () => {
         <div className="p-2 md:p-6 min-h-screen mt-5 md:mt-0">
           <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Search Performance
               </h1>
               <div className="flex gap-3 items-stretch sm:items-center mt-2 md:mt-0">
-                <Button
-                  icon={<Download className="size-4 mr-2" />}
+                <button
                   title="Export"
                   onClick={handleExport}
                   disabled={isLoading}
                   type="dashed"
-                  className="w-full sm:w-auto bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
                 >
                   Export
-                </Button>
-                <Button
-                  icon={<RefreshCw className={clsx("size-4 mr-2", isLoading && "animate-spin")} />}
+                </button>
+                <button
                   onClick={() => refetch()}
                   disabled={isLoading}
                   type="dashed"
-                  className="w-full sm:w-auto bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
                 >
                   Refresh
-                </Button>
+                </button>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Total Clicks
-                  </span>
-                }
-                className="rounded-lg text-center p-2 sm:p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
-              >
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-blue-100/70 to-blue-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Total Clicks
+                </span>
                 <p className="text-xl sm:text-2xl font-bold text-blue-600">
                   {new Intl.NumberFormat().format(metrics.totalClicks)}
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                   Total clicks on filtered data
                 </p>
-              </Card>
+              </div>
 
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Total Impressions
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-purple-100/70 to-purple-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Total Impressions
+                </span>
                 <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {new Intl.NumberFormat().format(metrics.totalImpressions)}
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                   Total impressions on filtered data
                 </p>
-              </Card>
+              </div>
 
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Average CTR
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-teal-100/70 to-teal-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Average CTR
+                </span>
                 <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
                 <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                   Average click-through rate
                 </p>
-              </Card>
+              </div>
 
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Average Position
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
+              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-amber-100/70 to-amber-50/70">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
+                  Average Position
+                </span>
                 <p className="text-xl sm:text-2xl font-bold text-amber-600">
                   {metrics.avgPosition}
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                   Average search result position
                 </p>
-              </Card>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-              <Select
-                value={dateRange}
-                onChange={handleDateRangeChange}
-                className={clsx("flex-1 max-w-36", dateRange && "border-blue-500")}
-                placeholder="Select Date Range"
-                style={{ borderRadius: "8px" }}
-              >
-                <Option value="7d">Last 7 Days</Option>
-                <Option value="30d">Last 30 Days</Option>
-                <Option value="180d">Last 6 Months</Option>
-                <Option value="custom">Custom Range</Option>
-              </Select>
-              {showDatePicker && (
-                <RangePicker
-                  value={customDateRange}
-                  onChange={handleCustomDateRangeChange}
-                  disabledDate={current => current && current > dayjs().endOf("day")}
+              <div className="flex gap-2 flex-1 min-w-[300px] items-center">
+                <select
+                  value={dateRange}
+                  onChange={e => handleDateRangeChange(e.target.value)}
                   className={clsx(
-                    "flex-1 min-w-56",
-                    customDateRange[0] && customDateRange[1] && "border-blue-500"
+                    "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg min-w-[140px]",
+                    dateRange && "border-blue-500"
                   )}
-                  placeholder={["Start Date", "End Date"]}
-                  allowEmpty={[false, false]}
-                  style={{ borderRadius: "8px" }}
-                />
-              )}
+                >
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                  <option value="180d">Last 6 Months</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {showDatePicker && (
+                  <div className="flex-1 w-full min-w-56">
+                    <DateRangePicker
+                      value={customDateRange}
+                      onChange={handleCustomDateRangeChange}
+                      maxDate={dayjs().endOf("day")}
+                      className={clsx(
+                        customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="relative flex-1 min-w-[200px] max-w-1/2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -494,28 +475,29 @@ const SearchConsole = () => {
                   value={searchQuery}
                   onChange={e => handleSearch(e.target.value)}
                   placeholder="Search title, query, or country"
-                  className={`pl-9 pr-4 py-1 w-full bg-white border ${
+                  className={`pl-9 pr-4 py-1 h-10 w-full bg-white border ${
                     searchQuery ? "border-blue-500" : "border-gray-300"
                   } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 />
               </div>
 
-              <Select
-                value={blogTitleFilter}
-                onChange={handleBlogTitleChange}
-                className={clsx("flex-1 min-w-[200px]", blogTitleFilter && "border-blue-500")}
-                placeholder="Select Blog Title"
-                allowClear
-                style={{ borderRadius: "8px" }}
+              <select
+                value={blogTitleFilter || ""}
+                onChange={e => handleBlogTitleChange(e.target.value || null)}
+                className={clsx(
+                  "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[200px]",
+                  blogTitleFilter && "border-blue-500"
+                )}
               >
+                <option value="">Select Blog Title</option>
                 {blogTitles.map(title => (
-                  <Option key={title} value={title}>
+                  <option key={title} value={title}>
                     {title}
-                  </Option>
+                  </option>
                 ))}
-              </Select>
+              </select>
 
-              <Button
+              <button
                 onClick={handleResetFilters}
                 type="default"
                 className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
@@ -525,7 +507,7 @@ const SearchConsole = () => {
                 }`}
               >
                 Reset Filters
-              </Button>
+              </button>
             </div>
           </div>
           {error && (
@@ -551,16 +533,45 @@ const SearchConsole = () => {
             handleTabChange={handleTabChange}
             isLoading={isLoading}
           />
-          <div className="mt-6 flex justify-end">
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={filteredData.length}
-              onChange={handlePaginationChange}
-              showSizeChanger
-              pageSizeOptions={["10", "50", "100"]}
-              className="ant-pagination"
-            />
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
+            <div className="text-sm font-medium text-gray-500">
+              Showing {Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)} to{" "}
+              {Math.min(filteredData.length, currentPage * pageSize)} of {filteredData.length}{" "}
+              records
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="join border border-gray-100">
+                <button
+                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                  Previous
+                </button>
+                <button className="join-item btn btn-sm bg-white border-gray-200 no-animation">
+                  Page {currentPage} of {Math.ceil(filteredData.length / pageSize) || 1}
+                </button>
+                <button
+                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
+                  disabled={currentPage >= Math.ceil(filteredData.length / pageSize)}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                  Next
+                </button>
+              </div>
+              <select
+                className="select select-bordered select-sm ml-10 border-gray-200 rounded-lg min-w-24"
+                value={pageSize}
+                onChange={e => {
+                  setPageSize(parseInt(e.target.value))
+                  setCurrentPage(1)
+                }}
+              >
+                <option value={10}>10 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
+            </div>
           </div>
         </div>
       ) : (

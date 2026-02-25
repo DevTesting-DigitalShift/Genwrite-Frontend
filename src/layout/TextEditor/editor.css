@@ -178,50 +178,6 @@
 
 /* main editor  */
 
-.ant-modal-content {
-  border-radius: 8px !important;
-  padding: 16px !important;
-}
-.ant-modal-header {
-  border-radius: 8px 8px 0 0 !important;
-}
-.ant-input {
-  border-radius: 8px !important;
-  border: 1px solid #d1d5db !important;
-  padding: 6px 12px !important;
-}
-.ant-input:focus,
-.ant-input:hover {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-}
-.ant-btn {
-  display: flex;
-  align-items: center;
-}
-@media (max-width: 640px) {
-  .ant-modal-content {
-    padding: 12px !important;
-  }
-  .ant-input {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-  }
-  .ant-btn {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-  }
-  .prose {
-    font-size: 14px !important;
-  }
-}
-@media (max-width: 768px) {
-  .ant-modal {
-    width: 100% !important;
-    margin: 8px !important;
-  }
-}
-
 /* Blog content styles for section-wise editor */
 .blog-content {
   font-size: 1rem;
@@ -468,24 +424,6 @@
 }
 
 /* Regenerate modal override */
-.regenerate-modal .ant-modal-content {
-  padding: 0 !important;
-  overflow: hidden;
-  border-radius: 20px !important;
-}
-
-.regenerate-modal .ant-modal-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  color: white;
-}
-
-.regenerate-modal .ant-modal-close:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.1);
-}
 
 /* Embed Container Styles */
 .embed-container {

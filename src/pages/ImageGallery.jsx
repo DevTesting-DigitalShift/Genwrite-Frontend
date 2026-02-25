@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react"
-import { Pagination, Spin, Modal, message, Button, Input, Select, Tooltip, Tag, Switch } from "antd"
 import {
   Search,
   Image as ImageIcon,
@@ -11,22 +10,26 @@ import {
   Type,
   Bot,
   Upload,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Loader2,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
-import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
+import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import useAuthStore from "@store/useAuthStore"
 import useImageStore from "@store/useImageStore"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { COSTS } from "@/data/blogData"
-
-const { TextArea } = Input
+import { toast } from "sonner"
+import { AnimatePresence, motion } from "framer-motion"
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
   return (
-    <div className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse">
-      <div className="w-full aspect-[3/4] bg-gradient-to-br from-gray-200 to-gray-300"></div>
+    <div className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse">
+      <div className="w-full aspect-3/4 bg-linear-to-br from-gray-200 to-gray-300"></div>
     </div>
   )
 }
@@ -40,12 +43,12 @@ const SkeletonGrid = ({ count = 12 }) => {
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse"
+          className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse"
         >
           <div
             className={`w-full ${
               heights[index % heights.length]
-            } bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-shimmer`}
+            } bg-linear-to-br from-gray-200 via-gray-100 to-gray-200 bg-size:[200%_200%] animate-shimmer`}
           ></div>
         </div>
       ))}
@@ -124,7 +127,7 @@ const ImageGallery = () => {
       await fetchImages(params)
     } catch (error) {
       console.error("Error fetching images:", error)
-      message.error("Failed to load images")
+      toast.error("Failed to load images")
     }
   }, [currentPage, pageSize, minScore, selectedTags, searchQuery, fetchImages])
 
@@ -148,7 +151,7 @@ const ImageGallery = () => {
 
   const checkQuota = () => {
     if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-      message.error("You have reached your AI Image generation limit. preventing generation.")
+      toast.error("You have reached your AI Image generation limit.")
       return false
     }
     return true
@@ -167,12 +170,12 @@ const ImageGallery = () => {
     if (!checkCredits(COSTS.GENERATE)) return
 
     if (!genForm.prompt.trim()) {
-      message.error("Please enter a prompt")
+      toast.error("Please enter a prompt")
       return
     }
 
     if (countWords(genForm.prompt) < 10) {
-      message.error("Prompt must be at least 10 words")
+      toast.error("Prompt must be at least 10 words")
       return
     }
 
@@ -194,7 +197,7 @@ const ImageGallery = () => {
       loadImages() // Refresh gallery
     } catch (error) {
       console.error("Generation error:", error)
-      message.error(error.response?.data?.message || error.message || "Generation failed")
+      toast.error(error.response?.data?.message || error.message || "Generation failed")
     } finally {
       setIsGenerating(false)
     }
@@ -203,7 +206,7 @@ const ImageGallery = () => {
   const handleEnhanceImage = async () => {
     if (!checkQuota()) return
     if (!checkCredits(COSTS.ENHANCE)) return
-    if (!enhanceForm.prompt.trim()) return message.error("Please describe how to enhance")
+    if (!enhanceForm.prompt.trim()) return toast.error("Please describe how to enhance")
 
     setIsEnhancing(true)
     try {
@@ -218,7 +221,7 @@ const ImageGallery = () => {
       const response = await enhanceImageStore(formData)
       const newImage = response.data || response.image || response
 
-      message.success("Image enhanced successfully!")
+      toast.success("Image enhanced successfully!")
       setIsEnhanceMode(false) // Close inline enhance mode
       setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
 
@@ -246,7 +249,7 @@ const ImageGallery = () => {
       loadImages()
     } catch (error) {
       console.error(error)
-      message.error(error.response?.data?.message || "Enhancement failed")
+      toast.error(error.response?.data?.message || "Enhancement failed")
     } finally {
       setIsEnhancing(false)
     }
@@ -259,11 +262,11 @@ const ImageGallery = () => {
     try {
       const res = await generateAltTextStore(previewImage.url)
       setGeneratedAltText(res.altText)
-      message.success("Alt text generated!")
+      toast.success("Alt text generated!")
       fetchUser()
     } catch (error) {
       console.error(error)
-      message.error("Failed to generate alt text")
+      toast.error("Failed to generate alt text")
     } finally {
       setIsGeneratingAlt(false)
     }
@@ -281,10 +284,10 @@ const ImageGallery = () => {
     if (e) e.stopPropagation()
     try {
       await navigator.clipboard.writeText(image.url)
-      message.success("Image link copied to clipboard!")
+      toast.success("Image link copied to clipboard!")
     } catch (error) {
       console.error(error)
-      message.error("Failed to copy link")
+      toast.error("Failed to copy link")
     }
   }
 
@@ -301,10 +304,10 @@ const ImageGallery = () => {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      message.success("Image downloaded successfully!")
+      toast.success("Image downloaded successfully!")
     } catch (error) {
       console.error(error)
-      message.error("Failed to download image")
+      toast.error("Failed to download image")
     }
   }
 
@@ -322,190 +325,162 @@ const ImageGallery = () => {
         <title>Image Gallery | GenWrite</title>
       </Helmet>
 
-      {/* Full Screen Loading Overlay */}
-      {isGenerating && (
-        <div className="fixed inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
-            <Spin size="large" className="scale-150 relative z-10" />
-          </div>
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-8">
-            Dreaming up your masterpiece...
-          </h3>
-          <p className="text-gray-500 mt-2 font-medium">This usually takes about 10-20 seconds.</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <Loader2 className="w-16 h-16 text-blue-600 animate-spin relative z-10" />
+            </div>
+            <h3 className="text-3xl font-black bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mt-8">
+              Dreaming up your masterpiece...
+            </h3>
+            <p className="text-slate-500 mt-2 font-bold text-xs">
+              This usually takes about 10-20 seconds
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="min-h-screen p-3 md:p-6 lg:p-8">
+      <div className="min-h-screen p-6">
         {/* Header */}
-        <div className="mb-4 mt-5 md:mt-0">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Explore Creations
-          </h1>
-          <p className="text-gray-500 text-sm mt-1 max-w-md">
-            Curated high-quality generations for your next project.
-          </p>
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Creation Gallery
+            </h1>
+            <p className="text-slate-500 text-sm font-medium max-w-lg leading-relaxed">
+              Explore high-quality AI generations and bring your vision to life with our premium
+              creative tools.
+            </p>
+          </div>
+          <div className="px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-300 rounded-lg font-black text-sm">
+            {userCredits} Credits
+          </div>
         </div>
 
-        {/* Creation Studio Section - Inline */}
-        <div className="mb-8">
-          {/* Creation Studio - Simplified Card */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
-            {/* Content Area */}
-            <div className="transition-all duration-300 ease-in-out">
-              {isGenerating ? (
-                // Loading State
-                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
-                  <Spin size="large" className="scale-150" />
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 mt-4">
-                      Creating your masterpiece...
-                    </h3>
-                    <p className="text-gray-500 text-sm">This usually takes about 10-20 seconds.</p>
+        <div className="mb-12">
+          <div className="rounded-lg border border-gray-300">
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold">Style</span>
+                  </label>
+                  <select
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                    value={genForm.style}
+                    onChange={e => setGenForm({ ...genForm, style: e.target.value })}
+                  >
+                    <option value="photorealistic">Photorealistic</option>
+                    <option value="anime">Anime</option>
+                    <option value="digital-art">Digital Art</option>
+                    <option value="oil-painting">Oil Painting</option>
+                    <option value="cinematic">Cinematic</option>
+                  </select>
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold">Dimension</span>
+                  </label>
+                  <select
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                    value={genForm.aspectRatio}
+                    onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
+                  >
+                    <option value="1:1">Square (1:1)</option>
+                    <option value="16:9">Landscape (16:9)</option>
+                    <option value="9:16">Portrait (9:16)</option>
+                    <option value="4:3">Standard (4:3)</option>
+                    <option value="3:2">Classic (3:2)</option>
+                  </select>
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold">Quality</span>
+                  </label>
+                  <select
+                    className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                    value={genForm.imageSize}
+                    onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
+                  >
+                    <option value="1k">Standard (1K)</option>
+                    <option value="2k">High Res (2K)</option>
+                    <option value="4k">Ultra (4K)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-8">
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    Creative Prompt <span className="text-rose-500 text-lg">*</span>
+                  </span>
+                </label>
+                <textarea
+                  className={`textarea w-full min-h-[160px] rounded-2xl p-6 outline-0 border resize-none ${
+                    showErrors && countWords(genForm.prompt) < 10
+                      ? "border-rose-200 bg-rose-50"
+                      : "border-slate-200 bg-slate-50"
+                  }`}
+                  value={genForm.prompt}
+                  onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                  placeholder="Describe your masterpiece in detail... (Minimum 10 words for best results)"
+                />
+                {showErrors && countWords(genForm.prompt) < 10 && (
+                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-2">
+                    <X size={14} /> Prompt must be at least 10 words.
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 px-4 bg-slate-100 rounded-lg flex items-center justify-center text-xs font-black text-slate-500 uppercase tracking-widest border border-slate-200">
+                    Gen {user?.usage?.aiImages || 0} / {user?.usageLimits?.aiImages || 0}
                   </div>
                 </div>
-              ) : (
-                // Form State - Simplified & Polished
-                <div className="p-6">
-                  {/* Top Row: Type & Ratio & Size */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Style
-                      </label>
-                      <Select
-                        value={genForm.style}
-                        onChange={val => setGenForm({ ...genForm, style: val })}
-                        className="w-full"
-                        size="large"
-                        options={[
-                          { value: "photorealistic", label: "Photorealistic" },
-                          { value: "anime", label: "Anime" },
-                          { value: "digital-art", label: "Digital Art" },
-                          { value: "oil-painting", label: "Oil Painting" },
-                          { value: "cinematic", label: "Cinematic" },
-                        ]}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Dimension
-                      </label>
-                      <Select
-                        value={genForm.aspectRatio}
-                        onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
-                        className="w-full"
-                        size="large"
-                        options={[
-                          { value: "1:1", label: "Square (1:1)" },
-                          { value: "16:9", label: "Landscape (16:9)" },
-                          { value: "9:16", label: "Portrait (9:16)" },
-                          { value: "4:3", label: "Standard (4:3)" },
-                          { value: "3:2", label: "Classic (3:2)" },
-                        ]}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Quality
-                      </label>
-                      <Select
-                        value={genForm.imageSize}
-                        onChange={val => setGenForm({ ...genForm, imageSize: val })}
-                        className="w-full"
-                        size="large"
-                        options={[
-                          { value: "1k", label: "Standard (1K)" },
-                          { value: "2k", label: "High Res (2K)" },
-                          { value: "4k", label: "Ultra (4K)" },
-                        ]}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Prompt Section */}
-                  <div className="space-y-2 relative mb-6">
-                    <div className="flex justify-between items-center">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Prompt <span className="text-red-500">*</span>
-                      </label>
-                    </div>
-                    <TextArea
-                      value={genForm.prompt}
-                      onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
-                      maxLength={1000}
-                      placeholder="Describe the image you want to create... (Minimum 10 words)"
-                      className={`!min-h-[140px] !resize-none !text-base !rounded-xl transition-all p-4 shadow-sm ${
-                        showErrors && countWords(genForm.prompt) < 10
-                          ? "!border-red-400 focus:!border-red-500 focus:!ring-red-50"
-                          : "!border-gray-200 focus:!border-blue-500 focus:!ring-4 focus:!ring-blue-50/50"
-                      }`}
-                    />
-                    {showErrors && !genForm.prompt.trim() && (
-                      <p className="text-xs text-red-500 mt-1 animate-in slide-in-from-top-1">
-                        Image prompt is required
-                      </p>
-                    )}
-                    {showErrors && genForm.prompt.trim() && countWords(genForm.prompt) < 10 && (
-                      <p className="text-xs text-red-500 mt-1 animate-in slide-in-from-top-1">
-                        Please provide more detail (at least 10 words) for better results.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Footer Actions */}
-                  <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                    {/* Usage Limit Info */}
-                    <div className="text-xs text-gray-500 font-medium order-2 md:order-1 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                      Monthly Usage:{" "}
-                      <span
-                        className={`${user?.usage?.aiImages >= user?.usageLimits?.aiImages ? "text-red-600" : "text-gray-900"} font-bold ml-1`}
-                      >
-                        {user?.usage?.aiImages || 0} / {user?.usageLimits?.aiImages || 0}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-end order-1 md:order-2">
-                      <Button
-                        size="large"
-                        onClick={() => {
-                          setGenForm({
-                            prompt: "",
-                            style: "photorealistic",
-                            aspectRatio: "1:1",
-                            imageSize: "1k",
-                          })
-                          setShowErrors(false)
-                        }}
-                        className="!rounded-xl !border-gray-200 !text-gray-500 hover:!bg-gray-50 hover:!text-gray-700 font-medium px-6"
-                      >
-                        Reset
-                      </Button>
-                      <Button
-                        type="primary"
-                        size="large"
-                        onClick={handleGenerateImage}
-                        disabled={isGenerating}
-                        icon={<Sparkles className="w-5 h-5" />}
-                        className="!rounded-xl !bg-gradient-to-r !from-blue-600 !to-indigo-600 hover:!from-blue-700 hover:!to-indigo-700 !shadow-lg !shadow-blue-200 !h-12 !px-8 !font-bold !text-base flex-1 md:flex-none"
-                      >
-                        Generate
-                      </Button>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => {
+                      setGenForm({
+                        prompt: "",
+                        style: "photorealistic",
+                        aspectRatio: "1:1",
+                        imageSize: "1k",
+                      })
+                      setShowErrors(false)
+                    }}
+                    className="btn btn-primary flex-1 md:flex-none p-4 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-200 shadow-none text-slate-500 font-semibold text-md"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={handleGenerateImage}
+                    disabled={isGenerating}
+                    className="btn btn-primary flex-1 md:flex-none p-4 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 rounded-md border-0 shadow-none text-white font-semibold text-md"
+                  >
+                    Generate
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Search and Filters Bar */}
-        <div className="mb-6 sticky top-2 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-gray-100 shadow-sm">
+        <div className="mb-6 sticky top-2 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-lg border border-gray-100 shadow-sm">
           <DebouncedSearchInput
             onSearch={setSearchQuery}
             placeholder="Search gallery..."
             debounceTime={500}
-            className="!border-none !shadow-none !bg-transparent focus:!ring-0 text-base"
+            className="border-none! shadow-none! bg-transparent! focus:ring-0! text-base"
           />
         </div>
 
@@ -515,7 +490,7 @@ const ImageGallery = () => {
             {images.map((image, index) => (
               <div
                 key={image._id}
-                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100 mb-4"
+                className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
                 onClick={() => handleImageClick(image)}
               >
                 <img
@@ -526,7 +501,7 @@ const ImageGallery = () => {
                 />
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <div className="flex items-center justify-between">
                     {/* Tags/badges if AI generated */}
                     {canEnhance(image) && (
@@ -540,7 +515,7 @@ const ImageGallery = () => {
                     <p className="text-white text-sm line-clamp-2 font-medium mr-2">
                       {image.description}
                     </p>
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-2 shrink-0">
                       <button
                         onClick={e => handleCopyLink(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
@@ -575,329 +550,313 @@ const ImageGallery = () => {
           )}
 
           {/* Pagination Controls */}
-          {!loading && images.length > 0 && totalImages > 0 && (
-            <div className="mt-12 flex justify-center">
-              <Pagination
-                current={currentPage}
-                total={totalImages}
-                pageSize={pageSize}
-                onChange={page => setCurrentPage(page)}
-                showSizeChanger={false}
-                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} images`}
-              />
+          {!loading && images.length > 0 && totalImages > 0 && totalPages > 1 && (
+            <div className="mt-16 flex justify-center">
+              <div className="join bg-white shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100 p-1">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                  let pageNum = currentPage
+                  if (currentPage <= 3) pageNum = i + 1
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
+                  else pageNum = currentPage - 2 + i
+
+                  if (pageNum < 1 || pageNum > totalPages) return null
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`join-item btn h-12 w-12 rounded-lg text-sm font-black transition-all border-none ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
+                          : "btn-ghost text-slate-500 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Preview Modal (Enhanced) */}
-        <Modal
-          open={!!previewImage}
-          onCancel={() => setPreviewImage(null)}
-          footer={null}
-          centered
-          width={1100}
-          closeIcon={null}
-          className="image-detail-modal !p-0"
-          styles={{
-            content: {
-              padding: 0,
-              borderRadius: "16px",
-              overflow: "hidden",
-              backgroundColor: "#ffffff",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            },
-            mask: { backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.7)" },
-          }}
-        >
+        {/* Preview Modal */}
+        <AnimatePresence>
           {previewImage && (
-            <div className="flex flex-col lg:flex-row h-[85vh] lg:h-[800px] max-h-[90vh] overflow-hidden">
-              {/* Left: Image Canvas */}
-              <div className="bg-[#0f1014] relative flex items-center justify-center p-4 lg:p-8 overflow-hidden group h-[35vh] lg:h-auto lg:flex-1 shrink-0">
-                <div
-                  className="absolute inset-0 opacity-20 blur-3xl saturate-200"
-                  style={{
-                    backgroundImage: `url(${previewImage.url})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setPreviewImage(null)}
+                className="absolute inset-0 bg-slate-900/80"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[800px]"
+              >
+                {/* Left Side: Visual Canvas */}
+                <div className="flex-none h-[45vh] lg:h-auto lg:flex-1 bg-slate-950 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden group">
+                  <div
+                    className="absolute inset-0 opacity-40 blur-3xl saturate-200 transition-all duration-1000"
+                    style={{
+                      backgroundImage: `url(${previewImage.url})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
 
-                <img
-                  src={previewImage.url}
-                  alt={previewImage.description}
-                  className="relative max-h-full max-w-full object-contain shadow-2xl rounded-lg z-10"
-                />
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    <img
+                      src={previewImage.url}
+                      alt={previewImage.description}
+                      className="max-h-full max-w-full object-contain rounded-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
+                    />
+                  </div>
 
-                <button
-                  onClick={() => setPreviewImage(null)}
-                  className="absolute top-4 left-4 lg:top-6 lg:left-6 p-2 bg-black/40 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md z-20 border border-white/10"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                {/* Quick actions floating on image */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 text-white z-20">
                   <button
-                    onClick={() => handleCopyLink(previewImage)}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors tooltip"
-                    title="Copy Link"
+                    onClick={() => setPreviewImage(null)}
+                    className="absolute top-6 left-6 p-3 bg-black/40 hover:bg-white/20 text-white rounded-2xl transition-all backdrop-blur-md z-20 border border-white/10"
                   >
-                    <Copy size={18} />
+                    <X size={24} />
                   </button>
-                  <div className="w-px h-4 bg-white/20"></div>
-                  <button
-                    onClick={() => handleDownload(previewImage)}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors tooltip"
-                    title="Download Original"
-                  >
-                    <Download size={18} />
-                  </button>
+
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 z-20">
+                    <button
+                      onClick={() => handleCopyLink(previewImage)}
+                      className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
+                      title="Copy Link"
+                    >
+                      <Copy size={20} />
+                    </button>
+                    <div className="w-px h-6 bg-white/10" />
+                    <button
+                      onClick={() => handleDownload(previewImage)}
+                      className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
+                      title="Download"
+                    >
+                      <Download size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Right: Premium Details Panel */}
-              <div className="w-full lg:w-[400px] bg-white flex flex-col border-l border-gray-100 shadow-xl relative z-20 flex-1 lg:h-full overflow-hidden">
-                {/* Header */}
-                <div className="p-5 lg:p-6 border-b border-gray-50 flex-shrink-0 flex items-start justify-between bg-white relative z-10">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold tracking-widest text-gray-400 uppercase">
-                        {isEnhanceMode ? "Enhance Mode" : "Generated Image"}
-                      </span>
-                      {canEnhance(previewImage) && !isEnhanceMode && (
-                        <span className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-100">
-                          <Sparkles size={10} className="fill-blue-500 text-blue-500" /> AI Creative
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
+                {/* Right Side: Configuration & AI Tools */}
+                <div className="w-full lg:w-[450px] bg-white flex flex-col flex-1 lg:flex-none lg:h-full overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-100">
+                  {/* Panel Header */}
+                  <div className="p-5 lg:p-8 pb-4 lg:pb-6">
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 leading-tight">
                       {isEnhanceMode ? "Enhance Image" : previewImage.title || "Untitled Creation"}
                     </h2>
-                    {!isEnhanceMode && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                        <span>{new Date().toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>{previewImage.resolution || genForm.imageSize}</span>
-                      </div>
-                    )}
                   </div>
-                  {isEnhanceMode && (
-                    <button
-                      onClick={() => setIsEnhanceMode(false)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
 
-                {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-5 lg:p-6 custom-scrollbar space-y-6 relative">
-                  {isEnhanceMode ? (
-                    // INLINE ENHANCE FORM
-                    <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-                      <p className="text-sm text-gray-500">
-                        Describe what you want to improve or change in this image.
-                      </p>
-
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            Instruction
+                  {/* Scrollable Intelligence Area */}
+                  <div className="flex-1 overflow-y-auto p-5 lg:p-8 pt-0 custom-scrollbar">
+                    {isEnhanceMode ? (
+                      <div className="space-y-6 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
+                        <div className="space-y-3 lg:space-y-4">
+                          <label className="text-xs lg:text-sm font-medium text-slate-400">
+                            Refinement Instruction
                           </label>
-                          <TextArea
+                          <textarea
+                            className="textarea mt-1 w-full h-24 lg:h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-3 lg:p-4 text-sm lg:text-base font-medium"
                             value={enhanceForm.prompt}
                             onChange={e =>
                               setEnhanceForm({ ...enhanceForm, prompt: e.target.value })
                             }
-                            placeholder="e.g. Make it higher definition, fix lighting, add a hat..."
-                            rows={3}
-                            className="!resize-none !text-sm !rounded-xl"
+                            placeholder="Describe how to refine this image... (e.g. fix lighting, add more detail, change style)"
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                              Style
+                        <div className="grid grid-cols-1 gap-3 lg:gap-4">
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                              Target Style
                             </label>
-                            <Select
+                            <select
+                              className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.style}
-                              onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
-                              className="w-full"
-                              options={[
-                                { value: "photorealistic", label: "Photorealistic" },
-                                { value: "anime", label: "Anime" },
-                                { value: "digital-art", label: "Digital Art" },
-                                { value: "oil-painting", label: "Oil Painting" },
-                                { value: "cinematic", label: "Cinematic" },
-                              ]}
-                            />
+                              onChange={e =>
+                                setEnhanceForm({ ...enhanceForm, style: e.target.value })
+                              }
+                            >
+                              <option value="photorealistic">Photorealistic</option>
+                              <option value="anime">Anime</option>
+                              <option value="digital-art">Digital Art</option>
+                              <option value="cinematic">Cinematic</option>
+                            </select>
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                              Quality
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                              Resolution
                             </label>
-                            <Select
+                            <select
+                              className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.imageSize}
-                              onChange={val => setEnhanceForm({ ...enhanceForm, imageSize: val })}
-                              className="w-full"
-                              options={[
-                                { value: "1k", label: "Standard (1K)" },
-                                { value: "2k", label: "High Res (2K)" },
-                                { value: "4k", label: "Ultra (4K)" },
-                              ]}
-                            />
+                              onChange={e =>
+                                setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
+                              }
+                            >
+                              <option value="1k">Standard (1K)</option>
+                              <option value="2k">High Res (2K)</option>
+                              <option value="4k">Ultra (4K)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                              Aspect Ratio
+                            </label>
+                            <select
+                              className="select outline-0 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium mt-1"
+                              value={enhanceForm.aspectRatio}
+                              onChange={e =>
+                                setEnhanceForm({ ...enhanceForm, aspectRatio: e.target.value })
+                              }
+                            >
+                              <option value="1:1">Square (1:1)</option>
+                              <option value="16:9">Landscape (16:9)</option>
+                              <option value="9:16">Portrait (9:16)</option>
+                              <option value="4:3">Standard (4:3)</option>
+                              <option value="3:2">Classic (3:2)</option>
+                            </select>
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            Aspect Ratio
-                          </label>
-                          <Select
-                            value={enhanceForm.aspectRatio}
-                            onChange={val => setEnhanceForm({ ...enhanceForm, aspectRatio: val })}
-                            className="w-full"
-                            options={[
-                              { value: "1:1", label: "Square (1:1)" },
-                              { value: "16:9", label: "Landscape (16:9)" },
-                              { value: "9:16", label: "Portrait (9:16)" },
-                              { value: "4:3", label: "Standard (4:3)" },
-                              { value: "3:2", label: "Classic (3:2)" },
-                            ]}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="bg-purple-50 p-3 rounded-xl flex justify-between items-center text-xs text-purple-700 border border-purple-100">
-                        <span className="flex items-center gap-1 font-medium">
-                          <Sparkles size={12} /> Enhancement Cost
-                        </span>
-                        <span className="font-bold">{COSTS.ENHANCE} credits</span>
-                      </div>
-
-                      <Button
-                        type="primary"
-                        block
-                        size="large"
-                        onClick={handleEnhanceImage}
-                        loading={isEnhancing}
-                        className="!bg-gradient-to-r !from-purple-600 !to-pink-600 !border-none !h-12 !rounded-xl !font-bold !shadow-lg !shadow-purple-100"
-                      >
-                        Enhance Now
-                      </Button>
-                    </div>
-                  ) : (
-                    // NORMAL DETAILS VIEW
-                    <>
-                      {/* Prompt Section */}
-                      <div>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <Bot size={14} className="text-gray-400" /> Prompt Details
-                        </h3>
-                        <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium">
-                          {previewImage.description || "No description provided."}
-                        </div>
-                      </div>
-
-                      {/* Actions Grid */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={handleGenerateAltText}
-                          disabled={isGeneratingAlt}
-                          className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
-                        >
-                          <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                            <Type size={18} />
+                        <div className="p-3 lg:p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-between">
+                          <div className="flex items-center gap-2 lg:gap-3">
+                            <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
+                            <span className="text-xs lg:text-sm font-bold text-purple-900">
+                              Enhancement Cost
+                            </span>
                           </div>
-                          <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
-                            {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
+                          <span className="px-2 lg:px-3 py-1 bg-white rounded-lg text-[10px] lg:text-xs font-black text-purple-600 border border-purple-200 shadow-sm">
+                            {COSTS.ENHANCE} Credits
                           </span>
-                        </button>
-
-                        <button
-                          onClick={() => setIsEnhanceMode(true)}
-                          disabled={!canEnhance(previewImage)}
-                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white transition-all group text-center
-                            ${
-                              canEnhance(previewImage)
-                                ? "hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-md cursor-pointer"
-                                : "opacity-50 cursor-not-allowed grayscale"
-                            }`}
-                        >
-                          <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
-                            <Wand2 size={18} />
-                          </div>
-                          <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
-                            Enhance Image
-                          </span>
-                        </button>
+                        </div>
                       </div>
+                    ) : (
+                      <div className="space-y-6 lg:space-y-10 custom-scrollbar">
+                        {/* Prompt Trace */}
+                        <div className="space-y-3 lg:space-y-4">
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <Bot className="w-4 h-4" />
+                            <span className="text-xs lg:text-sm font-medium">
+                              Intelligence Prompt
+                            </span>
+                          </div>
+                          <div className="p-4 lg:p-6 bg-slate-50 rounded-2xl lg:rounded-[24px] border border-slate-100 text-slate-700 text-sm lg:text-base font-medium leading-relaxed italic">
+                            "{previewImage.description || "Synthetically generated vision."}"
+                          </div>
+                        </div>
 
-                      {/* Generated Data */}
-                      {generatedAltText && (
-                        <div className="animate-in fade-in zoom-in-95 duration-300">
-                          <h3 className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Alt Text
-                            Ready
-                          </h3>
-                          <div
-                            onClick={() => {
-                              navigator.clipboard.writeText(generatedAltText)
-                              message.success("Copied to clipboard!")
-                            }}
-                            className="p-4 bg-green-50/50 text-green-900 text-xs rounded-xl border border-green-100 cursor-copy hover:bg-green-100 transition-all leading-relaxed relative group"
+                        {/* Toolset */}
+                        <div className="grid grid-cols-2 gap-3 lg:gap-4">
+                          <button
+                            onClick={handleGenerateAltText}
+                            disabled={isGeneratingAlt}
+                            className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all font-bold"
                           >
-                            <Copy
-                              size={12}
-                              className="absolute top-2 right-2 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                            />
-                            {generatedAltText}
-                          </div>
-                        </div>
-                      )}
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white rounded-xl lg:rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-500">
+                              {isGeneratingAlt ? (
+                                <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
+                              ) : (
+                                <Type className="w-4 h-4 lg:w-5 lg:h-5" />
+                              )}
+                            </div>
+                            <span className="text-[10px] lg:text-xs">SEO Metadata</span>
+                          </button>
 
-                      {/* Tags */}
-                      {previewImage.tags && previewImage.tags.length > 0 && (
-                        <div>
-                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                            Tags
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {previewImage.tags.map((tag, i) => (
-                              <span
-                                key={i}
-                                className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[11px] font-semibold tracking-wide hover:border-gray-300 transition-colors"
-                              >
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
+                          <button
+                            onClick={() => setIsEnhanceMode(true)}
+                            disabled={!canEnhance(previewImage)}
+                            className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-purple-50 hover:border-purple-100 hover:text-purple-600 transition-all font-bold"
+                          >
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white rounded-xl lg:rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-purple-500">
+                              <Wand2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                            </div>
+                            <span className="text-[10px] lg:text-xs">AI Enhance</span>
+                          </button>
                         </div>
-                      )}
-                    </>
-                  )}
-                </div>
 
-                {/* Footer Actions */}
-                {!isEnhanceMode && (
-                  <div className="p-5 lg:p-6 pt-2 bg-white flex flex-col gap-3 flex-shrink-0 mt-auto">
-                    <Button
-                      onClick={() => handleDownload(previewImage)}
-                      type="primary"
-                      size="large"
-                      icon={<Download className="w-4 h-4" />}
-                      className="!w-full !rounded-xl !h-12 !bg-gray-900 hover:!bg-black !shadow-lg !font-bold"
-                    >
-                      Download Image
-                    </Button>
+                        {/* Resulting Intelligence */}
+                        {generatedAltText && (
+                          <div className="space-y-3 lg:space-y-4 animate-in zoom-in-95 duration-500">
+                            <label className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Optimized Alternative Text
+                            </label>
+                            <div
+                              onClick={() => {
+                                navigator.clipboard.writeText(generatedAltText)
+                                toast.success("Copied to clipboard!")
+                              }}
+                              className="p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
+                            >
+                              <Copy
+                                size={14}
+                                className="absolute top-3 right-3 lg:top-4 lg:right-4 text-emerald-300 opacity-0 group-hover:opacity-100 transition-all"
+                              />
+                              {generatedAltText}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* AI Interaction Footer */}
+                  <div className="p-5 lg:p-8 bg-slate-50/50 border-t border-slate-100">
+                    {isEnhanceMode ? (
+                      <div className="flex gap-3 lg:gap-4">
+                        <button
+                          onClick={() => setIsEnhanceMode(false)}
+                          className="btn btn-ghost h-10 lg:h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-sm lg:text-base"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleEnhanceImage}
+                          className="btn btn-primary h-10 lg:h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-sm lg:text-base"
+                        >
+                          {isEnhancing ? (
+                            <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
+                          ) : (
+                            "Enhance"
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleDownload(previewImage)}
+                        className="btn btn-primary w-full h-12 lg:h-[60px] rounded-lg bg-slate-900 border-none text-white font-medium text-sm lg:text-base hover:bg-black transition-all"
+                      >
+                        <Download className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3" />
+                        Download Image
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
             </div>
           )}
-        </Modal>
+        </AnimatePresence>
       </div>
     </>
   )

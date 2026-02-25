@@ -17,7 +17,6 @@ import {
   ArrowRight,
   BrainCircuit,
 } from "lucide-react"
-import { Button, Input, message, Upload as AntUpload, Avatar } from "antd"
 import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
 import { usePdfChatMutation } from "@api/queries/toolsQueries"
@@ -26,9 +25,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-
-const { Dragger } = AntUpload
-const { TextArea } = Input
+import { toast } from "sonner"
 
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
@@ -38,6 +35,7 @@ const ChatWithPdf = () => {
   const { handlePopup } = useConfirmPopup()
 
   const [file, setFile] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -49,6 +47,7 @@ const ChatWithPdf = () => {
   ])
   const [input, setInput] = useState("")
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -58,37 +57,54 @@ const ChatWithPdf = () => {
     scrollToBottom()
   }, [messages, loading])
 
-  const handleUpload = info => {
-    const { status } = info.file
-    if (status === "done") {
-      const uploadedFile = info.file.originFileObj
-      // Size check: 2MB limit (2 * 1024 * 1024 bytes)
-      if (uploadedFile.size > 2 * 1024 * 1024) {
-        message.error(
-          `File is too large (${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB). Max size is 2MB.`
-        )
-        return
-      }
+  const processFile = uploadedFile => {
+    if (!uploadedFile) return
 
-      setFile(uploadedFile)
-      message.success(`${uploadedFile.name} uploaded successfully!`)
-      setMessages([
-        {
-          id: 1,
-          role: "model",
-          content: `I've analyzed "${uploadedFile.name}". What would you like to know?`,
-          timestamp: new Date(),
-        },
-      ])
-    } else if (status === "error") {
-      message.error(`${info.file.name} file upload failed.`)
+    if (uploadedFile.type !== "application/pdf") {
+      toast.error("Please upload a PDF file.")
+      return
     }
+
+    // Size check: 2MB limit (2 * 1024 * 1024 bytes)
+    if (uploadedFile.size > 2 * 1024 * 1024) {
+      toast.error(
+        `File is too large (${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB). Max size is 2MB.`
+      )
+      return
+    }
+
+    setFile(uploadedFile)
+    toast.success(`${uploadedFile.name} uploaded successfully!`)
+    setMessages([
+      {
+        id: 1,
+        role: "model",
+        content: `I've analyzed "${uploadedFile.name}". What would you like to know?`,
+        timestamp: new Date(),
+      },
+    ])
   }
 
-  const dummyRequest = ({ onSuccess }) => {
-    setTimeout(() => {
-      onSuccess("ok")
-    }, 0)
+  const handleFileChange = e => {
+    const uploadedFile = e.target.files[0]
+    processFile(uploadedFile)
+  }
+
+  const handleDragOver = e => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = e => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = e => {
+    e.preventDefault()
+    setIsDragging(false)
+    const uploadedFile = e.dataTransfer.files[0]
+    processFile(uploadedFile)
   }
 
   const handleSendMessage = async () => {
@@ -136,7 +152,7 @@ const ChatWithPdf = () => {
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
       ])
     } catch (err) {
-      message.error(err?.message || "Failed to get response")
+      toast.error(err?.toast || "Failed to get response")
     }
   }
 
@@ -162,7 +178,7 @@ const ChatWithPdf = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen">
       <Helmet>
         <title>Chat with PDF | GenWrite</title>
       </Helmet>
@@ -171,7 +187,7 @@ const ChatWithPdf = () => {
         {/* Header - Always visible but adaptable */}
         <header className="flex items-center justify-between bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-white/20 shadow-sm sticky top-0 z-10 transition-all">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white transform hover:scale-105 transition-transform duration-300">
+            <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white transform hover:scale-105 transition-transform duration-300">
               <FileText className="w-6 h-6" />
             </div>
             <div>
@@ -181,7 +197,7 @@ const ChatWithPdf = () => {
           </div>
 
           {file && (
-            <Button
+            <button
               danger
               type="text"
               className="hover:bg-red-50 text-red-600 rounded-xl font-medium flex items-center gap-2"
@@ -189,7 +205,7 @@ const ChatWithPdf = () => {
             >
               <Trash2 className="w-4 h-4" />
               <span className="hidden sm:inline">End Session</span>
-            </Button>
+            </button>
           )}
         </header>
 
@@ -207,9 +223,9 @@ const ChatWithPdf = () => {
               >
                 <div className="w-full">
                   <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+                    <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-                    <div className="p-4 md:p-8 h-[35rem]">
+                    <div className="p-4 md:p-8 h-140">
                       <div className="text-center mb-8">
                         <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
                           <Upload className="w-8 h-8 text-indigo-600" />
@@ -219,24 +235,30 @@ const ChatWithPdf = () => {
                       </div>
 
                       <div className="relative group">
-                        <Dragger
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
                           accept=".pdf"
-                          customRequest={dummyRequest}
-                          onChange={handleUpload}
-                          showUploadList={false}
-                          className="!border-0 !bg-transparent w-full"
-                          style={{ padding: 0 }}
+                          className="hidden"
+                        />
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          className={`border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
+                            isDragging
+                              ? "bg-indigo-50 border-indigo-500 shadow-inner scale-[1.01]"
+                              : "bg-slate-50/50 border-slate-200 group-hover:bg-indigo-50/30 group-hover:border-indigo-400"
+                          }`}
                         >
-                          <div
-                            className="border-2 border-dashed border-slate-200 rounded-2xl p-10 bg-slate-50/50 
-                group-hover:bg-indigo-50/30 group-hover:border-indigo-400 
-                transition-all cursor-pointer text-center h-[20rem]
-                flex flex-col items-center justify-center"
-                          >
-                            <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
-                            <p className="text-slate-400 text-sm">or drag and drop here</p>
+                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6" />
                           </div>
-                        </Dragger>
+                          <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
+                          <p className="text-slate-400 text-sm">or drag and drop here</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -252,7 +274,7 @@ const ChatWithPdf = () => {
                 className="flex flex-col h-full bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden"
               >
                 {/* File Context Bar */}
-                <div className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 flex-shrink-0">
+                <div className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0">
                   <div className="flex items-center gap-3">
                     <div className="bg-red-50 p-1.5 rounded text-red-500">
                       <FileIcon className="w-4 h-4" />
@@ -277,23 +299,15 @@ const ChatWithPdf = () => {
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      {/* Avatar (Model) */}
                       {msg.role === "model" && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
                           <BrainCircuit className="w-4 h-4" />
                         </div>
                       )}
 
                       {/* Bubble */}
                       <div
-                        className={`
-                        max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm
-                        ${
-                          msg.role === "user"
-                            ? "bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-tr-none"
-                            : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"
-                        }
-                      `}
+                        className={`max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm ${msg.role === "user" ? "bg-linear-to-br from-slate-900 to-slate-800 text-white rounded-tr-none" : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"}`}
                       >
                         {msg.role === "model" ? (
                           <div className="prose prose-sm max-w-none prose-slate">
@@ -304,9 +318,8 @@ const ChatWithPdf = () => {
                         )}
                       </div>
 
-                      {/* Avatar (User) */}
                       {msg.role === "user" && (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-1">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-1">
                           <User className="w-4 h-4 text-slate-500" />
                         </div>
                       )}
@@ -320,7 +333,7 @@ const ChatWithPdf = () => {
                       animate={{ opacity: 1 }}
                       className="flex gap-4"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
                         <BrainCircuit className="w-4 h-4" />
                       </div>
                       <div className="bg-white px-6 py-4 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-2">
@@ -333,42 +346,48 @@ const ChatWithPdf = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area */}
+                {/* input Area */}
                 <div className="p-4 md:p-6 bg-white border-t border-slate-100">
-                  <div className="max-w-4xl mx-auto relative group">
-                    <TextArea
+                  <div className="relative">
+                    <textarea
                       value={input}
                       onChange={e => setInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyPress}
                       placeholder="Ask a question about your document..."
-                      autoSize={{ minRows: 1, maxRows: 6 }}
-                      className="!pr-14 !pl-6 !py-4 !rounded-2xl !bg-slate-50 !border-slate-200 focus:!bg-white focus:!border-indigo-500 hover:!border-indigo-300 !text-slate-800 !text-base !resize-none !shadow-inner transition-all"
+                      rows={1}
+                      onInput={e => {
+                        e.target.style.height = "auto"
+                        e.target.style.height = e.target.scrollHeight + "px"
+                      }}
                       disabled={loading}
+                      className="w-full pr-14 pl-5 py-4 rounded-2xl bg-slate-100 border border-slate-200 
+                 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
+                 hover:border-indigo-300 text-slate-800 text-sm resize-none 
+                 shadow-sm transition-all outline-none max-h-40 overflow-y-auto custom-scroll"
                     />
-                    <Button
-                      type="primary"
-                      shape="circle"
-                      size="large"
-                      icon={
-                        loading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <ArrowRight className="w-5 h-5" />
-                        )
-                      }
+
+                    <button
                       onClick={handleSendMessage}
                       disabled={!input.trim() || loading}
-                      className={`absolute right-2 bottom-2 !flex !items-center !justify-center !w-10 !h-10 !border-0 !shadow-lg ${
-                        !input.trim() || loading
-                          ? "!bg-slate-200 !text-slate-400"
-                          : "!bg-gradient-to-r !from-indigo-600 !to-violet-600 !text-white hover:!scale-110"
-                      } transition-all duration-300`}
-                    />
+                      className={`absolute right-3 bottom-3 flex items-center justify-center 
+                  w-9 h-9 rounded-xl shadow-md transition-all duration-200
+                  ${
+                    !input.trim() || loading
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-linear-to-r from-indigo-600 to-violet-600 text-white hover:scale-105"
+                  }`}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
+
                   <div className="text-center mt-3">
                     <p className="text-xs text-slate-400">
-                      AI can assist with key findings, summaries, and data extraction. (Cost: 1
-                      credit/message)
+                      AI can assist with summaries and insights. (Cost: 1 credit)
                     </p>
                   </div>
                 </div>

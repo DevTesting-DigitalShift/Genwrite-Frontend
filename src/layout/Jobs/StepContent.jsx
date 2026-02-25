@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
-import { Select, message, Tooltip } from "antd"
 import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
@@ -12,8 +11,7 @@ import { fetchIntegrations } from "@api/otherApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-
-const { Option } = Select
+import { toast } from "sonner"
 
 const StepContent = ({
   currentStep,
@@ -184,19 +182,19 @@ const StepContent = ({
   const handleCSVUpload = (e, type) => {
     const file = e.target.files?.[0]
     if (!file) {
-      message.error("No file selected. Please choose a valid CSV file.")
+      toast.error("No file selected. Please choose a valid CSV file.")
       return
     }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
+      toast.error("Invalid file type. Please upload a .csv file.")
       e.target.value = null
       return
     }
 
     const maxSizeInBytes = 20 * 1024 // 20KB
     if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      toast.error("File size exceeds 20KB limit. Please upload a smaller file.")
       e.target.value = null
       return
     }
@@ -205,14 +203,14 @@ const StepContent = ({
     reader.onload = event => {
       const text = event.target?.result
       if (!text || typeof text !== "string") {
-        message.error("Failed to read the CSV file. Please ensure it is valid.")
+        toast.error("Failed to read the CSV file. Please ensure it is valid.")
         return
       }
 
       // Split the CSV content into lines
       let lines = text.trim().split(/\r?\n/)
       if (lines.length === 0) {
-        message.error("The CSV file is empty. Please provide a valid CSV with topics or keywords.")
+        toast.error("The CSV file is empty. Please provide a valid CSV with topics or keywords.")
         return
       }
 
@@ -231,7 +229,7 @@ const StepContent = ({
         .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
-        message.warning(`No valid ${type} found in the CSV file.`)
+        toast.warning(`No valid ${type} found in the CSV file.`)
         return
       }
 
@@ -249,7 +247,7 @@ const StepContent = ({
       })
 
       if (uniqueNewItems.length === 0) {
-        message.warning(
+        toast.warning(
           `No new ${type} found in the CSV. All provided items are either duplicates or already exist.`
         )
         return
@@ -272,7 +270,7 @@ const StepContent = ({
       }
 
       // Notify user of successful upload
-      message.success(`${uniqueNewItems.length} new ${type} added from CSV.`)
+      toast.success(`${uniqueNewItems.length} new ${type} added from CSV.`)
 
       // Update recently uploaded count based on type
       if (type === "topics") {
@@ -285,7 +283,7 @@ const StepContent = ({
     }
 
     reader.onerror = () => {
-      message.error("An error occurred while reading the CSV file.")
+      toast.error("An error occurred while reading the CSV file.")
     }
 
     reader.readAsText(file)
@@ -298,7 +296,7 @@ const StepContent = ({
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
 
       if (!hasAnyIntegration) {
-        message.error("Please connect your account in plugins.")
+        toast.error("Please connect your account in plugins.")
         return
       }
     }
@@ -352,13 +350,13 @@ const StepContent = ({
 
     const validFiles = Array.from(files).filter(file => {
       if (!allowedTypes.includes(file.type)) {
-        message.error(
+        toast.error(
           `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
         )
         return false
       }
       if (file.size > maxSize) {
-        message.error(`"${file.name}" exceeds the 5 MB size limit.`)
+        toast.error(`"${file.name}" exceeds the 5 MB size limit.`)
         return false
       }
       return true
@@ -366,7 +364,7 @@ const StepContent = ({
 
     const totalImages = newJob.blogs.blogImages.length + validFiles.length
     if (totalImages > maxImages) {
-      message.error(`Cannot upload more than ${maxImages} images.`)
+      toast.error(`Cannot upload more than ${maxImages} images.`)
       return validFiles.slice(0, maxImages - newJob.blogs.blogImages.length)
     }
 
@@ -383,7 +381,7 @@ const StepContent = ({
         ...prev,
         blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
       }))
-      message.success(`${validFiles.length} image(s) added successfully!`)
+      toast.success(`${validFiles.length} image(s) added successfully!`)
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "" // Reset input
@@ -404,7 +402,7 @@ const StepContent = ({
         ...prev,
         blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
       }))
-      // message.success(`${validFiles.length} image(s) added successfully!`)
+      // toast.success(`${validFiles.length} image(s) added successfully!`)
     }
   }
 
@@ -452,192 +450,6 @@ const StepContent = ({
             preSelectedIds={newJob?.blogs?.templates ?? []}
             onClick={handleTemplateSelection}
           />
-          {/* <p className="text-sm text-gray-600 mb-3 sm:mb-4">
-            Select up to 3 templates for the types of blogs you want to generate.
-          </p>
-          Mobile View: Vertical Scrolling Layout 
-           <div
-            className={`sm:hidden grid grid-cols-2 gap-4 ${
-              errors.templates ? "border-red-500 border-2" : ""
-            }`}
-          >
-            {packages.map(pkg => (
-              <div
-                key={pkg.id}
-                className={`relative cursor-pointer transition-all duration-200 w-full ${
-                  newJob.blogs.templates.includes(pkg.name)
-                    ? "border-gray-300 border-2 rounded-lg"
-                    : ""
-                } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={() => {
-                  if (pkg.paid && !isProUser) {
-                    message.error("Please upgrade to a Pro subscription to access this template.")
-                    return
-                  }
-                  if (newJob.blogs.templates.includes(pkg.name)) {
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        templates: prev.blogs.templates.filter(template => template !== pkg.name),
-                      },
-                    }))
-                    setErrors(prev => ({ ...prev, templates: false }))
-                  } else if (newJob.blogs.templates.length < 3) {
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
-                    }))
-                    setErrors(prev => ({ ...prev, templates: false }))
-                  } else {
-                    message.error("You can only select up to 3 templates.")
-                  }
-                }}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    if (pkg.paid && !isProUser) {
-                      message.error("Please upgrade to a Pro subscription to access this template.")
-                      return
-                    }
-                    if (newJob.blogs.templates.includes(pkg.name)) {
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          templates: prev.blogs.templates.filter(template => template !== pkg.name),
-                        },
-                      }))
-                      setErrors(prev => ({ ...prev, templates: false }))
-                    } else if (newJob.blogs.templates.length < 3) {
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
-                      }))
-                      setErrors(prev => ({ ...prev, templates: false }))
-                    } else {
-                      message.error("You can only select up to 3 templates.")
-                    }
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Select ${pkg.name} template`}
-              >
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                  <div className="relative">
-                    <img
-                      src={pkg.imgSrc || "/placeholder.svg"}
-                      alt={pkg.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {pkg.paid && !isProUser && (
-                      <div className="absolute top-2 right-2">
-                        <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div> 
-           {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
-
-          Desktop View: 1x2 Grid Layout 
-           <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
-            <div className="flex flex-wrap gap-4">
-              {packages.map(pkg => (
-                <div
-                  key={pkg.id}
-                  className={`relative cursor-pointer transition-all duration-200 w-[30%] ${
-                    newJob.blogs.templates.includes(pkg.name)
-                      ? "border-blue-400 border-2 rounded-lg"
-                      : ""
-                  } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
-                  onClick={() => {
-                    if (pkg.paid && !isProUser) {
-                      message.error("Please upgrade to a Pro subscription to access this template.")
-                      return
-                    }
-                    if (newJob.blogs.templates.includes(pkg.name)) {
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          templates: prev.blogs.templates.filter(template => template !== pkg.name),
-                        },
-                      }))
-                      setErrors(prev => ({ ...prev, templates: false }))
-                    } else if (newJob.blogs.templates.length < 3) {
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
-                      }))
-                      setErrors(prev => ({ ...prev, templates: false }))
-                    } else {
-                      message.error("You can only select up to 3 templates.")
-                    }
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      if (pkg.paid && !isProUser) {
-                        message.error(
-                          "Please upgrade to a Pro subscription to access this template."
-                        )
-                        return
-                      }
-                      if (newJob.blogs.templates.includes(pkg.name)) {
-                        setNewJob(prev => ({
-                          ...prev,
-                          blogs: {
-                            ...prev.blogs,
-                            templates: prev.blogs.templates.filter(
-                              template => template !== pkg.name
-                            ),
-                          },
-                        }))
-                        setErrors(prev => ({ ...prev, templates: false }))
-                      } else if (newJob.blogs.templates.length < 3) {
-                        setNewJob(prev => ({
-                          ...prev,
-                          blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
-                        }))
-                        setErrors(prev => ({ ...prev, templates: false }))
-                      } else {
-                        message.error("You can only select up to 3 templates.")
-                      }
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Select ${pkg.name} template`}
-                >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {pkg.paid && !isProUser && (
-                        <div className="absolute top-2 right-2">
-                          <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>} */}
           <p
             className={`text-sm ${
               errors?.templates ? "text-red-500" : "text-gray-600"
@@ -663,8 +475,8 @@ const StepContent = ({
                   setNewJob({ ...newJob, name: e.target.value })
                   setErrors(prev => ({ ...prev, name: false }))
                 }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.name ? "border-red-500" : "border-gray-200"
+                className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.name ? "input-error" : ""
                 }`}
                 aria-label="Job name"
               />
@@ -673,9 +485,12 @@ const StepContent = ({
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                 Topics
-                <Tooltip title="Upload a .csv file in the format: `Topics` as header">
+                <div
+                  className="tooltip"
+                  data-tip="Upload a .csv file in the format: `Topics` as header"
+                >
                   <Info size={16} className="text-blue-500 cursor-pointer" />
-                </Tooltip>
+                </div>
               </label>
               <div className="flex gap-2 mb-2">
                 <input
@@ -685,8 +500,8 @@ const StepContent = ({
                     e.key === "Enter" && handleAddItems(formData.topicInput, "topics")
                   }
                   onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.topics ? "border-red-500" : "border-gray-200"
+                  className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.topics ? "input-error" : ""
                   }`}
                   placeholder="Add a topic..."
                   aria-label="Add topic"
@@ -695,12 +510,12 @@ const StepContent = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAddItems(formData.topicInput, "topics")}
-                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg"
+                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg btn border-none min-h-auto h-auto"
                   aria-label="Add topic"
                 >
                   <Plus />
                 </motion.button>
-                <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+                <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 h-auto btn min-h-auto border-gray-200">
                   <Upload size={16} />
                   <input
                     type="file"
@@ -732,7 +547,7 @@ const StepContent = ({
                             },
                           }))
                         }
-                        className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                        className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         aria-label={`Remove topic ${topic}`}
                       >
                         <X className="w-3 h-3" />
@@ -772,18 +587,20 @@ const StepContent = ({
                   name="performKeywordResearch"
                   checked={formData.performKeywordResearch}
                   onChange={handleCheckboxChange}
-                  className="sr-only peer"
+                  className="toggle toggle-primary"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
               </label>
             </div>
             {!formData.performKeywordResearch && (
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                   Keywords
-                  <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
+                  <div
+                    className="tooltip"
+                    data-tip="Upload a .csv file in the format: `Keywords` as header"
+                  >
                     <Info size={16} className="text-blue-500 cursor-pointer" />
-                  </Tooltip>
+                  </div>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -793,18 +610,18 @@ const StepContent = ({
                     onKeyDown={e =>
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
-                    className={`flex-1 px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.keywords ? "border-red-500" : "border-gray-300"
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.keywords ? "input-error" : "border-gray-300"
                     }`}
                     placeholder="e.g., digital marketing trends, AI in business"
                   />
                   <button
                     onClick={() => handleAddItems(formData.keywordInput, "keywords")}
-                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 btn border-none min-h-auto h-auto"
                   >
                     <Plus />
                   </button>
-                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 btn min-h-auto h-auto border-gray-200">
                     <Upload size={16} />
                     <input
                       type="file"
@@ -836,7 +653,7 @@ const StepContent = ({
                               blogs: { ...prev.blogs, keywords: updatedKeywords },
                             }))
                           }}
-                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -868,53 +685,55 @@ const StepContent = ({
                 <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
                   Tone of Voice <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  className="w-full"
+                <select
+                  className={`select select-bordered w-full h-10 min-h-0 text-sm ${errors.tone ? "select-error" : ""}`}
                   value={newJob.blogs.tone}
-                  onChange={value => {
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
+                  onChange={e => {
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: e.target.value } })
                     setErrors(prev => ({ ...prev, tone: false }))
                   }}
-                  placeholder="Select tone"
-                  status={errors.tone ? "error" : ""}
                 >
-                  <Option value="">Select Tone</Option>
-                  <Option value="professional">Professional</Option>
-                  <Option value="casual">Casual</Option>
-                  <Option value="friendly">Friendly</Option>
-                  <Option value="formal">Formal</Option>
-                  <Option value="conversational">Conversational</Option>
-                  <Option value="witty">Witty</Option>
-                  <Option value="informative">Informative</Option>
-                  <Option value="inspirational">Inspirational</Option>
-                  <Option value="persuasive">Persuasive</Option>
-                  <Option value="empathetic">Empathetic</Option>
-                </Select>
+                  <option value="" disabled>
+                    Select Tone
+                  </option>
+                  <option value="Professional">Professional</option>
+                  <option value="Casual">Casual</option>
+                  <option value="Friendly">Friendly</option>
+                  <option value="Formal">Formal</option>
+                  <option value="Conversational">Conversational</option>
+                  <option value="Witty">Witty</option>
+                  <option value="Informative">Informative</option>
+                  <option value="Inspirational">Inspirational</option>
+                  <option value="Persuasive">Persuasive</option>
+                  <option value="Empathetic">Empathetic</option>
+                </select>
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
                 <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
                   Language <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  className="w-full"
+                <select
+                  className="select select-bordered w-full h-10 min-h-0 text-sm"
                   value={newJob.blogs.languageToWrite}
-                  onChange={value => {
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, languageToWrite: value } })
+                  onChange={e => {
+                    setNewJob({
+                      ...newJob,
+                      blogs: { ...newJob.blogs, languageToWrite: e.target.value },
+                    })
                   }}
-                  placeholder="Select language"
                 >
-                  <Option value="English">English</Option>
-                  <Option value="Spanish">Spanish</Option>
-                  <Option value="German">German</Option>
-                  <Option value="French">French</Option>
-                  <Option value="Italian">Italian</Option>
-                  <Option value="Portuguese">Portuguese</Option>
-                  <Option value="Dutch">Dutch</Option>
-                  <Option value="Japanese">Japanese</Option>
-                  <Option value="Hindi">Hindi</Option>
-                  <Option value="Chinese">Chinese</Option>
-                </Select>
+                  <option value="English">English</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="German">German</option>
+                  <option value="French">French</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Portuguese">Portuguese</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Chinese">Chinese</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -926,12 +745,7 @@ const StepContent = ({
                     min="500"
                     max="5000"
                     value={newJob.blogs.userDefinedLength}
-                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
-                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
-                    }}
+                    className="range range-xs range-primary w-full"
                     onChange={e =>
                       setNewJob({
                         ...newJob,
@@ -954,11 +768,10 @@ const StepContent = ({
           <div className="flex justify-between items-center">
             <label className="block text-sm font-semibold text-gray-700">Add Image</label>
             <div className="flex items-center">
-              <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
+              <label className="cursor-pointer label">
                 <input
                   type="checkbox"
-                  id="add-image-toggle"
-                  className="sr-only peer"
+                  className="toggle toggle-primary"
                   checked={newJob.blogs.isCheckedGeneratedImages}
                   onChange={e => {
                     const checked = e.target.checked
@@ -972,28 +785,14 @@ const StepContent = ({
                     }))
                   }}
                 />
-                <div
-                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                    newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                  }`}
-                />
-                <div
-                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                    newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
-                  }`}
-                />
               </label>
               {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
-                <Tooltip
-                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                  overlayInnerStyle={{
-                    backgroundColor: "#FEF9C3",
-                    border: "1px solid #FACC15",
-                    color: "#78350F",
-                  }}
+                <div
+                  className="tooltip tooltip-left"
+                  data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle."
                 >
-                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                </Tooltip>
+                  <TriangleAlert className="text-yellow-400 ml-4 cursor-pointer" size={15} />
+                </div>
               )}
             </div>
           </div>
@@ -1014,7 +813,7 @@ const StepContent = ({
                   Drag and drop images here or click to select
                 </p>
                 <button
-                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm btn border-none min-h-auto h-auto"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Select Images
@@ -1136,7 +935,7 @@ const StepContent = ({
                   value={newJob.blogs.numberOfImages ?? ""}
                   onChange={handleInputChange}
                   onWheel={e => e.currentTarget.blur()}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                  className="input input-bordered w-full px-4 py-2 rounded-lg text-sm placeholder-gray-400 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 5"
                 />
                 {errors.numberOfImages && (
@@ -1194,7 +993,7 @@ const StepContent = ({
           </div>
 
           {/* Cost Cutter Toggle */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm mb-6">
+          <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
@@ -1204,7 +1003,7 @@ const StepContent = ({
                 <input
                   type="checkbox"
                   id="cost-cutter-toggle"
-                  className="sr-only peer"
+                  className="toggle toggle-success"
                   checked={newJob.blogs.costCutter || false}
                   onChange={e => {
                     setNewJob(prev => ({
@@ -1213,16 +1012,6 @@ const StepContent = ({
                     }))
                   }}
                 />
-                <div
-                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                    newJob.blogs.costCutter ? "bg-green-500" : "bg-gray-300"
-                  }`}
-                />
-                <div
-                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
-                    newJob.blogs.costCutter ? "translate-x-6" : ""
-                  }`}
-                />
               </label>
             </div>
           </div>
@@ -1230,9 +1019,10 @@ const StepContent = ({
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
-              <Select
+              <select
                 value={newJob.schedule.type}
-                onChange={value => {
+                onChange={e => {
+                  const value = e.target.value
                   setNewJob({
                     ...newJob,
                     schedule: {
@@ -1250,13 +1040,13 @@ const StepContent = ({
                     customDates: false,
                   }))
                 }}
-                className="w-full"
+                className="select select-bordered w-full h-10 min-h-0 text-sm"
               >
-                <Option value="daily">Daily</Option>
-                <Option value="weekly">Weekly</Option>
-                <Option value="monthly">Monthly</Option>
-                <Option value="custom">Custom</Option>
-              </Select>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom</option>
+              </select>
             </div>
             {newJob.schedule.type === "weekly" && (
               <div>
@@ -1376,8 +1166,8 @@ const StepContent = ({
                 value={newJob.blogs.numberOfBlogs ?? ""}
                 onChange={handleNumberOfBlogsChange}
                 onWheel={e => e.currentTarget.blur()}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.numberOfBlogs ? "input-error" : ""
                 }`}
                 placeholder="Enter the number of blogs"
               />
@@ -1434,7 +1224,7 @@ const StepContent = ({
               {
                 label: "Easy to Understand",
                 name: "easyToUnderstand",
-                desc: " for better accessibility.",
+                desc: "Make the content simple and easy to read.",
               },
               {
                 label: "Embed YouTube Videos",
@@ -1447,15 +1237,14 @@ const StepContent = ({
                   {label}
                   <p className="text-xs text-gray-500">{desc}</p>
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="cursor-pointer label">
                   <input
                     type="checkbox"
-                    className="sr-only peer"
+                    className="toggle toggle-primary"
                     checked={newJob.options[name]}
                     onChange={handleCheckboxChange}
                     name={name}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
                 </label>
               </div>
             ))}
@@ -1464,26 +1253,27 @@ const StepContent = ({
             {newJob.options.wordpressPosting &&
               Object.keys(integrations?.integrations || {}).length > 0 && (
                 <div className="my-5">
-                  <span className="text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Your Publishing Platform
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 font-normal mt-1">
                       Post your blog automatically to connected platforms only.
                     </p>
-                  </span>
+                  </label>
 
-                  <Select
-                    className="w-full mt-2"
-                    placeholder="Select platform"
+                  <select
+                    className={`select select-bordered w-full h-10 min-h-0 text-sm mt-2 ${errors.postingType ? "select-error" : ""}`}
                     value={formData.postingType}
                     onChange={handleIntegrationChange}
-                    status={errors.postingType ? "error" : ""}
                   >
+                    <option value="" disabled>
+                      Select platform
+                    </option>
                     {Object.entries(integrations.integrations).map(([platform, details]) => (
-                      <Option key={platform} value={platform}>
+                      <option key={platform} value={platform}>
                         {platform}
-                      </Option>
+                      </option>
                     ))}
-                  </Select>
+                  </select>
                   {errors.postingType && (
                     <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
                   )}

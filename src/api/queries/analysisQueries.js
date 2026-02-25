@@ -1,16 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
-import { message } from "antd"
+import { toast } from "sonner"
 
 export const useCompetitiveAnalysisMutation = () => {
   return useMutation({
     mutationFn: ({ blogId, title, content, keywords }) =>
       runCompetitiveAnalysis({ blogId, title, content, keywords }),
     onSuccess: () => {
-      message.success("Competitive analysis completed successfully!")
+      toast.success("Competitive analysis completed successfully!")
     },
     onError: error => {
-      message.error(error.response?.data?.message || "Failed to fetch competitive analysis.")
+      toast.error(error.response?.data?.message || "Failed to fetch competitive analysis.")
     },
   })
 }
@@ -19,7 +19,7 @@ export const useAnalyzeKeywordsMutation = () => {
   return useMutation({
     mutationFn: analyzeKeywords,
     onError: err => {
-      message.error(err?.response?.data?.message || "Failed to analyze keywords.")
+      toast.error(err?.response?.data?.message || "Failed to analyze keywords.")
     },
   })
 }

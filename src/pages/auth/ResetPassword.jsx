@@ -13,7 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import { message } from "antd"
+import { toast } from "sonner"
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()
@@ -85,7 +85,7 @@ const ResetPassword = () => {
     try {
       const res = await resetPassword({ token, newPassword: password })
       if (res) {
-        message.success(res)
+        toast.success(res)
         setSuccess(true)
         navigate("/login", { replace: true })
       }
@@ -110,18 +110,18 @@ const ResetPassword = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="min-h-screen relative overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
+            className="absolute -top-40 -right-40 w-80 h-80 bg-linear-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
           />
           <motion.div
             animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
+            className="absolute -bottom-40 -left-40 w-80 h-80 bg-linear-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
           />
         </div>
 
@@ -143,13 +143,13 @@ const ResetPassword = () => {
             className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 text-center relative overflow-hidden"
           >
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/10 to-emerald-400/10 rounded-full -translate-y-16 translate-x-16" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-green-400/10 to-emerald-400/10 rounded-full -translate-y-16 translate-x-16" />
 
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-              className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 bg-linear-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
             >
               <CheckCircle className="w-10 h-10 text-white" />
             </motion.div>
@@ -179,7 +179,7 @@ const ResetPassword = () => {
               className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8"
             >
               <div className="flex items-center gap-3 text-green-800">
-                <Shield className="w-5 h-5 flex-shrink-0" />
+                <Shield className="w-5 h-5 shrink-0" />
                 <p className="text-sm">
                   Your account is now secure with the new password. Make sure to keep it safe!
                 </p>
@@ -193,7 +193,7 @@ const ResetPassword = () => {
             >
               <Link
                 to="/login"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
               >
                 Continue to Sign In
                 <ArrowRight className="w-5 h-5" />
@@ -206,18 +206,18 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen relative overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
+          className="absolute -top-40 -right-40 w-80 h-80 bg-linear-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-linear-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
       </div>
 
@@ -239,8 +239,8 @@ const ResetPassword = () => {
           className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden"
         >
           {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-linear-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
 
           {/* Header */}
           <div className="relative mb-8 text-center">
@@ -248,7 +248,7 @@ const ResetPassword = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-              className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              className="w-16 h-16 bg-linear-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
             >
               <Key className="text-white text-2xl" />
             </motion.div>
@@ -328,7 +328,7 @@ const ResetPassword = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-2 text-red-600 text-sm flex items-center gap-2"
                 >
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   {errors.password}
                 </motion.div>
               )}
@@ -376,7 +376,7 @@ const ResetPassword = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-2 text-red-600 text-sm flex items-center gap-2"
                 >
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   {errors.confirmPassword}
                 </motion.div>
               )}
@@ -387,7 +387,7 @@ const ResetPassword = () => {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className={`w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl ${
+              className={`w-full py-4 px-6 bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl ${
                 loading
                   ? "opacity-70 cursor-not-allowed"
                   : "hover:from-blue-700 hover:to-purple-700"

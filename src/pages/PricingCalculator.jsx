@@ -1,50 +1,34 @@
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Slider, Radio, Card, Button, Divider, Space, Typography, Switch } from "antd"
 import {
-  FileTextOutlined,
-  BulbOutlined,
-  SearchOutlined,
-  LinkOutlined,
-  QuestionCircleOutlined,
-  RobotOutlined,
-  PictureOutlined,
-  CloudUploadOutlined,
-  ThunderboltOutlined,
-  CheckCircleOutlined,
-  ArrowRightOutlined,
-  MinusOutlined,
-  RocketOutlined,
-} from "@ant-design/icons"
+  FileText,
+  Lightbulb,
+  Search,
+  Link as LinkIcon,
+  HelpCircle,
+  Bot,
+  Image as ImageIcon,
+  Upload,
+  Zap,
+  CheckCircle,
+  ArrowRight,
+  Minus,
+  Rocket,
+  Plus,
+} from "lucide-react"
 import { pricingConfig, computeCost } from "@/data/pricingConfig"
 import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 
-const { Title, Text, Paragraph } = Typography
-
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
 }
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 12,
-    },
-  },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100, damping: 12 } },
 }
 
 const PricingCalculator = () => {
@@ -102,21 +86,26 @@ const PricingCalculator = () => {
     imageType === "stock"
       ? pricingConfig.images.stock.featureFee
       : imageType === "ai"
-      ? pricingConfig.images.ai.featureFee
-      : imageType === "upload"
-      ? imageCount * pricingConfig.images.upload.perImageFee
-      : 0
+        ? pricingConfig.images.ai.featureFee
+        : imageType === "upload"
+          ? imageCount * pricingConfig.images.upload.perImageFee
+          : 0
 
   const imageOptions = [
-    { key: "none", label: "None", icon: <MinusOutlined />, cost: 0 },
+    { key: "none", label: "None", icon: <Minus className="size-5" />, cost: 0 },
     {
       key: "stock",
       label: "Stock",
-      icon: <PictureOutlined />,
+      icon: <ImageIcon className="size-5" />,
       cost: pricingConfig.images.stock.featureFee,
     },
-    { key: "ai", label: "AI", icon: <RobotOutlined />, cost: pricingConfig.images.ai.featureFee },
-    { key: "upload", label: "Upload", icon: <CloudUploadOutlined />, cost: null },
+    {
+      key: "ai",
+      label: "AI",
+      icon: <Bot className="size-5" />,
+      cost: pricingConfig.images.ai.featureFee,
+    },
+    { key: "upload", label: "Upload", icon: <Upload className="size-5" />, cost: null },
   ]
 
   return (
@@ -130,438 +119,323 @@ const PricingCalculator = () => {
       </Helmet>
 
       {/* Main Calculator */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-20">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 mt-12 mb-32">
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* LEFT SIDE */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="border border-gray-100 shadow-sm rounded-2xl">
-                <Title level={4} className="!mb-6 !text-lg">
-                  Content Settings
-                </Title>
+          <div className="text-center mb-16">
+            <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight mb-4">
+              Interactive{" "}
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                Cost Estimator
+              </span>
+            </h1>
+            <p className="text-gray-500 font-bold text-md max-w-2xl mx-auto">
+              Precise credit calculation for your generating needs. Toggle features and models in
+              real-time.
+            </p>
+          </div>
 
-                {/* WORD COUNT */}
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-slate-100 font-semibold">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+            {/* LEFT SIDE - Options */}
+            <div className="xl:col-span-8 space-y-8">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                {/* 1. WORD COUNT */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 font-black text-xl">
                       1
-                    </span>
+                    </div>
                     <div>
-                      <Text strong className="text-base">
-                        Target Word Count
-                      </Text>
-                      <br />
-                      <Text className="text-xs text-slate-500">
+                      <h2 className="text-2xl font-black text-gray-900">Target Word Count</h2>
+                      <p className="text-gray-400 font-bold text-sm tracking-wide">
                         Base chunk: {pricingConfig.wordCount.base} words
-                      </Text>
+                      </p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    {/* Large Word Count Display */}
+                  <div className="space-y-10">
                     <motion.div
                       key={wordCountNum}
-                      initial={{ scale: 1.1, opacity: 0.8 }}
+                      initial={{ scale: 1.05, opacity: 0.5 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="text-center py-6 px-6 bg-gradient-to-r from-purple-50 to-sky-50 rounded-xl border border-purple-200"
+                      className="text-center p-10 bg-linear-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border-2 border-dashed border-blue-200"
                     >
-                      <p className="text-5xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-sky-600">
+                      <p className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600 tracking-tighter">
                         {wordCountNum.toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-500 mt-2">words</p>
+                      <p className="text-sm font-black text-gray-400 uppercase tracking-widest mt-3">
+                        Words per article
+                      </p>
                     </motion.div>
 
-                    {/* Slider */}
-                    <div className="px-2">
-                      <Slider
-                        min={500}
-                        max={5000}
-                        step={100}
+                    <div className="px-4">
+                      <input
+                        type="range"
+                        min="500"
+                        max="5000"
+                        step="100"
                         value={wordCount}
-                        onChange={setWordCount}
-                        tooltip={{ formatter: value => `${value} words` }}
-                        styles={{
-                          track: {
-                            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                          },
-                          rail: { background: "#e5e7eb" },
+                        onChange={e => setWordCount(parseInt(e.target.value))}
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                        style={{
+                          background: `linear-gradient(to right, #4f46e5 ${((wordCount - 500) / 4500) * 100}%, #e0e7ff ${((wordCount - 500) / 4500) * 100}%)`,
                         }}
                       />
-                      <div className="flex justify-between mt-2 text-xs text-slate-500">
-                        <span>500</span>
-                        <span>5,000</span>
+                      <div className="flex justify-between mt-4 px-2">
+                        <span className="text-xs font-black text-gray-400">500</span>
+                        <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">
+                          {wordCount} Words
+                        </span>
+                        <span className="text-xs font-black text-gray-400">5,000</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <Divider className="!my-6 !border-gray-100" />
+                <div className="h-px bg-linear-to-r from-transparent via-gray-100 to-transparent my-12"></div>
 
-                {/* FEATURES */}
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-purple-100 font-semibold">
+                {/* 2. FEATURES */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 font-black text-xl">
                       2
-                    </span>
+                    </div>
                     <div>
-                      <Text strong className="text-base">
-                        Additional Features
-                      </Text>
-                      <br />
-                      <Text className="text-xs text-slate-500">Select helpful add-ons</Text>
+                      <h2 className="text-2xl font-black text-gray-900">Power Add-ons</h2>
+                      <p className="text-gray-400 font-bold text-sm tracking-wide">
+                        Enhance your generation depth
+                      </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     {Object.entries(pricingConfig.features).map(([key, cfg]) => (
                       <div
                         key={key}
-                        className="p-4 rounded-xl border border-gray-200 hover:shadow-sm transition-all"
+                        onClick={() => toggleFeature(key)}
+                        className={`group p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          selectedFeatures[key]
+                            ? "bg-purple-50 border-purple-500 shadow-lg shadow-purple-100"
+                            : "bg-white border-gray-50 hover:border-purple-200"
+                        }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Text strong className="text-base text-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                          <span
+                            className={`transition-colors font-black ${selectedFeatures[key] ? "text-purple-700" : "text-gray-700"}`}
+                          >
                             {cfg.label}
-                          </Text>
-                          <Switch
-                            size="small"
+                          </span>
+                          <input
+                            type="checkbox"
                             checked={selectedFeatures[key]}
-                            onChange={() => toggleFeature(key)}
+                            readOnly
+                            className="toggle toggle-primary toggle-sm"
                           />
                         </div>
-                        <Text className="text-xs text-slate-600">+{cfg.cost} credits</Text>
+                        <p
+                          className={`text-xs font-black transition-colors ${selectedFeatures[key] ? "text-purple-500" : "text-gray-400"}`}
+                        >
+                          +{cfg.cost} CREDITS
+                        </p>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <Divider className="!my-6 !border-gray-100" />
+                <div className="h-px bg-linear-to-r from-transparent via-gray-100 to-transparent my-12"></div>
 
-                {/* IMAGE SETTINGS */}
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-green-100 font-semibold">
+                {/* 3. IMAGE SETTINGS */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 font-black text-xl">
                       3
-                    </span>
+                    </div>
                     <div>
-                      <Text strong className="text-base">
-                        Image Settings
-                      </Text>
-                      <br />
-                      <Text className="text-xs text-slate-500">
-                        Choose stock, AI-generated or upload your images
-                      </Text>
+                      <h2 className="text-2xl font-black text-gray-900">Visual Component</h2>
+                      <p className="text-gray-400 font-bold text-sm tracking-wide">
+                        Integrated imagery options
+                      </p>
                     </div>
                   </div>
 
-                  <Radio.Group
-                    value={imageType}
-                    onChange={e => setImageType(e.target.value)}
-                    className="w-full"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {imageOptions.map(opt => {
-                        const isActive = imageType === opt.key
-                        return (
-                          <Radio.Button
-                            key={opt.key}
-                            value={opt.key}
-                            className={`!h-auto !p-4 !rounded-xl !text-center border ${
-                              isActive ? "!bg-purple-50" : "!bg-white border-gray-200"
-                            }`}
-                            style={{
-                              border: isActive ? "2px solid #a855f7" : "1px solid #e2e8f0",
-                            }}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {imageOptions.map(opt => {
+                      const isActive = imageType === opt.key
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => setImageType(opt.key)}
+                          className={`flex flex-col items-center justify-center p-4 gap-3 rounded-xl border-2 transition-all ${
+                            isActive
+                              ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+                              : "bg-white border-gray-50 hover:border-emerald-200 text-gray-500"
+                          }`}
+                        >
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"}`}
                           >
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`text-base ${
-                                      isActive ? "text-purple-700" : "text-slate-600"
-                                    }`}
-                                  >
-                                    {opt.icon}
-                                  </span>
-                                  <span
-                                    className={`font-medium text-base ${
-                                      isActive ? "text-purple-700" : "text-slate-700"
-                                    }`}
-                                  >
-                                    {opt.label}
-                                  </span>
-                                </div>
-                                {opt.cost !== null && (
-                                  <span
-                                    className={`text-xs ${
-                                      isActive ? "text-purple-700" : "text-slate-500"
-                                    }`}
-                                  >
-                                    +{opt.cost}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </Radio.Button>
-                        )
-                      })}
-                    </div>
-                  </Radio.Group>
+                            {opt.icon}
+                          </div>
+                          <span className="font-bold text-sm">{opt.label}</span>
+                          {opt.cost !== null && opt.cost > 0 && (
+                            <span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+                              +{opt.cost}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
 
                   <AnimatePresence>
                     {imageType === "upload" && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-4"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-emerald-50/50 p-8 rounded-3xl border border-emerald-100"
                       >
-                        <div className="flex gap-5 items-center mb-3">
-                          <Text className="text-sm semi-bold">Number of Images to Upload</Text>
-                          <Text className="text-lg font-semibold text-purple-700">
-                            {imageCount}
-                          </Text>
+                        <div className="flex items-center justify-between mb-8">
+                          <h4 className="font-black text-emerald-800">Upload Amount</h4>
+                          <span className="text-2xl font-black text-emerald-600 bg-white px-5 py-1 rounded-2xl shadow-sm">
+                            {imageCount} Images
+                          </span>
                         </div>
 
-                        <Slider
-                          min={0}
-                          max={20}
-                          step={1}
+                        <input
+                          type="range"
+                          min="0"
+                          max="20"
                           value={imageCount}
-                          onChange={setImageCount}
-                          styles={{
-                            track: {
-                              background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
-                            },
+                          onChange={e => setImageCount(parseInt(e.target.value))}
+                          className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-none"
+                          style={{
+                            background: `linear-gradient(to right, #059669 ${(imageCount / 20) * 100}%, #d1fae5 ${(imageCount / 20) * 100}%)`,
                           }}
                         />
-
-                        <div className="flex justify-between mt-2 px-1">
-                          {[0, 5, 10, 15, 20].map(val => (
-                            <span
-                              key={val}
-                              className={`text-xs font-medium ${
-                                imageCount === val ? "text-purple-600" : "text-slate-400"
-                              }`}
-                            >
-                              {val}
+                        <div className="flex justify-between mt-4 px-2">
+                          {[0, 5, 10, 15, 20].map(v => (
+                            <span key={v} className="text-[10px] font-black text-emerald-400">
+                              {v}
                             </span>
                           ))}
                         </div>
-
-                        <Text className="text-xs text-slate-500 mt-2 block">
-                          Upload fee: {pricingConfig.images.upload.perImageFee} credits / image
-                        </Text>
+                        <p className="text-xs font-bold text-emerald-600/70 mt-6 text-center">
+                          Fee: {pricingConfig.images.upload.perImageFee} credits per individual
+                          image
+                        </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <Divider className="!my-6 !border-gray-100" />
+                <div className="h-px bg-linear-to-r from-transparent via-gray-100 to-transparent my-12"></div>
 
-                {/* AI MODEL */}
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-orange-100 font-semibold">
+                {/* 4. AI MODEL */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 font-black text-xl">
                       4
-                    </span>
+                    </div>
                     <div>
-                      <Text strong className="text-base">
-                        AI Model
-                      </Text>
-                      <br />
-                      <Text className="text-xs text-slate-500">Choose model cost</Text>
+                      <h2 className="text-2xl font-black text-gray-900">Intelligence Engine</h2>
+                      <p className="text-gray-400 font-bold text-sm tracking-wide">
+                        Select your primary processing model
+                      </p>
                     </div>
                   </div>
 
-                  <Radio.Group
-                    value={aiModel}
-                    onChange={e => setAiModel(e.target.value)}
-                    className="w-full"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {Object.entries(pricingConfig.aiModels).map(([key, cfg]) => {
-                        const isActive = aiModel === key
-                        return (
-                          <Radio.Button
-                            key={key}
-                            value={key}
-                            className={`!h-auto !p-4 !rounded-xl border ${
-                              isActive ? "!bg-purple-50" : "!bg-white border-gray-100"
-                            }`}
-                            style={{
-                              border: isActive ? "2px solid #a855f7" : "1px solid #e2e8f0",
-                            }}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {Object.entries(pricingConfig.aiModels).map(([key, cfg]) => {
+                      const isActive = aiModel === key
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setAiModel(key)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            isActive
+                              ? "bg-orange-50 border-orange-500"
+                              : "bg-white border-gray-50 hover:border-orange-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span
+                              className={`font-black uppercase tracking-widest text-xs transition-colors ${isActive ? "text-orange-600" : "text-gray-400"}`}
+                            >
+                              {cfg.label}
+                            </span>
+                            {isActive && <CheckCircle className="size-4 text-orange-500" />}
+                          </div>
+                          <p
+                            className={`text-lg font-black ${isActive ? "text-orange-800" : "text-gray-700"}`}
                           >
-                            <div className="flex items-center justify-between w-full">
-                              <Text
-                                strong
-                                className={`text-base ${
-                                  isActive ? "text-purple-700" : "text-slate-700"
-                                }`}
-                              >
-                                {cfg.label}
-                              </Text>
-                              <Text
-                                className={`text-xs ${
-                                  isActive ? "text-purple-700" : "text-slate-500"
-                                }`}
-                              >
-                                {cfg.costMultiplier}x
-                              </Text>
-                            </div>
-                          </Radio.Button>
-                        )
-                      })}
-                    </div>
-                  </Radio.Group>
+                            {cfg.costMultiplier}x Multiplier
+                          </p>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </Card>
+              </div>
             </div>
 
             {/* RIGHT SIDE (STICKY SUMMARY) */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24">
-                <Card className="border border-gray-100 shadow-sm rounded-2xl text-center">
-                  <Text className="text-xs text-slate-500 uppercase tracking-widest font-semibold">
-                    Estimated Cost
-                  </Text>
+            <div className="xl:col-span-4">
+              <div className="sticky top-24 space-y-6">
+                <div className="bg-white rounded-xl p-10 border border-gray-200 text-gray-900 shadow-xl overflow-hidden relative group">
+                  <h3 className="text-gray-500 font-black uppercase tracking-[0.2em] text-xs mb-8 text-center">
+                    Estimated Total Cost
+                  </h3>
 
-                  {/* BIG CENTERED CREDITS */}
                   <motion.div
                     key={totalCost}
-                    initial={{ scale: 1.2, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="my-6"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="text-center mb-10"
                   >
-                    <p className="text-7xl font-semibold text-sky-600 tracking-tight">
+                    <p className="text-8xl font-black tracking-tighter mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
                       {totalCost}
                     </p>
-                    <p className="text-lg text-slate-500 tracking-wider mt-2">credits</p>
+                    <p className="text-blue-600 font-black tracking-widest uppercase">
+                      Credits per Article
+                    </p>
                   </motion.div>
 
-                  <Divider className="!my-6" />
-
-                  {/* Breakdown */}
-                  <div className="space-y-4 text-left">
-                    <Text
-                      strong
-                      className="text-xs text-slate-400 uppercase tracking-wider block mb-3"
-                    >
-                      Cost Breakdown
-                    </Text>
-
-                    {/* Base Cost */}
-                    <motion.div
-                      key={`base-${baseCost}`}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <Text strong className="text-base text-slate-700">
-                            Base Cost
-                          </Text>
-                          <br />
-                          <Text className="text-xs text-slate-500">
-                            {Math.ceil(wordCountNum / pricingConfig.wordCount.base)} chunks ×{" "}
-                            {pricingConfig.wordCount.cost} credits × {modelMultiplier}x (
-                            {pricingConfig.aiModels[aiModel]?.label})
-                          </Text>
-                        </div>
-                        <Text strong className="text-lg text-slate-900">
-                          {baseCost}
-                        </Text>
-                      </div>
-                    </motion.div>
-
-                    {/* Features Cost */}
-                    <motion.div
-                      key={`features-${featuresCost}`}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                      className="p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1 mr-4">
-                          <Text strong className="text-base text-purple-700">
-                            Features
-                          </Text>
-                          <div className="flex flex-wrap gap-1.5 mt-1">
-                            {Object.keys(pricingConfig.features).filter(k => selectedFeatures[k])
-                              .length > 0 ? (
-                              Object.keys(pricingConfig.features)
-                                .filter(k => selectedFeatures[k])
-                                .map(k => (
-                                  <span
-                                    key={k}
-                                    className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/60 text-purple-700 border border-purple-100 shadow-sm"
-                                  >
-                                    {pricingConfig.features[k].label}
-                                  </span>
-                                ))
-                            ) : (
-                              <Text className="text-xs text-purple-400 italic">
-                                No add-ons selected
-                              </Text>
-                            )}
-                          </div>
-                        </div>
-                        <Text strong className="text-lg text-purple-900">
-                          {featuresCost}
-                        </Text>
-                      </div>
-                    </motion.div>
-
-                    {/* Images Cost */}
-                    <motion.div
-                      key={`images-${imagesCost}`}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.2 }}
-                      className="p-3 rounded-lg bg-sky-50 hover:bg-sky-100 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <Text strong className="text-base text-sky-700">
-                            Images
-                          </Text>
-                          <br />
-                          <Text className="text-xs text-sky-600">
-                            {imageType === "stock" && "Stock images"}
-                            {imageType === "ai" && "AI generated"}
-                            {imageType === "upload" && `${imageCount} uploaded`}
-                            {imageType === "none" && "None"}
-                          </Text>
-                        </div>
-                        <Text strong className="text-lg text-sky-900">
-                          {imagesCost}
-                        </Text>
-                      </div>
-                    </motion.div>
+                  <div className="space-y-6 mb-10">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500 font-bold">Base Engine</span>
+                      <span className="font-black text-blue-600">{baseCost}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500 font-bold">Feature Stack</span>
+                      <span className="font-black text-purple-600">{featuresCost}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-6">
+                      <span className="text-gray-500 font-bold">Visual Assets</span>
+                      <span className="font-black text-emerald-600">{imagesCost}</span>
+                    </div>
                   </div>
 
-                  {/* Button */}
-                  <Button
-                    type="primary"
-                    size="large"
-                    block
-                    icon={<RocketOutlined />}
+                  <button
                     onClick={() => navigate("/signup")}
-                    className="!mt-6 !h-12 !text-base !font-semibold !rounded-xl"
-                    style={{
-                      background: "linear-gradient(to right, #a855f7, #0ea5e9)",
-                      border: "none",
-                      boxShadow: "0 10px 15px -3px rgba(168, 85, 247, 0.3)",
-                    }}
+                    className="btn w-full h-16 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white font-black text-lg gap-3"
                   >
-                    Start Generating
-                  </Button>
-                </Card>
+                    Start Generating <Rocket className="size-6" />
+                  </button>
+                  <p className="text-sm mt-2 text-center text-gray-400 font-semibold">
+                    No credit card required for trial
+                  </p>
+                </div>
+
+                {/* Info Card */}
+                <div className="bg-blue-50 rounded-3xl p-8 border border-blue-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <HelpCircle className="size-5 text-blue-600" />
+                    <h4 className="font-black text-blue-900">Credit Logic</h4>
+                  </div>
+                  <p className="text-sm text-blue-700 font-medium leading-relaxed">
+                    Calculations are based on 100-word chunks. Custom models like GPT-4 incur higher
+                    multipliers due to token processing density.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

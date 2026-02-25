@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react"
 import { Reorder } from "framer-motion"
 import { Edit3, Trash2, Image as ImageIcon, Check, X, ChevronUp, ChevronDown } from "lucide-react"
-import { Input, message, Modal, Button } from "antd"
+import { toast } from "sonner"
 
-/**
- * Parse all images from HTML content
- * Returns array of image objects with src, alt, and position info
- */
 export const parseImagesFromHtml = html => {
   if (!html) return []
 
@@ -28,9 +24,6 @@ export const parseImagesFromHtml = html => {
   return images
 }
 
-/**
- * Replace image in HTML content by index
- */
 export const replaceImageInHtml = (html, imageIndex, newImageData) => {
   if (!html) return html
 
@@ -47,9 +40,6 @@ export const replaceImageInHtml = (html, imageIndex, newImageData) => {
   return doc.body.innerHTML
 }
 
-/**
- * Delete image from HTML content by index
- */
 export const deleteImageFromHtml = (html, imageIndex) => {
   if (!html) return html
 
@@ -64,9 +54,6 @@ export const deleteImageFromHtml = (html, imageIndex) => {
   return doc.body.innerHTML
 }
 
-/**
- * Reorder images in HTML content
- */
 export const reorderImagesInHtml = (html, newOrder) => {
   if (!html || !newOrder || newOrder.length === 0) return html
 
@@ -94,9 +81,6 @@ export const reorderImagesInHtml = (html, newOrder) => {
   return doc.body.innerHTML
 }
 
-/**
- * Move image up or down in HTML content
- */
 export const moveImageInHtml = (html, imageIndex, direction) => {
   if (!html) return html
 
@@ -125,9 +109,6 @@ export const moveImageInHtml = (html, imageIndex, direction) => {
   return doc.body.innerHTML
 }
 
-/**
- * InlineImageCard - Displays a single image with edit controls
- */
 const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, onMove }) => {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [altText, setAltText] = useState(image.alt || "")
@@ -143,7 +124,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
     if (Object.keys(updates).length > 0) {
       onUpdate(imageIndex, updates)
-      message.success("Image updated successfully")
+      toast.success("Image updated successfully")
     }
     setEditModalOpen(false)
   }
@@ -151,19 +132,19 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
   const handleDelete = () => {
     onDelete(imageIndex)
     setEditModalOpen(false)
-    message.success("Image deleted")
+    toast.success("Image deleted")
   }
 
   const handleMoveUp = () => {
     onMove(imageIndex, "up")
     setEditModalOpen(false)
-    message.success("Image moved up")
+    toast.success("Image moved up")
   }
 
   const handleMoveDown = () => {
     onMove(imageIndex, "down")
     setEditModalOpen(false)
-    message.success("Image moved down")
+    toast.success("Image moved down")
   }
 
   return (
@@ -196,111 +177,111 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
       </div>
 
       {/* Edit Image Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-purple-600" />
-            <span>Edit Image {imageIndex + 1}</span>
-          </div>
-        }
-        open={editModalOpen}
-        onCancel={() => setEditModalOpen(false)}
-        footer={
-          <div className="flex items-center justify-between">
-            {/* Left: Destructive action */}
-            <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={handleDelete}>
-              Delete
-            </Button>
+      {editModalOpen && (
+        <div className="modal modal-open z-9999">
+          <div className="modal-box max-w-2xl">
+            <h3 className="flex items-center gap-2 font-bold text-lg mb-4">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              <span>Edit Image {imageIndex + 1}</span>
+            </h3>
 
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-              <Button
-                icon={<ChevronUp className="w-4 h-4" />}
-                onClick={handleMoveUp}
-                disabled={isFirst}
-              >
-                Move Up
-              </Button>
-              <Button
-                icon={<ChevronDown className="w-4 h-4" />}
-                onClick={handleMoveDown}
-                disabled={isLast}
-              >
-                Move Down
-              </Button>
-              <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
-              <Button
-                type="primary"
-                icon={<Check className="w-4 h-4" />}
-                onClick={handleSaveChanges}
-              >
-                Save
-              </Button>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Image Preview */}
+              <div className="border rounded-lg overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
+                <img
+                  src={imageUrl}
+                  alt={altText || "Preview"}
+                  className="max-w-full h-auto rounded-lg object-contain"
+                  style={{ maxHeight: "200px" }}
+                  onError={e => {
+                    e.target.src = image.src // Fallback to original if new URL fails
+                  }}
+                />
+              </div>
+
+              {/* Image URL */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">
+                    Image URL <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+
+              {/* Alt Text */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">
+                    Alt Text <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mb-1 px-1">
+                  Describe what's in the image. This helps with SEO and accessibility.
+                </p>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  value={altText}
+                  onChange={e => setAltText(e.target.value)}
+                  placeholder="Describe the image for accessibility and SEO"
+                  rows={3}
+                />
+              </div>
+
+              {/* Position Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-gray-600 mb-1">Position</p>
+                <p className="text-sm text-blue-700 font-medium">
+                  Image {imageIndex + 1} of {totalImages} in this section
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-action flex justify-between items-center mt-6">
+              {/* Left: Destructive action */}
+              <button className="btn btn-error btn-outline btn-sm gap-2" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  className="btn btn-ghost btn-sm gap-2"
+                  onClick={handleMoveUp}
+                  disabled={isFirst}
+                >
+                  <ChevronUp className="w-4 h-4" /> Move Up
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm gap-2"
+                  onClick={handleMoveDown}
+                  disabled={isLast}
+                >
+                  <ChevronDown className="w-4 h-4" /> Move Down
+                </button>
+                <button className="btn btn-sm" onClick={() => setEditModalOpen(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-primary btn-sm gap-2" onClick={handleSaveChanges}>
+                  <Check className="w-4 h-4" /> Save
+                </button>
+              </div>
             </div>
           </div>
-        }
-        width={700}
-        centered
-        bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
-      >
-        <div className="space-y-3">
-          {/* Image Preview */}
-          <div className="border rounded-lg overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-            <img
-              src={imageUrl}
-              alt={altText || "Preview"}
-              className="max-w-full h-auto rounded-lg object-contain"
-              style={{ maxHeight: "200px" }}
-              onError={e => {
-                e.target.src = image.src // Fallback to original if new URL fails
-              }}
-            />
-          </div>
-
-          {/* Image URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image URL <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          {/* Alt Text */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Alt Text <span className="text-red-500">*</span>
-            </label>
-            <p className="text-xs text-gray-500 mt-1">
-              Describe what's in the image. This helps with SEO and accessibility.
-            </p>
-            <Input.TextArea
-              value={altText}
-              onChange={e => setAltText(e.target.value)}
-              placeholder="Describe the image for accessibility and SEO"
-              rows={10}
-            />
-          </div>
-
-          {/* Position Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-gray-600 mb-1">Position</p>
-            <p className="text-sm text-blue-700 font-medium">
-              Image {imageIndex + 1} of {totalImages} in this section
-            </p>
-          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setEditModalOpen(false)}>close</button>
+          </form>
         </div>
-      </Modal>
+      )}
     </>
   )
 }
 
-/**
- * InlineImageManager - Manages all images within a section's content
- */
 export const InlineImageManager = ({ sectionContent, onContentChange }) => {
   const [images, setImages] = useState([])
 

@@ -1,6 +1,5 @@
 import React, { memo, useState } from "react"
 import { motion } from "framer-motion"
-import { message } from "antd"
 import {
   CalendarDays,
   FileText,
@@ -17,6 +16,7 @@ import {
 import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 const Badge = ({ children, variant = "gray" }) => {
   const variants = {
@@ -61,7 +61,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const handleEditJob = e => {
     e.stopPropagation()
     if (job.status === "active") {
-      message.warning("Please pause the job before editing.")
+      toast.warning("Please pause the job before editing.")
       return
     }
     onEdit(job)

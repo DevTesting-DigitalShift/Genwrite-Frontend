@@ -1,10 +1,10 @@
 import { motion } from "framer-motion"
-import { Send, RefreshCw, ExternalLink, Info, X } from "lucide-react"
-import { Select, Switch, Button, message } from "antd"
+import { ExternalLink, Info, RefreshCw, Send, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAnimations } from "../hooks/useAnimations"
 import type { PostingPanelProps } from "../types"
 import { PLATFORM_LABELS, POPULAR_CATEGORIES } from "../constants"
+import { toast } from "sonner"
 
 /**
  * Posting Panel - Complex publishing workflow
@@ -38,10 +38,8 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
   /**
    * Handle category change from select
    */
-  const handleCategoryChange = (value: string[]) => {
-    // If multiple values selected (mode='tags'), take the last one to allow switching
-    const newCategory = value.length > 0 ? value[value.length - 1] : ""
-    setSelectedCategory(newCategory)
+  const handleCategoryChange = (val: string) => {
+    setSelectedCategory(val)
   }
 
   /**
@@ -71,11 +69,11 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
   const handlePublishClick = () => {
     // Validation
     if (!selectedIntegration) {
-      message.error("Please select a platform")
+      toast.error("Please select a platform")
       return
     }
     if (!selectedCategory) {
-      message.error("Please select a category")
+      toast.error("Please select a category")
       return
     }
 
@@ -110,13 +108,17 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
       className="flex flex-col h-full bg-white relative"
     >
       {/* Header */}
-      <div className="p-3 border-b bg-linear-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-linear-to-br from-green-600 to-emerald-600 rounded-lg">
-            <Send className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-emerald-50/50 sticky top-0 z-10 overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="p-2 bg-emerald-600 rounded-lg shadow-lg shadow-emerald-900/10 group-hover:scale-110 transition-transform duration-500">
+            <Send className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Publishing</h3>
+            <h3 className="font-black text-slate-900 tracking-tight">Node Deployment</h3>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+              Cross-Platform Publishing
+            </p>
           </div>
         </div>
       </div>
@@ -124,33 +126,37 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
       {/* Content */}
       <motion.div
         variants={stagger}
-        className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll pb-20"
+        className="flex-1 overflow-y-auto p-4 space-y-10 custom-scroll pb-24"
       >
         {/* === POST HISTORY SECTION === */}
-        <motion.div variants={item}>
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Post History
+        <motion.div variants={item} className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                <RefreshCw className="w-4 h-4 text-slate-400" />
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Deployment Logs
               </span>
             </div>
           </div>
 
           {isLoadingPostings ? (
-            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">Loading history...</p>
+            <div className="p-10 text-center bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
+              <RefreshCw className="w-6 h-6 animate-spin text-slate-300 mx-auto mb-4" />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Syncing History...
+              </p>
             </div>
           ) : hasPublishedLinks ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {blogPostings.map((posting, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
+                  className="p-6 bg-white rounded-[24px] border border-slate-100 shadow-sm hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold text-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                       {(posting.integrationType &&
                         PLATFORM_LABELS[posting.integrationType as keyof typeof PLATFORM_LABELS]) ||
                         (posting.platform &&
@@ -159,14 +165,16 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                         posting.platform ||
                         "Unknown"}
                     </span>
-                    <span className="text-[12px] text-gray-400">
+                    <span className="text-[10px] font-bold text-slate-300">
                       {new Date(posting.postedOn).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="space-y-1 mb-2">
-                    <div className="flex justify-between">
-                      <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between items-center bg-slate-50/50 p-2 rounded-xl border border-slate-100/50">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Tag:
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 truncate max-w-[140px]">
                         {blog.category}
                       </span>
                     </div>
@@ -175,96 +183,104 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                         href={posting.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
+                        className="flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-transform"
                       >
-                        View Live <ExternalLink className="w-2.5 h-2.5" />
+                        Source View <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
                   </div>
-                  <Button
-                    size="small"
-                    block
-                    className="text-[12px] font-semibold h-7"
+                  <button
                     onClick={() => handleRepost(posting)}
                     disabled={isPosting}
+                    className="w-full h-10 text-[10px] font-black uppercase tracking-widest rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-30"
                   >
-                    Repost Same Settings
-                  </Button>
+                    Re-Sync Node
+                  </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
-              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
+            <div className="p-10 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
+                Logs Empty
+              </p>
             </div>
           )}
         </motion.div>
 
         {/* === NEW POST SECTION === */}
-        <motion.div variants={item}>
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
-            <div className="flex items-center gap-2">
-              <Send className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                New Post
+        <motion.div variants={item} className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
+                <Send className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                New Deployment
               </span>
             </div>
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
+            <span className="bg-slate-900 text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">
               {selectedIntegration
                 ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
-                : "Configure"}
+                : "Awaiting Core"}
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Platform Select */}
-            <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Platform
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
+                Target Platform
               </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
-                <Select
-                  className="w-full"
-                  placeholder="Choose platform..."
-                  value={selectedIntegration?.rawPlatform || undefined}
-                  onChange={handleIntegrationChange}
-                  status={platformError ? "error" : ""}
+                <select
+                  className={`select select-sm w-full bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all ${platformError ? "border-rose-500" : ""}`}
+                  value={selectedIntegration?.rawPlatform || ""}
+                  onChange={e => handleIntegrationChange(e.target.value)}
                 >
+                  <option value="" disabled>
+                    Select Distribution Node...
+                  </option>
                   {Object.entries(integrations.integrations).map(([k]) => (
-                    <Select.Option key={k} value={k}>
+                    <option key={k} value={k}>
                       {PLATFORM_LABELS[k] || k}
-                    </Select.Option>
+                    </option>
                   ))}
-                </Select>
+                </select>
               ) : (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
-                  No platforms connected.{" "}
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-[10px] text-amber-900 font-bold leading-relaxed">
+                  No distribution nodes connected.{" "}
                   <span
-                    className="font-bold cursor-pointer underline"
+                    className="underline cursor-pointer hover:text-amber-600"
                     onClick={() => navigate("/plugins")}
                   >
-                    Connect now
+                    Establish connection
                   </span>
                   .
                 </div>
               )}
-              {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
+              {platformError && (
+                <p className="text-[9px] font-bold text-rose-500 mt-1 uppercase tracking-widest">
+                  {errors.platform}
+                </p>
+              )}
             </div>
+
             {/* Category Select */}
-            <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Category
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
+                Node Taxonomy (Category)
               </label>
 
               {/* Active Category Tag */}
               {selectedCategory && (
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-medium max-w-full">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest group transition-all hover:bg-slate-800">
                     <span className="truncate">{selectedCategory}</span>
                     {!isCategoryLocked && (
                       <X
-                        size={12}
-                        className="cursor-pointer opacity-75 hover:opacity-100"
+                        size={14}
+                        className="cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
                         onClick={handleCategoryRemove}
                       />
                     )}
@@ -272,65 +288,77 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                 </div>
               )}
 
-              <Select
-                mode="tags"
-                className="w-full"
-                placeholder="Select or type..."
-                value={selectedCategory ? [selectedCategory] : []}
-                onChange={handleCategoryChange}
-                disabled={isCategoryLocked}
-                showSearch
-                allowClear
-                status={categoryError ? "error" : ""}
-                options={POPULAR_CATEGORIES.map(c => ({ value: c, label: c }))}
-              />
+              <div className="relative">
+                <input
+                  list="categories-list"
+                  className={`input input-sm w-full bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all ${categoryError ? "border-rose-500" : ""}`}
+                  placeholder="Assign Tag or Create New..."
+                  value={selectedCategory}
+                  onChange={e => handleCategoryChange(e.target.value)}
+                  disabled={isCategoryLocked}
+                />
+                <datalist id="categories-list">
+                  {POPULAR_CATEGORIES.map(c => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </div>
 
-              {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
+              {categoryError && (
+                <p className="text-[9px] font-bold text-rose-500 mt-1 uppercase tracking-widest">
+                  {errors.category}
+                </p>
+              )}
 
               {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
-                <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">
-                  <Info className="inline w-3 h-3 mr-1" />
-                  Shopify categories are permanent once posted.
+                <div className="p-3 bg-blue-50/50 text-blue-700 text-[9px] font-bold border border-blue-100 rounded-xl flex items-start gap-2">
+                  <Info className="w-3 h-3 mt-0.5 shrink-0" />
+                  <p className="uppercase tracking-widest">
+                    Shopify taxonomies are persistent after deployment.
+                  </p>
                 </div>
               )}
             </div>
+
             {/* ToC Toggle */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
-              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-              <Switch
-                size="small"
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 border border-slate-100 rounded-2xl group transition-all hover:bg-slate-50">
+              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                Index Mapping (TOC)
+              </span>
+              <input
+                type="checkbox"
+                className="toggle toggle-sm toggle-primary"
                 checked={includeTableOfContents}
-                onChange={setIncludeTableOfContents}
+                onChange={e => setIncludeTableOfContents(e.target.checked)}
               />
             </div>
-            <div className="h-4" /> {/* Spacer */}
           </div>
         </motion.div>
       </motion.div>
 
       {/* Main Post Action - Fixed Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-20">
         <button
           onClick={handlePublishClick}
           disabled={isPosting || !hasAnyIntegration}
           className={`
-            w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95
+            w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-4 transition-all active:scale-95 shadow-2xl
             ${
               isPosting || !hasAnyIntegration
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
+                ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                : "bg-slate-950 text-white hover:bg-slate-800 shadow-slate-900/20 hover:shadow-blue-600/10"
             }
           `}
         >
           {isPosting ? (
             <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Publishing...</span>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span>Deploying...</span>
             </>
           ) : (
             <>
-              <Send className="w-4 h-4" />
-              <span>Publish Now</span>
+              <Send className="w-5 h-5" />
+              <span>Initiate Deployment</span>
             </>
           )}
         </button>

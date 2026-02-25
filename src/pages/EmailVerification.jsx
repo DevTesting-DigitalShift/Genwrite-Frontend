@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react"
-import { Card, Input, Button, Form, Typography, Alert, Space, Result, message } from "antd"
-import { MailOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import axiosInstance from "@api/index"
+import { toast } from "sonner"
+import {
+  Mail,
+  CheckCircle2,
+  RotateCcw,
+  ArrowLeft,
+  ShieldCheck,
+  Sparkles,
+  Loader2,
+} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useResendVerification } from "@/api/queries/authQueries"
 
-const { Title, Text } = Typography
-
 export default function EmailVerification() {
-  const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [verified, setVerified] = useState(false)
-  const [error, setError] = useState("")
   const [email, setEmail] = useState("")
   const [showOTP, setShowOTP] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
@@ -24,7 +28,6 @@ export default function EmailVerification() {
   useEffect(() => {
     if (emailParam) {
       setEmail(emailParam)
-      form.setFieldsValue({ email: emailParam })
     }
   }, [emailParam])
 
@@ -46,42 +49,25 @@ export default function EmailVerification() {
   // STEP 1 → send code
   const { mutateAsync: resendEmail } = useResendVerification()
 
-  // STEP 1 → send code
-  const handleSendCode = async () => {
+  const handleSendCode = async e => {
+    if (e) e.preventDefault()
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email || !emailRegex.test(email)) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+
     try {
       setLoading(true)
-      setError("")
-
-      const values = await form.validateFields(["email"])
-      setEmail(values.email)
-
-      await resendEmail({ email: values.email })
+      await resendEmail({ email })
 
       startResendCountdown()
       setShowOTP(true)
+      toast.success("Verification link sent to your inbox!")
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to send verification email")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // STEP 2 → verify code
-  const handleVerify = async values => {
-    try {
-      setLoading(true)
-      setError("")
-
-      // DEMO ONLY — replace with real API later
-      if (values.code === "123456") {
-        setVerified(true)
-        message.success("Email Verified 🎉")
-        setTimeout(() => navigate("/dashboard"), 1200)
-      } else {
-        setError("Invalid verification code.")
-      }
-    } catch (err) {
-      setError("Verification failed.")
+      toast.error(err.response?.data?.message || err.message || "Failed to send verification email")
     } finally {
       setLoading(false)
     }
@@ -93,74 +79,79 @@ export default function EmailVerification() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border-0">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         {/* Header */}
-        <div className="flex flex-col items-center justify-center text-center mb-8">
+        <div className="flex flex-col items-center justify-center text-center mt-2 mb-8">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <MailOutlined className="text-blue-600 text-2xl" />
+            <Mail className="text-blue-600 w-8 h-8" strokeWidth={1.5} />
           </div>
-          <Title level={3}>Verify Your Email</Title>
+          <h2 className="text-2xl font-semibold text-slate-800">Verify Your Email</h2>
         </div>
 
-        <Form form={form} layout="vertical" onFinish={handleVerify}>
-          <Space direction="vertical" size="large" className="w-full">
-            {/* Email Input */}
-            <Form.Item
-              name="email"
-              rules={[
-                { required: true, message: "Email required" },
-                { type: "email", message: "Invalid email" },
-              ]}
+        <div className="space-y-6">
+          {/* Email Input */}
+          <div className="form-control w-full relative">
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="input input-bordered w-full h-12 text-base rounded-lg border-gray-300 focus:outline-none focus:border-blue-500 transition-colors"
+              required
+            />
+          </div>
+
+          {/* STEP 1 — SEND CODE SCREEN */}
+          {!showOTP && (
+            <button
+              onClick={handleSendCode}
+              disabled={loading}
+              className="btn bg-blue-600 hover:bg-blue-700 text-white w-full h-12 rounded-lg border-none text-base font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <Input placeholder="you@example.com" size="large" />
-            </Form.Item>
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Link"}
+            </button>
+          )}
 
-            {/* STEP 1 — SEND CODE SCREEN */}
-            {!showOTP && (
-              <Button type="primary" size="large" loading={loading} block onClick={handleSendCode}>
-                Send Link
-              </Button>
-            )}
+          {/* STEP 2 — OTP SCREEN */}
+          {showOTP && (
+            <>
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg flex gap-3 text-sm flex-col">
+                <div className="font-semibold">{email}</div>
+                <div className="text-slate-600">Check your inbox and click on link.</div>
+              </div>
 
-            {/* STEP 2 — OTP SCREEN */}
-            {showOTP && (
-              <>
-                <Alert
-                  message={
-                    <div>
-                      <Text strong>{email}</Text>
-                      <br />
-                      <Text type="secondary">Check your inbox and click on link.</Text>
-                    </div>
-                  }
-                  type="info"
-                  showIcon
-                />
-
-                <Button
-                  size="large"
-                  className="w-full"
-                  onClick={handleResend}
-                  disabled={!canResend || loading}
-                  icon={resendCountdown > 0 ? <ReloadOutlined spin /> : <ReloadOutlined />}
-                >
-                  {resendCountdown > 0 ? `${resendCountdown}s` : "Resend"}
-                </Button>
-              </>
-            )}
-          </Space>
-        </Form>
+              <button
+                onClick={handleResend}
+                disabled={!canResend || loading}
+                className="btn btn-outline border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-700 w-full h-12 rounded-lg font-medium flex items-center justify-center gap-2"
+              >
+                {resendCountdown > 0 ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+                    <span>{resendCountdown}s</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Resend</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Back to pricing */}
-        <div className="text-center mt-4">
-          <Link to="/pricing">
-            <Text type="secondary" className="hover:text-blue-600 transition-colors">
-              Back
-            </Text>
+        <div className="text-center mt-6">
+          <Link
+            to="/pricing"
+            className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors"
+          >
+            Back
           </Link>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

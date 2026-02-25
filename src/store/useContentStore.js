@@ -6,7 +6,7 @@ import {
   generatePromptContent,
   fetchCategories,
 } from "@api/otherApi"
-import { message } from "antd"
+import { toast } from "sonner"
 
 const useContentStore = create(
   devtools(
@@ -44,7 +44,7 @@ const useContentStore = create(
           return data
         } catch (err) {
           const errorMsg = err.response?.data?.message || err.message
-          message.error("Failed to create outline")
+          toast.error("Failed to create outline")
           set({ error: errorMsg, loading: false })
           throw err
         }
@@ -58,7 +58,7 @@ const useContentStore = create(
           return data
         } catch (err) {
           const errorMsg = err.response?.data?.message || err.message
-          message.error("Failed to generate metadata")
+          toast.error("Failed to generate metadata")
           set({ error: errorMsg, loading: false })
           throw err
         }
@@ -72,7 +72,7 @@ const useContentStore = create(
           return data
         } catch (err) {
           const errorMsg = err.response?.data?.message || err.message
-          message.error("Failed to generate content")
+          toast.error("Failed to generate content")
           set({ error: errorMsg, loading: false })
           throw err
         }

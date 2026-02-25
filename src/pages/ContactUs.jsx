@@ -16,9 +16,9 @@ import {
   Sparkles,
   Youtube,
 } from "lucide-react"
-import { message } from "antd"
 import { Helmet } from "react-helmet"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" })
@@ -75,13 +75,13 @@ const ContactUs = () => {
         formData,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
-      message.success("Message sent successfully!")
+      toast.success("Message sent successfully!")
       setFormData({ name: "", email: "", subject: "", message: "" })
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 5000)
     } catch (error) {
       console.error("FAILED...", error)
-      message.error("Failed to send message. Try again.")
+      toast.error("Failed to send message. Try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -141,15 +141,6 @@ const ContactUs = () => {
       {/* Hero Section */}
       <div className="pt-8 md:pt-12 py-12 md:py-16 lg:py-20 px-4">
         <div className="max-w-7xl mx-auto text-center mt-6 md:mt-0">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-linear-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-xs sm:text-sm font-medium text-blue-800 mb-6 shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            We'd Love to Hear From You
-          </motion.div>
-
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-gray-900 leading-tight">
             <span className="bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Get in Touch
@@ -175,7 +166,7 @@ const ContactUs = () => {
 
               <div className="relative">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-                  <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -195,7 +186,7 @@ const ContactUs = () => {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3 overflow-hidden"
+                      className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 overflow-hidden"
                     >
                       <CheckCircle className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
                       <div>
@@ -209,121 +200,106 @@ const ContactUs = () => {
                 </AnimatePresence>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {/* Name Field */}
-                    <div className="space-y-2">
-                      <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
-                            errors.name
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-50 focus:border-blue-500"
-                          }`}
-                          placeholder="Your full name"
-                        />
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Name Field */}
+                      <div className="space-y-2">
+                        <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative group">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                          <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            className={`input border mt-2 border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 ${
+                              errors.name ? "input-error" : "focus:border-blue-500"
+                            }`}
+                            placeholder="Your full name"
+                          />
+                        </div>
+                        {errors.name && (
+                          <p className="text-xs font-semibold text-red-500 ml-1">{errors.name}</p>
+                        )}
                       </div>
-                      {errors.name && (
-                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.name}</p>
+
+                      {/* Email Field */}
+                      <div className="space-y-2">
+                        <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative group">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className={`input border mt-2 border-gray-300 h-14 w-full pl-12 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 ${
+                              errors.email ? "input-error" : "focus:border-blue-500"
+                            }`}
+                            placeholder="you@example.com"
+                          />
+                        </div>
+                        {errors.email && (
+                          <p className="text-xs font-semibold text-red-500 ml-1">{errors.email}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        className="input border mt-2 border-gray-300 h-14 w-full px-5 bg-gray-50 focus:bg-white rounded-lg focus:outline-none focus:ring-0 focus:border-blue-500"
+                        placeholder="What is this about? (optional)"
+                      />
+                    </div>
+
+                    {/* Message Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
+                        Message <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        rows={5}
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        className={`textarea border border-gray-300 w-full bg-gray-50 focus:bg-white rounded-lg mt-2 resize-none px-5 py-4 focus:outline-none focus:ring-0 ${
+                          errors.message ? "textarea-error" : "focus:border-blue-500"
+                        }`}
+                        placeholder="Tell us how we can help you..."
+                      />
+                      {errors.message && (
+                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.message}</p>
                       )}
                     </div>
 
-                    {/* Email Field */}
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
-                            errors.email
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-50 focus:border-blue-500"
-                          }`}
-                          placeholder="you@example.com"
-                        />
-                      </div>
-                      {errors.email && (
-                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.email}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Subject Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      id="subject"
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleInputChange}
-                      className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl text-gray-800 placeholder-gray-400 focus:border-blue-500 focus:bg-white focus:shadow-sm outline-none transition-all duration-300"
-                      placeholder="What is this about? (optional)"
-                    />
-                  </div>
-
-                  {/* Message Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
-                      Message <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      rows={5}
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 resize-none ${
-                        errors.message
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-50 focus:border-blue-500"
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={`btn h-14 btn-block bg-linear-to-r from-blue-600 to-purple-600 text-white border-none rounded-lg shadow-lg hover:shadow-xl hover:scale-[1.01] w-full transition-all normal-case font-bold text-base ${
+                        isSubmitting ? "loading" : ""
                       }`}
-                      placeholder="Tell us how we can help you..."
-                    />
-                    {errors.message && (
-                      <p className="text-xs font-semibold text-red-500 ml-1">{errors.message}</p>
-                    )}
+                    >
+                      {!isSubmitting && <>Send Message</>}
+                      {isSubmitting && "Processing..."}
+                    </button>
                   </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`w-full py-5 px-8 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 shadow shadow-blue-100 hover:shadow flex items-center justify-center gap-3 border-none group ${
-                      isSubmitting
-                        ? "opacity-70 cursor-not-allowed"
-                        : "hover:scale-[1.01] active:scale-[0.99]"
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
                 </form>
               </div>
             </div>
@@ -334,7 +310,7 @@ const ContactUs = () => {
             {/* Contact Info Card */}
             <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Contact Details</h3>
@@ -348,7 +324,7 @@ const ContactUs = () => {
                   </p>
                   <a
                     href={`mailto:${companyInfo.email.trim()}`}
-                    className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-2xl transition-all"
+                    className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all"
                   >
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-none">
                       <Mail className="w-5 h-5 text-blue-500" />
@@ -364,7 +340,7 @@ const ContactUs = () => {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Working Hours
                   </p>
-                  <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-2xl transition-all">
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-lg transition-all">
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">
                       <Clock className="w-5 h-5 text-orange-500" />
                     </div>
@@ -380,7 +356,7 @@ const ContactUs = () => {
             {/* Social Media Card */}
             <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-pink-50 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-pink-500" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Follow Us</h3>
@@ -395,7 +371,7 @@ const ContactUs = () => {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow border border-transparent hover:border-gray-100 group`}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 rounded-lg transition-all duration-300 hover:bg-white hover:shadow border border-transparent hover:border-gray-100 group`}
                     >
                       <Icon className={`w-6 h-6 text-gray-400 transition-colors ${social.color}`} />
                       <span className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-tighter sm:tracking-normal">
@@ -422,7 +398,7 @@ const ContactUs = () => {
                   href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-white text-indigo-600 font-bold rounded-2xl shadow hover:bg-indigo-50 transition-all border-none"
+                  className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-white text-indigo-600 font-bold rounded-lg shadow hover:bg-indigo-50 transition-all border-none"
                 >
                   Join the Survey
                   <ArrowRight className="w-4 h-4" />

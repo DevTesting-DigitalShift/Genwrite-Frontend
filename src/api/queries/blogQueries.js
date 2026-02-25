@@ -16,7 +16,7 @@ import {
   getBlogPrompt,
   getBlogStatsById,
 } from "@api/blogApi"
-import { message } from "antd"
+import { toast } from "sonner"
 
 // ----------------------- Queries -----------------------
 
@@ -69,12 +69,12 @@ export const useRestoreBlogMutation = () => {
   return useMutation({
     mutationFn: restoreBlogById,
     onSuccess: () => {
-      message.success("Blog restored successfully")
+      toast.success("Blog restored successfully")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
     onError: error => {
-      message.error(error.message || "Failed to restore blog")
+      toast.error(error.message || "Failed to restore blog")
     },
   })
 }
@@ -84,11 +84,11 @@ export const useDeleteAllBlogsMutation = () => {
   return useMutation({
     mutationFn: deleteAllBlogs,
     onSuccess: result => {
-      message.success(`${result.deletedCount} blogs deleted`)
+      toast.success(`${result.deletedCount} blogs deleted`)
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
     },
     onError: error => {
-      message.error(error.message || "Failed to delete all blogs")
+      toast.error(error.message || "Failed to delete all blogs")
     },
   })
 }
@@ -98,12 +98,12 @@ export const useArchiveBlogMutation = () => {
   return useMutation({
     mutationFn: archiveBlogById,
     onSuccess: () => {
-      message.success("Blog deleted successfully")
+      toast.success("Blog deleted successfully")
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
     },
     onError: error => {
-      message.error(error.message || "Failed to delete blog")
+      toast.error(error.message || "Failed to delete blog")
     },
   })
 }
@@ -113,11 +113,11 @@ export const useRetryBlogMutation = () => {
   return useMutation({
     mutationFn: ({ id, payload }) => retryBlogById(id, payload),
     onSuccess: result => {
-      message.success(result?.message || "Blog regenerated successfully")
+      toast.success(result?.message || "Blog regenerated successfully")
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
     onError: error => {
-      message.error(error.message || "Failed to retry blog")
+      toast.error(error.message || "Failed to retry blog")
     },
   })
 }
@@ -127,12 +127,12 @@ export const useUpdateBlogMutation = () => {
   return useMutation({
     mutationFn: ({ id, data }) => updateBlog(id, data),
     onSuccess: (data, variables) => {
-      message.success("Blog updated successfully")
+      toast.success("Blog updated successfully")
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
     onError: error => {
-      message.error(error.message || "Failed to update blog")
+      toast.error(error.message || "Failed to update blog")
     },
   })
 }

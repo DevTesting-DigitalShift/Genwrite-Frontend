@@ -7,11 +7,11 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
-import { Button, message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
 const PricingCard = ({
   plan,
@@ -325,7 +325,7 @@ const PricingCard = ({
             </div>
           )}
         </div>
-
+        {/* THERE IS AN PROBLEM HERE */}
         {/* CTA Button */}
         <div className="px-6 pb-6">
           <button
@@ -368,42 +368,43 @@ const PricingCard = ({
         </div>
       </div>
 
-      {/* Confirmation Modal (unchanged) */}
-      <Modal
-        title={<span className="text-lg">{modalMessage.title}</span>}
-        open={showConfirmModal}
-        onCancel={() => setShowConfirmModal(false)}
-        centered
-        styles={{ padding: "10px", fontSize: "16px" }}
-        footer={
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setShowConfirmModal(false)}
-              className="border border-gray-300 px-4 py-2 rounded-md font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                setShowConfirmModal(false)
-                proceedToBuy(pendingPlan)
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold"
-            >
-              Confirm
-            </button>
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
+          <div className="modal-box bg-white max-w-sm rounded-[16px] shadow-2xl p-6 relative">
+            <h3 className="font-bold text-lg text-slate-800 mb-2">{modalMessage.title}</h3>
+
+            <div className="py-2 text-slate-700">
+              <p className="mb-2">
+                You already have an active subscription:{" "}
+                <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
+              </p>
+              <p>{modalMessage.body}</p>
+              <p className="text-gray-500 mt-4 text-sm italic">
+                Please confirm to proceed with your purchase.
+              </p>
+            </div>
+
+            <div className="modal-action flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="btn btn-outline border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 font-medium px-6 rounded-lg min-h-0 h-10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false)
+                  proceedToBuy(pendingPlan)
+                }}
+                className="btn bg-blue-600 border-none hover:bg-blue-700 text-white font-semibold px-6 rounded-lg min-h-0 h-10"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
-        }
-      >
-        <p className="text-gray-700">
-          You already have an active subscription:{" "}
-          <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
-        </p>
-        <p className="text-gray-700">{modalMessage.body}</p>
-        <p className="text-gray-600 mt-2 text-sm italic">
-          Please confirm to proceed with your purchase.
-        </p>
-      </Modal>
+        </div>
+      )}
     </div>
   )
 }
@@ -565,23 +566,23 @@ const Upgrade = () => {
 
   const handleManageSubscription = async () => {
     try {
-      message.loading({ content: "Opening billing portal...", key: "portal" })
+      toast.loading({ content: "Opening billing portal...", key: "portal" })
       const data = await createPortalSession(window.location.href)
       if (data?.url) {
         window.location.href = data.url
       } else {
-        message.warning({ content: "Could not open billing settings.", key: "portal" })
+        toast.warning({ content: "Could not open billing settings.", key: "portal" })
       }
     } catch (error) {
       console.error(error)
-      message.error({ content: "Failed to manage subscription.", key: "portal" })
+      toast.error({ content: "Failed to manage subscription.", key: "portal" })
     }
   }
 
   const handleBuy = async (plan, credits, billingPeriod) => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
-      message.warning("Please verify your email before purchasing a plan.")
+      toast.warning("Please verify your email before purchasing a plan.")
       navigate(`/email-verify/${user.email}`, { replace: true })
       return
     }
@@ -589,7 +590,7 @@ const Upgrade = () => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
     if (!stripe) {
       console.error("Stripe.js failed to load.")
-      message.error("Failed to load payment gateway. Please try again later.")
+      toast.error("Failed to load payment gateway. Please try again later.")
       return
     }
 
@@ -631,18 +632,18 @@ const Upgrade = () => {
           const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
           if (result?.error) throw result.error
         } else {
-          message.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+          toast.success(response.data?.toast || "Your Upcoming Plan has been set successfully.")
           navigate("/transactions", { replace: true })
         }
       }
     } catch (error) {
       console.error("Checkout Error:", error)
       if (error?.status === 409) {
-        message.error(error?.response?.data?.message || "User Subscription Conflict Error")
+        toast.error(error?.response?.data?.toast || "User Subscription Conflict Error")
       } else if (error?.status === 404) {
-        message.error("Selected plan configuration unavailable.")
+        toast.error("Selected plan configuration unavailable.")
       } else {
-        message.error("Failed to initiate checkout. Please try again.")
+        toast.error("Failed to initiate checkout. Please try again.")
       }
     }
   }
@@ -675,7 +676,7 @@ const Upgrade = () => {
       </motion.div>
 
       <div className="mx-auto">
-        {/* Enterprise message (unchanged) */}
+        {/* Enterprise toast (unchanged) */}
         {user?.subscription?.plan === "enterprise" && (
           <motion.div
             initial={{ opacity: 0 }}

@@ -1,14 +1,11 @@
 import React, { useState, useCallback, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Button, message, Input } from "antd"
 import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
-
-const { TextArea } = Input
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const PromptContent = () => {
   const [content, setContent] = useState("")
@@ -45,12 +42,12 @@ const PromptContent = () => {
 
   const handleGenerateContent = useCallback(async () => {
     if (!isPromptValid) {
-      message.error("Prompt must be at least 10 characters long.")
+      toast.error("Prompt must be at least 10 characters long.")
       return
     }
 
     if (!isContentValid) {
-      message.error("Content must be at least 300 words long.")
+      toast.error("Content must be at least 300 words long.")
       return
     }
 
@@ -61,10 +58,10 @@ const PromptContent = () => {
 
     try {
       await generatePromptContent({ prompt, content })
-      message.success("Content generated successfully!")
+      toast.success("Content generated successfully!")
     } catch (error) {
       console.error("Error generating content:", error)
-      message.error(typeof error === "string" ? error : "Failed to generate content.")
+      toast.error(typeof error === "string" ? error : "Failed to generate content.")
     }
   }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid])
 
@@ -72,21 +69,21 @@ const PromptContent = () => {
     setContent("")
     setPrompt("")
     resetMetadata()
-    message.success("Content and prompt reset!")
+    toast.success("Content and prompt reset!")
   }, [resetMetadata])
 
   const copyToClipboard = async (text, label, fieldName) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopiedField(fieldName)
-      message.success(`${label} copied to clipboard!`)
+      toast.success(`${label} copied to clipboard!`)
 
       // Reset copy indicator after 2 seconds
       setTimeout(() => {
         setCopiedField(null)
       }, 2000)
     } catch (error) {
-      message.error(`Failed to copy ${label}.`)
+      toast.error(`Failed to copy ${label}.`)
     }
   }
 
@@ -117,7 +114,7 @@ const PromptContent = () => {
   if (isGenerating) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Generating content..." />
+        <ProgressLoadingScreen toast="Generating content..." />
       </div>
     )
   }
@@ -128,11 +125,11 @@ const PromptContent = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white flex items-center justify-center">
+            <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl text-white flex items-center justify-center">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create Content from Prompts</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Create Content from Prompts</h1>
               <p className="text-gray-600">
                 Transform your ideas into ready-to-publish content in seconds.
               </p>
@@ -151,7 +148,6 @@ const PromptContent = () => {
         </div>
       </div>
 
-      {/* Input Form */}
       <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
         <div className="space-y-4">
           {/* Prompt Section */}
@@ -182,7 +178,7 @@ const PromptContent = () => {
                 {promptLength}/10 minimum
               </span>
             </div>
-            <TextArea
+            <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
@@ -221,7 +217,7 @@ const PromptContent = () => {
                 {wordCount}/300 words minimum
               </span>
             </div>
-            <TextArea
+            <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder="Enter your content here (minimum 300 words)..."
@@ -232,17 +228,17 @@ const PromptContent = () => {
             />
           </div>
 
-          {/* Generate Button */}
-          <Button
+          {/* Generate button */}
+          <button
             onClick={() => handleGenerateContent()}
             loading={isGenerating}
             disabled={!canGenerate}
-            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
+            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
               !canGenerate ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Content"}
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -251,7 +247,7 @@ const PromptContent = () => {
         <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg text-white flex items-center justify-center">
+              <div className="w-8 h-8 bg-linear-to-r from-green-500 to-blue-600 rounded-lg text-white flex items-center justify-center">
                 <Sparkles className="w-4 h-4" />
               </div>
               <h2 className="text-xl font-semibold text-gray-900">Generated Content</h2>

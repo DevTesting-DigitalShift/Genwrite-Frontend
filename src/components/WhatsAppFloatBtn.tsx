@@ -1,19 +1,7 @@
-import { Tooltip } from "antd"
-import { WhatsAppOutlined } from "@ant-design/icons"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useCallback } from "react"
+import { FaWhatsapp } from "react-icons/fa"
 
-/**
- * Props interface for WhatsAppFloatButton component
- * @param phoneNumber - WhatsApp phone number with country code (e.g., "919876543210")
- * @param message - Pre-filled message for WhatsApp chat (optional)
- * @param tooltipText - Tooltip text on hover
- * @param position - Button position: 'bottom-right' | 'bottom-left'
- * @param className - Additional CSS classes
- * @param size - Button size: 'small' | 'medium' | 'large'
- * @param showPulse - Whether to show pulse animation (default: true)
- * @param mobileOffset - Extra offset on mobile to avoid overlapping with other elements
- */
 interface WhatsAppFloatButtonProps {
   phoneNumber: string
   message?: string
@@ -22,39 +10,9 @@ interface WhatsAppFloatButtonProps {
   className?: string
   size?: "small" | "medium" | "large"
   showPulse?: boolean
-  mobileOffset?: {
-    bottom?: string
-    right?: string
-    left?: string
-  }
+  mobileOffset?: { bottom?: string; right?: string; left?: string }
 }
 
-/**
- * WhatsAppFloatButton Component
- *
- * A premium floating WhatsApp button that appears fixed on screen.
- * Opens WhatsApp chat with a pre-filled message when clicked.
- *
- * Features:
- * - Smooth hover and tap animations via Framer Motion
- * - Pulse animation to attract attention
- * - Customizable pre-filled message
- * - Fully responsive sizing for mobile/tablet/desktop
- * - Tooltip on hover (hidden on touch devices)
- * - Configurable mobile offset to prevent overlap
- *
- * @example
- * // Basic usage
- * <WhatsAppFloatButton phoneNumber="919876543210" />
- *
- * // With custom message and size
- * <WhatsAppFloatButton
- *   phoneNumber="919876543210"
- *   message="Hi! I'm interested in learning more about GenWrite."
- *   tooltipText="Chat with us!"
- *   size="medium"
- * />
- */
 const WhatsAppFloatButton = ({
   phoneNumber,
   message = "Hi! I'm interested in learning more about GenWrite.",
@@ -67,33 +25,11 @@ const WhatsAppFloatButton = ({
 }: WhatsAppFloatButtonProps) => {
   const [isHovered, setIsHovered] = useState(false)
 
-  /**
-   * Build WhatsApp URL with phone number and optional pre-filled message
-   * Uses wa.me API for universal compatibility
-   */
   const getWhatsAppUrl = useCallback((): string => {
     const encodedMessage = encodeURIComponent(message)
     return `https://wa.me/${phoneNumber}?text=${encodedMessage}`
   }, [phoneNumber, message])
 
-  /**
-   * Get position classes based on the position prop - responsive
-   */
-  const getPositionClasses = useCallback((): string => {
-    const bottomOffset = mobileOffset?.bottom || "bottom-4 sm:bottom-6"
-
-    switch (position) {
-      case "bottom-left":
-        return `${mobileOffset?.left || "left-3 sm:left-6"} ${bottomOffset}`
-      case "bottom-right":
-      default:
-        return `${mobileOffset?.right || "right-3 sm:right-6"} ${bottomOffset}`
-    }
-  }, [position, mobileOffset])
-
-  /**
-   * Get size classes - responsive
-   */
   const getSizeClasses = useCallback((): { button: string; icon: string; label: string } => {
     switch (size) {
       case "small":
@@ -118,9 +54,6 @@ const WhatsAppFloatButton = ({
     }
   }, [size])
 
-  /**
-   * Handle button click - opens WhatsApp in new tab
-   */
   const handleClick = useCallback(() => {
     window.open(getWhatsAppUrl(), "_blank", "noopener,noreferrer")
   }, [getWhatsAppUrl])
@@ -128,30 +61,26 @@ const WhatsAppFloatButton = ({
   const sizeClasses = getSizeClasses()
 
   return (
-    <Tooltip
-      title={tooltipText}
-      placement={position === "bottom-left" ? "right" : "left"}
-      // Hide tooltip on touch devices - users will tap directly
-      trigger={["hover"]}
+    <div
+      className="fixed z-50 pointer-events-auto tooltip tooltip-left"
+      style={{
+        // Manual positioning for floating button
+        bottom: mobileOffset?.bottom || (position === "bottom-right" ? "1.5rem" : "1.5rem"),
+        [position === "bottom-right" ? "right" : "left"]:
+          mobileOffset?.right ||
+          mobileOffset?.left ||
+          (position === "bottom-right" ? "0.75rem" : "0.75rem"),
+      }}
+      data-tip={tooltipText}
     >
       <motion.div
-        className={`
-          fixed z-50 ${getPositionClasses()}
-          cursor-pointer select-none
-          ${className}
-        `}
+        className={`cursor-pointer select-none ${className}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{
-          type: "spring",
-          stiffness: 260,
-          damping: 20,
-          delay: 0.5,
-        }}
+        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.5 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
       >
-        {/* Pulse ring animation - WhatsApp green */}
         {showPulse && (
           <div
             className={`
@@ -161,7 +90,6 @@ const WhatsAppFloatButton = ({
           />
         )}
 
-        {/* Main button */}
         <motion.button
           onClick={handleClick}
           whileHover={{ scale: 1.1 }}
@@ -170,7 +98,7 @@ const WhatsAppFloatButton = ({
             relative flex items-center justify-center
             ${sizeClasses.button}
             rounded-full
-            bg-gradient-to-br from-[#25D366] to-[#128C7E]
+            bg-linear-to-br from-[#25D366] to-[#128C7E]
             text-white
             shadow-lg shadow-[#25D366]/30
             hover:shadow-xl hover:shadow-[#25D366]/40
@@ -180,22 +108,15 @@ const WhatsAppFloatButton = ({
           `}
           aria-label="Chat on WhatsApp"
         >
-          <WhatsAppOutlined className={sizeClasses.icon} />
+          <FaWhatsapp className={sizeClasses.icon} />
         </motion.button>
 
-        {/* Hover label - slides in from right/left (hidden on mobile) */}
         <AnimatePresence>
           {isHovered && (
             <motion.div
-              initial={{
-                opacity: 0,
-                x: position === "bottom-left" ? -10 : 10,
-              }}
+              initial={{ opacity: 0, x: position === "bottom-left" ? -10 : 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{
-                opacity: 0,
-                x: position === "bottom-left" ? -10 : 10,
-              }}
+              exit={{ opacity: 0, x: position === "bottom-left" ? -10 : 10 }}
               transition={{ duration: 0.2 }}
               className={`
                 absolute top-1/2 -translate-y-1/2
@@ -215,7 +136,6 @@ const WhatsAppFloatButton = ({
               }}
             >
               <span className="text-sm font-medium text-gray-700">Chat with us</span>
-              {/* Arrow pointer */}
               <div
                 className={`
                   absolute top-1/2 -translate-y-1/2 
@@ -225,8 +145,8 @@ const WhatsAppFloatButton = ({
                   border-b-[6px] border-b-transparent 
                   ${
                     position === "bottom-left"
-                      ? "border-r-[8px] border-r-white"
-                      : "border-l-[8px] border-l-white"
+                      ? "border-r-8 border-r-white"
+                      : "border-l-8 border-l-white"
                   }
                 `}
               />
@@ -234,7 +154,7 @@ const WhatsAppFloatButton = ({
           )}
         </AnimatePresence>
       </motion.div>
-    </Tooltip>
+    </div>
   )
 }
 

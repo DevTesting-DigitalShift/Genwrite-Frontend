@@ -10,13 +10,13 @@ import {
   Layout,
   Palette,
 } from "lucide-react"
-import { Button, message } from "antd"
 
 import useToolsStore from "@store/useToolsStore"
 import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { toast } from "sonner"
 
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")
@@ -49,22 +49,22 @@ const CompetitorLikeBlog = () => {
 
   const handleSubmit = async () => {
     if (!url.trim()) {
-      message.error("Please enter a Competitor URL")
+      toast.error("Please enter a Competitor URL")
       return
     }
 
     if (!isValidUrl(url)) {
-      message.error("Please enter a valid URL (e.g., https://example.com/blog/...)")
+      toast.error("Please enter a valid URL (e.g., https://example.com/blog/...)")
       return
     }
 
     if (!topic.trim()) {
-      message.error("Please enter a topic")
+      toast.error("Please enter a topic")
       return
     }
 
     if (topic.length < 5) {
-      message.error("Topic must be at least 5 characters long")
+      toast.error("Topic must be at least 5 characters long")
       return
     }
 
@@ -72,10 +72,10 @@ const CompetitorLikeBlog = () => {
 
     generateContent(payload, {
       onSuccess: () => {
-        message.success("Content generated successfully!")
+        toast.success("Content generated successfully!")
       },
       onError: err => {
-        message.error(err?.message || "Failed to generate content. Please try again.")
+        toast.error(err?.toast || "Failed to generate content. Please try again.")
         console.error(err)
       },
     })
@@ -84,10 +84,10 @@ const CompetitorLikeBlog = () => {
   const handleCopy = async content => {
     try {
       await navigator.clipboard.writeText(content)
-      message.success("Content copied to clipboard")
+      toast.success("Content copied to clipboard")
     } catch (err) {
       console.error("Failed to copy content")
-      message.error("Failed to copy content")
+      toast.error("Failed to copy content")
     }
   }
 
@@ -95,7 +95,7 @@ const CompetitorLikeBlog = () => {
     setUrl("")
     setTopic("")
     resetCompetitorLikeBlog()
-    message.info("Reset successfully")
+    toast.info("Reset successfully")
   }
 
   const [timer, setTimer] = useState(0)
@@ -138,7 +138,7 @@ const CompetitorLikeBlog = () => {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen
-          message="Analyzing competitor style and generating content..."
+          toast="Analyzing competitor style and generating content..."
           timer={timer}
         />
       </div>
@@ -146,30 +146,31 @@ const CompetitorLikeBlog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
       <div className="max-w-7xl mx-auto space-y-6 p-0 mt-10 md:mt-0 md:p-5">
         {/* Header */}
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <PenTool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <PenTool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Competitor Like Blog
+                  </h1>
+                  <p className="text-sm sm:text-md text-gray-600">
+                    Analyze a competitor's blog style and generate new content on your topic using
+                    that style.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  Competitor Like Blog
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Analyze a competitor's blog style and generate new content on your topic using
-                  that style.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -210,10 +211,10 @@ const CompetitorLikeBlog = () => {
           </div>
 
           <div className="md:col-span-2">
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={isLoading || !url.trim() || !topic.trim()}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg h-12 text-lg ${
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg h-12 text-lg ${
                 !url.trim() || !topic.trim()
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-[1.01]"
@@ -221,7 +222,7 @@ const CompetitorLikeBlog = () => {
             >
               <Sparkles className="w-5 h-5" />
               Generate Content
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -290,10 +291,9 @@ const CompetitorLikeBlog = () => {
                 </button>
               </div>
 
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  className="markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed"
                   components={{
                     h1: ({ node, ...props }) => (
                       <h1

@@ -1,16 +1,26 @@
-import { Table, Tag, Input, Select, Spin, Empty } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Helmet } from "react-helmet"
 import dayjs from "dayjs"
 import useCreditLogStore from "@store/useCreditLogStore"
 import { useCreditLogsQuery } from "@api/queries/creditLogsQueries"
 import { getSocket } from "@utils/socket"
-import { SearchOutlined } from "@ant-design/icons"
-import { Search } from "lucide-react"
-import Fuse from "fuse.js" // Import Fuse.js
-
-const { Option } = Select
+import {
+  Search,
+  Filter,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  Loader2,
+  MinusCircle,
+  PlusCircle,
+  ChevronDown,
+  ArrowUpDown,
+} from "lucide-react"
+import Fuse from "fuse.js"
+import { clsx } from "clsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 
 const CreditLogsTable = () => {
   const {
@@ -50,33 +60,28 @@ const CreditLogsTable = () => {
     }
   }
 
-  const queryParams = {
-    page: 1, // Currently fetching all andpaginating client side as per original logic, but API supports pagination.
-    // Keeping original logic of fetching all (limit -1) for now based on previous code.
-    limit: -1,
-    ...getDateRangeParams(dateRange),
-  }
+  const queryParams = { page: 1, limit: -1, ...getDateRangeParams(dateRange) }
 
   const { data: logsData, isLoading: loading, refetch } = useCreditLogsQuery(queryParams)
   const logs = logsData?.data || []
 
   const pageSizeOptions = [10, 20, 50, 100]
   const purposeOptions = [
-    "BLOG_GENERATION",
-    "QUICK_BLOG_GENERATION",
-    "AI_PROOFREADING",
-    "COMPETITOR_ANALYSIS",
-    "SUBSCRIPTION_PAYMENT",
-    "OTHER",
+    { label: "Blog Generation", value: "BLOG_GENERATION" },
+    { label: "Quick Blog", value: "QUICK_BLOG_GENERATION" },
+    { label: "Proofreading", value: "AI_PROOFREADING" },
+    { label: "Competitor Analysis", value: "COMPETITOR_ANALYSIS" },
+    { label: "Subscription", value: "SUBSCRIPTION_PAYMENT" },
+    { label: "Other", value: "OTHER" },
   ]
 
   // Initialize Fuse.js with logs data
   const fuse = useMemo(() => {
     return new Fuse(logs, {
-      keys: ["metadata.title"], // Search in blog title
-      threshold: 0.4, // Adjust for fuzzy search sensitivity (0 = exact match, 1 = very loose)
-      ignoreLocation: true, // Allow matches anywhere in the string
-      minMatchCharLength: 2, // Minimum characters to start matching
+      keys: ["metadata.title"],
+      threshold: 0.4,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
     })
   }, [logs])
 
@@ -96,107 +101,6 @@ const CreditLogsTable = () => {
 
     return result
   }, [logs, searchText, purposeFilter, fuse])
-
-  const purposeColorMap = {
-    BLOG_GENERATION: "bg-blue-100 text-blue-700",
-    QUICK_BLOG_GENERATION: "bg-indigo-100 text-indigo-700",
-    AI_PROOFREADING: "bg-green-100 text-green-700",
-    COMPETITOR_ANALYSIS: "bg-yellow-100 text-yellow-800",
-    SUBSCRIPTION_PAYMENT: "bg-purple-100 text-purple-700",
-    OTHER: "bg-gray-100 text-gray-700",
-  }
-
-  // Responsive Table Columns
-  const columns = useMemo(
-    () => [
-      {
-        title: "Blog Topic",
-        dataIndex: ["metadata", "title"],
-        key: "blogTitle",
-        render: title => (
-          <div>
-            <span className="text-xs sm:text-sm text-gray-700 capitalize">{title || "-"}</span>
-          </div>
-        ),
-      },
-      {
-        title: "Date",
-        dataIndex: "createdAt",
-        key: "createdAt",
-        sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-        render: date => (
-          <span className="text-xs sm:text-sm text-gray-600">
-            {dayjs(date).format("DD MMM YYYY, hh:mm A")}
-          </span>
-        ),
-      },
-      {
-        title: "Type",
-        dataIndex: "category",
-        key: "category",
-        filters: [
-          { text: "Deduction", value: "DEDUCTION" },
-          { text: "Adjustment", value: "ADJUSTMENT" },
-        ],
-        onFilter: (value, record) => record.category === value,
-        render: category => (
-          <Tag
-            color={category === "DEDUCTION" ? "red" : "green"}
-            className="font-medium px-2 sm:px-3 py-1 rounded-full text-xs"
-          >
-            {category}
-          </Tag>
-        ),
-      },
-      {
-        title: "Purpose",
-        dataIndex: "purpose",
-        key: "purpose",
-        filters: purposeOptions.map(purpose => ({
-          text: purpose.toLowerCase().replace(/_/g, " "),
-          value: purpose,
-        })),
-        filterMultiple: true,
-        onFilter: (value, record) => record.purpose === value,
-        render: purpose => {
-          const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700"
-          const label = purpose?.toLowerCase().replace(/_/g, " ") || "-"
-          return (
-            <span
-              className={`inline-block px-2 py-1 rounded-full text-xs font-semibold capitalize ${colorClass}`}
-            >
-              {label}
-            </span>
-          )
-        },
-      },
-      {
-        title: "Amount",
-        dataIndex: "amount",
-        key: "amount",
-        sorter: (a, b) => a.amount - b.amount,
-        render: amount => (
-          <span
-            className={`font-semibold text-xs sm:text-sm ${
-              amount < 0 ? "text-red-500" : "text-green-600"
-            }`}
-          >
-            {amount > 0 ? `+${amount}` : amount}
-          </span>
-        ),
-      },
-      {
-        title: "Remaining Credits",
-        dataIndex: "remainingCredits",
-        key: "remainingCredits",
-        responsive: ["md"],
-        render: credits => (
-          <span className="text-xs sm:text-sm font-medium text-gray-800">{credits}</span>
-        ),
-      },
-    ],
-    [purposeColorMap]
-  )
 
   // WebSocket for real-time updates
   useEffect(() => {
@@ -220,152 +124,195 @@ const CreditLogsTable = () => {
     return filteredLogs.slice(startIndex, endIndex)
   }, [filteredLogs, page, pageSize])
 
+  const totalPages = Math.ceil(filteredLogs.length / pageSize)
+
   return (
-    <AnimatePresence>
+    <div className="min-h-screen p-6">
       <Helmet>
         <title>Credit Logs | GenWrite</title>
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="p-8 bg-white rounded-2xl w-full max-w-full"
-      >
-        <div className="flex flex-col gap-4 mb-6">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Credit Logs
-          </h2>
-          <p className="text-gray-500 text-sm max-w-lg" style={{ opacity: 1 }}>
+      <div className="space-y-8">
+        {/* Simple Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-blue-600 tracking-tight">Credit Logs</h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-md">
             All your credits, all in one spot. Check your activity, track your transactions, and
             never miss a beat.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="relative w-full">
-              <input
-                placeholder="Search by blog title"
-                value={searchText}
-                onChange={e => {
-                  setSearchText(e.target.value)
-                  setPage(1)
-                }}
-                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                aria-label="Search credit logs by blog title"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            </div>
-            <Select
-              value={dateRange}
-              onChange={value => {
-                setDateRange(value)
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by blog title"
+              value={searchText}
+              onChange={e => {
+                setSearchText(e.target.value)
                 setPage(1)
               }}
-              className="w-full sm:w-48 rounded-lg text-xs sm:text-sm"
-              popupClassName="rounded-lg"
-              aria-label="Select date range"
-            >
-              <Option value="24h">Last 24 Hours</Option>
-              <Option value="7d">Last 7 Days</Option>
-              <Option value="30d">Last 30 Days</Option>
-            </Select>
-            <Select
-              value={pageSize}
-              onChange={value => {
-                setPageSize(value)
-                setPage(1)
-              }}
-              options={pageSizeOptions.map(size => ({ label: `${size} / page`, value: size }))}
-              className="w-full sm:w-32 rounded-lg text-xs sm:text-sm"
-              popupClassName="rounded-lg"
-              aria-label="Select page size"
+              className="input input-bordered w-full h-11 pl-11 rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-sm transition-all text-slate-700"
             />
+          </div>
+
+          <div className="flex gap-3">
+            <select
+              value={dateRange}
+              onChange={e => {
+                setDateRange(e.target.value)
+                setPage(1)
+              }}
+              className="select select-bordered select-sm h-11 rounded-lg border-slate-200 font-medium text-slate-600 focus:border-blue-500 outline-none w-40"
+            >
+              <option value="all">All Time</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+
+            <select
+              value={pageSize}
+              onChange={e => {
+                setPageSize(Number(e.target.value))
+                setPage(1)
+              }}
+              className="select select-bordered select-sm h-11 rounded-lg border-slate-200 font-medium text-slate-600 focus:border-blue-500 outline-none w-32"
+            >
+              {pageSizeOptions.map(size => (
+                <option key={size} value={size}>
+                  {size} / page
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <style>
-          {`
-            .ant-table-container {
-              overflow-x: auto;
-              -webkit-overflow: auto;
-            }
-            .ant-table-thead {
-              position: sticky;
-              top: 0;
-              z-index: 10;
-              background: #fafafa;
-            }
-            .ant-table-thead > tr > th {
-              background: #fafafa !important;
-              white-space: nowrap;
-            }
-            .ant-table-cell {
-              white-space: nowrap;
-            }
-            @media (max-width: 640px) {
-              .ant-table-tbody > tr > td {
-                padding: 8px !important;
-                font-size: 12px !important;
-              }
-              .ant-table-thead > tr > th {
-                padding: 8px !important;
-                font-size: 12px !important;
-              }
-            }
-            @media (max-width: 768px) {
-              .ant-table-tbody > tr > td {
-                padding: 10px !important;
-              }
-              .ant-table-thead > tr > th {
-                padding: 10px !important;
-              }
-            }
-          `}
-        </style>
-        <Table
-          dataSource={paginatedData}
-          columns={columns}
-          loading={loading}
-          rowKey="_id"
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: filteredLogs.length, // Use filteredLogs length for pagination
-            showSizeChanger: false,
-            showTotal: total => `Total ${total} logs`,
-            onChange: page => {
-              setPage(page)
-            },
-            responsive: true,
-            pageSizeOptions: pageSizeOptions,
-            className: "text-xs sm:text-sm",
-          }}
-          className="rounded-xl overflow-hidden w-full"
-          rowClassName="hover:bg-gray-50 transition-colors duration-200"
-          bordered={false}
-          locale={{
-            emptyText: loading ? (
-              <Spin tip="Loading logs..." />
-            ) : (
-              <Empty
-                description={
-                  searchText || purposeFilter.length > 0
-                    ? "No logs match the filters"
-                    : "No Logs Found"
-                }
-              />
-            ),
-          }}
-          onChange={(paginationInfo, filters, sorter, extra) => {
-            const newPurposeFilter = filters.purpose || []
-            setPurposeFilter(newPurposeFilter)
-            setPage(paginationInfo.current)
-            setPageSize(paginationInfo.pageSize)
-          }}
-          scroll={{ x: "max-content" }}
-        />
-      </motion.div>
-    </AnimatePresence>
+        {/* Table Section */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+          <div className="overflow-x-auto min-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 border-y border-slate-100 hover:bg-slate-50/50">
+                  <TableHead className="py-5 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Blog Topic
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Date <ArrowUpDown size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Type <Filter size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Purpose <Filter size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Amount <ArrowUpDown size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 pr-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Remaining Credits
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-32 text-center">
+                      <span className="loading loading-spinner text-blue-600"></span>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <img src="/Images/trash-can.webp" alt="Empty" className="w-20 opacity-40" />
+                        <p className="text-slate-400 font-medium text-sm">No Logs Found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map(log => (
+                    <TableRow
+                      key={log._id}
+                      className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0"
+                    >
+                      <TableCell className="py-4 pl-8">
+                        <span className="font-semibold text-slate-700 text-sm">
+                          {log.metadata?.title || "System Transaction"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 font-medium text-slate-600 text-sm whitespace-nowrap">
+                        {dayjs(log.createdAt).format("MMM DD, YYYY")}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm font-medium text-slate-500 capitalize">
+                          {log.amount < 0 ? "Debit" : "Credit"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm font-medium text-slate-600 capitalize">
+                          {log.purpose?.replace(/_/g, " ").toLowerCase()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span
+                          className={clsx(
+                            "text-sm font-bold",
+                            log.amount < 0 ? "text-rose-500" : "text-emerald-500"
+                          )}
+                        >
+                          {log.amount < 0 ? "" : "+"}
+                          {log.amount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 pr-8 font-semibold text-slate-700 text-sm">
+                        {log.remainingCredits}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {!loading && paginatedData.length > 0 && (
+            <div className="p-6 border-t border-slate-50 flex items-center justify-between bg-slate-50/20">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Showing {Math.min(filteredLogs.length, (page - 1) * pageSize + 1)}-
+                {Math.min(filteredLogs.length, page * pageSize)} of {filteredLogs.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 

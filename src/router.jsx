@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import App from "./App"
 import ErrorBoundary from "./layout/error/ErrorBoundary"
 import VerifiedEmail from "@pages/VerifiedEmail"

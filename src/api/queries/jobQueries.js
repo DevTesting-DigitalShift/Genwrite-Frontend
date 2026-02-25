@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getJobs, createJob, updateJob, startJob, stopJob, deleteJob } from "@api/jobApi"
-import { message } from "antd"
+import { toast } from "sonner"
 import { pushToDataLayer } from "@utils/DataLayer"
 
 export const useJobsQuery = (enabled = true) => {
@@ -16,11 +16,11 @@ export const useCreateJobMutation = () => {
       // NOTE: DataLayer push might need user object.
       // If user is not in variables, we might need to handle it in the component or useAuthStore.
 
-      message.success("Job created successfully!")
+      toast.success("Job created successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: error => {
-      message.error(error?.response?.data?.message || "Failed to create job")
+      toast.error(error?.response?.data?.message || "Failed to create job")
     },
   })
 }
@@ -30,11 +30,11 @@ export const useUpdateJobMutation = () => {
   return useMutation({
     mutationFn: ({ jobId, jobPayload }) => updateJob(jobId, jobPayload),
     onSuccess: () => {
-      message.success("Job updated successfully!")
+      toast.success("Job updated successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: error => {
-      message.error("Failed to update job")
+      toast.error("Failed to update job")
     },
   })
 }
@@ -51,11 +51,11 @@ export const useToggleJobStatusMutation = () => {
     },
     onSuccess: (_, variables) => {
       const { currentStatus } = variables
-      message.success(currentStatus === "active" ? "Job paused!" : "Job started!")
+      toast.success(currentStatus === "active" ? "Job paused!" : "Job started!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: () => {
-      message.error("Failed to update job status")
+      toast.error("Failed to update job status")
     },
   })
 }
@@ -65,11 +65,11 @@ export const useDeleteJobMutation = () => {
   return useMutation({
     mutationFn: deleteJob,
     onSuccess: () => {
-      message.success("Job deleted successfully!")
+      toast.success("Job deleted successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: error => {
-      message.error(error.response?.data?.message || "Failed to delete job")
+      toast.error(error.response?.data?.message || "Failed to delete job")
     },
   })
 }

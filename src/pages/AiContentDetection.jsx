@@ -10,11 +10,11 @@ import {
   CheckCircle,
   Info,
 } from "lucide-react"
-import { Button, message } from "antd"
-
 import useToolsStore from "@store/useToolsStore"
 import { useAiDetectionMutation } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import { toast } from "sonner"
+import { Helmet } from "react-helmet"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
@@ -34,12 +34,12 @@ const AiContentDetection = () => {
 
   const handleSubmit = async () => {
     if (!inputContent.trim()) {
-      message.error("Please enter some content to analyze")
+      toast.error("Please enter some content to analyze")
       return
     }
 
     if (wordCount < 20) {
-      message.error("Please enter at least 20 words for accurate detection")
+      toast.error("Please enter at least 20 words for accurate detection")
       return
     }
 
@@ -47,10 +47,10 @@ const AiContentDetection = () => {
 
     detectContent(payload, {
       onSuccess: () => {
-        message.success("Content analyzed successfully!")
+        toast.success("Content analyzed successfully!")
       },
       onError: err => {
-        message.error(err?.message || "Failed to analyze content. Please try again.")
+        toast.error(err?.toast || "Failed to analyze content. Please try again.")
         console.error(err)
       },
     })
@@ -59,17 +59,17 @@ const AiContentDetection = () => {
   const handleCopy = async content => {
     try {
       await navigator.clipboard.writeText(content)
-      message.success("Content copied to clipboard")
+      toast.success("Content copied to clipboard")
     } catch (err) {
       console.error("Failed to copy content")
-      message.error("Failed to copy content")
+      toast.error("Failed to copy content")
     }
   }
 
   const handleReset = () => {
     setInputContent("")
     resetAiDetection()
-    message.info("Content reset")
+    toast.info("Content reset")
   }
 
   const getScoreColor = score => {
@@ -93,35 +93,39 @@ const AiContentDetection = () => {
   if (isPending) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Analyzing your content..." />
+        <ProgressLoadingScreen toast="Analyzing your content..." />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+      <Helmet>
+        <title>AI Content Detection</title>
+      </Helmet>
       <div className="max-w-7xl mx-auto space-y-6 p-5">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    AI Content Detection
+                  </h1>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Detect AI-generated text and get confidence scores to verify content
+                    authenticity.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  AI Content Detection
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Detect AI-generated text and get confidence scores to verify content authenticity.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -151,10 +155,10 @@ const AiContentDetection = () => {
                 Word count: {wordCount} {wordCount < 20 ? "(Minimum 20 words required)" : ""}
               </p>
             </div>
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={isPending || !inputContent.trim() || wordCount < 20}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                 !inputContent.trim() || wordCount < 20
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
@@ -162,7 +166,7 @@ const AiContentDetection = () => {
             >
               <Shield className="w-5 h-5" />
               Analyze Content
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -229,7 +233,7 @@ const AiContentDetection = () => {
                 <ul className="space-y-3">
                   {detectionResult.analysis.map((point, idx) => (
                     <li key={idx} className="flex gap-3 text-gray-700">
-                      <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                      <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>
                       <span className="leading-relaxed">{point}</span>

@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Heart, Gift, ArrowLeft, CheckCircle, Star, Sparkles, Crown, Zap } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Heart,
+  Gift,
+  ArrowLeft,
+  CheckCircle2,
+  Star,
+  Sparkles,
+  Crown,
+  Zap,
+  AlertTriangle,
+  XCircle,
+  ShieldCheck,
+  ChevronRight,
+  BrainCircuit,
+  CheckCircle,
+} from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { message } from "antd"
+import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { WarningOutlined } from "@ant-design/icons"
 import { cancelStripeSubscription } from "@api/otherApi"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
@@ -13,7 +27,6 @@ import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
 const CancellationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
   const { user } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
   const navigate = useNavigate()
@@ -28,20 +41,7 @@ const CancellationPage = () => {
     ) {
       navigate("/dashboard", { replace: true })
     }
-  }, [user])
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const formatTime = seconds => {
-    const minutes = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`
-  }
+  }, [user, navigate])
 
   const handleStay = async () => {
     try {
@@ -49,110 +49,86 @@ const CancellationPage = () => {
       await updateProfileMutate({ "subscription.discountApplied": 30 })
       setShowSuccess(true)
       sendCancellationRelatedEvent(user, "discount")
-      message.success("30% More Credits applied successfully!")
+      toast.success("30% Bonus Credits activated!")
     } catch (err) {
       console.error("Error applying discount:", err)
-      message.error("Failed to apply discount, please try again later.")
+      toast.error("Failed to apply bonus, please try again later.")
     } finally {
       setIsProcessing(false)
     }
   }
 
   const handleCancel = async () => {
-    // setIsProcessing(true);
-    // // Simulate API call for cancellation
-    // setTimeout(() => {
-    //   setIsProcessing(false);
-    //   setShowSuccess(true);
-    // }, 2000);
     handlePopup({
-      title: "Cancel Subscription",
+      title: "Confirm Cancellation",
       description: (
-        <span>
-          Are you sure you'd like to cancel your subscription? <br />
-          You'll continue to enjoy all your benefits{" "}
-          <strong>until the end of your current billing cycle</strong>.
-        </span>
+        <div className="space-y-4">
+          <p className="text-slate-600 font-medium leading-relaxed">
+            Are you sure you want to terminate your subscription? You'll continue to enjoy all
+            premium benefits <strong>until the end of your current cycle</strong>.
+          </p>
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 flex items-center gap-3">
+            <AlertTriangle className="text-rose-500 w-5 h-5 shrink-0" />
+            <p className="text-rose-800 text-xs font-bold">
+              WARNING: You will lose your 30% retention bonus offer if you proceed.
+            </p>
+          </div>
+        </div>
       ),
-      icon: <WarningOutlined style={{ fontSize: 40, color: "red" }} />,
+      icon: <XCircle className="w-12 h-12 text-rose-500" />,
       onConfirm: async () => {
         try {
           setIsProcessing(true)
-          const data = await cancelStripeSubscription()
+          await cancelStripeSubscription()
           sendCancellationRelatedEvent(user, "cancel")
-          message.success("Subscription cancelled successfully!")
+          toast.success("Subscription schedule updated for termination")
           navigate("/dashboard")
         } catch (err) {
           console.error("Error cancelling subscription:", err)
-          message.error("Failed to cancel subscription, please try again later.")
+          toast.error("Failed to update status, please try again.")
         } finally {
           setIsProcessing(false)
         }
       },
       confirmText: "Cancel Anyway",
-      cancelText: "Go Back",
+      cancelText: "Stay with GenWrite",
     })
   }
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden font-inter">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-100 rounded-full blur-[120px] opacity-40 -mr-64 -mt-64" />
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden"
+          className="max-w-xl w-full bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 p-12 text-center relative overflow-hidden border border-white"
         >
-          <div className="absolute inset-0 bg-linear-to-br from-green-400/10 to-blue-400/10 rounded-3xl" />
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-            className="w-20 h-20 bg-linear-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
+          <div className="w-24 h-24 bg-emerald-500 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-emerald-200">
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+            You're One of Us! 🚀
+          </h1>
+          <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+            Spectral link maintained. Your 30% credit bonus has been successfully integrated into
+            your next billing cycle.
+          </p>
+
+          <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 mb-10 flex items-center justify-center gap-4 group">
+            <Gift className="w-6 h-6 text-emerald-600 transition-transform group-hover:rotate-12" />
+            <span className="text-emerald-900 font-black uppercase tracking-widest text-xs">
+              30% Bonus Credits Applied
+            </span>
+          </div>
+
+          <Link
+            to="/dashboard"
+            className="btn btn-primary w-full h-16 rounded-2xl bg-slate-900 border-none text-white font-black shadow-xl hover:bg-black transition-all gap-3"
           >
-            <CheckCircle className="w-10 h-10 text-white" />
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-bold text-gray-900 mb-4"
-          >
-            Welcome Back! 🎉
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-gray-600 mb-6 leading-relaxed"
-          >
-            Your 30% More Credits has been applied successfully! We're thrilled to have you continue
-            your journey with GenWrite.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6"
-          >
-            <div className="flex items-center justify-center gap-2 text-green-800 font-semibold">
-              <Gift className="w-5 h-5" />
-              <span>30% More Credits to Your Next Billing Cycle</span>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Link
-              to="/dashboard"
-              className="w-full bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              Continue to Dashboard
-              <ArrowLeft className="w-4 h-4 rotate-180" />
-            </Link>
-          </motion.div>
+            Enter Dashboard Matrix
+            <ArrowLeft className="w-5 h-5 rotate-180" />
+          </Link>
         </motion.div>
       </div>
     )

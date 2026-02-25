@@ -12,8 +12,6 @@ import {
   TrendingUp,
   CheckCircle,
 } from "lucide-react"
-import { Button, Input, Tabs, Card, Tag, message, Steps, Spin, Alert } from "antd"
-
 import useToolsStore from "@store/useToolsStore"
 import {
   useWebsiteAnalysisMutation,
@@ -22,11 +20,93 @@ import {
   useWebsiteAdvancedAnalysisMutation,
   useWebsiteOrchestratorMutation,
 } from "@api/queries/toolsQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { toast } from "sonner"
 
-const { TabPane } = Tabs
+/* --- Custom UI Components replacing antd --- */
+
+const Card = ({ children, className = "" }) => (
+  <div
+    className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}
+  >
+    <div className="p-6">{children}</div>
+  </div>
+)
+
+const Tag = ({ children, color, className = "" }) => {
+  const colorMap = {
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    cyan: "bg-cyan-50 text-cyan-600 border-cyan-100",
+    orange: "bg-orange-50 text-orange-600 border-orange-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  }
+  const colorClass = colorMap[color] || "bg-gray-50 text-gray-600 border-gray-100"
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border ${colorClass} ${className}`}
+    >
+      {children}
+    </span>
+  )
+}
+
+const Steps = ({ current, items = [] }) => {
+  return (
+    <div className="flex items-center justify-between w-full mb-12 relative px-2">
+      <div className="absolute top-5 left-0 w-full h-px bg-gray-200 z-0" />
+      {items.map((item, idx) => {
+        const isActive = idx === current
+        const isCompleted = idx < current
+        return (
+          <div key={idx} className="flex flex-col items-center gap-3 relative z-10 bg-white px-4">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                isActive
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : isCompleted
+                    ? "border-emerald-500 bg-emerald-500 text-white"
+                    : "border-gray-200 bg-white text-gray-400"
+              }`}
+            >
+              {isCompleted ? <CheckCircle className="w-5 h-5" /> : item.icon}
+            </div>
+            <span
+              className={`text-[10px] font-black uppercase tracking-widest ${isActive ? "text-blue-600" : isCompleted ? "text-emerald-600" : "text-gray-400"}`}
+            >
+              {item.title}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const CustomTabs = ({ items, activeKey, onChange }) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 p-1 bg-gray-100/50 rounded-xl w-fit border border-gray-200">
+        {items.map(item => (
+          <button
+            key={item.key}
+            onClick={() => onChange(item.key)}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+              activeKey === item.key
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div>{items.find(item => item.key === activeKey)?.children}</div>
+    </div>
+  )
+}
 
 const WebsiteRanking = () => {
   const [url, setUrl] = useState("")
@@ -35,6 +115,7 @@ const WebsiteRanking = () => {
 
   // Individual tool states (for Manual Mode)
   const [manualStep, setManualStep] = useState(0)
+  const [activeTab, setActiveTab] = useState("1")
   const [generatedPrompts, setGeneratedPrompts] = useState([])
   const [analysisResult, setAnalysisResult] = useState(null)
   const [rankingsResult, setRankingsResult] = useState(null)
@@ -61,31 +142,31 @@ const WebsiteRanking = () => {
 
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {
-    if (!url) return message.error("Please enter a URL")
+    if (!url) return toast.error("Please enter a URL")
     try {
       await websiteRankingOrchestrator({ url, region, promptCount })
-      message.success("Full audit completed!")
+      toast.success("Full audit completed!")
     } catch (err) {
       console.error(err)
-      message.error(err?.message || "Audit failed")
+      toast.error(err?.toast || "Audit failed")
     }
   }
 
   // --- handlers for Manual Flow ---
   const handleAnalyse = async () => {
-    if (!url) return message.error("Please enter a URL")
+    if (!url) return toast.error("Please enter a URL")
     try {
       const res = await analyseWebsite({ url })
       setAnalysisResult(res)
       setManualStep(1)
-      message.success("Website analyzed!")
+      toast.success("Website analyzed!")
     } catch (err) {
-      message.error(err?.message || "Analysis failed")
+      toast.error(err?.toast || "Analysis failed")
     }
   }
 
   const handleCreatePrompts = async () => {
-    if (!analysisResult?.expertiseAreas) return message.error("No expertise areas found")
+    if (!analysisResult?.expertiseAreas) return toast.error("No expertise areas found")
     try {
       const res = await createWebsitePrompts({
         expertiseAreas: analysisResult.expertiseAreas,
@@ -94,31 +175,31 @@ const WebsiteRanking = () => {
       })
       setGeneratedPrompts(res)
       setManualStep(2)
-      message.success("Prompts created!")
+      toast.success("Prompts created!")
     } catch (err) {
-      message.error(err?.message || "Prompt creation failed")
+      toast.error(err?.toast || "Prompt creation failed")
     }
   }
 
   const handleCheckRankings = async () => {
-    if (!url || !generatedPrompts.length) return message.error("Missing URL or prompts")
+    if (!url || !generatedPrompts.length) return toast.error("Missing URL or prompts")
     try {
       const res = await checkWebsiteRankings({ url, prompts: generatedPrompts, region })
       setRankingsResult(res)
       setManualStep(3)
-      message.success("Rankings checked!")
+      toast.success("Rankings checked!")
     } catch (err) {
-      message.error(err?.message || "Ranking check failed")
+      toast.error(err?.toast || "Ranking check failed")
     }
   }
 
   const handleAdvancedAnalysis = async () => {
-    if (!analysisResult || !rankingsResult) return message.error("Missing analysis data")
+    if (!analysisResult || !rankingsResult) return toast.error("Missing analysis data")
     try {
       await generateAdvancedAnalysis({ analysis: analysisResult, rankings: rankingsResult })
-      message.success("Report generated!")
+      toast.success("Report generated!")
     } catch (err) {
-      message.error(err?.message || "Report generation failed")
+      toast.error(err?.toast || "Report generation failed")
     }
   }
 
@@ -218,7 +299,7 @@ const WebsiteRanking = () => {
         {/* 2. Top Competitors Leaderboard */}
         {rankings?.top10?.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="bg-linear-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
                 <Rocket className="w-5 h-5 text-orange-500" />
                 Top Competitors Leaderboard
@@ -354,7 +435,7 @@ const WebsiteRanking = () => {
               {/* Quick Actions / Recommendations List */}
               {recommendations.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-4">
-                  <div className="bg-gradient-to-r from-emerald-50 to-white px-6 py-4 border-b border-emerald-100">
+                  <div className="bg-linear-to-r from-emerald-50 to-white px-6 py-4 border-b border-emerald-100">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-900">
                       <CheckCircle className="w-5 h-5 text-emerald-600" />
                       Action Plan
@@ -431,7 +512,7 @@ const WebsiteRanking = () => {
           </thead>
           <tbody>
             {results.map((r, i) => (
-              <tr key={i} className="bg-white border-b hover:bg-gray-50">
+              <tr key={i} className="bg-white border-b border-gray-300 hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">{r.prompt}</td>
                 <td className="px-6 py-4">
                   {r.rank && r.rank > 0 ? (
@@ -464,7 +545,7 @@ const WebsiteRanking = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="space-y-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Globe className="text-blue-600" /> Website Grading & SEO Strategy
@@ -475,212 +556,279 @@ const WebsiteRanking = () => {
           </p>
         </div>
 
-        <Tabs defaultActiveKey="1" type="card" className="custom-tabs">
-          {/* ORCHESTRATOR TAB */}
-          <TabPane
-            tab={
-              <span className="flex items-center gap-2">
-                <Rocket className="w-4 h-4" /> Quick Audit (Auto)
-              </span>
-            }
-            key="1"
-          >
-            <Card className="rounded-xl shadow-sm border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-2">
-                  <label className="font-semibold text-gray-700">Target Website URL</label>
-                  <Input
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    size="large"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="font-semibold text-gray-700">Region</label>
-                    <Input value={region} onChange={e => setRegion(e.target.value)} size="large" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="font-semibold text-gray-700">Keywords to Check</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={promptCount}
-                      onChange={e => setPromptCount(Number(e.target.value))}
-                      size="large"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                type="primary"
-                size="large"
-                onClick={handleOrchestrator}
-                loading={isOrchestratorLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 border-none h-12 text-lg font-semibold"
-                icon={<Rocket className="w-5 h-5" />}
-              >
-                Start Full Audit
-              </Button>
-
-              {isOrchestratorLoading && (
-                <div className="mt-8">
-                  <ProgressLoadingScreen message="Conducting comprehensive website audit..." />
-                </div>
-              )}
-
-              {!isOrchestratorLoading && renderOrchestratorResult()}
-            </Card>
-          </TabPane>
-
-          {/* MANUAL TOOLS TAB */}
-          <TabPane
-            tab={
-              <span className="flex items-center gap-2">
-                <List className="w-4 h-4" /> Manual Tools
-              </span>
-            }
-            key="2"
-          >
-            <Card className="rounded-xl shadow-sm border-gray-200">
-              <Steps current={manualStep} className="mb-8">
-                <Steps.Step title="Analyse" icon={<Search />} />
-                <Steps.Step title="Keywords" icon={<Zap />} />
-                <Steps.Step title="Rankings" icon={<BarChart2 />} />
-                <Steps.Step title="Report" icon={<FileText />} />
-              </Steps>
-
-              {/* Step 0: Analyse */}
-              {manualStep === 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 1: Website Reconnaissance</h3>
-                  <Input
-                    placeholder="Enter Website URL"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    size="large"
-                  />
-                  <Button type="primary" onClick={handleAnalyse} loading={isAnalysing} size="large">
-                    Analyse Structure
-                  </Button>
-                </div>
-              )}
-
-              {/* Step 1: Prompts */}
-              {manualStep === 1 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 2: Generate Keywords</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Website Name</p>
-                        <p className="font-semibold">{analysisResult?.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Region & Language</p>
-                        <Tag color="blue">{analysisResult?.region}</Tag>
-                        <Tag color="cyan">{analysisResult?.language}</Tag>
-                      </div>
+        <CustomTabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: "1",
+              label: (
+                <span className="flex items-center gap-2">
+                  <Rocket className="w-4 h-4" /> Quick Audit (Auto)
+                </span>
+              ),
+              children: (
+                <Card className="rounded-xl shadow-sm border-gray-200 p-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Target Website URL
+                      </label>
+                      <input
+                        placeholder="https://example.com"
+                        value={url}
+                        onChange={e => setUrl(e.target.value)}
+                        className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none placeholder-gray-400"
+                      />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Description</p>
-                      <p className="text-gray-700">{analysisResult?.description}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 mb-2">Identified Expertise</p>
-                      <div className="flex flex-wrap gap-2">
-                        {analysisResult?.expertiseAreas?.map((area, idx) => (
-                          <Tag key={idx} color="purple">
-                            {area}
-                          </Tag>
-                        ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700">Region</label>
+                        <input
+                          value={region}
+                          onChange={e => setRegion(e.target.value)}
+                          className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Keywords to Check
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={promptCount}
+                          onChange={e => setPromptCount(Number(e.target.value))}
+                          className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none"
+                        />
                       </div>
                     </div>
                   </div>
-                  <Button
-                    type="primary"
-                    onClick={handleCreatePrompts}
-                    loading={isCreatingPrompts}
-                    size="large"
+
+                  <button
+                    onClick={handleOrchestrator}
+                    disabled={isOrchestratorLoading}
+                    className="w-full rounded-lg text-white flex items-center justify-center bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-3"
                   >
-                    Generate Search Prompts
-                  </Button>
-                </div>
-              )}
+                    {isOrchestratorLoading ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Rocket className="w-5 h-5" />
+                    )}
+                    Start Full Audit
+                  </button>
 
-              {/* Step 2: Rankings */}
-              {manualStep === 2 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 3: Check Rankings</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p>
-                      <strong>Generated Prompts:</strong>
-                    </p>
-                    <ul className="list-disc pl-5 mt-2">
-                      {generatedPrompts.map((p, i) => (
-                        <li key={i}>{p}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <Button
-                    type="primary"
-                    onClick={handleCheckRankings}
-                    loading={isCheckingRankings}
-                    size="large"
-                  >
-                    Check Search Rankings
-                  </Button>
-                </div>
-              )}
+                  {isOrchestratorLoading && (
+                    <div className="mt-8">
+                      <ProgressLoadingScreen toast="Conducting comprehensive website audit..." />
+                    </div>
+                  )}
 
-              {/* Step 3: Advanced Analysis */}
-              {manualStep === 3 && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  {!isOrchestratorLoading && renderOrchestratorResult()}
+                </Card>
+              ),
+            },
+            {
+              key: "2",
+              label: (
+                <span className="flex items-center gap-2">
+                  <List className="w-4 h-4" /> Manual Tools
+                </span>
+              ),
+              children: (
+                <Card className="rounded-xl shadow-sm border-gray-200 p-0">
+                  <Steps
+                    current={manualStep}
+                    items={[
+                      { title: "Analyse", icon: <Search className="w-5 h-5" /> },
+                      { title: "Keywords", icon: <Zap className="w-5 h-5" /> },
+                      { title: "Rankings", icon: <BarChart2 className="w-5 h-5" /> },
+                      { title: "Report", icon: <FileText className="w-5 h-5" /> },
+                    ]}
+                  />
+
+                  {/* Step 0: Analyse */}
+                  {manualStep === 0 && (
                     <div>
-                      <h3 className="text-lg font-bold text-gray-800">
-                        Step 3 Review: Rankings Data
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                        Step 1: Website Reconnaissance
                       </h3>
-                      <p className="text-sm text-gray-500">
-                        Review collected SEO data before generating the final strategy report.
-                      </p>
-                    </div>
-                    <Button
-                      type="primary"
-                      onClick={handleAdvancedAnalysis}
-                      loading={isAnalyzingAdvanced}
-                      size="large"
-                      icon={<FileText className="w-4 h-4" />}
-                    >
-                      Generate Final Strategy
-                    </Button>
-                  </div>
 
-                  {rankingsResult && (
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          placeholder="https://example.com"
+                          value={url}
+                          onChange={e => setUrl(e.target.value)}
+                          className="input w-full focus:outline-none rounded-lg border border-gray-300"
+                        />
+
+                        <button
+                          onClick={handleAnalyse}
+                          disabled={!url || isAnalysing}
+                          className={`btn px-6 rounded-lg shadow-sm transition-all duration-200 ${
+                            isAnalysing
+                              ? "btn-disabled"
+                              : "bg-linear-to-r from-indigo-600 to-violet-600 text-white hover:scale-105"
+                          }`}
+                        >
+                          {isAnalysing ? (
+                            <span className="loading loading-spinner loading-sm"></span>
+                          ) : (
+                            "Analyse"
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 1: Prompts */}
+                  {manualStep === 1 && (
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Zap className="text-amber-500" /> Step 2: Generate Keywords
+                      </h3>
+                      <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                              Website Name
+                            </p>
+                            <p className="font-bold text-gray-800">{analysisResult?.name}</p>
+                          </div>
+                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                              Region & Language
+                            </p>
+                            <div className="flex gap-2">
+                              <Tag color="blue">{analysisResult?.region}</Tag>
+                              <Tag color="cyan">{analysisResult?.language}</Tag>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
+                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                            Description
+                          </p>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            {analysisResult?.description}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 px-1">
+                            Identified Expertise
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {analysisResult?.expertiseAreas?.map((area, idx) => (
+                              <Tag key={idx} color="purple">
+                                {area}
+                              </Tag>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCreatePrompts}
+                        disabled={isCreatingPrompts}
+                        className="w-full bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isCreatingPrompts && <RefreshCw className="w-5 h-5 animate-spin" />}
+                        Generate Search Prompts
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step 2: Rankings */}
+                  {manualStep === 2 && (
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        <BarChart2 className="text-indigo-600" /> Step 3: Check Rankings
+                      </h3>
+                      <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
+                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
+                          Generated Keywords
+                        </p>
+                        <ul className="space-y-2">
+                          {generatedPrompts.map((p, i) => (
+                            <li
+                              key={i}
+                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 font-bold text-gray-700 text-sm"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">
+                                {i + 1}
+                              </div>
+                              {p}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button
+                        onClick={handleCheckRankings}
+                        disabled={isCheckingRankings}
+                        className="w-full bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isCheckingRankings && <RefreshCw className="w-5 h-5 animate-spin" />}
+                        Check Search Rankings
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step 3: Advanced Analysis */}
+                  {manualStep === 3 && (
+                    <div className="space-y-6">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm">
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-800">
+                            Final Step: Growth Strategy
+                          </h3>
+                          <p className="text-sm text-slate-400 mt-1">
+                            Generate a comprehensive strategic roadmap based on aggregated insights.
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={handleAdvancedAnalysis}
+                          disabled={isAnalyzingAdvanced}
+                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold  ${
+                            isAnalyzingAdvanced
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-[#1B6FC9] text-white hover:bg-[#1B6FC9]/90"
+                          }`}
+                        >
+                          {isAnalyzingAdvanced ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                          Build Strategy
+                        </button>
+                      </div>
+
+                      {rankingsResult && (
+                        <FullReportView
+                          data={{ url, analysis: analysisResult, rankings: rankingsResult }}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Final Result Display for Manual Mode */}
+                  {manualStep === 3 && advancedComp.result && (
                     <FullReportView
-                      data={{ url, analysis: analysisResult, rankings: rankingsResult }}
+                      data={{
+                        url,
+                        analysis: analysisResult,
+                        rankings: rankingsResult,
+                        advancedReport: advancedComp.result,
+                      }}
                     />
                   )}
-                </div>
-              )}
-
-              {/* Final Result Display for Manual Mode */}
-              {manualStep === 3 && advancedComp.result && (
-                <FullReportView
-                  data={{
-                    url,
-                    analysis: analysisResult,
-                    rankings: rankingsResult,
-                    advancedReport: advancedComp.result,
-                  }}
-                />
-              )}
-            </Card>
-          </TabPane>
-        </Tabs>
+                </Card>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   )

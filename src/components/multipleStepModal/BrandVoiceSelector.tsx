@@ -1,23 +1,18 @@
 import { brandsQuery } from "@api/Brand/Brand.query"
 import type { Brand } from "@/types/brand"
-import { Flex, message, Switch, Typography, Radio, Space, Card } from "antd"
 import React, { FC, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import clsx from "clsx"
+import { Switch } from "@components/ui/switch"
 
 interface BrandVoiceSelectorProps {
   label: string
   labelClass?: string
-  value?: {
-    isCheckedBrand: boolean
-    brandId: string
-    addCTA: boolean
-  }
+  value?: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }
   onChange?: (updated: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }) => void
   errorText?: string
-  size?: "small" | "default"
+  size?: "small" | "default" | "large"
 }
-
-const { Text, Paragraph } = Typography
 
 const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   label,
@@ -44,101 +39,98 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   }
 
   /** Toggle Brand Voice section */
-  const handleBrandToggle = (checked: boolean) => {
+  const handleBrandToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked
     if (error) {
-      message.error("Brand Fetchin Error, please try after some time.")
+      toast.error("Brand Fetching Error, please try after some time.")
       console.error(error)
     } else if (checked && (!brands || brands.length === 0)) {
-      message.warning("No brand voices available. Create one to enable this option.")
+      toast.error("No brand voices available. Create one to enable this option.")
     } else {
-      handleUpdate({
-        isCheckedBrand: checked,
-        brandId: checked ? state.brandId : "",
-      })
+      handleUpdate({ isCheckedBrand: checked, brandId: checked ? state.brandId : "" })
     }
   }
 
   return (
-    <>
-      <Flex vertical gap={8}>
-        <Flex justify="space-between" className="form-item-wrapper">
-          <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
-            {label}
-          </label>
-          <Switch
-            size={size}
-            id={`blog-isCheckedBrand`}
-            checked={state.isCheckedBrand}
-            onChange={handleBrandToggle}
-            disabled={isLoading || !brands || brands.length === 0}
-          />
-        </Flex>
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-between items-center form-item-wrapper">
+        <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
+          {label}
+        </label>
+        <Switch
+          id="blog-isCheckedBrand"
+          checked={state.isCheckedBrand}
+          onCheckedChange={(checked: boolean) => {
+            handleBrandToggle({ target: { checked } } as any)
+          }}
+          disabled={isLoading || !brands || brands.length === 0}
+        />
+      </div>
 
-        <Flex
-          vertical
-          gap={4}
-          hidden={!state.isCheckedBrand}
-          className={clsx(formError && "p-1 rounded-lg border !border-red-500")}
+      {state.isCheckedBrand && (
+        <div
+          className={clsx(
+            "flex flex-col gap-2 transition-all p-2 rounded-lg",
+            formError && "border border-red-500 bg-red-50"
+          )}
         >
-          <label className={clsx(formError && "text-red-500", labelClass)}>
+          <label className={clsx(formError ? "text-red-500" : labelClass, "text-sm font-semibold")}>
             {formError ? formError : "Select Brand Voice"}
           </label>
-          <Radio.Group
-            onChange={e => handleUpdate({ brandId: e.target.value })}
-            value={state.brandId}
-            className="w-full"
-          >
-            <Space
-              direction="vertical"
-              className="w-full h-[200px] overflow-y-auto p-2"
-              style={{
-                scrollbarWidth: "thin",
-                scrollBehavior: "smooth",
-              }}
-            >
-              {brands.map((brand: Brand) => (
-                <Card
-                  key={brand._id}
-                  size="small"
-                  hoverable
-                  className={clsx(
-                    "transition-all border mt-2 hover:ring-2 hover:ring-purple-500",
-                    state.brandId === brand._id ? "border-blue-500 bg-blue-50" : "border-gray-400"
-                  )}
-                >
-                  <Radio value={brand._id}>
-                    <Space direction="vertical" size={2}>
-                      <Text className="font-montserrat font-medium uppercase line-clamp-1">
-                        {brand.nameOfVoice}
-                      </Text>
-                      <Paragraph
-                        type="secondary"
-                        style={{ marginBottom: 0 }}
-                        ellipsis={{ rows: 2, expandable: false }}
-                      >
-                        {brand.describeBrand}
-                      </Paragraph>
-                    </Space>
-                  </Radio>
-                </Card>
-              ))}
-            </Space>
-          </Radio.Group>
-        </Flex>
 
-        <Flex justify="space-between" hidden={!state.isCheckedBrand} className="!mt-4">
+          <div
+            className="w-full h-[200px] overflow-y-auto p-3 space-y-2 border border-gray-300 rounded-md bg-base-100"
+            style={{ scrollbarWidth: "thin", scrollBehavior: "smooth" }}
+          >
+            {brands.map((brand: Brand) => (
+              <div
+                key={brand._id}
+                onClick={() => handleUpdate({ brandId: brand._id })}
+                className={clsx(
+                  "cursor-pointer p-3 border rounded-lg transition-all hover:shadow-sm",
+                  state.brandId === brand._id
+                    ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
+                    : "border-gray-200 hover:border-blue-300"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="brandId"
+                    className="radio radio-primary radio-sm mt-1"
+                    checked={state.brandId === brand._id}
+                    onChange={() => handleUpdate({ brandId: brand._id })}
+                  />
+                  <div className="flex flex-col gap-0.5 overflow-hidden">
+                    <span className="font-semibold uppercase truncate text-sm">
+                      {brand.nameOfVoice}
+                    </span>
+                    <p className="text-xs text-gray-500">{brand.describeBrand}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {brands.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-sm">No brands found.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {state.isCheckedBrand && (
+        <div className="flex justify-between items-center mt-2 pl-1">
           <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
             Add CTA at the End
           </label>
           <Switch
-            size={size}
             id="blog-brand-add-cta"
             checked={state.addCTA}
-            onChange={checked => handleUpdate({ addCTA: checked })}
+            onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
           />
-        </Flex>
-      </Flex>
-    </>
+        </div>
+      )}
+    </div>
   )
 }
 

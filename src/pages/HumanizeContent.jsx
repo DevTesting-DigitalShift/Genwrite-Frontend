@@ -9,15 +9,17 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react"
-import { Button, message } from "antd"
-
+import { toast } from "sonner"
+import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useHumanizeStore from "@store/useHumanizeStore"
 import useAuthStore from "@store/useAuthStore"
 import { useHumanizeMutation } from "@api/queries/humanizeQueries"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import { Helmet } from "react-helmet"
 
 const HumanizeContent = () => {
+  const navigate = useNavigate()
   const [inputContent, setInputContent] = useState("")
   const { result: outputContent, resetHumanizeState } = useHumanizeStore()
   const { mutate: generateContent, isPending } = useHumanizeMutation()
@@ -70,7 +72,8 @@ const HumanizeContent = () => {
       cancelText: "Cancel",
       onConfirm: () => {
         // Redirect to upgrade page or handle upgrade logic
-        message.info("Redirecting to upgrade page...")
+        toast.info("Redirecting to upgrade page...")
+        navigate("/pricing")
       },
     })
   }
@@ -86,7 +89,7 @@ const HumanizeContent = () => {
 
   const handleSubmit = async () => {
     if (!inputContent.trim()) {
-      message.error("Please enter some content to process")
+      toast.error("Please enter some content to process")
       return
     }
 
@@ -94,10 +97,10 @@ const HumanizeContent = () => {
 
     generateContent(payload, {
       onSuccess: () => {
-        message.success("Content processed successfully!")
+        toast.success("Content processed successfully!")
       },
       onError: err => {
-        message.error("Failed to process content. Please try again.")
+        toast.error("Failed to process content. Please try again.")
         console.error(err)
       },
     })
@@ -106,12 +109,10 @@ const HumanizeContent = () => {
   const handleCopy = async (content, type) => {
     try {
       await navigator.clipboard.writeText(content)
-      message.success(
-        `${type === "original" ? "Original" : "Processed"} content copied to clipboard`
-      )
+      toast.success(`${type === "original" ? "Original" : "Processed"} content copied to clipboard`)
     } catch (err) {
       console.error("Failed to copy content")
-      message.error("Failed to copy content")
+      toast.error("Failed to copy content")
     }
   }
 
@@ -125,13 +126,13 @@ const HumanizeContent = () => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    message.success("Content downloaded successfully")
+    toast.success("Content downloaded successfully")
   }
 
   const handleReset = () => {
     setInputContent("")
     resetHumanizeState()
-    message.info("Content reset")
+    toast.info("Content reset")
   }
 
   if (isPending) {
@@ -143,29 +144,34 @@ const HumanizeContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
-      <div className="max-w-7xl mx-auto space-y-6 p-5">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+    <div className="min-h-screen">
+      <Helmet>
+        <title>Humanize Content | GenWrite</title>
+        <meta
+          name="description"
+          content="Humanize AI-generated content to bypass AI detectors and engage readers."
+        />
+      </Helmet>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 md:p-10">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             {/* Top row: icon + heading */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div className="mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Humanize Content</h1>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Transform your content with AI-powered processing
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Humanize Content</h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Transform your content with AI-powered processing
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom row: reset button aligned right */}
-            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -175,7 +181,7 @@ const HumanizeContent = () => {
           </div>
         </div>
 
-        {/* Input Section */}
+        {/* Input Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-3 mb-4">
             <FileText className="w-5 h-5 text-blue-600" />
@@ -195,21 +201,21 @@ const HumanizeContent = () => {
                 Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
             </div>
-            <Button
+            <button
               onClick={handleMagicWandClick}
               disabled={isPending || !inputContent.trim() || wordCount < 300}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                 !inputContent.trim() || wordCount < 300
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
               }`}
             >
               Process Content
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Split View Results */}
+        {/* Results Section */}
         {(outputContent || isPending) && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-200">

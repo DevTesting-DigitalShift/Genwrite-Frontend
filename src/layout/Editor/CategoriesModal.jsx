@@ -1,10 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button, Modal, Select, message } from "antd"
-import { Plus, X } from "lucide-react"
+import { Plus, X, AlertCircle } from "lucide-react"
 import useContentStore from "@store/useContentStore"
-
-const { Option } = Select
+import { toast } from "sonner"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -77,18 +75,11 @@ const CategoriesModal = ({
   }
 
   // Handle adding a category (custom or predefined)
-  const handleCategoryAdd = useCallback(
-    category => {
-      if (selectedCategory) {
-        // message.error("Only one category can be selected.")
-        return
-      }
-      setSelectedCategory(category)
-      setCategoryError(false)
-      setErrors(prev => ({ ...prev, category: "" }))
-    },
-    [selectedCategory]
-  )
+  const handleCategoryAdd = useCallback(category => {
+    setSelectedCategory(category)
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
 
   // Handle removing the selected category
   const handleCategoryRemove = useCallback(() => {
@@ -96,19 +87,6 @@ const CategoriesModal = ({
     setCategoryError(false)
     setErrors(prev => ({ ...prev, category: "" }))
   }, [])
-
-  // Handle adding a custom category
-  const addCustomCategory = useCallback(() => {
-    if (customCategory.trim()) {
-      if (selectedCategory === customCategory.trim()) {
-        message.error("Category already selected.")
-        return
-      }
-      setSelectedCategory(customCategory.trim())
-      setCustomCategory("")
-      setCategoryError(false)
-    }
-  }, [customCategory, selectedCategory])
 
   // Handle table of contents toggle
   const handleCheckboxChange = useCallback(e => {
@@ -161,9 +139,9 @@ const CategoriesModal = ({
     if (!validateForm()) {
       // Show error message for the first error found
       if (errors.platform) {
-        message.error(errors.platform)
+        toast.error(errors.platform)
       } else if (errors.category) {
-        message.error(errors.category)
+        toast.error(errors.category)
       }
       return
     }
@@ -206,15 +184,13 @@ const CategoriesModal = ({
     setErrors({ category: "", platform: "" })
   }, [setIsCategoryModalOpen])
 
-  const handleCategoryChange = useCallback(value => {
-    if (value.length > 1) {
-      message.error("Only one category can be selected.")
-      return
+  const handleCategoryInputChange = useCallback(e => {
+    const value = e.target.value
+    setSelectedCategory(value)
+    if (value) {
+      setCategoryError(false)
+      setErrors(prev => ({ ...prev, category: "" }))
     }
-    const newCategory = value.length > 0 ? value[0] : ""
-    setSelectedCategory(newCategory)
-    setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
   }, [])
 
   // Cleanup effect - reset everything when modal closes
@@ -299,196 +275,208 @@ const CategoriesModal = ({
   }, [isCategoryModalOpen, posted, blogData])
 
   return (
-    <Modal
-      title="Select Category"
-      open={isCategoryModalOpen}
-      onCancel={handleCancel}
-      footer={
-        <div className="flex justify-end gap-3">
-          <Button
-            onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            aria-label="Cancel category selection"
+    <AnimatePresence>
+      {isCategoryModalOpen && (
+        <dialog className="modal modal-open">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="modal-box w-full max-w-xl p-0 overflow-hidden bg-white rounded-lg shadow-xl"
           >
-            Cancel
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            aria-label="Confirm category selection"
-          >
-            Confirm
-          </Button>
-        </div>
-      }
-      centered
-      width={600}
-    >
-      <div className="p-3 space-y-4">
-        {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
-          <div>
-            <span className="text-sm font-medium text-gray-700">
-              Select Your Publishing Platform
-              <p className="text-xs text-gray-500 mt-1">
-                Post your blog automatically to connected platforms only.
-              </p>
-            </span>
-
-            <Select
-              className={`w-full mt-2 ${platformError ? "border-red-500" : ""}`}
-              placeholder="Select platform"
-              value={selectedIntegration?.rawPlatform || undefined}
-              onChange={platform => {
-                const details = integrations.integrations[platform]
-                handleIntegrationChange(platform, details?.url)
-              }}
-              status={platformError ? "error" : ""}
-            >
-              {Object.entries(integrations.integrations).map(([platform, details]) => (
-                <Option key={platform} value={platform}>
-                  {platform}
-                </Option>
-              ))}
-            </Select>
-            {platformError && errors.platform && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-2 text-sm text-red-500"
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800">Select Category</h3>
+              <button
+                onClick={handleCancel}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
               >
-                {errors.platform}
-              </motion.p>
-            )}
-          </div>
-        )}
-        {/* Selected Category Display */}
-        <AnimatePresence>
-          {selectedCategory && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm w-fit"
-            >
-              <span className="truncate max-w-[150px]">{selectedCategory}</span>
-              {!isCategoryLocked && (
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handleCategoryRemove}
-                  className="text-white hover:text-gray-200"
-                  aria-label={`Remove category ${selectedCategory}`}
-                >
-                  <X size={15} />
-                </motion.button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <X size={20} />
+              </button>
+            </div>
 
-        {/* Auto-Generated Categories Section */}
-        {!wordpressError && categories?.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Auto-Generated Categories</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-96">
-              {categories.map(category => (
-                <motion.div
-                  key={category}
-                  onClick={() => !isCategoryLocked && handleCategoryAdd(category)}
-                  whileHover={{ scale: 1.02, backgroundColor: "#e0e7ff" }}
-                  className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                    categoryError && !selectedCategory ? "border-red-500" : "border-indigo-200"
-                  } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                    selectedCategory === category
-                      ? "bg-indigo-100 border-indigo-400"
-                      : selectedCategory
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Your Publishing Platform
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Post your blog automatically to connected platforms only.
+                    </p>
+                  </label>
+
+                  <select
+                    className={`select select-bordered w-full h-10 min-h-0 text-sm ${
+                      platformError ? "select-error" : ""
+                    }`}
+                    value={selectedIntegration?.rawPlatform || ""}
+                    onChange={e => {
+                      const platform = e.target.value
+                      const details = integrations.integrations[platform]
+                      handleIntegrationChange(platform, details?.url)
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select platform
+                    </option>
+                    {Object.entries(integrations.integrations).map(([platform, details]) => (
+                      <option key={platform} value={platform}>
+                        {platform}
+                      </option>
+                    ))}
+                  </select>
+                  {platformError && errors.platform && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="mt-1 text-xs text-red-500 flex items-center gap-1"
+                    >
+                      <AlertCircle size={12} /> {errors.platform}
+                    </motion.p>
+                  )}
+                </div>
+              )}
+
+              {/* Selected Category Display */}
+              {selectedCategory && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Selected:</span>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-sm">
+                    <span className="truncate max-w-[200px] font-medium">{selectedCategory}</span>
+                    {!isCategoryLocked && (
+                      <button
+                        onClick={handleCategoryRemove}
+                        className="text-blue-400 hover:text-blue-600 transition-colors"
+                        aria-label={`Remove category ${selectedCategory}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-Generated Categories Section */}
+              {!wordpressError && categories?.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    Auto-Generated Categories
+                  </h3>
+                  <div className="flex flex-wrap gap-2 p-3 rounded-lg border border-gray-100 bg-gray-50 max-h-40 overflow-y-auto">
+                    {categories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => !isCategoryLocked && handleCategoryAdd(category)}
+                        disabled={selectedCategory === category || isCategoryLocked}
+                        className={`px-3 py-1.5 rounded-md text-sm border transition-all duration-200 flex items-center gap-1
+                            ${
+                              selectedCategory === category
+                                ? "bg-indigo-100 text-indigo-700 border-indigo-200 cursor-default"
+                                : isCategoryLocked
+                                  ? "bg-white text-gray-400 border-gray-200 cursor-not-allowed"
+                                  : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300 hover:shadow-sm"
+                            }`}
+                      >
+                        {selectedCategory === category && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        )}
+                        {category}
+                        {selectedCategory !== category && !isCategoryLocked && (
+                          <Plus size={12} className="text-gray-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Category Selection Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select or Add Category
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    list="popular-categories"
+                    placeholder="Type to search or add new..."
+                    value={selectedCategory}
+                    onChange={handleCategoryInputChange}
+                    disabled={isCategoryLocked}
+                    className={`input input-bordered w-full h-10 text-sm ${categoryError ? "input-error" : ""}`}
+                  />
+                  <datalist id="popular-categories">
+                    {POPULAR_CATEGORIES.map(category => (
+                      <option key={category} value={category} />
+                    ))}
+                  </datalist>
+                </div>
+                {categoryError && errors.category && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-1 text-xs text-red-500 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} /> {errors.category}
+                  </motion.p>
+                )}
+              </div>
+
+              {selectedIntegration?.platform === "shopify" && (
+                <div
+                  className={`p-3 rounded-md text-sm ${
+                    isCategoryLocked
+                      ? "bg-red-50 text-red-700 border border-red-100"
+                      : "bg-blue-50 text-blue-700 border border-blue-100"
                   }`}
                 >
-                  <span className="truncate">{category}</span>
-                  {!selectedCategory && (
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="text-indigo-600 hover:text-indigo-700"
-                      aria-label={`Add category ${category}`}
-                    >
-                      <Plus size={16} />
-                    </motion.button>
-                  )}
-                </motion.div>
-              ))}
+                  {isCategoryLocked
+                    ? "This blog was already published on Shopify. Category is locked and cannot be changed."
+                    : "Once you publish on Shopify, the category becomes permanent and cannot be changed later."}
+                </div>
+              )}
+
+              {/* Table of Contents Toggle */}
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <span className="block text-sm font-medium text-gray-900">
+                    Include Table of Contents
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    Generate a table of contents for each blog.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={includeTableOfContents}
+                  onChange={handleCheckboxChange}
+                />
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Category Selection */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Select or Add Category</h3>
-          <Select
-            mode="tags"
-            placeholder="Select or type a category"
-            value={selectedCategory ? [selectedCategory] : []}
-            onChange={handleCategoryChange}
-            disabled={isCategoryLocked}
-            className="w-full"
-            allowClear
-            showSearch
-            status={categoryError ? "error" : ""}
-            filterOption={(input, option) =>
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            options={POPULAR_CATEGORIES.map(category => ({ value: category, label: category }))}
-            styles={{ popup: { root: { borderRadius: "8px" } } }}
-            aria-label="Select or add a category"
-          />
-          {categoryError && errors.category && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-2 text-sm text-red-500"
-            >
-              {errors.category}
-            </motion.p>
-          )}
-        </div>
-
-        {selectedIntegration?.platform === "shopify" && (
-          <div
-            className={`p-3 rounded-md text-sm ${
-              isCategoryLocked
-                ? "bg-red-100 text-red-700 border border-red-300"
-                : "bg-blue-100 text-blue-700 border border-blue-300"
-            }`}
-          >
-            {isCategoryLocked
-              ? "This blog was already published on Shopify. Category is locked and cannot be changed."
-              : "Once you publish on Shopify, the category becomes permanent and cannot be changed later."}
-          </div>
-        )}
-
-        {/* Table of Contents Toggle */}
-        <div className="flex items-center justify-between py-2">
-          <span className="text-sm font-medium text-gray-700">
-            Include Table of Contents
-            <p className="text-xs text-gray-500">Generate a table of contents for each blog.</p>
-          </span>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              name="includeTableOfContents"
-              checked={includeTableOfContents}
-              onChange={handleCheckboxChange}
-              className="sr-only peer"
-              aria-label="Toggle table of contents"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
-      </div>
-    </Modal>
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 shadow-sm transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </motion.div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={handleCancel}>close</button>
+          </form>
+        </dialog>
+      )}
+    </AnimatePresence>
   )
 }
 

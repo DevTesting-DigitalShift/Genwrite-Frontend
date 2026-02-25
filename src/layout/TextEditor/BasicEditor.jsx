@@ -14,7 +14,7 @@ import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import Highlight from "@tiptap/extension-highlight"
-import { Tooltip, Modal, Input, message } from "antd"
+import { toast } from "sonner"
 import {
   Bold,
   Italic,
@@ -44,7 +44,7 @@ import {
 } from "lucide-react"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
-  <Tooltip title={title} placement="top">
+  <div className="tooltip tooltip-bottom" data-tip={title}>
     <button
       onClick={onClick}
       disabled={disabled}
@@ -53,13 +53,13 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
         disabled
           ? "opacity-40 cursor-not-allowed text-gray-400"
           : active
-          ? "bg-blue-100 text-blue-600 shadow-sm"
-          : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+            ? "bg-blue-100 text-blue-600 shadow-sm"
+            : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
       }`}
     >
       {children}
     </button>
-  </Tooltip>
+  </div>
 )
 
 const ToolbarDivider = () => <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -96,31 +96,17 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
         },
       }),
       Image.configure({
-        HTMLAttributes: {
-          class: "max-w-full h-auto rounded-lg my-4 mx-auto block",
-        },
+        HTMLAttributes: { class: "max-w-full h-auto rounded-lg my-4 mx-auto block" },
       }),
       Table.configure({
         resizable: true,
-        HTMLAttributes: {
-          class: "border-collapse border border-gray-300 w-full my-4",
-        },
+        HTMLAttributes: { class: "border-collapse border border-gray-300 w-full my-4" },
       }),
-      TableRow.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300",
-        },
-      }),
+      TableRow.configure({ HTMLAttributes: { class: "border border-gray-300" } }),
       TableHeader.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left",
-        },
+        HTMLAttributes: { class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left" },
       }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 p-2",
-        },
-      }),
+      TableCell.configure({ HTMLAttributes: { class: "border border-gray-300 p-2" } }),
     ],
     content: content || "",
     onUpdate: ({ editor }) => {
@@ -168,7 +154,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
 
   const addLink = () => {
     if (!linkUrl) {
-      message.error("Please enter a URL")
+      toast.error("Please enter a URL")
       return
     }
 
@@ -197,7 +183,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
 
   const addImage = () => {
     if (!imageUrl) {
-      message.error("Please enter an image URL")
+      toast.error("Please enter an image URL")
       return
     }
     editor.chain().focus().setImage({ src: imageUrl, alt: imageAlt }).run()
@@ -213,7 +199,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
   return (
     <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200 px-3 py-2">
+      <div className="sticky top-0 z-10 bg-linear-to-b from-gray-50 to-white border-b border-gray-200 px-3 py-2">
         <div className="flex flex-wrap items-center gap-0.5">
           {/* Undo/Redo */}
           <ToolbarButton
@@ -397,121 +383,123 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
       <EditorContent editor={editor} className="bg-white" />
 
       {/* Link Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <LinkIcon className="w-5 h-5 text-blue-600" />
-            <span>Add Link</span>
+      {linkModalOpen && (
+        <div className="modal modal-open z-999">
+          <div className="modal-box max-w-sm">
+            <h3 className="font-bold text-lg flex items-center gap-2 mb-4">
+              <LinkIcon className="w-5 h-5 text-blue-600" />
+              <span>Add Link</span>
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">URL</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://example.com"
+                  value={linkUrl}
+                  onChange={e => setLinkUrl(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addLink()}
+                  className="input input-bordered w-full"
+                />
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">Link Text (optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Display text"
+                  value={linkText}
+                  onChange={e => setLinkText(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addLink()}
+                  className="input input-bordered w-full"
+                />
+              </div>
+            </div>
+
+            <div className="modal-action flex justify-end gap-2">
+              <button onClick={() => setLinkModalOpen(false)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button onClick={addLink} className="btn btn-primary btn-sm gap-2">
+                <Check className="w-4 h-4" />
+                Add Link
+              </button>
+            </div>
           </div>
-        }
-        open={linkModalOpen}
-        onCancel={() => setLinkModalOpen(false)}
-        footer={null}
-        centered
-        width={400}
-      >
-        <div className="space-y-4 py-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
-            <Input
-              placeholder="https://example.com"
-              value={linkUrl}
-              onChange={e => setLinkUrl(e.target.value)}
-              onPressEnter={addLink}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Link Text (optional)
-            </label>
-            <Input
-              placeholder="Display text"
-              value={linkText}
-              onChange={e => setLinkText(e.target.value)}
-              onPressEnter={addLink}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setLinkModalOpen(false)}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={addLink}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Add Link
-            </button>
-          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setLinkModalOpen(false)}>close</button>
+          </form>
         </div>
-      </Modal>
+      )}
 
       {/* Image Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-blue-600" />
-            <span>Add Image</span>
-          </div>
-        }
-        open={imageModalOpen}
-        onCancel={() => setImageModalOpen(false)}
-        footer={null}
-        centered
-        width={400}
-      >
-        <div className="space-y-4 py-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-            <Input
-              placeholder="https://example.com/image.jpg"
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              onPressEnter={addImage}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Alt Text (optional)
-            </label>
-            <Input
-              placeholder="Image description"
-              value={imageAlt}
-              onChange={e => setImageAlt(e.target.value)}
-              onPressEnter={addImage}
-            />
-          </div>
-          {imageUrl && (
-            <div className="border rounded-lg p-2 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-2">Preview:</p>
-              <img
-                src={imageUrl}
-                alt={imageAlt || "Preview"}
-                className="max-h-32 mx-auto rounded"
-                onError={e => (e.target.style.display = "none")}
-              />
+      {imageModalOpen && (
+        <div className="modal modal-open z-999">
+          <div className="modal-box max-w-sm">
+            <h3 className="font-bold text-lg flex items-center gap-2 mb-4">
+              <ImageIcon className="w-5 h-5 text-blue-600" />
+              <span>Add Image</span>
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">Image URL</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://example.com/image.jpg"
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addImage()}
+                  className="input input-bordered w-full"
+                />
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium text-gray-700">Alt Text (optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Image description"
+                  value={imageAlt}
+                  onChange={e => setImageAlt(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addImage()}
+                  className="input input-bordered w-full"
+                />
+              </div>
+              {imageUrl && (
+                <div className="border rounded-lg p-2 bg-gray-50">
+                  <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                  <img
+                    src={imageUrl}
+                    alt={imageAlt || "Preview"}
+                    className="max-h-32 mx-auto rounded"
+                    onError={e => (e.target.style.display = "none")}
+                  />
+                </div>
+              )}
             </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setImageModalOpen(false)}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={addImage}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Add Image
-            </button>
+
+            <div className="modal-action flex justify-end gap-2">
+              <button onClick={() => setImageModalOpen(false)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button onClick={addImage} className="btn btn-primary btn-sm gap-2">
+                <Check className="w-4 h-4" />
+                Add Image
+              </button>
+            </div>
           </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setImageModalOpen(false)}>close</button>
+          </form>
         </div>
-      </Modal>
+      )}
     </div>
   )
 }
