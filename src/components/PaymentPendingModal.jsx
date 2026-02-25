@@ -1,6 +1,8 @@
 import React from "react"
 import { motion } from "framer-motion"
 import { AlertTriangle, Lock, ChevronRight, CreditCard } from "lucide-react"
+import { useCreatePortalSession } from "@api/queries/paymentQueries"
+import { toast } from "sonner"
 
 const PaymentPendingModal = ({ user }) => {
   const isOpen = ["past_due"].includes(user?.subscription?.status)
@@ -12,11 +14,11 @@ const PaymentPendingModal = ({ user }) => {
         if (data?.url) {
           window.location.href = data.url
         } else {
-          message.error("Failed to generate payment link")
+          toast.error("Failed to generate payment link")
         }
       },
       onError: () => {
-        message.error("Unable to access payment portal")
+        toast.error("Unable to access payment portal")
       },
     })
   }

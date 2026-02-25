@@ -20,7 +20,6 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
   errorText,
-  size = "small",
 }) => {
   const [state, setState] = useState(value)
   const formError = useMemo(() => errorText, [errorText])
