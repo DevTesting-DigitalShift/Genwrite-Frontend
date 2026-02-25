@@ -331,7 +331,7 @@ const ImageGallery = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-white/90 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center"
           >
             <div className="relative">
               <div className="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
@@ -340,7 +340,7 @@ const ImageGallery = () => {
             <h3 className="text-3xl font-black bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mt-8">
               Dreaming up your masterpiece...
             </h3>
-            <p className="text-slate-500 mt-2 font-bold uppercase tracking-widest text-xs">
+            <p className="text-slate-500 mt-2 font-bold text-xs">
               This usually takes about 10-20 seconds
             </p>
           </motion.div>
@@ -614,7 +614,7 @@ const ImageGallery = () => {
                 className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[800px]"
               >
                 {/* Left Side: Visual Canvas */}
-                <div className="flex-1 bg-slate-950 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden group">
+                <div className="flex-none h-[45vh] lg:h-auto lg:flex-1 bg-slate-950 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden group">
                   <div
                     className="absolute inset-0 opacity-40 blur-3xl saturate-200 transition-all duration-1000"
                     style={{
@@ -659,26 +659,24 @@ const ImageGallery = () => {
                 </div>
 
                 {/* Right Side: Configuration & AI Tools */}
-                <div className="w-full lg:w-[450px] bg-white flex flex-col h-full overflow-hidden border-l border-slate-100">
+                <div className="w-full lg:w-[450px] bg-white flex flex-col flex-1 lg:flex-none lg:h-full overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-100">
                   {/* Panel Header */}
-                  <div className="p-8 pb-6">
-                    <h2 className="text-2xl font-black text-slate-900 leading-tight">
-                      {isEnhanceMode
-                        ? "Optimize Vision"
-                        : previewImage.title || "Untitled Creation"}
+                  <div className="p-5 lg:p-8 pb-4 lg:pb-6">
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 leading-tight">
+                      {isEnhanceMode ? "Enhance Image" : previewImage.title || "Untitled Creation"}
                     </h2>
                   </div>
 
                   {/* Scrollable Intelligence Area */}
-                  <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-5 lg:p-8 pt-0 custom-scrollbar">
                     {isEnhanceMode ? (
-                      <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
-                        <div className="space-y-4">
-                          <label className="text-sm font-medium text-slate-400">
+                      <div className="space-y-6 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
+                        <div className="space-y-3 lg:space-y-4">
+                          <label className="text-xs lg:text-sm font-medium text-slate-400">
                             Refinement Instruction
                           </label>
                           <textarea
-                            className="textarea mt-1 w-full h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-4 font-medium"
+                            className="textarea mt-1 w-full h-24 lg:h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-3 lg:p-4 text-sm lg:text-base font-medium"
                             value={enhanceForm.prompt}
                             onChange={e =>
                               setEnhanceForm({ ...enhanceForm, prompt: e.target.value })
@@ -687,13 +685,13 @@ const ImageGallery = () => {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-3">
-                            <label className="font-medium text-slate-400 text-sm mb-2">
+                        <div className="grid grid-cols-1 gap-3 lg:gap-4">
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
                               Target Style
                             </label>
                             <select
-                              className="select outline-0 mt-1 w-full h-12 rounded-lg border-gray-300 font-medium"
+                              className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.style}
                               onChange={e =>
                                 setEnhanceForm({ ...enhanceForm, style: e.target.value })
@@ -705,82 +703,102 @@ const ImageGallery = () => {
                               <option value="cinematic">Cinematic</option>
                             </select>
                           </div>
-                          <div className="space-y-3">
-                            <label className="font-medium text-slate-400 text-sm mb-2">
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
                               Resolution
                             </label>
                             <select
-                              className="select outline-0 mt-1 w-full h-12 rounded-lg border-gray-300 font-medium"
+                              className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.imageSize}
                               onChange={e =>
                                 setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
                               }
                             >
-                              <option value="1k">Pro (1K)</option>
-                              <option value="2k">Ultra (2K)</option>
-                              <option value="4k">Extreme (4K)</option>
+                              <option value="1k">Standard (1K)</option>
+                              <option value="2k">High Res (2K)</option>
+                              <option value="4k">Ultra (4K)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2 lg:space-y-3">
+                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                              Aspect Ratio
+                            </label>
+                            <select
+                              className="select outline-0 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium mt-1"
+                              value={enhanceForm.aspectRatio}
+                              onChange={e =>
+                                setEnhanceForm({ ...enhanceForm, aspectRatio: e.target.value })
+                              }
+                            >
+                              <option value="1:1">Square (1:1)</option>
+                              <option value="16:9">Landscape (16:9)</option>
+                              <option value="9:16">Portrait (9:16)</option>
+                              <option value="4:3">Standard (4:3)</option>
+                              <option value="3:2">Classic (3:2)</option>
                             </select>
                           </div>
                         </div>
 
-                        <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Sparkles size={20} className="text-purple-600" />
-                            <span className="text-sm font-bold text-purple-900">
-                              Premium Upgrade
+                        <div className="p-3 lg:p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-between">
+                          <div className="flex items-center gap-2 lg:gap-3">
+                            <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
+                            <span className="text-xs lg:text-sm font-bold text-purple-900">
+                              Enhancement Cost
                             </span>
                           </div>
-                          <span className="px-3 py-1 bg-white rounded-lg text-xs font-black text-purple-600 border border-purple-200 shadow-sm">
+                          <span className="px-2 lg:px-3 py-1 bg-white rounded-lg text-[10px] lg:text-xs font-black text-purple-600 border border-purple-200 shadow-sm">
                             {COSTS.ENHANCE} Credits
                           </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-10 custom-scrollbar">
+                      <div className="space-y-6 lg:space-y-10 custom-scrollbar">
                         {/* Prompt Trace */}
-                        <div className="space-y-4">
+                        <div className="space-y-3 lg:space-y-4">
                           <div className="flex items-center gap-2 text-slate-400">
-                            <Bot size={16} />
-                            <span className="text-sm font-medium">Intelligence Prompt</span>
+                            <Bot className="w-4 h-4" />
+                            <span className="text-xs lg:text-sm font-medium">
+                              Intelligence Prompt
+                            </span>
                           </div>
-                          <div className="p-6 bg-slate-50 rounded-[24px] border border-slate-100 text-slate-700 font-medium leading-relaxed italic">
+                          <div className="p-4 lg:p-6 bg-slate-50 rounded-2xl lg:rounded-[24px] border border-slate-100 text-slate-700 text-sm lg:text-base font-medium leading-relaxed italic">
                             "{previewImage.description || "Synthetically generated vision."}"
                           </div>
                         </div>
 
                         {/* Toolset */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3 lg:gap-4">
                           <button
                             onClick={handleGenerateAltText}
                             disabled={isGeneratingAlt}
-                            className="btn btn-ghost h-auto flex-col gap-3 p-6 rounded-[24px] border border-slate-100 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all font-bold"
+                            className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all font-bold"
                           >
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-500">
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white rounded-xl lg:rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-500">
                               {isGeneratingAlt ? (
-                                <Loader2 className="animate-spin" />
+                                <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
                               ) : (
-                                <Type size={20} />
+                                <Type className="w-4 h-4 lg:w-5 lg:h-5" />
                               )}
                             </div>
-                            <span className="text-xs">SEO Metadata</span>
+                            <span className="text-[10px] lg:text-xs">SEO Metadata</span>
                           </button>
 
                           <button
                             onClick={() => setIsEnhanceMode(true)}
                             disabled={!canEnhance(previewImage)}
-                            className="btn btn-ghost h-auto flex-col gap-3 p-6 rounded-[24px] border border-slate-100 hover:bg-purple-50 hover:border-purple-100 hover:text-purple-600 transition-all font-bold"
+                            className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-purple-50 hover:border-purple-100 hover:text-purple-600 transition-all font-bold"
                           >
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-purple-500">
-                              <Wand2 size={20} />
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white rounded-xl lg:rounded-2xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-purple-500">
+                              <Wand2 className="w-4 h-4 lg:w-5 lg:h-5" />
                             </div>
-                            <span className="text-xs">AI Enhance</span>
+                            <span className="text-[10px] lg:text-xs">AI Enhance</span>
                           </button>
                         </div>
 
                         {/* Resulting Intelligence */}
                         {generatedAltText && (
-                          <div className="space-y-4 animate-in zoom-in-95 duration-500">
-                            <label className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                          <div className="space-y-3 lg:space-y-4 animate-in zoom-in-95 duration-500">
+                            <label className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               Optimized Alternative Text
                             </label>
@@ -789,11 +807,11 @@ const ImageGallery = () => {
                                 navigator.clipboard.writeText(generatedAltText)
                                 toast.success("Copied to clipboard!")
                               }}
-                              className="p-6 bg-emerald-50/30 rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
+                              className="p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
                             >
                               <Copy
                                 size={14}
-                                className="absolute top-4 right-4 text-emerald-300 opacity-0 group-hover:opacity-100 transition-all"
+                                className="absolute top-3 right-3 lg:top-4 lg:right-4 text-emerald-300 opacity-0 group-hover:opacity-100 transition-all"
                               />
                               {generatedAltText}
                             </div>
@@ -804,29 +822,33 @@ const ImageGallery = () => {
                   </div>
 
                   {/* AI Interaction Footer */}
-                  <div className="p-8 bg-slate-50/50 border-t border-slate-100">
+                  <div className="p-5 lg:p-8 bg-slate-50/50 border-t border-slate-100">
                     {isEnhanceMode ? (
-                      <div className="flex gap-4">
+                      <div className="flex gap-3 lg:gap-4">
                         <button
                           onClick={() => setIsEnhanceMode(false)}
-                          className="btn btn-ghost h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-base"
+                          className="btn btn-ghost h-10 lg:h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-sm lg:text-base"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleEnhanceImage}
-                          className="btn btn-primary h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-base"
+                          className="btn btn-primary h-10 lg:h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-sm lg:text-base"
                         >
-                          {isEnhancing ? <Loader2 className="animate-spin" /> : "Enhance"}
+                          {isEnhancing ? (
+                            <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
+                          ) : (
+                            "Enhance"
+                          )}
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => handleDownload(previewImage)}
-                        className="btn btn-primary w-full h-15 rounded-lg bg-slate-900 border-none text-white font-medium text-base hover:bg-black transition-all"
+                        className="btn btn-primary w-full h-12 lg:h-[60px] rounded-lg bg-slate-900 border-none text-white font-medium text-sm lg:text-base hover:bg-black transition-all"
                       >
-                        <Download className="w-5 h-5 mr-3" />
-                        Download 4K Vision
+                        <Download className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3" />
+                        Download Image
                       </button>
                     )}
                   </div>

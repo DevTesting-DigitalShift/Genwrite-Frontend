@@ -442,10 +442,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
 
   return (
     <Dialog open={open} onOpenChange={open => !open && closeFnc()}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-none rounded-2xl shadow-2xl">
-        <DialogHeader className="px-6 py-4 border-b bg-slate-50/80 sticky top-0 z-10 backdrop-blur-md rounded-t-2xl">
+      <DialogContent className="max-w-5xl w-[95vw] lg:w-[90vw] max-h-[90vh] overflow-y-auto p-0 border-none rounded-2xl shadow-2xl">
+        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10 backdrop-blur-md rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-200">
+            <div className="p-2 bg-blue-600 rounded-xl text-white">
               <Activity className="w-5 h-5" />
             </div>
             <div>
@@ -459,9 +459,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           </div>
         </DialogHeader>
 
-        <div className="p-6 space-y-8">
+        <div className="p-4 sm:p-6 pt-0 space-y-6 sm:space-y-8">
           {/* Blog Selection Area */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
             <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
               <Search className="w-4 h-4 text-blue-500" />
               Analyze Content Performance
@@ -472,7 +472,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {blogs.map(blog => (
-                  <SelectItem key={blog._id} value={blog._id} className="cursor-pointer py-3">
+                  <SelectItem
+                    key={blog._id}
+                    value={blog._id}
+                    className="cursor-pointer py-3 transition-colors focus:bg-slate-100 focus:text-emerald-600 hover:bg-slate-100 hover:text-emerald-600 text-slate-700 font-medium"
+                  >
                     {blog.title}
                   </SelectItem>
                 ))}
@@ -529,11 +533,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
 
               {/* Analysis Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-slate-100/50 p-1 rounded-xl h-auto mb-6">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-slate-100/50 p-1.5 rounded-xl h-auto mb-6 gap-1.5">
                   {hasAnalysisResults && (
                     <TabsTrigger
                       value="results"
-                      className="py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="py-2.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                     >
                       Fresh Analysis
                     </TabsTrigger>
@@ -541,7 +545,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   {hasInitialAnalysis && (
                     <TabsTrigger
                       value="initial-analysis"
-                      className="py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="py-2.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                     >
                       Build Score
                     </TabsTrigger>
@@ -549,14 +553,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   {hasCompetitors && (
                     <TabsTrigger
                       value="competitors"
-                      className="py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="py-2.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                     >
                       Top Competitors
                     </TabsTrigger>
                   )}
                   <TabsTrigger
                     value="links"
-                    className="py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    className="py-2.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                   >
                     Link Audit
                   </TabsTrigger>
@@ -681,8 +685,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               </Tabs>
             </div>
           ) : (
-            <div className="py-24 flex flex-col items-center justify-center text-center opacity-40">
-              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+            <div className="py-24 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-900">Analysis Required</h3>
@@ -694,7 +698,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 bg-slate-50/80 border-t sticky bottom-0 z-10 backdrop-blur-md rounded-b-2xl">
+        <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/80 border-t border-gray-300 sticky bottom-0 z-10 backdrop-blur-md rounded-b-2xl">
           <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
             <TooltipProvider>
               <Tooltip>
@@ -717,14 +721,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               <Button
                 variant="outline"
                 onClick={closeFnc}
-                className="flex-1 sm:flex-none h-11 px-8 rounded-xl border-slate-200 font-bold"
+                className="flex-1 sm:flex-none h-11 px-8 rounded-lg border-slate-200 font-bold"
               >
                 Dismiss
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!formData.selectedProject || isLoading || analysisLoading}
-                className="flex-1 sm:flex-none h-11 px-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200"
+                className="flex-1 sm:flex-none h-11 px-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200"
               >
                 {isLoading || analysisLoading ? (
                   <span className="flex items-center gap-2">

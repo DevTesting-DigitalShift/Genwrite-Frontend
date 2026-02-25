@@ -291,10 +291,9 @@ const CompetitorLikeBlog = () => {
                 </button>
               </div>
 
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  className="markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed"
                   components={{
                     h1: ({ node, ...props }) => (
                       <h1

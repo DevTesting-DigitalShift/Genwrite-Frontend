@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from "react"
-import { Outlet } from "react-router-dom"
+import { Outlet, useLocation } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 const AppContent = () => {
   const { isLoading, loadingMessage } = useLoading()
+  const location = useLocation()
 
   // Show desktop warning on mobile devices
   useEffect(() => {
@@ -17,6 +18,11 @@ const AppContent = () => {
       sessionStorage.setItem("desktopWarningShown", "true")
     }
   }, [])
+
+  // Scroll to top on page transition
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   return (
     <Suspense fallback={<LoadingScreen />}>

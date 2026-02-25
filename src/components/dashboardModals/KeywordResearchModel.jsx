@@ -378,8 +378,8 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                 <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
+                      <TableHeader className="bg-slate-50 border-gray-200">
+                        <TableRow className="border-gray-200">
                           <TableHead className="w-[50px]">
                             <Checkbox checked={isAllSelected} onCheckedChange={toggleSelectAll} />
                           </TableHead>
@@ -413,7 +413,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                         {currentData.map(row => (
                           <TableRow
                             key={row.keyword}
-                            className="group hover:bg-slate-50/80 transition-colors"
+                            className="group hover:bg-slate-50/80 border-gray-200 transition-colors"
                           >
                             <TableCell>
                               <Checkbox

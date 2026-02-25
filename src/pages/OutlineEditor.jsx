@@ -302,7 +302,7 @@ const OutlineEditor = () => {
             <div className="relative gap-2 w-full max-w-3xl bg-white rounded-lg flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
-                <h2 className="text-xl font-bold">
+                <h2 className="text-base font-bold">
                   {currentStep === 0
                     ? "Select Template"
                     : currentStep === 1
@@ -538,7 +538,7 @@ const OutlineEditor = () => {
                               >
                                 <input
                                   type="radio"
-                                  className="radio radio-primary radio-sm"
+                                  className="radio radio-primary radio-xs"
                                   checked={formData.brandId === voice._id}
                                   onChange={() => handleBrandSelect(voice._id)}
                                 />
@@ -546,7 +546,7 @@ const OutlineEditor = () => {
                                   <div className="font-bold text-slate-700 text-sm">
                                     {voice.nameOfVoice}
                                   </div>
-                                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                                  <p className="text-xs text-slate-500 mt-0.5">
                                     {voice.describeBrand}
                                   </p>
                                 </div>
@@ -745,7 +745,7 @@ const OutlineEditor = () => {
           {markdownContent ? (
             <div className="flex-1 flex flex-col sm:flex-row sm:space-x-4">
               <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
+                <h3 className="text-base sm:text-md font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
                   Preview
                 </h3>
                 <div className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none text-gray-700 shadow-sm text-xs sm:text-sm">
@@ -765,7 +765,7 @@ const OutlineEditor = () => {
                 </div>
               </div>
               <div className="w-full sm:w-1/2">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
+                <h3 className="text-base sm:text-md font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
                   Edit Your Blog Outline
                 </h3>
                 <textarea

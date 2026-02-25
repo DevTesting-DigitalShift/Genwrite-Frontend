@@ -2935,7 +2935,7 @@ const TextEditorSidebar = ({
                     {isActive && !isCollapsed && (
                       <motion.div
                         layoutId="activeTabIndicator"
-                        className="absolute inset-0 bg-linear-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg shadow-blue-200"
+                        className="absolute inset-0 bg-linear-to-br from-blue-600 to-indigo-700 rounded-lg"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
