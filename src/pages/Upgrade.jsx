@@ -656,21 +656,22 @@ const Upgrade = () => {
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
-      <motion.div className="flex flex-col justify-center items-center mb-6 sm:mb-8 mx-auto">
+      <motion.div className="flex flex-col items-center justify-center mb-8 sm:mb-10 md:mb-12 text-center px-4">
         <motion.h1
           whileHover={{ scale: 1.02 }}
-          className="text-2xl sm:text-3xl md:text-4xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center px-4"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
         >
           Flexible Pricing Plans
         </motion.h1>
+
         <motion.div
-          className="h-1 bg-linear-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"
+          className="h-1 w-16 sm:w-20 md:w-24 bg-linear-to-r from-blue-500 to-purple-500 rounded-full mt-3"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.3 }}
         />
 
-        <p className="text-gray-600 text-sm sm:text-base md:text-lg max-  w-2xl mx-auto text-center px-4">
+        <p className="mt-4 text-gray-600 text-sm sm:text-base md:text-lg max-w-xl md:max-w-2xl">
           Choose the perfect plan for your team. Scale seamlessly as your needs grow.
         </p>
       </motion.div>

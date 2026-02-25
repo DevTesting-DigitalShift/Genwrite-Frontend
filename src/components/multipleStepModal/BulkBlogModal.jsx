@@ -1513,33 +1513,44 @@ const BulkBlogModal = ({ closeFnc }) => {
             </div>
           )}
         </div>
-
-        <div className="p-4 border-t border-gray-300">
-          <div className="flex items-center justify-between w-full">
+        <div className="p-4 border-t border-gray-300 bg-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Cost Section */}
             {currentStep === 2 && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
+
                 <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+
                 {formData.costCutter && (
                   <span className="text-xs text-green-600 font-semibold">(-25% off)</span>
                 )}
+
                 <span className="text-xs text-gray-500">
-                  ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
+                  ({formData.numberOfBlogs} blog
+                  {formData.numberOfBlogs > 1 ? "s" : ""})
                 </span>
               </div>
             )}
-            <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
+
+            {/* Buttons */}
+            <div
+              className={`flex gap-3${
+                currentStep !== 2 ? "sm:justify-end" : ""
+              }`}
+            >
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
-                  className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Previous
                 </button>
               )}
+
               <button
                 onClick={currentStep === 2 ? handleSubmit : handleNext}
-                className="px-4 py-2 text-sm font-semibold text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
+                className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 transition"
               >
                 {currentStep === 2 ? "Generate Blogs" : "Next"}
               </button>

@@ -196,8 +196,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     const errors: FormError = {}
     switch (currentStep) {
       case 0:
-        if (formData.templateIds.length !== 1) errors.template = "Please select at least 1 template"
-
+        if (formData.templateIds.length === 0)
+          errors.template = "Please select a template to continue."
+        else if (formData.templateIds.length > 1) errors.template = "Please select only 1 template."
         break
       case 1:
         if (!formData.topic.length) errors.topic = "Please enter a topic name"
@@ -227,6 +228,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     }
     if (Object.keys(errors).length) {
       updateErrors(errors)
+      // Show a toast for step 0 specifically so the user understands what's needed
+      if (currentStep === 0) {
+        toast.error(errors.template || "Please select a template to continue.")
+      }
       return false
     }
     return true
@@ -320,7 +325,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
     updateFormData({ template: templates?.[0]?.name || "", templateIds: templates?.map(t => t.id) })
-    updateErrors({ template: "" })
+    // Clear error as soon as exactly 1 template is selected
+    if (templates?.length === 1) {
+      updateErrors({ template: "" })
+    }
   }, [])
 
   const handleInputChange = useCallback(
@@ -350,9 +358,26 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     switch (currentStep) {
       case 0:
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Instruction hint */}
+            <div className="flex items-center justify-between px-1">
+              <p className="text-sm text-slate-500">
+                Select <span className="font-semibold text-slate-700">exactly 1 template</span> to
+                continue to the next step.
+              </p>
+              {formData.templateIds.length > 0 && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                  {formData.templateIds.length} selected
+                </span>
+              )}
+            </div>
+
+            {/* Template grid with error highlight */}
             <div
-              className={clsx("p-2", errors?.template && "border-2 border-rose-500 rounded-2xl")}
+              className={clsx(
+                "rounded-2xl transition-all",
+                errors?.template ? "ring-2 ring-red-400 ring-offset-2 p-2" : "p-2"
+              )}
             >
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
@@ -360,6 +385,26 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 onClick={handleTemplateSelection}
               />
             </div>
+
+            {/* Inline error message */}
+            {errors?.template && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {errors.template}
+              </div>
+            )}
           </div>
         )
       case 1:
@@ -875,32 +920,35 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           {renderSteps()}
         </div>
 
-        <div className="p-4 border-t bg-gray-50 flex justify-between border-gray-300">
-          <div className="flex items-center gap-6">
+        <div className="p-4 border-t border-gray-300 bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Cost Section */}
             {(currentStep === 2 || currentStep === 3) && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600"> {estimatedCost}</span>
+                <span className="font-bold text-blue-600">{estimatedCost}</span>
                 <span className="text-xs text-green-600 font-medium">(-25% off)</span>
               </div>
             )}
-          </div>
 
-          <div className="flex items-center gap-3">
-            {currentStep > 0 && (
+            {/* Buttons */}
+            <div className="flex gap-3 w-full">
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrev}
+                  className="w-full sm:w-auto px-6 py-2 bg-gray-200 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200/90 transition-colors"
+                >
+                  Previous
+                </button>
+              )}
+
               <button
-                onClick={handlePrev}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-200/90 transition-colors border border-gray-300"
+                onClick={currentStep === 3 ? handleSubmit : handleNext}
+                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
               >
-                Previous
+                {currentStep === 3 ? "Generate Blog" : "Next"}
               </button>
-            )}
-            <button
-              onClick={currentStep === 3 ? handleSubmit : handleNext}
-              className="px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
-            >
-              {currentStep === 3 ? <>Generate Blog</> : <>Next</>}
-            </button>
+            </div>
           </div>
         </div>
       </div>

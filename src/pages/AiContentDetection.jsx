@@ -103,35 +103,30 @@ const AiContentDetection = () => {
       <Helmet>
         <title>AI Content Detection</title>
       </Helmet>
-      <div className="max-w-7xl mx-auto space-y-6 p-5">
-        {/* Header */}
+      <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    AI Content Detection
-                  </h1>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Detect AI-generated text and get confidence scores to verify content
-                    authenticity.
-                  </p>
-                </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
-                title="Reset all content"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset
-              </button>
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                  AI Content Detection
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  Detect AI-generated text and get confidence scores to verify content authenticity.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={handleReset}
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              title="Reset all content"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
           </div>
         </div>
 

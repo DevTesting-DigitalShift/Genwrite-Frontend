@@ -380,7 +380,7 @@ const BlogsPage = () => {
   const totalTrashPages = Math.ceil(totalItems / pageSize)
 
   return (
-    <div className="p-6">
+    <div className="md:p-6 p-3 md:mt-0 mt-6">
       <Helmet>
         <title>{isTrashcan ? "Trashcan" : "Blogs"} | GenWrite</title>
       </Helmet>

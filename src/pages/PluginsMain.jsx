@@ -474,23 +474,30 @@ const PluginsMain = () => {
         </div>
 
         {plugin.id === 111 && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg text-red-600">
-                <PlayCircle size={20} />
+          <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Left Content */}
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg text-red-600 shrink-0">
+                  <PlayCircle size={20} />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-red-900 text-sm">Need Help?</h4>
+                  <p className="text-xs text-red-700">Watch our setup guide video.</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-red-900 text-sm">Need Help?</h4>
-                <p className="text-xs text-red-700">Watch our setup guide video.</p>
-              </div>
+
+              {/* Button */}
+              <a
+                href="https://youtu.be/WFpfx-xOZK8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto text-center px-4 py-2 bg-white text-red-600 text-xs font-bold border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Watch Video
+              </a>
             </div>
-            <a
-              href="https://youtu.be/WFpfx-xOZK8"
-              target="_blank"
-              className="px-4 py-2 bg-white text-red-600 text-xs font-bold border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              Watch Video
-            </a>
           </div>
         )}
 
@@ -509,7 +516,7 @@ const PluginsMain = () => {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen md:p-6 p-3 md:mt-0 mt-6">
       <Helmet>
         <title>Plugin Center | GenWrite</title>
       </Helmet>

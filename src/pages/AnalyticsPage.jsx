@@ -346,7 +346,7 @@ const AnalyticsPage = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="p-6">
+      <div className="md:p-6 p-3 md:mt-0 mt-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

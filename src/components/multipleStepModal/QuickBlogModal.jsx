@@ -787,16 +787,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           )}
         </div>
 
-        <div className="p-4 border-t bg-gray-50 flex justify-end border-gray-300">
+        <div className="p-4 border-t border-gray-300 bg-gray-50">
           {currentStep === 0 ? (
-            <button
-              onClick={handleNext}
-              className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
-            >
-              Next
-            </button>
+            <div className="flex justify-end">
+              <button
+                onClick={handleNext}
+                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+              >
+                Next
+              </button>
+            </div>
           ) : (
-            <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Cost Section */}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
                 <span className="font-bold text-blue-600">{estimatedCost} credits</span>
@@ -804,16 +807,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <span className="text-xs text-green-600 font-semibold">(-25% off)</span>
                 )}
               </div>
-              <div className="flex gap-3">
+
+              {/* Buttons */}
+              <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setCurrentStep(0)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                 >
                   Previous
                 </button>
+
                 <button
                   onClick={handleSubmit}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
+                  className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
                 >
                   Submit
                 </button>

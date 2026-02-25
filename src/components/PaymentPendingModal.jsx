@@ -28,7 +28,7 @@ const PaymentPendingModal = ({ user }) => {
       <div className="modal-box p-0 w-[500px] max-w-full rounded-xl overflow-hidden backdrop-blur-sm">
         <div className="relative overflow-hidden">
           {/* Content Section */}
-          <div className="p-6">
+          <div className="md:p-6 p-3 md:mt-0 mt-6">
             <div className="space-y-6">
               <div className="flex items-start gap-4 p-5 rounded-2xl bg-rose-50 border border-rose-100">
                 <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">

@@ -166,7 +166,7 @@ const ImageModal = ({
         className={`modal-box p-0 overflow-hidden max-h-[85vh] ${view === VIEWS.GALLERY ? "w-11/12 max-w-5xl" : "w-full max-w-2xl"}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-base-100">
+        <div className="flex items-center justify-between px-6 py-4  bg-base-100">
           <div className="flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-purple-600" />
             <span className="font-semibold text-gray-800">
@@ -210,14 +210,14 @@ const ImageModal = ({
                   {/* Actions Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                     <button
-                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50"
+                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-purple-300 text-purple-600 bg-purple-50"
                       onClick={() => setView(VIEWS.GALLERY)}
                     >
                       <ImageIcon className="w-4 h-4" />
                       <span className="text-xs font-normal">Gallery</span>
                     </button>
                     <button
-                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50"
+                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-blue-300 text-blue-600 bg-blue-50"
                       onClick={() => setView(VIEWS.GENERATE)}
                     >
                       <Sparkles className="w-4 h-4" />
@@ -225,7 +225,7 @@ const ImageModal = ({
                     </button>
                     <button
                       disabled={!url || !allowEnhance}
-                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 disabled:bg-gray-100"
+                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-indigo-300 text-indigo-600 bg-indigo-50 disabled:bg-gray-100"
                       onClick={() => {
                         setEnhanceForm(prev => ({ ...prev, prompt: alt || "" }))
                         setView(VIEWS.ENHANCE)
@@ -465,7 +465,7 @@ const ImageModal = ({
           </div>
 
           {/* FOOTER ACTIONS */}
-          <div className="p-4 border-t bg-white shrink-0 flex items-center justify-between">
+          <div className="p-4 border-t border-gray-300 bg-white shrink-0 flex items-center justify-between">
             {view === VIEWS.MAIN && (
               <>
                 <button className="btn btn-ghost" onClick={onCancel}>
@@ -484,7 +484,7 @@ const ImageModal = ({
 
             {view === VIEWS.GENERATE && (
               <>
-                <button className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
+                <button className="btn btn-ghost border border-gray-300" onClick={() => setView(VIEWS.MAIN)}>
                   Cancel
                 </button>
                 <button

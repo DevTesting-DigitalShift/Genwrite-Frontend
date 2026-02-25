@@ -545,12 +545,12 @@ const WebsiteRanking = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
-      <div className="space-y-6">
+      <div className="space-y-6 mt-6 md:mt-0">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Globe className="text-blue-600" /> Website Grading & SEO Strategy
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Globe className="text-blue-600 shrink-0" /> Website Grading &amp; SEO Strategy
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-sm text-gray-500 mt-2">
             AI-powered analysis to check your website's health, rankings, and generate actionable
             growth strategies.
           </p>
