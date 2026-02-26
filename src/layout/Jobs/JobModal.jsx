@@ -284,7 +284,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
 
   return (
     <div className="modal modal-open z-50">
-      <div className="modal-box w-11/12 max-w-4xl p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="modal-box w-11/12 max-w-3xl p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center p-4 border-b border-gray-300">
           <h3 className="font-bold text-lg">
             Step {currentStep}:{" "}
@@ -328,7 +328,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             <button
               key="previous"
               onClick={() => setCurrentStep(currentStep - 1)}
-              className="btn btn-neutral btn-outline min-h-auto h-auto font-normal text-base normal-case px-6 py-2"
+              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-sm"
               aria-label="Previous step"
             >
               Previous
@@ -340,7 +340,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
               onClick={() => {
                 if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
               }}
-              className="btn btn-primary min-h-auto h-auto font-normal text-base normal-case px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none shadow-none"
               aria-label="Next step"
             >
               Next
@@ -352,7 +352,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
               onClick={() => {
                 if (validateSteps(currentStep)) setCurrentStep(4)
               }}
-              className="btn btn-primary min-h-auto h-auto font-normal text-base normal-case px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
               aria-label="Next step"
             >
               Next

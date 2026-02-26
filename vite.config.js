@@ -50,7 +50,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],
-          antd: ["antd"],
           tiptap: ["@tiptap/core", "@tiptap/react", "@tiptap/starter-kit"],
           utils: ["axios", "dayjs", "lodash-es"],
         },
@@ -67,13 +66,8 @@ export default defineConfig({
       "react",
       "react-dom",
       "react-router-dom",
-      "antd",
-      "@reduxjs/toolkit",
-      "react-redux",
       "framer-motion",
       "lucide-react",
-      "@tiptap/extension-font-family",
-      "@tiptap/extension-history",
       "axios",
       "marked",
       "dompurify",

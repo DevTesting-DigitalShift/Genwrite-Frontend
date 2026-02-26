@@ -591,7 +591,7 @@ const BlogsPage = () => {
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="btn btn-ghost h-16 w-16 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-rose-500 transition-all shadow-sm"
+              className="btn btn-ghost rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-500 transition-all shadow-sm"
               title="Clear Matrix Filters"
             >
               <RotateCcw size={18} />

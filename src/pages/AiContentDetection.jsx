@@ -22,7 +22,6 @@ const AiContentDetection = () => {
   const { result: detectionResult, error } = aiDetection
   const { mutate: detectContent, isPending } = useAiDetectionMutation()
 
-  // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputContent("")

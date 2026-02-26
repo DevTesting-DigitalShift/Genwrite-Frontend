@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react"
+import { useEffect } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/ui/LoadingScreen"
@@ -10,7 +10,6 @@ const AppContent = () => {
   const { isLoading, loadingMessage } = useLoading()
   const location = useLocation()
 
-  // Show desktop warning on mobile devices
   useEffect(() => {
     const hasShown = sessionStorage.getItem("desktopWarningShown")
     if (window.innerWidth < 1024 && !hasShown) {
@@ -19,22 +18,20 @@ const AppContent = () => {
     }
   }, [])
 
-  // Scroll to top on page transition
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <>
       <Helmet>
         <title>GenWrite</title>
       </Helmet>
 
-      {/* Show loading screen from LoadingContext */}
       {isLoading && <LoadingScreen message={loadingMessage} />}
 
       <Outlet />
-    </Suspense>
+    </>
   )
 }
 

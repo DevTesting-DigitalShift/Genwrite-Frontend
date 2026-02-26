@@ -13,7 +13,7 @@ import {
   Phone,
   Briefcase,
   Building2,
-  Calendar,
+  CalendarIcon,
   Heart,
   Camera,
   ChevronRight,
@@ -25,6 +25,8 @@ import {
   Minus,
   X,
 } from "lucide-react"
+import { Calendar } from "@components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import isEqual from "lodash-es/isEqual"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
@@ -39,6 +41,7 @@ import {
   updateEmailPreferencesAPI,
 } from "@api/userApi"
 import { toast } from "sonner"
+import { Switch } from "@components/ui/switch"
 
 const INTEREST_OPTIONS = [
   { value: "technology", label: "Technology" },
@@ -356,12 +359,15 @@ const Profile = () => {
               onChange={handleInputChange}
               placeholder="eg : Tech Innovators Inc"
             />
-            <ProfileInput
+            <DatePickerField
               label="Date of Birth"
-              name="personalDetails.dob"
-              type="date"
               value={profileData.personalDetails.dob}
-              onChange={handleInputChange}
+              onChange={dateStr =>
+                setProfileData(prev => ({
+                  ...prev,
+                  personalDetails: { ...prev.personalDetails, dob: dateStr },
+                }))
+              }
             />
 
             <div className="md:col-span-2 space-y-2">
@@ -537,19 +543,57 @@ const ProfileInput = ({ label, ...props }) => (
   </div>
 )
 
+const DatePickerField = ({ label, value, onChange }) => {
+  const [open, setOpen] = useState(false)
+
+  const selected = value ? dayjs(value).toDate() : undefined
+
+  const handleSelect = date => {
+    onChange(date ? dayjs(date).format("YYYY-MM-DD") : "")
+    setOpen(false)
+  }
+
+  const displayValue = value ? dayjs(value).format("DD MMM YYYY") : "Pick a date"
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-semibold text-slate-600 ml-1">{label}</label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className={`w-full mt-1 h-14 px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 font-medium transition-all flex items-center justify-between ${
+              !value ? "text-slate-300" : ""
+            }`}
+          >
+            <span>{displayValue}</span>
+            <CalendarIcon size={18} className="text-slate-400 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 shadow-lg border border-slate-200" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={handleSelect}
+            captionLayout="dropdown"
+            fromYear={1940}
+            toYear={new Date().getFullYear()}
+            defaultMonth={selected}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
 const MinimalToggle = ({ label, desc, checked, onChange, disabled }) => (
   <div className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all">
-    <div>
-      <h4 className="font-semibold text-sm">{label}</h4>
+    <div className="pr-4">
+      <h4 className="font-semibold text-sm text-slate-800">{label}</h4>
       <p className="text-xs text-slate-400 font-medium">{desc}</p>
     </div>
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={e => onChange(e.target.checked)}
-      disabled={disabled}
-      className="toggle toggle-primary toggle-sm"
-    />
+
+    <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
   </div>
 )
 

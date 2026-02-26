@@ -12,6 +12,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
+import { Switch } from "@components/ui/switch"
 
 const StepContent = ({
   currentStep,
@@ -453,7 +454,7 @@ const StepContent = ({
           <p
             className={`text-sm ${
               errors?.templates ? "text-red-500" : "text-gray-600"
-            }  my-3 sm:mb-4 px-4`}
+            }  mt-3 mb-0 px-4`}
           >
             {errors?.templates
               ? errors.templates
@@ -582,12 +583,11 @@ const StepContent = ({
                 </p>
               </span>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="performKeywordResearch"
+                <Switch
                   checked={formData.performKeywordResearch}
-                  onChange={handleCheckboxChange}
-                  className="toggle toggle-primary"
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "performKeywordResearch", checked } })
+                  }
                 />
               </label>
             </div>
