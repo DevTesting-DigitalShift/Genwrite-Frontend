@@ -39,12 +39,6 @@ const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogM
 const KeywordResearchModel = lazy(
   () => import("../components/dashboardModals/KeywordResearchModel")
 )
-const PerformanceMonitoringModal = lazy(
-  () => import("../components/dashboardModals/PerformanceMonitoringModal")
-)
-const CompetitiveAnalysisModal = lazy(
-  () => import("../components/dashboardModals/CompetitiveAnalysisModal")
-)
 
 const Dashboard = () => {
   const [activeModel, setActiveModel] = useState("")
@@ -181,21 +175,6 @@ const Dashboard = () => {
             openSecondStepModal={() => setActiveModel(ACTIVE_MODELS.Advanced_Blog)}
             openJobModal={openSecondStepJobModal}
             visible={activeModel == ACTIVE_MODELS.Keyword_Research}
-          />
-        )
-      case ACTIVE_MODELS.Performance_Monitoring:
-        return (
-          <PerformanceMonitoringModal
-            allBlogs={[]}
-            closeFnc={handleCloseActiveModal}
-            visible={activeModel == ACTIVE_MODELS.Performance_Monitoring}
-          />
-        )
-      case ACTIVE_MODELS.Competitor_Analysis:
-        return (
-          <CompetitiveAnalysisModal
-            closeFnc={handleCloseActiveModal}
-            open={activeModel == ACTIVE_MODELS.Competitor_Analysis}
           />
         )
       default:

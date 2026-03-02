@@ -145,8 +145,10 @@ const SideBar_Header = () => {
   }, [fetchCurrentUser])
 
   useEffect(() => {
-    if (user?.name || user?.credits) {
+    if (user?._id || user?.name || user?.avatar) {
       setIsUserLoaded(true)
+    } else {
+      setIsUserLoaded(false)
     }
   }, [user])
 
@@ -354,11 +356,18 @@ const SideBar_Header = () => {
                 </div>
                 <div className="dropdown dropdown-end relative">
                   <div tabIndex={0} role="button" className="avatar cursor-pointer ml-5 mr-5">
-                    <div className="w-12 rounded-full bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold flex items-center justify-center overflow-hidden shadow-inner">
                       {user?.avatar ? (
-                        <img src={user.avatar} alt="avatar" className="rounded-full" />
+                        <img
+                          src={user.avatar}
+                          alt="avatar"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <span>{user?.name?.[0]?.toUpperCase()}</span>
+                        <span className="text-xl">
+                          {user?.name?.[0]?.toUpperCase() || <User size={20} />}
+                        </span>
                       )}
                     </div>
                   </div>

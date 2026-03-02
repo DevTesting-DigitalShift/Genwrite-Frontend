@@ -396,20 +396,18 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </div>
         <div className="p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
-            <>
-              <div
-                className={` overflow-clip p-4 pt-0 ${
-                  errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
-                }`}
-              >
-                <TemplateSelection
-                  userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                  onClick={handlePackageSelect}
-                  preSelectedIds={formData.templateIds}
-                />
-              </div>
-              {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
-            </>
+            <div
+              className={`rounded-xl transition-all duration-200 ${
+                errors.template ? "border-2 border-red-500 p-1 pb-0" : "border-0"
+              }`}
+            >
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+                onClick={handlePackageSelect}
+                preSelectedIds={formData.templateIds}
+                error={errors.template}
+              />
+            </div>
           )}
           {currentStep === 1 && (
             <div className="space-y-4 p-3 pt-0">
@@ -800,7 +798,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               {/* Cost Section */}
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 w-full text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
                 <span className="font-bold text-blue-600">{estimatedCost} credits</span>
                 {formData.costCutter && (
@@ -809,7 +807,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-3 w-full">
+              <div className="flex gap-3 w-full justify-end">
                 <button
                   onClick={() => setCurrentStep(0)}
                   className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"

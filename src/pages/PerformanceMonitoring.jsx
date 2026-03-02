@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Tag, Tags, X, Activity, Info, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { motion } from "framer-motion"
+import { Tag, Tags, Activity, Info, Loader2, FileText, Sparkles, RefreshCw } from "lucide-react"
 import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
+import { Helmet } from "react-helmet"
 
-const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
+const PerformanceMonitoring = () => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
@@ -80,6 +81,13 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
     } finally {
       setIsStatsLoading(false)
     }
+  }
+
+  const handleReset = () => {
+    setId(null)
+    setFormData({ selectedBlog: null, title: "", content: "", keywords: [] })
+    setStats(null)
+    toast.info("Content reset")
   }
 
   const scoreInfo = {
@@ -367,184 +375,126 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
     )
   }
 
-  // Handle manual scroll lock for modal
-  useEffect(() => {
-    if (visible) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = "auto"
-    }
-    return () => {
-      document.body.style.overflow = "auto"
-    }
-  }, [visible])
-
-  if (!visible) return null
-
   return (
-    <div className="fixed inset-0 z-999 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={closeFnc} />
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+      <Helmet>
+        <title>Performance Monitoring | GenWrite</title>
+      </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-lg text-white">
-              <Activity size={15} />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">Performance Dashboard</h2>
-          </div>
-          <button
-            onClick={closeFnc}
-            className="btn btn-ghost btn-sm btn-circle text-gray-500 hover:bg-gray-100"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-gray-50/30">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <label className="block text-sm font-bold text-gray-700 mb-2">Select Blog</label>
-            <select
-              className="select border border-gray-300 text-gray-800 w-full h-12 text-base rounded-lg outline-0 focus:ring-0 transition-all bg-white"
-              onChange={handleBlogSelect}
-              value={formData.selectedBlog?._id || ""}
-              disabled={blogsLoading}
-            >
-              <option value="" disabled>
-                Select a blog...
-              </option>
-              {allBlogs?.map(blog => (
-                <option key={blog._id} value={blog._id}>
-                  {blog.title || "Untitled"}
-                </option>
-              ))}
-            </select>
-          </motion.div>
-
-          {!formData.selectedBlog ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50"
-            >
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
-                <Activity size={32} />
+      <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No Blog Selected</h3>
-              <p className="text-gray-500 max-w-sm">
-                Please select a blog post from the dropdown above to view its content and
-                performance insights.
-              </p>
-            </motion.div>
-          ) : (
-            <>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
-              >
-                <div className="p-4 bg-gray-50/80 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="font-bold text-gray-700">Content Preview</h3>
-                </div>
-
-                <div className="max-h-[300px] overflow-y-auto p-6 custom-scrollbar">
-                  {detailsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                    </div>
-                  ) : (
-                    <div className="prose prose-sm max-w-none text-gray-600">
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            formData?.content?.trim() ||
-                            "<div class='flex flex-col items-center justify-center py-8 text-gray-400'>< AlertCircle class='w-8 h-8 mb-2' /><span>No content available</span></div>",
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-
-              {formData.keywords?.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm"
-                >
-                  <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <Tag size={16} /> Focus Keywords
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.keywords.map((keyword, i) => (
-                      <motion.span
-                        key={keyword}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="badge bg-blue-50 text-blue-600 border-blue-100 px-4 py-2 h-auto"
-                      >
-                        {keyword}
-                      </motion.span>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {!stats ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex justify-center pt-4 pb-8"
-                >
-                  <button
-                    onClick={handleGetInsights}
-                    disabled={isStatsLoading}
-                    className="p-4 py-2 rounded-lg bg-blue-500 text-white text-base"
-                  >
-                    {isStatsLoading ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" />
-                      </>
-                    ) : (
-                      <>Get Performance Insights</>
-                    )}
-                  </button>
-                </motion.div>
-              ) : (
-                <StatsInfoBox stats={stats} />
-              )}
-            </>
-          )}
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                  Performance Monitoring
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  Monitor your blog's SEO, readability, and keyword performance.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleReset}
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
+          </div>
         </div>
 
-        {/* Footer Actions if needed, mostly redundant as scroll handles content */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-          <button
-            onClick={closeFnc}
-            className="btn btn-ghost rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-200"
+        {/* Blog Selection Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Select Blog to Analyze</h2>
+          </div>
+          <select
+            className="select select-bordered w-full h-12 text-base rounded-xl bg-gray-50 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            onChange={handleBlogSelect}
+            value={formData.selectedBlog?._id || ""}
+            disabled={blogsLoading}
           >
-            Close
-          </button>
+            <option value="" disabled>
+              Select a blog from your projects...
+            </option>
+            {allBlogs?.map(blog => (
+              <option key={blog._id} value={blog._id}>
+                {blog.title || "Untitled"}
+              </option>
+            ))}
+          </select>
         </div>
-      </motion.div>
+
+        {/* Insights Content */}
+        {!formData.selectedBlog ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-gray-200 shadow-sm">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+              <Activity size={32} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">No Blog Selected</h3>
+            <p className="text-gray-500 max-w-xs mx-auto">
+              Choose a blog post from the menu above to start the performance analysis.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Content Preview */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <h3 className="font-bold text-gray-700">Content Snapshot</h3>
+              </div>
+              <div className="p-6 max-h-[300px] overflow-y-auto custom-scrollbar">
+                {detailsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none text-gray-600">
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: formData?.content?.trim() || "No content available",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats Section */}
+            {!stats ? (
+              <div className="flex justify-center py-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <button
+                  onClick={handleGetInsights}
+                  disabled={isStatsLoading}
+                  className="px-8 py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md flex items-center gap-2"
+                >
+                  {isStatsLoading ? (
+                    <>
+                      <Loader2 className="animate-spin w-5 h-5" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-5 h-5" />
+                      Run Performance Analysis
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <StatsInfoBox stats={stats} />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-export default PerformanceMonitoringModal
+export default PerformanceMonitoring

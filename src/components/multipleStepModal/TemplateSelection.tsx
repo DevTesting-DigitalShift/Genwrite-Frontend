@@ -11,6 +11,7 @@ interface TemplateSelectionProps {
   onClick: (templates: BlogTemplate[]) => void
   preSelectedIds?: Array<string | number>
   className?: string
+  error?: string
 }
 
 export interface BlogTemplate {
@@ -27,6 +28,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   preSelectedIds,
   onClick,
   className = "",
+  error = "",
 }) => {
   const { isProUser, initialTemplates } = useMemo(() => {
     const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
@@ -124,33 +126,40 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   return (
     <div className={`relative ${className}`}>
       {/* Header Section - Responsive */}
-      <div className="sticky top-0 pb-4 bg-white z-30 flex sm:flex-row items-center gap-4">
-        <label className="input border border-gray-300 flex items-center gap-2 w-full">
-          <input
-            type="text"
-            className="grow rounded-lg"
-            placeholder="search template by name"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-          <Search className="w-4 h-4 opacity-70" />
-        </label>
-
-        <div className="flex items-center gap-3 w-1/3">
-          <label
-            htmlFor="show-template"
-            className="text-sm font-medium text-slate-700 cursor-pointer"
-          >
-            Show Selected
+      <div className="sticky top-0 pb-4 bg-white z-30 space-y-3">
+        <div className="flex sm:flex-row items-center gap-4">
+          <label className="input border border-gray-300 flex items-center gap-2 w-full">
+            <input
+              type="text"
+              className="grow rounded-lg"
+              placeholder="search template by name"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            <Search className="w-4 h-4 opacity-70" />
           </label>
 
-          <Switch
-            id="show-template"
-            disabled={selectedIds?.length === 0}
-            checked={showSelected}
-            onCheckedChange={(checked: boolean) => setShowSelected(checked)}
-          />
+          <div className="flex items-center gap-3 w-1/3">
+            <label
+              htmlFor="show-template"
+              className="text-sm font-medium text-slate-700 cursor-pointer"
+            >
+              Show Selected
+            </label>
+
+            <Switch
+              id="show-template"
+              disabled={selectedIds?.length === 0}
+              checked={showSelected}
+              onCheckedChange={(checked: boolean) => setShowSelected(checked)}
+            />
+          </div>
         </div>
+        {error && (
+          <p className="text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1 px-1">
+            {error}
+          </p>
+        )}
       </div>
 
       {/* Templates Grid - Responsive */}

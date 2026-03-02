@@ -725,8 +725,8 @@ const BulkBlogModal = ({ closeFnc }) => {
         <div className="p-6 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
             <div
-              className={`p-3 md:p-0 ${
-                errors.templates ? "border-2 border-red-500 rounded-lg" : ""
+              className={`transition-all duration-200 ${
+                errors.templates ? "border-2 border-red-500 rounded-xl p-1 pb-0" : ""
               }`}
             >
               <TemplateSelection
@@ -734,16 +734,8 @@ const BulkBlogModal = ({ closeFnc }) => {
                 userSubscriptionPlan={user?.subscription?.plan ?? "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handlePackageSelect}
+                error={errors.templates}
               />
-              <p
-                className={`text-sm ${
-                  errors?.templates ? "text-red-500" : "text-gray-600"
-                }  my-3 sm:mb-4 px-4`}
-              >
-                {errors?.templates
-                  ? errors.templates
-                  : "Select up to 3 templates for the types of blogs you want to generate."}
-              </p>
             </div>
           )}
           {currentStep === 1 && (
@@ -1514,7 +1506,11 @@ const BulkBlogModal = ({ closeFnc }) => {
           )}
         </div>
         <div className="p-4 border-t border-gray-300 bg-white">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div
+            className={`flex flex-col sm:flex-row sm:items-center gap-4 ${
+              currentStep === 2 ? "sm:justify-between" : "sm:justify-end"
+            }`}
+          >
             {/* Cost Section */}
             {currentStep === 2 && (
               <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -1534,11 +1530,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             )}
 
             {/* Buttons */}
-            <div
-              className={`flex gap-3${
-                currentStep !== 2 ? "sm:justify-end" : ""
-              }`}
-            >
+            <div className="flex gap-3 sm:justify-end">
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}

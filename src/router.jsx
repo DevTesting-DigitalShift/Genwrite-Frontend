@@ -44,6 +44,8 @@ const KeywordScraping = lazy(() => import("@pages/KeywordScraping"))
 const ChatWithPdf = lazy(() => import("@pages/ChatWithPdf"))
 const CompetitorLikeBlog = lazy(() => import("@pages/CompetitorLikeBlog"))
 const WebsiteRanking = lazy(() => import("@pages/WebsiteRanking"))
+const PerformanceMonitoring = lazy(() => import("@pages/PerformanceMonitoring"))
+const CompetitiveAnalysis = lazy(() => import("@pages/CompetitiveAnalysis"))
 
 const RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
 
@@ -123,6 +125,8 @@ const router = createBrowserRouter([
           { path: "chat-with-pdf", element: r(ChatWithPdf) },
           { path: "competitor-like-blog", element: r(CompetitorLikeBlog) },
           { path: "website-ranking", element: r(WebsiteRanking) },
+          { path: "performance-monitoring", element: r(PerformanceMonitoring) },
+          { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
         ],
       },
     ],

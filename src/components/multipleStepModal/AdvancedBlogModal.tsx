@@ -228,10 +228,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     }
     if (Object.keys(errors).length) {
       updateErrors(errors)
-      // Show a toast for step 0 specifically so the user understands what's needed
-      if (currentStep === 0) {
-        toast.error(errors.template || "Please select a template to continue.")
-      }
       return false
     }
     return true
@@ -375,36 +371,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {/* Template grid with error highlight */}
             <div
               className={clsx(
-                "rounded-2xl transition-all",
-                errors?.template ? "ring-2 ring-red-400 ring-offset-2 p-2" : "p-2"
+                "rounded-xl transition-all duration-200",
+                errors?.template ? "border-2 border-red-500 p-1" : "p-1"
               )}
             >
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handleTemplateSelection}
+                error={errors?.template}
               />
             </div>
 
-            {/* Inline error message */}
-            {errors?.template && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {errors.template}
-              </div>
-            )}
+            {/* Inline error message handled by TemplateSelection internally */}
           </div>
         )
       case 1:
@@ -924,7 +903,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Cost Section */}
             {(currentStep === 2 || currentStep === 3) && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center w-full gap-2 text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
                 <span className="font-bold text-blue-600">{estimatedCost}</span>
                 <span className="text-xs text-green-600 font-medium">(-25% off)</span>
@@ -932,7 +911,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             )}
 
             {/* Buttons */}
-            <div className="flex gap-3 w-full">
+            <div className="flex justify-end gap-3 w-full">
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
