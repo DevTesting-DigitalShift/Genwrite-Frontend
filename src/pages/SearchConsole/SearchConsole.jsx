@@ -10,7 +10,7 @@ import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { toast } from "sonner"
 
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))

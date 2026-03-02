@@ -53,7 +53,7 @@ import { VideoEmbed } from "@/extensions/VideoEmbed"
 import { Iframe } from "@/extensions/IframeExtension"
 import { Figure, FigCaption } from "@/extensions/FigureExtension"
 import Link from "@tiptap/extension-link"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
@@ -1086,7 +1086,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                 <ImageIcon className="w-5 h-5 text-purple-600" />
                 Edit Image
               </h3>
-              <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setEditModalOpen(false)}>✕</button>
+              <button
+                className="btn btn-ghost btn-sm btn-circle"
+                onClick={() => setEditModalOpen(false)}
+              >
+                ✕
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1171,12 +1176,19 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <button className="btn btn-sm btn-ghost" onClick={() => setIsGenerateMode(false)}>Cancel</button>
+                      <button
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => setIsGenerateMode(false)}
+                      >
+                        Cancel
+                      </button>
                       <button
                         className="btn btn-sm btn-primary bg-blue-600"
                         onClick={async () => {
                           if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-                            toast.error("You have reached your AI Image generation limit. preventing generation.")
+                            toast.error(
+                              "You have reached your AI Image generation limit. preventing generation."
+                            )
                             return
                           }
                           const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -1251,7 +1263,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                         <label className="text-sm font-medium text-gray-700">Quality</label>
                         <select
                           value={enhanceForm.quality || "2k"}
-                          onChange={e => setEnhanceForm({ ...enhanceForm, quality: e.target.value })}
+                          onChange={e =>
+                            setEnhanceForm({ ...enhanceForm, quality: e.target.value })
+                          }
                           className="select select-bordered select-sm w-full mt-1"
                         >
                           <option value="1k">Standard (1k)</option>
@@ -1263,7 +1277,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                         <label className="text-sm font-medium text-gray-700">Aspect Ratio</label>
                         <select
                           value={enhanceForm.dimensions || "1024x1024"}
-                          onChange={e => setEnhanceForm({ ...enhanceForm, dimensions: e.target.value })}
+                          onChange={e =>
+                            setEnhanceForm({ ...enhanceForm, dimensions: e.target.value })
+                          }
                           className="select select-bordered select-sm w-full mt-1"
                         >
                           <option value="1024x1024">Square (1:1)</option>
@@ -1274,7 +1290,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end mt-auto pt-4">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setIsEnhanceMode(false)}>Cancel</button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setIsEnhanceMode(false)}
+                      >
+                        Cancel
+                      </button>
                       <button
                         className="btn btn-sm bg-purple-600 text-white hover:bg-purple-700"
                         onClick={async () => {
@@ -1344,9 +1365,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                             <button
                               className="btn btn-ghost btn-xs text-gray-500 hover:text-blue-600 flex items-center gap-1"
                               onClick={async () => {
-                                const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                                const credits =
+                                  (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                                 if (credits < COSTS.ALT_TEXT) {
-                                  toast.error(`Insufficient credits. Need ${COSTS.ALT_TEXT} credits.`)
+                                  toast.error(
+                                    `Insufficient credits. Need ${COSTS.ALT_TEXT} credits.`
+                                  )
                                   return
                                 }
                                 const toastId = toast.loading("Generating alt text...")
@@ -1397,8 +1421,18 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>
                 <div className="flex items-center gap-2 ml-auto">
-                  <button className="btn btn-ghost btn-sm border border-gray-300" onClick={handleOpenAdvancedOptions}>Advanced Options</button>
-                  <button className="btn btn-ghost btn-sm border border-gray-300" onClick={() => setEditModalOpen(false)}>Cancel</button>
+                  <button
+                    className="btn btn-ghost btn-sm border border-gray-300"
+                    onClick={handleOpenAdvancedOptions}
+                  >
+                    Advanced Options
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm border border-gray-300"
+                    onClick={() => setEditModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
                   <button
                     className="btn btn-primary btn-sm flex items-center gap-1"
                     onClick={handleSaveImageChanges}
@@ -1412,7 +1446,6 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           <div className="modal-backdrop" onClick={() => setEditModalOpen(false)} />
         </dialog>
       )}
-
 
       <ImageModal
         open={imageModalOpen}
