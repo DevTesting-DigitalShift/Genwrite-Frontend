@@ -443,7 +443,7 @@ const TextEditorSidebar = ({
 
       // API Call
       const response = await axiosInstance.post(
-        `http://localhost:8000/api/v1/blogs/${blog._id}/sectionTask`,
+        `/blogs/${blog._id}/sectionTask`,
         payload
       )
 
@@ -559,9 +559,14 @@ const TextEditorSidebar = ({
             return
           }
         }
+        
+        let htmlContent = response.data.previousContent
+        const doc1 = parser.parseFromString(htmlContent, "text/html")
+        htmlContent = doc1.querySelector(".section-content").innerHTML
+
 
         // Open Diff Modal instead of instant replace
-        setDiffData({ old: originalSectionContent, new: newSectionContent, full: newFullContent })
+        setDiffData({ old: htmlContent, new: response.data.content, full: newFullContent })
         setShowDiff(true)
 
         // Clear instructions if custom
