@@ -429,7 +429,7 @@ const TextEditorSidebar = ({
   const handleSectionTask = async () => {
     if (!blog?._id) return toast.error("Blog ID missing")
     if (!sectionToolState.sectionId) return toast.error("Please select a section")
-    if (sectionToolState.task === "custom" && !sectionToolState.instructions.trim()) {
+    if (sectionToolState.task === "promptChanges" && !sectionToolState.instructions.trim()) {
       return toast.error("Please enter instructions for custom task")
     }
 
@@ -570,7 +570,7 @@ const TextEditorSidebar = ({
         setShowDiff(true)
 
         // Clear instructions if custom
-        if (sectionToolState.task === "custom") {
+        if (sectionToolState.task === "promptChanges") {
           setSectionToolState(prev => ({ ...prev, instructions: "" }))
         }
       } else {
@@ -2424,7 +2424,7 @@ const TextEditorSidebar = ({
                 desc: "Fix grammar and spelling",
               },
               {
-                id: "custom",
+                id: "promptChanges",
                 label: "Custom Prompt",
                 icon: MessageSquare,
                 desc: "Give your own instructions",
@@ -2469,7 +2469,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Custom Instructions */}
-        {sectionToolState.task === "custom" && sectionToolState.sectionId && (
+        {sectionToolState.task === "promptChanges" && sectionToolState.sectionId && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
