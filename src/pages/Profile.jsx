@@ -51,6 +51,14 @@ const INTEREST_OPTIONS = [
   { value: "other", label: "Other" },
 ]
 
+const SUBSCRIPTION_STATUS_CONFIG = {
+  active: { label: "Active", className: "bg-green-500 text-white" },
+  trialing: { label: "Trial", className: "bg-blue-500 text-white" },
+  unpaid: { label: "Unpaid", className: "bg-rose-500 text-white" },
+  canceled: { label: "Cancelled", className: "bg-slate-400 text-white" },
+  past_due: { label: "Past Due", className: "bg-amber-500 text-white" },
+}
+
 const Profile = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
@@ -283,9 +291,21 @@ const Profile = () => {
                   <Coins size={14} />
                   {(user?.credits?.base || 0) + (user?.credits?.extra || 0)} Credits
                 </div>
-                <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm tracking-wide">
-                  Active
-                </div>
+                {/* Dynamic subscription status badge */}
+                {(() => {
+                  const raw = user?.subscription?.status || "active"
+                  const config = SUBSCRIPTION_STATUS_CONFIG[raw] || {
+                    label: raw.replace(/_/g, " "),
+                    className: "bg-slate-400 text-white",
+                  }
+                  return (
+                    <div
+                      className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm tracking-wide ${config.className}`}
+                    >
+                      {config.label}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </div>

@@ -25,6 +25,8 @@ import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"
 import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
+import { createPortalSession } from "@api/otherApi"
+import { toast } from "sonner"
 
 const Transactions = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
@@ -37,6 +39,22 @@ const Transactions = () => {
 
   const showTrialMessage =
     user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
+
+  const handleManageSubscription = async () => {
+    try {
+      const toastId = toast.loading("Opening billing portal...")
+      const data = await createPortalSession(window.location.href)
+      toast.dismiss(toastId)
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        toast.warning("Could not open billing settings.")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to open billing portal. Please try again.")
+    }
+  }
 
   useEffect(() => {
     loadAuthenticatedUser()
@@ -209,10 +227,18 @@ const Transactions = () => {
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex-1 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 flex items-center justify-center space-x-2 h-14"
                 >
                   Upgrade Plan <ChevronRight size={18} />
                 </button>
+                {user?.subscription?.plan && user.subscription.plan !== "free" && (
+                  <button
+                    onClick={handleManageSubscription}
+                    className="flex-1 px-4 bg-white hover:bg-slate-50 text-blue-600 border border-blue-200 rounded-xl h-14 font-bold normal-case text-base transition-all"
+                  >
+                    Manage Subscription
+                  </button>
+                )}
                 <button
                   disabled={showTrialMessage}
                   onClick={() => navigate("/cancel-subscription")}
@@ -260,15 +286,9 @@ const Transactions = () => {
                           ))}
                       </div>
                     </TableHead>
-                    <TableHead className="text-sm font-bold text-slate-400">
-                      Type
-                    </TableHead>
-                    <TableHead className="text-sm font-bold text-slate-400">
-                      Plan
-                    </TableHead>
-                    <TableHead className="text-sm font-bold text-slate-400">
-                      Credits
-                    </TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">Type</TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">Plan</TableHead>
+                    <TableHead className="text-sm font-bold text-slate-400">Credits</TableHead>
                     <TableHead className="text-sm font-bold text-slate-400 text-right">
                       Amount
                     </TableHead>

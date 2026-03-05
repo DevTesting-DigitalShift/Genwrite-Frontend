@@ -228,7 +228,7 @@ const Onboarding = () => {
                     Company Name
                   </label>
                   <input
-                    placeholder="Acme Corporation"
+                    placeholder="Digital Shift"
                     value={formData.nameOfVoice}
                     onChange={e => setFormData(prev => ({ ...prev, nameOfVoice: e.target.value }))}
                     className="input outline-0 w-full rounded-lg"

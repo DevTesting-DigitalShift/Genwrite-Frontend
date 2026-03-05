@@ -450,12 +450,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 {/* Focus Keywords */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-800">
-                    Focus Keywords (max 3)
+                    Focus Keywords (max 3) <span className="text-red-500">*</span>
                   </label>
                   <input
                     placeholder="Type and press comma"
-                    className="w-full mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
+                    className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.focusKeywords ? "border-red-500" : "border-slate-300"
+            }`}
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
@@ -472,13 +474,30 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       }
                     }}
                   />
+                  {errors.focusKeywords && (
+                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords}</p>
+                  )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.focusKeywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md"
+                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
                       >
                         {kw}
+                        <button
+                          title="Remove keyword"
+                          onClick={() => {
+                            handleInputChange({
+                              target: {
+                                name: "focusKeywords",
+                                value: formData.focusKeywords.filter((_, idx) => idx !== i),
+                              },
+                            })
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
                       </span>
                     ))}
                   </div>
@@ -486,11 +505,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">Keywords</label>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Keywords <span className="text-red-500">*</span>
+                  </label>
                   <input
                     placeholder="Type and press comma"
-                    className="w-full mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
+                    className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.keywords ? "border-red-500" : "border-slate-300"
+            }`}
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
@@ -504,19 +527,50 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       }
                     }}
                   />
+                  {errors.keywords && (
+                    <p className="text-xs mt-1 text-red-500">{errors.keywords}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.keywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
+                      >
+                        {kw}
+                        <button
+                          title="Remove keyword"
+                          onClick={() => {
+                            handleInputChange({
+                              target: {
+                                name: "keywords",
+                                value: formData.keywords.filter((_, idx) => idx !== i),
+                              },
+                            })
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">Blog Title</label>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Blog Title <span className="text-red-500">*</span>
+                  </label>
                   <div className="flex gap-2">
                     <input
                       name="title"
                       placeholder="e.g., How to create a blog"
                       value={formData.title}
                       onChange={handleInputChange}
-                      className="flex-1 mt-2 p-2 rounded-md border border-slate-300 bg-white text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600"
+                      className={`flex-1 mt-2 p-2 rounded-md border bg-white text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+                errors.title ? "border-red-500" : "border-slate-300"
+              }`}
                     />
                     <button
                       onClick={handleGenerateTitles}
@@ -527,6 +581,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       {isGenerating ? "Generating..." : "Generate"}
                     </button>
                   </div>
+                  {errors.title && <p className="text-xs mt-1 text-red-500">{errors.title}</p>}
 
                   {generatedTitles.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -568,7 +623,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               {/* Tone */}
               <div className="form-control space-y-2">
                 <label className="label pb-0">
-                  <span className="label-text font-semibold text-slate-800">Tone of Voice</span>
+                  <span className="label-text font-semibold text-slate-800">
+                    Tone of Voice <span className="text-red-500">*</span>
+                  </span>
                 </label>
 
                 <select
@@ -576,7 +633,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   onChange={e =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
-                  className="select select-bordered w-full rounded-lg"
+                  className={`select select-bordered w-full rounded-lg ${
+                    errors.tone ? "border-red-500" : ""
+                  }`}
                 >
                   <option value="">Select tone</option>
                   {TONES.map(t => (
@@ -585,6 +644,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     </option>
                   ))}
                 </select>
+                {errors.tone && <p className="text-xs mt-1 text-red-500">{errors.tone}</p>}
               </div>
 
               {/* Blog Length */}

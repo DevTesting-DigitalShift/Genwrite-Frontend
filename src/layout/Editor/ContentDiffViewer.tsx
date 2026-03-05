@@ -216,7 +216,6 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
       <style>{`
         .diff-pane {
           font-size: 0.875rem;
-          font-family: Georgia, 'Times New Roman', serif;
           line-height: 1.7;
           padding: 16px 20px;
           background: #fff;

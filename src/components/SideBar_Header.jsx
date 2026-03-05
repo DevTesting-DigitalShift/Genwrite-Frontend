@@ -28,6 +28,8 @@ import { getSocket } from "@utils/socket"
 import WhatsNewModal from "./dashboardModals/HowToModel"
 import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
+import { useProAction } from "@/hooks/useProAction"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -41,8 +43,32 @@ const SideBar_Header = () => {
     addNotification,
     updateUserPartial,
   } = useAuthStore()
+  const { needsUpgrade } = useProAction()
+  const { handlePopup } = useConfirmPopup()
   const location = useLocation()
   const navigate = useNavigate()
+
+  const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
+
+  const handleNavClick = (path, e) => {
+    if (needsUpgrade) {
+      if (ALLOWED_ROUTES.some(r => path.startsWith(r))) {
+        navigate(path)
+        return true
+      }
+      if (e) e.preventDefault()
+      handlePopup({
+        title: "Choose a Plan to Continue",
+        description:
+          "You don't have an active plan yet. Pick a plan to unlock all features and start creating content.",
+        confirmText: "View Plans",
+        cancelText: "Maybe Later",
+        onConfirm: () => navigate("/pricing"),
+      })
+      return false
+    }
+    navigate(path)
+  }
   const sidebarRef = useRef(null)
   const { isDesktop } = useViewport()
 
@@ -81,6 +107,17 @@ const SideBar_Header = () => {
       }
     },
     [addNotification, updateUserPartial, fetchCurrentUser]
+  )
+
+  const handleUsageUpdate = useCallback(
+    data => {
+      if (data && typeof data === "object" && data.usage) {
+        updateUserPartial({ usage: data.usage })
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [updateUserPartial, fetchCurrentUser]
   )
 
   const handleCloseModal = () => {
@@ -127,6 +164,7 @@ const SideBar_Header = () => {
 
       socket.on("user:credits", handleCreditsUpdate)
       socket.on("user:notification", handleNotificationUpdate)
+      socket.on("user:usage", handleUsageUpdate)
     }
 
     setupListeners()
@@ -136,9 +174,10 @@ const SideBar_Header = () => {
       if (socket) {
         socket.off("user:credits", handleCreditsUpdate)
         socket.off("user:notification", handleNotificationUpdate)
+        socket.off("user:usage", handleUsageUpdate)
       }
     }
-  }, [handleCreditsUpdate, handleNotificationUpdate])
+  }, [handleCreditsUpdate, handleNotificationUpdate, handleUsageUpdate])
 
   useEffect(() => {
     fetchCurrentUser()
@@ -234,6 +273,7 @@ const SideBar_Header = () => {
                 <li key={index}>
                   <NavLink
                     to={Menu.path}
+                    onClick={e => handleNavClick(Menu.path, e)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
                       isActive
                         ? "bg-blue-50 text-blue-600 shadow-sm"

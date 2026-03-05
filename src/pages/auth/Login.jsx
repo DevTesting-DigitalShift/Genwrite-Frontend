@@ -30,6 +30,7 @@ import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import IceAnimation from "@components/IceAnimation"
 import { toast } from "sonner"
+import { getFriendlyError } from "@utils/friendlyError"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
@@ -122,8 +123,9 @@ const Auth = ({ path }) => {
         }
       })
     },
-    onError: () => {
-      toast.error("Google login initialization failed.")
+    onError: err => {
+      console.error("Google OAuth error:", err)
+      toast.error(getFriendlyError(err, "google"))
       setRecaptchaValue(null)
       recaptchaRef.current?.reset()
     },
@@ -163,7 +165,7 @@ const Auth = ({ path }) => {
         }
       } catch (err) {
         console.error("Auth error:", err)
-        toast.error(err.message || "Authentication failed")
+        toast.error(getFriendlyError(err, isSignup ? "signup" : "login"))
         setRecaptchaValue(null)
         recaptchaRef.current?.reset()
       } finally {

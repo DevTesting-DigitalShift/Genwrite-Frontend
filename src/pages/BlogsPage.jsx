@@ -162,13 +162,7 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    refetchInterval: query => {
-      const data = query.state.data
-      const hasPending = data?.pages?.some(page =>
-        page.data?.some(blog => blog.status === "pending" || blog.status === "in-progress")
-      )
-      return hasPending ? 10000 : false
-    },
+    // No polling — socket events (blog:statusChanged) handle live updates
   })
 
   const { data: trashData, isLoading: isLoadingTrash } = useQuery({
@@ -249,15 +243,15 @@ const BlogsPage = () => {
     if (!socket || !user) return
 
     const handleStatusChange = _ => {
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
-        type: "active",
+        refetchType: "active",
       })
     }
 
     const handleBlogCreated = _ => {
       if (!isTrashcan) {
-        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       }
     }
 

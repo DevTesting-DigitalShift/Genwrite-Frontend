@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
-import { createPortalSession } from "@api/otherApi"
+
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
@@ -63,13 +63,13 @@ const PricingCard = ({
 
   const isDisabled = (() => {
     const sub = userSubscription
-    if (!sub || plan.type === "credit_purchase") return false
+    if (!sub || plan.type === "credit_purchase" || userPlan === "free") return false
 
     if (!sub.renewalDate) {
       return plan.tier === userPlan.toLowerCase()
     }
 
-    if (userStatus === "active") {
+    if (["active", "trialing"].includes(userStatus)) {
       const start = new Date(sub.startDate)
       const renewal = new Date(sub.renewalDate)
       const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
@@ -160,7 +160,11 @@ const PricingCard = ({
       return
     }
 
-    if (!userSubscription || userSubscription.status !== "active") {
+    if (
+      !userSubscription ||
+      userPlan === "free" ||
+      !["active", "trialing"].includes(userSubscription.status)
+    ) {
       onBuy(plan, plan.credits, billingPeriod)
       return
     }
@@ -179,28 +183,29 @@ const PricingCard = ({
 
     const isSameTier = plan.tier === userPlan.toLowerCase()
 
-    if (
-      isSameTier &&
-      userPlan.toLowerCase() === "pro" &&
-      userBillingPeriod === "monthly" &&
-      billingPeriod === "annual"
-    ) {
+    if (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual") {
       thisModalType = "same-tier"
       thisModalMessage = {
         title: "Confirm Plan Change",
-        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
+      }
+    } else if (isSameTier && userBillingPeriod === "annual" && billingPeriod === "monthly") {
+      thisModalType = "downgrade"
+      thisModalMessage = {
+        title: "Confirm Downgrade",
+        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
       }
     } else if (!isSameTier && currentTier < newTier) {
       thisModalType = "upgrade"
       thisModalMessage = {
         title: "Confirm Upgrade",
-        body: `Your current subscription will be replaced, and your new ${plan.name} plan will start immediately.`,
+        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
       }
     } else {
       thisModalType = "downgrade"
       thisModalMessage = {
         title: "Confirm Downgrade",
-        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
       }
     }
 
@@ -331,18 +336,18 @@ const PricingCard = ({
           <button
             className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
               isDisabled
-                ? "bg-opacity-80 hover:bg-opacity-100 cursor-pointer hover:transform hover:scale-[1.02] hover:shadow-lg"
-                : "hover:transform hover:scale-[1.02] hover:shadow-lg"
-            } ${styles.button} ${
+                ? "bg-slate-300 text-slate-600 cursor-not-allowed opacity-80"
+                : "hover:transform hover:scale-[1.02] hover:shadow-lg " + styles.button
+            } ${
               plan.type === "credit_purchase" && customCredits < 500
                 ? "opacity-50 cursor-not-allowed"
                 : ""
             } flex items-center justify-center gap-2`}
-            disabled={!isDisabled && plan.type === "credit_purchase" && customCredits < 500} // Allow clicking current plan
-            onClick={() => (isDisabled ? onManage() : handleButtonClick())}
+            disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
+            onClick={() => handleButtonClick()}
           >
             {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
-            {isDisabled ? "Manage Subscription" : plan.cta}
+            {isDisabled ? "Current Plan" : plan.cta}
           </button>
         </div>
 
@@ -381,7 +386,7 @@ const PricingCard = ({
               </p>
               <p>{modalMessage.body}</p>
               <p className="text-gray-500 mt-4 text-sm italic">
-                Please confirm to proceed with your purchase.
+                You can manage your plan changes in the Manage Subscription page.
               </p>
             </div>
 
@@ -395,11 +400,11 @@ const PricingCard = ({
               <button
                 onClick={() => {
                   setShowConfirmModal(false)
-                  proceedToBuy(pendingPlan)
+                  onManage()
                 }}
                 className="btn bg-blue-600 border-none hover:bg-blue-700 text-white font-semibold px-6 rounded-lg min-h-0 h-10"
               >
-                Confirm
+                Manage Subscription
               </button>
             </div>
           </div>
@@ -459,7 +464,7 @@ const Upgrade = () => {
           "Automatic Blog Posting",
           "Basic content analytics",
         ],
-        cta: user?.subscription?.trialOpted ? "Start today for 1$" : "Get Started",
+        cta: !user?.subscription?.trialOpted ? "Start today for 1$" : "Get Started",
         type: "subscription",
         icon: <Zap className="w-8 h-8" />,
         tier: "basic",
@@ -492,7 +497,7 @@ const Upgrade = () => {
           "AI content suggestions",
           "Advanced content insights",
         ],
-        cta: user?.subscription?.trialOpted ? "Start today for 1$" : "Upgrade to Pro",
+        cta: !user?.subscription?.trialOpted ? "Start today for 1$" : "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",
@@ -564,19 +569,8 @@ const Upgrade = () => {
 
   const countryToSend = countryMapping[currency] || "US"
 
-  const handleManageSubscription = async () => {
-    try {
-      toast.loading({ content: "Opening billing portal...", key: "portal" })
-      const data = await createPortalSession(window.location.href)
-      if (data?.url) {
-        window.location.href = data.url
-      } else {
-        toast.warning({ content: "Could not open billing settings.", key: "portal" })
-      }
-    } catch (error) {
-      console.error(error)
-      toast.error({ content: "Failed to manage subscription.", key: "portal" })
-    }
+  const handleManageSubscription = () => {
+    navigate("/transactions")
   }
 
   const handleBuy = async (plan, credits, billingPeriod) => {

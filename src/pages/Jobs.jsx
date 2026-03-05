@@ -254,10 +254,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                   {/* ─── Expanded detail row ───────────────────── */}
                   {isExpanded && (
                     <tr key={`${job._id}-detail`}>
-                      <td
-                        colSpan={8}
-                        className="bg-indigo-50/30 border-b border-indigo-100 p-5"
-                      >
+                      <td colSpan={8} className="bg-indigo-50/30 border-b border-indigo-100 p-5">
                         <div className="ml-10 grid grid-cols-2 md:grid-cols-4 gap-4 bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
                           {/* Blog Config */}
                           <div className="space-y-2">
@@ -467,6 +464,9 @@ const Jobs = () => {
     toast.success("Jobs list refreshed")
   }
 
+  const activeJobsCount = queryJobs.filter(j => j.status === "active").length
+  const stoppedJobsCount = queryJobs.filter(j => j.status !== "active").length
+
   const filteredJobs = useMemo(() => {
     return queryJobs.filter(
       job =>
@@ -620,9 +620,23 @@ const Jobs = () => {
 
           {/* Job List/Grid Section */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Jobs</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Pipelines</h2>
+                <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60 w-fit">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-md shadow-xs border border-slate-200/50">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-700">
+                      {activeJobsCount} Active
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    <span className="text-xs font-bold text-slate-500">
+                      {stoppedJobsCount} Paused
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="relative group w-72">

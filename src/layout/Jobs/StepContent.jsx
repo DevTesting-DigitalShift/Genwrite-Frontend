@@ -768,24 +768,19 @@ const StepContent = ({
           <div className="flex justify-between items-center">
             <label className="block text-sm font-semibold text-gray-700">Add Image</label>
             <div className="flex items-center">
-              <label className="cursor-pointer label">
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary"
-                  checked={newJob.blogs.isCheckedGeneratedImages}
-                  onChange={e => {
-                    const checked = e.target.checked
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        isCheckedGeneratedImages: checked,
-                        imageSource: checked ? prev.blogs.imageSource : "stock",
-                      },
-                    }))
-                  }}
-                />
-              </label>
+              <Switch
+                checked={newJob.blogs.isCheckedGeneratedImages}
+                onCheckedChange={checked => {
+                  setNewJob(prev => ({
+                    ...prev,
+                    blogs: {
+                      ...prev.blogs,
+                      isCheckedGeneratedImages: checked,
+                      imageSource: checked ? prev.blogs.imageSource : "stock",
+                    },
+                  }))
+                }}
+              />
               {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
                 <div
                   className="tooltip tooltip-left"
@@ -1000,17 +995,13 @@ const StepContent = ({
                 <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
               </div>
               <label htmlFor="cost-cutter-toggle" className="relative inline-block w-12 h-6">
-                <input
-                  type="checkbox"
+                <Switch
                   id="cost-cutter-toggle"
-                  className="toggle toggle-success"
                   checked={newJob.blogs.costCutter || false}
-                  onChange={e => {
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, costCutter: e.target.checked },
-                    }))
+                  onCheckedChange={checked => {
+                    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
                   }}
+                  className="data-[state=checked]:bg-green-500"
                 />
               </label>
             </div>
@@ -1181,110 +1172,145 @@ const StepContent = ({
     case 4:
       return (
         <div>
-          <div className="mt-0">
-            {[
-              {
-                label: "Add FAQ",
-                name: "includeFaqs",
-                desc: "Include frequently asked questions at the end of the blog.",
-              },
-              {
-                label: "Add Competitive Research",
-                name: "includeCompetitorResearch",
-                desc: "Analyze competitors to improve blog quality.",
-              },
-              ...(newJob.options.includeCompetitorResearch
-                ? [
-                    {
-                      label: "Show Outbound Links",
-                      name: "addOutBoundLinks",
-                      desc: "Add outbound links, references of other websites",
-                    },
-                  ]
-                : []),
-              {
-                label: "Add InterLinks",
-                name: "includeInterlinks",
-                desc: "Add internal links between your blogs for better SEO.",
-              },
-              {
-                label: "Enable Automatic Posting",
-                name: "wordpressPosting",
-                desc: "Automatically post the blog to your connected plugins.",
-              },
-              ...(newJob.options.wordpressPosting
-                ? [
-                    {
-                      label: "Table of Content",
-                      name: "includeTableOfContents",
-                      desc: "Display a table of contents for easier navigation.",
-                    },
-                  ]
-                : []),
-              {
-                label: "Easy to Understand",
-                name: "easyToUnderstand",
-                desc: "Make the content simple and easy to read.",
-              },
-              {
-                label: "Embed YouTube Videos",
-                name: "embedYouTubeVideos",
-                desc: "Add relevant YouTube videos to your blog content.",
-              },
-            ].map(({ label, name, desc }) => (
-              <div key={name} className="flex items-start justify-between py-2 mt-3">
-                <span className="text-sm font-medium text-gray-700">
-                  {label}
-                  <p className="text-xs text-gray-500">{desc}</p>
-                </span>
-                <label className="cursor-pointer label">
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
+          <div className="mt-0 space-y-4">
+            {/* Group 1: Standard Options */}
+            <div className="space-y-1">
+              {[
+                {
+                  label: "Add FAQ",
+                  name: "includeFaqs",
+                  desc: "Include frequently asked questions at the end of the blog.",
+                },
+                {
+                  label: "Add Competitive Research",
+                  name: "includeCompetitorResearch",
+                  desc: "Analyze competitors to improve blog quality.",
+                },
+                ...(newJob.options.includeCompetitorResearch
+                  ? [
+                      {
+                        label: "Show Outbound Links",
+                        name: "addOutBoundLinks",
+                        desc: "Add outbound links, references of other websites",
+                      },
+                    ]
+                  : []),
+                {
+                  label: "Add InterLinks",
+                  name: "includeInterlinks",
+                  desc: "Add internal links between your blogs for better SEO.",
+                },
+              ].map(({ label, name, desc }) => (
+                <div key={name} className="flex items-center justify-between py-2 mt-3">
+                  <div>
+                    <span className="text-sm font-semibold text-gray-700">{label}</span>
+                    <p className="text-xs text-gray-500">{desc}</p>
+                  </div>
+                  <Switch
                     checked={newJob.options[name]}
-                    onChange={handleCheckboxChange}
-                    name={name}
+                    onCheckedChange={checked => handleCheckboxChange({ target: { name, checked } })}
                   />
-                </label>
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
 
-            {/* Only show integration options if wordpressPosting is true AND integrations exist */}
-            {newJob.options.wordpressPosting &&
-              Object.keys(integrations?.integrations || {}).length > 0 && (
-                <div className="my-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Your Publishing Platform
+            {/* Group 2: Automatic Posting & Integration grouping */}
+            <div className="flex flex-col gap-4 mt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">
+                    Enable Automatic Posting
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    Automatically post the blog to your connected plugins.
+                  </p>
+                </div>
+                <Switch
+                  checked={newJob.options.wordpressPosting}
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "wordpressPosting", checked } })
+                  }
+                />
+              </div>
+
+              {newJob.options.wordpressPosting &&
+                Object.keys(integrations?.integrations || {}).length > 0 && (
+                  <div
+                    className={`pt-2 ${
+                      errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
+                    }`}
+                  >
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Select Your Publishing Platform
+                    </label>
                     <p className="text-xs text-gray-500 font-normal mt-1">
                       Post your blog automatically to connected platforms only.
                     </p>
-                  </label>
 
-                  <select
-                    className={`select select-bordered w-full h-10 min-h-0 text-sm mt-2 ${errors.postingType ? "select-error" : ""}`}
-                    value={formData.postingType}
-                    onChange={handleIntegrationChange}
-                  >
-                    <option value="" disabled>
-                      Select platform
-                    </option>
-                    {Object.entries(integrations.integrations).map(([platform, details]) => (
-                      <option key={platform} value={platform}>
-                        {platform}
+                    <select
+                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
+                        errors.postingType ? "select-error" : ""
+                      }`}
+                      value={formData.postingType || ""}
+                      onChange={e => handleIntegrationChange(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Select platform
                       </option>
-                    ))}
-                  </select>
-                  {errors.postingType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
-                  )}
+                      {Object.keys(integrations.integrations || {}).map(platform => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.postingType && (
+                      <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
+                    )}
+                  </div>
+                )}
+            </div>
+
+            {/* Group 3: Post-Posting / Layout Options */}
+            <div className="space-y-1">
+              {[
+                ...(newJob.options.wordpressPosting
+                  ? [
+                      {
+                        label: "Table of Content",
+                        name: "includeTableOfContents",
+                        desc: "Display a table of contents for easier navigation.",
+                      },
+                    ]
+                  : []),
+                {
+                  label: "Easy to Understand",
+                  name: "easyToUnderstand",
+                  desc: "Make the content simple and easy to read.",
+                },
+                {
+                  label: "Embed YouTube Videos",
+                  name: "embedYouTubeVideos",
+                  desc: "Add relevant YouTube videos to your blog content.",
+                },
+              ].map(({ label, name, desc }) => (
+                <div key={name} className="flex items-center justify-between py-2 mt-3">
+                  <div>
+                    <span className="text-sm font-semibold text-gray-700">{label}</span>
+                    <p className="text-xs text-gray-500">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={newJob.options[name]}
+                    onCheckedChange={checked => handleCheckboxChange({ target: { name, checked } })}
+                  />
                 </div>
-              )}
+              ))}
+            </div>
           </div>
 
           <div className="my-5">
             <BrandVoiceSelector
               label="Write with Brand Voice"
-              labelClass="text-sm font-medium text-gray-700"
+              labelClass="text-sm font-semibold text-gray-700"
               errorText={errors.brandId}
               size="large"
               value={{

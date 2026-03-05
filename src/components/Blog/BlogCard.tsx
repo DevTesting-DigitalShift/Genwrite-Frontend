@@ -3,7 +3,6 @@ import {
   Sparkles,
   Calendar,
   ArrowUpRight,
-  MoreVertical,
   CheckCircle2,
   Loader2,
   RotateCcw,
@@ -12,7 +11,31 @@ import {
   MousePointerClick,
   Eye,
   AlertCircle,
+  Clock,
+  AlertTriangle,
 } from "lucide-react"
+import dayjs from "dayjs"
+
+// Human-readable labels for each pipeline step
+const TASK_LABELS: Record<string, string> = {
+  "keyword-research": "Keyword Research",
+  outsource: "Content Research",
+  context: "Context Analysis",
+  outline: "Outline Generation",
+  content: "AI Content Generation",
+  "images-alt_texts": "Image Alt Texts",
+  "seo-metadata": "SEO Metadata",
+  "slug-generation": "Slug Generation",
+  "final-merge": "Final Assembly",
+  "wordpress-post": "Blog Posting",
+}
+
+// Tasks whose failure is non-critical (blog content is still usable)
+const NON_CRITICAL_TASKS = new Set(["images-alt_texts", "wordpress-post"])
+
+interface TaskStatus {
+  [key: string]: string | undefined
+}
 
 interface Blog {
   _id: string
@@ -30,6 +53,7 @@ interface Blog {
   archiveDate: string
   gscClicks: number
   gscImpressions: number
+  taskStatus?: TaskStatus
 }
 
 interface BlogCardProps {
@@ -39,36 +63,157 @@ interface BlogCardProps {
   onRetry: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
-
   handlePopup: (config: Record<string, any>) => void
   hasGSCPermissions?: boolean
   isTrashcan?: boolean
 }
 
-const statusColors = {
-  complete: "border-emerald-500",
-  failed: "border-rose-500",
-  pending: "border-amber-500",
-  "in-progress": "border-amber-500",
+// ---------- helpers ----------
+
+function getFailedTasks(taskStatus?: TaskStatus): string[] {
+  if (!taskStatus) return []
+  return Object.entries(taskStatus)
+    .filter(([k, v]) => k !== "error" && v === "failed")
+    .map(([k]) => k)
 }
 
-const StatusBadge = ({ status }: { status: string }) => {
-  if (status === "pending" || status === "in-progress") {
+function getCurrentTask(taskStatus?: TaskStatus): string | null {
+  if (!taskStatus) return null
+  const entry = Object.entries(taskStatus).find(
+    ([k, v]) => k !== "error" && (v === "pending" || v === "in-progress")
+  )
+  return entry ? entry[0] : null
+}
+
+// Is the failure only caused by non-critical steps? (posting / image alt)
+function isPartialFailure(blogStatus: string, failedTasks: string[]): boolean {
+  return (
+    blogStatus === "failed" &&
+    failedTasks.length > 0 &&
+    failedTasks.every(t => NON_CRITICAL_TASKS.has(t))
+  )
+}
+
+// ---------- Tooltip ----------
+
+const TaskTooltip = ({ children }: { children: React.ReactNode }) => (
+  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 pointer-events-none">
+    <div className="bg-slate-900 text-white rounded-xl p-3 shadow-2xl text-[11px] min-w-[180px] max-w-[220px]">
+      {children}
+      {/* caret */}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900" />
+    </div>
+  </div>
+)
+
+// ---------- StatusBadge ----------
+
+const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: TaskStatus }) => {
+  const failedTasks = getFailedTasks(taskStatus)
+  const currentTask = getCurrentTask(taskStatus)
+  const isRunning = status === "pending" || status === "in-progress"
+  const partialFail = isPartialFailure(status, failedTasks)
+
+  // --- PENDING / IN-PROGRESS ---
+  if (isRunning) {
+    const hasFailedSteps = failedTasks.length > 0
+
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-600">
-        <Loader2 size={12} className="animate-spin" />
-        <span className="text-[10px] font-bold uppercase tracking-wider">Pending</span>
+      <div className="relative group/badge cursor-default">
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider select-none
+            ${
+              hasFailedSteps
+                ? "bg-orange-50 border-orange-200/70 text-orange-600"
+                : "bg-amber-50 border-amber-200/60 text-amber-600"
+            }`}
+        >
+          <Loader2 size={12} className="animate-spin" />
+          <span>Pending</span>
+          {hasFailedSteps && <AlertTriangle size={10} className="text-rose-500 ml-0.5" />}
+        </div>
+
+        {/* Tooltip: show current step + any failed sub-steps */}
+        {(hasFailedSteps || currentTask) && (
+          <TaskTooltip>
+            {hasFailedSteps && (
+              <>
+                <p className="text-rose-400 font-bold mb-1.5">Failed steps — retrying:</p>
+                {failedTasks.map(t => (
+                  <p key={t} className="text-slate-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0 mt-px" />
+                    {TASK_LABELS[t] ?? t}
+                  </p>
+                ))}
+                {currentTask && (
+                  <>
+                    <div className="my-2 border-t border-slate-700" />
+                    <p className="text-amber-400 font-bold mb-1">Now running:</p>
+                    <p className="text-slate-300 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-px animate-pulse" />
+                      {TASK_LABELS[currentTask] ?? currentTask}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+            {!hasFailedSteps && currentTask && (
+              <>
+                <p className="text-amber-400 font-bold mb-1.5">Currently running:</p>
+                <p className="text-slate-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-px animate-pulse" />
+                  {TASK_LABELS[currentTask] ?? currentTask}
+                </p>
+              </>
+            )}
+          </TaskTooltip>
+        )}
       </div>
     )
   }
+
+  // --- FAILED ---
   if (status === "failed") {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 border border-rose-200/60 text-rose-600">
-        <AlertCircle size={12} />
-        <span className="text-[10px] font-bold uppercase tracking-wider">Failed</span>
+      <div className="relative group/badge cursor-default">
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider select-none
+            ${
+              partialFail
+                ? "bg-orange-50 border-orange-200/70 text-orange-600"
+                : "bg-rose-50 border-rose-200/60 text-rose-600"
+            }`}
+        >
+          <AlertCircle size={12} />
+          <span>{partialFail ? "Partial" : "Failed"}</span>
+        </div>
+
+        {/* Tooltip: which tasks failed */}
+        {failedTasks.length > 0 && (
+          <TaskTooltip>
+            <p className={`font-bold mb-1.5 ${partialFail ? "text-orange-400" : "text-rose-400"}`}>
+              {partialFail ? "Non-critical steps failed:" : "Failed steps:"}
+            </p>
+            {failedTasks.map(t => (
+              <p key={t} className="text-slate-300 flex items-center gap-1.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 mt-px ${
+                    partialFail ? "bg-orange-400" : "bg-rose-400"
+                  }`}
+                />
+                {TASK_LABELS[t] ?? t}
+              </p>
+            ))}
+            {partialFail && (
+              <p className="mt-2 text-slate-400 text-[10px] italic">Content is still usable ↑</p>
+            )}
+          </TaskTooltip>
+        )}
       </div>
     )
   }
+
+  // --- COMPLETE ---
   return (
     <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-600">
       <CheckCircle2 size={12} />
@@ -76,6 +221,8 @@ const StatusBadge = ({ status }: { status: string }) => {
     </div>
   )
 }
+
+// ---------- BlogCard ----------
 
 const BlogCard: React.FC<BlogCardProps> = ({
   blog,
@@ -88,35 +235,57 @@ const BlogCard: React.FC<BlogCardProps> = ({
   hasGSCPermissions = false,
   isTrashcan = false,
 }) => {
-  const stripMarkdown = (text: string) => {
-    return text
+  const stripMarkdown = (text: string) =>
+    text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
       ?.trim()
-  }
 
   const isManualEditor = blog.isManuallyEdited === true
   const isRunning = blog.status === "pending" || blog.status === "in-progress"
   const isGemini = /gemini/gi.test(blog.aiModel)
   const isChatGPT = /gpt|openai/gi.test(blog.aiModel)
   const isClaude = /claude/gi.test(blog.aiModel)
-  const { focusKeywords } = blog
+  const { focusKeywords, taskStatus } = blog
 
+  // Derive task-level state
+  const failedTasks = getFailedTasks(taskStatus)
+  const partial = isPartialFailure(blog.status, failedTasks)
+
+  // Pending blogs: show scheduled time
+  const scheduledTime =
+    isRunning && blog.agendaNextRun ? dayjs(blog.agendaNextRun).format("MMM D, h:mm A") : null
+
+  // Border color — partial failure gets amber instead of rose
+  const borderClass = isManualEditor
+    ? "border-slate-400"
+    : blog.status === "failed"
+      ? partial
+        ? "border-orange-400"
+        : "border-rose-500"
+      : blog.status === "complete"
+        ? "border-emerald-500"
+        : "border-amber-500"
+
+  const displayModel = blog.aiModelVer
+    ? blog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    : isGemini
+      ? "Gemini 2.0 Flash"
+      : blog.aiModel || "AI Generated"
+
+  // Retry — keep confirmation popup
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    // close dropdown? it closes automatically when clicking outside or standard dropdown behavior
-    // DaisyUI dropdowns might need manual closing if not using <a> tags.
-    const elem = document.activeElement as HTMLElement
-    if (elem) {
-      elem.blur()
-    }
-
+    const retryReason =
+      failedTasks.length > 0
+        ? ` (Failed: ${failedTasks.map(t => TASK_LABELS[t] ?? t).join(", ")})`
+        : ""
     handlePopup({
       title: "Regenerate Blog",
       description: (
         <span className="my-2">
-          Are you sure you want to retry generating <b>{blog.title}</b>?
+          Are you sure you want to retry generating <b>{blog.title}</b>?{retryReason}
         </span>
       ),
       confirmText: "Yes, Retry",
@@ -130,62 +299,31 @@ const BlogCard: React.FC<BlogCardProps> = ({
 
   const handleArchiveClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const elem = document.activeElement as HTMLElement
-    if (elem) {
-      elem.blur()
-    }
-    handlePopup({
-      title: "Move to Trash",
-      description: (
-        <span className="my-2">
-          <b>{blog.title}</b> will be moved to trash. You can restore it later.
-        </span>
-      ),
-      confirmText: "Delete",
-      onConfirm: () => onArchive?.(blog._id),
-      confirmProps: {
-        type: "text",
-        className: "border-rose-500! bg-rose-100! px-4 text-sm rounded-sm text-rose-600!",
-      },
-    })
+    onArchive?.(blog._id)
   }
 
   const handleRestoreClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const elem = document.activeElement as HTMLElement
-    if (elem) {
-      elem.blur()
-    }
-    if (onRestore) {
-      onRestore(blog._id)
+    onRestore?.(blog._id)
+  }
+
+  const handleCardClick = () => {
+    if (!isRunning) {
+      if (isManualEditor) {
+        onManualBlogClick(blog)
+      } else {
+        onBlogClick(blog)
+      }
     }
   }
 
-  const cardBorderClass = isManualEditor
-    ? "border-slate-400"
-    : statusColors[blog.status] || "border-slate-200"
-
-  const displayModel = blog.aiModelVer
-    ? blog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
-    : isGemini
-      ? "Gemini 2.0 Flash"
-      : blog.aiModel || "AI Generated"
-
   return (
-    <div>
+    <div className="flex flex-col">
       <div
-        className={`group flex flex-col bg-white rounded-xl border-2 ${cardBorderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-[380px] h-full relative overflow-hidden`}
-        onClick={() => {
-          if (!isRunning) {
-            if (isManualEditor) {
-              onManualBlogClick(blog)
-            } else {
-              onBlogClick(blog)
-            }
-          }
-        }}
+        className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-[360px] h-full relative overflow-hidden`}
+        onClick={handleCardClick}
       >
-        {/* Header: Model & Options */}
+        {/* Header: Model + Action Buttons */}
         <div className="flex justify-between items-start mb-5">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110 overflow-hidden">
@@ -199,54 +337,38 @@ const BlogCard: React.FC<BlogCardProps> = ({
                 <Sparkles size={18} className="text-indigo-500" />
               )}
             </div>
-            <div>
-              <span className="text-sm font-black text-slate-700 leading-none">{displayModel}</span>
-            </div>
+            <span className="text-sm font-black text-slate-700 leading-none">{displayModel}</span>
           </div>
 
-          <div className="dropdown dropdown-end" onClick={e => e.stopPropagation()}>
-            <div
-              tabIndex={0}
-              role="button"
-              className="text-slate-400 hover:text-slate-800 hover:bg-slate-100 p-2 rounded-xl transition-all active:scale-95"
-            >
-              <MoreVertical size={18} />
-            </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-1 menu p-2 shadow bg-base-100 border border-gray-300 rounded-box w-40 mt-2"
-            >
-              {blog.status === "failed" && !isTrashcan && (
-                <li>
-                  <button
-                    onClick={handleRetryClick}
-                    className="flex items-center gap-2 font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-100"
-                  >
-                    <RotateCcw size={14} /> Retry
-                  </button>
-                </li>
-              )}
-              {!isTrashcan && onArchive && (
-                <li>
-                  <button
-                    onClick={handleArchiveClick}
-                    className="flex items-center gap-2 font-medium text-slate-600 hover:text-rose-600 hover:bg-red-100"
-                  >
-                    <Trash2 size={14} /> Trash
-                  </button>
-                </li>
-              )}
-              {isTrashcan && onRestore && (
-                <li>
-                  <button
-                    onClick={handleRestoreClick}
-                    className="flex items-center gap-2 font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-100"
-                  >
-                    <ArchiveRestore size={14} /> Restore
-                  </button>
-                </li>
-              )}
-            </ul>
+          {/* Direct action buttons */}
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            {blog.status === "failed" && !isTrashcan && (
+              <button
+                onClick={handleRetryClick}
+                title="Retry generation"
+                className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-95"
+              >
+                <RotateCcw size={16} />
+              </button>
+            )}
+            {!isTrashcan && onArchive && (
+              <button
+                onClick={handleArchiveClick}
+                title="Move to trash"
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+            {isTrashcan && onRestore && (
+              <button
+                onClick={handleRestoreClick}
+                title="Restore blog"
+                className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-95"
+              >
+                <ArchiveRestore size={16} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -263,7 +385,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
           </p>
         </div>
 
-        {/* Tags & Footer Section */}
+        {/* Tags & Footer */}
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-wrap gap-2 flex-1 min-w-0">
@@ -283,8 +405,8 @@ const BlogCard: React.FC<BlogCardProps> = ({
             </div>
           </div>
 
-          {/* Footer - Metrics & Metadata */}
           <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+            {/* Date + Status row */}
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                 <Calendar size={12} strokeWidth={2.5} />
@@ -295,8 +417,26 @@ const BlogCard: React.FC<BlogCardProps> = ({
                 })}
               </div>
 
-              <StatusBadge status={blog.status} />
+              <StatusBadge status={blog.status} taskStatus={taskStatus} />
             </div>
+
+            {/* Scheduled time for pending */}
+            {scheduledTime && (
+              <div className="flex items-center gap-1.5 text-amber-600 text-[10px] font-bold">
+                <Clock size={11} strokeWidth={2.5} />
+                <span>Scheduled: {scheduledTime}</span>
+              </div>
+            )}
+
+            {/* Partial failure hint (non-critical steps failed, content still usable) */}
+            {partial && (
+              <div className="flex items-center gap-1.5 text-orange-500 text-[10px] font-bold">
+                <AlertTriangle size={11} strokeWidth={2.5} />
+                <span>
+                  {failedTasks.map(t => TASK_LABELS[t] ?? t).join(", ")} failed — content intact
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center h-10">
               {hasGSCPermissions ? (
@@ -323,7 +463,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
           </div>
         </div>
 
-        {/* Manual Indicator Overlay */}
+        {/* Manual Mode badge */}
         {isManualEditor && (
           <div className="absolute top-0 right-10">
             <div className="bg-slate-800 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-b-lg shadow-md border-x border-b border-indigo-500/30">

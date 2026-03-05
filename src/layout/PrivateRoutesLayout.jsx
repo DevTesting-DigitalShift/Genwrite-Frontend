@@ -1,20 +1,24 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
-// import ChatBox from "@components/generateBlog/ChatBox"
 import { useState, useEffect } from "react"
-import { RiChatAiLine } from "react-icons/ri"
 import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
+import { useProAction } from "@/hooks/useProAction"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+
+// Routes that needsUpgrade users are allowed to visit freely
+const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
-  // const [chatOpen, setChatOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { user, loading, loadAuthenticatedUser } = useAuthStore()
+  const { needsUpgrade } = useProAction()
+  const { handlePopup } = useConfirmPopup()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
@@ -38,20 +42,36 @@ const PrivateRoutesLayout = () => {
     }
   }, [])
 
-  // Onboarding redirect check - redirect first-time users to onboarding
+  // Onboarding redirect check
   useEffect(() => {
     if (!user || !user._id) return
-
-    // Use user-specific localStorage key to track onboarding completion
     const hasCompletedOnboarding =
       localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
-
-    // Only redirect if user has no lastLogin AND hasn't completed onboarding
-    // Use localStorage as fallback since backend might not update lastLogin immediately
     if (!user.lastLogin && !hasCompletedOnboarding) {
       navigate("/onboarding", { replace: true })
     }
   }, [user, navigate])
+
+  // Intercept ALL navigation for users who haven't picked a plan yet
+  useEffect(() => {
+    if (!needsUpgrade) return
+    if (!user) return
+
+    const currentPath = location.pathname
+    const isAllowed = ALLOWED_ROUTES.some(r => currentPath.startsWith(r))
+    if (isAllowed) return
+
+    // Push them to /pricing and show the modal
+    navigate("/pricing", { replace: true })
+    handlePopup({
+      title: "Choose a Plan to Continue",
+      description:
+        "You don't have an active plan yet. Pick a plan to unlock all features and start creating content.",
+      confirmText: "View Plans",
+      cancelText: "Maybe Later",
+      onConfirm: () => navigate("/pricing"),
+    })
+  }, [location.pathname, needsUpgrade, user])
 
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {

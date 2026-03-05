@@ -18,6 +18,7 @@ import {
 import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
 import { toast } from "sonner"
+import { getFriendlyError } from "@utils/friendlyError"
 
 // Utils
 const saveToken = token => localStorage.setItem("token", token)
@@ -109,7 +110,7 @@ const useAuthStore = create(
             auth_method: "email_password",
             error_msg: err?.message || err?.response?.data?.message || "Login Failed",
           })
-          const errorMsg = err?.response?.data?.message || err.message || "Login failed"
+          const errorMsg = getFriendlyError(err, "login")
           set({ loading: false, error: errorMsg })
           throw err
         }
@@ -139,7 +140,7 @@ const useAuthStore = create(
             auth_method: "email_password",
             error_msg: err?.message || err?.response?.data?.message || "Signup Failed",
           })
-          const errorMsg = err?.response?.data?.message || err.message || "Signup failed"
+          const errorMsg = getFriendlyError(err, "signup")
           set({ loading: false, error: errorMsg })
           throw err
         }
@@ -175,7 +176,7 @@ const useAuthStore = create(
             auth_method: "google_oauth",
             error_msg: error?.message || error?.response?.data?.message || "Google Login Failed",
           })
-          const errorMsg = error?.response?.data?.message || error.message || "Google Login Failed"
+          const errorMsg = getFriendlyError(error, "google")
           set({ loading: false, error: errorMsg })
           throw error
         }
@@ -198,15 +199,9 @@ const useAuthStore = create(
             throw new Error("Failed to load user")
           }
         } catch (err) {
-          // If load fails (e.g. invalid token), clear auth
+          // Token invalid/expired — clear auth silently, no error state needed
           removeToken()
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            loading: false,
-            error: err.message,
-          })
+          set({ user: null, token: null, isAuthenticated: false, loading: false, error: null })
           throw err
         }
       },
@@ -229,7 +224,7 @@ const useAuthStore = create(
           set({ loading: false, forgotMessage: data })
           return data
         } catch (err) {
-          const errorMsg = err.response?.data?.error || "Failed to send reset link"
+          const errorMsg = getFriendlyError(err, "general")
           set({ loading: false, error: errorMsg })
           throw err
         }
@@ -242,7 +237,7 @@ const useAuthStore = create(
           set({ loading: false, resetMessage: data.message })
           return data.message
         } catch (err) {
-          const errorMsg = err.response?.data?.error || "Failed to reset password"
+          const errorMsg = getFriendlyError(err, "general")
           set({ loading: false, error: errorMsg })
           throw err
         }
@@ -276,9 +271,8 @@ const useAuthStore = create(
           set({ loading: false })
           return updatedNotifications
         } catch (error) {
-          const errorMsg = error.response?.data?.message || "Failed to mark notifications as read."
-          toast.error(errorMsg)
-          set({ loading: false, error: errorMsg })
+          toast.error("Failed to update notification status. Please try again.")
+          set({ loading: false, error: "Failed to mark notifications as read." })
           throw error
         }
       },
