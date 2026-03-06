@@ -24,6 +24,7 @@ import {
   Coins,
   Minus,
   X,
+  Crown,
 } from "lucide-react"
 import { Calendar } from "@components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
@@ -39,6 +40,7 @@ import {
   generateReferralCodeAPI,
   getEmailPreferencesAPI,
   updateEmailPreferencesAPI,
+  getSubscriptionStatusAPI,
 } from "@api/userApi"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
@@ -87,6 +89,7 @@ const Profile = () => {
     newFeatureUpdates: false,
     accountAlerts: false,
   })
+  const [subscriptionDetails, setSubscriptionDetails] = useState(null)
 
   useEffect(() => {
     loadAuthenticatedUser()
@@ -120,13 +123,15 @@ const Profile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, prefsRes] = await Promise.all([
+        const [statsRes, prefsRes, subRes] = await Promise.all([
           getReferralStatsAPI(),
           getEmailPreferencesAPI(),
+          getSubscriptionStatusAPI(),
         ])
         setReferralStats(statsRes)
         if (prefsRes.emailPreference)
           setEmailPreferences(prev => ({ ...prev, ...prefsRes.emailPreference }))
+        if (subRes) setSubscriptionDetails(subRes)
       } catch (error) {
         console.error(error)
       }
@@ -539,6 +544,75 @@ const Profile = () => {
                 onChange={c => handleEmailPreferenceChange("newFeatureUpdates", c)}
               />
             </div>
+          </motion.div>
+
+          {/* Subscription Status Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6 lg:col-span-2"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                   <Crown size={24} />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-semibold text-slate-900">Subscription Status</h3>
+                   <p className="text-slate-500 text-sm">Manage your plan and billing cycle.</p>
+                 </div>
+               </div>
+               <a href="/transactions" className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none self-start sm:self-auto font-semibold">
+                 Manage Billing
+               </a>
+            </div>
+
+            {subscriptionDetails ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-2">
+                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <p className="text-sm font-semibold text-slate-500">Current Plan</p>
+                   <p className="text-lg font-bold text-slate-800 capitalize">
+                     {subscriptionDetails.subscription?.plan || "Free"}
+                   </p>
+                </div>
+                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <p className="text-sm font-semibold text-slate-500">Status</p>
+                   <p className="text-lg font-bold text-slate-800 capitalize">
+                     {subscriptionDetails.subscription?.status?.replace(/_/g, " ") || "Unpaid"}
+                   </p>
+                </div>
+                {subscriptionDetails.subscription?.renewalDate && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                     <p className="text-sm font-semibold text-slate-500">Renewal Date</p>
+                     <p className="text-lg font-bold text-slate-800">
+                       {dayjs(subscriptionDetails.subscription.renewalDate).format("DD MMM YYYY")}
+                     </p>
+                  </div>
+                )}
+                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <p className="text-sm font-semibold text-slate-500">Billing Period</p>
+                   <p className="text-lg font-bold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription?.billingPeriod || "N/A"}
+                   </p>
+                </div>
+                {subscriptionDetails.trial?.hasEverTrialed && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                     <p className="text-sm font-semibold text-slate-500">Trial Usage</p>
+                     <p className="text-lg font-bold text-slate-800">
+                      {subscriptionDetails.trial.isCurrentlyTrialing ? "Currently Active" : "Trial Used"}
+                     </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+               <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-4 py-1">
+                     <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                     <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                  </div>
+               </div>
+            )}
           </motion.div>
         </div>
       </div>
