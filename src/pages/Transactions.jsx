@@ -190,24 +190,58 @@ const Transactions = () => {
               <div className="h-px bg-slate-50 w-full" />
 
               {/* Renewal & Credits Grid */}
+              {/* Renewal / Cancellation Date block */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
+                  <div
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      user?.subscription?.cancelAt
+                        ? "bg-rose-50 text-rose-500"
+                        : "bg-purple-50 text-purple-600"
+                    }`}
+                  >
                     <Calendar size={20} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">
-                      Renews on:
-                    </span>
-                    <p className="text-slate-800 font-bold">
-                      {user?.subscription?.renewalDate
-                        ? new Date(user.subscription.renewalDate).toLocaleDateString("en-GB", {
+                    {user?.subscription?.cancelAt ? (
+                      <>
+                        <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block mb-0.5">
+                          Access ends on:
+                        </span>
+                        <p className="text-slate-800 font-bold">
+                          {new Date(user.subscription.cancelAt).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "long",
                             year: "numeric",
-                          })
-                        : "Free Plan"}
-                    </p>
+                          })}
+                        </p>
+                        {user?.subscription?.canceledAt && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Cancelled on{" "}
+                            {new Date(user.subscription.canceledAt).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">
+                          Renews on:
+                        </span>
+                        <p className="text-slate-800 font-bold">
+                          {user?.subscription?.renewalDate
+                            ? new Date(user.subscription.renewalDate).toLocaleDateString("en-GB", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })
+                            : "Free Plan"}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -236,7 +270,7 @@ const Transactions = () => {
                     onClick={handleManageSubscription}
                     className="flex-1 px-4 bg-white hover:bg-slate-50 text-blue-600 border border-blue-200 rounded-xl h-14 font-bold normal-case text-base transition-all"
                   >
-                    Manage Subscription
+                    Billing & Payments
                   </button>
                 )}
                 <button

@@ -163,7 +163,7 @@ const PricingCard = ({
     if (
       !userSubscription ||
       userPlan === "free" ||
-      !["active", "trialing"].includes(userSubscription.status)
+      !["active", "trialing"].includes(userSubscription.status?.toLowerCase())
     ) {
       onBuy(plan, plan.credits, billingPeriod)
       return

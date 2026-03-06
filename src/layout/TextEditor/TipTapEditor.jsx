@@ -149,15 +149,19 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
-    // Check if content looks like HTML (starts with common tags like <p, <div, <h, <section, <article)
-    // or contains high density of HTML tags vs markdown symbols
     const trimmed = markdown.trim()
+
+    // Detect markdown signals — any one of these means we must parse via marked
+    const hasMarkdownHeading = /^#{1,6}\s+/m.test(trimmed)
+    const hasMarkdownBold = /\*\*/.test(trimmed)
+    const hasMarkdownList = /^(\s*[-*+]|\s*\d+\.)\s+/m.test(trimmed)
+    const hasMarkdownSignal = hasMarkdownHeading || hasMarkdownBold || hasMarkdownList
+
+    // Only treat as pure HTML when content clearly starts with an HTML block tag
+    // AND has no markdown signals (headings, bold, lists) anywhere in it
     const isHtml =
-      /^\s*<(p|div|h[1-6]|section|article|table|ul|ol|blockquote|iframe|figure)/i.test(trimmed) ||
-      (trimmed.includes("<") &&
-        trimmed.includes(">") &&
-        !trimmed.includes("## ") &&
-        !trimmed.includes("**"))
+      !hasMarkdownSignal &&
+      /^\s*<(p|div|h[1-6]|section|article|table|ul|ol|blockquote|iframe|figure)/i.test(trimmed)
 
     const rawHtml = isHtml
       ? markdown
@@ -828,7 +832,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           tableButtonRef.current &&
           createPortal(
             <div
-              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-[9999]"
+              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-9999"
               style={{
                 top: `${tableButtonRef.current.getBoundingClientRect().bottom + 8}px`,
                 left: `${tableButtonRef.current.getBoundingClientRect().left}px`,
@@ -874,7 +878,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               </button>
             </div>
             {tableOptionsOpen && (
-              <div className="absolute left-0 top-full mt-1 z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[180px] flex flex-col gap-0.5">
+              <div className="absolute left-0 top-full mt-1 z-9999 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[180px] flex flex-col gap-0.5">
                 <button
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {

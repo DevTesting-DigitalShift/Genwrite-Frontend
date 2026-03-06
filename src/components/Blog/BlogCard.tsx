@@ -63,7 +63,6 @@ interface BlogCardProps {
   onRetry: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
-  handlePopup: (config: Record<string, any>) => void
   hasGSCPermissions?: boolean
   isTrashcan?: boolean
 }
@@ -231,7 +230,6 @@ const BlogCard: React.FC<BlogCardProps> = ({
   onRetry,
   onArchive,
   onRestore,
-  handlePopup,
   hasGSCPermissions = false,
   isTrashcan = false,
 }) => {
@@ -259,14 +257,14 @@ const BlogCard: React.FC<BlogCardProps> = ({
 
   // Border color — partial failure gets amber instead of rose
   const borderClass = isManualEditor
-    ? "border-slate-400"
+    ? "border-slate-300"
     : blog.status === "failed"
       ? partial
-        ? "border-orange-400"
-        : "border-rose-500"
+        ? "border-orange-300"
+        : "border-rose-300"
       : blog.status === "complete"
         ? "border-emerald-500"
-        : "border-amber-500"
+        : "border-amber-400"
 
   const displayModel = blog.aiModelVer
     ? blog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
@@ -277,24 +275,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
   // Retry — keep confirmation popup
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const retryReason =
-      failedTasks.length > 0
-        ? ` (Failed: ${failedTasks.map(t => TASK_LABELS[t] ?? t).join(", ")})`
-        : ""
-    handlePopup({
-      title: "Regenerate Blog",
-      description: (
-        <span className="my-2">
-          Are you sure you want to retry generating <b>{blog.title}</b>?{retryReason}
-        </span>
-      ),
-      confirmText: "Yes, Retry",
-      onConfirm: () => onRetry(blog._id),
-      confirmProps: {
-        type: "text",
-        className: "border-emerald-500! bg-emerald-100! px-4 text-sm rounded-sm text-emerald-600!",
-      },
-    })
+    onRetry(blog._id)
   }
 
   const handleArchiveClick = (e: React.MouseEvent) => {

@@ -16,11 +16,34 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Tag as TagIcon,
+  Hash,
+  Globe,
+  Cpu,
+  Image,
+  Calendar,
+  Clock,
+  FileText,
+  Layers,
+  Settings2,
+  Bot,
+  Megaphone,
+  BookOpen,
+  Link2,
+  Youtube,
+  BarChart2,
+  AlignLeft,
+  Repeat,
+  CheckCircle2,
+  XCircle,
+  Send,
+  Shield,
 } from "lucide-react"
 import { getJobs, startJob, stopJob, deleteJob } from "@api/jobApi"
 import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
+
 import {
   useJobsQuery,
   useToggleJobStatusMutation,
@@ -37,6 +60,252 @@ import { getSocket } from "@utils/socket"
 import { toast } from "sonner"
 
 const PAGE_SIZE = 12
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+const SectionLabel = ({ children }) => (
+  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.12em] mb-2 flex items-center gap-1">
+    {children}
+  </p>
+)
+
+const Pill = ({ on, label }) => (
+  <span
+    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+      on
+        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+        : "bg-slate-50 text-slate-400 border-slate-200 line-through opacity-60"
+    }`}
+  >
+    {on ? <CheckCircle2 size={9} /> : <XCircle size={9} />}
+    {label}
+  </span>
+)
+
+const Tag = ({ children, color = "slate" }) => {
+  const colors = {
+    slate: "bg-slate-100 text-slate-600 border-slate-200",
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    rose: "bg-rose-50 text-rose-700 border-rose-200",
+    purple: "bg-purple-50 text-purple-700 border-purple-200",
+    sky: "bg-sky-50 text-sky-700 border-sky-200",
+  }
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-md text-[10px] font-medium border whitespace-nowrap ${colors[color]}`}
+    >
+      {children}
+    </span>
+  )
+}
+
+const TagList = ({ items, color }) => {
+  if (!items?.length) return <span className="text-slate-300 text-[11px] italic">None</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item, i) => (
+        <Tag key={i} color={color}>{item}</Tag>
+      ))}
+    </div>
+  )
+}
+
+const KV = ({ label, value, valueClass = "text-slate-700" }) => (
+  <div className="flex justify-between items-start gap-3 text-[11px]">
+    <span className="text-slate-400 shrink-0">{label}</span>
+    <span className={`font-semibold text-right capitalize ${valueClass}`}>{value ?? "—"}</span>
+  </div>
+)
+
+const JobExpandedPanel = ({ job }) => {
+  const blogs = job.blogs || {}
+  const options = job.options || {}
+  const schedule = job.schedule || {}
+
+  const OPTION_MAP = [
+    { key: "wordpressPosting", label: "WordPress", icon: Globe },
+    { key: "includeFaqs", label: "FAQs", icon: BookOpen },
+    { key: "includeCompetitorResearch", label: "Competitor Research", icon: BarChart2 },
+    { key: "includeInterlinks", label: "Interlinks", icon: Link2 },
+    { key: "performKeywordResearch", label: "Keyword Research", icon: Hash },
+    { key: "includeTableOfContents", label: "Table of Contents", icon: AlignLeft },
+    { key: "addOutBoundLinks", label: "Outbound Links", icon: Link2 },
+    { key: "embedYouTubeVideos", label: "YouTube Embed", icon: Youtube },
+    { key: "easyToUnderstand", label: "Easy Language", icon: BookOpen },
+  ]
+
+  const scheduleDays =
+    schedule.type === "weekly" && schedule.daysOfWeek?.length
+      ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
+      : schedule.type === "monthly" && schedule.daysOfMonth?.length
+      ? schedule.daysOfMonth.join(", ")
+      : null
+
+  const postingTypeLabel = {
+    WORDPRESS: "WordPress",
+    SERVERENDPOINT: "Server Endpoint",
+    MANUAL: "Manual",
+  }[blogs.postingType] || blogs.postingType || "—"
+
+  const imageSrcLabel = {
+    stock: "Stock Photos",
+    ai: "AI Generated",
+    custom: "Custom Upload",
+    none: "No Images",
+  }[blogs.imageSource] || blogs.imageSource || "—"
+
+  return (
+    <div className="mx-4 mb-4 mt-1 rounded-2xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+      {/* ── Top accent bar ── */}
+      <div className="h-1 w-full bg-linear-to-r from-indigo-400 via-blue-400 to-purple-400" />
+
+      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+
+        {/* ── Col 1: Topics & Keywords ── */}
+        <div className="space-y-4">
+          <div>
+            <SectionLabel><TagIcon size={9} />Topics</SectionLabel>
+            <TagList items={blogs.topics} color="indigo" />
+          </div>
+          <div>
+            <SectionLabel><Hash size={9} />Keywords</SectionLabel>
+            <TagList items={blogs.keywords} color="sky" />
+          </div>
+          <div>
+            <SectionLabel><Layers size={9} />Templates</SectionLabel>
+            <TagList items={blogs.templates} color="amber" />
+          </div>
+        </div>
+
+        {/* ── Col 2: Blog Config ── */}
+        <div className="space-y-1.5">
+          <SectionLabel><Settings2 size={9} />Blog Config</SectionLabel>
+          <KV label="Tone" value={blogs.tone} />
+          <KV label="Length" value={blogs.userDefinedLength ? `${blogs.userDefinedLength.toLocaleString()} words` : "—"} />
+          <KV label="Language" value={blogs.languageToWrite} />
+          <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
+          <KV label="Blogs / Run" value={blogs.numberOfBlogs} />
+          <KV label="Images" value={imageSrcLabel} />
+          {blogs.numberOfImages > 0 && <KV label="Image Count" value={blogs.numberOfImages} />}
+          <KV
+            label="Cost Cutter"
+            value={blogs.costCutter ? "✓ On" : "Off"}
+            valueClass={blogs.costCutter ? "text-emerald-600" : "text-slate-400"}
+          />
+          <KV
+            label="Add CTA"
+            value={blogs.addCTA ? "✓ Yes" : "No"}
+            valueClass={blogs.addCTA ? "text-blue-600" : "text-slate-400"}
+          />
+        </div>
+
+        {/* ── Col 3: Schedule & Posting ── */}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <SectionLabel><Calendar size={9} />Schedule</SectionLabel>
+            <KV label="Type" value={schedule.type} />
+            {scheduleDays && <KV label="Days" value={scheduleDays} />}
+            {schedule.customDates?.length > 0 && (
+              <div>
+                <p className="text-[10px] text-slate-400 mb-1">Custom Dates</p>
+                <TagList items={schedule.customDates.map(d => new Date(d).toLocaleDateString())} color="slate" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <SectionLabel><Send size={9} />Posting</SectionLabel>
+            <KV label="Method" value={postingTypeLabel} />
+          </div>
+
+          <div className="space-y-1.5">
+            <SectionLabel><FileText size={9} />Metadata</SectionLabel>
+            <KV
+              label="Created"
+              value={new Date(job.createdAt).toLocaleDateString(undefined, {
+                month: "short", day: "numeric", year: "numeric",
+              })}
+            />
+            <KV
+              label="Last Run"
+              value={
+                job.lastRun
+                  ? new Date(job.lastRun).toLocaleDateString(undefined, {
+                      month: "short", day: "numeric",
+                    })
+                  : "Never"
+              }
+            />
+            <KV label="Blogs Made" value={job.createdBlogs?.length ?? 0} />
+            <KV label="ID" value={`#${job._id?.slice(-8)}`} />
+          </div>
+        </div>
+
+        {/* ── Col 4: Brand & AI ── */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <SectionLabel><Megaphone size={9} />Brand Voice</SectionLabel>
+            <div
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold ${
+                blogs.useBrandVoice
+                  ? "bg-purple-50 border-purple-200 text-purple-700"
+                  : "bg-slate-50 border-slate-200 text-slate-400"
+              }`}
+            >
+              {blogs.useBrandVoice ? (
+                <><Shield size={13} className="text-purple-500" /> Brand Voice Active</>
+              ) : (
+                <><XCircle size={13} /> No Brand Voice</>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <SectionLabel><Bot size={9} />AI Settings</SectionLabel>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-slate-50 border-slate-200">
+              <Cpu size={13} className="text-indigo-500" />
+              <span className="text-[11px] font-bold text-slate-700">
+                {blogs.aiModel?.toUpperCase() || "GEMINI"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-slate-50 border-slate-200">
+              <Globe size={13} className="text-sky-500" />
+              <span className="text-[11px] font-semibold text-slate-600">
+                {blogs.languageToWrite || "English"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <SectionLabel><Image size={9} />Image Config</SectionLabel>
+            <KV label="Source" value={imageSrcLabel} />
+            <KV
+              label="AI Images"
+              value={blogs.isCheckedGeneratedImages ? "✓ Yes" : "No"}
+              valueClass={blogs.isCheckedGeneratedImages ? "text-emerald-600" : "text-slate-400"}
+            />
+            <KV
+              label="Custom Images"
+              value={blogs.isCheckedCustomImages ? "✓ Yes" : "No"}
+              valueClass={blogs.isCheckedCustomImages ? "text-emerald-600" : "text-slate-400"}
+            />
+          </div>
+        </div>
+
+        {/* ── Col 5: Advanced Options ── */}
+        <div>
+          <SectionLabel><Zap size={9} />Advanced Options</SectionLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {OPTION_MAP.map(({ key, label }) => (
+              <Pill key={key} on={!!options[key]} label={label} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
   const [expandedRows, setExpandedRows] = useState(new Set())
@@ -49,26 +318,8 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     })
   }
 
-  const getTrueOptions = options => {
-    if (!options) return []
-    const mapping = {
-      wordpressPosting: "WordPress Posting",
-      includeFaqs: "FAQs",
-      includeCompetitorResearch: "Competitor Research",
-      includeInterlinks: "Interlinks",
-      performKeywordResearch: "Keyword Research",
-      includeTableOfContents: "Table of Contents",
-      addOutBoundLinks: "Outbound Links",
-      embedYouTubeVideos: "YouTube Embed",
-      easyToUnderstand: "Easy Language",
-    }
-    return Object.entries(options)
-      .filter(([key, value]) => value === true && mapping[key])
-      .map(([key]) => mapping[key])
-  }
-
-  const renderTags = (arr, limit = 3) => {
-    if (!arr || arr.length === 0) return <span className="text-slate-300 text-xs">—</span>
+  const renderTags = (arr, limit = 2) => {
+    if (!arr?.length) return <span className="text-slate-300 text-xs">—</span>
     const display = arr.slice(0, limit)
     const remaining = arr.length - limit
     return (
@@ -76,13 +327,13 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
         {display.map((item, i) => (
           <span
             key={i}
-            className="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-md text-[10px] font-medium border border-slate-100 whitespace-nowrap"
+            className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-medium border border-indigo-100 whitespace-nowrap"
           >
             {item}
           </span>
         ))}
         {remaining > 0 && (
-          <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">
+          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
             +{remaining}
           </span>
         )}
@@ -111,58 +362,50 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-100 overflow-hidden">
-      {/* Horizontal scroll wrapper */}
-      <div className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
         <table className="w-full text-left border-collapse min-w-[860px]">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200">
-              {/* expand col */}
               <th className="w-10 px-3 py-4" />
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Job
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Last Run
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Schedule
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Topics
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                AI / Lang
-              </th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                Actions
-              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Job</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Last Run</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Schedule</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Topics</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">AI / Lang</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {data.map(job => {
               const isExpanded = expandedRows.has(job._id)
-              const trueOptions = getTrueOptions(job.options)
+              const schedule = job.schedule || {}
+              const scheduleDayStr =
+                schedule.type === "weekly" && schedule.daysOfWeek?.length
+                  ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
+                  : null
 
               return (
                 <>
-                  {/* ─── Main row ─────────────────────────────── */}
+                  {/* ─── Main row ─── */}
                   <tr
                     key={job._id}
-                    className={`transition-colors group ${isExpanded ? "bg-indigo-50/40" : "hover:bg-slate-50/60"}`}
+                    className={`transition-colors group border-b border-slate-100 ${
+                      isExpanded ? "bg-indigo-50/30" : "hover:bg-slate-50/60"
+                    }`}
                   >
                     {/* Expand toggle */}
                     <td className="pl-3 py-4">
                       <button
                         onClick={() => toggleExpand(job._id)}
                         className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-                        title={isExpanded ? "Collapse details" : "Expand details"}
+                        title={isExpanded ? "Collapse" : "Expand all details"}
                       >
                         <ChevronRight
                           size={14}
-                          className={`transition-transform duration-200 ${isExpanded ? "rotate-90 text-indigo-500" : ""}`}
+                          className={`transition-transform duration-200 ${
+                            isExpanded ? "rotate-90 text-indigo-500" : ""
+                          }`}
                         />
                       </button>
                     </td>
@@ -170,11 +413,17 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* Job name */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            job.status === "active"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-indigo-50 text-indigo-500"
+                          }`}
+                        >
                           <Briefcase size={16} />
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 text-sm capitalize">
+                          <div className="font-bold text-slate-900 text-sm capitalize leading-tight">
                             {job.name}
                           </div>
                           <div className="text-[10px] text-slate-400 font-mono mt-0.5">
@@ -184,7 +433,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                       </div>
                     </td>
 
-                    {/* Status toggle */}
+                    {/* Status */}
                     <td className="px-5 py-4">
                       <button
                         onClick={() => onToggleStatus(job)}
@@ -195,7 +444,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                             : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
                         }`}
                       >
-                        {job.status === "active" ? "Running" : "Paused"}
+                        {job.status === "active" ? "▶ Running" : "⏸ Paused"}
                       </button>
                     </td>
 
@@ -206,11 +455,13 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     <td className="px-5 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-slate-700 capitalize">
-                          {job.schedule?.type || "Manual"}
+                          {schedule.type || "Manual"}
                         </span>
-                        <span className="text-[11px] text-slate-400">
-                          {job.blogs?.numberOfBlogs}{" "}
-                          {job.blogs?.numberOfBlogs === 1 ? "blog" : "blogs"}/run
+                        {scheduleDayStr && (
+                          <span className="text-[10px] text-slate-400">{scheduleDayStr}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400">
+                          {job.blogs?.numberOfBlogs} blog{job.blogs?.numberOfBlogs !== 1 ? "s" : ""}/run
                         </span>
                       </div>
                     </td>
@@ -221,7 +472,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* AI / Lang */}
                     <td className="px-5 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 w-fit">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit">
                           {job.blogs?.aiModel?.toUpperCase() || "GEMINI"}
                         </span>
                         <span className="text-[11px] text-slate-400 pl-0.5">
@@ -236,14 +487,14 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                         <button
                           onClick={() => onEdit(job)}
                           className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Edit Job"
+                          title="Edit"
                         >
                           <Pencil size={15} />
                         </button>
                         <button
                           onClick={() => onDelete(job)}
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Delete Job"
+                          title="Delete"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -251,116 +502,11 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     </td>
                   </tr>
 
-                  {/* ─── Expanded detail row ───────────────────── */}
+                  {/* ─── Expanded detail panel ─── */}
                   {isExpanded && (
                     <tr key={`${job._id}-detail`}>
-                      <td colSpan={8} className="bg-indigo-50/30 border-b border-indigo-100 p-5">
-                        <div className="ml-10 grid grid-cols-2 md:grid-cols-4 gap-4 bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
-                          {/* Blog Config */}
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                              Blog Config
-                            </p>
-                            <div className="space-y-1.5">
-                              {[
-                                ["Tone", job.blogs?.tone || "—"],
-                                [
-                                  "Length",
-                                  `${job.blogs?.userDefinedLength?.toLocaleString()} words`,
-                                ],
-                                ["Images", job.blogs?.imageSource || "none"],
-                                ["Posting", job.blogs?.postingType || "—"],
-                                [
-                                  "Cost Cutter",
-                                  job.blogs?.costCutter ? "✓ On" : "Off",
-                                  job.blogs?.costCutter ? "text-emerald-600" : "text-slate-400",
-                                ],
-                                [
-                                  "Brand Voice",
-                                  job.blogs?.useBrandVoice ? "✓ Active" : "Off",
-                                  job.blogs?.useBrandVoice ? "text-purple-600" : "text-slate-400",
-                                ],
-                              ].map(([label, val, valClass = "text-slate-700"]) => (
-                                <div key={label} className="flex justify-between text-xs gap-2">
-                                  <span className="text-slate-400 shrink-0">{label}</span>
-                                  <span
-                                    className={`font-semibold capitalize text-right ${valClass}`}
-                                  >
-                                    {val}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Keywords & Templates */}
-                          <div className="space-y-3">
-                            <div>
-                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">
-                                Keywords
-                              </p>
-                              {renderTags(job.blogs?.keywords, 5)}
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">
-                                Templates
-                              </p>
-                              {renderTags(job.blogs?.templates, 5)}
-                            </div>
-                          </div>
-
-                          {/* Active Options */}
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                              Active Options
-                            </p>
-                            {trueOptions.length > 0 ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {trueOptions.map((opt, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-semibold border border-indigo-100"
-                                  >
-                                    {opt}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-400 italic">
-                                No special options
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Metadata */}
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                              Metadata
-                            </p>
-                            <div className="space-y-1.5">
-                              {[
-                                [
-                                  "Created",
-                                  new Date(job.createdAt).toLocaleDateString(undefined, {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "2-digit",
-                                  }),
-                                ],
-                                ["Blogs Created", job.createdBlogs?.length || 0],
-                                ["Language", job.blogs?.languageToWrite || "English"],
-                                ["Schedule", job.schedule?.type || "Manual"],
-                              ].map(([label, val]) => (
-                                <div key={label} className="flex justify-between text-xs gap-2">
-                                  <span className="text-slate-400 shrink-0">{label}</span>
-                                  <span className="font-semibold text-slate-700 text-right capitalize">
-                                    {val}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                      <td colSpan={8} className="bg-slate-50/60 p-0 border-b border-indigo-100">
+                        <JobExpandedPanel job={job} />
                       </td>
                     </tr>
                   )}
@@ -392,6 +538,7 @@ const Jobs = () => {
   const { mutate: deleteMutate, isPending: isDeleting } = useDeleteJobMutation()
 
   const user = useAuthStore(state => state.user)
+  const updateUserPartial = useAuthStore(state => state.updateUserPartial)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
@@ -413,21 +560,30 @@ const Jobs = () => {
       ) {
         toast.error("Job Stopped: Insufficient Credits")
       }
-      queryClient.invalidateQueries({ queryKey: ["jobs", user.id] })
+      // Fix: queryKey must match useJobsQuery's key ["jobs"], not ["jobs", user.id]
+      queryClient.invalidateQueries({ queryKey: ["jobs"] })
+    }
+
+    const handleUsageUpdate = data => {
+      if (data?.usage) {
+        updateUserPartial({ usage: data.usage })
+      }
     }
 
     socket.on("job:statusChanged", data => handleJobChange(data, "statusChanged"))
     socket.on("job:updated", data => handleJobChange(data, "updated"))
     socket.on("job:created", data => handleJobChange(data, "created"))
     socket.on("job:deleted", data => handleJobChange(data, "deleted"))
+    socket.on("user:usage", handleUsageUpdate)
 
     return () => {
       socket.off("job:statusChanged")
       socket.off("job:updated")
       socket.off("job:created")
       socket.off("job:deleted")
+      socket.off("user:usage", handleUsageUpdate)
     }
-  }, [queryClient, user, navigate])
+  }, [queryClient, user, navigate, updateUserPartial])
 
   useEffect(() => {
     if (!user) {
