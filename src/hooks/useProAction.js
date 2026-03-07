@@ -15,9 +15,11 @@ export const useProAction = () => {
     user?.subscription?.status === "unpaid" &&
     totalCredits == 0
 
-  // New user who hasn't opted into a trial yet — must go to pricing
+  // New user who hasn't opted into a trial yet, failed payment, or is clearly on a free plan — must go to pricing
   const needsUpgrade =
-    user?.subscription?.plan === "free" && user?.subscription?.trialOpted === false
+    user?.trialOpted === false ||
+    user?.subscription?.status === "unpaid" ||
+    user?.subscription?.plan === "free"
 
   const handleProAction = (callback, options = {}) => {
     if (showTrialMessage) {

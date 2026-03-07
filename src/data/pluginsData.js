@@ -99,4 +99,33 @@ export const pluginsData = pingFn => [
       success: true,
     }),
   },
+  {
+    id: 115,
+    pluginName: "Sanity CMS Integration",
+    name: "Sanity CMS",
+    pluginImage: "/Images/sanity.png",
+    description: "Connect your Sanity CMS project to GenWrite for automatic blog publishing.",
+    version: "1.0.0",
+    updatedDate: "Mar 2026",
+    downloadLink: "#",
+    isVisible: true,
+    icon: FaServer,
+    message: "Push AI-generated blogs directly to your Sanity CMS using a Write Token.",
+    onCheck: async () => {
+      try {
+        const result = await pingFn("SANITY")
+        return {
+          status: result.status || "success",
+          message: result.message || "Sanity connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Sanity Connection Error",
+          success: false,
+        }
+      }
+    },
+  },
 ]

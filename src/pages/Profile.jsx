@@ -265,9 +265,6 @@ const Profile = () => {
                   profileData.personalDetails.name?.[0] || <User size={48} />
                 )}
               </div>
-              <button className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg border border-slate-100 text-slate-500 hover:text-blue-600 transition-colors">
-                <Camera size={18} />
-              </button>
             </div>
 
             {/* Profile Info Section */}

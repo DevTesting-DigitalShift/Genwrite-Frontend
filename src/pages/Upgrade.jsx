@@ -46,9 +46,6 @@ const PricingCard = ({
   // Calculate credit price based on currency
   const calculateCustomPrice = () => {
     const usdPrice = customCredits * 0.01
-    if (currency === "INR") {
-      return Math.ceil(usdPrice * CREDIT_CONVERSION_RATE)
-    }
     return usdPrice.toFixed(2)
   }
 
@@ -279,8 +276,7 @@ const PricingCard = ({
                 <div className="text-right">
                   {customCredits >= 500 ? (
                     <div className={`${styles.price} text-2xl font-bold`}>
-                      {currency === "INR" ? "₹" : "$"}
-                      {calculateCustomPrice()}
+                      ${calculateCustomPrice()}
                     </div>
                   ) : (
                     <div className="text-red-500 text-sm font-medium">Min 500 credits</div>
@@ -309,12 +305,8 @@ const PricingCard = ({
                     <span className="text-sm font-se text-gray-500">
                       Billed{" "}
                       {currency === "INR"
-                        ? `₹${Math.round(
-                            plan[
-                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] * (billingPeriod === "annual" ? 12 : 1)
-                          )}`
-                        : `$${(displayPrice * (billingPeriod === "annual" ? 12 : 1)).toFixed(2)}`}
+                        ? `₹${billingPeriod === "annual" ? Math.round(plan.annualPrice) : Math.round(plan.priceMonthlyINR)}`
+                        : `$${billingPeriod === "annual" ? Number(plan.annualPrice).toFixed(2) : Number(displayPrice).toFixed(2)}`}
                       {billingPeriod === "annual" ? " annually" : " monthly"}
                     </span>
                   </div>
@@ -416,6 +408,7 @@ const PricingCard = ({
 
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
+  const [apiPlans, setApiPlans] = useState([])
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
@@ -424,6 +417,9 @@ const Upgrade = () => {
   const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
   const CONVERSION_RATE = 90 // USD to INR conversion rate
+
+  const countryMapping = { INR: "IN", USD: "US" }
+  const countryToSend = countryMapping[currency] || "US"
 
   // Auto-set currency based on user's country
   useEffect(() => {
@@ -435,25 +431,74 @@ const Upgrade = () => {
   }, [user?.countryCode])
 
   useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await axiosInstance.get('/user/plans', { params: { country: countryToSend } })
+        if (response.data && response.data.data) {
+          setApiPlans(response.data.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch plans", error)
+      }
+    }
+    fetchPlans()
+  }, [countryToSend])
+
+  useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
   }, [])
 
   const getPlans = (billingPeriod, userPlan) => {
     const isProUser = userPlan === "pro"
+
+    // Helper to find plan in API
+    const getApiPlan = (tier, freq) => {
+      return apiPlans.find(
+        (p) => p.tier === tier && (p.frequency === freq || (tier === "credits" && p.type === "credit_purchase"))
+      )
+    }
+
+    const basicMonthly = getApiPlan("basic", "month")
+    const basicAnnual = getApiPlan("basic", "year")
+    const proMonthly = getApiPlan("pro", "month")
+    const proAnnual = getApiPlan("pro", "year")
+    const creditsPlan = getApiPlan("credits", "one-time") || getApiPlan("credits", "month")
+
+    const getPrice = (plan, fallbackUSD, fallbackINR) => {
+      if (plan) return plan.price
+      return currency === "INR" ? fallbackINR : fallbackUSD
+    }
+
+    const getCredits = (plan, fallback) => {
+      if (plan) return plan.credits
+      return fallback
+    }
+
+    const basicPriceMonthlyRaw = getPrice(basicMonthly, 20, 1799)
+    const basicPriceAnnualRaw = getPrice(basicAnnual, 199, 1499 * 12)
+    const proPriceMonthlyRaw = getPrice(proMonthly, 50, 4499)
+    const proPriceAnnualRaw = getPrice(proAnnual, 499, 3749 * 12)
+
+    const basicPriceMonthly = basicPriceMonthlyRaw
+    const basicPriceAnnual = Number((basicPriceAnnualRaw / 12).toFixed(1))
+    
+    const proPriceMonthly = proPriceMonthlyRaw
+    const proPriceAnnual = Number((proPriceAnnualRaw / 12).toFixed(1))
+
     return [
       {
         name: "GenWrite Basic",
         eventName: "Basic_" + billingPeriod + "_clicks",
-        priceMonthly: 20,
-        priceAnnual: 16.66,
-        priceMonthlyINR: 1799,
-        priceAnnualINR: 1499,
-        annualPrice: 199,
-        credits: 1000,
+        priceMonthly: basicPriceMonthly,
+        priceAnnual: basicPriceAnnual,
+        priceMonthlyINR: basicPriceMonthly,
+        priceAnnualINR: basicPriceAnnual,
+        annualPrice: basicPriceAnnualRaw,
+        credits: billingPeriod === "annual" ? getCredits(basicAnnual, 12000) : getCredits(basicMonthly, 1000),
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
-          billingPeriod === "annual" ? "12,000 annual credits" : "1,000 monthly credits",
+          billingPeriod === "annual" ? `${getCredits(basicAnnual, 12000).toLocaleString()} annual credits` : `${getCredits(basicMonthly, 1000).toLocaleString()} monthly credits`,
           "Blog generation: single, quick, multiple",
           "upto 10 blog of 1000-words",
           "Keyword research",
@@ -469,20 +514,21 @@ const Upgrade = () => {
         icon: <Zap className="w-8 h-8" />,
         tier: "basic",
         featured: false,
+        slug: billingPeriod === "annual" ? basicAnnual?.slug : basicMonthly?.slug
       },
       {
         name: "GenWrite Pro",
         eventName: "Pro_" + billingPeriod + "_clicks",
-        priceMonthly: 50,
-        priceAnnual: 41.58,
-        priceMonthlyINR: 4499,
-        priceAnnualINR: 3749,
-        annualPrice: 499,
-        credits: 4500,
+        priceMonthly: proPriceMonthly,
+        priceAnnual: proPriceAnnual,
+        priceMonthlyINR: proPriceMonthly,
+        priceAnnualINR: proPriceAnnual,
+        annualPrice: proPriceAnnualRaw,
+        credits: billingPeriod === "annual" ? getCredits(proAnnual, 54000) : getCredits(proMonthly, 4500),
         description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, additionally:",
-          billingPeriod === "annual" ? "54,000 annual credits" : "4,500 monthly credits",
+          billingPeriod === "annual" ? `${getCredits(proAnnual, 54000).toLocaleString()} annual credits` : `${getCredits(proMonthly, 4500).toLocaleString()} monthly credits`,
           "upto 45 blog of 1000-words",
           "Competitor analysis",
           "Retry blog",
@@ -502,6 +548,7 @@ const Upgrade = () => {
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",
         featured: !isProUser && userPlan !== "enterprise",
+        slug: billingPeriod === "annual" ? proAnnual?.slug : proMonthly?.slug
       },
       {
         name: "GenWrite Enterprise",
@@ -524,6 +571,7 @@ const Upgrade = () => {
         icon: <Crown className="w-8 h-8" />,
         tier: "enterprise",
         featured: isProUser || userPlan === "basic",
+        slug: "enterprise"
       },
       {
         name: "Credit Pack",
@@ -550,6 +598,7 @@ const Upgrade = () => {
         icon: <Coins className="w-8 h-8" />,
         tier: "credits",
         featured: false,
+        slug: creditsPlan?.slug
       },
     ]
   }
@@ -564,10 +613,6 @@ const Upgrade = () => {
     }
     return null
   }
-
-  const countryMapping = { INR: "IN", USD: "US" }
-
-  const countryToSend = countryMapping[currency] || "US"
 
   const handleManageSubscription = () => {
     navigate("/transactions")
@@ -595,13 +640,15 @@ const Upgrade = () => {
       const frequency = billingPeriod.toLowerCase() // 'monthly' or 'annual'
       const countryCode = countryToSend.toLowerCase() // 'us' or 'in'
 
-      let planSlug = ""
+      let planSlug = plan.slug || ""
 
-      if (plan.type === "credit_purchase") {
-        // For credits, we rely on the backend's credit purchase fallback or a base slug
-        planSlug = "get-credits" // Using a generic slug; backend logic handles (!targetPlan && credits)
-      } else {
-        planSlug = `${tier}-${frequency}-${countryCode}`
+      if (!planSlug) {
+        if (plan.type === "credit_purchase") {
+          // For credits, we rely on the backend's credit purchase fallback or a base slug
+          planSlug = "get-credits" // Using a generic slug; backend logic handles (!targetPlan && credits)
+        } else {
+          planSlug = `${tier}-${frequency}-${countryCode}`
+        }
       }
 
       // 2. Prepare Payload

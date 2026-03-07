@@ -81,12 +81,37 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       return
     }
 
-    const { from, to } = editor.state.selection
+    let { from, to } = editor.state.selection
 
-    // Extract HTML content from selection using TipTap's DOMSerializer
-    const selectedFragment = editor.state.doc.slice(from, to)
+    // Expand selection to encompass full block nodes (e.g., heading or paragraph)
+    // so we can read and capture exact block metadata (h1, h2, bold, etc)
+    const $from = editor.state.doc.resolve(from)
+    const $to = editor.state.doc.resolve(to)
 
-    // Create a temporary div to serialize the fragment
+    let expandFrom = from
+    let expandTo = to
+
+    for (let d = $from.depth; d > 0; d--) {
+      if ($from.node(d).isBlock) {
+        expandFrom = $from.before(d)
+        break
+      }
+    }
+
+    for (let d = $to.depth; d > 0; d--) {
+      if ($to.node(d).isBlock) {
+        expandTo = $to.after(d)
+        break
+      }
+    }
+
+    // Save this expanded range so when AI completes, we cleanly replace the whole block structure
+    setSelectionRange({ from: expandFrom, to: expandTo })
+
+    // Extract HTML content comprehensively from TipTap
+    const selectedFragment = editor.state.doc.slice(expandFrom, expandTo)
+
+    // Create a temporary div to serialize exactly
     const tempDiv = document.createElement("div")
     const serializer = DOMSerializer.fromSchema(editor.schema)
 
@@ -101,7 +126,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       return
     }
 
-    // Convert HTML to Markdown before sending to API
+    // Map exact heading & style formats down to precise markdown for API payload 
     const turndownService = new TurndownService({
       headingStyle: "atx",
       bulletListMarker: "-",

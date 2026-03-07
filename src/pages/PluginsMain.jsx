@@ -100,16 +100,35 @@ const PluginsMain = () => {
   const PluginTabContent = ({ plugin }) => {
     const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [integrations])
     const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [integrations])
+    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [integrations])
 
     // States for inputs
     const [url, setUrl] = useState(
-      plugin.id === 112 ? serverInt?.url || "" : wordpressInt?.url || ""
+      plugin.id === 112
+        ? serverInt?.url || ""
+        : plugin.id === 115
+          ? sanityInt?.url || ""
+          : wordpressInt?.url || ""
     )
-    const [frontend, setFrontend] = useState(serverInt?.frontend || "")
-    const [authToken, setAuthToken] = useState(serverInt?.data ? "*".repeat(10) : "")
-    const [isValidUrl, setIsValidUrl] = useState(!!(plugin.id === 112 ? serverInt : wordpressInt))
-    const [isValidFrontend, setIsValidFrontend] = useState(!!serverInt)
-    const [isEditing, setIsEditing] = useState(plugin.id === 112 ? !serverInt : !wordpressInt)
+    const [frontend, setFrontend] = useState(
+      plugin.id === 115 ? sanityInt?.frontend || "" : serverInt?.frontend || ""
+    )
+    const [authToken, setAuthToken] = useState(
+      (plugin.id === 112 && serverInt?.data) || (plugin.id === 115 && sanityInt?.credentials?.token)
+        ? "*".repeat(10)
+        : ""
+    )
+    const [projectId, setProjectId] = useState(sanityInt?.credentials?.projectId || "")
+
+    const [isValidUrl, setIsValidUrl] = useState(
+      !!(plugin.id === 112 ? serverInt : plugin.id === 115 ? sanityInt : wordpressInt)
+    )
+    const [isValidFrontend, setIsValidFrontend] = useState(
+      plugin.id === 115 ? !!sanityInt : !!serverInt
+    )
+    const [isEditing, setIsEditing] = useState(
+      plugin.id === 112 ? !serverInt : plugin.id === 115 ? !sanityInt : !wordpressInt
+    )
     const [localLoading, setLocalLoading] = useState(false)
 
     // WordPress credentials
@@ -126,6 +145,14 @@ const PluginsMain = () => {
         setIsValidUrl(true)
         setIsValidFrontend(true)
         setIsEditing(false)
+      } else if (plugin.id === 115 && sanityInt) {
+        setUrl(sanityInt.url)
+        setFrontend(sanityInt.frontend || "")
+        setProjectId(sanityInt.credentials?.projectId || "")
+        setAuthToken("*".repeat(10))
+        setIsValidUrl(true)
+        setIsValidFrontend(true)
+        setIsEditing(false)
       } else if (plugin.id === 111 && wordpressInt) {
         setUrl(wordpressInt.url)
         setWpUsername("**********")
@@ -134,7 +161,7 @@ const PluginsMain = () => {
         setIsEditing(false)
         setHasCredentials(true)
       }
-    }, [wordpressInt, serverInt, plugin.id])
+    }, [wordpressInt, serverInt, sanityInt, plugin.id])
 
     useEffect(() => {
       if (integrations && !hasPinged && !sessionStorage.getItem("hasPinged")) {
@@ -157,6 +184,7 @@ const PluginsMain = () => {
 
     const handleConnect = async () => {
       if (plugin.id === 112 && (!isValidUrl || !isValidFrontend || !authToken)) return
+      if (plugin.id === 115 && (!url || !projectId || !authToken)) return
       if (plugin.id === 111 && !isValidUrl) return
       setLocalLoading(true)
       try {
@@ -168,6 +196,13 @@ const PluginsMain = () => {
             return
           }
           payload = { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
+        } else if (plugin.id === 115) {
+          if (authToken === "*".repeat(10)) {
+            toast.error("Re-enter token to update")
+            setLocalLoading(false)
+            return
+          }
+          payload = { type: "SANITY", url, frontend, credentials: { token: authToken, projectId } }
         } else {
           if (wpUsername === "**********" || wpPassword === "**********") {
             toast.error("Re-enter credentials to update")
@@ -195,7 +230,8 @@ const PluginsMain = () => {
       if (loading || localLoading) return
       setLocalLoading(true)
       try {
-        const type = plugin.id === 112 ? "SERVERENDPOINT" : "WORDPRESS"
+        const type =
+          plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
         const result = await pingIntegration(type)
         setWordpressStatus(prev => ({
           ...prev,
@@ -396,7 +432,11 @@ const PluginsMain = () => {
             <div className="space-y-5">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  {plugin.id === 112 ? "Endpoint URL" : "WordPress URL"}
+                  {plugin.id === 115
+                    ? "Sanity API URL"
+                    : plugin.id === 112
+                      ? "Endpoint URL"
+                      : "WordPress URL"}
                 </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
@@ -410,7 +450,20 @@ const PluginsMain = () => {
                 </div>
               </div>
 
-              {plugin.id === 112 && (
+              {plugin.id === 115 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Sanity Project ID</label>
+                  <input
+                    type="text"
+                    value={projectId}
+                    onChange={e => setProjectId(e.target.value)}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )}
+
+              {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Frontend Interface</label>
                   <input
@@ -425,13 +478,15 @@ const PluginsMain = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  {plugin.id === 112 ? "Authentication Token" : "Username"}
+                  {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                 </label>
                 <input
-                  type={plugin.id === 112 ? "password" : "text"}
-                  value={plugin.id === 112 ? authToken : wpUsername}
+                  type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
+                  value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
                   onChange={e =>
-                    plugin.id === 112 ? setAuthToken(e.target.value) : setWpUsername(e.target.value)
+                    plugin.id === 112 || plugin.id === 115
+                      ? setAuthToken(e.target.value)
+                      : setWpUsername(e.target.value)
                   }
                   disabled={!isEditing}
                   onFocus={e => isEditing && (e.target.value = "")}
@@ -580,7 +635,7 @@ const PluginsMain = () => {
 const PluginHeader = ({ plugin }) => (
   <div className="flex items-start gap-6">
     <div className="w-20 h-20 shrink-0">
-      <img src={plugin.pluginImage} alt={plugin.name} className="w-full h-full object-contain" />
+      <img src={plugin.pluginImage} alt={plugin.name} className="w-full h-full object-contain rounded-md" />
     </div>
     <div className="space-y-1">
       <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>
