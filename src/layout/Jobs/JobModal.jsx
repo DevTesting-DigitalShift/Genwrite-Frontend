@@ -75,7 +75,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         keywords: [],
         keywordInput: "",
         performKeywordResearch: false,
-        postingType: "WORDPRESS",
+        postingType: null,
         aiModel: "gemini",
       })
       setCurrentStep(1)
@@ -207,7 +207,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       keywords: [],
       keywordInput: "",
       performKeywordResearch: false,
-      postingType: "WORDPRESS",
+      postingType: null,
       aiModel: "gemini",
     })
     setCurrentStep(1)

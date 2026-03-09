@@ -119,6 +119,10 @@ const PluginsMain = () => {
         : ""
     )
     const [projectId, setProjectId] = useState(sanityInt?.credentials?.projectId || "")
+    const [dataset, setDataset] = useState(sanityInt?.credentials?.dataset || "production")
+    const [apiVersion, setApiVersion] = useState(sanityInt?.credentials?.apiVersion || "2024-01-01")
+    const [documentType, setDocumentType] = useState(sanityInt?.credentials?.documentType || "post")
+    const [blogRoute, setBlogRoute] = useState(sanityInt?.credentials?.blogRoute || "/blog/:slug")
 
     const [isValidUrl, setIsValidUrl] = useState(
       !!(plugin.id === 112 ? serverInt : plugin.id === 115 ? sanityInt : wordpressInt)
@@ -149,6 +153,10 @@ const PluginsMain = () => {
         setUrl(sanityInt.url)
         setFrontend(sanityInt.frontend || "")
         setProjectId(sanityInt.credentials?.projectId || "")
+        setDataset(sanityInt.credentials?.dataset || "production")
+        setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
+        setDocumentType(sanityInt.credentials?.documentType || "post")
+        setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
         setAuthToken("*".repeat(10))
         setIsValidUrl(true)
         setIsValidFrontend(true)
@@ -202,7 +210,12 @@ const PluginsMain = () => {
             setLocalLoading(false)
             return
           }
-          payload = { type: "SANITY", url, frontend, credentials: { token: authToken, projectId } }
+          payload = { 
+            type: "SANITY", 
+            url: `https://${projectId}.api.sanity.io`, 
+            frontend, 
+            credentials: { token: authToken, projectId, dataset, apiVersion, documentType, blogRoute } 
+          }
         } else {
           if (wpUsername === "**********" || wpPassword === "**********") {
             toast.error("Re-enter credentials to update")
@@ -430,42 +443,29 @@ const PluginsMain = () => {
             </div>
 
             <div className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  {plugin.id === 115
-                    ? "Sanity API URL"
-                    : plugin.id === 112
+              {plugin.id !== 115 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    {plugin.id === 112
                       ? "Endpoint URL"
                       : "WordPress URL"}
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                  <input
-                    value={url}
-                    onChange={handleUrlChange}
-                    disabled={!isEditing}
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    placeholder="https://your-site.com"
-                  />
-                </div>
-              </div>
-
-              {plugin.id === 115 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Sanity Project ID</label>
-                  <input
-                    type="text"
-                    value={projectId}
-                    onChange={e => setProjectId(e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                    <input
+                      value={url}
+                      onChange={handleUrlChange}
+                      disabled={!isEditing}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="https://your-site.com"
+                    />
+                  </div>
                 </div>
               )}
 
               {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Frontend Interface</label>
+                  <label className="text-sm font-medium text-gray-700">Frontend URL</label>
                   <input
                     value={frontend}
                     onChange={e => setFrontend(e.target.value)}
@@ -476,10 +476,93 @@ const PluginsMain = () => {
                 </div>
               )}
 
+              {plugin.id === 115 && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Sanity Project ID</label>
+                    <input
+                      type="text"
+                      value={projectId}
+                      onChange={e => setProjectId(e.target.value)}
+                      disabled={!isEditing}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Sanity Data Set</label>
+                      <input
+                        type="text"
+                        value={dataset}
+                        onChange={e => setDataset(e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder="production"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">API Version</label>
+                      <input
+                        type="text"
+                        value={apiVersion}
+                        onChange={e => setApiVersion(e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder="2024-01-01"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Document Type</label>
+                    <input
+                      type="text"
+                      value={documentType}
+                      onChange={e => setDocumentType(e.target.value)}
+                      disabled={!isEditing}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="post"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Blog Route</label>
+                    <select
+                      value={blogRoute}
+                      onChange={e => setBlogRoute(e.target.value)}
+                      disabled={!isEditing}
+                      className="select select-bordered w-full bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed font-normal"
+                    >
+                      <option value="/blog/:slug">/blog/:slug</option>
+                      <option value="/blogs/:slug">/blogs/:slug</option>
+                      <option value="/article/:slug">/article/:slug</option>
+                      <option value="/articles/:slug">/articles/:slug</option>
+                      <option value="/news/:slug">/news/:slug</option>
+                      <option value="/:slug">/:slug</option>
+                      <option value="/:yyyy/:mm/:dd/:slug">/:yyyy/:mm/:dd/:slug</option>
+                    </select>
+                    {frontend && blogRoute && (
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <Globe size={12} /> Live URL preview: <span className="text-blue-600 font-medium">{frontend.replace(/\/$/, '')}{blogRoute.replace(':slug', 'my-post').replace(':yyyy', '2026').replace(':mm', '03').replace(':dd', '07')}</span>
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
-                </label>
+                <div className="flex justify-between items-end">
+                  <label className="text-sm font-medium text-gray-700">
+                    {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
+                  </label>
+                  {plugin.id === 115 && (
+                    <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                      <AlertCircle size={12} /> Must have editor level access
+                    </span>
+                  )}
+                </div>
                 <input
                   type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
                   value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}

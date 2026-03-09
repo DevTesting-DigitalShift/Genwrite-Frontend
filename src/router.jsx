@@ -46,6 +46,7 @@ const CompetitorLikeBlog = lazy(() => import("@pages/CompetitorLikeBlog"))
 const WebsiteRanking = lazy(() => import("@pages/WebsiteRanking"))
 const PerformanceMonitoring = lazy(() => import("@pages/PerformanceMonitoring"))
 const CompetitiveAnalysis = lazy(() => import("@pages/CompetitiveAnalysis"))
+const KeywordResearch = lazy(() => import("@pages/KeywordResearch"))
 
 const RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
 
@@ -127,6 +128,7 @@ const router = createBrowserRouter([
           { path: "website-ranking", element: r(WebsiteRanking) },
           { path: "performance-monitoring", element: r(PerformanceMonitoring) },
           { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
+          { path: "keyword-research", element: r(KeywordResearch) },
         ],
       },
     ],

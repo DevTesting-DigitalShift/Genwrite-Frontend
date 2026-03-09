@@ -43,11 +43,10 @@ const StepContent = ({
   })
 
   useEffect(() => {
-    if (integrations?.integrations?.size) {
-      setFormData(prev => ({ ...prev, postingType: integrations.integrations.key().next().value }))
-    } else if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
-      // fallback for normal object
-      setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      if (!formData.postingType) {
+        setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+      }
     }
   }, [integrations])
 
@@ -302,6 +301,14 @@ const StepContent = ({
       }
     }
     setNewJob(prev => ({ ...prev, options: { ...prev.options, [name]: checked } }))
+    if (name === "wordpressPosting") {
+      setFormData(prev => ({
+        ...prev,
+        postingType: checked
+          ? prev.postingType || Object.keys(integrations?.integrations || {})[0]
+          : null,
+      }))
+    }
     if (name === "performKeywordResearch") {
       setFormData(prev => ({ ...prev, performKeywordResearch: checked }))
       setErrors(prev => ({ ...prev, keywords: false })) // Clear keyword error if enabling research

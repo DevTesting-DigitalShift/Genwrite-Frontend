@@ -16,6 +16,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Tag as TagIcon,
   Hash,
   Globe,
@@ -63,7 +65,7 @@ const PAGE_SIZE = 12
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 const SectionLabel = ({ children }) => (
-  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.12em] mb-2 flex items-center gap-1">
+  <p className="text-[10px] font-bold text-[#1B6FC9] uppercase tracking-wider mb-2 flex items-center gap-1">
     {children}
   </p>
 )
@@ -105,8 +107,54 @@ const TagList = ({ items, color }) => {
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((item, i) => (
-        <Tag key={i} color={color}>{item}</Tag>
+        <Tag key={i} color={color}>
+          {item}
+        </Tag>
       ))}
+    </div>
+  )
+}
+
+const ExpandableTagList = ({ items, color, limit = 10 }) => {
+  const [expanded, setExpanded] = useState(false)
+  if (!items?.length) return <span className="text-slate-300 text-[11px] italic">No data</span>
+
+  const displayItems = expanded ? items : items.slice(0, limit)
+  const hasMore = items.length > limit
+
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      {displayItems.map((item, i) => (
+        <span
+          key={i}
+          className={`px-3 py-1 rounded-xl text-[11px] font-bold border transition-all shadow-xs ${
+            color === "indigo"
+              ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+              : "bg-sky-50 text-sky-600 border-sky-100"
+          }`}
+        >
+          {item}
+        </span>
+      ))}
+      {hasMore && (
+        <button
+          onClick={e => {
+            e.stopPropagation()
+            setExpanded(!expanded)
+          }}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-white text-slate-500 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-xs"
+        >
+          {expanded ? (
+            <>
+              Show Less <ChevronUp size={12} />
+            </>
+          ) : (
+            <>
+              +{items.length - limit} more <ChevronDown size={12} />
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }
@@ -139,167 +187,180 @@ const JobExpandedPanel = ({ job }) => {
     schedule.type === "weekly" && schedule.daysOfWeek?.length
       ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
       : schedule.type === "monthly" && schedule.daysOfMonth?.length
-      ? schedule.daysOfMonth.join(", ")
-      : null
+        ? schedule.daysOfMonth.join(", ")
+        : null
 
-  const postingTypeLabel = {
-    WORDPRESS: "WordPress",
-    SERVERENDPOINT: "Server Endpoint",
-    MANUAL: "Manual",
-  }[blogs.postingType] || blogs.postingType || "—"
+  const postingTypeLabel =
+    { WORDPRESS: "WordPress", SERVERENDPOINT: "Server Endpoint", MANUAL: "Manual" }[
+      blogs.postingType
+    ] ||
+    blogs.postingType ||
+    "—"
 
-  const imageSrcLabel = {
-    stock: "Stock Photos",
-    ai: "AI Generated",
-    custom: "Custom Upload",
-    none: "No Images",
-  }[blogs.imageSource] || blogs.imageSource || "—"
+  const imageSrcLabel =
+    { stock: "Stock Photos", ai: "AI Generated", custom: "Custom Upload", none: "No Images" }[
+      blogs.imageSource
+    ] ||
+    blogs.imageSource ||
+    "—"
 
   return (
-    <div className="mx-4 mb-4 mt-1 rounded-2xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+    <div className="mx-4 mb-6 mt-2 rounded-[24px] border border-indigo-100 bg-white shadow-xl shadow-slate-200/40 overflow-hidden">
       {/* ── Top accent bar ── */}
-      <div className="h-1 w-full bg-linear-to-r from-indigo-400 via-blue-400 to-purple-400" />
+      <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 via-blue-500 to-purple-500" />
 
-      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
-
-        {/* ── Col 1: Topics & Keywords ── */}
-        <div className="space-y-4">
-          <div>
-            <SectionLabel><TagIcon size={9} />Topics</SectionLabel>
-            <TagList items={blogs.topics} color="indigo" />
+      {/* ── Row 1: Topics & Keywords (Full Width 50/50) ── */}
+      <div className="p-6 bg-slate-50/40 border-b border-indigo-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="space-y-3">
+            <SectionLabel>
+              <TagIcon size={10} className="text-indigo-500" />
+              Automation Topics
+            </SectionLabel>
+            <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
           </div>
-          <div>
-            <SectionLabel><Hash size={9} />Keywords</SectionLabel>
-            <TagList items={blogs.keywords} color="sky" />
-          </div>
-          <div>
-            <SectionLabel><Layers size={9} />Templates</SectionLabel>
-            <TagList items={blogs.templates} color="amber" />
+          <div className="space-y-3">
+            <SectionLabel>
+              <Hash size={10} className="text-sky-500" />
+              Target Keywords
+            </SectionLabel>
+            <ExpandableTagList items={blogs.keywords} color="sky" limit={6} />
           </div>
         </div>
+      </div>
 
-        {/* ── Col 2: Blog Config ── */}
-        <div className="space-y-1.5">
-          <SectionLabel><Settings2 size={9} />Blog Config</SectionLabel>
-          <KV label="Tone" value={blogs.tone} />
-          <KV label="Length" value={blogs.userDefinedLength ? `${blogs.userDefinedLength.toLocaleString()} words` : "—"} />
-          <KV label="Language" value={blogs.languageToWrite} />
-          <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
-          <KV label="Blogs / Run" value={blogs.numberOfBlogs} />
-          <KV label="Images" value={imageSrcLabel} />
-          {blogs.numberOfImages > 0 && <KV label="Image Count" value={blogs.numberOfImages} />}
-          <KV
-            label="Cost Cutter"
-            value={blogs.costCutter ? "✓ On" : "Off"}
-            valueClass={blogs.costCutter ? "text-emerald-600" : "text-slate-400"}
-          />
-          <KV
-            label="Add CTA"
-            value={blogs.addCTA ? "✓ Yes" : "No"}
-            valueClass={blogs.addCTA ? "text-blue-600" : "text-slate-400"}
-          />
-        </div>
-
-        {/* ── Col 3: Schedule & Posting ── */}
+      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* ── Col 1: Blog Specification ── */}
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <SectionLabel><Calendar size={9} />Schedule</SectionLabel>
-            <KV label="Type" value={schedule.type} />
-            {scheduleDays && <KV label="Days" value={scheduleDays} />}
-            {schedule.customDates?.length > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-400 mb-1">Custom Dates</p>
-                <TagList items={schedule.customDates.map(d => new Date(d).toLocaleDateString())} color="slate" />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <SectionLabel><Send size={9} />Posting</SectionLabel>
-            <KV label="Method" value={postingTypeLabel} />
-          </div>
-
-          <div className="space-y-1.5">
-            <SectionLabel><FileText size={9} />Metadata</SectionLabel>
+            <SectionLabel>
+              <Layers size={10} />
+              Structure & Style
+            </SectionLabel>
+            <div className="mb-3">
+              <p className="text-[10px] text-slate-400 mb-1 font-bold">Templates</p>
+              <TagList items={blogs.templates} color="amber" />
+            </div>
+            <KV label="Voice Tone" value={blogs.tone} />
             <KV
-              label="Created"
-              value={new Date(job.createdAt).toLocaleDateString(undefined, {
-                month: "short", day: "numeric", year: "numeric",
-              })}
+              label="Article Length"
+              value={
+                blogs.userDefinedLength ? `${blogs.userDefinedLength.toLocaleString()} words` : "Auto"
+              }
+            />
+            <KV label="Language" value={blogs.languageToWrite} />
+            <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
+          </div>
+
+          <div className="space-y-1.5 pt-2 border-t border-slate-50">
+            <KV
+              label="Cost Cutter"
+              value={blogs.costCutter ? "Optimized" : "Disabled"}
+              valueClass={blogs.costCutter ? "text-emerald-600 font-bold" : "text-slate-400"}
             />
             <KV
-              label="Last Run"
+              label="Post CTA"
+              value={blogs.addCTA ? "Enabled" : "Disabled"}
+              valueClass={blogs.addCTA ? "text-indigo-600 font-bold" : "text-slate-400"}
+            />
+          </div>
+        </div>
+
+        {/* ── Col 2: Deployment & Results ── */}
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <SectionLabel>
+              <Calendar size={10} />
+              Schedule & Run
+            </SectionLabel>
+            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 space-y-1.5">
+              <KV label="Type" value={schedule.type || "Manual"} valueClass="text-slate-900 font-bold" />
+              {scheduleDays && <KV label="Active On" value={scheduleDays} />}
+              <KV label="Volume" value={`${blogs.numberOfBlogs} Blogs / Run`} />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 pt-2">
+            <SectionLabel>
+              <FileText size={10} />
+              Stats & Logs
+            </SectionLabel>
+            <KV
+              label="Last Activity"
               value={
                 job.lastRun
                   ? new Date(job.lastRun).toLocaleDateString(undefined, {
-                      month: "short", day: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
                     })
                   : "Never"
               }
             />
-            <KV label="Blogs Made" value={job.createdBlogs?.length ?? 0} />
-            <KV label="ID" value={`#${job._id?.slice(-8)}`} />
+            <KV label="Total Generated" value={`${job.createdBlogs?.length ?? 0} Blogs`} valueClass="text-slate-900 font-bold" />
+            <KV label="Internal ID" value={`#${job._id?.slice(-8)}`} valueClass="font-mono text-[9px]" />
           </div>
         </div>
 
-        {/* ── Col 4: Brand & AI ── */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <SectionLabel><Megaphone size={9} />Brand Voice</SectionLabel>
+        {/* ── Col 3: Enhancement ── */}
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <SectionLabel>
+              <Megaphone size={10} />
+              Brand Assets
+            </SectionLabel>
             <div
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
                 blogs.useBrandVoice
                   ? "bg-purple-50 border-purple-200 text-purple-700"
-                  : "bg-slate-50 border-slate-200 text-slate-400"
+                  : "bg-slate-50 border-slate-100 text-slate-400"
               }`}
             >
-              {blogs.useBrandVoice ? (
-                <><Shield size={13} className="text-purple-500" /> Brand Voice Active</>
+              <Shield size={14} className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"} />
+              {blogs.useBrandVoice ? "Brand Voice Identity Active" : "No Brand Voice Applied"}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <SectionLabel>
+              <Image size={10} />
+              Imagery Config
+            </SectionLabel>
+            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 space-y-1.5">
+              <KV label="Primary Source" value={imageSrcLabel} />
+              {blogs.isCheckedGeneratedImages ? (
+                <KV label="AI Generation" value="Active" valueClass="text-emerald-600 font-bold" />
               ) : (
-                <><XCircle size={13} /> No Brand Voice</>
+                <KV label="AI Generation" value="Disabled" valueClass="text-slate-400" />
               )}
             </div>
           </div>
-
-          <div className="space-y-2">
-            <SectionLabel><Bot size={9} />AI Settings</SectionLabel>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-slate-50 border-slate-200">
-              <Cpu size={13} className="text-indigo-500" />
-              <span className="text-[11px] font-bold text-slate-700">
-                {blogs.aiModel?.toUpperCase() || "GEMINI"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-slate-50 border-slate-200">
-              <Globe size={13} className="text-sky-500" />
-              <span className="text-[11px] font-semibold text-slate-600">
-                {blogs.languageToWrite || "English"}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <SectionLabel><Image size={9} />Image Config</SectionLabel>
-            <KV label="Source" value={imageSrcLabel} />
-            <KV
-              label="AI Images"
-              value={blogs.isCheckedGeneratedImages ? "✓ Yes" : "No"}
-              valueClass={blogs.isCheckedGeneratedImages ? "text-emerald-600" : "text-slate-400"}
-            />
-            <KV
-              label="Custom Images"
-              value={blogs.isCheckedCustomImages ? "✓ Yes" : "No"}
-              valueClass={blogs.isCheckedCustomImages ? "text-emerald-600" : "text-slate-400"}
-            />
-          </div>
         </div>
 
-        {/* ── Col 5: Advanced Options ── */}
+        {/* ── Col 4: Advanced Engine ── */}
         <div>
-          <SectionLabel><Zap size={9} />Advanced Options</SectionLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {OPTION_MAP.map(({ key, label }) => (
-              <Pill key={key} on={!!options[key]} label={label} />
-            ))}
+          <SectionLabel>
+            <Zap size={10} />
+            Advanced Features
+          </SectionLabel>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
+            {OPTION_MAP.map(({ key, label, icon: Icon }) => {
+              const isOn = !!options[key]
+              return (
+                <div
+                  key={key}
+                  className={`flex items-center gap-3 px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all ${
+                    isOn
+                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-700 shadow-xs"
+                      : "bg-slate-50/50 border-slate-100 text-slate-400 opacity-60"
+                  }`}
+                >
+                  <Icon size={12} className={isOn ? "text-emerald-500" : "text-slate-300"} />
+                  <span className="flex-1 truncate">{label}</span>
+                  {isOn && <CheckCircle2 size={10} className="text-emerald-500" />}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -318,7 +379,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     })
   }
 
-  const renderTags = (arr, limit = 2) => {
+  const renderTags = (arr, jobId, limit = 2) => {
     if (!arr?.length) return <span className="text-slate-300 text-xs">—</span>
     const display = arr.slice(0, limit)
     const remaining = arr.length - limit
@@ -333,9 +394,15 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
           </span>
         ))}
         {remaining > 0 && (
-          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
-            +{remaining}
-          </span>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              toggleExpand(jobId)
+            }}
+            className="text-[10px] font-bold text-indigo-600 bg-indigo-100/50 hover:bg-indigo-200/50 px-1.5 py-0.5 rounded-md border border-indigo-200 transition-colors"
+          >
+            +{remaining} more
+          </button>
         )}
       </div>
     )
@@ -367,13 +434,27 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200">
               <th className="w-10 px-3 py-4" />
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Job</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Last Run</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Schedule</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Topics</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">AI / Lang</th>
-              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Job
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Last Run
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Schedule
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Topics
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                AI / Lang
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -461,13 +542,14 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                           <span className="text-[10px] text-slate-400">{scheduleDayStr}</span>
                         )}
                         <span className="text-[10px] text-slate-400">
-                          {job.blogs?.numberOfBlogs} blog{job.blogs?.numberOfBlogs !== 1 ? "s" : ""}/run
+                          {job.blogs?.numberOfBlogs} blog{job.blogs?.numberOfBlogs !== 1 ? "s" : ""}
+                          /run
                         </span>
                       </div>
                     </td>
 
                     {/* Topics */}
-                    <td className="px-5 py-4 max-w-[180px]">{renderTags(job.blogs?.topics, 2)}</td>
+                    <td className="px-5 py-4 max-w-[180px]">{renderTags(job.blogs?.topics, job._id, 2)}</td>
 
                     {/* AI / Lang */}
                     <td className="px-5 py-4">
@@ -542,12 +624,15 @@ const Jobs = () => {
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
+  const totalBlogsGenerated = useMemo(() => {
+    return queryJobs.filter(j => !j.isArchived).reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
+  }, [queryJobs])
 
   const usage = user?.usage?.createdJobs || 0
   const usageLimit = user?.usageLimits?.createdJobs || 0
-  const credits = user?.credits?.base || 0
+  // const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
 
   useEffect(() => {
     const socket = getSocket()
@@ -646,7 +731,7 @@ const Jobs = () => {
   return (
     <>
       <Helmet>
-        <title>Content Agent | GenWrite</title>
+        <title>Content Automation | GenWrite</title>
       </Helmet>
 
       <div className="min-h-screen">
@@ -655,9 +740,9 @@ const Jobs = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Jobs Automation
+                Content Automation
               </h1>
-              <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
+              <p className="text-gray-600 mt-2">Manage your automated content generation pipelines</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -700,42 +785,51 @@ const Jobs = () => {
 
           {/* Stats & Create Banner */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 p-8 rounded-xl border border-slate-200 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl pointer-events-none" />
-
+            <div className="lg:col-span-2 p-8 rounded-2xl border border-slate-200 bg-white relative overflow-hidden group shadow-sm">
               <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-slate-800">Usage Overview</h3>
-                    <p className="text-slate-500 font-bold text-sm">Monthly Subscription Metrics</p>
+                    <h3 className="text-xl font-bold text-slate-800">Account Overview</h3>
+                    <p className="text-slate-500 font-medium text-xs">Capacity & status metrics</p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100 shadow-sm">
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
                     <Briefcase size={20} />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <span className="text-5xl font-black text-slate-900 tracking-tighter">
-                        {usage}
-                      </span>
-                      <span className="text-xl font-bold text-slate-400 ml-2">/ {usageLimit}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-black text-blue-600 tracking-tight">
-                        {usagePercentage}%
-                      </span>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                        Resource Used
-                      </p>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Jobs Used */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jobs Created</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-900">{usage}</span>
+                      <span className="text-sm font-bold text-slate-400">/ {usageLimit}</span>
                     </div>
                   </div>
-                  <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden p-1">
+                  {/* Active */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Status</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl font-black text-emerald-600">{activeJobsCount}</span>
+                    </div>
+                  </div>
+                  {/* Paused */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paused Jobs</p>
+                    <span className="text-3xl font-black text-slate-400">{stoppedJobsCount}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Consumption</span>
+                    <span className={usagePercentage > 90 ? "text-rose-500" : "text-blue-600"}>{usagePercentage}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${usagePercentage}%` }}
-                      className={`h-full rounded-full ${usagePercentage > 90 ? "bg-rose-500" : "bg-blue-600"} shadow-lg shadow-blue-200`}
+                      className={`h-full rounded-full ${usagePercentage > 90 ? "bg-rose-500" : "bg-blue-600"}`}
                     />
                   </div>
                 </div>
@@ -776,36 +870,6 @@ const Jobs = () => {
 
           {/* Job List/Grid Section */}
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Pipelines</h2>
-                <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60 w-fit">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-md shadow-xs border border-slate-200/50">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-700">
-                      {activeJobsCount} Active
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span className="text-xs font-bold text-slate-500">
-                      {stoppedJobsCount} Paused
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group w-72">
-                <input
-                  type="text"
-                  placeholder="Search pipelines..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="input input-bordered w-full h-12 pl-12 rounded-lg border-slate-200 outline-0 font-medium"
-                />
-              </div>
-            </div>
-
             {queryLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[...Array(6)].map((_, i) => (

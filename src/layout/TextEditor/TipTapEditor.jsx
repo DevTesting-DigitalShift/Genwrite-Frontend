@@ -297,7 +297,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               },
             }
           },
-        }).configure({ levels: [1, 2, 3, 4] }),
+        }).configure({ levels: [2] }),
         // Custom Section Node to preserve <section> tags
         Node.create({
           name: "section",
@@ -677,9 +677,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   }, [normalEditor])
 
   const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
+    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 relative z-50">
       <div className="flex gap-1 shrink-0">
-        {[1, 2, 3, 4].map(level => (
+        {[2].map(level => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -692,10 +692,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               }`}
               type="button"
             >
-              {level === 1 && <Heading1 className="w-4 h-4" />}
-              {level === 2 && <Heading2 className="w-4 h-4" />}
-              {level === 3 && <Heading3 className="w-4 h-4" />}
-              {level === 4 && <Heading4 className="w-4 h-4" />}
+              <Heading2 className="w-4 h-4" />
             </button>
           </div>
         ))}
@@ -1013,7 +1010,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       transition={{ duration: 0.4 }}
     >
       {/* Toolbar - Fixed at top */}
-      <div className="sticky top-0 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
+      <div className="sticky top-0 z-20 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
 
       {/* Editor Content - Scrollable */}
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">

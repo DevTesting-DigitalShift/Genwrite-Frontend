@@ -245,6 +245,7 @@ const CompetitiveAnalysis = () => {
   const hasCompetitors = mergedCompetitors.length > 0
   const hasAnalysisResults = !!analysisResults
   const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
+  const hasLinks = (formData.generatedMetadata?.outboundLinks?.length > 0) || (formData.generatedMetadata?.internalLinks?.length > 0)
 
   const CircularProgress = ({ score }) => {
     const radius = 45
@@ -330,52 +331,55 @@ const CompetitiveAnalysis = () => {
     </Accordion>
   )
 
-  const renderLinksSection = (links, title, icon) => (
-    <Card className="border-none shadow-none bg-slate-50/50">
-      <CardHeader className="px-0 pb-4">
-        <div className="flex items-center gap-2">
-          {icon}
-          <CardTitle className="text-lg font-bold text-slate-800">{title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="px-0">
-        <Accordion type="single" collapsible className="space-y-2">
-          {links.map((link, idx) => (
-            <AccordionItem
-              key={idx}
-              value={`link-${idx}`}
-              className="border border-gray-300 rounded-lg px-4 bg-white shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <AccordionTrigger className="hover:no-underline py-4 flex-1 text-left">
-                  <span className="font-medium text-slate-700 pr-4 line-clamp-1">
-                    {cleanMarkdown(link.title)}
-                  </span>
-                </AccordionTrigger>
-                <a
-                  href={link.link || link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline text-sm flex items-center gap-1 shrink-0"
-                  onClick={e => e.stopPropagation()}
-                >
-                  Visit <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <AccordionContent className="pb-4 text-slate-600">
-                <p className="text-sm mb-2">{cleanMarkdown(link.snippet || link.content)}</p>
-                {link.summary && (
-                  <div className="p-3 bg-slate-50 rounded-lg text-xs italic">
-                    {parseSummary(link.summary)}
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </CardContent>
-    </Card>
-  )
+  const renderLinksSection = (links, title, icon) => {
+    if (!links || links.length === 0) return null
+    return (
+      <Card className="border-none shadow-none bg-slate-50/50">
+        <CardHeader className="px-0 pb-4">
+          <div className="flex items-center gap-2">
+            {icon}
+            <CardTitle className="text-lg font-bold text-slate-800">{title}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Accordion type="single" collapsible className="space-y-2">
+            {links.map((link, idx) => (
+              <AccordionItem
+                key={idx}
+                value={`link-${idx}`}
+                className="border border-gray-300 rounded-lg px-4 bg-white shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <AccordionTrigger className="hover:no-underline py-4 flex-1 text-left">
+                    <span className="font-medium text-slate-700 pr-4 line-clamp-1">
+                      {cleanMarkdown(link.title)}
+                    </span>
+                  </AccordionTrigger>
+                  <a
+                    href={link.link || link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline text-sm flex items-center gap-1 shrink-0"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    Visit <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <AccordionContent className="pb-4 text-slate-600">
+                  <p className="text-sm mb-2">{cleanMarkdown(link.snippet || link.content)}</p>
+                  {link.summary && (
+                    <div className="p-3 bg-slate-50 rounded-lg text-xs italic">
+                      {parseSummary(link.summary)}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const renderAnalysisBreakdown = analysisData => {
     if (!analysisData?.analysis) return null
@@ -416,7 +420,7 @@ const CompetitiveAnalysis = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
       <Helmet>
         <title>Competitive Analysis | GenWrite</title>
       </Helmet>
@@ -517,7 +521,7 @@ const CompetitiveAnalysis = () => {
                     {formData.title}
                   </h3>
                   <div
-                    className="max-h-100 overflow-y-auto pr-2 custom-scroll text-sm text-slate-600 prose prose-sm max-w-none"
+                    className="max-h-100 overflow-y-auto pr-2 text-sm text-slate-600 prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: formData.content }}
                   />
                 </CardContent>
@@ -551,8 +555,8 @@ const CompetitiveAnalysis = () => {
 
             {/* Main Analysis Section */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-slate-50 p-1 rounded-xl h-auto mb-8">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full items-center">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 bg-slate-50 p-1 rounded-xl h-auto mb-8">
                   {hasAnalysisResults && (
                     <TabsTrigger
                       value="results"
@@ -577,12 +581,14 @@ const CompetitiveAnalysis = () => {
                       Competitors
                     </TabsTrigger>
                   )}
-                  <TabsTrigger
-                    value="links"
-                    className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                  >
-                    Audit
-                  </TabsTrigger>
+                  {hasLinks && (
+                    <TabsTrigger
+                      value="links"
+                      className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Audit
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 <AnimatePresence mode="wait">
@@ -597,7 +603,7 @@ const CompetitiveAnalysis = () => {
                           <Card className="flex flex-col items-center justify-center p-6 bg-linear-to-b from-blue-50/30 to-white border-blue-50">
                             <CircularProgress score={analysisResults.insights?.blogScore || 0} />
                             <h4 className="mt-4 font-bold text-slate-800">SEO Health</h4>
-                            <p className="text-[10px] text-slate-400 text-center mt-1 uppercase font-bold">
+                            <p className="text-sm text-slate-400 text-center mt-1 font-medium">
                               Compared to web average
                             </p>
                           </Card>
@@ -646,7 +652,7 @@ const CompetitiveAnalysis = () => {
                         <Button
                           onClick={handleSubmit}
                           disabled={isLoading || analysisLoading}
-                          className="px-10 h-14 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-blue-200 transition-all hover:scale-105 active:scale-95"
+                          className="px-10 h-14 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-2xl shadow-xl hover:shadow-blue-200 transition-all hover:scale-105 active:scale-95"
                         >
                           Run Deep Analysis
                         </Button>
@@ -720,7 +726,7 @@ const CompetitiveAnalysis = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isLoading || analysisLoading}
-                className="px-12 h-16 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg text-lg"
+                className="px-8 h-16 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-lg text-lg"
               >
                 {isLoading || analysisLoading ? (
                   <span className="flex items-center gap-3">

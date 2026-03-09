@@ -92,6 +92,14 @@ const BulkBlogModal = ({ closeFnc }) => {
   }, [])
 
   useEffect(() => {
+    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      if (!formData.postingType) {
+        setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+      }
+    }
+  }, [integrations])
+
+  useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
       setFormData(prev => ({
         ...prev,
@@ -359,7 +367,12 @@ const BulkBlogModal = ({ closeFnc }) => {
     setFormData(prev => ({
       ...prev,
       [name]: checked,
-      postingType: name === "wordpressPostStatus" && !checked ? null : prev.postingType,
+      postingType:
+        name === "wordpressPostStatus"
+          ? checked
+            ? prev.postingType || Object.keys(integrations?.integrations || {})[0]
+            : null
+          : prev.postingType,
     }))
     if (name === "performKeywordResearch") {
       setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))

@@ -126,7 +126,7 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
       return
     }
 
-    // Map exact heading & style formats down to precise markdown for API payload 
+    // Map exact heading & style formats down to precise markdown for API payload
     const turndownService = new TurndownService({
       headingStyle: "atx",
       bulletListMarker: "-",

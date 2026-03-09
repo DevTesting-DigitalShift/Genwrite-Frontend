@@ -29,13 +29,6 @@ const PricingCard = ({
   onManage,
 }) => {
   const [customCredits, setCustomCredits] = useState(500)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [pendingPlan, setPendingPlan] = useState(null)
-  const [pendingCredits, setPendingCredits] = useState(0)
-  const [modalType, setModalType] = useState(null)
-  const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
-
-  const tierLevels = { basic: 1, pro: 2, enterprise: 3 }
 
   // USD to INR conversion rate
   const CREDIT_CONVERSION_RATE = 90
@@ -155,74 +148,18 @@ const PricingCard = ({
     }
 
     proceedToBuy(plan)
-    // if (plan.name.toLowerCase().includes("enterprise")) {
-    //   return
-    // }
-
-    // if (
-    //   !userSubscription ||
-    //   userPlan === "free" ||
-    //   !["active", "trialing"].includes(userSubscription.status?.toLowerCase())
-    // ) {
-    //   onBuy(plan, plan.credits, billingPeriod)
-    //   return
-    // }
-
-    // setPendingPlan(plan)
-    // setPendingCredits(plan.credits)
-
-    // const currentTier = tierLevels[userPlan.toLowerCase()]
-    // const newTier = tierLevels[plan.tier]
-    // const startDateStr = userSubscription.renewalDate
-    //   ? new Date(userSubscription.renewalDate).toLocaleDateString()
-    //   : "immediately"
-
-    // let thisModalType = ""
-    // let thisModalMessage = { title: "", body: "" }
-
-    // const isSameTier = plan.tier === userPlan.toLowerCase()
-
-    // if (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual") {
-    //   thisModalType = "same-tier"
-    //   thisModalMessage = {
-    //     title: "Confirm Plan Change",
-    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-    //   }
-    // } else if (isSameTier && userBillingPeriod === "annual" && billingPeriod === "monthly") {
-    //   thisModalType = "downgrade"
-    //   thisModalMessage = {
-    //     title: "Confirm Downgrade",
-    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-    //   }
-    // } else if (!isSameTier && currentTier < newTier) {
-    //   thisModalType = "upgrade"
-    //   thisModalMessage = {
-    //     title: "Confirm Upgrade",
-    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-    //   }
-    // } else {
-    //   thisModalType = "downgrade"
-    //   thisModalMessage = {
-    //     title: "Confirm Downgrade",
-    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-    //   }
-    // }
-
-    // setModalType(thisModalType)
-    // setModalMessage(thisModalMessage)
-    // setShowConfirmModal(true)
   }
 
   const proceedToBuy = planToBuy => {
     if (planToBuy.type === "credit_purchase") {
-      onBuy(planToBuy, pendingCredits, billingPeriod)
+      onBuy(planToBuy, customCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
       window.open(
         `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
         "_blank"
       )
     } else {
-      onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
+      onBuy(planToBuy, planToBuy.credits, billingPeriod)
     }
   }
 
@@ -366,44 +303,6 @@ const PricingCard = ({
           ))}
         </div>
       </div>
-
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="absolute top-10 z-100 flex items-center justify-center bg-black/50 p-4">
-          <div className="modal-box bg-white max-w-sm rounded-[16px] shadow-2xl p-6 relative">
-            <h3 className="font-bold text-lg text-slate-800 mb-2">{modalMessage.title}</h3>
-
-            <div className="py-2 text-slate-700">
-              <p className="mb-2">
-                You already have an active subscription:{" "}
-                <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
-              </p>
-              <p>{modalMessage.body}</p>
-              <p className="text-gray-500 mt-4 text-sm italic">
-                You can manage your plan changes in the Manage Subscription page.
-              </p>
-            </div>
-
-            <div className="modal-action flex justify-end gap-3 mt-4">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="btn btn-outline border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 font-medium px-6 rounded-lg min-h-0 h-10"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false)
-                  onManage()
-                }}
-                className="btn bg-blue-600 border-none hover:bg-blue-700 text-white font-semibold px-6 rounded-lg min-h-0 h-10"
-              >
-                Manage Subscription
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -522,7 +421,9 @@ const Upgrade = () => {
           "Automatic Blog Posting",
           "Basic content analytics",
         ],
-        cta: !user?.subscription?.trialOpted ? "Start today for 1$" : "Get Started",
+        cta: !user?.subscription?.trialOpted 
+          ? (currency === "INR" ? "Start your plan at ₹90" : "Start today for $1") 
+          : "Get Started",
         type: "subscription",
         icon: <Zap className="w-8 h-8" />,
         tier: "basic",
@@ -559,7 +460,9 @@ const Upgrade = () => {
           "AI content suggestions",
           "Advanced content insights",
         ],
-        cta: !user?.subscription?.trialOpted ? "Start today for 1$" : "Upgrade to Pro",
+        cta: !user?.subscription?.trialOpted 
+          ? (currency === "INR" ? "Start your plan at ₹90" : "Start today for $1") 
+          : "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",

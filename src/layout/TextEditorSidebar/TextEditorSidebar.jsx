@@ -374,45 +374,7 @@ const TextEditorSidebar = ({
         })
       }
 
-      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback)
-      // Only runs if no proper <section> tags were found
-      if (sections.length === 0) {
-        // Configure marked to match TipTap's ID generation
-
-        // Convert Markdown to HTML to ensure we catch all headers with generated IDs
-        const html = marked.parse(editorContent)
-        const mdDoc = parser.parseFromString(html, "text/html")
-
-        mdDoc.querySelectorAll("h1, h2, h3").forEach((el, i) => {
-          const id = el.id
-          const title = el.textContent.trim()
-
-          // Extract content preview (next elements until next header)
-          let contentPreview = ""
-          let next = el.nextElementSibling
-          let charCount = 0
-          const MAX_PREVIEW = 120
-
-          while (next && !["H1", "H2", "H3"].includes(next.tagName) && charCount < MAX_PREVIEW) {
-            const text = next.textContent.trim()
-            if (text) {
-              contentPreview += text + " "
-              charCount += text.length
-            }
-            next = next.nextElementSibling
-          }
-
-          if (id) {
-            sections.push({
-              id,
-              title: title || `Heading ${i + 1}`,
-              preview:
-                contentPreview.trim().substring(0, MAX_PREVIEW) +
-                (charCount >= MAX_PREVIEW ? "..." : ""),
-            })
-          }
-        })
-      }
+      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback) has been disabled per request.
 
       setAvailableSections(sections)
 

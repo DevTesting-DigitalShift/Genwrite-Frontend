@@ -19,6 +19,7 @@ import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 import { X } from "lucide-react"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
+import useIntegrationStore from "@store/useIntegrationStore"
 
 interface AdvancedBlogModalProps {
   onSubmit: (data: unknown) => void
@@ -55,6 +56,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     brandId: "" as string,
     languageToWrite: "English" as string,
     costCutter: true as boolean,
+    wordpressPostStatus: false as boolean,
+    postingType: null as string | null,
     options: {
       exactTitle: false as boolean,
       performKeywordResearch: false as boolean,
@@ -83,6 +86,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
+  const { integrations, fetchIntegrations } = useIntegrationStore()
+
+  useEffect(() => {
+    fetchIntegrations()
+  }, [])
+
+  useEffect(() => {
+    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      if (!formData.postingType) {
+        setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+      }
+    }
+  }, [integrations])
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -225,6 +241,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       case 3:
         if (formData.isCheckedBrand && !formData.brandId.trim())
           errors.brandId = "Please select a Brand Voice"
+        if (formData.wordpressPostStatus && !formData.postingType)
+          errors.postingType = "Please select a Publishing Platform"
+        break
     }
     if (Object.keys(errors).length) {
       updateErrors(errors)
@@ -928,6 +947,61 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               }}
               errorText={errors.brandId}
             />
+
+            {/* Automatic Posting */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Automatic Posting</p>
+                  <p className="text-xs text-slate-500">Automatically post to your connected platforms</p>
+                </div>
+                <Switch
+                  checked={formData.wordpressPostStatus}
+                  onCheckedChange={(checked: boolean) => {
+                    const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
+                    if (checked && !hasAnyIntegration) {
+                      toast.error("Please connect your account in plugins.")
+                      return
+                    }
+                    updateFormData({
+                      wordpressPostStatus: checked,
+                      postingType: checked
+                        ? formData.postingType || Object.keys(integrations?.integrations || {})[0]
+                        : null,
+                    })
+                  }}
+                />
+              </div>
+
+              {formData.wordpressPostStatus &&
+                integrations?.integrations &&
+                Object.keys(integrations.integrations).length > 0 && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Publishing Platform
+                    </label>
+                    <select
+                      value={formData.postingType || ""}
+                      onChange={e => updateFormData({ postingType: e.target.value })}
+                      className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none"
+                    >
+                      <option value="" disabled>
+                        Select Platform
+                      </option>
+                      {Object.entries(integrations.integrations).map(([platform]) => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.postingType && (
+                      <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                        {errors.postingType}
+                      </p>
+                    )}
+                  </div>
+                )}
+            </div>
           </div>
         )
       default:

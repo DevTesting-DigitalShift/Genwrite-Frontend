@@ -329,7 +329,7 @@ const MainEditorPage = () => {
       !templateFormData.keywords ||
       templateFormData.keywords.length === 0
 
-    if (isEmpty && !id) navigate("/dashboard")
+    if (isEmpty && !id) navigate("/blogs")
     setShowTemplateModal(false)
   }
 
@@ -360,7 +360,6 @@ const MainEditorPage = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(prev => ({ ...prev, ...newErrors }))
-      toast.error("Please fill all required fields correctly.")
       return
     }
 
@@ -416,93 +415,87 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div
-        className={`flex flex-col max-h-screen overflow-y-hidden ${
-          showTemplateModal ? "blur-sm" : ""
-        }`}
-      >
-        <AnimatePresence>
-          {saveModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={handleRejectSave}
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
-              >
-                <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                      <SparklesIcon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black">AI Suggestions</h3>
-                      <p className="text-blue-100 text-sm opacity-80">
-                        Optimized content recommendation
-                      </p>
-                    </div>
+      <div className="flex flex-col max-h-screen overflow-y-hidden">
+        {saveModalOpen && (
+          <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleRejectSave}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+            >
+              <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <SparklesIcon className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={handleRejectSave}
-                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-8 custom-scroll">
-                  <div className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-600 prose-p:leading-relaxed">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 font-bold hover:underline"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-black text-slate-900">{children}</strong>
-                        ),
-                        p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-                        li: ({ children }) => <li className="mb-2">{children}</li>,
-                      }}
-                    >
-                      {saveContent}
-                    </ReactMarkdown>
+                  <div>
+                    <h3 className="text-xl font-black">AI Suggestions</h3>
+                    <p className="text-blue-100 text-sm opacity-80">
+                      Optimized content recommendation
+                    </p>
                   </div>
                 </div>
+                <button
+                  onClick={handleRejectSave}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
 
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                  <button
-                    onClick={handleRejectSave}
-                    className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
+              <div className="flex-1 overflow-y-auto p-8 custom-scroll">
+                <div className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-600 prose-p:leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-bold hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-black text-slate-900">{children}</strong>
+                      ),
+                      p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                      li: ({ children }) => <li className="mb-2">{children}</li>,
+                    }}
                   >
-                    Discard Changes
-                  </button>
-                  <button
-                    onClick={handleAcceptSave}
-                    className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    Apply Suggestions
-                  </button>
+                    {saveContent}
+                  </ReactMarkdown>
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={handleRejectSave}
+                  className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  onClick={handleAcceptSave}
+                  className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Apply Suggestions
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
@@ -679,18 +672,18 @@ const MainEditorPage = () => {
             )}
           </AnimatePresence>
         </div>
-
-        <TemplateModal
-          closeFnc={handleTemplateModalClose}
-          isOpen={showTemplateModal}
-          handleSubmit={handleSubmit}
-          errors={errors}
-          setErrors={setErrors}
-          formData={templateFormData}
-          setFormData={setTemplateFormData}
-          className="w-full max-w-lg"
-        />
       </div>
+
+      <TemplateModal
+        closeFnc={handleTemplateModalClose}
+        isOpen={showTemplateModal}
+        handleSubmit={handleSubmit}
+        errors={errors}
+        setErrors={setErrors}
+        formData={templateFormData}
+        setFormData={setTemplateFormData}
+        className="w-full max-w-lg"
+      />
     </>
   )
 }

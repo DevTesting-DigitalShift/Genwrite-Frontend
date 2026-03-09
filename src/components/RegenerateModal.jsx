@@ -523,7 +523,22 @@ const RegenerateModal = ({
                     </div>
                     <Switch
                       checked={regenForm.wordpressPostStatus}
-                      onCheckedChange={checked => updateRegenField("wordpressPostStatus", checked)}
+                      onCheckedChange={checked => {
+                        const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
+                        if (checked && !hasIntegrations) {
+                          toast.error("Please connect your account in plugins.")
+                          return
+                        }
+                        updateRegenField("wordpressPostStatus", checked)
+                        if (checked) {
+                          const firstKey = Object.keys(integrations?.integrations || {})[0]
+                          if (firstKey && !regenForm.postingType) {
+                            updateRegenField("postingType", firstKey)
+                          }
+                        } else {
+                          updateRegenField("postingType", null)
+                        }
+                      }}
                       className="data-[state=checked]:bg-[#1B6FC9]"
                     />
                   </div>
@@ -547,16 +562,19 @@ const RegenerateModal = ({
                         Choose Platform
                       </label>
                       <select
-                        className="select outline-0 w-full mb-3"
-                        value={regenForm.postingType}
+                        className="select select-bordered outline-0 w-full mb-3"
+                        value={regenForm.postingType || ""}
                         onChange={e => updateRegenField("postingType", e.target.value)}
                       >
-                        <option disabled selected>
+                        <option value="" disabled>
                           Select Platform
                         </option>
-                        <option value="WORDPRESS">WORDPRESS</option>
-                        <option value="SERVERENDPOINT">SERVERENDPOINT</option>
-                        <option value="SHOPIFY">SHOPIFY</option>
+                        {integrations?.integrations &&
+                          Object.keys(integrations.integrations).map(platform => (
+                            <option key={platform} value={platform}>
+                              {platform}
+                            </option>
+                          ))}
                       </select>
                     </div>
                   )}

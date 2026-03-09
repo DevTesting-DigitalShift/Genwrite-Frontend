@@ -39,7 +39,7 @@ const TemplateModal = ({
   }, [isOpen])
 
   const handleNext = () => {
-    if (currentStep === 0 && !selectedTemplate) {
+    if (currentStep === 0 && (!selectedTemplate || selectedTemplate.length === 0)) {
       setErrors(prev => ({ ...prev, template: true }))
       toast.error("Please select a template before proceeding.")
       return
@@ -157,10 +157,10 @@ const TemplateModal = ({
   }, [])
 
   return (
-    <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-4xl p-6">
+    <dialog className={`modal ${isOpen ? "modal-open" : ""} backdrop-blur-xs`}>
+      <div className="modal-box w-11/12 max-w-3xl p-4 bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 mt-2 px-2">
           <h3 className="text-xl font-bold">
             {currentStep === 0 ? "Select Template" : "Create Simple Blog"}
           </h3>
@@ -196,7 +196,7 @@ const TemplateModal = ({
                   placeholder="Enter blog topic..."
                   className={`input input-bordered w-full ${
                     errors.topic ? "input-error" : ""
-                  } focus:ring-2 focus:ring-blue-600`}
+                  } focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                   aria-label="Blog topic"
                 />
                 {errors.topic && (
@@ -210,7 +210,7 @@ const TemplateModal = ({
                 <select
                   value={formData.tone}
                   onChange={handleSelectChange}
-                  className={`select select-bordered w-full ${errors.tone ? "select-error" : ""}`}
+                  className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                   aria-label="Blog tone"
                 >
                   <option value="Informative">Informative</option>
@@ -234,15 +234,15 @@ const TemplateModal = ({
                     placeholder="Enter focus keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.focusKeywords ? "input-error" : ""
-                    } focus:ring-2 focus:ring-blue-600`}
+                    } focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                     aria-label="Focus keywords"
                   />
                   <button
                     onClick={() => handleAddKeyword("focusKeywords")}
-                    className="btn btn-primary"
+                    className="w-full sm:w-auto px-4 py-2 bg-[#1B6FC9] text-white rounded-sm hover:bg-[#1B6FC9]/90"
                     aria-label="Add focus keyword"
                   >
-                    <Plus size={16} />
+                    <Plus size={18} />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -262,6 +262,9 @@ const TemplateModal = ({
                     </span>
                   ))}
                 </div>
+                {errors.focusKeywords && formData.focusKeywords.length === 0 && (
+                  <p className="text-red-500 text-xs mt-1">Please add at least one focus keyword.</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -276,12 +279,12 @@ const TemplateModal = ({
                     placeholder="Enter secondary keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.keywords ? "input-error" : ""
-                    } focus:ring-2 focus:ring-blue-600`}
+                    } focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                     aria-label="Secondary keywords"
                   />
                   <button
                     onClick={() => handleAddKeyword("keywords")}
-                    className="btn btn-primary"
+                     className="w-full sm:w-auto px-4 py-2 bg-[#1B6FC9] text-white rounded-sm hover:bg-[#1B6FC9]/90"
                     aria-label="Add keyword"
                   >
                     <Plus size={16} />
@@ -316,6 +319,9 @@ const TemplateModal = ({
                     </span>
                   )}
                 </div>
+                {errors.keywords && formData.keywords.length === 0 && (
+                  <p className="text-red-500 text-xs mt-1">Please add secondary keywords.</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -329,7 +335,7 @@ const TemplateModal = ({
                     placeholder="Enter blog title..."
                     className={`input input-bordered flex-1 ${
                       errors.title ? "input-error" : ""
-                    } focus:ring-2 focus:ring-blue-600`}
+                    } focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                     aria-label="Blog title"
                   />
                   <button
@@ -409,7 +415,7 @@ const TemplateModal = ({
             <button
               key="next"
               onClick={handleNext}
-              className="btn btn-primary px-6"
+              className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
               aria-label="Proceed to next step"
             >
               Next
@@ -419,7 +425,7 @@ const TemplateModal = ({
               <button
                 key="previous"
                 onClick={handlePrev}
-                className="btn btn-ghost"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                 aria-label="Go to previous step"
               >
                 Previous
@@ -427,7 +433,7 @@ const TemplateModal = ({
               <button
                 key="submit"
                 onClick={handleSubmit}
-                className="btn btn-primary px-6"
+                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
                 aria-label="Submit blog"
               >
                 Submit

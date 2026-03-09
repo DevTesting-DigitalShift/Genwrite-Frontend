@@ -36,9 +36,6 @@ dayjs.extend(relativeTime)
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogModal"))
-const KeywordResearchModel = lazy(
-  () => import("../components/dashboardModals/KeywordResearchModel")
-)
 
 const Dashboard = () => {
   const [activeModel, setActiveModel] = useState("")
@@ -168,15 +165,6 @@ const Dashboard = () => {
         return <AdvancedBlogModal closeFnc={handleCloseActiveModal} queryClient={queryClient} />
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
-      case ACTIVE_MODELS.Keyword_Research:
-        return (
-          <KeywordResearchModel
-            closeFnc={handleCloseActiveModal}
-            openSecondStepModal={() => setActiveModel(ACTIVE_MODELS.Advanced_Blog)}
-            openJobModal={openSecondStepJobModal}
-            visible={activeModel == ACTIVE_MODELS.Keyword_Research}
-          />
-        )
       default:
         return <></>
     }
