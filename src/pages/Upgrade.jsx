@@ -12,6 +12,8 @@ import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import { useStripe } from "@stripe/react-stripe-js"
+import PaymentForm from "./payment/PaymentForm"
 
 const PricingCard = ({
   plan,
@@ -152,63 +154,63 @@ const PricingCard = ({
       return
     }
 
-    if (plan.name.toLowerCase().includes("enterprise")) {
-      proceedToBuy(plan)
-      return
-    }
+    proceedToBuy(plan)
+    // if (plan.name.toLowerCase().includes("enterprise")) {
+    //   return
+    // }
 
-    if (
-      !userSubscription ||
-      userPlan === "free" ||
-      !["active", "trialing"].includes(userSubscription.status?.toLowerCase())
-    ) {
-      onBuy(plan, plan.credits, billingPeriod)
-      return
-    }
+    // if (
+    //   !userSubscription ||
+    //   userPlan === "free" ||
+    //   !["active", "trialing"].includes(userSubscription.status?.toLowerCase())
+    // ) {
+    //   onBuy(plan, plan.credits, billingPeriod)
+    //   return
+    // }
 
-    setPendingPlan(plan)
-    setPendingCredits(plan.credits)
+    // setPendingPlan(plan)
+    // setPendingCredits(plan.credits)
 
-    const currentTier = tierLevels[userPlan.toLowerCase()]
-    const newTier = tierLevels[plan.tier]
-    const startDateStr = userSubscription.renewalDate
-      ? new Date(userSubscription.renewalDate).toLocaleDateString()
-      : "immediately"
+    // const currentTier = tierLevels[userPlan.toLowerCase()]
+    // const newTier = tierLevels[plan.tier]
+    // const startDateStr = userSubscription.renewalDate
+    //   ? new Date(userSubscription.renewalDate).toLocaleDateString()
+    //   : "immediately"
 
-    let thisModalType = ""
-    let thisModalMessage = { title: "", body: "" }
+    // let thisModalType = ""
+    // let thisModalMessage = { title: "", body: "" }
 
-    const isSameTier = plan.tier === userPlan.toLowerCase()
+    // const isSameTier = plan.tier === userPlan.toLowerCase()
 
-    if (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual") {
-      thisModalType = "same-tier"
-      thisModalMessage = {
-        title: "Confirm Plan Change",
-        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-      }
-    } else if (isSameTier && userBillingPeriod === "annual" && billingPeriod === "monthly") {
-      thisModalType = "downgrade"
-      thisModalMessage = {
-        title: "Confirm Downgrade",
-        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-      }
-    } else if (!isSameTier && currentTier < newTier) {
-      thisModalType = "upgrade"
-      thisModalMessage = {
-        title: "Confirm Upgrade",
-        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-      }
-    } else {
-      thisModalType = "downgrade"
-      thisModalMessage = {
-        title: "Confirm Downgrade",
-        body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
-      }
-    }
+    // if (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual") {
+    //   thisModalType = "same-tier"
+    //   thisModalMessage = {
+    //     title: "Confirm Plan Change",
+    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
+    //   }
+    // } else if (isSameTier && userBillingPeriod === "annual" && billingPeriod === "monthly") {
+    //   thisModalType = "downgrade"
+    //   thisModalMessage = {
+    //     title: "Confirm Downgrade",
+    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
+    //   }
+    // } else if (!isSameTier && currentTier < newTier) {
+    //   thisModalType = "upgrade"
+    //   thisModalMessage = {
+    //     title: "Confirm Upgrade",
+    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
+    //   }
+    // } else {
+    //   thisModalType = "downgrade"
+    //   thisModalMessage = {
+    //     title: "Confirm Downgrade",
+    //     body: `Your new ${plan.name} plan will start immediately at the beginning of your next billing cycle.`,
+    //   }
+    // }
 
-    setModalType(thisModalType)
-    setModalMessage(thisModalMessage)
-    setShowConfirmModal(true)
+    // setModalType(thisModalType)
+    // setModalMessage(thisModalMessage)
+    // setShowConfirmModal(true)
   }
 
   const proceedToBuy = planToBuy => {
@@ -367,7 +369,7 @@ const PricingCard = ({
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
+        <div className="absolute top-10 z-100 flex items-center justify-center bg-black/50 p-4">
           <div className="modal-box bg-white max-w-sm rounded-[16px] shadow-2xl p-6 relative">
             <h3 className="font-bold text-lg text-slate-800 mb-2">{modalMessage.title}</h3>
 
@@ -416,6 +418,8 @@ const Upgrade = () => {
   const navigate = useNavigate()
   const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
+  const [paymentIntent, setPaymentIntent] = useState(null)
+
   const CONVERSION_RATE = 90 // USD to INR conversion rate
 
   const countryMapping = { INR: "IN", USD: "US" }
@@ -433,7 +437,9 @@ const Upgrade = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axiosInstance.get('/user/plans', { params: { country: countryToSend } })
+        const response = await axiosInstance.get("/user/plans", {
+          params: { country: countryToSend },
+        })
         if (response.data && response.data.data) {
           setApiPlans(response.data.data)
         }
@@ -455,7 +461,9 @@ const Upgrade = () => {
     // Helper to find plan in API
     const getApiPlan = (tier, freq) => {
       return apiPlans.find(
-        (p) => p.tier === tier && (p.frequency === freq || (tier === "credits" && p.type === "credit_purchase"))
+        p =>
+          p.tier === tier &&
+          (p.frequency === freq || (tier === "credits" && p.type === "credit_purchase"))
       )
     }
 
@@ -482,7 +490,7 @@ const Upgrade = () => {
 
     const basicPriceMonthly = basicPriceMonthlyRaw
     const basicPriceAnnual = Number((basicPriceAnnualRaw / 12).toFixed(1))
-    
+
     const proPriceMonthly = proPriceMonthlyRaw
     const proPriceAnnual = Number((proPriceAnnualRaw / 12).toFixed(1))
 
@@ -495,10 +503,15 @@ const Upgrade = () => {
         priceMonthlyINR: basicPriceMonthly,
         priceAnnualINR: basicPriceAnnual,
         annualPrice: basicPriceAnnualRaw,
-        credits: billingPeriod === "annual" ? getCredits(basicAnnual, 12000) : getCredits(basicMonthly, 1000),
+        credits:
+          billingPeriod === "annual"
+            ? getCredits(basicAnnual, 12000)
+            : getCredits(basicMonthly, 1000),
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
-          billingPeriod === "annual" ? `${getCredits(basicAnnual, 12000).toLocaleString()} annual credits` : `${getCredits(basicMonthly, 1000).toLocaleString()} monthly credits`,
+          billingPeriod === "annual"
+            ? `${getCredits(basicAnnual, 12000).toLocaleString()} annual credits`
+            : `${getCredits(basicMonthly, 1000).toLocaleString()} monthly credits`,
           "Blog generation: single, quick, multiple",
           "upto 10 blog of 1000-words",
           "Keyword research",
@@ -514,7 +527,7 @@ const Upgrade = () => {
         icon: <Zap className="w-8 h-8" />,
         tier: "basic",
         featured: false,
-        slug: billingPeriod === "annual" ? basicAnnual?.slug : basicMonthly?.slug
+        slug: billingPeriod === "annual" ? basicAnnual?.slug : basicMonthly?.slug,
       },
       {
         name: "GenWrite Pro",
@@ -524,11 +537,14 @@ const Upgrade = () => {
         priceMonthlyINR: proPriceMonthly,
         priceAnnualINR: proPriceAnnual,
         annualPrice: proPriceAnnualRaw,
-        credits: billingPeriod === "annual" ? getCredits(proAnnual, 54000) : getCredits(proMonthly, 4500),
+        credits:
+          billingPeriod === "annual" ? getCredits(proAnnual, 54000) : getCredits(proMonthly, 4500),
         description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, additionally:",
-          billingPeriod === "annual" ? `${getCredits(proAnnual, 54000).toLocaleString()} annual credits` : `${getCredits(proMonthly, 4500).toLocaleString()} monthly credits`,
+          billingPeriod === "annual"
+            ? `${getCredits(proAnnual, 54000).toLocaleString()} annual credits`
+            : `${getCredits(proMonthly, 4500).toLocaleString()} monthly credits`,
           "upto 45 blog of 1000-words",
           "Competitor analysis",
           "Retry blog",
@@ -548,7 +564,7 @@ const Upgrade = () => {
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",
         featured: !isProUser && userPlan !== "enterprise",
-        slug: billingPeriod === "annual" ? proAnnual?.slug : proMonthly?.slug
+        slug: billingPeriod === "annual" ? proAnnual?.slug : proMonthly?.slug,
       },
       {
         name: "GenWrite Enterprise",
@@ -571,7 +587,7 @@ const Upgrade = () => {
         icon: <Crown className="w-8 h-8" />,
         tier: "enterprise",
         featured: isProUser || userPlan === "basic",
-        slug: "enterprise"
+        slug: "enterprise",
       },
       {
         name: "Credit Pack",
@@ -598,7 +614,7 @@ const Upgrade = () => {
         icon: <Coins className="w-8 h-8" />,
         tier: "credits",
         featured: false,
-        slug: creditsPlan?.slug
+        slug: creditsPlan?.slug,
       },
     ]
   }
@@ -627,9 +643,9 @@ const Upgrade = () => {
     }
 
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
     if (!stripe) {
-      console.error("Stripe.js failed to load.")
-      toast.error("Failed to load payment gateway. Please try again later.")
+      toast.error("Failed to load payment gateway.")
       return
     }
 
@@ -645,7 +661,7 @@ const Upgrade = () => {
       if (!planSlug) {
         if (plan.type === "credit_purchase") {
           // For credits, we rely on the backend's credit purchase fallback or a base slug
-          planSlug = "get-credits" // Using a generic slug; backend logic handles (!targetPlan && credits)
+          planSlug = "credits-base-us" // Using a generic slug; backend logic handles (!targetPlan && credits)
         } else {
           planSlug = `${tier}-${frequency}-${countryCode}`
         }
@@ -663,19 +679,43 @@ const Upgrade = () => {
       // 3. Call API
       const response = await createCheckoutSession(payload)
 
-      if ([200, 201].includes(response.status)) {
-        if (response.data?.url) {
-          // Modern Stripe Checkout redirection (server-side generation)
-          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
-          window.location.href = response.data.url
-        } else if (response.data?.sessionId) {
-          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
-          const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
-          if (result?.error) throw result.error
-        } else {
-          toast.success(response.data?.toast || "Your Upcoming Plan has been set successfully.")
-          navigate("/transactions", { replace: true })
-        }
+      const data = response.data
+
+      // if (data?.sessionId) {
+      //   sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+      //   const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
+      //   if (result?.error) throw result.error
+      //   return
+      // }
+
+      if (data?.url) {
+        sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+        window.location.href = data.url
+        return
+      }
+
+      // New cases from upgrade endpoint
+      if (data?.requiresAction && data?.clientSecret) {
+        // Show PaymentForm component (as in previous message)
+        setPaymentIntent({ clientSecret: data.clientSecret })
+        toast.info(`Complete payment of ${data.amountDue} ${data.currency} to upgrade.`)
+        // Render <PaymentForm clientSecret={data.clientSecret} ... />
+        return
+      }
+
+      if (data?.requiresPayment && data?.hostedInvoiceUrl) {
+        // Redirect to Stripe's hosted invoice page
+        // It shows amount, lets user pay with card / other methods, handles 3DS, etc.
+        toast.info(
+          `Redirecting to secure payment page for ${data.amountDue || "the prorated amount"}...`
+        )
+        window.location.href = data.hostedInvoiceUrl
+        return
+      }
+
+      if (data?.success) {
+        toast.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+        navigate("/transactions", { replace: true })
       }
     } catch (error) {
       console.error("Checkout Error:", error)
@@ -835,6 +875,21 @@ const Upgrade = () => {
           >
             Thinking of leaving GenWrite?
           </a>
+        </div>
+      )}
+
+      {paymentIntent?.clientSecret && (
+        <div className="payment-modal">
+          <h3>Complete your {paymentIntent.plan?.name} purchase</h3>
+          <PaymentForm
+            clientSecret={paymentIntent.clientSecret}
+            onSuccess={() => {
+              toast.success("Payment successful!")
+              navigate("/transactions")
+              setPaymentIntent(null)
+            }}
+            onError={err => toast.error(err.message)}
+          />
         </div>
       )}
     </div>

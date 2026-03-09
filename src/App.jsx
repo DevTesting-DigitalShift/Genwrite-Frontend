@@ -5,6 +5,8 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { LoadingProvider, useLoading } from "@/context/LoadingContext"
 import { toast } from "sonner"
+import { Elements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
 
 const AppContent = () => {
   const { isLoading, loadingMessage } = useLoading()
@@ -35,13 +37,17 @@ const AppContent = () => {
   )
 }
 
+const stripePromise = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
 const App = () => {
   return (
-    <LoadingProvider>
-      <ConfirmPopupProvider>
-        <AppContent />
-      </ConfirmPopupProvider>
-    </LoadingProvider>
+    <Elements stripe={stripePromise}>
+      <LoadingProvider>
+        <ConfirmPopupProvider>
+          <AppContent />
+        </ConfirmPopupProvider>
+      </LoadingProvider>
+    </Elements>
   )
 }
 
