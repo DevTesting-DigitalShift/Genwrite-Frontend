@@ -722,7 +722,7 @@ const Jobs = () => {
   }, [filteredJobs, currentPage])
 
   const totalPages = Math.ceil(filteredJobs.length / PAGE_SIZE)
-  const usagePercentage = Math.min(100, Math.round((usage / usageLimit) * 100))
+  const usagePercentage = usageLimit > 0 ? Math.min(100, Math.round((usage / usageLimit) * 100)) : 0
 
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
@@ -860,7 +860,10 @@ const Jobs = () => {
                   </p>
                 </div>
                 {usage >= usageLimit && (
-                  <div className="mt-4 flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest">
+                  <div 
+                    className="mt-4 flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest tooltip tooltip-top [--tooltip-font-size:10px]"
+                    data-tip={`Job limit reached: ${usage}/${usageLimit} jobs used on ${userPlan} plan.`}
+                  >
                     <AlertTriangle size={14} /> Full Capacity
                   </div>
                 )}

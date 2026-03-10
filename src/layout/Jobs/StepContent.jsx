@@ -13,6 +13,9 @@ import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
+import { IMAGE_SOURCE } from "@/data/blogData"
 
 const StepContent = ({
   currentStep,
@@ -33,6 +36,7 @@ const StepContent = ({
   user,
   userPlan,
 }) => {
+  const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const isProUser = user?.subscription?.plan === "pro"
 
@@ -52,8 +56,7 @@ const StepContent = ({
 
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 10
-  const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
-  const navigate = useNavigate()
+  const isAiImagesLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
 
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
@@ -66,50 +69,7 @@ const StepContent = ({
     }
   }, [newJob.blogs.blogImages])
 
-  useEffect(() => {
-    if (isAiImagesLimitReached && newJob.blogs.isCheckedGeneratedImages) {
-      setNewJob(prev => ({
-        ...prev,
-        blogs: { ...prev.blogs, isCheckedGeneratedImages: false, imageSource: "stock" },
-      }))
-    }
-  }, [isAiImagesLimitReached, newJob.blogs.isCheckedGeneratedImages])
 
-  const imageSources = [
-    { id: "stock", label: "Stock Images", value: "stock", restricted: false },
-    {
-      id: "ai",
-      label: "AI-Generated Images",
-      value: "ai",
-      restricted: userPlan === "free",
-      featureName: "AI-Generated Images",
-      isAiImagesLimitReached,
-    },
-  ]
-
-  const aiModels = [
-    {
-      id: "gemini",
-      label: "Gemini",
-      value: "gemini",
-      logo: "/Images/gemini.webp",
-      restricted: false,
-    },
-    {
-      id: "openai",
-      label: "ChatGPT (Open AI)",
-      value: "openai",
-      logo: "/Images/chatgpt.webp",
-      featureName: "ChatGPT (Open AI)",
-    },
-    {
-      id: "claude",
-      label: "Claude",
-      value: "claude",
-      logo: "/Images/claude.webp",
-      featureName: "Claude",
-    },
-  ]
 
   const handleIntegrationChange = platform => {
     setFormData(prev => ({ ...prev, postingType: platform }))
@@ -344,7 +304,11 @@ const StepContent = ({
   const handleImageSourceChange = source => {
     setNewJob(prev => ({
       ...prev,
-      blogs: { ...prev.blogs, imageSource: source, isstockActive: source === "stock" },
+      blogs: {
+        ...prev.blogs,
+        imageSource: source,
+        isCheckedCustomImages: source === IMAGE_SOURCE.UPLOAD,
+      },
     }))
     setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
   }
@@ -474,7 +438,7 @@ const StepContent = ({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Job Name</label>
               <input
                 type="text"
                 value={newJob.name}
@@ -491,7 +455,7 @@ const StepContent = ({
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
                 Topics
                 <div
                   className="tooltip"
@@ -541,7 +505,7 @@ const StepContent = ({
                   return (
                     <span
                       key={`${topic}-${actualIndex}`}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
                     >
                       {topic}
                       <button
@@ -566,7 +530,7 @@ const StepContent = ({
                 {(newJob.blogs.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
                     onClick={() => setShowAllTopics(prev => !prev)}
-                    className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                    className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
                     {showAllTopics ? (
                       <>Show less</>
@@ -583,7 +547,7 @@ const StepContent = ({
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-semibold text-gray-700">
                 Perform Keyword Research?
                 <p className="text-xs text-gray-500">
                   Allow AI to find relevant keywords for the topics.
@@ -600,7 +564,7 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+                <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
                   Keywords
                   <div
                     className="tooltip"
@@ -646,7 +610,7 @@ const StepContent = ({
                     return (
                       <span
                         key={`${keyword}-${actualIndex}`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
                       >
                         {keyword}
                         <button
@@ -670,7 +634,7 @@ const StepContent = ({
                   {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
                     <span
                       onClick={() => setShowAllKeywords(prev => !prev)}
-                      className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                      className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
                         <>Show less</>
@@ -689,7 +653,7 @@ const StepContent = ({
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
                   Tone of Voice <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -717,7 +681,7 @@ const StepContent = ({
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
-                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="language" className="block text-sm font-semibold text-gray-700 mb-2">
                   Language <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -743,7 +707,7 @@ const StepContent = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Approx. Blog Length (Words)
                 </label>
                 <div className="relative">
@@ -788,17 +752,23 @@ const StepContent = ({
                   }))
                 }}
               />
-              {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
-                <div
-                  className="tooltip tooltip-left"
-                  data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                >
-                  <TriangleAlert className="text-yellow-400 ml-4 cursor-pointer" size={15} />
-                </div>
-              )}
             </div>
           </div>
-          {newJob.blogs.isCheckedCustomImages && (
+          {newJob.blogs.isCheckedGeneratedImages && (
+            <div className="mt-4">
+              <ImageSourceSelector
+                value={newJob.blogs.imageSource}
+                onChange={handleImageSourceChange}
+                userPlan={userPlan}
+                isAiLimitReached={isAiImagesLimitReached}
+                navigate={navigate}
+                error={errors.imageSource}
+                showUpload={true}
+              />
+            </div>
+          )}
+
+          {newJob.blogs.isCheckedGeneratedImages && newJob.blogs.isCheckedCustomImages && (
             <div className="mt-4">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Upload Custom Images (Max 15, each 5MB)
@@ -853,146 +823,40 @@ const StepContent = ({
               )}
             </div>
           )}
+
           {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
-            <>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Image Source
-                </label>
-
-                {/* Responsive grid */}
-                <div
-                  className={`grid grid-cols-2 gap-4 mx-auto w-full ${
-                    errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
-                  }`}
-                >
-                  {imageSources.map(source => {
-                    const isAiRestricted =
-                      source.value === "ai-generated" && source.isAiImagesLimitReached
-
-                    const isBlocked = source.restricted || isAiRestricted
-
-                    return (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-              ${
-                newJob.blogs.imageSource === source.value
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-300"
-              }
-              hover:shadow-sm w-full
-              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-                        onClick={e => {
-                          if (isBlocked) {
-                            e.preventDefault()
-                            openUpgradePopup({
-                              featureName: source.featureName || "AI-Generated Images",
-                              navigate,
-                            })
-                          }
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={newJob.blogs.imageSource === source.value}
-                          onChange={() => {
-                            if (!isBlocked) {
-                              handleImageSourceChange(source.value)
-                            }
-                          }}
-                          className="hidden"
-                          disabled={isBlocked}
-                        />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                        {(source.restricted || isAiRestricted) && (
-                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                        )}
-                      </label>
-                    )
-                  })}
-                </div>
-                {errors.imageSource && (
-                  <p className="text-red-500 text-xs mt-1">{errors.imageSource}</p>
-                )}
-              </div>
-              <div className="w-full">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Number of Images
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Enter the number of images (0 = AI will decide)
-                </p>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  name="numberOfImages"
-                  min="0"
-                  max="15"
-                  value={newJob.blogs.numberOfImages ?? ""}
-                  onChange={handleInputChange}
-                  onWheel={e => e.currentTarget.blur()}
-                  className="input input-bordered w-full px-4 py-2 rounded-lg text-sm placeholder-gray-400 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 5"
-                />
-                {errors.numberOfImages && (
-                  <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
-                )}
-              </div>
-            </>
+            <div className="w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Number of Images
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter the number of images (0 = AI will decide)
+              </p>
+              <input
+                type="tel"
+                inputMode="numeric"
+                name="numberOfImages"
+                min="0"
+                max="15"
+                value={newJob.blogs.numberOfImages ?? ""}
+                onChange={handleInputChange}
+                onWheel={e => e.currentTarget.blur()}
+                className="input input-bordered w-full px-4 py-2 rounded-lg text-sm placeholder-gray-400 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., 5"
+              />
+              {errors.numberOfImages && (
+                <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+              )}
+            </div>
           )}
 
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Select AI Model
-            </label>
-            {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-              {[
-                { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restricted: false },
-                { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp" },
-                { id: "claude", label: "Claude", logo: "/Images/claude.webp" },
-              ].map(model => (
-                <label
-                  key={model.id}
-                  htmlFor={model.id}
-                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
-      ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-      hover:shadow-sm w-full`}
-                  onClick={e => {
-                    if (model.restricted) {
-                      e.preventDefault()
-                      openUpgradePopup({ featureName: model.label, navigate })
-                    }
-                  }}
-                >
-                  <input
-                    type="radio"
-                    id={model.id}
-                    name="aiModel"
-                    value={model.id}
-                    checked={formData.aiModel === model.id}
-                    onChange={e => {
-                      if (!model.restricted) {
-                        setFormData(prev => ({ ...prev, aiModel: e.target.value }))
-                      }
-                    }}
-                    className="hidden"
-                  />
-                  <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                  <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                  {model.restricted && (
-                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
+          <AiModelSelector
+            value={formData.aiModel}
+            onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+            userPlan={userPlan}
+            navigate={navigate}
+            error={errors.aiModel}
+          />
 
           {/* Cost Cutter Toggle */}
           <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm mb-6">
@@ -1016,7 +880,7 @@ const StepContent = ({
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Schedule Type</label>
               <select
                 value={newJob.schedule.type}
                 onChange={e => {
@@ -1048,7 +912,7 @@ const StepContent = ({
             </div>
             {newJob.schedule.type === "weekly" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Days of Week
                 </label>
                 <div
@@ -1086,7 +950,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "monthly" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Dates of Month
                 </label>
                 <div
@@ -1124,7 +988,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "custom" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Dates</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Dates</label>
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
@@ -1152,7 +1016,7 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Number of Blogs
               </label>
               <input

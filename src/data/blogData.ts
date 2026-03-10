@@ -37,15 +37,36 @@ export const LANGUAGES = [
 ]
 
 export const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp" },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp" },
-  { id: "claude", label: "Claude", logo: "/Images/claude.webp" },
+  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
+  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
+  { id: "claude", label: "Claude", logo: "/Images/claude.webp", restrictedPlans: ["free", "basic"] },
 ]
 
 export const IMAGE_OPTIONS = [
-  { id: IMAGE_SOURCE.STOCK, label: "Stock Images", restrict: false },
-  { id: IMAGE_SOURCE.AI, label: "AI-Generated Images", restrict: true },
-  { id: IMAGE_SOURCE.UPLOAD, label: "Upload Images", restrict: true },
+  { 
+    id: IMAGE_SOURCE.NONE, 
+    label: "None", 
+    description: "No images will be generated for the blog.",
+    restrictedPlans: [] 
+  },
+  { 
+    id: IMAGE_SOURCE.STOCK, 
+    label: "Stock Images", 
+    description: "High-quality professional stock photos.",
+    restrictedPlans: [] 
+  },
+  { 
+    id: IMAGE_SOURCE.AI, 
+    label: "AI Images", 
+    description: "Unique visuals powered by AI.",
+    restrictedPlans: ["free"] 
+  },
+  { 
+    id: IMAGE_SOURCE.UPLOAD, 
+    label: "Custom Upload", 
+    description: "Upload your own branded images.",
+    restrictedPlans: ["free"] 
+  },
 ]
 
 // Credit Costs for AI Operations

@@ -138,17 +138,6 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
   )
 }
 
-// AI Models config
-const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  {
-    id: "claude",
-    label: "Claude",
-    logo: "/Images/claude.webp",
-    restrictedPlans: ["free", "basic"],
-  },
-]
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -3158,6 +3147,7 @@ const TextEditorSidebar = ({
         regenForm={regenForm}
         updateRegenField={updateRegenField}
         userPlan={userPlan}
+        user={user}
         integrations={integrations}
       />
 

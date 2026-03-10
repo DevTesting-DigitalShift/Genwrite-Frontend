@@ -10,8 +10,10 @@ import { toast } from "sonner"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import { queryClient } from "@utils/queryClient"
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE } from "@/data/blogData"
+import { queryClient } from "@utils/queryClient"
 import { validateBulkBlogData } from "@/types/forms.schemas"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
@@ -27,7 +29,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
-  const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
+  const isAiImagesLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
   const fileInputRef = useRef(null)
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -99,16 +101,6 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }, [integrations])
 
-  useEffect(() => {
-    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
-      setFormData(prev => ({
-        ...prev,
-        isCheckedGeneratedImages: false,
-        imageSource: IMAGE_SOURCE.STOCK,
-      }))
-      setErrors(prev => ({ ...prev, numberOfImages: false, blogImages: false }))
-    }
-  }, [isAiImagesLimitReached])
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -1033,73 +1025,16 @@ const BulkBlogModal = ({ closeFnc }) => {
           )}
           {currentStep === 2 && (
             <div className="space-y-6">
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Select AI Model <span className="text-red-500">*</span>
-                </label>
-                <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${
-                    errors.aiModel ? "border-2 border-red-500 rounded-lg p-2" : ""
-                  }`}
-                >
-                  {[
-                    {
-                      id: "gemini",
-                      label: "Gemini",
-                      logo: "/Images/gemini.webp",
-                      restricted: false,
-                    },
-                    {
-                      id: "openai",
-                      label: "ChatGPT",
-                      logo: "/Images/chatgpt.webp",
-                      restricted: userPlan === "free",
-                    },
-                    {
-                      id: "claude",
-                      label: "Claude",
-                      logo: "/Images/claude.webp",
-                      restricted: userPlan === "free" || userPlan === "basic",
-                    },
-                  ].map(model => (
-                    <label
-                      key={model.id}
-                      htmlFor={model.id}
-                      className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                        formData.aiModel === model.id
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm ${model.restricted ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={e => {
-                        if (model.restricted) {
-                          e.preventDefault()
-                          // Assuming openUpgradePopup is defined elsewhere
-                          openUpgradePopup({ featureName: model.label, navigate })
-                        }
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        id={model.id}
-                        name="aiModel"
-                        value={model.id}
-                        checked={formData.aiModel === model.id}
-                        onChange={e => {
-                          if (!model.restricted) {
-                            setFormData(prev => ({ ...prev, aiModel: e.target.value }))
-                            setErrors(prev => ({ ...prev, aiModel: "" }))
-                          }
-                        }}
-                        className="hidden"
-                        disabled={model.restricted}
-                      />
-                      <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                      <span className="text-sm font-semibold text-gray-800">{model.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.aiModel && <p className="text-red-500 text-xs mt-1">{errors.aiModel}</p>}
-              </div>
+              <AiModelSelector
+                value={formData.aiModel}
+                onChange={(modelId) => {
+                  setFormData(prev => ({ ...prev, aiModel: modelId }))
+                  setErrors(prev => ({ ...prev, aiModel: "" }))
+                }}
+                userPlan={userPlan}
+                navigate={navigate}
+                error={errors.aiModel}
+              />
 
               {/* Cost Cutter Toggle */}
               <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
@@ -1195,12 +1130,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       id="add-image-toggle"
                       className="sr-only peer"
                       checked={formData.isCheckedGeneratedImages}
-                      disabled={isAiImagesLimitReached}
                       onChange={e => {
-                        if (isAiImagesLimitReached) {
-                          openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                          return
-                        }
                         const checked = e.target.checked
                         setFormData(prev => ({
                           ...prev,
@@ -1212,85 +1142,31 @@ const BulkBlogModal = ({ closeFnc }) => {
                     />
                     <div
                       className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        formData.isCheckedGeneratedImages
                           ? "bg-[#1B6FC9]"
                           : "bg-gray-300"
                       }`}
                     />
                     <div
                       className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                        formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        formData.isCheckedGeneratedImages
                           ? "translate-x-6"
                           : ""
                       }`}
                     />
                   </label>
-                  {isAiImagesLimitReached && (
-                    <div
-                      className="tooltip tooltip-warning"
-                      data-tip="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                    >
-                      <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                    </div>
-                  )}
                 </div>
               </div>
-              {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
-                  </label>
-                  <div
-                    className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${
-                      errors.blogImages && formData.imageSource === "customImage"
-                        ? "border-2 border-red-500 rounded-lg p-2"
-                        : ""
-                    }`}
-                  >
-                    {[
-                      { id: "stock", label: "Stock Images", value: "stock", restricted: false },
-                      {
-                        id: "ai",
-                        label: "AI Generated",
-                        value: "ai",
-                        restricted: userPlan === "free",
-                      },
-                    ].map(source => (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150 ${
-                          formData.imageSource === source.value
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm ${
-                          source.restricted ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        onClick={e => {
-                          if (source.restricted) {
-                            e.preventDefault()
-                            openUpgradePopup({ featureName: source.label, navigate })
-                          }
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={() => {
-                            if (!source.restricted) {
-                              handleImageSourceChange(source.value)
-                            }
-                          }}
-                          className="hidden"
-                          disabled={source.restricted}
-                        />
-                        <span className="text-sm font-semibold text-gray-800">{source.label}</span>
-                      </label>
-                    ))}
-                  </div>
+              {formData.isCheckedGeneratedImages && (
+                <>
+                  <ImageSourceSelector
+                    value={formData.imageSource}
+                    onChange={handleImageSourceChange}
+                    userPlan={userPlan}
+                    isAiLimitReached={isAiImagesLimitReached}
+                    navigate={navigate}
+                    error={errors.blogImages}
+                  />
 
                   <div className="pt-4 w-full">
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -1317,7 +1193,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
                     )}
                   </div>
-                </div>
+                </>
               )}
               <div className="space-y-4 pt-4 border-t border-gray-300">
                 <BrandVoiceSelector

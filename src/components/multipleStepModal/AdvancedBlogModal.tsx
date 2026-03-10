@@ -8,6 +8,8 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
 import { toast } from "sonner"
 import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
@@ -715,32 +717,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       case 2: {
         return (
           <div className="space-y-3 p-4 pt-0">
-            {/* AI Model Selection */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-800">Select AI Model</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {AI_MODELS.map(model => {
-                  const isActive = formData.aiModel === model.id
-
-                  return (
-                    <button
-                      key={model.id}
-                      onClick={() =>
-                        handleInputChange({ target: { name: "aiModel", value: model.id } })
-                      }
-                      className={`flex items-center gap-3 px-5 py-4 rounded-lg border transition
-              ${
-                isActive ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:border-slate-300"
-              }`}
-                    >
-                      <img src={model.logo} alt={model.label} className="w-6 h-6" />
-                      <span className="font-semibold text-sm">{model.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            <AiModelSelector
+              value={formData.aiModel}
+              onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
+              userPlan={user?.subscription?.plan || "free"}
+              navigate={navigate}
+            />
 
             {/* Cost Cutter */}
             <div className="flex items-center justify-between p-5 rounded-lg bg-green-50 border border-green-200">
@@ -783,37 +765,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {formData.isCheckedGeneratedImages && (
               <div className="space-y-6 overflow-hidden mt-6">
                 <label className="text-sm font-semibold text-slate-800">Select Image Mode</label>
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {IMAGE_OPTIONS.map((option, index) => {
-                    const isRestricted = option.restrict && user?.subscription?.plan === "free"
-                    const isLimitReached =
-                      index === 1 &&
-                      (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
-                    const isDisabled = isRestricted || isLimitReached
-
-                    return (
-                      <button
-                        key={option.id}
-                        disabled={isDisabled}
-                        onClick={() => {
-                          handleInputChange({ target: { name: "imageSource", value: option.id } })
-                          if (option.id !== IMAGE_OPTIONS.at(-1)?.id) {
-                            handleInputChange({ target: { name: "blogImages", value: [] } })
-                          }
-                        }}
-                        className={clsx(
-                          "relative flex flex-col items-center justify-center p-4 rounded-xl border transition-all text-sm",
-                          formData.imageSource === option.id
-                            ? "border-blue-600 bg-blue-50 text-blue-900 font-semibold"
-                            : "bg-white border-slate-200 hover:border-blue-200 text-slate-600",
-                          isDisabled && "opacity-50 cursor-not-allowed bg-slate-50 border-slate-100"
-                        )}
-                      >
-                        <span className="text-center">{option.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+                <ImageSourceSelector
+                  value={formData.imageSource}
+                  onChange={(sourceId: string) => {
+                    handleInputChange({ target: { name: "imageSource", value: sourceId } })
+                    if (sourceId !== IMAGE_SOURCE.UPLOAD) {
+                      handleInputChange({ target: { name: "blogImages", value: [] } })
+                    }
+                  }}
+                  userPlan={user?.subscription?.plan || "free"}
+                  isAiLimitReached={(user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)}
+                  showUpload={true}
+                  navigate={navigate}
+                  error={errors.imageSource}
+                />
 
                 {formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id ? (
                   <div className="flex items-center justify-between mt-4">

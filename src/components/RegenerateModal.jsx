@@ -8,18 +8,8 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
-
-// AI Models config
-const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  {
-    id: "claude",
-    label: "Claude",
-    logo: "/Images/claude.webp",
-    restrictedPlans: ["free", "basic"],
-  },
-]
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
 
 const RegenerateModal = ({
   isOpen,
@@ -29,6 +19,7 @@ const RegenerateModal = ({
   regenForm,
   updateRegenField,
   userPlan,
+  user,
   integrations,
 }) => {
   const navigate = useNavigate()
@@ -294,105 +285,63 @@ const RegenerateModal = ({
                 </div>
               </div>
 
-              {/* AI Model */}
-              <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">AI Model</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {AI_MODELS.map(model => (
-                    <button
-                      key={model.id}
-                      onClick={() => {
-                        if (model.restrictedPlans.includes(userPlan)) {
-                          openUpgradePopup({ featureName: model.label, navigate })
-                        } else {
-                          updateRegenField("aiModel", model.id)
-                        }
-                      }}
-                      className={`p-3 rounded-lg border-2 text-center text-sm font-semibold transition-all ${
-                        regenForm.aiModel === model.id
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
-                    >
-                      <img src={model.logo} alt={model.label} className="w-6 h-6 mx-auto mb-1.5" />
-                      {model.label}
-                    </button>
-                  ))}
-                </div>
+              <AiModelSelector
+                value={regenForm.aiModel}
+                onChange={(modelId) => updateRegenField("aiModel", modelId)}
+                userPlan={userPlan}
+                navigate={navigate}
+              />
+
+              {/* Add Images Toggle */}
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm font-semibold text-gray-700">Add Images</span>
+                <Switch
+                  checked={regenForm.isCheckedGeneratedImages}
+                  onCheckedChange={checked => {
+                    updateRegenField("isCheckedGeneratedImages", checked)
+                    if (checked && (regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource)) {
+                      updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
+                    }
+                  }}
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
 
-              {/* Add Images Section - Radio Buttons */}
-              <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <label className="text-sm font-semibold text-gray-700 block">Add Images</label>
+              {regenForm.isCheckedGeneratedImages && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <ImageSourceSelector
+                    value={regenForm.imageSource || IMAGE_SOURCE.STOCK}
+                    onChange={newSource => updateRegenField("imageSource", newSource)}
+                    userPlan={userPlan}
+                    isAiLimitReached={
+                      (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
+                    }
+                    showNone={false}
+                    navigate={navigate}
+                  />
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                    <input
-                      type="radio"
-                      name="imageSource"
-                      checked={!regenForm.isCheckedGeneratedImages}
-                      onChange={() => {
-                        updateRegenField("isCheckedGeneratedImages", false)
-                        updateRegenField("imageSource", IMAGE_SOURCE.NONE)
-                      }}
-                      className="radio radio-primary radio-sm"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">None</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                    <input
-                      type="radio"
-                      name="imageSource"
-                      checked={
-                        regenForm.isCheckedGeneratedImages &&
-                        regenForm.imageSource === IMAGE_SOURCE.STOCK
-                      }
-                      onChange={() => {
-                        updateRegenField("isCheckedGeneratedImages", true)
-                        updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
-                      }}
-                      className="radio radio-primary radio-sm"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">Stock Images</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                    <input
-                      type="radio"
-                      name="imageSource"
-                      checked={
-                        regenForm.isCheckedGeneratedImages &&
-                        regenForm.imageSource === IMAGE_SOURCE.AI
-                      }
-                      onChange={() => {
-                        updateRegenField("isCheckedGeneratedImages", true)
-                        updateRegenField("imageSource", IMAGE_SOURCE.AI)
-                      }}
-                      className="radio radio-primary radio-sm"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">AI Generated</span>
-                  </label>
-                </div>
-
-                {regenForm.isCheckedGeneratedImages && (
-                  <div className="pt-2">
-                    <label className="text-sm font-semibold text-gray-700 block mb-2">
-                      Number of Images: {regenForm.numberOfImages ?? 0}
-                    </label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Number of Images (0 = Decided by AI)
+                      </label>
+                      <span className="text-xs font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-full">
+                        {regenForm.numberOfImages ?? 0}
+                      </span>
+                    </div>
                     <input
                       type="number"
                       min={0}
                       max={20}
                       value={regenForm.numberOfImages ?? 0}
                       onChange={e =>
-                        updateRegenField("numberOfImages", parseInt(e.target.value) ?? 0)
+                        updateRegenField("numberOfImages", parseInt(e.target.value) || 0)
                       }
-                      className="input outline-0 w-full"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ) : (
             // Step 2: Content Enhancement Options + Brand Voice

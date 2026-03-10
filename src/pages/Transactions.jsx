@@ -156,7 +156,48 @@ const Transactions = () => {
           >
             <div className="p-8 space-y-8">
               {/* Plan Identity Row */}
-              <h2 className="text-xl font-semibold text-gray-800">Your Current Plan</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Your Current Plan</h2>
+                {user?.subscription?.scheduledPlanChange?.newPlan && (
+                  <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-100 shadow-sm animate-pulse-slow">
+                    <Clock size={14} className="animate-spin-slow" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Change Scheduled</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Scheduled Change Notice */}
+              {user?.subscription?.scheduledPlanChange?.newPlan && (
+                <div className="bg-linear-to-r from-amber-50/80 to-transparent border-l-4 border-amber-400 rounded-r-xl p-5 mb-2 flex items-start gap-4 shadow-sm">
+                  <div className="p-2.5 bg-white text-amber-600 rounded-xl shadow-sm border border-amber-100/50">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-amber-900">Upcoming Subscription Update</h4>
+                    <p className="text-sm text-amber-800/80 leading-relaxed font-medium">
+                      Your account is scheduled to switch to the{" "}
+                      <span className="text-amber-900 font-extrabold capitalize">
+                        {user.subscription.scheduledPlanChange.newPlan}
+                      </span>{" "}
+                      plan
+                      {user.subscription.scheduledPlanChange.newBillingPeriod && (
+                        <>
+                          {" "}
+                          (<span className="capitalize">{user.subscription.scheduledPlanChange.newBillingPeriod}</span>)
+                        </>
+                      )}{" "}
+                      starting on{" "}
+                      <span className="text-amber-900 font-extrabold">
+                        {new Date(user.subscription.scheduledPlanChange.effectiveDate).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col md:flex-row justify-between items-start gap-6">
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shadow-sm">

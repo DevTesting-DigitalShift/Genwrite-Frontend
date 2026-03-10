@@ -10,7 +10,9 @@ import { Plus, X, Crown } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
+import { IMAGE_SOURCE, LANGUAGES, IMAGE_OPTIONS } from "@/data/blogData"
+import ImageSourceSelector from "@components/ImageSourceSelector"
+import { Switch } from "@components/ui/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
@@ -432,16 +434,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Use Topic name as Blog Title
                 </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.exactTitle}
-                    onChange={e => setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  checked={formData.exactTitle}
+                  onCheckedChange={checked => setFormData(prev => ({ ...prev, exactTitle: checked }))}
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
               <div className="form-control w-full">
                 <label className="label pb-1">
@@ -469,25 +466,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Perform Keyword Research
                 </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.performKeywordResearch}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        performKeywordResearch: e.target.checked,
-                        focusKeywords: e.target.checked ? [] : prev.focusKeywords,
-                        keywords: e.target.checked ? [] : prev.keywords,
-                        focusKeywordInput: "",
-                        keywordInput: "",
-                      }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  checked={formData.performKeywordResearch}
+                  onCheckedChange={checked =>
+                    setFormData(prev => ({
+                      ...prev,
+                      performKeywordResearch: checked,
+                      focusKeywords: checked ? [] : prev.focusKeywords,
+                      keywords: checked ? [] : prev.keywords,
+                      focusKeywordInput: "",
+                      keywordInput: "",
+                    }))
+                  }
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
               {!formData.performKeywordResearch && (
                 <>
@@ -587,47 +579,21 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {/* Add Images & Source Selection */}
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold text-gray-700">Add Images</label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.addImages}
-                    onChange={e => setFormData(prev => ({ ...prev, addImages: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  checked={formData.addImages}
+                  onCheckedChange={checked => setFormData(prev => ({ ...prev, addImages: checked }))}
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
               {formData.addImages && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
-                  </label>
-                  <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
-                    {imageSources.map(source => (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-                      ${
-                        formData.imageSource === source.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full`}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={handleChange}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-semibold text-gray-800">{source.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                <div className="pt-2">
+                  <ImageSourceSelector
+                    value={formData.imageSource}
+                    onChange={(sourceId) => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    userPlan={user?.subscription?.plan || "free"}
+                    isAiLimitReached={(user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)}
+                    navigate={navigate}
+                  />
                 </div>
               )}
 
@@ -636,18 +602,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Easy to Understand
                 </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.easyToUnderstand}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  checked={formData.easyToUnderstand}
+                  onCheckedChange={checked => setFormData(prev => ({ ...prev, easyToUnderstand: checked }))}
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
 
               {/* Embed YouTube Videos Toggle */}
@@ -655,18 +614,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Embed YouTube Videos
                 </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.embedYouTubeVideos}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  checked={formData.embedYouTubeVideos}
+                  onCheckedChange={checked => setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))}
+                  className="data-[state=checked]:bg-[#1B6FC9]"
+                />
               </div>
 
               {/* Reference Links Section */}
@@ -728,18 +680,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
                     <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
                   </div>
-                  <label className="relative inline-block w-14 h-7 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.costCutter}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
-                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
-                  </label>
+                  <Switch
+                    checked={formData.costCutter}
+                    onCheckedChange={checked => setFormData(prev => ({ ...prev, costCutter: checked }))}
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </div>
               </div>
 
