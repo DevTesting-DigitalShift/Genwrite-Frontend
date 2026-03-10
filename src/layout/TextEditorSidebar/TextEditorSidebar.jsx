@@ -51,6 +51,7 @@ import { computeCost } from "@/data/pricingConfig"
 
 import { marked } from "marked"
 import TurndownService from "turndown"
+import { Switch } from "@components/ui/switch"
 
 const renderer = {
   heading({ text, depth: level }) {
@@ -404,10 +405,7 @@ const TextEditorSidebar = ({
       }
 
       // API Call
-      const response = await axiosInstance.post(
-        `/blogs/${blog._id}/sectionTask`,
-        payload
-      )
+      const response = await axiosInstance.post(`/blogs/${blog._id}/sectionTask`, payload)
 
       if (response.data && (response.data.content || response.data.markdown)) {
         let newFullContent = editorContent
@@ -446,11 +444,34 @@ const TextEditorSidebar = ({
           // Found explicit HTML section
           originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
 
-          const contentDiv = sectionEl.querySelector(".section-content")
-          if (contentDiv) {
-            contentDiv.innerHTML = response.data.content
+          // Special handling for the Meta/Overview section to preserve structure
+          if (sectionToolState.sectionId === "blog-meta") {
+            const titleEl = sectionEl.querySelector(".blog-title")
+            const descEl = sectionEl.querySelector(".blog-description")
+
+            // Try to split response content into title and description if it contains both
+            // Usually AI returns description, but sometimes it includes the title
+            if (response.data.content) {
+              const resDoc = parser.parseFromString(response.data.content, "text/html")
+              const resTitle = resDoc.querySelector("h1, h2, h3")
+              const resParas = Array.from(resDoc.querySelectorAll("p"))
+
+              if (resTitle && titleEl) {
+                titleEl.textContent = resTitle.textContent
+              }
+              if (resParas.length > 0 && descEl) {
+                descEl.innerHTML = resParas[0].innerHTML
+              } else if (descEl) {
+                descEl.innerHTML = response.data.content
+              }
+            }
           } else {
-            sectionEl.innerHTML = response.data.content
+            const contentDiv = sectionEl.querySelector(".section-content")
+            if (contentDiv) {
+              contentDiv.innerHTML = response.data.content
+            } else {
+              sectionEl.innerHTML = response.data.content
+            }
           }
 
           // Convert modified HTML back to Markdown to match editor format
@@ -521,11 +542,10 @@ const TextEditorSidebar = ({
             return
           }
         }
-        
+
         let htmlContent = response.data.previousContent
         const doc1 = parser.parseFromString(htmlContent, "text/html")
         htmlContent = doc1.querySelector(".section-content").innerHTML
-
 
         // Open Diff Modal instead of instant replace
         setDiffData({ old: htmlContent, new: response.data.content, full: newFullContent })
@@ -1935,9 +1955,7 @@ const TextEditorSidebar = ({
               <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Lightbulb className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-semibold text-gray-900">
-                    Suggestions
-                  </span>
+                  <span className="text-sm font-semibold text-gray-900">Suggestions</span>
                   <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                     {result.insights.suggestions.length}
                   </span>
@@ -2720,11 +2738,9 @@ const TextEditorSidebar = ({
             {/* ToC Toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
               <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary toggle-sm"
+              <Switch
                 checked={includeTableOfContents}
-                onChange={e => setIncludeTableOfContents(e.target.checked)}
+                onCheckedChange={setIncludeTableOfContents}
               />
             </div>
             {/* WordPress Categories (Moved Below ToC) */}
@@ -3080,28 +3096,57 @@ const TextEditorSidebar = ({
       </div>
 
       {/* Diff Viewer Modal */}
-      <div className={`modal ${showDiff ? "modal-open" : ""}`}>
-        <div className="modal-box w-11/12 max-w-5xl">
-          <h3 className="font-bold text-lg mb-4">Review Changes</h3>
-          <div className="max-h-[70vh] overflow-y-auto custom-scroll">
+      <div className={`modal ${showDiff ? "modal-open" : ""} z-9999`}>
+        <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 shadow-2xl bg-white">
+          <div className="flex items-center justify-between p-5 px-8 border-b border-gray-50 bg-white sticky top-0 z-20">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 text-xl tracking-tight">
+                  Review Section Changes
+                </h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    Task: {sectionToolState?.task || "Refinement"}
+                  </span>
+                  <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                  <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
+                    AI REFINED
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              onClick={() => setShowDiff(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden p-6 sm:p-8 bg-slate-50/50">
             <ContentDiffViewer
               oldMarkdown={diffData.old}
               newMarkdown={diffData.new}
               onAccept={() => {
-                setEditorContent(diffData.full)
+                if (typeof setEditorContent === "function") {
+                  setEditorContent(diffData.full)
+                }
                 setShowDiff(false)
-                toast.success("Changes applied successfully")
+                toast.success("Changes applied successfully!")
               }}
               onReject={() => setShowDiff(false)}
+              acceptLabel="Accept & Apply to Section"
+              rejectLabel="Discard Changes"
             />
           </div>
-          <div className="modal-action">
-            <button className="btn btn-sm" onClick={() => setShowDiff(false)}>
-              Close
-            </button>
-          </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setShowDiff(false)}></div>
+        <div
+          className="modal-backdrop bg-slate-900/60 backdrop-blur-md"
+          onClick={() => setShowDiff(false)}
+        ></div>
       </div>
 
       {/* Regenerate Modal */}

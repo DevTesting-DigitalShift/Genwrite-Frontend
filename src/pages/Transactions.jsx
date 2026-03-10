@@ -261,26 +261,29 @@ const Transactions = () => {
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex-1 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 flex items-center justify-center space-x-2 h-14"
+                  className="flex-1 px-6 bg-[#1B6FC9] text-white font-bold rounded-xl shadow-lg shadow-blue-900/10 hover:bg-[#1B6FC9]/90 flex items-center justify-center gap-2 h-14 transition-all duration-200"
                 >
-                  Upgrade Plan <ChevronRight size={18} />
+                  <TrendingUp size={18} />
+                  <span>Upgrade Plan</span>
                 </button>
                 {user?.subscription?.plan && user.subscription.plan !== "free" && (
                   <button
                     onClick={handleManageSubscription}
-                    className="flex-1 px-4 bg-white hover:bg-slate-50 text-blue-600 border border-blue-200 rounded-xl h-14 font-bold normal-case text-base transition-all"
+                    className="flex-1 px-6 bg-[#1B6FC9] text-white font-bold rounded-xl shadow-lg shadow-blue-900/10 hover:bg-[#1B6FC9]/90 flex items-center justify-center gap-2 h-14 transition-all duration-200"
                   >
-                    Billing & Payments
+                    <CreditCard size={18} />
+                    <span>Billing & Payments</span>
                   </button>
                 )}
                 <button
                   disabled={showTrialMessage}
                   onClick={() => navigate("/cancel-subscription")}
-                  className="flex-1 px-4 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-xl h-14 font-bold normal-case text-base transition-all"
+                  className="flex-1 px-6 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-xl h-14 font-bold transition-all duration-200 disabled:opacity-50 flex items-center justify-center"
                 >
                   Cancel Subscription
                 </button>
               </div>
+
             </div>
           </motion.div>
         </div>

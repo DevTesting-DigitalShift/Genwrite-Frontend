@@ -1,97 +1,3 @@
-// import React from "react"
-
-// import DiffViewer, { DiffMethod } from "react-diff-viewer-continued"
-
-// interface ContentDiffViewerProps {
-//   oldMarkdown: string
-//   newMarkdown: string
-//   onAccept?: React.MouseEventHandler<HTMLButtonElement>
-//   onReject?: React.MouseEventHandler<HTMLButtonElement>
-// }
-
-// const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
-//   oldMarkdown,
-//   newMarkdown,
-//   onAccept,
-//   onReject,
-// }) => {
-//   const stripHtml = (html: string) => {
-//     if (!html) return ""
-//     // Pre-process common structural tags to preserve structure in the diff
-//     const processed = html
-//       .replace(/<br\s*\/?>/gi, "\n")
-//       .replace(/<\/p>/gi, "\n\n")
-//       .replace(/<\/li>/gi, "\n")
-//       .replace(/<\/tr>/gi, "\n")
-//       .replace(/<\/td>/gi, " | ")
-//       .replace(/<\/h[1-6]>/gi, "\n\n")
-//       .replace(/<\/div>/gi, "\n")
-
-//     if (typeof document === "undefined") return processed.replace(/<[^>]+>/g, "")
-//     const tmp = document.createElement("DIV")
-//     tmp.innerHTML = processed
-//     return tmp.textContent || tmp.innerText || ""
-//   }
-
-//   const oldText = oldMarkdown //stripHtml(oldMarkdown || "")
-//   const newText = newMarkdown // stripHtml(newMarkdown || "")
-
-//   return (
-//     <div className="flex flex-col w-full min-h-100 p-1">
-//       <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-//         {oldText === newText ? (
-//           <div className="flex items-center justify-center p-12 bg-slate-50 text-slate-500">
-//             <p className="font-medium text-sm">No differences found between the two versions.</p>
-//           </div>
-//         ) : (
-//           <DiffViewer
-//             oldValue={oldText}
-//             newValue={newText}
-//             splitView={true}
-//             compareMethod={DiffMethod.WORDS}
-//             hideLineNumbers={true}
-//             styles={{
-//               diffContainer: { fontSize: "0.85rem", fontFamily: "Inter, system-ui, sans-serif" },
-//               contentText: { lineHeight: "1.6", padding: "10px 0" },
-//               wordDiff: {
-//                 padding: "1px 2px",
-//                 backgroundColor: "rgba(0,0,0,0.05)",
-//                 borderRadius: "3px",
-//               },
-//               wordAdded: { backgroundColor: "#ecfdf5", color: "#065f46", textDecoration: "none" },
-//               wordRemoved: { backgroundColor: "#fef2f2", color: "#991b1b", textDecoration: "none" },
-//               gutter: { backgroundColor: "#f8fafc" },
-//             }}
-//           />
-//         )}
-//       </div>
-//       <div className="flex justify-end gap-3 mt-6">
-//         <button
-//           onClick={onReject}
-//           className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm shadow-sm active:scale-95"
-//         >
-//           Discard Changes
-//         </button>
-//         <button
-//           onClick={onAccept}
-//           className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-lg shadow-indigo-100 active:scale-95"
-//         >
-//           Apply to Section
-//         </button>
-//       </div>
-//       <style>{`
-//         @media (max-width: 768px) {
-//           .diff-container {
-//             font-size: 0.8rem;
-//           }
-//         }
-//       `}</style>
-//     </div>
-//   )
-// }
-// export default ContentDiffViewer
-
-
 import React, { useMemo } from "react"
 
 interface ContentDiffViewerProps {
@@ -99,6 +5,8 @@ interface ContentDiffViewerProps {
   newMarkdown: string
   onAccept?: React.MouseEventHandler<HTMLButtonElement>
   onReject?: React.MouseEventHandler<HTMLButtonElement>
+  acceptLabel?: string
+  rejectLabel?: string
 }
 
 // Tokenize HTML into a mix of tags and word-level text tokens
@@ -198,6 +106,8 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
   newMarkdown,
   onAccept,
   onReject,
+  acceptLabel = "Apply to Content",
+  rejectLabel = "Discard Changes",
 }) => {
   const { oldHtml, newHtml, hasDiff } = useMemo(() => {
     const oldTokens = tokenizeHtml(oldMarkdown || "")
@@ -212,74 +122,93 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
   }, [oldMarkdown, newMarkdown])
 
   return (
-    <div className="flex flex-col w-full p-1">
+    <div className="flex flex-col h-full w-full">
       <style>{`
+        .diff-viewer-wrapper {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          width: 100%;
+        }
         .diff-pane {
-          font-size: 0.875rem;
-          line-height: 1.7;
-          padding: 16px 20px;
+          font-size: 0.9rem;
+          line-height: 1.6;
+          padding: 24px 28px;
           background: #fff;
-          overflow-x: auto;
         }
         .diff-word-added {
-          background-color: #d1fae5;
-          color: #065f46;
-          border-radius: 3px;
-          padding: 1px 2px;
+          background-color: #dcfce7;
+          color: #166534;
+          font-weight: 500;
+          border-radius: 2px;
+          padding: 0 1px;
         }
         .diff-word-removed {
           background-color: #fee2e2;
           color: #991b1b;
-          border-radius: 3px;
-          padding: 1px 2px;
           text-decoration: line-through;
+          border-radius: 2px;
+          padding: 0 1px;
         }
-        .diff-pane h1, .diff-pane h2, .diff-pane h3,
-        .diff-pane h4, .diff-pane h5, .diff-pane h6 {
-          font-weight: 700;
-          margin: 0.75em 0 0.4em;
-          line-height: 1.3;
+        /* Heading prominence fix */
+        .diff-pane h1, .diff-pane .heading-1 {
+          font-size: 1.85em !important;
+          font-weight: 800 !important;
+          margin: 0.5em 0 0.75em !important;
+          line-height: 1.2 !important;
+          color: #0f172a !important;
+          display: block !important;
         }
-        .diff-pane h1 { font-size: 1.6em; }
-        .diff-pane h2 { font-size: 1.35em; }
-        .diff-pane h3 { font-size: 1.15em; }
-        .diff-pane p { margin: 0 0 0.85em; }
-        .diff-pane strong, .diff-pane b { font-weight: 700; }
-        .diff-pane em, .diff-pane i { font-style: italic; }
-        .diff-pane ul { list-style: disc; padding-left: 1.4em; margin: 0 0 0.85em; }
-        .diff-pane ol { list-style: decimal; padding-left: 1.4em; margin: 0 0 0.85em; }
-        .diff-pane li { margin-bottom: 0.3em; }
-        .diff-pane a { color: #4f46e5; text-decoration: underline; }
+        .diff-pane h2, .diff-pane .heading-2 {
+          font-size: 1.45em !important;
+          font-weight: 700 !important;
+          margin: 1em 0 0.5em !important;
+          line-height: 1.3 !important;
+          color: #1e293b !important;
+        }
+        .diff-pane h3, .diff-pane .heading-3 {
+          font-size: 1.2em !important;
+          font-weight: 700 !important;
+          margin: 1em 0 0.5em !important;
+        }
+        .diff-pane p { margin: 0 0 1em; color: #334155; }
+        .diff-pane strong, .diff-pane b { font-weight: 700; color: #0f172a; }
         .diff-pane-header {
-          font-size: 0.72rem;
-          font-weight: 600;
-          letter-spacing: 0.06em;
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
-          padding: 8px 20px;
-          border-bottom: 1px solid #e2e8f0;
+          padding: 12px 28px;
+          border-bottom: 1px solid #f1f5f9;
         }
       `}</style>
 
-      <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+      <div className="flex-1 min-h-0 bg-white overflow-hidden flex flex-col">
         {!hasDiff ? (
-          <div className="flex items-center justify-center p-12 bg-slate-50 text-slate-500">
-            <p className="font-medium text-sm">No differences found between the two versions.</p>
+          <div className="flex-1 flex items-center justify-center p-12 bg-slate-50 text-slate-400 italic">
+            No changes detected between these versions.
           </div>
         ) : (
-          <div className="grid grid-cols-2 divide-x divide-slate-200">
-            {/* Old / Before */}
-            <div>
-              <div className="diff-pane-header bg-red-50 text-red-600">Before</div>
+          <div className="grid grid-cols-2 divide-x divide-slate-100 flex-1 overflow-y-auto custom-scroll">
+            {/* Old Column */}
+            <div className="flex flex-col min-w-0">
+              <div className="diff-pane-header bg-red-50/50 text-red-600 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+                <span>Original Content</span>
+                <span className="text-[10px] bg-red-100 px-2 py-0.5 rounded font-bold">BEFORE</span>
+              </div>
               <div
-                className="diff-pane"
+                className="diff-pane flex-1"
                 dangerouslySetInnerHTML={{ __html: oldHtml }}
               />
             </div>
-            {/* New / After */}
-            <div>
-              <div className="diff-pane-header bg-emerald-50 text-emerald-700">After</div>
+            {/* New Column */}
+            <div className="flex flex-col min-w-0">
+              <div className="diff-pane-header bg-emerald-50/50 text-emerald-700 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+                <span>Refined Content</span>
+                <span className="text-[10px] bg-emerald-100 px-2 py-0.5 rounded font-bold">AFTER</span>
+              </div>
               <div
-                className="diff-pane"
+                className="diff-pane flex-1"
                 dangerouslySetInnerHTML={{ __html: newHtml }}
               />
             </div>
@@ -287,20 +216,22 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
         )}
       </div>
 
-      <div className="flex justify-end gap-3 mt-6">
-        <button
-          onClick={onReject}
-          className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm shadow-sm active:scale-95"
-        >
-          Discard Changes
-        </button>
-        <button
-          onClick={onAccept}
-          className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-lg shadow-indigo-100 active:scale-95"
-        >
-          Apply to Section
-        </button>
-      </div>
+      {(onAccept || onReject) && (
+        <div className="flex items-center justify-end gap-3 mt-8 pt-6 pr-6 border-t border-slate-100 bg-white">
+          <button
+            onClick={onReject}
+            className="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 rounded transition-all font-bold text-sm"
+          >
+            {rejectLabel}
+          </button>
+          <button
+            onClick={onAccept}
+            className="px-8 py-2.5 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded font-bold text-sm shadow-none transition-all active:scale-95"
+          >
+            {acceptLabel}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

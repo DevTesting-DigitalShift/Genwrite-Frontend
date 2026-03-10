@@ -297,7 +297,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               },
             }
           },
-        }).configure({ levels: [2] }),
+        }).configure({ levels: [1, 2, 3] }),
         // Custom Section Node to preserve <section> tags
         Node.create({
           name: "section",
@@ -679,7 +679,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 relative z-50">
       <div className="flex gap-1 shrink-0">
-        {[2].map(level => (
+        {[1, 2, 3].map(level => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -692,7 +692,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               }`}
               type="button"
             >
-              <Heading2 className="w-4 h-4" />
+              {level === 1 && <Heading1 className="w-4 h-4" />}
+              {level === 2 && <Heading2 className="w-4 h-4" />}
+              {level === 3 && <Heading3 className="w-4 h-4" />}
             </button>
           </div>
         ))}

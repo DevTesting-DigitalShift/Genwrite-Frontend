@@ -1,17 +1,17 @@
 // BACKEND-SYNCED MULTIPLIERS
 const GEMINI_MULTIPLIER = 1
-const OPENAI_MULTIPLIER = 1.5
-const CLAUDE_MULTIPLIER = 2
+const OPENAI_MULTIPLIER = 1.25
+const CLAUDE_MULTIPLIER = 1.5
 
 export const creditCostsWithGemini = Object.freeze({
-  analysis: { competitors: 10, keywords: 1 },
+  analysis: { competitors: 10, keywords: 5 },
   blog: { quick: 10, proofread: 5, single: 10, regenerate: 15 },
   tools: {
-    humanize: 10,
-    outline: 5,
+    humanize: 5,
+    outline: 10,
     boost: 10,
     metadata: 5,
-    rewrite: 5,
+    rewrite: 3,
     chatpdf: 1,
     competitorLikeBlog: 10,
   },
@@ -22,8 +22,9 @@ export const creditCostsWithGemini = Object.freeze({
     advancedAnalysis: 3,
     orchestratorBase: 8,
   },
-  aiImages: 10,
+  aiImages: 2,
 })
+
 
 /**
  * Get the estimated credit cost for a specific operation

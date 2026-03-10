@@ -7,8 +7,8 @@ interface ScheduleDemoButtonProps {
   calLink?: string
   buttonText?: string
   mobileText?: string
-  size?: "sm" | "md" | "lg"
-  variant?: "primary" | "gradient" | "outline" | "ghost"
+  size?: "sm" | "md" | "lg" | "middle" | "large"
+  variant?: "primary" | "gradient" | "outline" | "ghost" | "linear"
   className?: string
   showIcon?: boolean
   disabled?: boolean
@@ -18,7 +18,7 @@ interface ScheduleDemoButtonProps {
 }
 
 const ScheduleDemoButton = ({
-  calLink = "genwrite/demo", 
+  calLink = "genwrite/demo",
   buttonText = "Schedule Demo",
   mobileText,
   size = "md",
@@ -45,19 +45,26 @@ const ScheduleDemoButton = ({
     })()
   }, [])
 
-  const sizeClasses = { sm: "btn-sm text-xs", md: "btn-md text-sm", lg: "btn-lg text-base h-14" }
+  const sizeClasses = {
+    sm: "btn-sm text-xs px-3",
+    md: "btn-md text-sm px-3",
+    middle: "btn-md text-sm px-3 h-10",
+    lg: "btn-md text-base px-4 h-11",
+    large: "btn-md text-base px-4 h-11",
+  }
 
   const getVariantClasses = () => {
     switch (variant) {
+      case "linear":
       case "gradient":
-        return "border-none bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl hover:shadow-indigo-500/20"
+        return "border-none bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-md"
       case "outline":
-        return "btn-outline border-2 border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 hover:text-indigo-700"
+        return "btn-outline border-2 border-indigo-500 text-indigo-600 hover:bg-indigo-50"
       case "ghost":
         return "btn-ghost text-gray-600 hover:bg-gray-100"
       case "primary":
       default:
-        return "btn-primary bg-indigo-600 border-none hover:bg-indigo-700 text-white shadow-md hover:shadow-lg hover:shadow-indigo-500/30"
+        return "btn-primary bg-indigo-600 border-none hover:bg-indigo-700 text-white"
     }
   }
 
@@ -73,27 +80,32 @@ const ScheduleDemoButton = ({
       data-cal-config='{"layout":"month_view"}'
       disabled={disabled}
       className={`
-        btn ${sizeClasses[size]} ${widthClass} ${responsiveClass}
-        rounded-lg font-semibold tracking-wide capitalize 
-        transition-all duration-300 p-2 gap-2 group relative overflow-hidden
+        btn ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.md} ${widthClass} ${responsiveClass}
+        rounded-lg font-semibold tracking-tight capitalize 
+        transition-all duration-300 gap-2 group relative overflow-hidden
         ${getVariantClasses()}
         ${className}
       `}
     >
+      {/* Shimmer Overlay */}
+      <div className="shimmer-effect absolute inset-0 pointer-events-none z-0"></div>
+
       {showIcon && (
         <Calendar
-          className={`w-4 h-4 sm:w-5 sm:h-5 ${iconOnly ? "block sm:hidden" : ""} ${!iconOnly ? "mr-1" : ""} group-hover:scale-110 transition-transform duration-300`}
+          className={`w-4 h-4 sm:w-5 sm:h-5 ${iconOnly ? "block sm:hidden" : ""} ${
+            !iconOnly ? "mr-1" : ""
+          } group-hover:scale-110 transition-transform duration-300 relative z-10`}
         />
       )}
 
       {!iconOnly && (
         <>
-          <span className="hidden sm:inline text-base">{buttonText}</span>
-          <span className="sm:hidden">{mobileText || buttonText}</span>
+          <span className="hidden sm:inline text-base font-bold relative z-10">{buttonText}</span>
+          <span className="sm:hidden relative z-10">{mobileText || buttonText}</span>
         </>
       )}
 
-      {iconOnly && <span className="hidden sm:inline">{buttonText}</span>}
+      {iconOnly && <span className="hidden sm:inline relative z-10">{buttonText}</span>}
     </motion.button>
   )
 }

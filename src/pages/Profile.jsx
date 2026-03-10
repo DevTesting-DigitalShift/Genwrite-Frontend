@@ -567,38 +567,46 @@ const Profile = () => {
 
             {subscriptionDetails ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-2">
-                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                   <p className="text-sm font-semibold text-slate-500">Current Plan</p>
-                   <p className="text-lg font-bold text-slate-800 capitalize">
-                     {subscriptionDetails.subscription?.plan || "Free"}
-                   </p>
-                </div>
-                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                   <p className="text-sm font-semibold text-slate-500">Status</p>
-                   <p className="text-lg font-bold text-slate-800 capitalize">
-                     {subscriptionDetails.subscription?.status?.replace(/_/g, " ") || "Unpaid"}
-                   </p>
-                </div>
-                {subscriptionDetails.subscription?.renewalDate && (
+                {subscriptionDetails.subscription?.plan && (
                   <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                     <p className="text-sm font-semibold text-slate-500">Renewal Date</p>
-                     <p className="text-lg font-bold text-slate-800">
-                       {dayjs(subscriptionDetails.subscription.renewalDate).format("DD MMM YYYY")}
-                     </p>
+                    <p className="text-sm font-semibold text-slate-500">Current Plan</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.plan}
+                    </p>
                   </div>
                 )}
-                <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                   <p className="text-sm font-semibold text-slate-500">Billing Period</p>
-                   <p className="text-lg font-bold text-slate-800 capitalize">
-                      {subscriptionDetails.subscription?.billingPeriod || "N/A"}
-                   </p>
-                </div>
+                {subscriptionDetails.subscription?.status && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Status</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.status.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.subscription?.renewalDate && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Renewal Date</p>
+                    <p className="text-lg font-semibold text-slate-800">
+                      {dayjs(subscriptionDetails.subscription.renewalDate).format("DD MMM YYYY")}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.subscription?.billingPeriod && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Billing Period</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.billingPeriod}
+                    </p>
+                  </div>
+                )}
                 {subscriptionDetails.trial?.hasEverTrialed && (
                   <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                     <p className="text-sm font-semibold text-slate-500">Trial Usage</p>
-                     <p className="text-lg font-bold text-slate-800">
-                      {subscriptionDetails.trial.isCurrentlyTrialing ? "Currently Active" : "Trial Used"}
-                     </p>
+                    <p className="text-sm font-semibold text-slate-500">Trial Usage</p>
+                    <p className="text-lg font-semibold text-slate-800">
+                      {subscriptionDetails.trial.isCurrentlyTrialing
+                        ? "Currently Active"
+                        : "Trial Used"}
+                    </p>
                   </div>
                 )}
               </div>
