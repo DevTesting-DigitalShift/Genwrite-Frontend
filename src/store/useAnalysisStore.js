@@ -12,14 +12,17 @@ const useAnalysisStore = create(
       analysisResult: {},
       error: null,
       selectedKeywords: [],
+      pendingImport: null,
 
       // Actions
+      setPendingImport: type => set({ pendingImport: type }),
+      
       setAnalysisResult: (blogId, data) =>
         set(state => ({ analysisResult: { ...state.analysisResult, [blogId]: data } })),
 
       setSelectedKeywords: selectedKeywords => set({ selectedKeywords }),
 
-      clearSelectedKeywords: () => set({ selectedKeywords: [] }),
+      clearSelectedKeywords: () => set({ selectedKeywords: [], pendingImport: null }),
 
       clearKeywordAnalysis: () => set({ keywordAnalysis: [] }),
 

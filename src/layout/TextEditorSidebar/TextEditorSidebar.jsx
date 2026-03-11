@@ -379,6 +379,10 @@ const TextEditorSidebar = ({
   }, [editorContent])
 
   const handleSectionTask = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (!blog?._id) return toast.error("Blog ID missing")
     if (!sectionToolState.sectionId) return toast.error("Please select a section")
     if (sectionToolState.task === "promptChanges" && !sectionToolState.instructions.trim()) {
@@ -761,6 +765,10 @@ const TextEditorSidebar = ({
 
   // Handlers
   const handleRegenerate = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (!blog?._id) return toast.error("Blog ID missing")
 
     // Open the regenerate modal
@@ -886,6 +894,10 @@ const TextEditorSidebar = ({
   }, [isPro, navigate, blog, keywords])
 
   const handleMetadataGen = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (isPro) return navigate("/pricing")
     handlePopup({
       title: "Generate Metadata",
@@ -942,6 +954,10 @@ const TextEditorSidebar = ({
 
   // Save enhancement options
   const handleSaveEnhancement = useCallback(async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     setIsSavingEnhancement(true)
     try {
       await handleSubmit({ options: enhancementOptions })
@@ -955,6 +971,10 @@ const TextEditorSidebar = ({
   }, [enhancementOptions, handleSubmit])
 
   const handleCustomPromptBlog = useCallback(async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (isPro) return navigate("/pricing")
     if (!customPrompt.trim()) return message.error("Enter a prompt")
     handlePopup({
@@ -992,6 +1012,10 @@ const TextEditorSidebar = ({
   ])
 
   const handleMetadataSave = useCallback(async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (!metadata.title && !metadata.description) return toast.error("Enter metadata")
     try {
       await handleSubmit({ metadata })
@@ -1035,6 +1059,10 @@ const TextEditorSidebar = ({
   }, [blog, editorContent, includeImagesInExport])
 
   const handleKeywordRewrite = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     handlePopup({
       title: "Rewrite Keywords",
       description: "Rewrite content with keywords? (3 times max)",
@@ -1056,6 +1084,10 @@ const TextEditorSidebar = ({
   }
 
   const handleRepostSubmit = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (!repostSettings.platform || !repostSettings.category) {
       return message.error("Platform and Category are required")
     }
@@ -1220,6 +1252,10 @@ const TextEditorSidebar = ({
   ])
 
   const handlePostClick = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     // 1. Plan Check
     if (userPlan === "free") {
       return handlePopup({
@@ -1365,8 +1401,18 @@ const TextEditorSidebar = ({
             across your content.
           </p>
           <button
-            onClick={() => setIsRegenerateModalOpen(true)}
-            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all"
+            onClick={() => {
+              if (blog?.isArchived) {
+                toast.error("This blog is archived. Please restore it to perform this action.")
+                return
+              }
+              setIsRegenerateModalOpen(true)
+            }}
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              blog?.isArchived
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : "bg-gray-900 text-white hover:bg-black"
+            }`}
           >
             Regenerate with Brand
           </button>
@@ -1556,11 +1602,11 @@ const TextEditorSidebar = ({
           </p>
           <button
             onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive}
+            disabled={isAnalyzingCompetitive || blog?.isArchived}
             className={`
               w-full py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-sm
               ${
-                isAnalyzingCompetitive
+                isAnalyzingCompetitive || blog?.isArchived
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
               }
@@ -1715,7 +1761,12 @@ const TextEditorSidebar = ({
             </span>
             <button
               onClick={handleMetadataGen}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+              disabled={blog?.isArchived}
+              className={`text-xs font-medium flex items-center gap-1 ${
+                blog?.isArchived
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-blue-600 hover:text-blue-700 hover:underline"
+              }`}
             >
               <Sparkles className="w-3 h-3" /> Generate
             </button>
@@ -1738,7 +1789,12 @@ const TextEditorSidebar = ({
           </div>
           <button
             onClick={handleMetadataSave}
-            className="w-full py-2 text-sm font-semibold rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+            disabled={blog?.isArchived}
+            className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
+              blog?.isArchived
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+            }`}
           >
             Save Metadata
           </button>
@@ -1781,7 +1837,7 @@ const TextEditorSidebar = ({
               className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
               onChange={e => setIncludeImagesInExport(e.target.checked)}
-              disabled={userPlan === "free"}
+              disabled={userPlan === "free" || blog?.isArchived}
             />
           </div>
           {includeImagesInExport && userPlan !== "free" && (
@@ -1804,14 +1860,14 @@ const TextEditorSidebar = ({
             {/* Markdown */}
             <button
               onClick={handleExportMarkdown}
-              disabled={userPlan === "free"}
+              disabled={userPlan === "free" || blog?.isArchived}
               className={`
       group flex flex-col items-center justify-center gap-2
       py-4 px-3
       rounded-xl text-sm font-semibold
       border-2 transition-all duration-300
       ${
-        userPlan === "free"
+        userPlan === "free" || blog?.isArchived
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
             bg-linear-to-br from-blue-50 to-indigo-50
@@ -1826,7 +1882,7 @@ const TextEditorSidebar = ({
               <FileText
                 className={`
         w-6 h-6
-        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+        ${userPlan !== "free" && !blog?.isArchived && "sm:group-hover:scale-110 transition-transform"}
       `}
               />
               <span>Markdown</span>
@@ -2021,8 +2077,18 @@ const TextEditorSidebar = ({
             <div className="text-xs text-gray-500">Blog Slug</div>
             {!hasPublishedLinks && (
               <button
-                onClick={() => setIsEditingSlug(!isEditingSlug)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                onClick={() => {
+                  if (blog?.isArchived) {
+                    toast.error("This blog is archived. Please restore it to perform this action.")
+                    return
+                  }
+                  setIsEditingSlug(!isEditingSlug)
+                }}
+                className={`text-xs font-semibold ${
+                  blog?.isArchived
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700"
+                }`}
               >
                 {isEditingSlug ? "Cancel" : "Edit"}
               </button>
@@ -2330,6 +2396,10 @@ const TextEditorSidebar = ({
                 <div
                   key={section.id}
                   onClick={() => {
+                    if (blog?.isArchived) {
+                      toast.error("This blog is archived. Please restore it to perform this action.")
+                      return
+                    }
                     setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
                     // Dispatch highlight event
                     window.dispatchEvent(
@@ -2341,7 +2411,9 @@ const TextEditorSidebar = ({
                             ${
                               sectionToolState.sectionId === section.id
                                 ? "bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200"
-                                : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
+                                : blog?.isArchived
+                                  ? "bg-gray-50 border-gray-100 cursor-not-allowed"
+                                  : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
                             }
                         `}
                 >
@@ -2465,10 +2537,15 @@ const TextEditorSidebar = ({
             onClick={handleSectionTask}
             disabled={
               isProcessingSection ||
+              blog?.isArchived ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
-            className="btn btn-primary w-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all bg-linear-to-r from-indigo-600 to-blue-600 border-none rounded-xl"
+            className={`btn btn-primary w-full shadow-lg transition-all border-none rounded-xl ${
+              blog?.isArchived
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : "hover:shadow-xl hover:scale-[1.02] bg-linear-to-r from-indigo-600 to-blue-600"
+            }`}
           >
             {isProcessingSection ? (
               <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -2567,8 +2644,14 @@ const TextEditorSidebar = ({
                     <div className="tooltip" data-tip="Edit settings and repost">
                       <button
                         className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
-                        onClick={() => openRepostModal(posting)}
-                        disabled={isPosting}
+                        onClick={() => {
+                          if (blog?.isArchived) {
+                            toast.error("This blog is archived. Please restore it to perform this action.")
+                            return
+                          }
+                          openRepostModal(posting)
+                        }}
+                        disabled={isPosting || blog?.isArchived}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -2576,6 +2659,10 @@ const TextEditorSidebar = ({
                     <button
                       className="btn btn-sm btn-block text-[12px] font-semibold h-8"
                       onClick={() => {
+                        if (blog?.isArchived) {
+                          toast.error("This blog is archived. Please restore it to perform this action.")
+                          return
+                        }
                         onPost({
                           ...formData,
                           categories:
@@ -2586,7 +2673,7 @@ const TextEditorSidebar = ({
                           type: { platform: posting.integrationType || posting.platform },
                         })
                       }}
-                      disabled={isPosting}
+                      disabled={isPosting || blog?.isArchived}
                     >
                       Repost Same Settings
                     </button>
@@ -2625,8 +2712,11 @@ const TextEditorSidebar = ({
               </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
-                  className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""}`}
+                  className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
+                    blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
                   value={selectedIntegration?.rawPlatform || ""}
+                  disabled={blog?.isArchived}
                   onChange={e => {
                     const v = e.target.value
                     const d = integrations.integrations[v]
@@ -2701,7 +2791,7 @@ const TextEditorSidebar = ({
                       <button
                         key={cat}
                         onClick={() => handleCategoryAdd(cat)}
-                        disabled={!!selectedCategory}
+                        disabled={!!selectedCategory || blog?.isArchived}
                         className={`px-2 py-1 rounded text-[10px] border transition-all ${
                           selectedCategory === cat
                             ? "bg-indigo-100 border-indigo-300 text-indigo-700"
@@ -2730,6 +2820,7 @@ const TextEditorSidebar = ({
               <Switch
                 checked={includeTableOfContents}
                 onCheckedChange={setIncludeTableOfContents}
+                disabled={blog?.isArchived}
               />
             </div>
             {/* WordPress Categories (Moved Below ToC) */}
@@ -2748,15 +2839,12 @@ const TextEditorSidebar = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
         <button
           onClick={handlePostClick}
-          disabled={isPosting || !hasAnyIntegration}
-          className={`
-            w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95
-            ${
-              isPosting || !hasAnyIntegration
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
-            }
-          `}
+          disabled={isPosting || blog?.isArchived}
+          className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
+            isPosting || blog?.isArchived
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-[-1px]"
+          }`}
         >
           {isPosting ? (
             <>
@@ -2886,6 +2974,10 @@ const TextEditorSidebar = ({
                 <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                   <button
                     onClick={() => {
+                      if (blog?.isArchived && item.id === "regenerate") {
+                        toast.error("This blog is archived. Please restore it to perform this action.")
+                        return
+                      }
                       if (item.id === "regenerate") {
                         // Open the regenerate modal
                         setIsRegenerateModalOpen(true)

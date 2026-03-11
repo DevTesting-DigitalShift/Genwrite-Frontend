@@ -56,6 +56,7 @@ const StepContent = ({
 
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 10
+  const MAX_IMAGES = 15
   const isAiImagesLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
 
   // Clean up object URLs to prevent memory leaks
@@ -68,8 +69,6 @@ const StepContent = ({
       })
     }
   }, [newJob.blogs.blogImages])
-
-
 
   const handleIntegrationChange = platform => {
     setFormData(prev => ({ ...prev, postingType: platform }))
@@ -123,13 +122,13 @@ const StepContent = ({
 
     // Determine the value for number inputs
     let val
-    if (type === "tel") {
+    if (type === "tel" || type === "range") {
       if (value === "") {
         val = "" // allow clearing
       } else {
         val = parseInt(value, 10)
         if (val < 0) val = 0 // min value
-        if (val > 20) val = 20 // max value
+        if (val > MAX_IMAGES) val = MAX_IMAGES // max value
       }
     } else {
       val = value
@@ -302,99 +301,8 @@ const StepContent = ({
     : newJob.blogs.topics.slice().reverse().slice(0, 18)
 
   const handleImageSourceChange = source => {
-    setNewJob(prev => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        imageSource: source,
-        isCheckedCustomImages: source === IMAGE_SOURCE.UPLOAD,
-      },
-    }))
+    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, imageSource: source } }))
     setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
-  }
-
-  const validateImages = files => {
-    const maxImages = 15
-    const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
-
-    if (!files || files.length === 0) return []
-
-    const validFiles = Array.from(files).filter(file => {
-      if (!allowedTypes.includes(file.type)) {
-        toast.error(
-          `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
-        )
-        return false
-      }
-      if (file.size > maxSize) {
-        toast.error(`"${file.name}" exceeds the 5 MB size limit.`)
-        return false
-      }
-      return true
-    })
-
-    const totalImages = newJob.blogs.blogImages.length + validFiles.length
-    if (totalImages > maxImages) {
-      toast.error(`Cannot upload more than ${maxImages} images.`)
-      return validFiles.slice(0, maxImages - newJob.blogs.blogImages.length)
-    }
-
-    return validFiles
-  }
-
-  const handleFileChange = e => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    const validFiles = validateImages(files)
-    if (validFiles.length > 0) {
-      setNewJob(prev => ({
-        ...prev,
-        blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
-      }))
-      toast.success(`${validFiles.length} image(s) added successfully!`)
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "" // Reset input
-    }
-  }
-
-  const handleDrop = e => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData(prev => ({ ...prev, isDragging: false }))
-
-    const files = e.dataTransfer.files
-    if (!files || files.length === 0) return
-
-    const validFiles = validateImages(files)
-    if (validFiles.length > 0) {
-      setNewJob(prev => ({
-        ...prev,
-        blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
-      }))
-      // toast.success(`${validFiles.length} image(s) added successfully!`)
-    }
-  }
-
-  const handleDragOver = e => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData(prev => ({ ...prev, isDragging: true }))
-  }
-
-  const handleDragLeave = e => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData(prev => ({ ...prev, isDragging: false }))
-  }
-
-  const handleRemoveImage = index => {
-    setNewJob(prev => ({
-      ...prev,
-      blogs: { ...prev.blogs, blogImages: prev.blogs.blogImages.filter((_, i) => i !== index) },
-    }))
   }
 
   const handleTemplateSelection = useCallback(temps => {
@@ -416,12 +324,6 @@ const StepContent = ({
             errors.templates && "border-2 border-red-500 rounded-lg"
           )}`}
         >
-          <TemplateSelection
-            numberOfSelection={3}
-            userSubscriptionPlan={userPlan ?? "free"}
-            preSelectedIds={newJob?.blogs?.templates ?? []}
-            onClick={handleTemplateSelection}
-          />
           <p
             className={`text-sm ${
               errors?.templates ? "text-red-500" : "text-gray-600"
@@ -431,6 +333,12 @@ const StepContent = ({
               ? errors.templates
               : "Select up to 3 templates for the types of blogs you want to generate."}
           </p>
+          <TemplateSelection
+            numberOfSelection={3}
+            userSubscriptionPlan={userPlan ?? "free"}
+            preSelectedIds={newJob?.blogs?.templates ?? []}
+            onClick={handleTemplateSelection}
+          />
         </motion.div>
       )
     case 2:
@@ -681,7 +589,10 @@ const StepContent = ({
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
-                <label htmlFor="language" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label
+                  htmlFor="language"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
                   Language <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -734,6 +645,7 @@ const StepContent = ({
         </motion.div>
       )
     case 3:
+      const percentage = (newJob.blogs.numberOfImages / MAX_IMAGES) * 100
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="flex justify-between items-center">
@@ -763,87 +675,36 @@ const StepContent = ({
                 isAiLimitReached={isAiImagesLimitReached}
                 navigate={navigate}
                 error={errors.imageSource}
-                showUpload={true}
+                showUpload={false}
               />
             </div>
           )}
 
-          {newJob.blogs.isCheckedGeneratedImages && newJob.blogs.isCheckedCustomImages && (
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Upload Custom Images (Max 15, each 5MB)
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                  formData.isDragging ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-gray-50"
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <p className="text-sm text-gray-600 mb-2">
-                  Drag and drop images here or click to select
-                </p>
-                <button
-                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm btn border-none min-h-auto h-auto"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Select Images
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  className="hidden"
-                />
-              </div>
-              {newJob.blogs.blogImages.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {newJob.blogs.blogImages.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image instanceof File ? URL.createObjectURL(image) : image}
-                        alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-md"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <p className="text-xs text-gray-600 truncate mt-1">
-                        {image instanceof File ? image.name : `Image ${index + 1}`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
+          {newJob.blogs.isCheckedGeneratedImages && (
             <div className="w-full">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Number of Images
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                Enter the number of images (0 = AI will decide)
+                Use the slider to select the number of images (0 = AI will decide)
               </p>
-              <input
-                type="tel"
-                inputMode="numeric"
-                name="numberOfImages"
-                min="0"
-                max="15"
-                value={newJob.blogs.numberOfImages ?? ""}
-                onChange={handleInputChange}
-                onWheel={e => e.currentTarget.blur()}
-                className="input input-bordered w-full px-4 py-2 rounded-lg text-sm placeholder-gray-400 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., 5"
-              />
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  name="numberOfImages"
+                  min="0"
+                  max={MAX_IMAGES}
+                  value={newJob.blogs.numberOfImages || 0}
+                  onChange={handleInputChange}
+                  style={{
+                    background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
+                  }}
+                  className="w-full h-1.5 rounded-lg appearance-none"
+                />
+                <span className="text-sm font-bold text-gray-700 w-8">
+                  {newJob.blogs.numberOfImages || 0}
+                </span>
+              </div>
               {errors.numberOfImages && (
                 <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
               )}
@@ -880,7 +741,9 @@ const StepContent = ({
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Schedule Type</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Schedule Type
+              </label>
               <select
                 value={newJob.schedule.type}
                 onChange={e => {
@@ -988,7 +851,9 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "custom" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Dates</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Select Dates
+                </label>
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}

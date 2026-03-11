@@ -3,7 +3,6 @@ export const IMAGE_SOURCE = Object.freeze({
   NONE: "none",
   STOCK: "stock",
   AI: "ai",
-  UPLOAD: "upload",
 })
 
 export const IMAGE_SOURCE_VALUES = Object.freeze(Object.values(IMAGE_SOURCE))
@@ -59,12 +58,6 @@ export const IMAGE_OPTIONS = [
     id: IMAGE_SOURCE.AI, 
     label: "AI Images", 
     description: "Unique visuals powered by AI.",
-    restrictedPlans: ["free"] 
-  },
-  { 
-    id: IMAGE_SOURCE.UPLOAD, 
-    label: "Custom Upload", 
-    description: "Upload your own branded images.",
     restrictedPlans: ["free"] 
   },
 ]

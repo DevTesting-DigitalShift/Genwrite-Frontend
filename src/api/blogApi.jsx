@@ -173,6 +173,15 @@ export const restoreBlogById = async id => {
   }
 }
 
+export const restoreAllBlogs = async () => {
+  try {
+    const response = await axiosInstance.patch("/blogs/restore")
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to restore blogs")
+  }
+}
+
 export const archiveBlogById = async id => {
   try {
     const response = await axiosInstance.patch(`/blogs/archive/${id}`)

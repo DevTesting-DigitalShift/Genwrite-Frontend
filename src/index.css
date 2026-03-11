@@ -400,11 +400,33 @@ input[type="number"] {
   border-radius: 50%;
   background: #3b82f6;
   cursor: pointer;
-  margin-top: -1px;
+  margin-top: 6px;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
   transition: transform 0.15s ease;
 }
 
 .custom-slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
+}
+
+/* Chrome / Edge / Safari */
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #1B6FC9;
+  cursor: pointer;
+  border: none;
+  margin-top: -5px;
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #1B6FC9;
+  border: none;
+  cursor: pointer;
 }

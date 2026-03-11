@@ -325,7 +325,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     const { name, value, type } = e.target
 
     let val
-    if (type === "tel") {
+    if (type === "tel" || type === "range") {
       if (value === "") {
         val = ""
       } else {
@@ -336,7 +336,7 @@ const BulkBlogModal = ({ closeFnc }) => {
           val = parsed
           if (val < 0) val = 0
           if (name === "numberOfBlogs" && val > 10) val = 10
-          if (name === "numberOfImages" && val > 20) val = 20
+          if (name === "numberOfImages" && val > 15) val = 15
         }
       }
     } else {
@@ -1109,6 +1109,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     isAiLimitReached={isAiImagesLimitReached}
                     navigate={navigate}
                     error={errors.blogImages}
+                    showUpload={false}
                   />
 
                   <div className="pt-4 w-full">
@@ -1118,20 +1119,20 @@ const BulkBlogModal = ({ closeFnc }) => {
                     <p className="text-xs text-gray-500 mb-2">
                       Enter the number of images (0 = AI will decide)
                     </p>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      name="numberOfImages"
-                      min="0"
-                      max="15"
-                      value={formData.numberOfImages}
-                      onChange={handleInputChange}
-                      onWheel={e => e.currentTarget.blur()}
-                      className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
-                        errors.numberOfImages ? "border-red-500" : "border-gray-300"
-                      } focus:ring-2 focus:ring-blue-500`}
-                      placeholder="e.g., 5"
-                    />
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        name="numberOfImages"
+                        min="0"
+                        max="15"
+                        value={formData.numberOfImages || 0}
+                        onChange={handleInputChange}
+                        className="w-48 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1B6FC9] hover:accent-[#1B6FC9]/80 transition-all"
+                      />
+                      <span className="text-sm font-bold text-gray-700 w-8">
+                        {formData.numberOfImages || 0}
+                      </span>
+                    </div>
                     {errors.numberOfImages && (
                       <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
                     )}

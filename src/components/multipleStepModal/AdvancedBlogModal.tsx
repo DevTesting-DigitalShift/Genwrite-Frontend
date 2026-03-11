@@ -20,7 +20,6 @@ import { getGeneratedTitles } from "@api/blogApi"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 import { X } from "lucide-react"
-import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import useIntegrationStore from "@store/useIntegrationStore"
 
 interface AdvancedBlogModalProps {
@@ -70,6 +69,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       addCTA: false as boolean,
       easyToUnderstand: false as boolean,
       embedYouTubeVideos: false as boolean,
+      includeTableOfContents: false as boolean,
     },
   }
 
@@ -146,16 +146,17 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   }
 
   // setting the selected analyzed keywords from keywords planner
-  const selectedKeywords = useAnalysisStore(state => state.selectedKeywords)
+  const { selectedKeywords, pendingImport, setPendingImport } = useAnalysisStore()
   useEffect(() => {
-    if (selectedKeywords) {
+    if (pendingImport === "blog" && selectedKeywords) {
       setFormData(prev => ({
         ...prev,
         focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
         keywords: selectedKeywords.keywords || prev.keywords,
       }))
+      setPendingImport(null)
     }
-  }, [selectedKeywords])
+  }, [selectedKeywords, pendingImport, setPendingImport])
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -370,6 +371,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     },
     []
   )
+
+  const percentage = ((formData.userDefinedLength - 500) / (5000 - 500)) * 100
 
   const renderSteps = () => {
     switch (currentStep) {
@@ -690,7 +693,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       target: { name: "userDefinedLength", value: Number(e.target.value) },
                     })
                   }
-                  className="range range-primary"
+                  style={{
+                    background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
+                  }}
+                  className="custom-slider w-full h-1.5 rounded-lg appearance-none"
                 />
 
                 <div className="flex justify-between text-xs text-slate-400">
@@ -717,6 +723,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         )
 
       case 2: {
+        const percentage = ((formData.numberOfImages || 0) / 15) * 100
         return (
           <div className="space-y-3 p-4 pt-0">
             <AiModelSelector
@@ -768,59 +775,51 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {/* Image Source Settings */}
             {formData.isCheckedGeneratedImages && (
               <div className="space-y-6 overflow-hidden mt-6">
-                <label className="text-sm font-semibold text-slate-800">Select Image Mode</label>
                 <ImageSourceSelector
                   value={formData.imageSource}
                   onChange={(sourceId: string) => {
                     handleInputChange({ target: { name: "imageSource", value: sourceId } })
-                    if (sourceId !== IMAGE_SOURCE.UPLOAD) {
-                      handleInputChange({ target: { name: "blogImages", value: [] } })
-                    }
                   }}
                   userPlan={user?.subscription?.plan || "free"}
-                  isAiLimitReached={(user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)}
-                  showUpload={true}
+                  isAiLimitReached={
+                    (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
+                  }
+                  showUpload={false}
                   navigate={navigate}
                   error={errors.imageSource}
                 />
 
-                {formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id ? (
-                  <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="flex-1">
                     <label className="text-sm font-semibold text-slate-800">
-                      Number of Images (0 = Decided by AI) :
+                      Number of Images (0 = Decided by AI)
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="15"
-                      value={formData.numberOfImages}
-                      onChange={e =>
-                        handleInputChange({
-                          target: {
-                            name: "numberOfImages",
-                            value: e.target.value ? parseInt(e.target.value) : 0,
-                          },
-                        })
-                      }
-                      className="w-48 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
+                    <div className="flex items-center gap-4 mt-2">
+                      <input
+                        type="range"
+                        name="numberOfImages"
+                        min="0"
+                        max="15"
+                        value={formData.numberOfImages || 0}
+                        onChange={e =>
+                          handleInputChange({
+                            target: {
+                              name: "numberOfImages",
+                              value: e.target.value ? parseInt(e.target.value) : 0,
+                            },
+                          })
+                        }
+                        style={{
+                          background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
+                        }}
+                        className="w-full h-1.5 rounded-lg appearance-none custom-slider cursor-pointer accent-[#1B6FC9]"
+                      />
+                      <span className="text-sm font-bold text-gray-700 w-8">
+                        {formData.numberOfImages || 0}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <BlogImageUpload
-                      id="blog-upload-images"
-                      label="Upload Custom Images"
-                      maxCount={15}
-                      initialFiles={formData.blogImages}
-                      onChange={(file: any) =>
-                        handleInputChange({ target: { name: "blogImages", value: file } })
-                      }
-                    />
-                    {errors.blogImages && (
-                      <p className="text-xs text-red-500 font-semibold mt-1">{errors.blogImages}</p>
-                    )}
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -922,12 +921,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">Automatic Posting</p>
-                  <p className="text-xs text-slate-500">Automatically post to your connected platforms</p>
+                  <p className="text-xs text-slate-500">
+                    Automatically post to your connected platforms
+                  </p>
                 </div>
                 <Switch
                   checked={formData.wordpressPostStatus}
                   onCheckedChange={(checked: boolean) => {
-                    const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
+                    const hasAnyIntegration =
+                      Object.keys(integrations?.integrations || {}).length > 0
                     if (checked && !hasAnyIntegration) {
                       toast.error("Please connect your account in plugins.")
                       return
@@ -968,6 +970,23 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         {errors.postingType}
                       </p>
                     )}
+
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">Table of Contents</p>
+                        <p className="text-xs text-slate-500">
+                          Include a table of contents in your post
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.options.includeTableOfContents}
+                        onCheckedChange={(checked: boolean) =>
+                          handleInputChange({
+                            target: { name: "options.includeTableOfContents", value: checked },
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 )}
             </div>

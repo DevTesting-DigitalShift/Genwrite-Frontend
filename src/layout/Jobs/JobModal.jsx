@@ -8,8 +8,9 @@ import { validateJobData } from "@/types/forms.schemas"
 import { toast } from "sonner"
 
 const JobModal = ({ user, userPlan, isUserLoaded }) => {
+  const scrollableRef = React.useRef(null)
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()
-  const { selectedKeywords, clearSelectedKeywords } = useAnalysisStore()
+  const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } = useAnalysisStore()
   const initialJob = {
     name: "",
     schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
@@ -25,7 +26,6 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       brandId: null,
       useBrandVoice: false,
       isCheckedGeneratedImages: true,
-      isCheckedCustomImages: false,
       addCTA: true,
       numberOfImages: 0,
       blogImages: [],
@@ -66,6 +66,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
   const MAX_BLOGS = 10
+  const MAX_IMAGES = 15
 
   // Clear Job Modules and it's states on close
   useEffect(() => {
@@ -102,56 +103,37 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   }, [selectedJob])
 
   useEffect(() => {
-    let baseJob = selectedJob ? { ...selectedJob } : initialJob
-    let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
-    let mergedKeywords = [
-      ...(baseJob.blogs.keywords || []),
-      ...(selectedKeywords?.focusKeywords || []),
-      ...(selectedKeywords?.allKeywords || []),
-    ]
-
-    setNewJob({
-      ...baseJob,
-      blogs: {
-        ...baseJob.blogs,
-        topics: [...new Set(mergedTopics)],
-        keywords: [...new Set(mergedKeywords)],
-      },
-    })
-
-    setFormData(prev => ({
-      ...prev,
-      keywords: [
-        ...new Set([
-          ...(prev.keywords || []),
-          ...(selectedKeywords?.focusKeywords || []),
-          ...(selectedKeywords?.allKeywords || []),
-        ]),
-      ],
-    }))
-  }, [selectedKeywords, selectedJob])
-
-  useEffect(() => {
-    const uniqueKeywords = [
-      ...new Set([
+    if (pendingImport === "job" && selectedKeywords) {
+      let baseJob = selectedJob ? { ...selectedJob } : initialJob
+      let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
+      let mergedKeywords = [
+        ...(baseJob.blogs.keywords || []),
         ...(selectedKeywords?.focusKeywords || []),
         ...(selectedKeywords?.allKeywords || []),
-      ]),
-    ]
-    if (uniqueKeywords.length > 0) {
+      ]
+
+      setNewJob({
+        ...baseJob,
+        blogs: {
+          ...baseJob.blogs,
+          topics: [...new Set(mergedTopics)],
+          keywords: [...new Set(mergedKeywords)],
+        },
+      })
+
       setFormData(prev => ({
         ...prev,
-        keywords: [...new Set([...prev.keywords, ...uniqueKeywords])],
+        keywords: [
+          ...new Set([
+            ...(prev.keywords || []),
+            ...(selectedKeywords?.focusKeywords || []),
+            ...(selectedKeywords?.allKeywords || []),
+          ]),
+        ],
       }))
-      setNewJob(prev => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          keywords: [...new Set([...prev.blogs.keywords, ...uniqueKeywords])],
-        },
-      }))
+      setPendingImport(null)
     }
-  }, [selectedKeywords])
+  }, [selectedKeywords, selectedJob, pendingImport, setPendingImport])
 
   const validateSteps = step => {
     const newErrors = {}
@@ -172,8 +154,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
         newErrors.numberOfBlogs = `Number of blogs must be between 1 and ${MAX_BLOGS}.`
       }
-      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_BLOGS) {
-        newErrors.numberOfImages = `Number of images must be between 0 and 20.`
+      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_IMAGES) {
+        newErrors.numberOfImages = `Number of images must be between 0 and ${MAX_IMAGES}.`
       }
       if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
         newErrors.brandId = "Please select a brand voice."
@@ -197,6 +179,11 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       }
     }
     setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) {
+      if (scrollableRef.current) {
+        scrollableRef.current.scrollTo({ top: 0, behavior: "smooth" })
+      }
+    }
     return Object.keys(newErrors).length === 0
   }
 
@@ -301,7 +288,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div ref={scrollableRef} className="flex-1 overflow-y-auto p-4 md:p-6">
           <StepContent
             currentStep={currentStep}
             newJob={newJob}

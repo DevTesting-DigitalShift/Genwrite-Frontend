@@ -198,7 +198,7 @@ const JobExpandedPanel = ({ job }) => {
     "—"
 
   const imageSrcLabel =
-    { stock: "Stock Photos", ai: "AI Generated", custom: "Custom Upload", none: "No Images" }[
+    { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[
       blogs.imageSource
     ] ||
     blogs.imageSource ||

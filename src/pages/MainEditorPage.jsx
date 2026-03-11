@@ -206,7 +206,7 @@ const MainEditorPage = () => {
       toast.error(
         error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
       )
-    } finally {
+    } finally { 
       setIsPosting(false)
     }
   }
@@ -223,6 +223,10 @@ const MainEditorPage = () => {
   }
 
   const handleSave = async (updateData = {}) => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     const { metadata: seoMetadata, slug, ...rest } = updateData
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
@@ -268,6 +272,10 @@ const MainEditorPage = () => {
   }
 
   const handleOptimizeSave = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     setIsSaving(true)
     try {
       const payload = {
@@ -374,6 +382,10 @@ const MainEditorPage = () => {
   }
 
   const handleTitleChange = e => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     const newTitle = e.target.value
     if (getWordCount(newTitle) <= 60) {
       setEditorTitle(newTitle)
@@ -499,6 +511,14 @@ const MainEditorPage = () => {
 
         <div className="flex flex-col md:flex-row grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
+            {blog?.isArchived && (
+              <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center justify-center gap-2 text-amber-800">
+                <Info className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  This blog is archived. Please restore it to make changes.
+                </span>
+              </div>
+            )}
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 mt-5 lg:mt-0 w-full">
@@ -523,6 +543,7 @@ const MainEditorPage = () => {
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
+                      blog?.isArchived ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -531,6 +552,7 @@ const MainEditorPage = () => {
                     }`}
                     disabled={
                       isSaving ||
+                      blog?.isArchived ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60

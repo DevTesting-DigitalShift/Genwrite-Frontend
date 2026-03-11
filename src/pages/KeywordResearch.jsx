@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react"
+import { useEffect, useState, lazy, Suspense, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Table,
@@ -21,12 +21,22 @@ import {
 } from "@/components/ui/dialog"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { toast } from "sonner"
-import { X, ChevronLeft, ChevronRight, Search, Info, ArrowLeft, Sparkles } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Search, Info, ArrowLeft, Sparkles, Download, ArrowDownUp } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import useJobStore from "@store/useJobStore"
 import { useQueryClient } from "@tanstack/react-query"
 import LoadingScreen from "@/components/ui/LoadingScreen"
 import { Helmet } from "react-helmet"
+
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+} from "@tanstack/react-table"
+import ExcelJS from "exceljs"
+import clsx from "clsx"
+import dayjs from "dayjs"
 
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 
@@ -36,8 +46,9 @@ const KeywordResearch = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [autoSelectVisible, setAutoSelectVisible] = useState(false)
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" })
   const [showAdvancedBlogModal, setShowAdvancedBlogModal] = useState(false)
+  const [sorting, setSorting] = useState([])
+  const [rowSelection, setRowSelection] = useState({})
 
   const navigate = useNavigate()
   const { openJobModal } = useJobStore()
@@ -49,6 +60,7 @@ const KeywordResearch = () => {
     selectedKeywords,
     clearKeywordAnalysis,
     setSelectedKeywords,
+    setPendingImport,
     analyzeKeywords: analyzeKeywordsAction,
   } = useAnalysisStore()
 
@@ -161,13 +173,44 @@ const KeywordResearch = () => {
     const finalKeywords = [
       ...(selectedKeywords?.allKeywords || []),
       ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
-    ].slice(0, 6)
+    ].slice(0, 15)
     setSelectedKeywords({
       focusKeywords: finalKeywords.slice(0, 3),
       keywords: finalKeywords,
       allKeywords: finalKeywords,
     })
     setAutoSelectVisible(false)
+  }
+
+  const handleExport = async () => {
+    if (!keywordAnalysisResult?.length) return
+    
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet("Keyword Analysis")
+    
+    worksheet.columns = [
+      { header: "Keyword", key: "keyword", width: 30 },
+      { header: "Monthly Searches", key: "avgMonthlySearches", width: 20 },
+      { header: "Competition", key: "competition", width: 15 },
+      { header: "Competition Index", key: "competition_index", width: 15 },
+      { header: "Low Bid", key: "lowBid", width: 10 },
+      { header: "High Bid", key: "highBid", width: 10 },
+    ]
+    
+    keywordAnalysisResult.forEach(kw => {
+      worksheet.addRow(kw)
+    })
+    
+    worksheet.getRow(1).font = { bold: true }
+    
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+    const url = window.URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = `Keyword_Research_${dayjs().format("YYYY-MM-DD")}.xlsx`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
   }
 
   const proceedWithSelectedKeywords = async type => {
@@ -177,6 +220,7 @@ const KeywordResearch = () => {
       keywords: finalKeywords.slice(3),
       allKeywords: finalKeywords,
     })
+    setPendingImport(type)
     
     if (type === "blog") {
       setShowAdvancedBlogModal(true)
@@ -194,76 +238,151 @@ const KeywordResearch = () => {
     proceedWithSelectedKeywords("job")
   }
 
-  const requestSort = key => {
-    let direction = "asc"
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc"
-    }
-    setSortConfig({ key, direction })
-  }
+  const tableData = useMemo(
+    () =>
+      keywordAnalysisResult?.map((kw, idx) => ({
+        keyword: kw.keyword,
+        avgMonthlySearches: kw.avgMonthlySearches,
+        competition: kw.competition,
+        competition_index: kw.competition_index,
+        avgCpc: kw.avgCpc,
+        lowBid: kw.lowBid,
+        highBid: kw.highBid,
+      })) || [],
+    [keywordAnalysisResult]
+  )
 
-  const tableData =
-    keywordAnalysisResult?.map((kw, idx) => ({
-      key: idx,
-      keyword: kw.keyword,
-      avgMonthlySearches: kw.avgMonthlySearches,
-      competition: kw.competition,
-      competition_index: kw.competition_index,
-      avgCpc: kw.avgCpc,
-      lowBid: kw.lowBid,
-      highBid: kw.highBid,
-    })) || []
+  const columns = useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => {
+          const pageKeywords = currentRows.map(r => r.id)
+          const selectedOnPage = pageKeywords.filter(k => selectedKeywords?.allKeywords?.includes(k))
+          const isAllPageSelected = pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
+          const isSomePageSelected = selectedOnPage.length > 0 && selectedOnPage.length < pageKeywords.length
 
-  let sortedData = [...tableData]
-  if (sortConfig.key) {
-    sortedData.sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === "asc" ? -1 : 1
-      }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === "asc" ? 1 : -1
-      }
-      return 0
+          return (
+            <Checkbox
+              checked={isAllPageSelected || (isSomePageSelected && "indeterminate")}
+              onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+            />
+          )
+        },
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={value => row.toggleSelected(!!value)}
+          />
+        ),
+      },
+      {
+        accessorKey: "keyword",
+        header: "Keyword",
+      },
+      {
+        accessorKey: "avgMonthlySearches",
+        header: "Searches (Mo)",
+      },
+      {
+        accessorKey: "competition",
+        header: "Difficulty",
+      },
+      {
+        accessorKey: "competition_index",
+        header: "Score",
+      },
+    ],
+    []
+  )
+
+  const filteredData = useMemo(() => {
+    if (!showSelectedOnly) return tableData
+    const selectedKeys = selectedKeywords?.allKeywords || []
+    return tableData.filter(row => selectedKeys.includes(row.keyword))
+  }, [tableData, showSelectedOnly, selectedKeywords])
+
+  // Sync rowSelection state from store when store changes
+  useEffect(() => {
+    const selection = {}
+    const allSelected = selectedKeywords?.allKeywords || []
+    allSelected.forEach(kw => {
+      selection[kw] = true
     })
-  }
+    setRowSelection(selection)
+  }, [selectedKeywords?.allKeywords])
 
-  const filteredTableData = showSelectedOnly
-    ? sortedData.filter(row => selectedKeywords?.allKeywords?.includes(row.keyword))
-    : sortedData
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getRowId: row => row.keyword,
+    state: {
+      sorting,
+      rowSelection,
+    },
+    onSortingChange: setSorting,
+    onRowSelectionChange: updater => {
+      const nextSelection = typeof updater === "function" ? updater(rowSelection) : updater
+      const selectedKeys = Object.keys(nextSelection).filter(k => nextSelection[k])
+      
+      if (selectedKeys.length === 0) {
+        setSelectedKeywords({ focusKeywords: [], keywords: [], allKeywords: [] })
+        return
+      }
 
-  const totalPages = Math.ceil(filteredTableData.length / REAL_PAGE_SIZE)
-  const currentData = filteredTableData.slice((currentPage - 1) * REAL_PAGE_SIZE, currentPage * REAL_PAGE_SIZE)
+      let final = selectedKeys
+      if (selectedKeys.length > 15) {
+        toast.error("Selection limit of 15 keywords reached")
+        
+        const currentInView = currentRows.map(r => r.id)
+        const inViewSelected = selectedKeys.filter(k => currentInView.includes(k))
+        const remainingSlots = 15 - inViewSelected.length
+
+        if (remainingSlots > 0) {
+          const sortedAll = table.getSortedRowModel().rows.map(r => r.id)
+          const lastInViewIdx = Math.max(...currentInView.map(id => sortedAll.indexOf(id)))
+          
+          // Keywords after the current view
+          const subsequent = sortedAll.slice(lastInViewIdx + 1).filter(k => selectedKeys.includes(k))
+          // Keywords before the current view
+          const preceeding = sortedAll.slice(0, Math.min(...currentInView.map(id => sortedAll.indexOf(id)))).filter(k => selectedKeys.includes(k))
+          
+          final = [...inViewSelected, ...subsequent, ...preceeding].slice(0, 15)
+        } else {
+          final = inViewSelected.slice(0, 15)
+        }
+      }
+
+      setSelectedKeywords({
+        focusKeywords: final.slice(0, 3),
+        keywords: final,
+        allKeywords: final,
+      })
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    enableRowSelection: true,
+  })
+
+  const totalPages = Math.ceil(table.getFilteredRowModel().rows.length / REAL_PAGE_SIZE)
+  const currentRows = table.getSortedRowModel().rows.slice(
+    (currentPage - 1) * REAL_PAGE_SIZE,
+    currentPage * REAL_PAGE_SIZE
+  )
 
   const handlePageChange = page => setCurrentPage(page)
 
-  const toggleSelectAll = checked => {
-    if (checked) {
-      const allKeys = filteredTableData.map(row => row.keyword)
-      setSelectedKeywords({
-        focusKeywords: allKeys.slice(0, 3),
-        keywords: allKeys,
-        allKeywords: allKeys,
-      })
-    } else {
-      setSelectedKeywords({ focusKeywords: [], keywords: [], allKeywords: [] })
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
     }
-  }
+  }, [totalPages, currentPage])
 
-  const toggleSelectRow = (keyword, checked) => {
-    const currentSelected = selectedKeywords?.allKeywords || []
-    let newSelected
-    if (checked) {
-      newSelected = [...currentSelected, keyword]
-    } else {
-      newSelected = currentSelected.filter(kw => kw !== keyword)
+  useEffect(() => {
+    if (showSelectedOnly && (selectedKeywords?.allKeywords?.length || 0) === 0) {
+      setShowSelectedOnly(false)
     }
-
-    setSelectedKeywords({
-      focusKeywords: newSelected.slice(0, 3),
-      keywords: newSelected,
-      allKeywords: newSelected,
-    })
-  }
+  }, [selectedKeywords?.allKeywords?.length, showSelectedOnly])
 
   useEffect(() => {
     return () => {
@@ -275,9 +394,10 @@ const KeywordResearch = () => {
   }, [])
 
   const hasSelectedKeywords = (selectedKeywords?.allKeywords?.length || 0) > 0
+  const allFilteredKeywords = table.getFilteredRowModel().rows.map(r => r.original)
   const isAllSelected =
-    filteredTableData.length > 0 &&
-    filteredTableData.every(row => selectedKeywords?.allKeywords?.includes(row.keyword))
+    allFilteredKeywords.length > 0 &&
+    allFilteredKeywords.every(row => selectedKeywords?.allKeywords?.includes(row.keyword))
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
@@ -287,9 +407,6 @@ const KeywordResearch = () => {
       <div className="max-w-[1200px] mx-auto space-y-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 px-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </Button>
             <div>
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Search className="w-6 h-6 text-[#1B6FC9]" />
@@ -365,8 +482,8 @@ const KeywordResearch = () => {
           {!analyzing && keywordAnalysisResult?.length > 0 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 border-t border-slate-100">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 mr-4">
                     <Switch
                       id="show-selected"
                       checked={showSelectedOnly}
@@ -380,13 +497,22 @@ const KeywordResearch = () => {
                       Filter Selected
                     </label>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    className="flex items-center gap-2 bg-white border-slate-200 text-slate-600 font-bold hover:bg-slate-50 rounded-lg h-9"
+                  >
+                    <Download size={16} />
+                    Export
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-[#1B6FC9] uppercase tracking-wider">
                     Selection Pool
                   </span>
                   <div className="text-sm text-blue-800 font-bold bg-blue-200/50 px-4 py-1.5 rounded-full border border-blue-300/30">
-                    {selectedKeywords?.allKeywords?.length || 0} / {REAL_PAGE_SIZE} max
+                    {selectedKeywords?.allKeywords?.length || 0} / 15 max
                   </div>
                 </div>
               </div>
@@ -395,73 +521,68 @@ const KeywordResearch = () => {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-slate-50/80">
-                      <TableRow className="border-slate-200">
-                        <TableHead className="w-[80px] text-center">
-                          <Checkbox checked={isAllSelected} onCheckedChange={toggleSelectAll} />
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:text-blue-600 transition-colors py-4 font-bold text-slate-800"
-                          onClick={() => requestSort("keyword")}
-                        >
-                          Keyword
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:text-blue-600 transition-colors py-4 font-bold text-slate-800"
-                          onClick={() => requestSort("avgMonthlySearches")}
-                        >
-                          Searches (Mo)
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:text-blue-600 transition-colors py-4 font-bold text-slate-800"
-                          onClick={() => requestSort("competition")}
-                        >
-                          Difficulty
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:text-blue-600 transition-colors text-right py-4 font-bold text-slate-800 pr-8"
-                          onClick={() => requestSort("competition_index")}
-                        >
-                          Score
-                        </TableHead>
-                      </TableRow>
+                      {table.getHeaderGroups().map(headerGroup => (
+                        <TableRow key={headerGroup.id} className="border-slate-200">
+                          {headerGroup.headers.map(header => (
+                            <TableHead
+                              key={header.id}
+                              className={clsx(
+                                "py-4 font-bold text-slate-800 select-none",
+                                header.column.getCanSort() && "cursor-pointer hover:text-[#1B6FC9]"
+                              )}
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              <div className="flex items-center gap-2">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                                {header.column.getCanSort() && (
+                                  <div className="flex flex-col text-[10px] opacity-40">
+                                    <ArrowDownUp size={12} strokeWidth={3} />
+                                  </div>
+                                )}
+                              </div>
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
                     </TableHeader>
                     <TableBody>
-                      {currentData.map(row => (
+                      {currentRows.map(row => (
                         <TableRow
-                          key={row.keyword}
+                          key={row.id}
                           className="group hover:bg-[#1B6FC9]/5 border-slate-100 transition-colors"
                         >
-                          <TableCell className="text-center">
-                            <Checkbox
-                              checked={selectedKeywords?.allKeywords?.includes(row.keyword)}
-                              onCheckedChange={checked => toggleSelectRow(row.keyword, checked)}
-                            />
-                          </TableCell>
-                          <TableCell className="font-bold text-slate-900 py-3.5 capitalize">
-                            {row.keyword}
-                          </TableCell>
-                          <TableCell className="text-slate-600 font-medium tabular-nums py-3.5">
-                            {new Intl.NumberFormat().format(row.avgMonthlySearches)}
-                          </TableCell>
-                          <TableCell className="py-3.5">
-                            <Badge
-                              className={`
-                                shadow-none font-bold rounded-lg px-2.5 py-0.5
-                                ${
-                                  row.competition === "LOW"
-                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none"
-                                    : row.competition === "MEDIUM"
-                                      ? "bg-amber-100 text-amber-700 hover:bg-amber-100 border-none"
-                                      : "bg-rose-100 text-rose-700 hover:bg-rose-100 border-none"
-                                }
-                              `}
-                            >
-                              {row.competition}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-bold text-slate-400 tabular-nums py-3.5 pr-8">
-                            {row.competition_index || "-"}
-                          </TableCell>
+                          {row.getVisibleCells().map(cell => (
+                            <TableCell key={cell.id} className="py-3.5">
+                              {cell.column.id === "keyword" ? (
+                                <span className="font-bold text-slate-900 capitalize">
+                                  {cell.getValue()}
+                                </span>
+                              ) : cell.column.id === "avgMonthlySearches" ? (
+                                <span className="text-slate-600 font-medium tabular-nums">
+                                  {new Intl.NumberFormat().format(cell.getValue())}
+                                </span>
+                              ) : cell.column.id === "competition" ? (
+                                <Badge
+                                  className={clsx(
+                                    "shadow-none font-bold rounded-lg px-2.5 py-0.5 border-none",
+                                    cell.getValue() === "LOW"
+                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                      : cell.getValue() === "MEDIUM"
+                                        ? "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                                        : "bg-rose-100 text-rose-700 hover:bg-rose-100"
+                                  )}
+                                >
+                                  {cell.getValue()}
+                                </Badge>
+                              ) : cell.column.id === "competition_index" ? (
+                                <div className="text-right font-bold text-slate-400 tabular-nums pr-8">
+                                  {cell.getValue() || "-"}
+                                </div>
+                              ) : (
+                                flexRender(cell.column.columnDef.cell, cell.getContext())
+                              )}
+                            </TableCell>
+                          ))}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -471,8 +592,8 @@ const KeywordResearch = () => {
                 <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
                   <div className="text-sm text-slate-500 font-medium">
                     Showing <span className="text-slate-900 font-bold">{(currentPage - 1) * REAL_PAGE_SIZE + 1}</span> to{" "}
-                    <span className="text-slate-900 font-bold">{Math.min(currentPage * REAL_PAGE_SIZE, filteredTableData.length)}</span> of{" "}
-                    <span className="text-slate-900 font-bold">{filteredTableData.length}</span>
+                    <span className="text-slate-900 font-bold">{Math.min(currentPage * REAL_PAGE_SIZE, table.getFilteredRowModel().rows.length)}</span> of{" "}
+                    <span className="text-slate-900 font-bold">{table.getFilteredRowModel().rows.length}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -480,7 +601,7 @@ const KeywordResearch = () => {
                       size="sm"
                       disabled={currentPage === 1}
                       onClick={() => handlePageChange(currentPage - 1)}
-                      className="h-9 w-9 p-0 rounded-lg"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30 transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -523,7 +644,11 @@ const KeywordResearch = () => {
                               variant={currentPage === item ? "default" : "outline"}
                               size="sm"
                               onClick={() => handlePageChange(item)}
-                              className={`h-9 w-9 p-0 rounded-lg text-sm font-bold ${currentPage === item ? 'bg-[#1B6FC9] shadow-md shadow-[#1B6FC9]/20 text-white' : ''}`}
+                              className={`h-9 w-9 p-0 rounded-lg text-sm font-bold transition-all ${
+                                currentPage === item 
+                                  ? 'bg-[#1B6FC9] shadow-md shadow-[#1B6FC9]/20 text-white hover:bg-[#1B6FC9]' 
+                                  : 'hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30'
+                              }`}
                             >
                               {item}
                             </Button>
@@ -536,7 +661,7 @@ const KeywordResearch = () => {
                       size="sm"
                       disabled={currentPage === totalPages}
                       onClick={() => handlePageChange(currentPage + 1)}
-                      className="h-9 w-9 p-0 rounded-lg"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30 transition-colors"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>

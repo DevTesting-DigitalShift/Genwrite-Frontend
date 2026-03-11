@@ -1,4 +1,4 @@
-export const ImageSource = { NONE: "none", STOCK: "stock", AI: "ai", UPLOAD: "upload" } as const
+export const ImageSource = { NONE: "none", STOCK: "stock", AI: "ai" } as const
 
 export type ImageSourceType = (typeof ImageSource)[keyof typeof ImageSource]
 
@@ -180,7 +180,6 @@ export interface JobBlogConfig {
   brandId: string | null
   useBrandVoice: boolean
   isCheckedGeneratedImages: boolean
-  isCheckedCustomImages: boolean
   addCTA: boolean
   numberOfImages: number
   blogImages: File[]

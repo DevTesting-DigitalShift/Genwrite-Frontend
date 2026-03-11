@@ -28,6 +28,7 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
 import { FaShopify, FaWix, FaYoutube, FaWordpress } from "react-icons/fa"
 import { toast } from "sonner"
+import clsx from "clsx"
 
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
@@ -118,7 +119,7 @@ const PluginsMain = () => {
         ? "*".repeat(10)
         : ""
     )
-    const [projectId, setProjectId] = useState(sanityInt?.credentials?.projectId || "")
+    const [projectId, setProjectId] = useState(sanityInt?.credentials?.projectId || sanityInt?.projectId || "")
     const [dataset, setDataset] = useState(sanityInt?.credentials?.dataset || "production")
     const [apiVersion, setApiVersion] = useState(sanityInt?.credentials?.apiVersion || "2024-01-01")
     const [documentType, setDocumentType] = useState(sanityInt?.credentials?.documentType || "post")
@@ -130,9 +131,7 @@ const PluginsMain = () => {
     const [isValidFrontend, setIsValidFrontend] = useState(
       plugin.id === 115 ? !!sanityInt : !!serverInt
     )
-    const [isEditing, setIsEditing] = useState(
-      plugin.id === 112 ? !serverInt : plugin.id === 115 ? !sanityInt : !wordpressInt
-    )
+    const [isEditing, setIsEditing] = useState(false)
     const [localLoading, setLocalLoading] = useState(false)
 
     // WordPress credentials
@@ -140,6 +139,37 @@ const PluginsMain = () => {
     const [wpPassword, setWpPassword] = useState("")
     const [hasCredentials, setHasCredentials] = useState(!!wordpressInt)
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
+
+    const handleToggleEdit = () => {
+      if (isEditing) {
+        // Reset to original values on cancel
+        if (plugin.id === 112 && serverInt) {
+          setUrl(serverInt.url)
+          setFrontend(serverInt.frontend)
+          setAuthToken("*".repeat(10))
+          setIsValidUrl(true)
+          setIsValidFrontend(true)
+        } else if (plugin.id === 115 && sanityInt) {
+          setUrl(sanityInt.url || `https://${sanityInt.credentials?.projectId || sanityInt.projectId}.api.sanity.io`)
+          setFrontend(sanityInt.frontend || "")
+          setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
+          setDataset(sanityInt.credentials?.dataset || "production")
+          setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
+          setDocumentType(sanityInt.credentials?.documentType || "post")
+          setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
+          setAuthToken("*".repeat(10))
+          setIsValidUrl(true)
+          setIsValidFrontend(true)
+        } else if (plugin.id === 111 && wordpressInt) {
+          setUrl(wordpressInt.url)
+          setWpUsername("**********")
+          setWpPassword("**********")
+          setIsValidUrl(true)
+          setHasCredentials(true)
+        }
+      }
+      setIsEditing(!isEditing)
+    }
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
@@ -150,9 +180,9 @@ const PluginsMain = () => {
         setIsValidFrontend(true)
         setIsEditing(false)
       } else if (plugin.id === 115 && sanityInt) {
-        setUrl(sanityInt.url)
+        setUrl(sanityInt.url || `https://${sanityInt.credentials?.projectId || sanityInt.projectId}.api.sanity.io`)
         setFrontend(sanityInt.frontend || "")
-        setProjectId(sanityInt.credentials?.projectId || "")
+        setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
         setDataset(sanityInt.credentials?.dataset || "production")
         setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
         setDocumentType(sanityInt.credentials?.documentType || "post")
@@ -191,30 +221,45 @@ const PluginsMain = () => {
     }
 
     const handleConnect = async () => {
-      if (plugin.id === 112 && (!isValidUrl || !isValidFrontend || !authToken)) return
-      if (plugin.id === 115 && (!url || !projectId || !authToken)) return
-      if (plugin.id === 111 && !isValidUrl) return
+      if (plugin.id === 112 && (!isValidUrl || !isValidFrontend || !authToken)) {
+        toast.error("Please provide valid URL, Frontend, and Auth Token")
+        return
+      }
+      if (plugin.id === 115 && (!projectId || !authToken)) {
+        toast.error("Please provide Sanity Project ID and Auth Token")
+        return
+      }
+      if (plugin.id === 111 && !isValidUrl) {
+        toast.error("Please provide a valid WordPress URL")
+        return
+      }
       setLocalLoading(true)
       try {
         let payload
         if (plugin.id === 112) {
-          if (authToken === "*".repeat(10)) {
-            toast.error("Re-enter token to update")
-            setLocalLoading(false)
-            return
+          const isTokenMasked = authToken === "*".repeat(10)
+          payload = { 
+            type: "SERVERENDPOINT", 
+            url, 
+            frontend, 
+            credentials: { 
+              ...(isTokenMasked ? {} : { authToken }) 
+            } 
           }
-          payload = { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
         } else if (plugin.id === 115) {
-          if (authToken === "*".repeat(10)) {
-            toast.error("Re-enter token to update")
-            setLocalLoading(false)
-            return
-          }
+          const isTokenMasked = authToken === "*".repeat(10)
           payload = { 
             type: "SANITY", 
-            url: `https://${projectId}.api.sanity.io`, 
+            url: url || `https://${projectId}.api.sanity.io`, 
             frontend, 
-            credentials: { token: authToken, projectId, dataset, apiVersion, documentType, blogRoute } 
+            credentials: { 
+              ...(isTokenMasked ? {} : { token: authToken }), 
+              projectId, 
+              dataset, 
+              apiVersion, 
+              documentType, 
+              blogRoute 
+            } 
           }
         } else {
           if (wpUsername === "**********" || wpPassword === "**********") {
@@ -431,14 +476,26 @@ const PluginsMain = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Configuration</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Plugin Settings</h3>
               <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                onClick={handleToggleEdit}
+                className={clsx(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border",
+                  isEditing 
+                    ? "text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100" 
+                    : "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
+                )}
               >
-                <Edit size={16} />
-                {isEditing ? "Cancel Edit" : "Edit"}
+                {isEditing ? (
+                  <>
+                    <XCircle size={15} /> Cancel Changes
+                  </>
+                ) : (
+                  <>
+                    <Edit size={15} /> Edit Settings
+                  </>
+                )}
               </button>
             </div>
 
@@ -501,31 +558,9 @@ const PluginsMain = () => {
                         placeholder="production"
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">API Version</label>
-                      <input
-                        type="text"
-                        value={apiVersion}
-                        onChange={e => setApiVersion(e.target.value)}
-                        disabled={!isEditing}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                        placeholder="2024-01-01"
-                      />
-                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Document Type</label>
-                    <input
-                      type="text"
-                      value={documentType}
-                      onChange={e => setDocumentType(e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="post"
-                    />
-                  </div>
+
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Blog Route</label>
@@ -594,19 +629,27 @@ const PluginsMain = () => {
 
             <button
               onClick={isEditing ? handleConnect : handlePing}
-              className={`w-full py-3 rounded-lg font-semibold text-white shadow-sm transition-all focus:ring-4 focus:ring-opacity-20 ${
+              className={clsx(
+                "w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98]",
                 isEditing
-                  ? "bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                  : "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500"
-              }`}
-            >
-              {localLoading ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : isEditing ? (
-                "Save Configuration"
-              ) : (
-                "Check Status"
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
               )}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {localLoading ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : isEditing ? (
+                  <>
+                    <ShieldCheck size={18} /> Save Integration Configuration
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={18} className={clsx(localLoading && "animate-spin")} />
+                    Check Connection Status
+                  </>
+                )}
+              </div>
             </button>
           </div>
         </div>

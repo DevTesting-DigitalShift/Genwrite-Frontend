@@ -55,6 +55,7 @@ export default defineConfig({
     },
     // Add .ts and .tsx extensions for TypeScript support
     extensions: [".js", ".jsx", ".ts", ".tsx"],
+    dedupe: ["react", "react-dom"],
   },
   build: {
     // Optimize build output
@@ -92,6 +93,8 @@ export default defineConfig({
       "marked",
       "dompurify",
       "@emailjs/browser",
+      "@tanstack/react-table",
+      "exceljs",
     ],
     exclude: ["lexical", "lexical-react"],
   },

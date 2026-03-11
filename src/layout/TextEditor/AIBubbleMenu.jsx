@@ -8,7 +8,7 @@ import TurndownService from "turndown"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
-const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) => {
+const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, children }) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showMenu, setShowMenu] = useState(false)
@@ -27,6 +27,12 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
     if (!editor) return
 
     const updateMenu = () => {
+      // Never show menu if blog is archived
+      if (isArchived) {
+        setShowMenu(false)
+        return
+      }
+
       const { from, to } = editor.state.selection
       const text = editor.state.doc.textBetween(from, to, " ")
 
@@ -54,11 +60,15 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) 
     editor.on("selectionUpdate", updateMenu)
     editor.on("update", updateMenu)
 
+    if (isArchived) {
+      setShowMenu(false)
+    }
+
     return () => {
       editor.off("selectionUpdate", updateMenu)
       editor.off("update", updateMenu)
     }
-  }, [editor])
+  }, [editor, isArchived])
 
   const handleAIOperation = async operation => {
     if (!blogId) {

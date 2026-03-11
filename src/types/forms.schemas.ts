@@ -2,9 +2,9 @@ import { z } from "zod"
 import { ImageSource, AiModel, Tone, Language, ScheduleType } from "./forms.types"
 
 export const imageSourceSchema = z
-  .enum([ImageSource.NONE, ImageSource.STOCK, ImageSource.AI, ImageSource.UPLOAD])
+  .enum([ImageSource.NONE, ImageSource.STOCK, ImageSource.AI])
   .describe(
-    "Source of images for the blog: none (no images), stock (Pexels/Unsplash), ai (AI-generated), or upload (custom uploaded images)"
+    "Source of images for the blog: none (no images), stock (Pexels/Unsplash), or ai (AI-generated)"
   )
 
 export const aiModelSchema = z
@@ -179,7 +179,7 @@ export const bulkBlogFinalDataSchema = z.object({
   numberOfImages: z
     .number()
     .min(0)
-    .max(20)
+    .max(15)
     .default(0)
     .describe("Number of images per blog (0 = AI decides)"),
 
@@ -273,11 +273,9 @@ export const jobBlogConfigSchema = z.object({
 
   isCheckedGeneratedImages: z.boolean().default(true).describe("Enable image generation"),
 
-  isCheckedCustomImages: z.boolean().default(false).describe("Use custom uploaded images"),
-
   addCTA: z.boolean().default(true).describe("Add call-to-action"),
 
-  numberOfImages: z.number().min(0).max(20).default(0).describe("Number of images"),
+  numberOfImages: z.number().min(0).max(15).default(0).describe("Number of images"),
 
   blogImages: z.array(z.any()).optional().describe("Custom image files"),
 
@@ -526,7 +524,7 @@ export const regenerateBlogSchema = z.object({
   aiModel: aiModelSchema.optional(),
   isCheckedGeneratedImages: z.boolean().optional(),
   imageSource: imageSourceSchema.optional(),
-  numberOfImages: z.number().min(0).max(20).default(0),
+  numberOfImages: z.number().min(0).max(15).default(0),
   isCheckedBrand: z.boolean().optional(),
   brandId: z.string().optional(),
   addCTA: z.boolean().optional(),

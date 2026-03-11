@@ -75,11 +75,22 @@ export const pluginsData = pingFn => [
     isVisible: true,
     icon: FaShopify, // or use any lucide icon you want
     message: "Easily publish product content and blog posts directly to Shopify.",
-    onCheck: async () => ({
-      status: 200,
-      message: "Temporary mock connection successful",
-      success: true,
-    }),
+    onCheck: async () => {
+      try {
+        const result = await pingFn("SHOPIFY")
+        return {
+          status: result.status || "success",
+          message: result.message || "Shopify connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Shopify Connection Error",
+          success: false,
+        }
+      }
+    },
   },
   {
     id: 114,
@@ -93,11 +104,22 @@ export const pluginsData = pingFn => [
     isVisible: false,
     icon: FaWix,
     message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
-    onCheck: async () => ({
-      status: 200,
-      message: "Temporary mock connection successful",
-      success: true,
-    }),
+    onCheck: async () => {
+      try {
+        const result = await pingFn("WIX")
+        return {
+          status: result.status || "success",
+          message: result.message || "Wix connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Wix Connection Error",
+          success: false,
+        }
+      }
+    },
   },
   {
     id: 115,

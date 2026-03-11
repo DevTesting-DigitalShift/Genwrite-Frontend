@@ -275,6 +275,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const normalEditor = useEditor(
     {
+      editable: !blog?.isArchived,
       extensions: [
         StarterKit.configure({
           heading: false,
@@ -396,13 +397,17 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const safeEditorAction = useCallback(
     action => {
+      if (blog?.isArchived) {
+        toast.error("This blog is archived. Please restore it to perform this action.")
+        return
+      }
       if (userPlan === "free" || userPlan === "basic") {
         navigate("/pricing")
         return
       }
       action()
     },
-    [userPlan, navigate]
+    [userPlan, navigate, blog?.isArchived]
   )
 
   const handleAddLink = useCallback(() => {
@@ -452,6 +457,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   // handleConfirmImage is now handled by ImageModal's onSave prop
 
   const handleSaveImageChanges = () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (normalEditor) {
       if (!imageUrl) {
         // Handle Delete if url is empty
@@ -478,6 +487,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   }
 
   const handleDeleteImage = () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (normalEditor && editingImageSrc) {
       let deleted = false
       normalEditor.state.doc.descendants((node, pos) => {
@@ -510,22 +523,30 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   }
 
   const handleOpenAdvancedOptions = () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     setEditModalOpen(false)
     setImageModalOpen(true)
   }
 
-  const handleImageClick = useCallback(event => {
-    if (event.target.tagName === "IMG") {
-      const { src, alt } = event.target
-      setImageUrl(src)
-      setImageAlt(alt || "")
-      setEditingImageSrc(src)
-      // Open Unified Modal instead of direct ImageModal
-      setEditModalOpen(true)
-      setIsEnhanceMode(false)
-      setIsGenerateMode(false)
-    }
-  }, [])
+  const handleImageClick = useCallback(
+    event => {
+      if (blog?.isArchived) return
+      if (event.target.tagName === "IMG") {
+        const { src, alt } = event.target
+        setImageUrl(src)
+        setImageAlt(alt || "")
+        setEditingImageSrc(src)
+        // Open Unified Modal instead of direct ImageModal
+        setEditModalOpen(true)
+        setIsEnhanceMode(false)
+        setIsGenerateMode(false)
+      }
+    },
+    [blog?.isArchived]
+  )
 
   const handleAddTable = useCallback(() => {
     safeEditorAction(() => {
@@ -535,6 +556,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const handleTableSelect = useCallback(
     (rows, cols) => {
+      if (blog?.isArchived) {
+        toast.error("This blog is archived. Please restore it to perform this action.")
+        return
+      }
       if (normalEditor) {
         // First close the dropdown
         setTableDropdownOpen(false)
@@ -620,6 +645,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       }
     }
   }, [normalEditor])
+
+  useEffect(() => {
+    if (normalEditor && !normalEditor.isDestroyed) {
+      normalEditor.setEditable(!blog?.isArchived)
+    }
+  }, [normalEditor, blog?.isArchived])
 
   useEffect(() => {
     if (normalEditor?.view?.dom) {
@@ -985,7 +1016,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       <select
         value={selectedFont}
         onChange={e => safeEditorAction(() => setSelectedFont(e.target.value))}
-        className="select select-bordered select-sm w-32 shrink-0"
+        className={`select select-bordered select-sm w-32 shrink-0 ${
+          blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+        disabled={blog?.isArchived}
       >
         {FONT_OPTIONS.map(font => (
           <option key={font.value} value={font.value}>
@@ -1020,6 +1054,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           <AIBubbleMenu
             editor={normalEditor}
             blogId={blog?._id}
+            isArchived={blog?.isArchived}
             sectionId={null}
             onContentUpdate={() => {}}
           >
