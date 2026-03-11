@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
@@ -100,7 +101,6 @@ const BulkBlogModal = ({ closeFnc }) => {
       }
     }
   }, [integrations])
-
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -837,16 +837,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                     Allow AI to find relevant keywords for the topics.
                   </p>
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="performKeywordResearch"
-                    checked={formData.performKeywordResearch}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
+                <Switch
+                  checked={formData.performKeywordResearch}
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "performKeywordResearch", checked } })
+                  }
+                  size="large"
+                />
               </div>
               {!formData.performKeywordResearch && (
                 <div className="space-y-6">
@@ -1027,7 +1024,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="space-y-6">
               <AiModelSelector
                 value={formData.aiModel}
-                onChange={(modelId) => {
+                onChange={modelId => {
                   setFormData(prev => ({ ...prev, aiModel: modelId }))
                   setErrors(prev => ({ ...prev, aiModel: "" }))
                 }}
@@ -1043,30 +1040,15 @@ const BulkBlogModal = ({ closeFnc }) => {
                     <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
                     <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
                   </div>
-                  <label
-                    htmlFor="bulk-cost-cutter-toggle"
-                    className="relative inline-block w-12 h-6"
-                  >
-                    <input
-                      type="checkbox"
-                      id="bulk-cost-cutter-toggle"
-                      className="sr-only peer"
-                      checked={formData.costCutter || false}
-                      onChange={e => {
-                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
-                      }}
-                    />
-                    <div
-                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.costCutter ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
-                        formData.costCutter ? "translate-x-6" : ""
-                      }`}
-                    />
-                  </label>
+                  <Switch
+                    id="bulk-cost-cutter-toggle"
+                    checked={formData.costCutter || false}
+                    onCheckedChange={checked => {
+                      setFormData(prev => ({ ...prev, costCutter: checked }))
+                    }}
+                    className="data-[state=checked]:bg-green-500"
+                    size="large"
+                  />
                 </div>
               </div>
 
@@ -1075,22 +1057,14 @@ const BulkBlogModal = ({ closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Easy to Understand
                 </label>
-                <label
-                  htmlFor="bulk-easy-understand-toggle"
-                  className="relative inline-block w-11 h-6 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    id="bulk-easy-understand-toggle"
-                    className="sr-only peer"
-                    checked={formData.easyToUnderstand || false}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  id="bulk-easy-understand-toggle"
+                  checked={formData.easyToUnderstand || false}
+                  onCheckedChange={checked => {
+                    setFormData(prev => ({ ...prev, easyToUnderstand: checked }))
+                  }}
+                  size="large"
+                />
               </div>
 
               {/* Embed YouTube Videos Toggle */}
@@ -1098,63 +1072,32 @@ const BulkBlogModal = ({ closeFnc }) => {
                 <label className="block text-sm font-semibold text-gray-700">
                   Embed YouTube Videos
                 </label>
-                <label
-                  htmlFor="bulk-embed-youtube-toggle"
-                  className="relative inline-block w-11 h-6 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    id="bulk-embed-youtube-toggle"
-                    className="sr-only peer"
-                    checked={formData.embedYouTubeVideos || false}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                <Switch
+                  id="bulk-embed-youtube-toggle"
+                  checked={formData.embedYouTubeVideos || false}
+                  onCheckedChange={checked => {
+                    setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))
+                  }}
+                  size="large"
+                />
               </div>
 
               <div className="flex justify-between items-center">
                 <label className="block text-sm font-semibold text-gray-700">Add Image</label>
                 <div className="flex items-center">
-                  <label
-                    htmlFor="add-image-toggle"
-                    className={`relative inline-block w-12 h-6 ${
-                      isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      id="add-image-toggle"
-                      className="sr-only peer"
-                      checked={formData.isCheckedGeneratedImages}
-                      onChange={e => {
-                        const checked = e.target.checked
-                        setFormData(prev => ({
-                          ...prev,
-                          isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.imageSource : "stock",
-                        }))
-                        setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
-                      }}
-                    />
-                    <div
-                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.isCheckedGeneratedImages
-                          ? "bg-[#1B6FC9]"
-                          : "bg-gray-300"
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                        formData.isCheckedGeneratedImages
-                          ? "translate-x-6"
-                          : ""
-                      }`}
-                    />
-                  </label>
+                  <Switch
+                    id="add-image-toggle"
+                    checked={formData.isCheckedGeneratedImages}
+                    onCheckedChange={checked => {
+                      setFormData(prev => ({
+                        ...prev,
+                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.imageSource : "stock",
+                      }))
+                      setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
+                    }}
+                    size="large"
+                  />
                 </div>
               </div>
               {formData.isCheckedGeneratedImages && (
@@ -1223,16 +1166,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                       Attempt to link between generated blogs if relevant.
                     </p>
                   </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeInterlinks"
-                      checked={formData.includeInterlinks}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
+                  <Switch
+                    checked={formData.includeInterlinks}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "includeInterlinks", checked } })
+                    }
+                    size="large"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-700">
@@ -1241,16 +1181,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                       Generate relevant FAQ questions and answers for the blog.
                     </p>
                   </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeFaqs"
-                      checked={formData.includeFaqs}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
+                  <Switch
+                    checked={formData.includeFaqs}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "includeFaqs", checked } })
+                    }
+                    size="large"
+                  />
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4">
@@ -1260,16 +1197,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                     Automatically post blogs on the selected dates.
                   </p>
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="wordpressPostStatus"
-                    checked={formData.wordpressPostStatus}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
+                <Switch
+                  checked={formData.wordpressPostStatus}
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "wordpressPostStatus", checked } })
+                  }
+                  size="large"
+                />
               </div>
               {formData.wordpressPostStatus &&
                 integrations?.integrations &&
@@ -1314,16 +1248,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                       Generate a table of contents for each blog.
                     </p>
                   </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeTableOfContents"
-                      checked={formData.includeTableOfContents}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                  </label>
+                  <Switch
+                    checked={formData.includeTableOfContents}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "includeTableOfContents", checked } })
+                    }
+                    size="large"
+                  />
                 </div>
               )}
               <div className="flex items-center justify-between mt-4">
@@ -1333,16 +1264,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                     Perform competitive research to analyze similar blogs.
                   </p>
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="useCompetitors"
-                    checked={formData.useCompetitors}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
+                <Switch
+                  checked={formData.useCompetitors}
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "useCompetitors", checked } })
+                  }
+                  size="large"
+                />
               </div>
               {formData.useCompetitors && (
                 <div className="flex items-center justify-between mt-2">
@@ -1352,16 +1280,14 @@ const BulkBlogModal = ({ closeFnc }) => {
                       Display outbound links found during competitor analysis.
                     </p>
                   </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="addOutBoundLinks"
-                      checked={formData.addOutBoundLinks}
-                      onChange={handleCheckboxChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                  </label>
+                  <Switch
+                    name="addOutBoundLinks"
+                    checked={formData.addOutBoundLinks}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "addOutBoundLinks", checked } })
+                    }
+                    size="large"
+                  />
                 </div>
               )}
               <div className="pt-4 border-t border-gray-300">

@@ -437,7 +437,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.exactTitle}
                   onCheckedChange={checked => setFormData(prev => ({ ...prev, exactTitle: checked }))}
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
               <div className="form-control w-full">
@@ -478,7 +478,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       keywordInput: "",
                     }))
                   }
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
               {!formData.performKeywordResearch && (
@@ -582,7 +582,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.addImages}
                   onCheckedChange={checked => setFormData(prev => ({ ...prev, addImages: checked }))}
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
               {formData.addImages && (
@@ -605,7 +605,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.easyToUnderstand}
                   onCheckedChange={checked => setFormData(prev => ({ ...prev, easyToUnderstand: checked }))}
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
 
@@ -617,7 +617,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.embedYouTubeVideos}
                   onCheckedChange={checked => setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))}
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
 
@@ -684,6 +684,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     checked={formData.costCutter}
                     onCheckedChange={checked => setFormData(prev => ({ ...prev, costCutter: checked }))}
                     className="data-[state=checked]:bg-green-500"
+                    size="large"
                   />
                 </div>
               </div>

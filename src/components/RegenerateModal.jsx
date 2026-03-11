@@ -152,7 +152,7 @@ const RegenerateModal = ({
                     onCheckedChange={checked =>
                       updateRegenField("options.performKeywordResearch", checked)
                     }
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -303,7 +303,7 @@ const RegenerateModal = ({
                       updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
                     }
                   }}
-                  className="data-[state=checked]:bg-[#1B6FC9]"
+                  size="large"
                 />
               </div>
 
@@ -354,7 +354,7 @@ const RegenerateModal = ({
               <div className="p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
                 <BrandVoiceSelector
                   label="Write with Brand Voice"
-                  size="default"
+                  size="large"
                   labelClass="text-sm font-semibold text-gray-700"
                   value={{
                     isCheckedBrand: regenForm.useBrandVoice,
@@ -380,7 +380,7 @@ const RegenerateModal = ({
                   <Switch
                     checked={regenForm.options.includeFaqs}
                     onCheckedChange={checked => updateRegenField("options.includeFaqs", checked)}
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -393,7 +393,7 @@ const RegenerateModal = ({
                     onCheckedChange={checked =>
                       updateRegenField("options.includeInterlinks", checked)
                     }
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -410,7 +410,7 @@ const RegenerateModal = ({
                     onCheckedChange={checked =>
                       updateRegenField("options.includeCompetitorResearch", checked)
                     }
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -423,7 +423,7 @@ const RegenerateModal = ({
                     onCheckedChange={checked =>
                       updateRegenField("options.addOutBoundLinks", checked)
                     }
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -434,7 +434,7 @@ const RegenerateModal = ({
                   <Switch
                     checked={regenForm.isCheckedQuick}
                     onCheckedChange={checked => updateRegenField("isCheckedQuick", checked)}
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -445,7 +445,7 @@ const RegenerateModal = ({
                   <Switch
                     checked={regenForm.easyToUnderstand}
                     onCheckedChange={checked => updateRegenField("easyToUnderstand", checked)}
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -458,7 +458,7 @@ const RegenerateModal = ({
                   <Switch
                     checked={regenForm.embedYouTubeVideos}
                     onCheckedChange={checked => updateRegenField("embedYouTubeVideos", checked)}
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    size="large"
                   />
                 </div>
 
@@ -470,26 +470,26 @@ const RegenerateModal = ({
                         Enable Automate Posting
                       </span>
                     </div>
-                    <Switch
-                      checked={regenForm.wordpressPostStatus}
-                      onCheckedChange={checked => {
-                        const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
-                        if (checked && !hasIntegrations) {
-                          toast.error("Please connect your account in plugins.")
-                          return
-                        }
-                        updateRegenField("wordpressPostStatus", checked)
-                        if (checked) {
-                          const firstKey = Object.keys(integrations?.integrations || {})[0]
-                          if (firstKey && !regenForm.postingType) {
-                            updateRegenField("postingType", firstKey)
+                      <Switch
+                        checked={regenForm.wordpressPostStatus}
+                        onCheckedChange={checked => {
+                          const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
+                          if (checked && !hasIntegrations) {
+                            toast.error("Please connect your account in plugins.")
+                            return
                           }
-                        } else {
-                          updateRegenField("postingType", null)
-                        }
-                      }}
-                      className="data-[state=checked]:bg-[#1B6FC9]"
-                    />
+                          updateRegenField("wordpressPostStatus", checked)
+                          if (checked) {
+                            const firstKey = Object.keys(integrations?.integrations || {})[0]
+                            if (firstKey && !regenForm.postingType) {
+                              updateRegenField("postingType", firstKey)
+                            }
+                          } else {
+                            updateRegenField("postingType", null)
+                          }
+                        }}
+                        size="large"
+                      />
                   </div>
 
                   {regenForm.wordpressPostStatus && (
@@ -503,7 +503,7 @@ const RegenerateModal = ({
                           onCheckedChange={checked =>
                             updateRegenField("includeTableOfContents", checked)
                           }
-                          className="data-[state=checked]:bg-[#1B6FC9]"
+                          size="large"
                         />
                       </div>
 
@@ -543,7 +543,8 @@ const RegenerateModal = ({
                   <Switch
                     checked={regenForm.costCutter}
                     onCheckedChange={checked => updateRegenField("costCutter", checked)}
-                    className="data-[state=checked]:bg-[#1B6FC9]"
+                    className="data-[state=checked]:bg-green-500"
+                    size="large"
                   />
                 </div>
               </div>

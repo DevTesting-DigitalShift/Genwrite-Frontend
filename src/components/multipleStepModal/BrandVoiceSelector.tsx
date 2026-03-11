@@ -20,6 +20,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
   errorText,
+  size = "default",
 }) => {
   const [state, setState] = useState(value)
   const formError = useMemo(() => errorText, [errorText])
@@ -63,6 +64,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             handleBrandToggle({ target: { checked } } as any)
           }}
           disabled={isLoading || !brands || brands.length === 0}
+          size={size === "small" ? "default" : "large"}
         />
       </div>
 
@@ -126,6 +128,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             id="blog-brand-add-cta"
             checked={state.addCTA}
             onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
+            size={size === "small" ? "default" : "large"}
           />
         </div>
       )}

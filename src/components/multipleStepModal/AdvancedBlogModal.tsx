@@ -463,6 +463,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     target: { name: "options.performKeywordResearch", value: checked },
                   })
                 }
+                size="large"
               />
             </div>
 
@@ -634,6 +635,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onCheckedChange={(checked: boolean) =>
                       handleInputChange({ target: { name: "options.exactTitle", value: checked } })
                     }
+                    size="large"
                   />
                 </div>
               </>
@@ -734,6 +736,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <Switch
                 checked={formData.costCutter}
                 onCheckedChange={(checked: boolean) => updateFormData({ costCutter: checked })}
+                size="large"
               />
             </div>
 
@@ -750,12 +753,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <Switch
                     checked={
                       item.name.includes("options")
-                        ? formData.options[item.name.split(".")[1]]
-                        : formData[item.name]
+                        ? (formData.options as any)[item.name.split(".")[1]]
+                        : (formData as any)[item.name]
                     }
                     onCheckedChange={(checked: boolean) =>
                       handleInputChange({ target: { name: item.name, value: checked } })
                     }
+                    size="large"
                   />
                 </div>
               ))}
