@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 
 const StepContent = ({
   currentStep,
@@ -562,7 +562,7 @@ const StepContent = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Tone of Voice <span className="text-red-500">*</span>
+                  Tone of Voice
                 </label>
                 <select
                   className={`select select-bordered w-full h-10 min-h-0 text-sm ${errors.tone ? "select-error" : ""}`}
@@ -572,21 +572,13 @@ const StepContent = ({
                     setErrors(prev => ({ ...prev, tone: false }))
                   }}
                 >
-                  <option value="" disabled>
-                    Select Tone
-                  </option>
-                  <option value="Professional">Professional</option>
-                  <option value="Casual">Casual</option>
-                  <option value="Friendly">Friendly</option>
-                  <option value="Formal">Formal</option>
-                  <option value="Conversational">Conversational</option>
-                  <option value="Witty">Witty</option>
-                  <option value="Informative">Informative</option>
-                  <option value="Inspirational">Inspirational</option>
-                  <option value="Persuasive">Persuasive</option>
-                  <option value="Empathetic">Empathetic</option>
+                  <option value="">Select Tone (Optional)</option>
+                  {TONES.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
-                {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
                 <label
@@ -671,9 +663,6 @@ const StepContent = ({
               <ImageSourceSelector
                 value={newJob.blogs.imageSource}
                 onChange={handleImageSourceChange}
-                userPlan={userPlan}
-                isAiLimitReached={isAiImagesLimitReached}
-                navigate={navigate}
                 error={errors.imageSource}
                 showUpload={false}
               />
@@ -714,30 +703,13 @@ const StepContent = ({
           <AiModelSelector
             value={formData.aiModel}
             onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
-            userPlan={userPlan}
-            navigate={navigate}
+            showCostCutter={true}
+            costCutterValue={newJob.blogs.costCutter || false}
+            onCostCutterChange={checked => {
+              setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
+            }}
             error={errors.aiModel}
           />
-
-          {/* Cost Cutter Toggle */}
-          <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-              </div>
-              <label htmlFor="cost-cutter-toggle" className="relative inline-block w-12 h-6">
-                <Switch
-                  id="cost-cutter-toggle"
-                  checked={newJob.blogs.costCutter || false}
-                  onCheckedChange={checked => {
-                    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
-                  }}
-                  className="data-[state=checked]:bg-green-500"
-                />
-              </label>
-            </div>
-          </div>
 
           <div className="space-y-6">
             <div>

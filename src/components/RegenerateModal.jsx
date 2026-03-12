@@ -255,6 +255,7 @@ const RegenerateModal = ({
                     value={regenForm.tone}
                     onChange={e => updateRegenField("tone", e.target.value)}
                   >
+                    <option value="">Select Tone (Optional)</option>
                     {TONES.map(t => (
                       <option key={t} value={t}>
                         {t}
@@ -288,8 +289,9 @@ const RegenerateModal = ({
               <AiModelSelector
                 value={regenForm.aiModel}
                 onChange={(modelId) => updateRegenField("aiModel", modelId)}
-                userPlan={userPlan}
-                navigate={navigate}
+                showCostCutter={true}
+                costCutterValue={regenForm.costCutter}
+                onCostCutterChange={checked => updateRegenField("costCutter", checked)}
               />
 
               {/* Add Images Toggle */}
@@ -312,12 +314,7 @@ const RegenerateModal = ({
                   <ImageSourceSelector
                     value={regenForm.imageSource || IMAGE_SOURCE.STOCK}
                     onChange={newSource => updateRegenField("imageSource", newSource)}
-                    userPlan={userPlan}
-                    isAiLimitReached={
-                      (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
-                    }
                     showNone={false}
-                    navigate={navigate}
                   />
 
                   <div className="space-y-2">
@@ -470,26 +467,26 @@ const RegenerateModal = ({
                         Enable Automate Posting
                       </span>
                     </div>
-                      <Switch
-                        checked={regenForm.wordpressPostStatus}
-                        onCheckedChange={checked => {
-                          const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
-                          if (checked && !hasIntegrations) {
-                            toast.error("Please connect your account in plugins.")
-                            return
+                    <Switch
+                      checked={regenForm.wordpressPostStatus}
+                      onCheckedChange={checked => {
+                        const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
+                        if (checked && !hasIntegrations) {
+                          toast.error("Please connect your account in plugins.")
+                          return
+                        }
+                        updateRegenField("wordpressPostStatus", checked)
+                        if (checked) {
+                          const firstKey = Object.keys(integrations?.integrations || {})[0]
+                          if (firstKey && !regenForm.postingType) {
+                            updateRegenField("postingType", firstKey)
                           }
-                          updateRegenField("wordpressPostStatus", checked)
-                          if (checked) {
-                            const firstKey = Object.keys(integrations?.integrations || {})[0]
-                            if (firstKey && !regenForm.postingType) {
-                              updateRegenField("postingType", firstKey)
-                            }
-                          } else {
-                            updateRegenField("postingType", null)
-                          }
-                        }}
-                        size="large"
-                      />
+                        } else {
+                          updateRegenField("postingType", null)
+                        }
+                      }}
+                      size="large"
+                    />
                   </div>
 
                   {regenForm.wordpressPostStatus && (
@@ -527,25 +524,6 @@ const RegenerateModal = ({
                       </select>
                     </div>
                   )}
-                </div>
-
-                {/* Cost Cutter */}
-                <div className="flex items-center justify-between py-4 px-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 trans mt-3ition-colors border-2 border-green-200">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="text-sm font-semibold text-gray-700">Cost Cutter</span>
-                      <span className="ml-2 text-sm text-green-600 font-semibold">Save 25%</span>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Reduce credits by 25% with optimized generation
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={regenForm.costCutter}
-                    onCheckedChange={checked => updateRegenField("costCutter", checked)}
-                    className="data-[state=checked]:bg-green-500"
-                    size="large"
-                  />
                 </div>
               </div>
             </div>

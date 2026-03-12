@@ -3,6 +3,7 @@ export const IMAGE_SOURCE = Object.freeze({
   NONE: "none",
   STOCK: "stock",
   AI: "ai",
+  UPLOAD: "upload",
 })
 
 export const IMAGE_SOURCE_VALUES = Object.freeze(Object.values(IMAGE_SOURCE))
@@ -38,27 +39,38 @@ export const LANGUAGES = [
 export const AI_MODELS = [
   { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
   { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  { id: "claude", label: "Claude", logo: "/Images/claude.webp", restrictedPlans: ["free", "basic"] },
+  {
+    id: "claude",
+    label: "Claude",
+    logo: "/Images/claude.webp",
+    restrictedPlans: ["free", "basic"],
+  },
 ]
 
 export const IMAGE_OPTIONS = [
-  { 
-    id: IMAGE_SOURCE.NONE, 
-    label: "None", 
+  {
+    id: IMAGE_SOURCE.NONE,
+    label: "None",
     description: "No images will be generated for the blog.",
-    restrictedPlans: [] 
+    restrictedPlans: [],
   },
-  { 
-    id: IMAGE_SOURCE.STOCK, 
-    label: "Stock Images", 
+  {
+    id: IMAGE_SOURCE.STOCK,
+    label: "Stock Images",
     description: "High-quality professional stock photos.",
-    restrictedPlans: [] 
+    restrictedPlans: [],
   },
-  { 
-    id: IMAGE_SOURCE.AI, 
-    label: "AI Images", 
+  {
+    id: IMAGE_SOURCE.AI,
+    label: "AI Images",
     description: "Unique visuals powered by AI.",
-    restrictedPlans: ["free"] 
+    restrictedPlans: ["free"],
+  },
+  {
+    id: IMAGE_SOURCE.UPLOAD,
+    label: "Custom Images",
+    description: "Upload your own images to include in the blog.",
+    restrictedPlans: [],
   },
 ]
 

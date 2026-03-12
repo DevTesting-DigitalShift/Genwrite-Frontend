@@ -1,18 +1,22 @@
-import React from "react"
+import { useNavigate } from "react-router-dom"
 import { Crown, Image, Sparkles, Upload, X, AlertCircle } from "lucide-react"
 import { IMAGE_OPTIONS, IMAGE_SOURCE } from "../data/blogData"
 import { toast } from "sonner"
+import useAuthStore from "@store/useAuthStore"
 
 const ImageSourceSelector = ({
   value,
   onChange,
-  userPlan = "free",
-  isAiLimitReached = false,
   showUpload = false,
   showNone = false,
-  navigate,
   error,
 }) => {
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
+
+  const userPlan = user?.subscription?.plan || "free"
+  const isAiLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
+
   const handleSelect = option => {
     const isRestricted = option.restrictedPlans?.includes(userPlan?.toLowerCase())
 
@@ -104,13 +108,13 @@ const ImageSourceSelector = ({
                 )
               )}
 
-              {/* <div
-                className={`p-2 rounded-lg mb-3 transition-colors items-center
+              <div
+                className={`p-2 rounded-lg mb-3 flex items-center justify-center w-fit
                 ${isActive ? "bg-[#1B6FC9]/10 text-[#1B6FC9]" : "bg-slate-100 text-slate-600 group-hover:bg-[#1B6FC9]/10 group-hover:text-[#1B6FC9]"}
               `}
               >
                 {getIcon(option.id)}
-              </div> */}
+              </div>
 
               <div className="w-full">
                 <div className="flex items-center gap-2 mb-1">

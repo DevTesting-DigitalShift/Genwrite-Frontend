@@ -5,7 +5,6 @@ import useGscStore from "@store/useGscStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { RefreshCw, Search, Download } from "lucide-react"
 import DateRangePicker from "@components/ui/DateRangePicker"
-import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
@@ -16,9 +15,6 @@ import { toast } from "sonner"
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
 
-// Configure Fuse.js for frontend search
-const fuseOptions = { keys: ["url", "query", "countryName", "blogTitle"], threshold: 0.3 }
-
 const SearchConsole = () => {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("query")
@@ -28,50 +24,19 @@ const SearchConsole = () => {
   const [filterType, setFilterType] = useState("search")
   const [blogUrlFilter, setBlogUrlFilter] = useState(null)
   const [blogTitleFilter, setBlogTitleFilter] = useState(null)
+  // searchQuery is passed directly to GSCAnalyticsTabs — Fuse runs inside the table
   const [searchQuery, setSearchQuery] = useState("")
-  const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US")
-  const [pageSize, setPageSize] = useState(10)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [userCountry] = useState(navigator.language.split("-")[1] || "US")
 
   const { user } = useAuthStore()
   const { clearAnalytics, fetchGscAnalytics } = useGscStore()
   const queryClient = useQueryClient()
 
-  // Debounced search query - waits 5 seconds after user stops typing
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const isFilterApplied = useMemo(
+    () => dateRange !== "7d" || blogUrlFilter || blogTitleFilter || searchQuery,
+    [dateRange, blogUrlFilter, blogTitleFilter, searchQuery]
+  )
 
-  // Debounce effect for search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 5000) // 5 second delay
-
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
-  // Check if filters are applied for Reset Filters button styling
-  const isFilterApplied = useMemo(() => {
-    return (
-      dateRange !== "7d" ||
-      customDateRange[0] !== null ||
-      customDateRange[1] !== null ||
-      blogUrlFilter ||
-      blogTitleFilter ||
-      searchQuery ||
-      pageSize !== 10 ||
-      currentPage !== 1
-    )
-  }, [
-    dateRange,
-    customDateRange,
-    blogUrlFilter,
-    blogTitleFilter,
-    searchQuery,
-    pageSize,
-    currentPage,
-  ])
-
-  // Check authentication immediately on mount
   useEffect(() => {
     if (!user?.gsc) {
       clearAnalytics()
@@ -79,7 +44,6 @@ const SearchConsole = () => {
     }
   }, [user, clearAnalytics, queryClient])
 
-  // Update session storage
   useEffect(() => {
     sessionStorage.setItem(
       "gscFilters",
@@ -87,7 +51,6 @@ const SearchConsole = () => {
     )
   }, [filterType, blogUrlFilter, blogTitleFilter, userCountry])
 
-  // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
     let from, to
     if (customDateRange[0] && customDateRange[1]) {
@@ -115,7 +78,6 @@ const SearchConsole = () => {
     return { from, to }
   }, [dateRange, customDateRange])
 
-  // Determine dimensions
   const getDimensions = useCallback(() => {
     const dimensions = ["page"]
     if (activeTab === "query") dimensions.push("query")
@@ -123,7 +85,6 @@ const SearchConsole = () => {
     return dimensions
   }, [activeTab])
 
-  // TanStack Query for fetching analytics data
   const {
     data: blogData = [],
     isLoading,
@@ -161,52 +122,34 @@ const SearchConsole = () => {
     },
   })
 
-  const blogTitles = useMemo(() => {
-    return [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))]
-  }, [blogData])
+  const blogTitles = useMemo(
+    () => [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))],
+    [blogData]
+  )
 
-  // Handle tab change
   const handleTabChange = key => {
     setActiveTab(key)
     setSearchQuery("")
-    setCurrentPage(1) // Reset to first page on tab change
   }
 
-  // Handle date range change
   const handleDateRangeChange = value => {
     setDateRange(value)
     setCustomDateRange([null, null])
     setError(null)
     setShowDatePicker(value === "custom")
-    setCurrentPage(1) // Reset to first page on date range change
     refetch()
   }
 
-  // Handle custom date range change
   const handleCustomDateRangeChange = dates => {
     if (dates && dates[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
-      setCurrentPage(1) // Reset to first page on custom date range change
       refetch()
     } else {
       setError("Please select both start and end dates.")
     }
   }
 
-  // Handle blog title filter change
-  const handleBlogTitleChange = value => {
-    setBlogTitleFilter(value)
-    setCurrentPage(1) // Reset to first page on filter change
-  }
-
-  // Handle search query change
-  const handleSearch = value => {
-    setSearchQuery(value)
-    setCurrentPage(1) // Reset to first page on search
-  }
-
-  // Reset filters
   const handleResetFilters = () => {
     setFilterType("search")
     setBlogUrlFilter("")
@@ -215,25 +158,15 @@ const SearchConsole = () => {
     setDateRange("7d")
     setCustomDateRange([dayjs().subtract(6, "days"), dayjs()])
     setShowDatePicker(false)
-    setPageSize(10)
-    setCurrentPage(1)
     refetch()
   }
 
   const aggregateData = data => {
     const grouped = {}
-
     data.forEach(row => {
       const key = row.country
-
       if (!grouped[key]) {
-        grouped[key] = {
-          ...row,
-          clicks: row.clicks,
-          impressions: row.impressions,
-          ctr: row.ctr,
-          position: row.position,
-        }
+        grouped[key] = { ...row }
       } else {
         grouped[key].clicks += row.clicks
         grouped[key].impressions += row.impressions
@@ -247,11 +180,10 @@ const SearchConsole = () => {
             : 0
       }
     })
-
     return Object.values(grouped)
   }
 
-  // Filter data with Fuse.js
+  // URL/title pre-filter (Fuse text search happens inside GSCAnalyticsTabs)
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
@@ -263,21 +195,10 @@ const SearchConsole = () => {
     if (activeTab === "country") {
       result = aggregateData(result)
     }
-    if (debouncedSearchQuery && filterType === "search") {
-      const fuse = new Fuse(result, fuseOptions)
-      result = fuse.search(debouncedSearchQuery).map(({ item }) => item)
-    }
     return result
-  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, debouncedSearchQuery, activeTab])
+  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, activeTab])
 
-  // Paginate filtered data
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    return filteredData.slice(startIndex, endIndex)
-  }, [filteredData, currentPage, pageSize])
-
-  // Calculate metrics for mini cards
+  // Metrics always calculated on full filteredData (before Fuse)
   const metrics = useMemo(() => {
     const totalClicks = filteredData.reduce((sum, item) => sum + item.clicks, 0)
     const totalImpressions = filteredData.reduce((sum, item) => sum + item.impressions, 0)
@@ -297,15 +218,12 @@ const SearchConsole = () => {
     return { totalClicks, totalImpressions, avgCtr, avgPosition }
   }, [filteredData])
 
-  // Export to Excel using ExcelJS
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet("Search Performance")
-
     const isPageTab = activeTab === "page"
     const isQueryTab = activeTab === "query"
     const isCountryTab = activeTab === "country"
-
     const columns = [
       ...(isPageTab && !blogTitleFilter
         ? [{ header: "Blog Title", key: "blogTitle", width: 30 }]
@@ -320,11 +238,9 @@ const SearchConsole = () => {
       { header: "CTR (%)", key: "ctr", width: 10 },
       { header: "Position", key: "position", width: 10 },
     ]
-
     worksheet.columns = columns
-
-    filteredData.forEach((item, index) => {
-      const rowData = {
+    filteredData.forEach(item => {
+      worksheet.addRow({
         ...(isPageTab && !blogTitleFilter ? { blogTitle: item.blogTitle } : {}),
         ...(isPageTab ? { url: item.url } : {}),
         ...(isQueryTab ? { query: item.query } : {}),
@@ -333,14 +249,10 @@ const SearchConsole = () => {
         impressions: item.impressions,
         ctr: `${item.ctr}%`,
         position: item.position,
-      }
-
-      worksheet.addRow(rowData)
+      })
     })
-
     worksheet.getRow(1).font = { bold: true }
     worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F0F0F0" } }
-
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -353,12 +265,6 @@ const SearchConsole = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  // Handle pagination change
-  const handlePaginationChange = (page, pageSizeValue) => {
-    setCurrentPage(page)
-    setPageSize(pageSizeValue)
-  }
-
   return (
     <Suspense fallback={<LoadingScreen />}>
       <Helmet>
@@ -366,213 +272,180 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-2 md:p-6 min-h-screen mt-5 md:mt-0">
-          <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
-            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
-              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Search Performance
-              </h1>
-              <div className="flex gap-3 items-stretch sm:items-center mt-2 md:mt-0">
-                <button
-                  title="Export"
-                  onClick={handleExport}
-                  disabled={isLoading}
-                  type="dashed"
-                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
-                >
-                  Export
-                </button>
-                <button
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  type="dashed"
-                  className="w-full sm:w-auto bg-linear-to-l from-blue-400 to-purple-400 hover:bg-linear-to-r! hover:from-purple-500! hover:to-blue-400 text-white! rounded-lg p-2 text-md font-semibold"
-                >
-                  Refresh
-                </button>
-              </div>
+        <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 min-h-screen">
+
+          {/* ── Page Header ─────────────────────────────────── */}
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
+              Search Performance
+            </h1>
+            <div className="flex gap-2 shrink-0">
+              <button
+                title="Export to Excel"
+                onClick={handleExport}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              <button
+                title="Refresh data"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                <RefreshCw className={clsx("w-4 h-4", isLoading && "animate-spin")} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-blue-100/70 to-blue-50/70">
-                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
-                  Total Clicks
-                </span>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                  {new Intl.NumberFormat().format(metrics.totalClicks)}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Total clicks on filtered data
-                </p>
-              </div>
+          </div>
 
-              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-purple-100/70 to-purple-50/70">
-                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
-                  Total Impressions
+          {/* ── Metric Cards ─────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {[
+              {
+                label: "Total Clicks",
+                value: new Intl.NumberFormat().format(metrics.totalClicks),
+                color: "text-blue-600",
+                bg: "from-blue-100/70 to-blue-50/70",
+                sub: "across filtered data",
+              },
+              {
+                label: "Total Impressions",
+                value: new Intl.NumberFormat().format(metrics.totalImpressions),
+                color: "text-purple-600",
+                bg: "from-purple-100/70 to-purple-50/70",
+                sub: "across filtered data",
+              },
+              {
+                label: "Avg. CTR",
+                value: `${metrics.avgCtr}%`,
+                color: "text-teal-600",
+                bg: "from-teal-100/70 to-teal-50/70",
+                sub: "click-through rate",
+              },
+              {
+                label: "Avg. Position",
+                value: metrics.avgPosition,
+                color: "text-amber-600",
+                bg: "from-amber-100/70 to-amber-50/70",
+                sub: "search result rank",
+              },
+            ].map(card => (
+              <div
+                key={card.label}
+                className={`rounded-xl text-center p-3 sm:p-5 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br ${card.bg}`}
+              >
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-500 block mb-1.5 uppercase tracking-wide">
+                  {card.label}
                 </span>
-                <p className="text-xl sm:text-2xl font-bold text-purple-600">
-                  {new Intl.NumberFormat().format(metrics.totalImpressions)}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Total impressions on filtered data
-                </p>
+                <p className={`text-lg sm:text-2xl font-bold ${card.color}`}>{card.value}</p>
+                <p className="text-[10px] text-gray-400 mt-1 hidden sm:block">{card.sub}</p>
               </div>
+            ))}
+          </div>
 
-              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-teal-100/70 to-teal-50/70">
-                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
-                  Average CTR
-                </span>
-                <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Average click-through rate
-                </p>
-              </div>
-
-              <div className="rounded-lg text-center p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br from-amber-100/70 to-amber-50/70">
-                <span className="text-xs sm:text-sm font-semibold text-gray-600 block mb-2">
-                  Average Position
-                </span>
-                <p className="text-xl sm:text-2xl font-bold text-amber-600">
-                  {metrics.avgPosition}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Average search result position
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-              <div className="flex gap-2 flex-1 min-w-[300px] items-center">
-                <select
-                  value={dateRange}
-                  onChange={e => handleDateRangeChange(e.target.value)}
-                  className={clsx(
-                    "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg min-w-[140px]",
-                    dateRange && "border-blue-500"
-                  )}
-                >
-                  <option value="7d">Last 7 Days</option>
-                  <option value="30d">Last 30 Days</option>
-                  <option value="180d">Last 6 Months</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-                {showDatePicker && (
-                  <div className="flex-1 w-full min-w-56">
-                    <DateRangePicker
-                      value={customDateRange}
-                      onChange={handleCustomDateRangeChange}
-                      maxDate={dayjs().endOf("day")}
-                      className={clsx(
-                        customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
-                      )}
-                    />
-                  </div>
+          {/* ── Filters ──────────────────────────────────────── */}
+          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 mb-4 border border-gray-200">
+            {/* Row 1: Date + Blog title select */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <select
+                value={dateRange}
+                onChange={e => handleDateRangeChange(e.target.value)}
+                className={clsx(
+                  "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg",
+                  dateRange !== "7d" && "border-blue-500"
                 )}
-              </div>
-              <div className="relative flex-1 min-w-[200px] max-w-1/2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="Search title, query, or country"
-                  className={`pl-9 pr-4 py-1 h-10 w-full bg-white border ${
-                    searchQuery ? "border-blue-500" : "border-gray-300"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-                />
-              </div>
+              >
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+                <option value="180d">Last 6 Months</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              {showDatePicker && (
+                <div className="flex-1 min-w-[200px]">
+                  <DateRangePicker
+                    value={customDateRange}
+                    onChange={handleCustomDateRangeChange}
+                    maxDate={dayjs().endOf("day")}
+                    className={clsx(
+                      customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
+                    )}
+                  />
+                </div>
+              )}
 
               <select
                 value={blogTitleFilter || ""}
-                onChange={e => handleBlogTitleChange(e.target.value || null)}
+                onChange={e => setBlogTitleFilter(e.target.value || null)}
                 className={clsx(
-                  "select select-bordered select-sm h-10 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[200px]",
+                  "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[160px]",
                   blogTitleFilter && "border-blue-500"
                 )}
               >
-                <option value="">Select Blog Title</option>
+                <option value="">All Blog Titles</option>
                 {blogTitles.map(title => (
                   <option key={title} value={title}>
                     {title}
                   </option>
                 ))}
               </select>
+            </div>
 
+            {/* Row 2: Search + Reset */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Fuzzy search title, query, country…"
+                  className={`pl-9 pr-4 py-1 h-9 w-full bg-white border ${
+                    searchQuery ? "border-blue-500" : "border-gray-300"
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                />
+              </div>
               <button
                 onClick={handleResetFilters}
-                type="default"
-                className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
+                className={`rounded-lg h-9 px-3 text-sm font-medium text-gray-700 whitespace-nowrap transition-colors ${
                   isFilterApplied
-                    ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
-                    : "bg-gray-100 hover:bg-gray-200 border-gray-300"
+                    ? "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700"
+                    : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
                 }`}
               >
-                Reset Filters
+                Reset
               </button>
             </div>
           </div>
+
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
+            <div className="bg-red-50 text-red-600 p-3 sm:p-4 rounded-lg mb-4 flex items-center border border-red-200 text-sm">
               <span>{error}</span>
             </div>
           )}
+
           {blogTitleFilter && (
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
-              </h2>
-            </div>
+            <p className="mb-3 text-sm text-gray-600">
+              Filtered by: <span className="font-semibold text-blue-600">{blogTitleFilter}</span>
+            </p>
           )}
+
+          {/* ── Table ────────────────────────────────────────── */}
           <GSCAnalyticsTabs
             items={[
               { key: "query", label: "Queries" },
               { key: "page", label: "Pages" },
               { key: "country", label: "Countries" },
             ]}
-            filteredData={paginatedData} // Use paginated data instead of filteredData
+            filteredData={filteredData}
+            searchQuery={searchQuery}
             activeTab={activeTab}
             handleTabChange={handleTabChange}
             isLoading={isLoading}
           />
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
-            <div className="text-sm font-medium text-gray-500">
-              Showing {Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)} to{" "}
-              {Math.min(filteredData.length, currentPage * pageSize)} of {filteredData.length}{" "}
-              records
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="join border border-gray-100">
-                <button
-                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
-                >
-                  Previous
-                </button>
-                <button className="join-item btn btn-sm bg-white border-gray-200 no-animation">
-                  Page {currentPage} of {Math.ceil(filteredData.length / pageSize) || 1}
-                </button>
-                <button
-                  className="join-item btn btn-sm bg-white border-gray-200 hover:bg-gray-50"
-                  disabled={currentPage >= Math.ceil(filteredData.length / pageSize)}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                >
-                  Next
-                </button>
-              </div>
-              <select
-                className="select select-bordered select-sm ml-10 border-gray-200 rounded-lg min-w-24"
-                value={pageSize}
-                onChange={e => {
-                  setPageSize(parseInt(e.target.value))
-                  setCurrentPage(1)
-                }}
-              >
-                <option value={10}>10 / page</option>
-                <option value={50}>50 / page</option>
-                <option value={100}>100 / page</option>
-              </select>
-            </div>
-          </div>
         </div>
       ) : (
         <GSCLogin />

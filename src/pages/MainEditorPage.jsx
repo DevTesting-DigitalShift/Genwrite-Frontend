@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
 import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
@@ -20,6 +20,7 @@ import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog } from "@api/blogApi"
+import { TONES } from "@/data/blogData"
 
 const MainEditorPage = () => {
   const { id } = useParams()
@@ -64,7 +65,7 @@ const MainEditorPage = () => {
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
-    tone: "Informative",
+    tone: TONES[0],
     focusKeywords: [],
     keywords: [],
     userDefinedLength: 1200,
@@ -93,6 +94,12 @@ const MainEditorPage = () => {
     window.addEventListener("beforeunload", handleBeforeUnload)
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [unsavedChanges])
+
+  // Block in-app React Router navigation (back button, links) when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      unsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  )
 
   useEffect(() => {
     if (fetchedBlog) {
@@ -206,7 +213,7 @@ const MainEditorPage = () => {
       toast.error(
         error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
       )
-    } finally { 
+    } finally {
       setIsPosting(false)
     }
   }
@@ -228,10 +235,6 @@ const MainEditorPage = () => {
       return
     }
     const { metadata: seoMetadata, slug, ...rest } = updateData
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
 
     if (!editorTitle.trim()) {
       toast.error("Blog title is required.")
@@ -328,7 +331,6 @@ const MainEditorPage = () => {
     const isEmpty =
       !templateFormData.title?.trim() ||
       !templateFormData.topic?.trim() ||
-      !templateFormData.tone?.trim() ||
       !templateFormData.template ||
       !templateFormData.userDefinedLength ||
       templateFormData.userDefinedLength <= 0 ||
@@ -358,7 +360,6 @@ const MainEditorPage = () => {
     const newErrors = {}
     if (!blogData.title) newErrors.title = true
     if (!blogData.topic) newErrors.topic = true
-    if (!blogData.tone) newErrors.tone = true
     if (!blogData.template) newErrors.template = true
     if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
       newErrors.userDefinedLength = true
@@ -427,6 +428,54 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
+
+      {/* Unsaved Changes Confirmation Modal */}
+      {blocker.state === "blocked" && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => blocker.reset()}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm mx-4">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center">
+                <Save className="w-7 h-7 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900 mb-1">Unsaved Changes</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  You have unsaved changes that will be lost if you leave. Do you want to save
+                  before leaving?
+                </p>
+              </div>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
+                  onClick={() => blocker.proceed()}
+                >
+                  Leave Anyway
+                </button>
+                <button
+                  className="flex-1 py-2.5 rounded-lg bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-semibold text-sm"
+                  onClick={async () => {
+                    await handleSave({})
+                    blocker.proceed()
+                  }}
+                >
+                  Save & Leave
+                </button>
+              </div>
+              <button
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => blocker.reset()}
+              >
+                Stay on page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col max-h-screen overflow-y-hidden">
         {saveModalOpen && (
           <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">

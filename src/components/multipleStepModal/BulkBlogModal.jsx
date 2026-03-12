@@ -13,7 +13,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { queryClient } from "@utils/queryClient"
 import { validateBulkBlogData } from "@/types/forms.schemas"
 import useAuthStore from "@store/useAuthStore"
@@ -45,7 +45,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     topicInput: "",
     keywordInput: "",
     performKeywordResearch: true,
-    tone: "",
+    tone: TONES[0],
     languageToWrite: "English",
     userDefinedLength: 1000,
     imageSource: IMAGE_SOURCE.STOCK,
@@ -169,7 +169,6 @@ const BulkBlogModal = ({ closeFnc }) => {
           formData.keywordInput.trim() === ""
             ? "Please add at least one keyword."
             : "",
-        tone: !formData.tone ? "Please select a tone of voice." : "",
       }
       setErrors(prev => ({ ...prev, ...newErrors }))
       if (Object.values(newErrors).some(error => error)) {
@@ -203,7 +202,6 @@ const BulkBlogModal = ({ closeFnc }) => {
         formData.keywordInput.trim() === ""
           ? "Please add at least one keyword."
           : "",
-      tone: !formData.tone ? "Please select a tone of voice." : "",
       integration:
         formData.wordpressPostStatus &&
         Object.keys(integrations?.integrations || {}).length > 0 &&
@@ -236,7 +234,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       // Find the step where the first error occurs
       const errorStep = newErrors.templates
         ? 0
-        : newErrors.topics || newErrors.keywords || newErrors.tone
+        : newErrors.topics || newErrors.keywords
           ? 1
           : 2
       setCurrentStep(errorStep)
@@ -937,7 +935,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tone of Voice <span className="text-red-500">*</span>
+                    Tone of Voice
                   </label>
                   <select
                     className={`select select-bordered w-full h-10 min-h-0 text-sm ${
@@ -949,21 +947,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                       setErrors(prev => ({ ...prev, tone: "" }))
                     }}
                   >
-                    <option value="" disabled>
-                      Select Tone
-                    </option>
-                    <option value="professional">Professional</option>
-                    <option value="casual">Casual</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="formal">Formal</option>
-                    <option value="conversational">Conversational</option>
-                    <option value="witty">Witty</option>
-                    <option value="informative">Informative</option>
-                    <option value="inspirational">Inspirational</option>
-                    <option value="persuasive">Persuasive</option>
-                    <option value="empathetic">Empathetic</option>
+                    <option value="">Select Tone (Optional)</option>
+                    {TONES.map(t => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
                   </select>
-                  {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
                 </div>
                 <div>
                   <label
@@ -1028,29 +1018,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                   setFormData(prev => ({ ...prev, aiModel: modelId }))
                   setErrors(prev => ({ ...prev, aiModel: "" }))
                 }}
-                userPlan={userPlan}
-                navigate={navigate}
+                showCostCutter={true}
+                costCutterValue={formData.costCutter}
+                onCostCutterChange={checked => {
+                  setFormData(prev => ({ ...prev, costCutter: checked }))
+                }}
                 error={errors.aiModel}
               />
-
-              {/* Cost Cutter Toggle */}
-              <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                    <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-                  </div>
-                  <Switch
-                    id="bulk-cost-cutter-toggle"
-                    checked={formData.costCutter || false}
-                    onCheckedChange={checked => {
-                      setFormData(prev => ({ ...prev, costCutter: checked }))
-                    }}
-                    className="data-[state=checked]:bg-green-500"
-                    size="large"
-                  />
-                </div>
-              </div>
 
               {/* Easy to Understand Toggle */}
               <div className="flex items-center justify-between mb-4">
@@ -1105,9 +1079,6 @@ const BulkBlogModal = ({ closeFnc }) => {
                   <ImageSourceSelector
                     value={formData.imageSource}
                     onChange={handleImageSourceChange}
-                    userPlan={userPlan}
-                    isAiLimitReached={isAiImagesLimitReached}
-                    navigate={navigate}
                     error={errors.blogImages}
                     showUpload={false}
                   />

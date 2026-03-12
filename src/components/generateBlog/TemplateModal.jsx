@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
+import { TONES } from "@/data/blogData"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import useAuthStore from "@store/useAuthStore"
 import { getGeneratedTitles } from "@api/blogApi"
@@ -205,7 +206,7 @@ const TemplateModal = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tone <span className="text-red-500">*</span>
+                  Tone
                 </label>
                 <select
                   value={formData.tone}
@@ -213,13 +214,13 @@ const TemplateModal = ({
                   className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                   aria-label="Blog tone"
                 >
-                  <option value="Informative">Informative</option>
-                  <option value="Casual">Casual</option>
-                  <option value="Professional">Professional</option>
-                  <option value="Persuasive">Persuasive</option>
-                  <option value="Humorous">Humorous</option>
+                  <option value="">Select Tone (Optional)</option>
+                  {TONES.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
-                {errors.tone && <p className="text-red-500 text-sm mt-1">Tone cannot be empty.</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

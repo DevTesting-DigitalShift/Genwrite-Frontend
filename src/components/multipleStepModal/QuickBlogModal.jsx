@@ -590,9 +590,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <ImageSourceSelector
                     value={formData.imageSource}
                     onChange={(sourceId) => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
-                    userPlan={user?.subscription?.plan || "free"}
-                    isAiLimitReached={(user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)}
-                    navigate={navigate}
                   />
                 </div>
               )}

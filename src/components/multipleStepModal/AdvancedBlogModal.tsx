@@ -43,7 +43,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     focusKeywords: [] as string[],
     keywords: [] as string[],
     title: "" as string,
-    tone: "" as string,
+    tone: TONES[0] as string,
     userDefinedLength: 1000 as number,
     brief: "" as string,
     aiModel: AI_MODELS[0].id as string,
@@ -176,7 +176,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       includeImages: formData.isCheckedGeneratedImages,
       imageSource: formData.imageSource,
       numberOfImages:
-        formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
+        formData.imageSource === IMAGE_SOURCE.UPLOAD
           ? formData.blogImages.length
           : formData.numberOfImages,
     })
@@ -230,13 +230,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
           if (!formData.title.length) errors.title = "Please enter a title"
         }
-
-        if (!formData.tone.trim()) errors.tone = "Please select a tone of voice"
         break
       case 2:
         if (
           formData.isCheckedGeneratedImages &&
-          formData.imageSource === IMAGE_OPTIONS.at(-1)?.id &&
+          formData.imageSource === IMAGE_SOURCE.UPLOAD &&
           formData.blogImages.length == 0
         )
           errors.blogImages = "Please upload at least 1 image."
@@ -309,7 +307,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         data.imageSource = IMAGE_SOURCE.NONE
       }
 
-      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id) {
+      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_SOURCE.UPLOAD) {
         delete data.blogImages
       }
       if (!formData.isCheckedBrand) {
@@ -650,7 +648,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <div className="form-control space-y-2">
                 <label className="label pb-0">
                   <span className="label-text font-semibold text-slate-800">
-                    Tone of Voice <span className="text-red-500">*</span>
+                    Tone of Voice
                   </span>
                 </label>
 
@@ -663,14 +661,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     errors.tone ? "border-red-500" : ""
                   }`}
                 >
-                  <option value="">Select tone</option>
+                  <option value="">Select tone (Optional)</option>
                   {TONES.map(t => (
                     <option key={t} value={t}>
                       {t}
                     </option>
                   ))}
                 </select>
-                {errors.tone && <p className="text-xs mt-1 text-red-500">{errors.tone}</p>}
               </div>
 
               {/* Blog Length */}
@@ -729,23 +726,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <AiModelSelector
               value={formData.aiModel}
               onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
-              userPlan={user?.subscription?.plan || "free"}
-              navigate={navigate}
+              showCostCutter={true}
+              costCutterValue={formData.costCutter}
+              onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
             />
-
-            {/* Cost Cutter */}
-            <div className="flex items-center justify-between p-5 rounded-lg bg-green-50 border border-green-200">
-              <div>
-                <p className="font-semibold text-sm text-green-800">Cost Cutter</p>
-                <p className="text-xs text-green-600 mt-1">Use AI Flash model for 25% savings</p>
-              </div>
-
-              <Switch
-                checked={formData.costCutter}
-                onCheckedChange={(checked: boolean) => updateFormData({ costCutter: checked })}
-                size="large"
-              />
-            </div>
 
             {/* Feature Toggles */}
             <div className="space-y-5 my-5">
@@ -779,47 +763,169 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   value={formData.imageSource}
                   onChange={(sourceId: string) => {
                     handleInputChange({ target: { name: "imageSource", value: sourceId } })
+                    // Reset uploaded images when switching away from upload
+                    if (sourceId !== IMAGE_SOURCE.UPLOAD) {
+                      updateFormData({ blogImages: [] })
+                    }
                   }}
-                  userPlan={user?.subscription?.plan || "free"}
-                  isAiLimitReached={
-                    (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
-                  }
-                  showUpload={false}
-                  navigate={navigate}
+                  showUpload={true}
                   error={errors.imageSource}
                 />
 
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Number of Images (0 = Decided by AI)
-                    </label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <input
-                        type="range"
-                        name="numberOfImages"
-                        min="0"
-                        max="15"
-                        value={formData.numberOfImages || 0}
-                        onChange={e =>
-                          handleInputChange({
-                            target: {
-                              name: "numberOfImages",
-                              value: e.target.value ? parseInt(e.target.value) : 0,
-                            },
-                          })
+                {/* Custom Image Upload Zone */}
+                {formData.imageSource === IMAGE_SOURCE.UPLOAD && (
+                  <div className="space-y-3 mt-2">
+                    <div
+                      className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
+                        ${
+                          errors.blogImages
+                            ? "border-red-400 bg-red-50"
+                            : "border-slate-300 bg-slate-50 hover:border-[#1B6FC9] hover:bg-blue-50/30"
                         }
-                        style={{
-                          background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
-                        }}
-                        className="w-full h-1.5 rounded-lg appearance-none custom-slider cursor-pointer accent-[#1B6FC9]"
-                      />
-                      <span className="text-sm font-bold text-gray-700 w-8">
-                        {formData.numberOfImages || 0}
-                      </span>
+                      `}
+                      onClick={() => {
+                        const input = document.createElement("input")
+                        input.type = "file"
+                        input.accept = "image/*"
+                        input.multiple = true
+                        input.onchange = async (e: Event) => {
+                          const files = Array.from((e.target as HTMLInputElement).files || [])
+                          if (formData.blogImages.length + files.length > 10) {
+                            toast.error("You can upload a maximum of 10 images.")
+                            return
+                          }
+                          const readers = files.map(
+                            file =>
+                              new Promise<string>(resolve => {
+                                const reader = new FileReader()
+                                reader.onload = ev => resolve(ev.target?.result as string)
+                                reader.readAsDataURL(file)
+                              })
+                          )
+                          const dataUrls = await Promise.all(readers)
+                          updateFormData({ blogImages: [...formData.blogImages, ...dataUrls] })
+                          updateErrors({ blogImages: "" })
+                        }
+                        input.click()
+                      }}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={async e => {
+                        e.preventDefault()
+                        const files = Array.from(e.dataTransfer.files).filter(f =>
+                          f.type.startsWith("image/")
+                        )
+                        if (formData.blogImages.length + files.length > 10) {
+                          toast.error("You can upload a maximum of 10 images.")
+                          return
+                        }
+                        const readers = files.map(
+                          file =>
+                            new Promise<string>(resolve => {
+                              const reader = new FileReader()
+                              reader.onload = ev => resolve(ev.target?.result as string)
+                              reader.readAsDataURL(file)
+                            })
+                        )
+                        const dataUrls = await Promise.all(readers)
+                        updateFormData({ blogImages: [...formData.blogImages, ...dataUrls] })
+                        updateErrors({ blogImages: "" })
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2 text-slate-400 pointer-events-none">
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-600">
+                          Click or drag images here
+                        </p>
+                        <p className="text-xs text-slate-400">PNG, JPG, WEBP · max 10 images</p>
+                      </div>
+                    </div>
+
+                    {errors.blogImages && (
+                      <p className="text-xs text-red-500 font-medium">{errors.blogImages}</p>
+                    )}
+
+                    {/* Preview grid */}
+                    {formData.blogImages.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {formData.blogImages.map((src, i) => (
+                          <div key={i} className="relative group aspect-square">
+                            <img
+                              src={src}
+                              alt={`Upload ${i + 1}`}
+                              className="w-full h-full object-cover rounded-lg border border-slate-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateFormData({
+                                  blogImages: formData.blogImages.filter((_, idx) => idx !== i),
+                                })
+                              }
+                              className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
+                                flex items-center justify-center opacity-0 group-hover:opacity-100
+                                transition-opacity text-[10px] leading-none"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-400 text-right">
+                      {formData.blogImages.length} / 10 images uploaded
+                    </p>
+                  </div>
+                )}
+
+                {/* Number of images slider — hidden for custom upload */}
+                {formData.imageSource !== IMAGE_SOURCE.UPLOAD && (
+                  <div className="flex items-center gap-4 mt-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-semibold text-slate-800">
+                        Number of Images (0 = Decided by AI)
+                      </label>
+                      <div className="flex items-center gap-4 mt-2">
+                        <input
+                          type="range"
+                          name="numberOfImages"
+                          min="0"
+                          max="15"
+                          value={formData.numberOfImages || 0}
+                          onChange={e =>
+                            handleInputChange({
+                              target: {
+                                name: "numberOfImages",
+                                value: e.target.value ? parseInt(e.target.value) : 0,
+                              },
+                            })
+                          }
+                          style={{
+                            background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
+                          }}
+                          className="w-full h-1.5 rounded-lg appearance-none custom-slider cursor-pointer accent-[#1B6FC9]"
+                        />
+                        <span className="text-sm font-bold text-gray-700 w-8">
+                          {formData.numberOfImages || 0}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 

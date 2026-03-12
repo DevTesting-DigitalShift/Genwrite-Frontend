@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   RefreshCw,
@@ -65,42 +65,69 @@ const renderer = {
 
 marked.use({ renderer })
 
-// WordPress Categories Component
-const WordPressCategories = ({ onSelect, currentCategory }) => {
+// Platform Categories Component (Supports WP, Sanity, Shopify, Server)
+const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchWPCategories = async () => {
+    const fetchPlatformCategories = async () => {
+      if (!platform) {
+        setCategories([])
+        return
+      }
+
       setLoading(true)
       try {
         const response = await axiosInstance.get(
-          "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
+          `http://localhost:8000/api/v1/integrations/category?type=${platform.toUpperCase()}`
         )
         if (Array.isArray(response.data)) {
           setCategories(response.data)
+        } else {
+          setCategories([])
         }
       } catch (error) {
-        console.error("Failed to fetch WP categories", error)
+        console.error(`Failed to fetch ${platform} categories`, error)
+        setCategories([])
       } finally {
         setLoading(false)
       }
     }
 
-    fetchWPCategories()
-  }, [])
+    fetchPlatformCategories()
+  }, [platform])
 
-  if (categories.length === 0 && !loading) return null
+  // Merge platform categories with popular categories and deduplicate (case-insensitive)
+  const displayCategories = useMemo(() => {
+    const combined = [...categories]
+    const lowerCategories = categories.map(c => c.toLowerCase())
+
+    POPULAR_CATEGORIES.forEach(cat => {
+      if (!lowerCategories.includes(cat.toLowerCase())) {
+        combined.push(cat)
+      }
+    })
+    return combined
+  }, [categories])
+
+  const isUsingOnlyPopular = categories.length === 0
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-          WordPress Categories
+          {isUsingOnlyPopular ? (
+            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+          ) : (
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+          )}
+          {platform && !isUsingOnlyPopular
+            ? `${platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase()} Categories`
+            : "Popular Categories"}
         </span>
         <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-          {categories.length} available
+          {displayCategories.length} available
         </span>
       </div>
 
@@ -110,36 +137,40 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
             <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat, idx) => (
-              <button
-                key={idx}
-                onClick={() => onSelect(cat)}
-                className={`
-                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
-                  ${
-                    currentCategory === cat
-                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
-                  }
-                `}
-              >
-                {cat}
-                {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
-              </button>
-            ))}
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-wrap gap-2">
+              {displayCategories.map((cat, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSelect(cat)}
+                  type="button"
+                  className={`
+                    px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
+                    ${
+                      currentCategory === cat
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
+                    }
+                  `}
+                >
+                  {cat}
+                  {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
       <p className="text-[10px] text-gray-400 mt-2 px-1">
-        Select a category from your WordPress site to populate the field above.
+        {isUsingOnlyPopular
+          ? "Select a popular category to keep your content organized."
+          : `Select a category from your ${platform} site to populate the field above.`}
       </p>
     </div>
   )
 }
 
-
-// Popular WordPress categories (limited to 15 for relevance)
+// Popular categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
   "Blogging",
   "Technology",
@@ -935,7 +966,7 @@ const TextEditorSidebar = ({
       })
       setGeneratedMetadataModal(false)
       setGeneratedMetadata(null)
-      message.success("Metadata applied! Click Save to keep changes.")
+      toast.success("Metadata applied! Click Save to keep changes.")
     }
   }, [generatedMetadata])
 
@@ -976,7 +1007,7 @@ const TextEditorSidebar = ({
       return
     }
     if (isPro) return navigate("/pricing")
-    if (!customPrompt.trim()) return message.error("Enter a prompt")
+    if (!customPrompt.trim()) return toast.error("Enter a prompt")
     handlePopup({
       title: "Apply Custom Prompt",
       description: (
@@ -1026,8 +1057,8 @@ const TextEditorSidebar = ({
   }, [handleSubmit, metadata])
 
   const handlePdfExport = useCallback(async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
       toast.loading("Exporting PDF...", { id: "pdf-export" })
@@ -1051,6 +1082,9 @@ const TextEditorSidebar = ({
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
+      const successMsg = includeImagesInExport
+        ? "PDF with images downloaded as ZIP!"
+        : "PDF downloaded successfully!"
       toast.success(successMsg, { id: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
@@ -1089,7 +1123,7 @@ const TextEditorSidebar = ({
       return
     }
     if (!repostSettings.platform || !repostSettings.category) {
-      return message.error("Platform and Category are required")
+      return toast.error("Platform and Category are required")
     }
 
     try {
@@ -1283,7 +1317,7 @@ const TextEditorSidebar = ({
     setErrors(newErrors)
 
     if (!isValid) {
-      message.error("Please fill in required fields")
+      toast.error("Please fill in required fields")
       return
     }
 
@@ -1604,11 +1638,11 @@ const TextEditorSidebar = ({
             onClick={handleAnalyzing}
             disabled={isAnalyzingCompetitive || blog?.isArchived}
             className={`
-              w-full py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-sm
+              w-full py-3 px-4 rounded-lg text-xs font-bold transition-all shadow-sm
               ${
                 isAnalyzingCompetitive || blog?.isArchived
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+                  : "bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white"
               }
             `}
           >
@@ -1630,16 +1664,14 @@ const TextEditorSidebar = ({
       })
     }
 
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport
-          ? "Preparing Markdown with images..."
-          : "Generating Markdown...",
-        key: "md-export",
-      })
+      toast.loading(
+        includeImagesInExport ? "Preparing Markdown with images..." : "Generating Markdown...",
+        { id: "md-export" }
+      )
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "markdown",
@@ -1663,10 +1695,10 @@ const TextEditorSidebar = ({
       const successMsg = includeImagesInExport
         ? "Markdown with images downloaded as ZIP!"
         : "Markdown downloaded successfully!"
-      message.success({ content: successMsg, key: "md-export" })
+      toast.success(successMsg, { id: "md-export" })
     } catch (error) {
       console.error("Markdown export error:", error)
-      message.error({ content: error.message || "Failed to export Markdown", key: "md-export" })
+      toast.error(error.message || "Failed to export Markdown", { id: "md-export" })
     }
   }
 
@@ -1680,14 +1712,14 @@ const TextEditorSidebar = ({
       })
     }
 
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
-        key: "html-export",
-      })
+      toast.loading(
+        includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
+        { id: "html-export" }
+      )
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "html",
@@ -1711,10 +1743,10 @@ const TextEditorSidebar = ({
       const successMsg = includeImagesInExport
         ? "HTML with images downloaded as ZIP!"
         : "HTML downloaded successfully!"
-      message.success({ content: successMsg, key: "html-export" })
+      toast.success(successMsg, { id: "html-export" })
     } catch (error) {
       console.error("HTML export error:", error)
-      message.error({ content: error.message || "Failed to export HTML", key: "html-export" })
+      toast.error(error.message || "Failed to export HTML", { id: "html-export" })
     }
   }
 
@@ -2657,7 +2689,7 @@ const TextEditorSidebar = ({
                       </button>
                     </div>
                     <button
-                      className="btn btn-sm btn-block text-[12px] font-semibold h-8"
+                      className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
                       onClick={() => {
                         if (blog?.isArchived) {
                           toast.error("This blog is archived. Please restore it to perform this action.")
@@ -2779,40 +2811,22 @@ const TextEditorSidebar = ({
 
               {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
 
-              {/* Auto Suggestions */}
-              {/* Auto Suggestions - Using persistent UI state */}
-              {uiCategories?.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
-                    Suggested Categories
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                    {uiCategories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => handleCategoryAdd(cat)}
-                        disabled={!!selectedCategory || blog?.isArchived}
-                        className={`px-2 py-1 rounded text-[10px] border transition-all ${
-                          selectedCategory === cat
-                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
-                            : selectedCategory
-                              ? "opacity-40"
-                              : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-white hover:border-gray-300"
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
+              {selectedIntegration?.platform === "shopify" && (
+                <div className="mt-2 p-2.5 bg-amber-50 text-amber-800 text-[10px] border border-amber-200 rounded-xl flex items-start gap-2 shadow-xs">
+                  <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Public Release Warning:</span> Shopify categories
+                    cannot be changed once the post is public. Please ensure this is correct.
                   </div>
                 </div>
               )}
 
-              {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
-                <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">
-                  <Info className="inline w-3 h-3 mr-1" />
-                  Shopify categories are permanent once posted.
-                </div>
-              )}
+              {/* Consistently show Categories for all platforms (WordPress, Shopify, Sanity, Server) */}
+              <PlatformCategories
+                onSelect={handleCategoryAdd}
+                currentCategory={selectedCategory}
+                platform={selectedIntegration?.rawPlatform}
+              />
             </div>
             {/* ToC Toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
@@ -2823,13 +2837,6 @@ const TextEditorSidebar = ({
                 disabled={blog?.isArchived}
               />
             </div>
-            {/* WordPress Categories (Moved Below ToC) */}
-            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
-              <WordPressCategories
-                onSelect={handleCategoryAdd}
-                currentCategory={selectedCategory}
-              />
-            )}
             <div className="h-4" /> {/* Spacer */}
           </div>
         </div>
@@ -2843,7 +2850,7 @@ const TextEditorSidebar = ({
           className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
             isPosting || blog?.isArchived
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-              : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-[-1px]"
+              : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
           }`}
         >
           {isPosting ? (
@@ -3089,10 +3096,11 @@ const TextEditorSidebar = ({
               />
             </div>
 
-            {repostSettings.platform === "WORDPRESS" && (
-              <WordPressCategories
+            {repostSettings.platform && (
+              <PlatformCategories
                 onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
                 currentCategory={repostSettings.category}
+                platform={repostSettings.platform}
               />
             )}
           </div>

@@ -10,6 +10,7 @@ import { brandsQuery } from "@api/Brand/Brand.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
+import { TONES } from "@/data/blogData"
 import { Helmet } from "react-helmet"
 
 const OutlineEditor = () => {
@@ -24,7 +25,7 @@ const OutlineEditor = () => {
   const [formData, setFormData] = useState({
     title: "",
     topic: "",
-    tone: "Informative",
+    tone: TONES[0],
     focusKeywords: [],
     keywords: [],
     userDefinedLength: 1200,
@@ -72,7 +73,6 @@ const OutlineEditor = () => {
       newErrors = {
         title: !formData.title.trim(),
         topic: !formData.topic.trim(),
-        tone: !formData.tone,
         focusKeywords: formData.focusKeywords.length === 0,
         keywords: formData.keywords.length === 0,
       }
@@ -208,7 +208,6 @@ const OutlineEditor = () => {
     const newErrors = {
       title: !blogData.title,
       topic: !blogData.topic,
-      tone: !blogData.tone,
       template: !blogData.template,
       focusKeywords: !blogData.focusKeywords || blogData.focusKeywords.length === 0,
       keywords: !blogData.keywords || blogData.keywords.length === 0,
@@ -359,7 +358,7 @@ const OutlineEditor = () => {
                     <div className="form-control w-full">
                       <label className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
-                          Writing Tone <span className="text-rose-500">*</span>
+                          Writing Tone
                         </span>
                       </label>
                       <select
@@ -367,11 +366,12 @@ const OutlineEditor = () => {
                         onChange={e => handleSelectChange(e.target.value)}
                         className={`select select-bordered w-full rounded-lg focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       >
-                        <option value="Informative">Informative</option>
-                        <option value="Casual">Casual</option>
-                        <option value="Professional">Professional</option>
-                        <option value="Persuasive">Persuasive</option>
-                        <option value="Humorous">Humorous</option>
+                        <option value="">Select Tone (Optional)</option>
+                        {TONES.map(t => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

@@ -3,7 +3,7 @@ import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
 import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { validateJobData } from "@/types/forms.schemas"
 import { toast } from "sonner"
 
@@ -19,7 +19,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       topics: [],
       keywords: [],
       templates: [],
-      tone: "Professional",
+      tone: TONES[0],
       userDefinedLength: 1000,
       imageSource: IMAGE_SOURCE.STOCK,
       aiModel: "gemini",
@@ -145,7 +145,6 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     if (step === 2 || step === "all") {
       if (!newJob.name) newErrors.name = "Please enter a job name."
       if (newJob.blogs.topics.length === 0) newErrors.topics = "Please add at least one topic."
-      if (!newJob.blogs.tone) newErrors.tone = "Please select a tone."
       if (!formData.performKeywordResearch && formData.keywords.length === 0) {
         newErrors.keywords = "Please add at least one keyword or enable keyword research."
       }
