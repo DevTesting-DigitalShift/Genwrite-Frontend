@@ -27,6 +27,7 @@ const SearchConsole = () => {
   // searchQuery is passed directly to GSCAnalyticsTabs — Fuse runs inside the table
   const [searchQuery, setSearchQuery] = useState("")
   const [userCountry] = useState(navigator.language.split("-")[1] || "US")
+  const [autoFallbackDone, setAutoFallbackDone] = useState(false)
 
   const { user } = useAuthStore()
   const { clearAnalytics, fetchGscAnalytics } = useGscStore()
@@ -53,7 +54,7 @@ const SearchConsole = () => {
 
   const getDateRangeParams = useCallback(() => {
     let from, to
-    if (customDateRange[0] && customDateRange[1]) {
+    if (dateRange === "custom" && customDateRange[0] && customDateRange[1]) {
       from = customDateRange[0].startOf("day").format("YYYY-MM-DD")
       to = customDateRange[1].endOf("day").format("YYYY-MM-DD")
     } else {
@@ -88,6 +89,7 @@ const SearchConsole = () => {
   const {
     data: blogData = [],
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ["gscAnalytics", activeTab, dateRange, customDateRange],
@@ -126,6 +128,17 @@ const SearchConsole = () => {
     () => [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))],
     [blogData]
   )
+
+  useEffect(() => {
+    if (!isLoading && !isFetching && blogData.length === 0 && !autoFallbackDone) {
+      if (dateRange === "7d" || dateRange === "30d") {
+        setAutoFallbackDone(true)
+        setDateRange("180d")
+      } else {
+        setAutoFallbackDone(true)
+      }
+    }
+  }, [isLoading, isFetching, blogData.length, autoFallbackDone, dateRange])
 
   const handleTabChange = key => {
     setActiveTab(key)
@@ -265,6 +278,46 @@ const SearchConsole = () => {
     window.URL.revokeObjectURL(url)
   }
 
+  const renderEmptyState = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 text-center max-w-xl mx-auto mt-6">
+      <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+        <Search className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-1">
+        No Search Performance Data
+      </h3>
+      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+        We couldn't find any Google Search Console data. Here are a few possible reasons:
+      </p>
+      
+      <div className="space-y-3 text-left w-full mx-auto">
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">1</div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Recently Published?</h4>
+            <p className="text-xs text-gray-600 mt-0.5">It takes 3-4 days for Google to rank new posts.</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">2</div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Has it been deleted?</h4>
+            <p className="text-xs text-gray-600 mt-0.5">Deleted content won't show metrics without prior traffic.</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">3</div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Check Date Range</h4>
+            <p className="text-xs text-gray-600 mt-0.5">Ensure the selected filter matches an active timeline.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <Suspense fallback={<LoadingScreen />}>
       <Helmet>
@@ -365,12 +418,18 @@ const SearchConsole = () => {
               </select>
 
               {showDatePicker && (
-                <div className="flex-1 min-w-[200px]">
+                <div className={clsx(
+                  "flex-1 min-w-[200px] rounded-lg transition-all duration-300",
+                  dateRange === "custom" && (!customDateRange[0] || !customDateRange[1])
+                    ? "ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    : "ring-1 ring-transparent"
+                )}>
                   <DateRangePicker
                     value={customDateRange}
                     onChange={handleCustomDateRangeChange}
                     maxDate={dayjs().endOf("day")}
                     className={clsx(
+                      "w-full",
                       customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
                     )}
                   />
@@ -434,18 +493,22 @@ const SearchConsole = () => {
           )}
 
           {/* ── Table ────────────────────────────────────────── */}
-          <GSCAnalyticsTabs
-            items={[
-              { key: "query", label: "Queries" },
-              { key: "page", label: "Pages" },
-              { key: "country", label: "Countries" },
-            ]}
-            filteredData={filteredData}
-            searchQuery={searchQuery}
-            activeTab={activeTab}
-            handleTabChange={handleTabChange}
-            isLoading={isLoading}
-          />
+          {!isLoading && !isFetching && blogData.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <GSCAnalyticsTabs
+              items={[
+                { key: "query", label: "Queries" },
+                { key: "page", label: "Pages" },
+                { key: "country", label: "Countries" },
+              ]}
+              filteredData={filteredData}
+              searchQuery={searchQuery}
+              activeTab={activeTab}
+              handleTabChange={handleTabChange}
+              isLoading={isLoading || isFetching}
+            />
+          )}
         </div>
       ) : (
         <GSCLogin />

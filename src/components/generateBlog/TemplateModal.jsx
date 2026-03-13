@@ -5,6 +5,8 @@ import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import { TONES } from "@/data/blogData"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { Slider } from "@/components/ui/slider"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 import useAuthStore from "@store/useAuthStore"
 import { getGeneratedTitles } from "@api/blogApi"
 
@@ -25,7 +27,7 @@ const TemplateModal = ({
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
-  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
+  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
 
   useEffect(() => {
     if (isOpen) {
@@ -135,10 +137,10 @@ const TemplateModal = ({
     setIsGeneratingTitles(true)
     try {
       const result = await getGeneratedTitles({
-        keywords: formData.focusKeywords,
-        focusKeywords: formData.keywords,
+        focusKeywords: formData.focusKeywords,
+        keywords: formData.keywords,
         topic: formData.topic,
-        template: selectedTemplate,
+        template: formData.template,
         ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
       })
       setGeneratedTitles(result)
@@ -205,16 +207,13 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tone
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tone</label>
                 <select
                   value={formData.tone}
                   onChange={handleSelectChange}
                   className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] focus:outline-none`}
                   aria-label="Blog tone"
                 >
-                  <option value="">Select Tone (Optional)</option>
                   {TONES.map(t => (
                     <option key={t} value={t}>
                       {t}
@@ -264,7 +263,9 @@ const TemplateModal = ({
                   ))}
                 </div>
                 {errors.focusKeywords && formData.focusKeywords.length === 0 && (
-                  <p className="text-red-500 text-xs mt-1">Please add at least one focus keyword.</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    Please add at least one focus keyword.
+                  </p>
                 )}
               </div>
               <div>
@@ -285,7 +286,7 @@ const TemplateModal = ({
                   />
                   <button
                     onClick={() => handleAddKeyword("keywords")}
-                     className="w-full sm:w-auto px-4 py-2 bg-[#1B6FC9] text-white rounded-sm hover:bg-[#1B6FC9]/90"
+                    className="w-full sm:w-auto px-4 py-2 bg-[#1B6FC9] text-white rounded-sm hover:bg-[#1B6FC9]/90"
                     aria-label="Add keyword"
                   >
                     <Plus size={16} />
@@ -392,18 +393,16 @@ const TemplateModal = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Choose length of Blog <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="range"
-                  min="500"
-                  max="5000"
-                  value={formData.userDefinedLength ?? 1000}
-                  onChange={e => handleInputChange(e, "userDefinedLength")}
-                  placeholder="Enter desired word count..."
-                  className="range range-primary range-sm w-full"
-                  aria-label="Desired word count"
+                <Slider
+                  min={BLOG_CONFIG.LENGTH.MIN}
+                  max={BLOG_CONFIG.LENGTH.MAX}
+                  step={BLOG_CONFIG.LENGTH.STEP}
+                  value={[formData.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT]}
+                  onValueChange={(vals) => handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")}
+                  className="w-full"
                 />
                 <span className="mt-2 text-sm text-gray-600 block">
-                  {formData?.userDefinedLength ?? 1000} words
+                  {formData?.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT} words
                 </span>
               </div>
             </div>

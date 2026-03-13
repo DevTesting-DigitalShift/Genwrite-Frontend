@@ -434,7 +434,7 @@ const ImageGallery = () => {
                 />
                 {showErrors && countWords(genForm.prompt) < 10 && (
                   <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-2">
-                    <X size={14} /> Prompt must be at least 10 words.
+                    Prompt must be at least 10 words.
                   </p>
                 )}
               </div>

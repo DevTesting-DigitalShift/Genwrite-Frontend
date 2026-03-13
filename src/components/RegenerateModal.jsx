@@ -255,7 +255,6 @@ const RegenerateModal = ({
                     value={regenForm.tone}
                     onChange={e => updateRegenField("tone", e.target.value)}
                   >
-                    <option value="">Select Tone (Optional)</option>
                     {TONES.map(t => (
                       <option key={t} value={t}>
                         {t}
@@ -288,7 +287,7 @@ const RegenerateModal = ({
 
               <AiModelSelector
                 value={regenForm.aiModel}
-                onChange={(modelId) => updateRegenField("aiModel", modelId)}
+                onChange={modelId => updateRegenField("aiModel", modelId)}
                 showCostCutter={true}
                 costCutterValue={regenForm.costCutter}
                 onCostCutterChange={checked => updateRegenField("costCutter", checked)}
@@ -301,7 +300,10 @@ const RegenerateModal = ({
                   checked={regenForm.isCheckedGeneratedImages}
                   onCheckedChange={checked => {
                     updateRegenField("isCheckedGeneratedImages", checked)
-                    if (checked && (regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource)) {
+                    if (
+                      checked &&
+                      (regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource)
+                    ) {
                       updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
                     }
                   }}
@@ -470,7 +472,8 @@ const RegenerateModal = ({
                     <Switch
                       checked={regenForm.wordpressPostStatus}
                       onCheckedChange={checked => {
-                        const hasIntegrations = Object.keys(integrations?.integrations || {}).length > 0
+                        const hasIntegrations =
+                          Object.keys(integrations?.integrations || {}).length > 0
                         if (checked && !hasIntegrations) {
                           toast.error("Please connect your account in plugins.")
                           return

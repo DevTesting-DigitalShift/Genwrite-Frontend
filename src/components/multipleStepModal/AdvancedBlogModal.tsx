@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -19,6 +20,7 @@ import useAnalysisStore from "@store/useAnalysisStore"
 import { getGeneratedTitles } from "@api/blogApi"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
+import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
 import useIntegrationStore from "@store/useIntegrationStore"
 
@@ -44,7 +46,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     keywords: [] as string[],
     title: "" as string,
     tone: TONES[0] as string,
-    userDefinedLength: 1000 as number,
+    userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT as number,
     brief: "" as string,
     aiModel: AI_MODELS[0].id as string,
     isCheckedGeneratedImages: false as boolean,
@@ -370,7 +372,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     []
   )
 
-  const percentage = ((formData.userDefinedLength - 500) / (5000 - 500)) * 100
 
   const renderSteps = () => {
     switch (currentStep) {
@@ -464,7 +465,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     target: { name: "options.performKeywordResearch", value: checked },
                   })
                 }
-                size="large"
               />
             </div>
 
@@ -636,7 +636,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onCheckedChange={(checked: boolean) =>
                       handleInputChange({ target: { name: "options.exactTitle", value: checked } })
                     }
-                    size="large"
                   />
                 </div>
               </>
@@ -647,9 +646,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               {/* Tone */}
               <div className="form-control space-y-2">
                 <label className="label pb-0">
-                  <span className="label-text font-semibold text-slate-800">
-                    Tone of Voice
-                  </span>
+                  <span className="label-text font-semibold text-slate-800">Tone of Voice</span>
                 </label>
 
                 <select
@@ -661,7 +658,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     errors.tone ? "border-red-500" : ""
                   }`}
                 >
-                  <option value="">Select tone (Optional)</option>
                   {TONES.map(t => (
                     <option key={t} value={t}>
                       {t}
@@ -678,27 +674,25 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     {formData.userDefinedLength} words
                   </span>
                 </label>
-
-                <input
-                  type="range"
-                  min="500"
-                  max="5000"
-                  step="100"
-                  value={formData.userDefinedLength}
-                  onChange={e =>
-                    handleInputChange({
-                      target: { name: "userDefinedLength", value: Number(e.target.value) },
-                    })
-                  }
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
-                  }}
-                  className="custom-slider w-full h-1.5 rounded-lg appearance-none"
-                />
+                  <Slider
+                    min={BLOG_CONFIG.LENGTH.MIN}
+                    max={BLOG_CONFIG.LENGTH.MAX}
+                    step={BLOG_CONFIG.LENGTH.STEP}
+                    value={[formData.userDefinedLength]}
+                    onValueChange={(vals: number[]) =>
+                      handleInputChange({
+                        target: {
+                          name: "userDefinedLength",
+                          value: vals[0],
+                        },
+                      })
+                    }
+                    className="w-full"
+                  />
 
                 <div className="flex justify-between text-xs text-slate-400">
-                  <span>500</span>
-                  <span>5000</span>
+                  <span>{BLOG_CONFIG.LENGTH.MIN}</span>
+                  <span>{BLOG_CONFIG.LENGTH.MAX}</span>
                 </div>
               </div>
             </div>
@@ -720,7 +714,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         )
 
       case 2: {
-        const percentage = ((formData.numberOfImages || 0) / 15) * 100
         return (
           <div className="space-y-3 p-4 pt-0">
             <AiModelSelector
@@ -750,7 +743,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onCheckedChange={(checked: boolean) =>
                       handleInputChange({ target: { name: item.name, value: checked } })
                     }
-                    size="large"
                   />
                 </div>
               ))}
@@ -763,10 +755,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   value={formData.imageSource}
                   onChange={(sourceId: string) => {
                     handleInputChange({ target: { name: "imageSource", value: sourceId } })
-                    // Reset uploaded images when switching away from upload
-                    if (sourceId !== IMAGE_SOURCE.UPLOAD) {
-                      updateFormData({ blogImages: [] })
-                    }
                   }}
                   showUpload={true}
                   error={errors.imageSource}
@@ -790,20 +778,30 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         input.multiple = true
                         input.onchange = async (e: Event) => {
                           const files = Array.from((e.target as HTMLInputElement).files || [])
-                          if (formData.blogImages.length + files.length > 10) {
-                            toast.error("You can upload a maximum of 10 images.")
+                          if (formData.blogImages.length + files.length > BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT) {
+                            toast.error(`You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`)
+                            return
+                          }
+                          const oversized = files.filter(f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024)
+                          if (oversized.length > 0) {
+                            toast.error(`Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`)
                             return
                           }
                           const readers = files.map(
                             file =>
-                              new Promise<string>(resolve => {
+                              new Promise<any>(resolve => {
                                 const reader = new FileReader()
-                                reader.onload = ev => resolve(ev.target?.result as string)
+                                reader.onload = ev => resolve({
+                                  originFileObj: file,
+                                  name: file.name,
+                                  type: file.type,
+                                  src: ev.target?.result as string
+                                })
                                 reader.readAsDataURL(file)
                               })
                           )
-                          const dataUrls = await Promise.all(readers)
-                          updateFormData({ blogImages: [...formData.blogImages, ...dataUrls] })
+                          const newImages = await Promise.all(readers)
+                          updateFormData({ blogImages: [...formData.blogImages, ...newImages] })
                           updateErrors({ blogImages: "" })
                         }
                         input.click()
@@ -814,20 +812,30 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         const files = Array.from(e.dataTransfer.files).filter(f =>
                           f.type.startsWith("image/")
                         )
-                        if (formData.blogImages.length + files.length > 10) {
-                          toast.error("You can upload a maximum of 10 images.")
+                        if (formData.blogImages.length + files.length > BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT) {
+                          toast.error(`You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`)
+                          return
+                        }
+                        const oversized = files.filter(f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024)
+                        if (oversized.length > 0) {
+                          toast.error(`Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`)
                           return
                         }
                         const readers = files.map(
                           file =>
-                            new Promise<string>(resolve => {
+                            new Promise<any>(resolve => {
                               const reader = new FileReader()
-                              reader.onload = ev => resolve(ev.target?.result as string)
+                              reader.onload = ev => resolve({
+                                originFileObj: file,
+                                name: file.name,
+                                type: file.type,
+                                src: ev.target?.result as string
+                              })
                               reader.readAsDataURL(file)
                             })
                         )
-                        const dataUrls = await Promise.all(readers)
-                        updateFormData({ blogImages: [...formData.blogImages, ...dataUrls] })
+                        const newImages = await Promise.all(readers)
+                        updateFormData({ blogImages: [...formData.blogImages, ...newImages] })
                         updateErrors({ blogImages: "" })
                       }}
                     >
@@ -850,7 +858,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         <p className="text-sm font-semibold text-slate-600">
                           Click or drag images here
                         </p>
-                        <p className="text-xs text-slate-400">PNG, JPG, WEBP · max 10 images</p>
+                        <div className="text-xs text-slate-500 mt-2 space-y-1">
+                          <p>Supported: PNG, JPEG, WEBP</p>
+                          <p>Max {BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images • Max {BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB per image</p>
+                        </div>
                       </div>
                     </div>
 
@@ -861,10 +872,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     {/* Preview grid */}
                     {formData.blogImages.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {formData.blogImages.map((src, i) => (
+                        {formData.blogImages.map((img, i) => (
                           <div key={i} className="relative group aspect-square">
                             <img
-                              src={src}
+                              src={img.src || img}
                               alt={`Upload ${i + 1}`}
                               className="w-full h-full object-cover rounded-lg border border-slate-200"
                             />
@@ -887,7 +898,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     )}
 
                     <p className="text-xs text-slate-400 text-right">
-                      {formData.blogImages.length} / 10 images uploaded
+                      {formData.blogImages.length} / 15 images uploaded
                     </p>
                   </div>
                 )}
@@ -900,24 +911,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         Number of Images (0 = Decided by AI)
                       </label>
                       <div className="flex items-center gap-4 mt-2">
-                        <input
-                          type="range"
-                          name="numberOfImages"
-                          min="0"
-                          max="15"
-                          value={formData.numberOfImages || 0}
-                          onChange={e =>
+                        <Slider
+                          min={0}
+                          max={BLOG_CONFIG.IMAGES.MAX_COUNT}
+                          step={1}
+                          value={[formData.numberOfImages || 0]}
+                          onValueChange={(vals: number[]) =>
                             handleInputChange({
                               target: {
                                 name: "numberOfImages",
-                                value: e.target.value ? parseInt(e.target.value) : 0,
+                                value: vals[0],
                               },
                             })
                           }
-                          style={{
-                            background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
-                          }}
-                          className="w-full h-1.5 rounded-lg appearance-none custom-slider cursor-pointer accent-[#1B6FC9]"
+                          className="w-full"
                         />
                         <span className="text-sm font-bold text-gray-700 w-8">
                           {formData.numberOfImages || 0}
@@ -1008,7 +1015,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 brandId: formData.brandId,
                 addCTA: formData.options.addCTA,
               }}
-              size="default"
               labelClass="text-sm font-semibold"
               onChange={val => {
                 const opts = formData.options

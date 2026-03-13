@@ -11,6 +11,8 @@ import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { TONES } from "@/data/blogData"
+import { BLOG_CONFIG } from "@/data/blogConfig"
+import { Slider } from "@/components/ui/slider"
 import { Helmet } from "react-helmet"
 
 const OutlineEditor = () => {
@@ -28,7 +30,7 @@ const OutlineEditor = () => {
     tone: TONES[0],
     focusKeywords: [],
     keywords: [],
-    userDefinedLength: 1200,
+    userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT,
     focusKeywordInput: "",
     keywordInput: "",
     template: "",
@@ -138,12 +140,12 @@ const OutlineEditor = () => {
       return
     }
 
-    if (type === "focusKeywords" && formData[type].length + newItems.length > 3) {
+    if (type === "focusKeywords" && formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS) {
       setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
-    if (type === "resources" && formData[type].length + newItems.length > 4) {
+    if (type === "resources" && formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS) {
       setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
@@ -280,10 +282,10 @@ const OutlineEditor = () => {
     }
   }
 
-  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
+  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
 
-  const min = 500
-  const max = 5000
+  const min = BLOG_CONFIG.LENGTH.MIN
+  const max = BLOG_CONFIG.LENGTH.MAX
   const percent = ((formData.userDefinedLength - min) / (max - min)) * 100
 
   return (
@@ -357,16 +359,13 @@ const OutlineEditor = () => {
 
                     <div className="form-control w-full">
                       <label className="label text-sm mb-2">
-                        <span className="label-text font-bold text-slate-700">
-                          Writing Tone
-                        </span>
+                        <span className="label-text font-bold text-slate-700">Writing Tone</span>
                       </label>
                       <select
                         value={formData.tone}
                         onChange={e => handleSelectChange(e.target.value)}
                         className={`select select-bordered w-full rounded-lg focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       >
-                        <option value="">Select Tone (Optional)</option>
                         {TONES.map(t => (
                           <option key={t} value={t}>
                             {t}
@@ -455,14 +454,14 @@ const OutlineEditor = () => {
                             />
                           </span>
                         ))}
-                        {formData.keywords.length > 18 && (
+                        {formData.keywords.length > BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS && (
                           <button
                             onClick={() => setShowAllKeywords(!showAllKeywords)}
                             className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
                           >
                             {showAllKeywords
                               ? "Show Less"
-                              : `+${formData.keywords.length - 18} more`}
+                              : `+${formData.keywords.length - BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS} more`}
                           </button>
                         )}
                       </div>
@@ -496,18 +495,19 @@ const OutlineEditor = () => {
 
                       <div className="flex items-center gap-6">
                         <div className="relative flex-1">
-                          <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            step="100"
-                            value={formData.userDefinedLength}
-                            onChange={e => handleInputChange(e, "userDefinedLength")}
-                            className="custom-slider w-full"
-                            style={{
-                              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percent}%, #e5e7eb ${percent}%, #e5e7eb 100%)`,
-                            }}
-                          />
+                          <Slider
+                              min={BLOG_CONFIG.LENGTH.MIN}
+                              max={BLOG_CONFIG.LENGTH.MAX}
+                              step={BLOG_CONFIG.LENGTH.STEP}
+                              value={[formData.userDefinedLength]}
+                              onValueChange={(vals) =>
+                                handleInputChange(
+                                  { target: { value: vals[0] } },
+                                  "userDefinedLength"
+                                )
+                              }
+                              className="w-full"
+                            />
                         </div>
 
                         <div className="text-sm font-semibold text-slate-600 min-w-[90px] text-right">
@@ -567,7 +567,7 @@ const OutlineEditor = () => {
                     <div className="form-control w-full">
                       <label className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
-                          Resource Links (Max 4)
+                          Resource Links (Max {BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS})
                         </span>
                       </label>
                       <div className="relative flex gap-2">

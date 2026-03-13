@@ -11,7 +11,6 @@ interface BrandVoiceSelectorProps {
   value?: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }
   onChange?: (updated: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }) => void
   errorText?: string
-  size?: "small" | "default" | "large"
 }
 
 const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
@@ -20,7 +19,6 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
   errorText,
-  size = "default",
 }) => {
   const [state, setState] = useState(value)
   const formError = useMemo(() => errorText, [errorText])
@@ -64,7 +62,6 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             handleBrandToggle({ target: { checked } } as any)
           }}
           disabled={isLoading || !brands || brands.length === 0}
-          size={size === "small" ? "default" : "large"}
         />
       </div>
 
@@ -80,7 +77,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           </label>
 
           <div
-            className="w-full h-[200px] overflow-y-auto p-3 space-y-2 border border-gray-300 rounded-md bg-base-100"
+            className="w-full max-h-[150px] overflow-y-auto p-2 space-y-2 border border-gray-300 rounded-md bg-base-100"
             style={{ scrollbarWidth: "thin", scrollBehavior: "smooth" }}
           >
             {brands.map((brand: Brand) => (
@@ -88,27 +85,22 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
                 key={brand._id}
                 onClick={() => handleUpdate({ brandId: brand._id })}
                 className={clsx(
-                  "cursor-pointer p-3 border rounded-lg transition-all hover:shadow-sm",
+                  "cursor-pointer p-2 border rounded-lg transition-all hover:shadow-sm flex items-center gap-2",
                   state.brandId === brand._id
                     ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
                     : "border-gray-200 hover:border-blue-300"
                 )}
               >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    name="brandId"
-                    className="radio radio-primary radio-sm mt-1"
-                    checked={state.brandId === brand._id}
-                    onChange={() => handleUpdate({ brandId: brand._id })}
-                  />
-                  <div className="flex flex-col gap-0.5 overflow-hidden">
-                    <span className="font-semibold uppercase truncate text-sm">
-                      {brand.nameOfVoice}
-                    </span>
-                    <p className="text-xs text-gray-500">{brand.describeBrand}</p>
-                  </div>
-                </div>
+                <input
+                  type="radio"
+                  name="brandId"
+                  className="radio radio-primary radio-sm"
+                  checked={state.brandId === brand._id}
+                  onChange={() => handleUpdate({ brandId: brand._id })}
+                />
+                <span className="font-semibold uppercase truncate text-sm">
+                  {brand.nameOfVoice}
+                </span>
               </div>
             ))}
 
@@ -128,7 +120,6 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             id="blog-brand-add-cta"
             checked={state.addCTA}
             onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
-            size={size === "small" ? "default" : "large"}
           />
         </div>
       )}

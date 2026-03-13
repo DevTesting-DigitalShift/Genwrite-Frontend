@@ -17,6 +17,8 @@ import {
   Plus,
 } from "lucide-react"
 import { pricingConfig, computeCost } from "@/data/pricingConfig"
+import { Slider } from "@/components/ui/slider"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 
@@ -35,7 +37,7 @@ const PricingCalculator = () => {
   const navigate = useNavigate()
 
   // State management
-  const [wordCount, setWordCount] = useState(1000)
+  const [wordCount, setWordCount] = useState(BLOG_CONFIG.LENGTH.DEFAULT)
   const [selectedFeatures, setSelectedFeatures] = useState({
     brandVoice: false,
     competitorResearch: false,
@@ -168,24 +170,20 @@ const PricingCalculator = () => {
                     </motion.div>
 
                     <div className="px-4">
-                      <input
-                        type="range"
-                        min="500"
-                        max="5000"
-                        step="100"
-                        value={wordCount}
-                        onChange={e => setWordCount(parseInt(e.target.value))}
-                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-                        style={{
-                          background: `linear-gradient(to right, #4f46e5 ${((wordCount - 500) / 4500) * 100}%, #e0e7ff ${((wordCount - 500) / 4500) * 100}%)`,
-                        }}
+                      <Slider
+                        min={BLOG_CONFIG.LENGTH.MIN}
+                        max={BLOG_CONFIG.LENGTH.MAX}
+                        step={BLOG_CONFIG.LENGTH.STEP}
+                        value={[wordCount]}
+                        onValueChange={(vals) => setWordCount(vals[0])}
+                        className="w-full"
                       />
                       <div className="flex justify-between mt-4 px-2">
-                        <span className="text-xs font-black text-gray-400">500</span>
+                        <span className="text-xs font-black text-gray-400">{BLOG_CONFIG.LENGTH.MIN}</span>
                         <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">
                           {wordCount} Words
                         </span>
-                        <span className="text-xs font-black text-gray-400">5,000</span>
+                        <span className="text-xs font-black text-gray-400">{BLOG_CONFIG.LENGTH.MAX.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -300,16 +298,13 @@ const PricingCalculator = () => {
                           </span>
                         </div>
 
-                        <input
-                          type="range"
-                          min="0"
-                          max="20"
-                          value={imageCount}
-                          onChange={e => setImageCount(parseInt(e.target.value))}
-                          className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-none"
-                          style={{
-                            background: `linear-gradient(to right, #059669 ${(imageCount / 20) * 100}%, #d1fae5 ${(imageCount / 20) * 100}%)`,
-                          }}
+                        <Slider
+                          min={0}
+                          max={BLOG_CONFIG.IMAGES.MAX_COUNT}
+                          step={1}
+                          value={[imageCount]}
+                          onValueChange={(vals) => setImageCount(vals[0])}
+                          className="w-full"
                         />
                         <div className="flex justify-between mt-4 px-2">
                           {[0, 5, 10, 15, 20].map(v => (

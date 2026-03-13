@@ -1636,11 +1636,11 @@ const TextEditorSidebar = ({
           </p>
           <button
             onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive || blog?.isArchived}
+            disabled={isAnalyzingCompetitive}
             className={`
               w-full py-3 px-4 rounded-lg text-xs font-bold transition-all shadow-sm
               ${
-                isAnalyzingCompetitive || blog?.isArchived
+                isAnalyzingCompetitive
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white"
               }
@@ -1869,7 +1869,7 @@ const TextEditorSidebar = ({
               className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
               onChange={e => setIncludeImagesInExport(e.target.checked)}
-              disabled={userPlan === "free" || blog?.isArchived}
+              disabled={userPlan === "free"}
             />
           </div>
           {includeImagesInExport && userPlan !== "free" && (
@@ -1892,14 +1892,14 @@ const TextEditorSidebar = ({
             {/* Markdown */}
             <button
               onClick={handleExportMarkdown}
-              disabled={userPlan === "free" || blog?.isArchived}
+              disabled={userPlan === "free"}
               className={`
       group flex flex-col items-center justify-center gap-2
       py-4 px-3
       rounded-xl text-sm font-semibold
       border-2 transition-all duration-300
       ${
-        userPlan === "free" || blog?.isArchived
+        userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
             bg-linear-to-br from-blue-50 to-indigo-50
@@ -1914,7 +1914,7 @@ const TextEditorSidebar = ({
               <FileText
                 className={`
         w-6 h-6
-        ${userPlan !== "free" && !blog?.isArchived && "sm:group-hover:scale-110 transition-transform"}
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
       `}
               />
               <span>Markdown</span>

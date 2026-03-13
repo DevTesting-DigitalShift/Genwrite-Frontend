@@ -148,6 +148,7 @@
         params = Object.fromEntries(
           Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
         )
+        console.log("[BlogsPage] Fetching blogs with params:", params);
         const res = await getAllBlogs(params)
         return {
           data: res?.data ?? [],
@@ -174,6 +175,7 @@
           isArchived: true,
           status: blogFilters.status !== BLOG_STATUS.ALL ? blogFilters.status : undefined,
           q: blogFilters.q || undefined,
+          sort: blogFilters.sort,
           start: blogFilters.start || undefined,
           end: blogFilters.end || undefined,
           gscClicks: blogFilters.gscClicks || undefined,

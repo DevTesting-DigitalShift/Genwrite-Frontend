@@ -13,9 +13,11 @@ import clsx from "clsx"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
+import { Slider } from "@components/ui/slider"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE, TONES } from "@/data/blogData"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 
 const StepContent = ({
   currentStep,
@@ -55,8 +57,8 @@ const StepContent = ({
   }, [integrations])
 
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const MAX_BLOGS = 10
-  const MAX_IMAGES = 15
+  const MAX_BLOGS = BLOG_CONFIG.BULK.MAX_BLOGS
+  const MAX_IMAGES = BLOG_CONFIG.IMAGES.MAX_COUNT
   const isAiImagesLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
 
   // Clean up object URLs to prevent memory leaks
@@ -572,7 +574,6 @@ const StepContent = ({
                     setErrors(prev => ({ ...prev, tone: false }))
                   }}
                 >
-                  <option value="">Select Tone (Optional)</option>
                   {TONES.map(t => (
                     <option key={t} value={t}>
                       {t}
@@ -614,18 +615,18 @@ const StepContent = ({
                   Approx. Blog Length (Words)
                 </label>
                 <div className="relative">
-                  <input
-                    type="range"
-                    min="500"
-                    max="5000"
-                    value={newJob.blogs.userDefinedLength}
-                    className="range range-xs range-primary w-full"
-                    onChange={e =>
+                  <Slider
+                    min={BLOG_CONFIG.LENGTH.MIN}
+                    max={BLOG_CONFIG.LENGTH.MAX}
+                    step={BLOG_CONFIG.LENGTH.STEP}
+                    value={[newJob.blogs.userDefinedLength]}
+                    onValueChange={(vals) =>
                       setNewJob({
                         ...newJob,
-                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
+                        blogs: { ...newJob.blogs, userDefinedLength: vals[0] },
                       })
                     }
+                    className="w-full"
                   />
                   <span className="mt-2 text-sm text-gray-600 block">
                     {newJob.blogs.userDefinedLength} words
@@ -678,17 +679,15 @@ const StepContent = ({
                 Use the slider to select the number of images (0 = AI will decide)
               </p>
               <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  name="numberOfImages"
-                  min="0"
+                <Slider
+                  min={0}
                   max={MAX_IMAGES}
-                  value={newJob.blogs.numberOfImages || 0}
-                  onChange={handleInputChange}
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${percentage}%, #e5e7eb ${percentage}%)`,
-                  }}
-                  className="w-full h-1.5 rounded-lg appearance-none"
+                  step={1}
+                  value={[newJob.blogs.numberOfImages || 0]}
+                  onValueChange={(vals) =>
+                    handleInputChange({ target: { name: "numberOfImages", value: vals[0] } })
+                  }
+                  className="w-full"
                 />
                 <span className="text-sm font-bold text-gray-700 w-8">
                   {newJob.blogs.numberOfImages || 0}

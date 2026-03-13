@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
@@ -14,6 +15,7 @@ import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE, TONES } from "@/data/blogData"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 import { queryClient } from "@utils/queryClient"
 import { validateBulkBlogData } from "@/types/forms.schemas"
 import useAuthStore from "@store/useAuthStore"
@@ -47,7 +49,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     performKeywordResearch: true,
     tone: TONES[0],
     languageToWrite: "English",
-    userDefinedLength: 1000,
+    userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT,
     imageSource: IMAGE_SOURCE.STOCK,
     isCheckedBrand: false,
     useCompetitors: false,
@@ -56,7 +58,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     numberOfBlogs: 1,
     numberOfImages: 0,
     wordpressPostStatus: false,
-    postFrequency: 10 * 60,
+    postFrequency: BLOG_CONFIG.BULK.DEFAULT_FREQUENCY_SECONDS,
     aiModel: "gemini",
     includeTableOfContents: false,
     isCheckedGeneratedImages: true,
@@ -210,14 +212,14 @@ const BulkBlogModal = ({ closeFnc }) => {
           : "",
       aiModel: !formData.aiModel ? "Please select an AI model." : "",
       numberOfBlogs:
-        formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10
-          ? "Number of blogs must be between 1 and 10."
+        formData.numberOfBlogs < 1 || formData.numberOfBlogs > BLOG_CONFIG.BULK.MAX_BLOGS
+          ? `Number of blogs must be between 1 and ${BLOG_CONFIG.BULK.MAX_BLOGS}.`
           : "",
       numberOfImages:
         formData.numberOfImages === "" ||
         formData.numberOfImages < 0 ||
-        formData.numberOfImages > 20
-          ? "Number of images must be between 0 and 20."
+        formData.numberOfImages > BLOG_CONFIG.IMAGES.MAX_COUNT
+          ? `Number of images must be between 0 and ${BLOG_CONFIG.IMAGES.MAX_COUNT}.`
           : "",
       blogImages:
         formData.isCheckedGeneratedImages &&
@@ -232,11 +234,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     if (Object.values(newErrors).some(error => error)) {
       // Find the step where the first error occurs
-      const errorStep = newErrors.templates
-        ? 0
-        : newErrors.topics || newErrors.keywords
-          ? 1
-          : 2
+      const errorStep = newErrors.templates ? 0 : newErrors.topics || newErrors.keywords ? 1 : 2
       setCurrentStep(errorStep)
       return
     }
@@ -333,8 +331,8 @@ const BulkBlogModal = ({ closeFnc }) => {
         } else {
           val = parsed
           if (val < 0) val = 0
-          if (name === "numberOfBlogs" && val > 10) val = 10
-          if (name === "numberOfImages" && val > 15) val = 15
+          if (name === "numberOfBlogs" && val > BLOG_CONFIG.BULK.MAX_BLOGS) val = BLOG_CONFIG.BULK.MAX_BLOGS
+          if (name === "numberOfImages" && val > BLOG_CONFIG.IMAGES.MAX_COUNT) val = BLOG_CONFIG.IMAGES.MAX_COUNT
         }
       }
     } else {
@@ -947,7 +945,6 @@ const BulkBlogModal = ({ closeFnc }) => {
                       setErrors(prev => ({ ...prev, tone: "" }))
                     }}
                   >
-                    <option value="">Select Tone (Optional)</option>
                     {TONES.map(t => (
                       <option key={t} value={t}>
                         {t}
@@ -984,23 +981,15 @@ const BulkBlogModal = ({ closeFnc }) => {
                     Approx. Blog Length (Words)
                   </label>
                   <div className="relative">
-                    <input
-                      type="range"
-                      min="500"
-                      max="5000"
-                      value={formData.userDefinedLength}
-                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-linear-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                      style={{
-                        background: `linear-linear(to right, #1B6FC9 ${
-                          ((formData.userDefinedLength - 500) / 4500) * 100
-                        }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
-                      }}
-                      onChange={e => {
-                        setFormData(prev => ({
-                          ...prev,
-                          userDefinedLength: parseInt(e.target.value, 10),
-                        }))
-                      }}
+                    <Slider
+                      min={BLOG_CONFIG.LENGTH.MIN}
+                      max={BLOG_CONFIG.LENGTH.MAX}
+                      step={BLOG_CONFIG.LENGTH.STEP}
+                      value={[formData.userDefinedLength]}
+                      onValueChange={(vals) =>
+                        setFormData({ ...formData, userDefinedLength: vals[0] })
+                      }
+                      className="w-full"
                     />
                     <span className="mt-2 text-sm text-gray-600 block">
                       {formData.userDefinedLength} words
@@ -1091,14 +1080,15 @@ const BulkBlogModal = ({ closeFnc }) => {
                       Enter the number of images (0 = AI will decide)
                     </p>
                     <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        name="numberOfImages"
-                        min="0"
-                        max="15"
-                        value={formData.numberOfImages || 0}
-                        onChange={handleInputChange}
-                        className="w-48 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1B6FC9] hover:accent-[#1B6FC9]/80 transition-all"
+                      <Slider
+                        min={0}
+                        max={BLOG_CONFIG.IMAGES.MAX_COUNT}
+                        step={1}
+                        value={[formData.numberOfImages || 0]}
+                        onValueChange={(vals) =>
+                          setFormData({ ...formData, numberOfImages: vals[0] })
+                        }
+                        className="w-full"
                       />
                       <span className="text-sm font-bold text-gray-700 w-8">
                         {formData.numberOfImages || 0}
