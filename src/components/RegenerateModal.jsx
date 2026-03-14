@@ -300,11 +300,14 @@ const RegenerateModal = ({
                   checked={regenForm.isCheckedGeneratedImages}
                   onCheckedChange={checked => {
                     updateRegenField("isCheckedGeneratedImages", checked)
-                    if (
-                      checked &&
-                      (regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource)
-                    ) {
-                      updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
+                    if (checked) {
+                      const newSource =
+                        regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource
+                          ? IMAGE_SOURCE.STOCK
+                          : regenForm.imageSource
+                      updateRegenField("imageSource", newSource)
+                    } else {
+                      updateRegenField("imageSource", IMAGE_SOURCE.NONE)
                     }
                   }}
                   size="large"
@@ -317,28 +320,9 @@ const RegenerateModal = ({
                     value={regenForm.imageSource || IMAGE_SOURCE.STOCK}
                     onChange={newSource => updateRegenField("imageSource", newSource)}
                     showNone={false}
+                    numberOfImages={regenForm.numberOfImages}
+                    onNumberChange={val => updateRegenField("numberOfImages", val)}
                   />
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Number of Images (0 = Decided by AI)
-                      </label>
-                      <span className="text-xs font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-full">
-                        {regenForm.numberOfImages ?? 0}
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={regenForm.numberOfImages ?? 0}
-                      onChange={e =>
-                        updateRegenField("numberOfImages", parseInt(e.target.value) || 0)
-                      }
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    />
-                  </div>
                 </div>
               )}
             </div>

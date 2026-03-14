@@ -11,9 +11,11 @@ import {
   Shield,
 } from "lucide-react"
 import { toast } from "sonner"
+import { Helmet } from "react-helmet"
 
 import useToolsStore from "@store/useToolsStore"
 import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
+import ConnectedTools from "@components/ConnectedTools"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
@@ -139,6 +141,9 @@ const YouTubeSummarization = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 via-red-50/20 to-purple-50/30">
+      <Helmet>
+        <title>YouTube Summarization - GenWrite</title>
+      </Helmet>
       <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -292,6 +297,15 @@ const YouTubeSummarization = () => {
                     {inputUrl}
                   </p>
                 </div>
+              </div>
+
+              {/* Connected Tools Suggestion */}
+              <div className="p-6 pt-0">
+                <ConnectedTools
+                  currentToolId="youtube"
+                  title="Explore More AI Tools!"
+                  suggestions={["chatpdf", "keyword", "metadata"]}
+                />
               </div>
             </div>
           </div>

@@ -18,6 +18,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       numberOfBlogs: 1,
       topics: [],
       keywords: [],
+      references: [],
       templates: [],
       tone: TONES[0],
       userDefinedLength: 1000,

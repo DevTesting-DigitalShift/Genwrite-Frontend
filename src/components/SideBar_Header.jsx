@@ -247,14 +247,15 @@ const SideBar_Header = () => {
           <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full h-14 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
+              className="w-full h-14 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group relative overflow-hidden"
             >
+              <div className="shimmer-effect absolute inset-0 pointer-events-none z-0" />
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
-                <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+                <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
               ) : (
-                <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300 relative z-10" />
               )}
-              <span className="capitalize">{user?.subscription?.plan} Plan</span>
+              <span className="capitalize relative z-10">{user?.subscription?.plan} Plan</span>
             </button>
           </div>
         )}

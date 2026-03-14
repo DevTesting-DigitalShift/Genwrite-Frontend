@@ -37,7 +37,7 @@ const PromptContent = () => {
 
   // Validation functions
   const isPromptValid = prompt.trim().length >= 10
-  const isContentValid = content.trim().split(/\s+/).length >= 300
+  const isContentValid = wordCount >= 100 && wordCount <= 1000
   const canGenerate = isPromptValid && isContentValid && !isGenerating
 
   const handleGenerateContent = useCallback(async () => {
@@ -47,7 +47,11 @@ const PromptContent = () => {
     }
 
     if (!isContentValid) {
-      toast.error("Content must be at least 300 words long.")
+      if (wordCount < 100) {
+        toast.error("Content must be at least 100 words long.")
+      } else if (wordCount > 1000) {
+        toast.error("Content must not exceed 1000 words.")
+      }
       return
     }
 
@@ -213,14 +217,14 @@ const PromptContent = () => {
                 </svg>
                 <h2 className="text-xl font-semibold text-gray-900">Content</h2>
               </div>
-              <span className={`text-sm ${wordCount >= 300 ? "text-green-600" : "text-red-500"}`}>
-                {wordCount}/300 words minimum
+              <span className={`text-sm ${wordCount >= 100 && wordCount <= 1000 ? "text-green-600" : "text-red-500"}`}>
+                {wordCount}/100 words minimum (Max 1000)
               </span>
             </div>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
-              placeholder="Enter your content here (minimum 300 words)..."
+              placeholder="Enter your content here (100-1000 words)..."
               rows={12}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
                 content.trim() && !isContentValid ? "border-red-300" : "border-gray-300"

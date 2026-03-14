@@ -28,6 +28,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     performKeywordResearch: false,
     addImages: false,
     imageSource: IMAGE_SOURCE.NONE,
+    numberOfImages: 0,
     template: null,
     templateIds: [],
     keywords: [],
@@ -43,7 +44,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
 
-  const [formData, setFormData] = useState(initialFormData)
+  const [formData, setFormData] = useState({
+    ...initialFormData,
+    embedYouTubeVideos: type === "yt" ? true : initialFormData.embedYouTubeVideos,
+  })
   const [errors, setErrors] = useState(initialErrors)
 
   const { user } = useAuthStore()
@@ -66,7 +70,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       aiModel: "gemini",
       includeImages: formData.addImages,
       imageSource: formData.imageSource,
-      numberOfImages: 0,
+      numberOfImages: formData.numberOfImages,
     })
 
     if (formData.costCutter) {
@@ -436,7 +440,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </label>
                 <Switch
                   checked={formData.exactTitle}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, exactTitle: checked }))}
+                  onCheckedChange={checked =>
+                    setFormData(prev => ({ ...prev, exactTitle: checked }))
+                  }
                   size="large"
                 />
               </div>
@@ -577,19 +583,33 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               )}
 
               {/* Add Images & Source Selection */}
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-semibold text-gray-700">Add Images</label>
                 <Switch
                   checked={formData.addImages}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, addImages: checked }))}
+                  onCheckedChange={checked => {
+                    setFormData(prev => ({
+                      ...prev,
+                      addImages: checked,
+                      imageSource: checked
+                        ? prev.imageSource === "none" || !prev.imageSource
+                          ? "stock"
+                          : prev.imageSource
+                        : "none",
+                    }))
+                    setErrors(prev => ({ ...prev, imageSource: "" }))
+                  }}
                   size="large"
                 />
               </div>
               {formData.addImages && (
-                <div className="pt-2">
+                <div className="mb-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                   <ImageSourceSelector
                     value={formData.imageSource}
-                    onChange={(sourceId) => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    numberOfImages={formData.numberOfImages}
+                    onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
+                    showUpload={false}
                   />
                 </div>
               )}
@@ -601,22 +621,28 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </label>
                 <Switch
                   checked={formData.easyToUnderstand}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, easyToUnderstand: checked }))}
+                  onCheckedChange={checked =>
+                    setFormData(prev => ({ ...prev, easyToUnderstand: checked }))
+                  }
                   size="large"
                 />
               </div>
 
               {/* Embed YouTube Videos Toggle */}
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Embed YouTube Videos
-                </label>
-                <Switch
-                  checked={formData.embedYouTubeVideos}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))}
-                  size="large"
-                />
-              </div>
+              {type !== "yt" && (
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Embed YouTube Videos
+                  </label>
+                  <Switch
+                    checked={formData.embedYouTubeVideos}
+                    onCheckedChange={checked =>
+                      setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))
+                    }
+                    size="large"
+                  />
+                </div>
+              )}
 
               {/* Reference Links Section */}
               <div>
@@ -679,7 +705,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   </div>
                   <Switch
                     checked={formData.costCutter}
-                    onCheckedChange={checked => setFormData(prev => ({ ...prev, costCutter: checked }))}
+                    onCheckedChange={checked =>
+                      setFormData(prev => ({ ...prev, costCutter: checked }))
+                    }
                     className="data-[state=checked]:bg-green-500"
                     size="large"
                   />
@@ -716,9 +744,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <span className="text-blue-900/70 font-semibold">Images</span>
                     <span className="font-semibold text-blue-900">
                       {formData.addImages
-                        ? formData.imageSource.includes("ai")
-                          ? "AI Generated"
-                          : "Stock Images"
+                        ? `${formData.imageSource.includes("ai") ? "AI Generated" : "Stock Images"} (${formData.numberOfImages || "AI Decides"})`
                         : "None"}
                     </span>
                   </div>

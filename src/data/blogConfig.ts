@@ -23,7 +23,7 @@ export const BLOG_CONFIG = {
 
   // Bulk generation settings
   BULK: {
-    MAX_BLOGS: 10,
+    MAX_BLOGS: 5,
     DEFAULT_FREQUENCY_SECONDS: 600, // 10 minutes
   },
 

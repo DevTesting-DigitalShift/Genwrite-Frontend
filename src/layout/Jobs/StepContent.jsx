@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query"
 import { fetchIntegrations } from "@api/otherApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
+import { brandsQuery } from "@api/Brand/Brand.query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
@@ -47,6 +48,8 @@ const StepContent = ({
     queryFn: fetchIntegrations,
     staleTime: 5 * 60 * 1000,
   })
+
+  const { data: brands = [] } = brandsQuery.useList()
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -333,10 +336,10 @@ const StepContent = ({
           >
             {errors?.templates
               ? errors.templates
-              : "Select up to 3 templates for the types of blogs you want to generate."}
+              : `Select up to 7 templates for the types of blogs you want to generate. (${newJob.blogs.templates.length}/7 selected)`}
           </p>
           <TemplateSelection
-            numberOfSelection={3}
+            numberOfSelection={7}
             userSubscriptionPlan={userPlan ?? "free"}
             preSelectedIds={newJob?.blogs?.templates ?? []}
             onClick={handleTemplateSelection}
@@ -561,6 +564,92 @@ const StepContent = ({
                 </div>
               </div>
             )}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
+                References (URLs, max 3)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={formData.referenceInput || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, referenceInput: e.target.value }))}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      const val = formData.referenceInput?.trim()
+                      if (!val) return
+                      if (newJob.blogs.references.length >= 3) {
+                        toast.error("Maximum 3 references allowed.")
+                        return
+                      }
+                      if (!val.startsWith("http")) {
+                        toast.error("Please enter a valid URL.")
+                        return
+                      }
+                      setNewJob(prev => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          references: [...prev.blogs.references, val],
+                        },
+                      }))
+                      setFormData(prev => ({ ...prev, referenceInput: "" }))
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border rounded-md text-sm border-gray-300 focus:outline-none focus:ring-blue-500"
+                  placeholder="https://example.com/blog-post"
+                />
+                <button
+                  onClick={() => {
+                    const val = formData.referenceInput?.trim()
+                    if (!val) return
+                    if (newJob.blogs.references.length >= 3) {
+                      toast.error("Maximum 3 references allowed.")
+                      return
+                    }
+                    if (!val.startsWith("http")) {
+                      toast.error("Please enter a valid URL.")
+                      return
+                    }
+                    setNewJob(prev => ({
+                      ...prev,
+                      blogs: {
+                        ...prev.blogs,
+                        references: [...prev.blogs.references, val],
+                      },
+                    }))
+                    setFormData(prev => ({ ...prev, referenceInput: "" }))
+                  }}
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 btn border-none min-h-auto h-auto"
+                >
+                  <Plus />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2 mt-2">
+                {newJob.blogs.references.map((ref, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded text-xs text-blue-600 truncate"
+                  >
+                    <span className="truncate flex-1">{ref}</span>
+                    <button
+                      onClick={() =>
+                        setNewJob(prev => ({
+                          ...prev,
+                          blogs: {
+                            ...prev.blogs,
+                            references: prev.blogs.references.filter((_, i) => i !== idx),
+                          },
+                        }))
+                      }
+                      className="ml-2 text-red-400 hover:text-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -652,7 +741,11 @@ const StepContent = ({
                     blogs: {
                       ...prev.blogs,
                       isCheckedGeneratedImages: checked,
-                      imageSource: checked ? prev.blogs.imageSource : "stock",
+                      imageSource: checked
+                        ? prev.blogs.imageSource === "none"
+                          ? "stock"
+                          : prev.blogs.imageSource
+                        : "none",
                     },
                   }))
                 }}
@@ -666,33 +759,11 @@ const StepContent = ({
                 onChange={handleImageSourceChange}
                 error={errors.imageSource}
                 showUpload={false}
+                numberOfImages={newJob.blogs.numberOfImages}
+                onNumberChange={val =>
+                  setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, numberOfImages: val } }))
+                }
               />
-            </div>
-          )}
-
-          {newJob.blogs.isCheckedGeneratedImages && (
-            <div className="w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Images
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Use the slider to select the number of images (0 = AI will decide)
-              </p>
-              <div className="flex items-center gap-4">
-                <Slider
-                  min={0}
-                  max={MAX_IMAGES}
-                  step={1}
-                  value={[newJob.blogs.numberOfImages || 0]}
-                  onValueChange={(vals) =>
-                    handleInputChange({ target: { name: "numberOfImages", value: vals[0] } })
-                  }
-                  className="w-full"
-                />
-                <span className="text-sm font-bold text-gray-700 w-8">
-                  {newJob.blogs.numberOfImages || 0}
-                </span>
-              </div>
               {errors.numberOfImages && (
                 <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
               )}
@@ -880,7 +951,7 @@ const StepContent = ({
       return (
         <div>
           <div className="mt-0 space-y-4">
-            {/* Group 1: Standard Options */}
+            {/* Group 1: Essential Advanced Options */}
             <div className="space-y-1">
               {[
                 {
@@ -893,15 +964,11 @@ const StepContent = ({
                   name: "includeCompetitorResearch",
                   desc: "Analyze competitors to improve blog quality.",
                 },
-                ...(newJob.options.includeCompetitorResearch
-                  ? [
-                      {
-                        label: "Show Outbound Links",
-                        name: "addOutBoundLinks",
-                        desc: "Add outbound links, references of other websites",
-                      },
-                    ]
-                  : []),
+                {
+                  label: "Show Outbound Links",
+                  name: "addOutBoundLinks",
+                  desc: "Add outbound links, references of other websites",
+                },
                 {
                   label: "Add InterLinks",
                   name: "includeInterlinks",
@@ -921,63 +988,7 @@ const StepContent = ({
               ))}
             </div>
 
-            {/* Group 2: Automatic Posting & Integration grouping */}
-            <div className="flex flex-col gap-4 mt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-semibold text-gray-700">
-                    Enable Automatic Posting
-                  </span>
-                  <p className="text-xs text-gray-500">
-                    Automatically post the blog to your connected plugins.
-                  </p>
-                </div>
-                <Switch
-                  checked={newJob.options.wordpressPosting}
-                  onCheckedChange={checked =>
-                    handleCheckboxChange({ target: { name: "wordpressPosting", checked } })
-                  }
-                />
-              </div>
-
-              {newJob.options.wordpressPosting &&
-                Object.keys(integrations?.integrations || {}).length > 0 && (
-                  <div
-                    className={`pt-2 ${
-                      errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
-                    }`}
-                  >
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Select Your Publishing Platform
-                    </label>
-                    <p className="text-xs text-gray-500 font-normal mt-1">
-                      Post your blog automatically to connected platforms only.
-                    </p>
-
-                    <select
-                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
-                        errors.postingType ? "select-error" : ""
-                      }`}
-                      value={formData.postingType || ""}
-                      onChange={e => handleIntegrationChange(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Select platform
-                      </option>
-                      {Object.keys(integrations.integrations || {}).map(platform => (
-                        <option key={platform} value={platform}>
-                          {platform}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.postingType && (
-                      <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
-                    )}
-                  </div>
-                )}
-            </div>
-
-            {/* Group 3: Post-Posting / Layout Options */}
+            {/* Group 2: Layout & Readability Options */}
             <div className="space-y-1">
               {[
                 ...(newJob.options.wordpressPosting
@@ -1012,32 +1023,139 @@ const StepContent = ({
                 </div>
               ))}
             </div>
-          </div>
 
-          <div className="my-5">
-            <BrandVoiceSelector
-              label="Write with Brand Voice"
-              labelClass="text-sm font-semibold text-gray-700"
-              errorText={errors.brandId}
-              size="large"
-              value={{
-                isCheckedBrand: newJob.blogs.useBrandVoice,
-                brandId: newJob.blogs.brandId,
-                addCTA: newJob.blogs.addCTA,
-              }}
-              onChange={val => {
-                setNewJob(prev => ({
-                  ...prev,
-                  blogs: {
-                    ...prev.blogs,
-                    useBrandVoice: val.isCheckedBrand,
-                    brandId: val.brandId,
-                    addCTA: val.addCTA,
-                  },
-                }))
-                val.brandId && setErrors(prev => ({ ...prev, brandId: false }))
-              }}
-            />
+            {/* Group 3: Brand Voice Selector (Select Input Mode) */}
+            <div className="pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">Write with Brand Voice</span>
+                  <p className="text-xs text-gray-500 font-normal">
+                    Apply your brand's unique tone and style.
+                  </p>
+                </div>
+                <Switch
+                  checked={newJob.blogs.useBrandVoice}
+                  onCheckedChange={checked => {
+                    if (checked && brands.length === 0) {
+                      toast.error("No brand voices available. Create one to enable this option.")
+                      return
+                    }
+                    setNewJob(prev => ({
+                      ...prev,
+                      blogs: {
+                        ...prev.blogs,
+                        useBrandVoice: checked,
+                        brandId: checked ? prev.blogs.brandId : null,
+                      },
+                    }))
+                  }}
+                />
+              </div>
+
+              {newJob.blogs.useBrandVoice && brands.length > 0 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Select Brand Voice
+                    </label>
+                    <select
+                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
+                        errors.brandId ? "select-error" : ""
+                      }`}
+                      value={newJob.blogs.brandId || ""}
+                      onChange={e => {
+                        setNewJob(prev => ({
+                          ...prev,
+                          blogs: { ...prev.blogs, brandId: e.target.value },
+                        }))
+                        setErrors(prev => ({ ...prev, brandId: false }))
+                      }}
+                    >
+                      <option value="" disabled>
+                        Select a brand voice
+                      </option>
+                      {brands.map(brand => (
+                        <option key={brand._id} value={brand._id}>
+                          {brand.nameOfVoice}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700">Add CTA at the End</span>
+                    </div>
+                    <Switch
+                      checked={newJob.blogs.addCTA}
+                      onCheckedChange={checked =>
+                        setNewJob(prev => ({
+                          ...prev,
+                          blogs: { ...prev.blogs, addCTA: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Group 4: Automatic Posting & Integration grouping (MUST BE LAST) */}
+            <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">
+                    Enable Automatic Posting
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    Automatically post the blog to your connected platforms.
+                  </p>
+                </div>
+                <Switch
+                  checked={newJob.options.wordpressPosting}
+                  onCheckedChange={checked =>
+                    handleCheckboxChange({ target: { name: "wordpressPosting", checked } })
+                  }
+                />
+              </div>
+
+              {newJob.options.wordpressPosting && (
+                <div
+                  className={`pt-2 ${
+                    errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
+                  }`}
+                >
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Select Your Publishing Platform
+                  </label>
+                  <p className="text-xs text-gray-500 font-normal mt-1">
+                    Post your blog automatically to connected platforms.
+                  </p>
+
+                  <select
+                    className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
+                      errors.postingType ? "select-error" : ""
+                    }`}
+                    value={formData.postingType || ""}
+                    onChange={e => handleIntegrationChange(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select platform
+                    </option>
+                    {integrations?.integrations &&
+                      Object.keys(integrations.integrations).map(platform => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                  </select>
+                  {errors.postingType && (
+                    <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import ConnectedTools from "@components/ConnectedTools"
 
 // Helper to detect if input is URL
 const isUrl = text => text.trim().startsWith("http")
@@ -20,7 +21,7 @@ const GenerateMetaData = () => {
 
   // Calculate word count
   const wordCount = useCallback(() => {
-    if (isUrl(content)) return 300 // Sufficient for URL to pass backend validation
+    if (isUrl(content)) return 100 // Sufficient for URL to pass backend validation
     const text = content.trim()
     if (!text) return 0
     return text.split(/\s+/).filter(word => word.length > 0).length
@@ -32,8 +33,13 @@ const GenerateMetaData = () => {
       return
     }
 
-    if (!isUrl(content) && wordCount() < 300) {
-      toast.error("Content must be at least 300 words long.")
+    if (!isUrl(content) && wordCount() < 100) {
+      toast.error("Content must be at least 100 words long.")
+      return
+    }
+
+    if (!isUrl(content) && wordCount() > 1000) {
+      toast.error("Content must not exceed 1000 words.")
       return
     }
 
@@ -127,24 +133,24 @@ const GenerateMetaData = () => {
 
               <div className="mt-4 flex justify-end">
                 <span
-                  className={`text-[11px] font-semibold tracking-tight ${wordCount() < 300 && content.length > 0 ? "text-amber-500" : "text-gray-300"}`}
+                  className={`text-[11px] font-semibold tracking-tight ${(wordCount() < 100 || wordCount() > 1000) && content.length > 0 && !isUrl(content) ? "text-amber-500" : "text-gray-300"}`}
                 >
-                  Word count: {wordCount()} (Minimum 300 words required)
+                  Word count: {wordCount()} (Min 100, Max 1000 words required)
                 </span>
               </div>
             </div>
 
-            <button
-              onClick={handleGenerateMetadata}
-              disabled={isGenerating || !content.trim() || (!isUrl(content) && wordCount() < 300)}
-              className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
+              <button
+                onClick={handleGenerateMetadata}
+                disabled={isGenerating || !content.trim() || (!isUrl(content) && (wordCount() < 100 || wordCount() > 1000))}
+                className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
                 disabled:bg-[#f8fafc] disabled:text-gray-300 disabled:cursor-not-allowed
                 ${
-                  wordCount() >= 300 || isUrl(content)
+                  (wordCount() >= 100 && wordCount() <= 1000) || isUrl(content)
                     ? "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-indigo-200"
                     : "bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9]"
                 }`}
-            >
+              >
               Generate Metadata
             </button>
           </div>
@@ -221,6 +227,14 @@ const GenerateMetaData = () => {
                 <span className="text-sm font-bold text-gray-400 uppercase">
                   Metadata successfully optimized
                 </span>
+              </div>
+
+              {/* Connected Tools Suggestion */}
+              <div className="md:col-span-2 mt-8 pt-8 border-t border-gray-100">
+                <ConnectedTools
+                  currentToolId="metadata"
+                  suggestions={["keyword", "detection", "youtube"]}
+                />
               </div>
             </motion.div>
           )}

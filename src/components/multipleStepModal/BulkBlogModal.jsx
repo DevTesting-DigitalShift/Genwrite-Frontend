@@ -57,14 +57,10 @@ const BulkBlogModal = ({ closeFnc }) => {
     includeFaqs: true,
     numberOfBlogs: 1,
     numberOfImages: 0,
-    wordpressPostStatus: false,
-    postFrequency: BLOG_CONFIG.BULK.DEFAULT_FREQUENCY_SECONDS,
     aiModel: "gemini",
-    includeTableOfContents: false,
     isCheckedGeneratedImages: true,
     addOutBoundLinks: false,
     blogImages: [],
-    postingType: null,
     brandId: null,
     addCTA: false,
     isDragging: false,
@@ -80,7 +76,6 @@ const BulkBlogModal = ({ closeFnc }) => {
     keywords: "",
     keywordsCSV: "",
     tone: "",
-    integration: "",
     aiModel: "",
     numberOfBlogs: "",
     numberOfImages: "",
@@ -112,7 +107,6 @@ const BulkBlogModal = ({ closeFnc }) => {
     if (formData.performKeywordResearch) features.push("keywordResearch")
     if (formData.includeInterlinks) features.push("internalLinking")
     if (formData.includeFaqs) features.push("faqGeneration")
-    if (formData.wordpressPostStatus) features.push("automaticPosting")
     if (formData.addOutBoundLinks) features.push("outboundLinks")
 
     const blogCost = computeCost({
@@ -139,7 +133,6 @@ const BulkBlogModal = ({ closeFnc }) => {
     formData.performKeywordResearch,
     formData.includeInterlinks,
     formData.includeFaqs,
-    formData.wordpressPostStatus,
     formData.addOutBoundLinks,
     formData.userDefinedLength,
     formData.aiModel,
@@ -177,6 +170,16 @@ const BulkBlogModal = ({ closeFnc }) => {
         return
       }
     }
+    if (currentStep === 2) {
+      const newErrors = {
+        aiModel: !formData.aiModel ? "Please select an AI model." : "",
+        brandId: formData.isCheckedBrand && !formData.brandId ? "Please select a brand voice." : "",
+      }
+      setErrors(prev => ({ ...prev, ...newErrors }))
+      if (Object.values(newErrors).some(error => error)) {
+        return
+      }
+    }
     setCurrentStep(prev => prev + 1)
   }
 
@@ -204,12 +207,6 @@ const BulkBlogModal = ({ closeFnc }) => {
         formData.keywordInput.trim() === ""
           ? "Please add at least one keyword."
           : "",
-      integration:
-        formData.wordpressPostStatus &&
-        Object.keys(integrations?.integrations || {}).length > 0 &&
-        !formData.postingType
-          ? "Please select a publishing platform."
-          : "",
       aiModel: !formData.aiModel ? "Please select an AI model." : "",
       numberOfBlogs:
         formData.numberOfBlogs < 1 || formData.numberOfBlogs > BLOG_CONFIG.BULK.MAX_BLOGS
@@ -234,7 +231,13 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     if (Object.values(newErrors).some(error => error)) {
       // Find the step where the first error occurs
-      const errorStep = newErrors.templates ? 0 : newErrors.topics || newErrors.keywords ? 1 : 2
+      const errorStep = newErrors.templates
+        ? 0
+        : newErrors.topics || newErrors.keywords
+          ? 1
+          : newErrors.aiModel || newErrors.brandId
+            ? 2
+            : 3
       setCurrentStep(errorStep)
       return
     }
@@ -331,8 +334,10 @@ const BulkBlogModal = ({ closeFnc }) => {
         } else {
           val = parsed
           if (val < 0) val = 0
-          if (name === "numberOfBlogs" && val > BLOG_CONFIG.BULK.MAX_BLOGS) val = BLOG_CONFIG.BULK.MAX_BLOGS
-          if (name === "numberOfImages" && val > BLOG_CONFIG.IMAGES.MAX_COUNT) val = BLOG_CONFIG.IMAGES.MAX_COUNT
+          if (name === "numberOfBlogs" && val > BLOG_CONFIG.BULK.MAX_BLOGS)
+            val = BLOG_CONFIG.BULK.MAX_BLOGS
+          if (name === "numberOfImages" && val > BLOG_CONFIG.IMAGES.MAX_COUNT)
+            val = BLOG_CONFIG.IMAGES.MAX_COUNT
         }
       }
     } else {
@@ -345,28 +350,9 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const handleCheckboxChange = e => {
     const { name, checked } = e.target
-    if (name === "wordpressPostStatus" && checked) {
-      const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
-      if (!hasAnyIntegration) {
-        setErrors(prev => ({ ...prev, integration: "Please connect your account in plugins." }))
-        return
-      }
-    }
-    setFormData(prev => ({
-      ...prev,
-      [name]: checked,
-      postingType:
-        name === "wordpressPostStatus"
-          ? checked
-            ? prev.postingType || Object.keys(integrations?.integrations || {})[0]
-            : null
-          : prev.postingType,
-    }))
+    setFormData(prev => ({ ...prev, [name]: checked }))
     if (name === "performKeywordResearch") {
       setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
-    }
-    if (name === "wordpressPostStatus") {
-      setErrors(prev => ({ ...prev, integration: "" }))
     }
   }
 
@@ -712,7 +698,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const steps = ["Select Templates", "Add Details", "Blog Options"]
+  const steps = ["Templates", "Basic Info", "Settings", "Bulk Options"]
 
   return (
     <dialog className="modal modal-open">
@@ -986,7 +972,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       max={BLOG_CONFIG.LENGTH.MAX}
                       step={BLOG_CONFIG.LENGTH.STEP}
                       value={[formData.userDefinedLength]}
-                      onValueChange={(vals) =>
+                      onValueChange={vals =>
                         setFormData({ ...formData, userDefinedLength: vals[0] })
                       }
                       className="w-full"
@@ -1015,7 +1001,27 @@ const BulkBlogModal = ({ closeFnc }) => {
                 error={errors.aiModel}
               />
 
-              {/* Easy to Understand Toggle */}
+              <BrandVoiceSelector
+                label="Write with Brand Voice"
+                size="large"
+                labelClass="text-sm font-semibold text-gray-700"
+                value={{
+                  isCheckedBrand: formData.isCheckedBrand,
+                  brandId: formData.brandId,
+                  addCTA: formData.addCTA,
+                }}
+                onChange={val => {
+                  setFormData(prev => ({
+                    ...prev,
+                    isCheckedBrand: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    addCTA: val.addCTA,
+                  }))
+                  setErrors(prev => ({ ...prev, brandId: "" }))
+                }}
+                errorText={errors.brandId}
+              />
+
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-semibold text-gray-700">
                   Easy to Understand
@@ -1030,7 +1036,6 @@ const BulkBlogModal = ({ closeFnc }) => {
                 />
               </div>
 
-              {/* Embed YouTube Videos Toggle */}
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-semibold text-gray-700">
                   Embed YouTube Videos
@@ -1045,180 +1050,6 @@ const BulkBlogModal = ({ closeFnc }) => {
                 />
               </div>
 
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-semibold text-gray-700">Add Image</label>
-                <div className="flex items-center">
-                  <Switch
-                    id="add-image-toggle"
-                    checked={formData.isCheckedGeneratedImages}
-                    onCheckedChange={checked => {
-                      setFormData(prev => ({
-                        ...prev,
-                        isCheckedGeneratedImages: checked,
-                        imageSource: checked ? prev.imageSource : "stock",
-                      }))
-                      setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
-                    }}
-                    size="large"
-                  />
-                </div>
-              </div>
-              {formData.isCheckedGeneratedImages && (
-                <>
-                  <ImageSourceSelector
-                    value={formData.imageSource}
-                    onChange={handleImageSourceChange}
-                    error={errors.blogImages}
-                    showUpload={false}
-                  />
-
-                  <div className="pt-4 w-full">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Number of Images
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Enter the number of images (0 = AI will decide)
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        min={0}
-                        max={BLOG_CONFIG.IMAGES.MAX_COUNT}
-                        step={1}
-                        value={[formData.numberOfImages || 0]}
-                        onValueChange={(vals) =>
-                          setFormData({ ...formData, numberOfImages: vals[0] })
-                        }
-                        className="w-full"
-                      />
-                      <span className="text-sm font-bold text-gray-700 w-8">
-                        {formData.numberOfImages || 0}
-                      </span>
-                    </div>
-                    {errors.numberOfImages && (
-                      <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
-                    )}
-                  </div>
-                </>
-              )}
-              <div className="space-y-4 pt-4 border-t border-gray-300">
-                <BrandVoiceSelector
-                  label="Write with Brand Voice"
-                  size="large"
-                  labelClass="text-sm font-semibold text-gray-700"
-                  value={{
-                    isCheckedBrand: formData.isCheckedBrand,
-                    brandId: formData.brandId,
-                    addCTA: formData.addCTA,
-                  }}
-                  onChange={val => {
-                    setFormData(prev => ({
-                      ...prev,
-                      isCheckedBrand: val.isCheckedBrand,
-                      brandId: val.brandId,
-                      addCTA: val.addCTA,
-                    }))
-                    setErrors(prev => ({ ...prev, brandId: "" }))
-                  }}
-                  errorText={errors.brandId}
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Include Interlinks
-                    <p className="text-xs text-gray-500">
-                      Attempt to link between generated blogs if relevant.
-                    </p>
-                  </span>
-                  <Switch
-                    checked={formData.includeInterlinks}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "includeInterlinks", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Include FAQ Section
-                    <p className="text-xs text-gray-500">
-                      Generate relevant FAQ questions and answers for the blog.
-                    </p>
-                  </span>
-                  <Switch
-                    checked={formData.includeFaqs}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "includeFaqs", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm font-semibold text-gray-700">
-                  Enable Automatic Posting
-                  <p className="text-xs text-gray-500">
-                    Automatically post blogs on the selected dates.
-                  </p>
-                </span>
-                <Switch
-                  checked={formData.wordpressPostStatus}
-                  onCheckedChange={checked =>
-                    handleCheckboxChange({ target: { name: "wordpressPostStatus", checked } })
-                  }
-                  size="large"
-                />
-              </div>
-              {formData.wordpressPostStatus &&
-                integrations?.integrations &&
-                Object.keys(integrations.integrations).length > 0 && (
-                  <div
-                    className={`${
-                      errors.integration ? "border-2 border-red-500 rounded-lg p-2" : ""
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-gray-700">
-                      Select Your Publishing Platform <span className="text-red-500">*</span>
-                      <p className="text-xs text-gray-500">
-                        Post your blog automatically to connected platforms only.
-                      </p>
-                    </span>
-                    <select
-                      className={`select select-bordered w-full mt-2 h-10 min-h-0 text-sm ${
-                        errors.integration ? "select-error" : ""
-                      }`}
-                      value={formData.postingType || ""}
-                      onChange={e => handleIntegrationChange(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Select Platform
-                      </option>
-                      {Object.entries(integrations.integrations).map(([platform]) => (
-                        <option key={platform} value={platform}>
-                          {platform}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.integration && (
-                      <p className="text-red-500 text-xs mt-1">{errors.integration}</p>
-                    )}
-                  </div>
-                )}
-              {formData.wordpressPostStatus && (
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Include Table of Contents
-                    <p className="text-xs text-gray-500">
-                      Generate a table of contents for each blog.
-                    </p>
-                  </span>
-                  <Switch
-                    checked={formData.includeTableOfContents}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "includeTableOfContents", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
-              )}
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm font-semibold text-gray-700">
                   Enable Competitive Research
@@ -1252,7 +1083,86 @@ const BulkBlogModal = ({ closeFnc }) => {
                   />
                 </div>
               )}
-              <div className="pt-4 border-t border-gray-300">
+            </div>
+          )}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    Include Interlinks
+                    <p className="text-xs text-gray-500">
+                      Attempt to link between generated blogs if relevant.
+                    </p>
+                  </span>
+                  <Switch
+                    checked={formData.includeInterlinks}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "includeInterlinks", checked } })
+                    }
+                    size="large"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    Include FAQ Section
+                    <p className="text-xs text-gray-500">
+                      Generate relevant FAQ questions and answers for the blog.
+                    </p>
+                  </span>
+                  <Switch
+                    checked={formData.includeFaqs}
+                    onCheckedChange={checked =>
+                      handleCheckboxChange({ target: { name: "includeFaqs", checked } })
+                    }
+                    size="large"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+                  <div className="flex items-center">
+                    <Switch
+                      id="add-image-toggle"
+                      checked={formData.isCheckedGeneratedImages}
+                      onCheckedChange={checked => {
+                        setFormData(prev => ({
+                          ...prev,
+                          isCheckedGeneratedImages: checked,
+                          imageSource: checked
+                            ? prev.imageSource === "none"
+                              ? "stock"
+                              : prev.imageSource
+                            : "none",
+                        }))
+                        setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
+                      }}
+                      size="large"
+                    />
+                  </div>
+                </div>
+                {formData.isCheckedGeneratedImages && (
+                  <div className="space-y-4">
+                    <ImageSourceSelector
+                      value={formData.imageSource}
+                      onChange={handleImageSourceChange}
+                      error={errors.blogImages}
+                      showUpload={false}
+                      numberOfImages={formData.numberOfImages}
+                      onNumberChange={val =>
+                        setFormData(prev => ({ ...prev, numberOfImages: val }))
+                      }
+                    />
+                    {errors.numberOfImages && (
+                      <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Number of Blogs <span className="text-red-500">*</span>
@@ -1265,7 +1175,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     inputMode="numeric"
                     name="numberOfBlogs"
                     min="1"
-                    max="10"
+                    max={BLOG_CONFIG.BULK.MAX_BLOGS}
                     value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
                     onChange={handleInputChange}
                     onWheel={e => e.currentTarget.blur()}
@@ -1285,11 +1195,11 @@ const BulkBlogModal = ({ closeFnc }) => {
         <div className="p-4 border-t border-gray-300 bg-white">
           <div
             className={`flex flex-col sm:flex-row sm:items-center gap-4 ${
-              currentStep === 2 ? "sm:justify-between" : "sm:justify-end"
+              currentStep === 3 ? "sm:justify-between" : "sm:justify-end"
             }`}
           >
             {/* Cost Section */}
-            {currentStep === 2 && (
+            {currentStep === 3 && (
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-gray-600">Estimated Cost:</span>
 
@@ -1318,10 +1228,10 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
 
               <button
-                onClick={currentStep === 2 ? handleSubmit : handleNext}
+                onClick={currentStep === 3 ? handleSubmit : handleNext}
                 className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 transition"
               >
-                {currentStep === 2 ? "Generate Blogs" : "Next"}
+                {currentStep === 3 ? "Generate Blogs" : "Next"}
               </button>
             </div>
           </div>

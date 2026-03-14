@@ -15,6 +15,7 @@ import { useAiDetectionMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet"
+import ConnectedTools from "@components/ConnectedTools"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
@@ -235,6 +236,21 @@ const AiContentDetection = () => {
                   ))}
                 </ul>
               </div>
+
+              {/* Connected Tools Suggestion */}
+              <ConnectedTools
+                currentToolId="detection"
+                title={
+                  detectionResult.isAi
+                    ? "AI Content Detected? Try Humanizing It!"
+                    : "Content Verified! What's Next?"
+                }
+                suggestions={
+                  detectionResult.isAi
+                    ? ["humanize", "chatpdf", "metadata"]
+                    : ["metadata", "keyword", "chatpdf"]
+                }
+              />
             </div>
           </div>
         )}

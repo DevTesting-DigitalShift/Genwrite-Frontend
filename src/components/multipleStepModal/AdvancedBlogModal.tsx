@@ -364,14 +364,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       if (keys.length > 1) {
         setFormData(prev => setValueByPath(prev, keys, value))
       } else {
+        // Special handling for image toggle
+        if (name === "isCheckedGeneratedImages") {
+          setFormData(prev => ({
+            ...prev,
+            isCheckedGeneratedImages: value as boolean,
+            imageSource: value
+              ? prev.imageSource === IMAGE_SOURCE.NONE
+                ? IMAGE_SOURCE.STOCK
+                : prev.imageSource
+              : IMAGE_SOURCE.NONE,
+          }))
+          updateErrors({ isCheckedGeneratedImages: "", imageSource: "" } as any)
+          return
+        }
+
         updateFormData({ [name]: value } as unknown as Partial<typeof initialData>)
 
         updateErrors({ [name]: "" })
       }
     },
-    []
+    [updateFormData, updateErrors]
   )
-
 
   const renderSteps = () => {
     switch (currentStep) {
@@ -674,21 +688,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     {formData.userDefinedLength} words
                   </span>
                 </label>
-                  <Slider
-                    min={BLOG_CONFIG.LENGTH.MIN}
-                    max={BLOG_CONFIG.LENGTH.MAX}
-                    step={BLOG_CONFIG.LENGTH.STEP}
-                    value={[formData.userDefinedLength]}
-                    onValueChange={(vals: number[]) =>
-                      handleInputChange({
-                        target: {
-                          name: "userDefinedLength",
-                          value: vals[0],
-                        },
-                      })
-                    }
-                    className="w-full"
-                  />
+                <Slider
+                  min={BLOG_CONFIG.LENGTH.MIN}
+                  max={BLOG_CONFIG.LENGTH.MAX}
+                  step={BLOG_CONFIG.LENGTH.STEP}
+                  value={[formData.userDefinedLength]}
+                  onValueChange={(vals: number[]) =>
+                    handleInputChange({ target: { name: "userDefinedLength", value: vals[0] } })
+                  }
+                  className="w-full"
+                />
 
                 <div className="flex justify-between text-xs text-slate-400">
                   <span>{BLOG_CONFIG.LENGTH.MIN}</span>
@@ -758,6 +767,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   }}
                   showUpload={true}
                   error={errors.imageSource}
+                  numberOfImages={formData.numberOfImages}
+                  onNumberChange={(val: number) => {
+                    handleInputChange({ target: { name: "numberOfImages", value: val } })
+                  }}
                 />
 
                 {/* Custom Image Upload Zone */}
@@ -778,25 +791,35 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         input.multiple = true
                         input.onchange = async (e: Event) => {
                           const files = Array.from((e.target as HTMLInputElement).files || [])
-                          if (formData.blogImages.length + files.length > BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT) {
-                            toast.error(`You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`)
+                          if (
+                            formData.blogImages.length + files.length >
+                            BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT
+                          ) {
+                            toast.error(
+                              `You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`
+                            )
                             return
                           }
-                          const oversized = files.filter(f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024)
+                          const oversized = files.filter(
+                            f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                          )
                           if (oversized.length > 0) {
-                            toast.error(`Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`)
+                            toast.error(
+                              `Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`
+                            )
                             return
                           }
                           const readers = files.map(
                             file =>
                               new Promise<any>(resolve => {
                                 const reader = new FileReader()
-                                reader.onload = ev => resolve({
-                                  originFileObj: file,
-                                  name: file.name,
-                                  type: file.type,
-                                  src: ev.target?.result as string
-                                })
+                                reader.onload = ev =>
+                                  resolve({
+                                    originFileObj: file,
+                                    name: file.name,
+                                    type: file.type,
+                                    src: ev.target?.result as string,
+                                  })
                                 reader.readAsDataURL(file)
                               })
                           )
@@ -812,25 +835,35 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         const files = Array.from(e.dataTransfer.files).filter(f =>
                           f.type.startsWith("image/")
                         )
-                        if (formData.blogImages.length + files.length > BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT) {
-                          toast.error(`You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`)
+                        if (
+                          formData.blogImages.length + files.length >
+                          BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT
+                        ) {
+                          toast.error(
+                            `You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`
+                          )
                           return
                         }
-                        const oversized = files.filter(f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024)
+                        const oversized = files.filter(
+                          f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                        )
                         if (oversized.length > 0) {
-                          toast.error(`Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`)
+                          toast.error(
+                            `Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`
+                          )
                           return
                         }
                         const readers = files.map(
                           file =>
                             new Promise<any>(resolve => {
                               const reader = new FileReader()
-                              reader.onload = ev => resolve({
-                                originFileObj: file,
-                                name: file.name,
-                                type: file.type,
-                                src: ev.target?.result as string
-                              })
+                              reader.onload = ev =>
+                                resolve({
+                                  originFileObj: file,
+                                  name: file.name,
+                                  type: file.type,
+                                  src: ev.target?.result as string,
+                                })
                               reader.readAsDataURL(file)
                             })
                         )
@@ -860,7 +893,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         </p>
                         <div className="text-xs text-slate-500 mt-2 space-y-1">
                           <p>Supported: PNG, JPEG, WEBP</p>
-                          <p>Max {BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images • Max {BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB per image</p>
+                          <p>
+                            Max {BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images • Max{" "}
+                            {BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB per image
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -900,37 +936,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     <p className="text-xs text-slate-400 text-right">
                       {formData.blogImages.length} / 15 images uploaded
                     </p>
-                  </div>
-                )}
-
-                {/* Number of images slider — hidden for custom upload */}
-                {formData.imageSource !== IMAGE_SOURCE.UPLOAD && (
-                  <div className="flex items-center gap-4 mt-4">
-                    <div className="flex-1">
-                      <label className="text-sm font-semibold text-slate-800">
-                        Number of Images (0 = Decided by AI)
-                      </label>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Slider
-                          min={0}
-                          max={BLOG_CONFIG.IMAGES.MAX_COUNT}
-                          step={1}
-                          value={[formData.numberOfImages || 0]}
-                          onValueChange={(vals: number[]) =>
-                            handleInputChange({
-                              target: {
-                                name: "numberOfImages",
-                                value: vals[0],
-                              },
-                            })
-                          }
-                          className="w-full"
-                        />
-                        <span className="text-sm font-bold text-gray-700 w-8">
-                          {formData.numberOfImages || 0}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>

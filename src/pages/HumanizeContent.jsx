@@ -17,6 +17,7 @@ import useAuthStore from "@store/useAuthStore"
 import { useHumanizeMutation } from "@api/queries/humanizeQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { Helmet } from "react-helmet"
+import ConnectedTools from "@components/ConnectedTools"
 
 const HumanizeContent = () => {
   const navigate = useNavigate()
@@ -90,6 +91,16 @@ const HumanizeContent = () => {
   const handleSubmit = async () => {
     if (!inputContent.trim()) {
       toast.error("Please enter some content to process")
+      return
+    }
+
+    if (wordCount < 100) {
+      toast.error("Content must be at least 100 words long.")
+      return
+    }
+
+    if (wordCount > 1000) {
+      toast.error("Content must not exceed 1000 words.")
       return
     }
 
@@ -189,21 +200,21 @@ const HumanizeContent = () => {
             <textarea
               value={inputContent}
               onChange={e => setInputContent(e.target.value)}
-              placeholder="Paste or type your content here (300–500 words)..."
+              placeholder="Paste or type your content here (100–1000 words)..."
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
             <div className="flex justify-end items-center">
               <p
-                className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}
+                className={`text-sm mb-2 ${wordCount < 100 || wordCount > 1000 ? "text-yellow-500" : "text-green-600"}`}
               >
-                Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
+                Word count: {wordCount} {wordCount < 100 ? "(Minimum 100 words required)" : wordCount > 1000 ? "(Maximum 1000 words allowed)" : ""}
               </p>
             </div>
             <button
               onClick={handleMagicWandClick}
-              disabled={isPending || !inputContent.trim() || wordCount < 300}
+              disabled={isPending || !inputContent.trim() || wordCount < 100 || wordCount > 1000}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
-                !inputContent.trim() || wordCount < 300
+                !inputContent.trim() || wordCount < 100 || wordCount > 1000
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
               }`}
@@ -299,6 +310,15 @@ const HumanizeContent = () => {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Connected Tools Suggestion */}
+            <div className="p-6 pt-0">
+              <ConnectedTools
+                currentToolId="humanize"
+                title="Verify Your Humanized Content!"
+                suggestions={["detection", "metadata", "chatpdf"]}
+              />
             </div>
           </div>
         )}

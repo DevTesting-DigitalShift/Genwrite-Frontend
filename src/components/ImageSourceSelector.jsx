@@ -3,6 +3,8 @@ import { Crown, Image, Sparkles, Upload, X, AlertCircle } from "lucide-react"
 import { IMAGE_OPTIONS, IMAGE_SOURCE } from "../data/blogData"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
+import { Slider } from "@/components/ui/slider"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 
 const ImageSourceSelector = ({
   value,
@@ -10,6 +12,9 @@ const ImageSourceSelector = ({
   showUpload = false,
   showNone = false,
   error,
+  numberOfImages,
+  onNumberChange,
+  showNumberSelector = true,
 }) => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -134,6 +139,29 @@ const ImageSourceSelector = ({
           )
         })}
       </div>
+
+      {showNumberSelector && value && value !== "none" && (
+        <div className="pt-4 px-1 border-t border-slate-100 mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-semibold text-slate-800">Number of Images</label>
+            <span className="text-sm font-bold text-[#1B6FC9] bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+              {numberOfImages || 0} {numberOfImages === 1 ? "Image" : "Images"}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mb-4 font-medium italic">
+            0 = AI will decide the best number of images for your content.
+          </p>
+          <div className="py-2">
+            <Slider
+              min={0}
+              max={BLOG_CONFIG.IMAGES.MAX_COUNT || 15}
+              step={1}
+              value={[Number(numberOfImages) || 0]}
+              onValueChange={vals => onNumberChange(vals[0])}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

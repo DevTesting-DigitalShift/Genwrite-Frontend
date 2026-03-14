@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { toast } from "sonner"
-import { X, ChevronLeft, ChevronRight, Search, Info, ArrowLeft, Sparkles, Download, ArrowDownUp } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Search, Info, ArrowLeft, Sparkles, Download, ArrowUp, ArrowDown, ArrowUp01 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import useJobStore from "@store/useJobStore"
 import { useQueryClient } from "@tanstack/react-query"
@@ -37,6 +37,7 @@ import {
 import ExcelJS from "exceljs"
 import clsx from "clsx"
 import dayjs from "dayjs"
+import ConnectedTools from "@components/ConnectedTools"
 
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 
@@ -173,7 +174,7 @@ const KeywordResearch = () => {
     const finalKeywords = [
       ...(selectedKeywords?.allKeywords || []),
       ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
-    ].slice(0, 15)
+    ].slice(0, 35)
     setSelectedKeywords({
       focusKeywords: finalKeywords.slice(0, 3),
       keywords: finalKeywords,
@@ -265,7 +266,21 @@ const KeywordResearch = () => {
           return (
             <Checkbox
               checked={isAllPageSelected || (isSomePageSelected && "indeterminate")}
-              onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+              onCheckedChange={value => {
+                const nextSelection = { ...rowSelection }
+                if (value) {
+                  // Select only current page keywords
+                  pageKeywords.forEach(k => {
+                    nextSelection[k] = true
+                  })
+                } else {
+                  // Deselect only current page keywords
+                  pageKeywords.forEach(k => {
+                    delete nextSelection[k]
+                  })
+                }
+                table.setRowSelection(nextSelection)
+              }}
             />
           )
         },
@@ -283,14 +298,32 @@ const KeywordResearch = () => {
       {
         accessorKey: "avgMonthlySearches",
         header: "Searches (Mo)",
+        sortingFn: "basic",
       },
       {
         accessorKey: "competition",
         header: "Difficulty",
+        sortingFn: (rowA, rowB, columnId) => {
+          const order = { low: 1, medium: 2, high: 3, hard: 3 }
+          const valA = order[String(rowA.getValue(columnId)).toLowerCase()] || 0
+          const valB = order[String(rowB.getValue(columnId)).toLowerCase()] || 0
+          return valA - valB
+        },
       },
       {
         accessorKey: "competition_index",
         header: "Score",
+        sortingFn: "basic",
+      },
+      {
+        accessorKey: "lowBid",
+        header: "Low Bid",
+        sortingFn: "basic",
+      },
+      {
+        accessorKey: "highBid",
+        header: "High Bid",
+        sortingFn: "basic",
       },
     ],
     []
@@ -331,12 +364,12 @@ const KeywordResearch = () => {
       }
 
       let final = selectedKeys
-      if (selectedKeys.length > 15) {
-        toast.error("Selection limit of 15 keywords reached")
+      if (selectedKeys.length > 35) {
+        toast.error("Selection limit of 35 keywords reached")
         
         const currentInView = currentRows.map(r => r.id)
         const inViewSelected = selectedKeys.filter(k => currentInView.includes(k))
-        const remainingSlots = 15 - inViewSelected.length
+        const remainingSlots = 35 - inViewSelected.length
 
         if (remainingSlots > 0) {
           const sortedAll = table.getSortedRowModel().rows.map(r => r.id)
@@ -347,9 +380,9 @@ const KeywordResearch = () => {
           // Keywords before the current view
           const preceeding = sortedAll.slice(0, Math.min(...currentInView.map(id => sortedAll.indexOf(id)))).filter(k => selectedKeys.includes(k))
           
-          final = [...inViewSelected, ...subsequent, ...preceeding].slice(0, 15)
+          final = [...inViewSelected, ...subsequent, ...preceeding].slice(0, 35)
         } else {
-          final = inViewSelected.slice(0, 15)
+          final = inViewSelected.slice(0, 35)
         }
       }
 
@@ -512,7 +545,7 @@ const KeywordResearch = () => {
                     Selection Pool
                   </span>
                   <div className="text-sm text-blue-800 font-bold bg-blue-200/50 px-4 py-1.5 rounded-full border border-blue-300/30">
-                    {selectedKeywords?.allKeywords?.length || 0} / 15 max
+                    {selectedKeywords?.allKeywords?.length || 0} / 35 max
                   </div>
                 </div>
               </div>
@@ -535,8 +568,14 @@ const KeywordResearch = () => {
                               <div className="flex items-center gap-2">
                                 {flexRender(header.column.columnDef.header, header.getContext())}
                                 {header.column.getCanSort() && (
-                                  <div className="flex flex-col text-[10px] opacity-40">
-                                    <ArrowDownUp size={12} strokeWidth={3} />
+                                  <div className="flex flex-col text-[10px]">
+                                    {header.column.getIsSorted() === "asc" ? (
+                                      <ArrowUp size={14} className="text-[#1B6FC9] opacity-100" />
+                                    ) : header.column.getIsSorted() === "desc" ? (
+                                      <ArrowDown size={14} className="text-[#1B6FC9] opacity-100" />
+                                    ) : (
+                                      <ArrowUp01 size={14} className="opacity-20 translate-y-px" />
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -578,6 +617,17 @@ const KeywordResearch = () => {
                                 <div className="text-right font-bold text-slate-400 tabular-nums pr-8">
                                   {cell.getValue() || "-"}
                                 </div>
+                              ) : cell.column.id === "lowBid" || cell.column.id === "highBid" ? (
+                                <span className="text-slate-600 font-bold tabular-nums">
+                                  {cell.getValue() ? (
+                                    <>
+                                      <span className="text-slate-400 text-[10px] mr-0.5">$</span>
+                                      {cell.getValue().toFixed(2)}
+                                    </>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </span>
                               ) : (
                                 flexRender(cell.column.columnDef.cell, cell.getContext())
                               )}
@@ -694,6 +744,14 @@ const KeywordResearch = () => {
                 >
                   Create Job
                 </Button>
+              </div>
+
+              {/* Connected Tools Suggestion */}
+              <div className="pt-8 bg-slate-50/50 -mx-6 px-6 pb-6 border-t border-slate-100">
+                <ConnectedTools
+                  currentToolId="keyword"
+                  suggestions={["ranking", "metadata", "youtube"]}
+                />
               </div>
             </div>
           )}

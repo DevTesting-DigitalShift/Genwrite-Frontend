@@ -150,8 +150,9 @@ const PluginsMain = () => {
           setIsValidUrl(true)
           setIsValidFrontend(true)
         } else if (plugin.id === 115 && sanityInt) {
-          setUrl(sanityInt.url || `https://${sanityInt.credentials?.projectId || sanityInt.projectId}.api.sanity.io`)
-          setFrontend(sanityInt.frontend || "")
+          const commonUrl = sanityInt.frontend || sanityInt.url || ""
+          setUrl(commonUrl)
+          setFrontend(commonUrl)
           setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
           setDataset(sanityInt.credentials?.dataset || "production")
           setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
@@ -180,8 +181,9 @@ const PluginsMain = () => {
         setIsValidFrontend(true)
         setIsEditing(false)
       } else if (plugin.id === 115 && sanityInt) {
-        setUrl(sanityInt.url || `https://${sanityInt.credentials?.projectId || sanityInt.projectId}.api.sanity.io`)
-        setFrontend(sanityInt.frontend || "")
+        const commonUrl = sanityInt.frontend || sanityInt.url || ""
+        setUrl(commonUrl)
+        setFrontend(commonUrl)
         setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
         setDataset(sanityInt.credentials?.dataset || "production")
         setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
@@ -250,7 +252,7 @@ const PluginsMain = () => {
           const isTokenMasked = authToken === "*".repeat(10)
           payload = { 
             type: "SANITY", 
-            url: url || `https://${projectId}.api.sanity.io`, 
+            url: frontend, 
             frontend, 
             credentials: { 
               ...(isTokenMasked ? {} : { token: authToken }), 
@@ -477,7 +479,9 @@ const PluginsMain = () => {
 
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Plugin Settings</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                {plugin.id === 112 || plugin.id === 115 ? "Connection Credentials" : "Plugin Settings"}
+              </h3>
               <button
                 onClick={handleToggleEdit}
                 className={clsx(
@@ -522,13 +526,22 @@ const PluginsMain = () => {
 
               {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Frontend URL</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    {plugin.id === 115 ? "Sanity Frontend / URL" : "Frontend URL"}
+                  </label>
                   <input
                     value={frontend}
-                    onChange={e => setFrontend(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      setFrontend(val)
+                      if (plugin.id === 115) {
+                        setUrl(val)
+                        setIsValidUrl(!!val)
+                      }
+                    }}
                     disabled={!isEditing}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    placeholder="https://yourpage.com"
+                    placeholder={plugin.id === 115 ? "https://your-sanity-site.com" : "https://yourpage.com"}
                   />
                 </div>
               )}
@@ -592,9 +605,9 @@ const PluginsMain = () => {
                   <label className="text-sm font-medium text-gray-700">
                     {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                   </label>
-                  {plugin.id === 115 && (
-                    <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                      <AlertCircle size={12} /> Must have editor level access
+                  {(plugin.id === 115 || plugin.id === 111) && (
+                    <span className="text-[10px] sm:text-xs text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1 shadow-sm">
+                      <AlertCircle size={12} className="text-amber-600" /> MUST HAVE EDITOR LEVEL ACCESS
                     </span>
                   )}
                 </div>
@@ -665,7 +678,7 @@ const PluginsMain = () => {
 
                 <div>
                   <h4 className="font-semibold text-red-900 text-sm">Need Help?</h4>
-                  <p className="text-xs text-red-700">Watch our setup guide video.</p>
+                  <p className="text-xs text-red-700">Watch our WordPress setup guide.</p>
                 </div>
               </div>
 
@@ -682,16 +695,46 @@ const PluginsMain = () => {
           </div>
         )}
 
-        <div className="pt-6 border-t border-gray-100">
-          <a
-            href={plugin.downloadLink}
-            download
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-emerald-500 text-emerald-600 font-medium hover:bg-emerald-50 transition-colors"
-          >
-            <Download size={18} />
-            Download Plugin
-          </a>
-        </div>
+        {plugin.id === 115 && (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Left Content */}
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600 shrink-0">
+                  <PlayCircle size={20} />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-blue-900 text-sm">Sanity Setup Guide</h4>
+                  <p className="text-xs text-blue-700">Learn how to connect your Sanity studio.</p>
+                </div>
+              </div>
+
+              {/* Button */}
+              <a
+                href="https://youtube.com/sanity-test"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto text-center px-4 py-2 bg-white text-blue-600 text-xs font-bold border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                Watch Guide
+              </a>
+            </div>
+          </div>
+        )}
+
+        {!(plugin.id === 112 || plugin.id === 115) && (
+          <div className="pt-6 border-t border-gray-100">
+            <a
+              href={plugin.downloadLink}
+              download
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-emerald-500 text-emerald-600 font-medium hover:bg-emerald-50 transition-colors"
+            >
+              <Download size={18} />
+              Download Plugin
+            </a>
+          </div>
+        )}
       </div>
     )
   }

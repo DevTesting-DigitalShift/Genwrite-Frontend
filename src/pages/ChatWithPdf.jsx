@@ -26,6 +26,7 @@ import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
+import ConnectedTools from "@components/ConnectedTools"
 
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
@@ -394,6 +395,24 @@ const ChatWithPdf = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {!file && (
+            <div className="mt-8">
+              <ConnectedTools
+                currentToolId="chatpdf"
+                suggestions={["youtube", "detection", "keyword"]}
+              />
+            </div>
+          )}
+
+          {file && messages.length > 2 && (
+            <div className="bg-white rounded-3xl p-6 mt-6 border border-slate-100 shadow-sm">
+              <ConnectedTools
+                currentToolId="chatpdf"
+                suggestions={["metadata", "detection", "youtube"]}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

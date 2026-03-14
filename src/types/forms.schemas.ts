@@ -254,6 +254,12 @@ export const jobBlogConfigSchema = z.object({
 
   keywords: z.array(z.string()).default([]).describe("Keywords for SEO optimization"),
 
+  references: z
+    .array(z.string().url("Please enter valid URLs"))
+    .max(3, "Maximum 3 references allowed")
+    .default([])
+    .describe("Reference URLs (max 3)"),
+
   templates: z
     .array(z.string())
     .min(1, "At least one template is required")
