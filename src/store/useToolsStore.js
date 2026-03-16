@@ -75,6 +75,21 @@ const useToolsStore = create(set => ({
         orchestrator: { result: null, error: null },
       },
     })),
+  resetAllTools: () =>
+    set({
+      aiDetection: { result: null, error: null },
+      keywordScraping: { result: null, error: null },
+      youtubeSummary: { result: null, error: null },
+      pdfChat: { result: null, error: null, messages: [], cacheKey: null },
+      competitorLikeBlog: { result: null, error: null },
+      websiteRanking: {
+        analyser: { result: null, error: null },
+        prompts: { result: null, error: null },
+        rankings: { result: null, error: null },
+        advancedComp: { result: null, error: null },
+        orchestrator: { result: null, error: null },
+      },
+    }),
 }))
 
 export default useToolsStore

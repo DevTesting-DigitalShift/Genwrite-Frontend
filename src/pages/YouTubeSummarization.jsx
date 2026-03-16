@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   Copy,
   RefreshCw,
@@ -19,7 +20,8 @@ import ConnectedTools from "@components/ConnectedTools"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
-  const [inputUrl, setInputUrl] = useState("")
+  const location = useLocation()
+  const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
   const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
   const { result: summaryResult, error } = youtubeSummary
   const {
@@ -301,11 +303,7 @@ const YouTubeSummarization = () => {
 
               {/* Connected Tools Suggestion */}
               <div className="p-6 pt-0">
-                <ConnectedTools
-                  currentToolId="youtube"
-                  title="Explore More AI Tools!"
-                  suggestions={["chatpdf", "keyword", "metadata"]}
-                />
+                <ConnectedTools currentToolId="youtube" transferValue={inputUrl} />
               </div>
             </div>
           </div>

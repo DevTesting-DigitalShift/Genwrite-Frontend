@@ -52,11 +52,15 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center form-item-wrapper">
-        <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
-          {label}
-        </label>
+        <div>
+          <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
+            {label}
+          </label>
+          <p className="text-xs text-gray-500">Apply your brand's unique tone and style</p>
+        </div>
         <Switch
           id="blog-isCheckedBrand"
+          size="large"
           checked={state.isCheckedBrand}
           onCheckedChange={(checked: boolean) => {
             handleBrandToggle({ target: { checked } } as any)
@@ -113,11 +117,15 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
 
       {state.isCheckedBrand && (
         <div className="flex justify-between items-center mt-2 pl-1">
-          <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
-            Add CTA at the End
-          </label>
+          <div>
+            <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
+              Add CTA at the End
+            </label>
+            <p className="text-xs text-gray-500">Include a call-to-action to engage audience</p>
+          </div>
           <Switch
             id="blog-brand-add-cta"
+            size="large"
             checked={state.addCTA}
             onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
           />

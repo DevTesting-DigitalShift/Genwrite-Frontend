@@ -19,6 +19,7 @@ import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
+import AdvancedOptions from "@components/AdvancedOptions"
 
 const StepContent = ({
   currentStep,
@@ -588,10 +589,7 @@ const StepContent = ({
                       }
                       setNewJob(prev => ({
                         ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          references: [...prev.blogs.references, val],
-                        },
+                        blogs: { ...prev.blogs, references: [...prev.blogs.references, val] },
                       }))
                       setFormData(prev => ({ ...prev, referenceInput: "" }))
                     }
@@ -613,10 +611,7 @@ const StepContent = ({
                     }
                     setNewJob(prev => ({
                       ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        references: [...prev.blogs.references, val],
-                      },
+                      blogs: { ...prev.blogs, references: [...prev.blogs.references, val] },
                     }))
                     setFormData(prev => ({ ...prev, referenceInput: "" }))
                   }}
@@ -709,7 +704,7 @@ const StepContent = ({
                     max={BLOG_CONFIG.LENGTH.MAX}
                     step={BLOG_CONFIG.LENGTH.STEP}
                     value={[newJob.blogs.userDefinedLength]}
-                    onValueChange={(vals) =>
+                    onValueChange={vals =>
                       setNewJob({
                         ...newJob,
                         blogs: { ...newJob.blogs, userDefinedLength: vals[0] },
@@ -951,84 +946,37 @@ const StepContent = ({
       return (
         <div>
           <div className="mt-0 space-y-4">
-            {/* Group 1: Essential Advanced Options */}
-            <div className="space-y-1">
-              {[
-                {
-                  label: "Add FAQ",
-                  name: "includeFaqs",
-                  desc: "Include frequently asked questions at the end of the blog.",
-                },
-                {
-                  label: "Add Competitive Research",
-                  name: "includeCompetitorResearch",
-                  desc: "Analyze competitors to improve blog quality.",
-                },
-                {
-                  label: "Show Outbound Links",
-                  name: "addOutBoundLinks",
-                  desc: "Add outbound links, references of other websites",
-                },
-                {
-                  label: "Add InterLinks",
-                  name: "includeInterlinks",
-                  desc: "Add internal links between your blogs for better SEO.",
-                },
-              ].map(({ label, name, desc }) => (
-                <div key={name} className="flex items-center justify-between py-2 mt-3">
-                  <div>
-                    <span className="text-sm font-semibold text-gray-700">{label}</span>
-                    <p className="text-xs text-gray-500">{desc}</p>
-                  </div>
-                  <Switch
-                    checked={newJob.options[name]}
-                    onCheckedChange={checked => handleCheckboxChange({ target: { name, checked } })}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Group 2: Layout & Readability Options */}
-            <div className="space-y-1">
-              {[
-                ...(newJob.options.wordpressPosting
-                  ? [
-                      {
-                        label: "Table of Content",
-                        name: "includeTableOfContents",
-                        desc: "Display a table of contents for easier navigation.",
-                      },
-                    ]
-                  : []),
-                {
-                  label: "Easy to Understand",
-                  name: "easyToUnderstand",
-                  desc: "Make the content simple and easy to read.",
-                },
-                {
-                  label: "Embed YouTube Videos",
-                  name: "embedYouTubeVideos",
-                  desc: "Add relevant YouTube videos to your blog content.",
-                },
-              ].map(({ label, name, desc }) => (
-                <div key={name} className="flex items-center justify-between py-2 mt-3">
-                  <div>
-                    <span className="text-sm font-semibold text-gray-700">{label}</span>
-                    <p className="text-xs text-gray-500">{desc}</p>
-                  </div>
-                  <Switch
-                    checked={newJob.options[name]}
-                    onCheckedChange={checked => handleCheckboxChange({ target: { name, checked } })}
-                  />
-                </div>
-              ))}
-            </div>
+            {/* Advanced Tool Settings */}
+            <AdvancedOptions
+              formData={newJob}
+              updateFormData={updates => {
+                if (updates.options) {
+                  setNewJob(prev => ({ ...prev, options: { ...prev.options, ...updates.options } }))
+                } else {
+                  setNewJob(prev => ({ ...prev, ...updates }))
+                }
+              }}
+              isNestedOptions={true}
+              showFields={[
+                "extendedThinking",
+                "deepResearch",
+                "humanization",
+                "includeFaqs",
+                "includeCompetitorResearch",
+                "addOutBoundLinks",
+                "includeInterlinks",
+                "easyToUnderstand",
+                "embedYouTubeVideos",
+              ]}
+            />
 
             {/* Group 3: Brand Voice Selector (Select Input Mode) */}
             <div className="pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-sm font-semibold text-gray-700">Write with Brand Voice</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    Write with Brand Voice
+                  </span>
                   <p className="text-xs text-gray-500 font-normal">
                     Apply your brand's unique tone and style.
                   </p>
@@ -1080,20 +1028,22 @@ const StepContent = ({
                         </option>
                       ))}
                     </select>
-                    {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
+                    {errors.brandId && (
+                      <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-semibold text-gray-700">Add CTA at the End</span>
+                      <span className="text-sm font-semibold text-gray-700">
+                        Add CTA at the End
+                      </span>
+                      <p className="text-xs text-gray-500">Include a call-to-action to engage audience</p>
                     </div>
                     <Switch
                       checked={newJob.blogs.addCTA}
                       onCheckedChange={checked =>
-                        setNewJob(prev => ({
-                          ...prev,
-                          blogs: { ...prev.blogs, addCTA: checked },
-                        }))
+                        setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, addCTA: checked } }))
                       }
                     />
                   </div>

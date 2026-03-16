@@ -87,7 +87,7 @@ const AiModelSelector = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-              <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+              <p className="text-xs text-green-700">Use AI Flash model for 50% savings</p>
             </div>
             <Switch
               checked={costCutterValue}

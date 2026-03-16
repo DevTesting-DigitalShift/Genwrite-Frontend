@@ -5,6 +5,8 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { LoadingProvider, useLoading } from "@/context/LoadingContext"
 import { toast } from "sonner"
+import useToolsStore from "@store/useToolsStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import { Elements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 
@@ -22,6 +24,13 @@ const AppContent = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
+    
+    // Reset stores when navigating to main pages (dashboard, blogs, etc.)
+    const mainPages = ["/dashboard", "/blogs", "/profile", "/pricing"]
+    if (mainPages.includes(location.pathname)) {
+      useToolsStore.getState().resetAllTools()
+      useAnalysisStore.getState().clearSelectedKeywords()
+    }
   }, [location.pathname])
 
   return (

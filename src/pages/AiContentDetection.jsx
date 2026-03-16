@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   Copy,
   RefreshCw,
@@ -18,7 +19,8 @@ import { Helmet } from "react-helmet"
 import ConnectedTools from "@components/ConnectedTools"
 
 const AiContentDetection = () => {
-  const [inputContent, setInputContent] = useState("")
+  const location = useLocation()
+  const [inputContent, setInputContent] = useState(location.state?.transferValue || "")
   const { aiDetection, resetAiDetection } = useToolsStore()
   const { result: detectionResult, error } = aiDetection
   const { mutate: detectContent, isPending } = useAiDetectionMutation()
@@ -240,15 +242,11 @@ const AiContentDetection = () => {
               {/* Connected Tools Suggestion */}
               <ConnectedTools
                 currentToolId="detection"
+                transferValue={inputContent}
                 title={
                   detectionResult.isAi
                     ? "AI Content Detected? Try Humanizing It!"
                     : "Content Verified! What's Next?"
-                }
-                suggestions={
-                  detectionResult.isAi
-                    ? ["humanize", "chatpdf", "metadata"]
-                    : ["metadata", "keyword", "chatpdf"]
                 }
               />
             </div>

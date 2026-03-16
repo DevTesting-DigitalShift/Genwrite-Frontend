@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Tag, Tags, Activity, Info, Loader2, FileText, Sparkles, RefreshCw } from "lucide-react"
 import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet"
+import ConnectedTools from "@components/ConnectedTools"
 
 const PerformanceMonitoring = () => {
+  const location = useLocation()
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
-    content: "",
+    content: location.state?.transferValue || "",
     keywords: [],
   })
   const [stats, setStats] = useState(null)
@@ -490,6 +493,11 @@ const PerformanceMonitoring = () => {
             ) : (
               <StatsInfoBox stats={stats} />
             )}
+
+            {/* Connected Tools */}
+            <div className="mt-8 border-t border-gray-100 pt-8">
+              <ConnectedTools currentToolId="monitoring" transferValue={formData.content} />
+            </div>
           </div>
         )}
       </div>

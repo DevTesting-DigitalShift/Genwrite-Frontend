@@ -5,22 +5,88 @@ interface ProgressLoadingScreenProps {
   maxDuration?: number // Maximum time to display (ms)
   onTimeout?: () => void // Callback when timeout is reached
   message?: string // Optional loading message
+  toast?: string // Alias for message
   delay?: number // Delay before showing (ms) - prevents flash on quick loads
   isYouTube?: boolean // If true, progress will be much slower
+  timer?: number // External timer support (alias for progress or for sync)
+  scenario?: "default" | "youtube" | "analysis" | "generation" | "scrapping"
 }
 
 const ProgressLoadingScreen = ({
-  maxDuration = 60000, // 60 seconds default
+  maxDuration = 60000,
   onTimeout,
   message,
-  delay = 200, // Default 200ms delay to prevent flash
+  toast,
+  delay = 200,
   isYouTube = false,
+  timer,
+  scenario = "default",
 }: ProgressLoadingScreenProps) => {
   const [progress, setProgress] = useState(0)
   const [shouldShow, setShouldShow] = useState(delay === 0)
+  const [currentDynamicMessage, setCurrentDynamicMessage] = useState("")
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const delayRef = useRef<NodeJS.Timeout | null>(null)
   const mountTimeRef = useRef<number>(Date.now())
+
+  const loadingMessage = message || toast || currentDynamicMessage
+
+  // Dynamic messages based on scenario and progress
+  const getDynamicMessage = (prog: number) => {
+    const messages = {
+      youtube: [
+        { threshold: 0, text: "Connecting to YouTube API..." },
+        { threshold: 10, text: "Fetching video transcript..." },
+        { threshold: 30, text: "Analyzing video content..." },
+        { threshold: 50, text: "Summarizing key moments..." },
+        { threshold: 75, text: "Generating final summary..." },
+        { threshold: 90, text: "Finishing up..." },
+      ],
+      analysis: [
+        { threshold: 0, text: "Initializing analysis engine..." },
+        { threshold: 15, text: "Crawling content data..." },
+        { threshold: 40, text: "Running linguistic algorithms..." },
+        { threshold: 60, text: "Evaluating SEO performance..." },
+        { threshold: 80, text: "Finalizing competitive insights..." },
+        { threshold: 95, text: "Preparing results display..." },
+      ],
+      generation: [
+        { threshold: 0, text: "Waking up AI models..." },
+        { threshold: 20, text: "Processing your instructions..." },
+        { threshold: 45, text: "Drafting content structure..." },
+        { threshold: 70, text: "Polishing generated text..." },
+        { threshold: 85, text: "Running quality checks..." },
+        { threshold: 95, text: "Almost ready..." },
+      ],
+      scrapping: [
+        { threshold: 0, text: "Bypassing anti-bot measures..." },
+        { threshold: 20, text: "Accessing target platform..." },
+        { threshold: 50, text: "Extracting relevant data points..." },
+        { threshold: 80, text: "Cleaning and formatting data..." },
+        { threshold: 95, text: "Constructing final report..." },
+      ],
+      default: [
+        { threshold: 0, text: "Starting request..." },
+        { threshold: 25, text: "Processing data..." },
+        { threshold: 50, text: "Thinking..." },
+        { threshold: 75, text: "Finalizing..." },
+        { threshold: 95, text: "Just a second..." },
+      ],
+    }
+
+    const currentScenario = isYouTube ? "youtube" : scenario
+    const scenarioMessages = messages[currentScenario] || messages.default
+    
+    const matched = scenarioMessages
+      .filter(m => prog >= m.threshold)
+      .reverse()[0]
+    
+    return matched?.text || ""
+  }
+
+  useEffect(() => {
+    setCurrentDynamicMessage(getDynamicMessage(progress))
+  }, [progress, scenario, isYouTube])
 
   // Delay before showing
   useEffect(() => {
@@ -50,83 +116,69 @@ const ProgressLoadingScreen = ({
     }
   }, [maxDuration, onTimeout])
 
-  // Smart Progress Logic with Delays
+  // Smart Progress Logic
   useEffect(() => {
-    // Initial pattern: 1-2-3-15-20-25-30-40 with delays
+    if (timer !== undefined) {
+        // If external timer is provided, we can sync with it or just let it be.
+        // For now, if timer is provided and progress is 0, we can use timer if it's 0-100
+        if (timer > 0 && timer <= 100) {
+            setProgress(timer)
+            return
+        }
+    }
+
     const initialPattern = [1, 2, 3, 15, 20, 25, 30, 40]
     let currentIndex = 0
     let elapsedTime = 0
     let timeoutId: NodeJS.Timeout | null = null
 
-    // YouTube is SUPER slow, others are moderate
-    const baseDelay = isYouTube ? 2000 : 500 // 2s for YouTube, 500ms for others
+    const baseDelay = isYouTube ? 2000 : 500
 
     const updateProgress = () => {
       setProgress(prev => {
-        // Never reach 100%
-        if (prev >= 98) {
-          return 98
-        }
-
-        // Phase 1: Follow initial pattern (1-2-3-15-20-25-30-40)
+        if (prev >= 98) return 98
         if (currentIndex < initialPattern.length) {
           const nextValue = initialPattern[currentIndex]
           currentIndex++
-
-          // Schedule next update with delay
           const delay = isYouTube ? baseDelay + currentIndex * 300 : baseDelay
           timeoutId = setTimeout(updateProgress, delay)
-
           return nextValue
         }
-
-        // Phase 2: After 40%, increase by 6% increments
         if (prev >= 40 && prev < 70) {
           const delay = isYouTube ? 3000 : 800
           timeoutId = setTimeout(updateProgress, delay)
           return Math.min(prev + 6, 70)
         }
-
-        // Phase 3: After 70%, slow down based on elapsed time
         if (prev >= 70 && prev < 85) {
-          const slowIncrement = elapsedTime > 10000 ? 2 : 3
           const delay = isYouTube ? 4000 : 1200
           timeoutId = setTimeout(updateProgress, delay)
-          return Math.min(prev + slowIncrement, 85)
+          return Math.min(prev + (elapsedTime > 10000 ? 2 : 3), 85)
         }
-
-        // Phase 4: After 85%, very slow increments
         if (prev >= 85 && prev < 95) {
-          const verySlowIncrement = elapsedTime > 20000 ? 0.5 : 1
           const delay = isYouTube ? 5000 : 1500
           timeoutId = setTimeout(updateProgress, delay)
-          return Math.min(prev + verySlowIncrement, 95)
+          return Math.min(prev + (elapsedTime > 20000 ? 0.5 : 1), 95)
         }
-
-        // Phase 5: After 95%, crawl to 98% (never 100%)
         if (prev >= 95 && prev < 98) {
           const delay = isYouTube ? 6000 : 2000
           timeoutId = setTimeout(updateProgress, delay)
           return Math.min(prev + 0.3, 98)
         }
-
         return prev
       })
     }
 
-    // Track elapsed time
     const timeInterval = setInterval(() => {
       elapsedTime += 100
     }, 100)
 
-    // Start the progress
     updateProgress()
 
     return () => {
       clearInterval(timeInterval)
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [isYouTube])
+  }, [isYouTube, timer])
 
   if (!shouldShow) return null
 
@@ -136,7 +188,7 @@ const ProgressLoadingScreen = ({
       role="status"
       aria-live="polite"
       aria-busy="true"
-      aria-label={message || `Loading content, please wait... ${Math.floor(progress)}%`}
+      aria-label={loadingMessage || `Loading content, please wait... ${Math.floor(progress)}%`}
     >
       <div className="progress-loading-content">
         <div className="progress-container-wrapper">
@@ -149,7 +201,7 @@ const ProgressLoadingScreen = ({
           </div>
         </div>
 
-        {message && <p className="loading-message-text">{message}</p>}
+        {loadingMessage && <p className="loading-message-text">{loadingMessage}</p>}
       </div>
     </div>
   )

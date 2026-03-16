@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
@@ -12,7 +12,8 @@ import ConnectedTools from "@components/ConnectedTools"
 const isUrl = text => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
-  const [content, setContent] = useState("")
+  const location = useLocation()
+  const [content, setContent] = useState(location.state?.transferValue || "")
   const [isGenerating, setIsGenerating] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -55,7 +56,6 @@ const GenerateMetaData = () => {
       toast.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
-      toast.error("Failed to generate metadata.")
     } finally {
       setIsGenerating(false)
     }
@@ -140,17 +140,21 @@ const GenerateMetaData = () => {
               </div>
             </div>
 
-              <button
-                onClick={handleGenerateMetadata}
-                disabled={isGenerating || !content.trim() || (!isUrl(content) && (wordCount() < 100 || wordCount() > 1000))}
-                className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
+            <button
+              onClick={handleGenerateMetadata}
+              disabled={
+                isGenerating ||
+                !content.trim() ||
+                (!isUrl(content) && (wordCount() < 100 || wordCount() > 1000))
+              }
+              className={`w-full h-12 rounded-xl flex items-center justify-center font-bold text-base
                 disabled:bg-[#f8fafc] disabled:text-gray-300 disabled:cursor-not-allowed
                 ${
                   (wordCount() >= 100 && wordCount() <= 1000) || isUrl(content)
                     ? "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-indigo-200"
                     : "bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9]"
                 }`}
-              >
+            >
               Generate Metadata
             </button>
           </div>
@@ -222,19 +226,9 @@ const GenerateMetaData = () => {
                 </div>
               )}
 
-              <div className="md:col-span-2 flex items-center justify-center gap-2 py-4">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm font-bold text-gray-400 uppercase">
-                  Metadata successfully optimized
-                </span>
-              </div>
-
               {/* Connected Tools Suggestion */}
-              <div className="md:col-span-2 mt-8 pt-8 border-t border-gray-100">
-                <ConnectedTools
-                  currentToolId="metadata"
-                  suggestions={["keyword", "detection", "youtube"]}
-                />
+              <div className="md:col-span-2">
+                <ConnectedTools currentToolId="metadata" transferValue={content} />
               </div>
             </motion.div>
           )}

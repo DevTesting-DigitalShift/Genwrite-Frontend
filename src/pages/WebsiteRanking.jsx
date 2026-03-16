@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   Search,
   Zap,
@@ -24,6 +25,7 @@ import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
+import ConnectedTools from "@components/ConnectedTools"
 
 const Card = ({ children, className = "" }) => (
   <div
@@ -107,7 +109,8 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
 }
 
 const WebsiteRanking = () => {
-  const [url, setUrl] = useState("")
+  const location = useLocation()
+  const [url, setUrl] = useState(location.state?.transferValue || "")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
 
@@ -404,7 +407,7 @@ const WebsiteRanking = () => {
                         ),
                         blockquote: ({ node, ...props }) => (
                           <blockquote
-                            className="border-l-4 border-indigo-200 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r"
+                            className="border-l-4 border-indigo-200 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r-lg"
                             {...props}
                           />
                         ),
@@ -619,7 +622,10 @@ const WebsiteRanking = () => {
 
                   {isOrchestratorLoading && (
                     <div className="mt-8">
-                      <ProgressLoadingScreen toast="Conducting comprehensive website audit..." />
+                      <ProgressLoadingScreen
+                        message="Conducting comprehensive website audit..."
+                        scenario="analysis"
+                      />
                     </div>
                   )}
 
@@ -827,6 +833,12 @@ const WebsiteRanking = () => {
             },
           ]}
         />
+        {/* Connected Tools Suggestion - Only show after audit/run */}
+        {(orchestrator.result || advancedComp.result) && (
+          <div className="mt-8">
+            <ConnectedTools currentToolId="ranking" transferValue={url} />
+          </div>
+        )}
       </div>
     </div>
   )

@@ -12,6 +12,7 @@ import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { IMAGE_SOURCE, LANGUAGES, IMAGE_OPTIONS } from "@/data/blogData"
 import ImageSourceSelector from "@components/ImageSourceSelector"
+import AdvancedOptions from "@components/AdvancedOptions"
 import { Switch } from "@components/ui/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
@@ -40,6 +41,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     costCutter: true,
     easyToUnderstand: false,
     embedYouTubeVideos: false,
+    extendedThinking: false,
+    deepResearch: false,
+    humanization: false,
   }
 
   const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
@@ -74,7 +78,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     })
 
     if (formData.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
@@ -584,7 +588,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
               {/* Add Images & Source Selection */}
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">Add Images</label>
+                <div>
+                  <label className="block text-sm font-semibold">Add Images</label>
+                  <p className="text-xs text-gray-500">Search and add relevant images to your blog</p>
+                </div>
                 <Switch
                   checked={formData.addImages}
                   onCheckedChange={checked => {
@@ -614,35 +621,18 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </div>
               )}
 
-              {/* Easy to Understand Toggle */}
-              <div className="flex items-center justify-between my-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Easy to Understand
-                </label>
-                <Switch
-                  checked={formData.easyToUnderstand}
-                  onCheckedChange={checked =>
-                    setFormData(prev => ({ ...prev, easyToUnderstand: checked }))
-                  }
-                  size="large"
-                />
-              </div>
-
-              {/* Embed YouTube Videos Toggle */}
-              {type !== "yt" && (
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Embed YouTube Videos
-                  </label>
-                  <Switch
-                    checked={formData.embedYouTubeVideos}
-                    onCheckedChange={checked =>
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))
-                    }
-                    size="large"
-                  />
-                </div>
-              )}
+              {/* Advanced Tool Settings */}
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={[
+                  "extendedThinking",
+                  "deepResearch",
+                  "humanization",
+                  "easyToUnderstand",
+                  "embedYouTubeVideos"
+                ]}
+              />
 
               {/* Reference Links Section */}
               <div>
@@ -701,7 +691,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                    <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                    <p className="text-xs text-green-700">Use AI Flash model for 50% savings</p>
                   </div>
                   <Switch
                     checked={formData.costCutter}
@@ -768,10 +758,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               {/* Cost Section */}
               <div className="flex items-center gap-2 w-full text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="text-gray-600 font-semibold">Estimated Cost:</span>
                 <span className="font-bold text-blue-600">{estimatedCost} credits</span>
                 {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-semibold">(-25% off)</span>
+                  <span className="text-xs text-green-600 font-semibold">(-50% off)</span>
                 )}
               </div>
 

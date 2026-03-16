@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   Copy,
   RefreshCw,
@@ -17,9 +18,11 @@ import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
+import ConnectedTools from "@components/ConnectedTools"
 
 const CompetitorLikeBlog = () => {
-  const [url, setUrl] = useState("")
+  const location = useLocation()
+  const [url, setUrl] = useState(location.state?.transferValue || "")
   const [topic, setTopic] = useState("")
 
   const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
@@ -138,8 +141,9 @@ const CompetitorLikeBlog = () => {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
         <ProgressLoadingScreen
-          toast="Analyzing competitor style and generating content..."
+          message="Analyzing competitor style and generating content..."
           timer={timer}
+          scenario="generation"
         />
       </div>
     )
@@ -376,6 +380,11 @@ const CompetitorLikeBlog = () => {
                 >
                   {result.content}
                 </ReactMarkdown>
+              </div>
+
+              {/* Connected Tools */}
+              <div className="mt-8 border-t border-gray-100 pt-8">
+                <ConnectedTools currentToolId="builder" transferValue={result.content} />
               </div>
             </div>
           </div>

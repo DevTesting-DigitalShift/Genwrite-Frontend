@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FileText,
@@ -46,7 +47,8 @@ const ChatWithPdf = () => {
       timestamp: new Date(),
     },
   ])
-  const [input, setInput] = useState("")
+  const location = useLocation()
+  const [input, setInput] = useState(location.state?.transferValue || "")
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -398,10 +400,7 @@ const ChatWithPdf = () => {
 
           {!file && (
             <div className="mt-8">
-              <ConnectedTools
-                currentToolId="chatpdf"
-                suggestions={["youtube", "detection", "keyword"]}
-              />
+              <ConnectedTools currentToolId="chatpdf" transferValue={input} />
             </div>
           )}
 
@@ -409,7 +408,7 @@ const ChatWithPdf = () => {
             <div className="bg-white rounded-3xl p-6 mt-6 border border-slate-100 shadow-sm">
               <ConnectedTools
                 currentToolId="chatpdf"
-                suggestions={["metadata", "detection", "youtube"]}
+                transferValue={messages[messages.length - 1]?.content || ""}
               />
             </div>
           )}

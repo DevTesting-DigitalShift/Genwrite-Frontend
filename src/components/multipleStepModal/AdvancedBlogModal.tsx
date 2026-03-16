@@ -1,9 +1,10 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
+import { setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
+import AdvancedOptions from "@components/AdvancedOptions"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
@@ -72,18 +73,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       easyToUnderstand: false as boolean,
       embedYouTubeVideos: false as boolean,
       includeTableOfContents: false as boolean,
+      extendedThinking: false as boolean,
+      deepResearch: false as boolean,
+      humanization: false as boolean,
     },
   }
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
-
-  const BLOG_OPTIONS = [
-    { key: "isCheckedQuick", label: "Add a Quick Summary" },
-    { key: "options.includeFaqs", label: "Add FAQs (Frequently Asked Questions)" },
-    { key: "options.includeInterlinks", label: "Include Interlinks" },
-    { key: "options.includeCompetitorResearch", label: "Perform Competitive Research" },
-    { key: "options.addOutBoundLinks", label: "Show Outbound Links" },
-  ]
 
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -184,7 +180,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     })
 
     if (formData.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
@@ -734,27 +730,24 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             />
 
             {/* Feature Toggles */}
-            <div className="space-y-5 my-5">
-              {[
-                { label: "Easy to Understand", name: "options.easyToUnderstand" },
-                { label: "Embed YouTube Videos", name: "options.embedYouTubeVideos" },
-                { label: "Add Images", name: "isCheckedGeneratedImages" },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">{item.label}</span>
+            <div className="space-y-4">
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updateFormData}
+                isNestedOptions={true}
+                showFields={["easyToUnderstand", "embedYouTubeVideos"]}
+              />
 
-                  <Switch
-                    checked={
-                      item.name.includes("options")
-                        ? (formData.options as any)[item.name.split(".")[1]]
-                        : (formData as any)[item.name]
-                    }
-                    onCheckedChange={(checked: boolean) =>
-                      handleInputChange({ target: { name: item.name, value: checked } })
-                    }
-                  />
-                </div>
-              ))}
+              <div className="flex items-center justify-between pb-4">
+                <span className="text-sm font-semibold">Add Images</span>
+                <Switch
+                  size="large"
+                  checked={formData.isCheckedGeneratedImages}
+                  onCheckedChange={(checked: boolean) =>
+                    updateFormData({ isCheckedGeneratedImages: checked })
+                  }
+                />
+              </div>
             </div>
 
             {/* Image Source Settings */}
@@ -999,18 +992,36 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           <div className="space-y-8 p-4 pt-0">
             {/* Options List */}
             <div className="space-y-6">
-              {BLOG_OPTIONS.map((option, index) => (
-                <div key={option.key + index} className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">{option.label}</span>
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updateFormData}
+                isNestedOptions={true}
+                showFields={[
+                  "extendedThinking",
+                  "deepResearch",
+                  "humanization",
+                  "includeFaqs",
+                  "includeInterlinks",
+                  "embedYouTubeVideos",
+                  "includeCompetitorResearch",
+                  "addOutBoundLinks",
+                  "easyToUnderstand",
+                ]}
+              />
 
-                  <Switch
-                    checked={getValueByPath(formData, option.key)}
-                    onCheckedChange={(checked: boolean) =>
-                      handleInputChange({ target: { name: option.key, value: checked } })
-                    }
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Add a Quick Summary</p>
+                  <p className="text-xs text-slate-500">Generate a concise summary for the readers</p>
                 </div>
-              ))}
+                <Switch
+                  size="large"
+                  checked={formData.isCheckedQuick}
+                  onCheckedChange={(checked: boolean) =>
+                    updateFormData({ isCheckedQuick: checked })
+                  }
+                />
+              </div>
             </div>
 
             <BrandVoiceSelector
@@ -1044,6 +1055,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 </div>
                 <Switch
                   checked={formData.wordpressPostStatus}
+                  size="large"
                   onCheckedChange={(checked: boolean) => {
                     const hasAnyIntegration =
                       Object.keys(integrations?.integrations || {}).length > 0
@@ -1143,9 +1155,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {/* Cost Section */}
             {(currentStep === 2 || currentStep === 3) && (
               <div className="flex items-center w-full gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="text-gray-600 font-semibold">Estimated Cost:</span>
                 <span className="font-bold text-blue-600">{estimatedCost}</span>
-                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                {formData.costCutter && (
+                  <span className="text-xs text-green-600 font-medium">(-50% off)</span>
+                )}
               </div>
             )}
 

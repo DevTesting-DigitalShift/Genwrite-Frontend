@@ -1,17 +1,13 @@
 import React from "react"
 import { motion } from "framer-motion"
-import { ArrowRight, Sparkles, Shield, UserCheck, FileText, Layout, Youtube, Search, TrendingUp, MessageSquare } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { ArrowRight, Sparkles, Shield, UserCheck, FileText, Layout, Youtube, Search, TrendingUp, MessageSquare, MousePointerClick, Globe, Activity, Image as ImageIcon } from "lucide-react"
 
-/**
- * @typedef {Object} ToolSuggestion
- * @property {string} title
- * @property {string} description
- * @property {string} path
- * @property {any} icon
- * @property {string} color
- * @property {string} id
- */
+const TOOL_TYPES = {
+  URL: "URL",
+  TEXT: "TEXT",
+  GENERIC: "GENERIC"
+}
 
 const ALL_TOOLS = {
   humanize: {
@@ -21,14 +17,16 @@ const ALL_TOOLS = {
     path: "/humanize-content",
     icon: UserCheck,
     color: "from-blue-500 to-indigo-600",
+    type: TOOL_TYPES.TEXT,
   },
   detection: {
     id: "detection",
     title: "AI Detection",
     description: "Verify if your content looks AI-generated or human-written.",
-    path: "/ai-content-detection",
+    path: "/content-detection",
     icon: Shield,
     color: "from-indigo-500 to-purple-600",
+    type: TOOL_TYPES.TEXT,
   },
   metadata: {
     id: "metadata",
@@ -37,6 +35,7 @@ const ALL_TOOLS = {
     path: "/generate-metadata",
     icon: Search,
     color: "from-emerald-500 to-teal-600",
+    type: TOOL_TYPES.TEXT,
   },
   youtube: {
     id: "youtube",
@@ -45,6 +44,7 @@ const ALL_TOOLS = {
     path: "/youtube-summarization",
     icon: Youtube,
     color: "from-red-500 to-rose-600",
+    type: TOOL_TYPES.URL,
   },
   keyword: {
     id: "keyword",
@@ -53,6 +53,7 @@ const ALL_TOOLS = {
     path: "/keyword-research",
     icon: TrendingUp,
     color: "from-blue-400 to-cyan-600",
+    type: TOOL_TYPES.TEXT,
   },
   chatpdf: {
     id: "chatpdf",
@@ -61,6 +62,7 @@ const ALL_TOOLS = {
     path: "/chat-with-pdf",
     icon: MessageSquare,
     color: "from-indigo-400 to-blue-600",
+    type: TOOL_TYPES.GENERIC,
   },
   ranking: {
     id: "ranking",
@@ -69,17 +71,77 @@ const ALL_TOOLS = {
     path: "/website-ranking",
     icon: Layout,
     color: "from-teal-400 to-emerald-600",
+    type: TOOL_TYPES.URL,
+  },
+  scraping: {
+    id: "scraping",
+    title: "Keyword Scrapping",
+    description: "Extract high-performing keywords from any website URL.",
+    path: "/keyword-scraping",
+    icon: MousePointerClick,
+    color: "from-orange-500 to-amber-600",
+    type: TOOL_TYPES.URL,
+  },
+  builder: {
+    id: "builder",
+    title: "AI Website Builder",
+    description: "Create stunning websites and landing pages in seconds.",
+    path: "/competitive-analysis",
+    icon: Globe,
+    color: "from-violet-500 to-fuchsia-600",
+    type: TOOL_TYPES.URL,
+  },
+  images: {
+    id: "images",
+    title: "AI Image Tools",
+    description: "Generate and edit professional images with AI. ",
+    path: "/image-gallery",
+    icon: ImageIcon,
+    color: "from-pink-500 to-rose-600",
+    type: TOOL_TYPES.GENERIC,
+  },
+  monitoring: {
+    id: "monitoring",
+    title: "Performance Monitoring",
+    description: "Keep track of your SEO performance and site health.",
+    path: "/performance-monitoring",
+    icon: Activity,
+    color: "from-green-500 to-emerald-600",
+    type: TOOL_TYPES.GENERIC,
   },
 }
 
-const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?" }) => {
+const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?", transferValue = "" }) => {
   const navigate = useNavigate()
 
-  // Filter out the current tool and map IDs to tool objects
-  const toolsToShow = suggestions
-    .map(id => ALL_TOOLS[id])
-    .filter(tool => tool && tool.id !== currentToolId)
-    .slice(0, 3)
+  const currentTool = ALL_TOOLS[currentToolId] || {}
+  const currentType = currentTool.type || TOOL_TYPES.GENERIC
+
+  // Smart suggestions logic
+  const getSmartSuggestions = () => {
+    // 1. Get tools of the same type (excluding current)
+    const sameType = Object.values(ALL_TOOLS).filter(
+      t => t.type === currentType && t.id !== currentToolId
+    )
+    
+    // 2. Get generic tools (excluding current and same type)
+    const generics = Object.values(ALL_TOOLS).filter(
+      t => t.type === TOOL_TYPES.GENERIC && t.id !== currentToolId && !sameType.find(st => st.id === t.id)
+    )
+
+    // 3. Get other tools (fallback)
+    const others = Object.values(ALL_TOOLS).filter(
+      t => t.id !== currentToolId && !sameType.find(st => st.id === t.id) && !generics.find(g => g.id === t.id)
+    )
+
+    // Combine them prioritising same type, then generic, then others
+    return [...sameType, ...generics, ...others].slice(0, 3)
+  }
+
+  // Use either smart suggestions or manual suggestions
+  const toolsToShow = suggestions.length > 0
+    ? suggestions.map(id => ALL_TOOLS[id]).filter(tool => tool && tool.id !== currentToolId).slice(0, 3)
+    : getSmartSuggestions()
 
   if (toolsToShow.length === 0) return null
 
@@ -99,7 +161,7 @@ const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            onClick={() => navigate(tool.path)}
+            onClick={() => navigate(tool.path, { state: { transferValue } })}
             className="group cursor-pointer bg-white border border-gray-100 p-5 rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden"
           >
             {/* Background Gradient Blur */}

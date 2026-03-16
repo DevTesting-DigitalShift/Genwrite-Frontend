@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } from "lucide-react"
 import { toast } from "sonner"
 
 import useToolsStore from "@store/useToolsStore"
 import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import ConnectedTools from "@components/ConnectedTools"
 
 const KeywordScraping = () => {
-  const [inputUrl, setInputUrl] = useState("")
+  const location = useLocation()
+  const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
   const { keywordScraping, resetKeywordScraping } = useToolsStore()
   const { result: scrapingResult, error } = keywordScraping
   const {
@@ -116,7 +119,11 @@ const KeywordScraping = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Scraping keywords from the website..." timer={timer} />
+        <ProgressLoadingScreen 
+          message="Scraping keywords from the website..." 
+          timer={timer} 
+          scenario="scrapping"
+        />
       </div>
     )
   }
@@ -247,6 +254,11 @@ const KeywordScraping = () => {
               <div className="bg-gray-100 p-4 rounded-lg">
                 <p className="text-xs text-gray-600 mb-1">Analyzed URL</p>
                 <p className="text-sm text-gray-800 font-mono break-all">{inputUrl}</p>
+              </div>
+
+              {/* Connected Tools Suggestion */}
+              <div className="pt-6 border-t border-gray-100">
+                <ConnectedTools currentToolId="scraping" transferValue={inputUrl} />
               </div>
             </div>
           </div>

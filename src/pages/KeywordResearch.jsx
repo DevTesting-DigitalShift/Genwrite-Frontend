@@ -21,8 +21,20 @@ import {
 } from "@/components/ui/dialog"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { toast } from "sonner"
-import { X, ChevronLeft, ChevronRight, Search, Info, ArrowLeft, Sparkles, Download, ArrowUp, ArrowDown, ArrowUp01 } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Info,
+  ArrowLeft,
+  Sparkles,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  ArrowUp01,
+} from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom"
 import useJobStore from "@store/useJobStore"
 import { useQueryClient } from "@tanstack/react-query"
 import LoadingScreen from "@/components/ui/LoadingScreen"
@@ -42,8 +54,12 @@ import ConnectedTools from "@components/ConnectedTools"
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 
 const KeywordResearch = () => {
+  const location = useLocation()
   const [newKeyword, setNewKeyword] = useState("")
-  const [keywords, setKeywords] = useState([])
+  const [keywords, setKeywords] = useState(() => {
+    const initial = location.state?.transferValue || ""
+    return initial ? initial.split(",").map(k => k.trim()) : []
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [autoSelectVisible, setAutoSelectVisible] = useState(false)
@@ -185,10 +201,10 @@ const KeywordResearch = () => {
 
   const handleExport = async () => {
     if (!keywordAnalysisResult?.length) return
-    
+
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet("Keyword Analysis")
-    
+
     worksheet.columns = [
       { header: "Keyword", key: "keyword", width: 30 },
       { header: "Monthly Searches", key: "avgMonthlySearches", width: 20 },
@@ -197,15 +213,17 @@ const KeywordResearch = () => {
       { header: "Low Bid", key: "lowBid", width: 10 },
       { header: "High Bid", key: "highBid", width: 10 },
     ]
-    
+
     keywordAnalysisResult.forEach(kw => {
       worksheet.addRow(kw)
     })
-    
+
     worksheet.getRow(1).font = { bold: true }
-    
+
     const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
     const url = window.URL.createObjectURL(blob)
     const anchor = document.createElement("a")
     anchor.href = url
@@ -222,7 +240,7 @@ const KeywordResearch = () => {
       allKeywords: finalKeywords,
     })
     setPendingImport(type)
-    
+
     if (type === "blog") {
       setShowAdvancedBlogModal(true)
     } else {
@@ -258,28 +276,34 @@ const KeywordResearch = () => {
       {
         id: "select",
         header: ({ table }) => {
-          const pageKeywords = currentRows.map(r => r.id)
-          const selectedOnPage = pageKeywords.filter(k => selectedKeywords?.allKeywords?.includes(k))
-          const isAllPageSelected = pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
-          const isSomePageSelected = selectedOnPage.length > 0 && selectedOnPage.length < pageKeywords.length
+          const { rowSelection: stateSelection } = table.getState()
+          const rows = table.getSortedRowModel().rows
+          const pageRows = rows.slice(
+            (currentPage - 1) * REAL_PAGE_SIZE,
+            currentPage * REAL_PAGE_SIZE
+          )
+          const pageKeywords = pageRows.map(r => r.id)
+          const selectedOnPage = pageKeywords.filter(k => stateSelection[k])
+          const isAllPageSelected =
+            pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
+          const isSomePageSelected =
+            selectedOnPage.length > 0 && selectedOnPage.length < pageKeywords.length
 
           return (
             <Checkbox
               checked={isAllPageSelected || (isSomePageSelected && "indeterminate")}
               onCheckedChange={value => {
-                const nextSelection = { ...rowSelection }
                 if (value) {
                   // Select only current page keywords
+                  const nextSelection = { ...stateSelection }
                   pageKeywords.forEach(k => {
                     nextSelection[k] = true
                   })
+                  table.setRowSelection(nextSelection)
                 } else {
-                  // Deselect only current page keywords
-                  pageKeywords.forEach(k => {
-                    delete nextSelection[k]
-                  })
+                  // Deselect ALL keywords as per request
+                  table.setRowSelection({})
                 }
-                table.setRowSelection(nextSelection)
               }}
             />
           )
@@ -291,15 +315,8 @@ const KeywordResearch = () => {
           />
         ),
       },
-      {
-        accessorKey: "keyword",
-        header: "Keyword",
-      },
-      {
-        accessorKey: "avgMonthlySearches",
-        header: "Searches (Mo)",
-        sortingFn: "basic",
-      },
+      { accessorKey: "keyword", header: "Keyword" },
+      { accessorKey: "avgMonthlySearches", header: "Searches (Mo)", sortingFn: "basic" },
       {
         accessorKey: "competition",
         header: "Difficulty",
@@ -310,23 +327,11 @@ const KeywordResearch = () => {
           return valA - valB
         },
       },
-      {
-        accessorKey: "competition_index",
-        header: "Score",
-        sortingFn: "basic",
-      },
-      {
-        accessorKey: "lowBid",
-        header: "Low Bid",
-        sortingFn: "basic",
-      },
-      {
-        accessorKey: "highBid",
-        header: "High Bid",
-        sortingFn: "basic",
-      },
+      { accessorKey: "competition_index", header: "Score", sortingFn: "basic" },
+      { accessorKey: "lowBid", header: "Low Bid", sortingFn: "basic" },
+      { accessorKey: "highBid", header: "High Bid", sortingFn: "basic" },
     ],
-    []
+    [currentPage]
   )
 
   const filteredData = useMemo(() => {
@@ -349,15 +354,12 @@ const KeywordResearch = () => {
     data: filteredData,
     columns,
     getRowId: row => row.keyword,
-    state: {
-      sorting,
-      rowSelection,
-    },
+    state: { sorting, rowSelection },
     onSortingChange: setSorting,
     onRowSelectionChange: updater => {
       const nextSelection = typeof updater === "function" ? updater(rowSelection) : updater
       const selectedKeys = Object.keys(nextSelection).filter(k => nextSelection[k])
-      
+
       if (selectedKeys.length === 0) {
         setSelectedKeywords({ focusKeywords: [], keywords: [], allKeywords: [] })
         return
@@ -366,7 +368,7 @@ const KeywordResearch = () => {
       let final = selectedKeys
       if (selectedKeys.length > 35) {
         toast.error("Selection limit of 35 keywords reached")
-        
+
         const currentInView = currentRows.map(r => r.id)
         const inViewSelected = selectedKeys.filter(k => currentInView.includes(k))
         const remainingSlots = 35 - inViewSelected.length
@@ -374,23 +376,23 @@ const KeywordResearch = () => {
         if (remainingSlots > 0) {
           const sortedAll = table.getSortedRowModel().rows.map(r => r.id)
           const lastInViewIdx = Math.max(...currentInView.map(id => sortedAll.indexOf(id)))
-          
+
           // Keywords after the current view
-          const subsequent = sortedAll.slice(lastInViewIdx + 1).filter(k => selectedKeys.includes(k))
+          const subsequent = sortedAll
+            .slice(lastInViewIdx + 1)
+            .filter(k => selectedKeys.includes(k))
           // Keywords before the current view
-          const preceeding = sortedAll.slice(0, Math.min(...currentInView.map(id => sortedAll.indexOf(id)))).filter(k => selectedKeys.includes(k))
-          
+          const preceeding = sortedAll
+            .slice(0, Math.min(...currentInView.map(id => sortedAll.indexOf(id))))
+            .filter(k => selectedKeys.includes(k))
+
           final = [...inViewSelected, ...subsequent, ...preceeding].slice(0, 35)
         } else {
           final = inViewSelected.slice(0, 35)
         }
       }
 
-      setSelectedKeywords({
-        focusKeywords: final.slice(0, 3),
-        keywords: final,
-        allKeywords: final,
-      })
+      setSelectedKeywords({ focusKeywords: final.slice(0, 3), keywords: final, allKeywords: final })
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -398,10 +400,9 @@ const KeywordResearch = () => {
   })
 
   const totalPages = Math.ceil(table.getFilteredRowModel().rows.length / REAL_PAGE_SIZE)
-  const currentRows = table.getSortedRowModel().rows.slice(
-    (currentPage - 1) * REAL_PAGE_SIZE,
-    currentPage * REAL_PAGE_SIZE
-  )
+  const currentRows = table
+    .getSortedRowModel()
+    .rows.slice((currentPage - 1) * REAL_PAGE_SIZE, currentPage * REAL_PAGE_SIZE)
 
   const handlePageChange = page => setCurrentPage(page)
 
@@ -445,7 +446,9 @@ const KeywordResearch = () => {
                 <Search className="w-6 h-6 text-[#1B6FC9]" />
                 Keyword Research
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Discover high-potential keywords and analyze their performance.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Discover high-potential keywords and analyze their performance.
+              </p>
             </div>
           </div>
         </div>
@@ -544,8 +547,10 @@ const KeywordResearch = () => {
                   <span className="text-xs font-bold text-[#1B6FC9] uppercase tracking-wider">
                     Selection Pool
                   </span>
-                  <div className="text-sm text-blue-800 font-bold bg-blue-200/50 px-4 py-1.5 rounded-full border border-blue-300/30">
-                    {selectedKeywords?.allKeywords?.length || 0} / 35 max
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-blue-800 font-bold bg-blue-200/50 px-4 py-1.5 rounded-full border border-blue-300/30">
+                      {selectedKeywords?.allKeywords?.length || 0} / 35 max
+                    </div>
                   </div>
                 </div>
               </div>
@@ -641,9 +646,21 @@ const KeywordResearch = () => {
 
                 <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
                   <div className="text-sm text-slate-500 font-medium">
-                    Showing <span className="text-slate-900 font-bold">{(currentPage - 1) * REAL_PAGE_SIZE + 1}</span> to{" "}
-                    <span className="text-slate-900 font-bold">{Math.min(currentPage * REAL_PAGE_SIZE, table.getFilteredRowModel().rows.length)}</span> of{" "}
-                    <span className="text-slate-900 font-bold">{table.getFilteredRowModel().rows.length}</span>
+                    Showing{" "}
+                    <span className="text-slate-900 font-bold">
+                      {(currentPage - 1) * REAL_PAGE_SIZE + 1}
+                    </span>{" "}
+                    to{" "}
+                    <span className="text-slate-900 font-bold">
+                      {Math.min(
+                        currentPage * REAL_PAGE_SIZE,
+                        table.getFilteredRowModel().rows.length
+                      )}
+                    </span>{" "}
+                    of{" "}
+                    <span className="text-slate-900 font-bold">
+                      {table.getFilteredRowModel().rows.length}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -695,9 +712,9 @@ const KeywordResearch = () => {
                               size="sm"
                               onClick={() => handlePageChange(item)}
                               className={`h-9 w-9 p-0 rounded-lg text-sm font-bold transition-all ${
-                                currentPage === item 
-                                  ? 'bg-[#1B6FC9] shadow-md shadow-[#1B6FC9]/20 text-white hover:bg-[#1B6FC9]' 
-                                  : 'hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30'
+                                currentPage === item
+                                  ? "bg-[#1B6FC9] shadow-md shadow-[#1B6FC9]/20 text-white hover:bg-[#1B6FC9]"
+                                  : "hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30"
                               }`}
                             >
                               {item}
@@ -748,10 +765,7 @@ const KeywordResearch = () => {
 
               {/* Connected Tools Suggestion */}
               <div className="pt-8 bg-slate-50/50 -mx-6 px-6 pb-6 border-t border-slate-100">
-                <ConnectedTools
-                  currentToolId="keyword"
-                  suggestions={["ranking", "metadata", "youtube"]}
-                />
+                <ConnectedTools currentToolId="keyword" transferValue={keywords.join(", ")} />
               </div>
             </div>
           )}
@@ -768,7 +782,8 @@ const KeywordResearch = () => {
           </DialogHeader>
           <div className="p-8 space-y-6">
             <p className="text-sm text-slate-500 font-medium leading-relaxed">
-              Our AI has identified the most balanced keywords for your content strategy based on search volume and competitive indices.
+              Our AI has identified the most balanced keywords for your content strategy based on
+              search volume and competitive indices.
             </p>
             <div className="flex flex-wrap gap-2">
               {getAutoSelectedKeywords().map(kw => (
@@ -785,7 +800,11 @@ const KeywordResearch = () => {
             </p>
           </div>
           <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 rounded-b-2xl flex gap-3">
-            <Button variant="ghost" className="font-bold flex-1" onClick={() => setAutoSelectVisible(false)}>
+            <Button
+              variant="ghost"
+              className="font-bold flex-1 hover:bg-gray-200"
+              onClick={() => setAutoSelectVisible(false)}
+            >
               Decline
             </Button>
             <Button
@@ -797,12 +816,12 @@ const KeywordResearch = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <Suspense fallback={<LoadingScreen />}>
         {showAdvancedBlogModal && (
-          <AdvancedBlogModal 
-            closeFnc={() => setShowAdvancedBlogModal(false)} 
-            queryClient={queryClient} 
+          <AdvancedBlogModal
+            closeFnc={() => setShowAdvancedBlogModal(false)}
+            queryClient={queryClient}
           />
         )}
       </Suspense>

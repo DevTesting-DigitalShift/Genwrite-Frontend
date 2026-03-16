@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useHumanizeStore from "@store/useHumanizeStore"
 import useAuthStore from "@store/useAuthStore"
@@ -21,7 +21,8 @@ import ConnectedTools from "@components/ConnectedTools"
 
 const HumanizeContent = () => {
   const navigate = useNavigate()
-  const [inputContent, setInputContent] = useState("")
+  const location = useLocation()
+  const [inputContent, setInputContent] = useState(location.state?.transferValue || "")
   const { result: outputContent, resetHumanizeState } = useHumanizeStore()
   const { mutate: generateContent, isPending } = useHumanizeMutation()
 
@@ -207,7 +208,12 @@ const HumanizeContent = () => {
               <p
                 className={`text-sm mb-2 ${wordCount < 100 || wordCount > 1000 ? "text-yellow-500" : "text-green-600"}`}
               >
-                Word count: {wordCount} {wordCount < 100 ? "(Minimum 100 words required)" : wordCount > 1000 ? "(Maximum 1000 words allowed)" : ""}
+                Word count: {wordCount}{" "}
+                {wordCount < 100
+                  ? "(Minimum 100 words required)"
+                  : wordCount > 1000
+                    ? "(Maximum 1000 words allowed)"
+                    : ""}
               </p>
             </div>
             <button
@@ -316,8 +322,8 @@ const HumanizeContent = () => {
             <div className="p-6 pt-0">
               <ConnectedTools
                 currentToolId="humanize"
+                transferValue={outputContent?.rewrittenContent}
                 title="Verify Your Humanized Content!"
-                suggestions={["detection", "metadata", "chatpdf"]}
               />
             </div>
           </div>

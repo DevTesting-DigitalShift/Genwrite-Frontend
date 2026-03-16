@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { motion, AnimatePresence } from "framer-motion"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { getBlogById } from "@api/blogApi"
 import useAuthStore from "@store/useAuthStore"
@@ -22,6 +22,7 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import { useAllBlogsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet"
+import ConnectedTools from "@components/ConnectedTools"
 
 import {
   Select,
@@ -43,9 +44,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const CompetitiveAnalysis = () => {
+  const location = useLocation()
   const [formData, setFormData] = useState({
     title: "",
-    content: "",
+    content: location.state?.transferValue || "",
     keywords: [],
     focusKeywords: [],
     contentType: "markdown",
@@ -245,7 +247,9 @@ const CompetitiveAnalysis = () => {
   const hasCompetitors = mergedCompetitors.length > 0
   const hasAnalysisResults = !!analysisResults
   const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
-  const hasLinks = (formData.generatedMetadata?.outboundLinks?.length > 0) || (formData.generatedMetadata?.internalLinks?.length > 0)
+  const hasLinks =
+    formData.generatedMetadata?.outboundLinks?.length > 0 ||
+    formData.generatedMetadata?.internalLinks?.length > 0
 
   const CircularProgress = ({ score }) => {
     const radius = 45
@@ -739,6 +743,11 @@ const CompetitiveAnalysis = () => {
                   "Perform Competitive Scan"
                 )}
               </Button>
+            </div>
+
+            {/* Connected Tools */}
+            <div className="mt-8 border-t border-gray-100 pt-8">
+              <ConnectedTools currentToolId="competitive" transferValue={formData.content} />
             </div>
           </div>
         )}

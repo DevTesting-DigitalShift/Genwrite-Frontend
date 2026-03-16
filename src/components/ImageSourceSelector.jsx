@@ -113,22 +113,23 @@ const ImageSourceSelector = ({
                 )
               )}
 
-              <div
-                className={`p-2 rounded-lg mb-3 flex items-center justify-center w-fit
-                ${isActive ? "bg-[#1B6FC9]/10 text-[#1B6FC9]" : "bg-slate-100 text-slate-600 group-hover:bg-[#1B6FC9]/10 group-hover:text-[#1B6FC9]"}
-              `}
-              >
-                {getIcon(option.id)}
+              <div className="flex items-center gap-3 w-full mb-1">
+                <div
+                  className={`p-1 flex items-center justify-center w-fit
+                  ${isActive ? "bg-[#1B6FC9]/10 text-[#1B6FC9]" : "text-slate-600 group-hover:text-[#1B6FC9]"}
+                `}
+                >
+                  {getIcon(option.id)}
+                </div>
+
+                <h4
+                  className={`text-sm font-bold transition-colors ${isActive ? "text-[#1B6FC9]" : "text-slate-800"}`}
+                >
+                  {option.label}
+                </h4>
               </div>
 
-              <div className="w-full">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4
-                    className={`text-sm font-bold transition-colors ${isActive ? "text-[#1B6FC9]" : "text-slate-800"}`}
-                  >
-                    {option.label}
-                  </h4>
-                </div>
+              <div className="w-full mt-1">
                 <p
                   className={`text-xs leading-tight transition-colors ${isActive ? "text-slate-600" : "text-slate-500"}`}
                 >

@@ -16,6 +16,7 @@ import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
+import AdvancedOptions from "@components/AdvancedOptions"
 import { queryClient } from "@utils/queryClient"
 import { validateBulkBlogData } from "@/types/forms.schemas"
 import useAuthStore from "@store/useAuthStore"
@@ -52,7 +53,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT,
     imageSource: IMAGE_SOURCE.STOCK,
     isCheckedBrand: false,
-    useCompetitors: false,
+    includeCompetitorResearch: false,
     includeInterlinks: true,
     includeFaqs: true,
     numberOfBlogs: 1,
@@ -67,6 +68,9 @@ const BulkBlogModal = ({ closeFnc }) => {
     costCutter: true,
     easyToUnderstand: false,
     embedYouTubeVideos: false,
+    extendedThinking: false,
+    deepResearch: false,
+    humanization: false,
   }
 
   const initialErrorsState = {
@@ -103,7 +107,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   const estimatedCost = useMemo(() => {
     const features = []
     if (formData.isCheckedBrand) features.push("brandVoice")
-    if (formData.useCompetitors) features.push("competitorResearch")
+    if (formData.includeCompetitorResearch) features.push("competitorResearch")
     if (formData.performKeywordResearch) features.push("keywordResearch")
     if (formData.includeInterlinks) features.push("internalLinking")
     if (formData.includeFaqs) features.push("faqGeneration")
@@ -123,13 +127,13 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     let totalCost = formData.numberOfBlogs * blogCost
     if (formData.costCutter) {
-      totalCost = Math.round(totalCost * 0.75)
+      totalCost = Math.round(totalCost * 0.5)
     }
 
     return totalCost
   }, [
     formData.isCheckedBrand,
-    formData.useCompetitors,
+    formData.includeCompetitorResearch,
     formData.performKeywordResearch,
     formData.includeInterlinks,
     formData.includeFaqs,
@@ -1022,107 +1026,37 @@ const BulkBlogModal = ({ closeFnc }) => {
                 errorText={errors.brandId}
               />
 
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Easy to Understand
-                </label>
-                <Switch
-                  id="bulk-easy-understand-toggle"
-                  checked={formData.easyToUnderstand || false}
-                  onCheckedChange={checked => {
-                    setFormData(prev => ({ ...prev, easyToUnderstand: checked }))
-                  }}
-                  size="large"
-                />
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Embed YouTube Videos
-                </label>
-                <Switch
-                  id="bulk-embed-youtube-toggle"
-                  checked={formData.embedYouTubeVideos || false}
-                  onCheckedChange={checked => {
-                    setFormData(prev => ({ ...prev, embedYouTubeVideos: checked }))
-                  }}
-                  size="large"
-                />
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm font-semibold text-gray-700">
-                  Enable Competitive Research
-                  <p className="text-xs text-gray-500">
-                    Perform competitive research to analyze similar blogs.
-                  </p>
-                </span>
-                <Switch
-                  checked={formData.useCompetitors}
-                  onCheckedChange={checked =>
-                    handleCheckboxChange({ target: { name: "useCompetitors", checked } })
-                  }
-                  size="large"
-                />
-              </div>
-              {formData.useCompetitors && (
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Show Outbound Links
-                    <p className="text-xs text-gray-500">
-                      Display outbound links found during competitor analysis.
-                    </p>
-                  </span>
-                  <Switch
-                    name="addOutBoundLinks"
-                    checked={formData.addOutBoundLinks}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "addOutBoundLinks", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
-              )}
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={[
+                  "extendedThinking",
+                  "deepResearch",
+                  "humanization",
+                  "includeCompetitorResearch",
+                  "addOutBoundLinks",
+                  "easyToUnderstand",
+                  "embedYouTubeVideos",
+                ]}
+              />
             </div>
           )}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Include Interlinks
-                    <p className="text-xs text-gray-500">
-                      Attempt to link between generated blogs if relevant.
-                    </p>
-                  </span>
-                  <Switch
-                    checked={formData.includeInterlinks}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "includeInterlinks", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    Include FAQ Section
-                    <p className="text-xs text-gray-500">
-                      Generate relevant FAQ questions and answers for the blog.
-                    </p>
-                  </span>
-                  <Switch
-                    checked={formData.includeFaqs}
-                    onCheckedChange={checked =>
-                      handleCheckboxChange({ target: { name: "includeFaqs", checked } })
-                    }
-                    size="large"
-                  />
-                </div>
+                <AdvancedOptions
+                  formData={formData}
+                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                  showFields={["includeInterlinks", "includeFaqs"]}
+                />
               </div>
 
               <div className="pt-4 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+                    <p className="text-xs text-gray-500">Search and add relevant images to your blogs</p>
+                  </div>
                   <div className="flex items-center">
                     <Switch
                       id="add-image-toggle"
@@ -1201,12 +1135,12 @@ const BulkBlogModal = ({ closeFnc }) => {
             {/* Cost Section */}
             {currentStep === 3 && (
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="text-gray-600 font-semibold">Estimated Cost:</span>
 
                 <span className="font-bold text-blue-600">{estimatedCost} credits</span>
 
                 {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-semibold">(-25% off)</span>
+                  <span className="text-xs text-green-600 font-semibold">(-50% off)</span>
                 )}
 
                 <span className="text-xs text-gray-500">
