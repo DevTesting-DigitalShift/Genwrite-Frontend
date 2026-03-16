@@ -75,7 +75,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       includeTableOfContents: false as boolean,
       extendedThinking: false as boolean,
       deepResearch: false as boolean,
-      humanization: false as boolean,
+      humanisation: false as boolean,
     },
   }
 
@@ -999,7 +999,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 showFields={[
                   "extendedThinking",
                   "deepResearch",
-                  "humanization",
+                  "humanisation",
                   "includeFaqs",
                   "includeInterlinks",
                   "embedYouTubeVideos",

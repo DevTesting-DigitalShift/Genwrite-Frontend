@@ -19,6 +19,10 @@ import {
   Link2,
   AlignLeft,
   Youtube,
+  Brain,
+  Search,
+  Sparkles,
+  Cpu,
 } from "lucide-react"
 
 const SectionLabel = ({ children }) => (
@@ -81,9 +85,11 @@ const ExpandableTagList = ({ items, color, limit = 10 }) => {
 
   return (
     <div className="space-y-2">
-      <div 
+      <div
         className={`flex flex-wrap gap-2 items-center transition-all duration-300 ${
-          expanded ? "max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200" : ""
+          expanded
+            ? "max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200"
+            : ""
         }`}
       >
         {displayItems.map((item, i) => (
@@ -144,6 +150,9 @@ const JobExpandedPanel = ({ job }) => {
     { key: "addOutBoundLinks", label: "Outbound Links", icon: Link2 },
     { key: "embedYouTubeVideos", label: "YouTube Embed", icon: Youtube },
     { key: "easyToUnderstand", label: "Easy Language", icon: BookOpen },
+    { key: "extendedThinking", label: "Extended Thinking", icon: Brain },
+    { key: "deepResearch", label: "Deep Research", icon: Search },
+    { key: "humanisation", label: "Humanisation", icon: Sparkles },
   ]
 
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -155,9 +164,7 @@ const JobExpandedPanel = ({ job }) => {
         : null
 
   const imageSrcLabel =
-    { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[
-      blogs.imageSource
-    ] ||
+    { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[blogs.imageSource] ||
     blogs.imageSource ||
     "—"
 
@@ -206,141 +213,164 @@ const JobExpandedPanel = ({ job }) => {
         )}
       </div>
 
-      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {/* ── Col 1: Blog Specification ── */}
-        <div className="space-y-4">
-          <div className="space-y-1.5">
+        <div className="space-y-6">
+          <div className="space-y-3">
             <SectionLabel>
               <Layers size={10} />
               Structure & Style
             </SectionLabel>
-            <div className="mb-3">
-              <p className="text-[10px] text-slate-400 mb-1 font-bold">Templates</p>
-              <TagList items={blogs.templates} color="amber" />
-            </div>
-            <KV label="Voice Tone" value={blogs.tone} />
-            <KV
-              label="Article Length"
-              value={
-                blogs.userDefinedLength ? `${blogs.userDefinedLength.toLocaleString()} words` : "Auto"
-              }
-            />
-            <KV label="Language" value={blogs.languageToWrite} />
-            <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
-          </div>
-
-          <div className="space-y-1.5 pt-2 border-t border-slate-50">
-            <KV
-              label="Cost Cutter"
-              value={blogs.costCutter ? "Optimized" : "Disabled"}
-              valueClass={blogs.costCutter ? "text-emerald-600 font-bold" : "text-slate-400"}
-            />
-            <KV
-              label="Post CTA"
-              value={blogs.addCTA ? "Enabled" : "Disabled"}
-              valueClass={blogs.addCTA ? "text-indigo-600 font-bold" : "text-slate-400"}
-            />
-          </div>
-        </div>
-
-        {/* ── Col 2: Deployment & Results ── */}
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <SectionLabel>
-              <Calendar size={10} />
-              Schedule & Run
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 space-y-1.5">
-              <KV label="Type" value={schedule.type || "Manual"} valueClass="text-slate-900 font-bold" />
-              {scheduleDays && <KV label="Active On" value={scheduleDays} />}
-              <KV label="Volume" value={`${blogs.numberOfBlogs} Blogs / Run`} />
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
+              <div className="mb-2">
+                <p className="text-[10px] text-slate-400 mb-1 font-bold">Templates</p>
+                <TagList items={blogs.templates} color="amber" />
+              </div>
+              <KV label="Voice Tone" value={blogs.tone} />
+              <KV
+                label="Article Length"
+                value={
+                  blogs.userDefinedLength
+                    ? `${blogs.userDefinedLength.toLocaleString()} words`
+                    : "Auto"
+                }
+              />
+              <KV label="Language" value={blogs.languageToWrite} />
+              <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
+              <div className="pt-2 mt-2 border-t border-slate-100/50 space-y-2">
+                <KV
+                  label="Cost Cutter"
+                  value={blogs.costCutter ? "Optimized" : "Disabled"}
+                  valueClass={blogs.costCutter ? "text-emerald-600 font-bold" : "text-slate-400"}
+                />
+                <KV
+                  label="Post CTA"
+                  value={blogs.addCTA ? "Enabled" : "Disabled"}
+                  valueClass={blogs.addCTA ? "text-indigo-600 font-bold" : "text-slate-400"}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-1.5 pt-2">
-            <SectionLabel>
-              <FileText size={10} />
-              Stats & Logs
-            </SectionLabel>
-            <KV
-              label="Last Activity"
-              value={
-                job.lastRun
-                  ? new Date(job.lastRun).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "Never"
-              }
-            />
-            <KV label="Total Generated" value={`${job.createdBlogs?.length ?? 0} Blogs`} valueClass="text-slate-900 font-bold" />
-            <KV label="Internal ID" value={`#${job._id?.slice(-8)}`} valueClass="font-mono text-[9px]" />
-          </div>
-        </div>
-
-        {/* ── Col 3: Enhancement ── */}
-        <div className="space-y-5">
           <div className="space-y-3">
             <SectionLabel>
               <Megaphone size={10} />
               Brand Assets
             </SectionLabel>
             <div
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
                 blogs.useBrandVoice
                   ? "bg-purple-50 border-purple-200 text-purple-700"
                   : "bg-slate-50 border-slate-100 text-slate-400"
               }`}
             >
-              <Shield size={14} className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"} />
+              <Shield
+                size={14}
+                className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"}
+              />
               {blogs.useBrandVoice ? "Brand Voice Identity Active" : "No Brand Voice Applied"}
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
+        {/* ── Col 2: Deployment & Results ── */}
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <SectionLabel>
+              <Calendar size={10} />
+              Schedule & Run
+            </SectionLabel>
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
+              <KV
+                label="Type"
+                value={schedule.type || "Manual"}
+                valueClass="text-slate-900 font-bold"
+              />
+              {scheduleDays && <KV label="Active On" value={scheduleDays} />}
+              <KV label="Volume" value={`${blogs.numberOfBlogs} Blogs / Run`} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <SectionLabel>
+              <FileText size={10} />
+              Stats & Logs
+            </SectionLabel>
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
+              <KV
+                label="Last Activity"
+                value={
+                  job.lastRun
+                    ? new Date(job.lastRun).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "Never"
+                }
+              />
+              <KV
+                label="Total Generated"
+                value={`${job.createdBlogs?.length ?? 0} Blogs`}
+                valueClass="text-slate-900 font-bold"
+              />
+              <KV
+                label="Internal ID"
+                value={`#${job._id?.slice(-8)}`}
+                valueClass="font-mono text-[9px]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
             <SectionLabel>
               <ImageIcon size={10} />
               Imagery Config
             </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 space-y-1.5">
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
               <KV label="Image Source" value={imageSrcLabel} />
               <KV label="Images Count" value={blogs.numberOfImages || "AI Choice"} />
-              <KV 
-                label="AI Generation" 
-                value={blogs.isCheckedGeneratedImages ? "Enabled" : "Disabled"} 
-                valueClass={blogs.isCheckedGeneratedImages ? "text-emerald-600 font-bold" : "text-slate-400"}
+              <KV
+                label="AI Generation"
+                value={blogs.isCheckedGeneratedImages ? "Enabled" : "Disabled"}
+                valueClass={
+                  blogs.isCheckedGeneratedImages ? "text-emerald-600 font-bold" : "text-slate-400"
+                }
               />
             </div>
           </div>
         </div>
 
-        {/* ── Col 4: Advanced Engine ── */}
-        <div className="lg:col-span-1">
+        {/* ── Col 3: Advanced Engine ── */}
+        <div className="xl:col-span-1 md:col-span-2 xl:col-start-3">
           <SectionLabel>
             <Zap size={10} />
             Advanced Features
           </SectionLabel>
-          <div className="flex flex-col gap-2 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3 mt-2">
             {OPTION_MAP.map(({ key, label, icon: Icon }) => {
               const isOn = !!options[key]
               return (
                 <div
                   key={key}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl border text-[10px] font-bold transition-all ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-[10px] font-bold transition-all ${
                     isOn
                       ? "bg-emerald-50/50 border-emerald-200 text-emerald-700 shadow-xs"
                       : "bg-slate-50/50 border-slate-100 text-slate-400 opacity-60"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 overflow-hidden">
                     <Icon size={12} className={isOn ? "text-emerald-500" : "text-slate-300"} />
                     <span className="truncate">{label}</span>
                   </div>
                   {isOn ? (
-                    <span className="text-emerald-600 bg-emerald-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase">Active</span>
+                    <span className="text-emerald-600 bg-emerald-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">
+                      Active
+                    </span>
                   ) : (
-                    <span className="text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase">Off</span>
+                    <span className="text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">
+                      Off
+                    </span>
                   )}
                 </div>
               )

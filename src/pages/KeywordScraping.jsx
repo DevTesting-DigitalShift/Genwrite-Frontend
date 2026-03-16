@@ -119,9 +119,9 @@ const KeywordScraping = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen 
-          message="Scraping keywords from the website..." 
-          timer={timer} 
+        <ProgressLoadingScreen
+          message="Scraping keywords from the website..."
+          timer={timer}
           scenario="scrapping"
         />
       </div>
@@ -204,7 +204,7 @@ const KeywordScraping = () => {
               </h2>
               <button
                 onClick={handleCopyKeywords}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy keywords"
               >
                 <Copy className="w-4 h-4" />
@@ -218,7 +218,7 @@ const KeywordScraping = () => {
                   <LinkIcon className="w-5 h-5 text-blue-600" />
                   Page Summary
                 </h3>
-                <p className="text-gray-700 leading-relaxed">{scrapingResult.summary}</p>
+                <p className=" leading-relaxed">{scrapingResult.summary}</p>
               </div>
 
               {/* Keywords Grid */}

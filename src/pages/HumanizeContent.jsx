@@ -256,7 +256,7 @@ const HumanizeContent = () => {
                   </div>
                   <button
                     onClick={() => handleCopy(inputContent, "original")}
-                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                     title="Copy original content"
                   >
                     <Copy className="w-4 h-4" />
@@ -285,7 +285,7 @@ const HumanizeContent = () => {
                     <button
                       onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
                       disabled={!outputContent?.rewrittenContent}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Copy processed content"
                     >
                       <Copy className="w-4 h-4" />
@@ -295,7 +295,7 @@ const HumanizeContent = () => {
                         handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
                       }
                       disabled={!outputContent?.rewrittenContent}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Download processed content"
                     >
                       <Download className="w-4 h-4" />

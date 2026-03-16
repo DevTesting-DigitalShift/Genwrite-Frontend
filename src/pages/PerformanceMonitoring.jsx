@@ -131,7 +131,7 @@ const PerformanceMonitoring = () => {
   const ScoreBox = ({ score, max, label, level, color }) => (
     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm w-full">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+        <span className="text-sm font-semibold  flex items-center gap-2">
           {label}
           <InfoTooltip type={/seo/gi.test(label) ? "seo" : "flesch"} />
         </span>
@@ -271,7 +271,7 @@ const PerformanceMonitoring = () => {
 
             {/* Keyword Analysis */}
             <div>
-              <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <h5 className="text-sm font-bold  mb-3 flex items-center gap-2">
                 <Tag size={16} /> Keyword Breakdown
               </h5>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -379,7 +379,7 @@ const PerformanceMonitoring = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
       <Helmet>
         <title>Performance Monitoring | GenWrite</title>
       </Helmet>
@@ -450,7 +450,7 @@ const PerformanceMonitoring = () => {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                <h3 className="font-bold text-gray-700">Content Snapshot</h3>
+                <h3 className="font-bold ">Content Snapshot</h3>
               </div>
               <div className="p-6 max-h-[300px] overflow-y-auto custom-scrollbar">
                 {detailsLoading ? (

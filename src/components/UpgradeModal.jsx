@@ -46,7 +46,7 @@ const UpgradeModal = ({ featureName }) => {
               Upgrade Now
             </button>
             <button
-              className="btn btn-ghost bg-gray-100 hover:bg-gray-200 text-gray-700 flex-1"
+              className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
               onClick={handleClose}
               aria-label="Cancel and go back"
             >

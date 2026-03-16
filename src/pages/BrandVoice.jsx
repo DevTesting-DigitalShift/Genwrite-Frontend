@@ -401,7 +401,7 @@ const BrandVoice = () => {
 
         <div className="space-y-4 sm:space-y-6">
           <div>
-            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="postLink" className="text-sm font-medium  flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
               <div
                 className="tooltip tooltip-right"
@@ -454,10 +454,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="nameOfVoice"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="nameOfVoice" className="text-sm font-medium  flex gap-2 mb-1">
               Name of Voice <span className="text-red-500">*</span>
             </label>
             <motion.input
@@ -482,7 +479,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="keywords" className="text-sm font-medium  flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
               <div
                 className="tooltip tooltip-right"
@@ -538,10 +535,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="sitemapUrl"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="sitemapUrl" className="text-sm font-medium  flex gap-2 mb-1">
               Sitemap URL <span className="text-red-500">*</span>
               <div
                 className="tooltip tooltip-right"
@@ -574,10 +568,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="describeBrand"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="describeBrand" className="text-sm font-medium  flex gap-2 mb-1">
               Describe Your Brand <span className="text-red-500">*</span>
             </label>
             <motion.textarea
@@ -602,7 +593,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label htmlFor="persona" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="persona" className="text-sm font-medium  flex gap-2 mb-1">
               Author Persona <span className="text-red-500">*</span>
               <div
                 className="tooltip tooltip-top"

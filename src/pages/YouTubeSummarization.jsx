@@ -218,7 +218,7 @@ const YouTubeSummarization = () => {
               </h2>
               <button
                 onClick={handleCopySummary}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy summary"
               >
                 <Copy className="w-4 h-4" />
@@ -258,9 +258,7 @@ const YouTubeSummarization = () => {
                   <FileText className="w-5 h-5 text-blue-600" />
                   Summary
                 </h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {summaryResult.summary}
-                </p>
+                <p className=" leading-relaxed whitespace-pre-wrap">{summaryResult.summary}</p>
               </div>
 
               {/* Key Points */}
@@ -277,7 +275,7 @@ const YouTubeSummarization = () => {
 
                 <ul className="space-y-3">
                   {summaryResult.keyPoints.map((point, idx) => (
-                    <li key={idx} className="flex gap-3 text-gray-700">
+                    <li key={idx} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>

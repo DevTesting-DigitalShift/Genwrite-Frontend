@@ -175,15 +175,19 @@ const PricingCalculator = () => {
                         max={BLOG_CONFIG.LENGTH.MAX}
                         step={BLOG_CONFIG.LENGTH.STEP}
                         value={[wordCount]}
-                        onValueChange={(vals) => setWordCount(vals[0])}
+                        onValueChange={vals => setWordCount(vals[0])}
                         className="w-full"
                       />
                       <div className="flex justify-between mt-4 px-2">
-                        <span className="text-xs font-black text-gray-400">{BLOG_CONFIG.LENGTH.MIN}</span>
+                        <span className="text-xs font-black text-gray-400">
+                          {BLOG_CONFIG.LENGTH.MIN}
+                        </span>
                         <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">
                           {wordCount} Words
                         </span>
-                        <span className="text-xs font-black text-gray-400">{BLOG_CONFIG.LENGTH.MAX.toLocaleString()}</span>
+                        <span className="text-xs font-black text-gray-400">
+                          {BLOG_CONFIG.LENGTH.MAX.toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -218,7 +222,7 @@ const PricingCalculator = () => {
                       >
                         <div className="flex items-center justify-between mb-4">
                           <span
-                            className={`transition-colors font-black ${selectedFeatures[key] ? "text-purple-700" : "text-gray-700"}`}
+                            className={`transition-colors font-black ${selectedFeatures[key] ? "text-purple-700" : ""}`}
                           >
                             {cfg.label}
                           </span>
@@ -303,7 +307,7 @@ const PricingCalculator = () => {
                           max={BLOG_CONFIG.IMAGES.MAX_COUNT}
                           step={1}
                           value={[imageCount]}
-                          onValueChange={(vals) => setImageCount(vals[0])}
+                          onValueChange={vals => setImageCount(vals[0])}
                           className="w-full"
                         />
                         <div className="flex justify-between mt-4 px-2">
@@ -359,9 +363,7 @@ const PricingCalculator = () => {
                             </span>
                             {isActive && <CheckCircle className="size-4 text-orange-500" />}
                           </div>
-                          <p
-                            className={`text-lg font-black ${isActive ? "text-orange-800" : "text-gray-700"}`}
-                          >
+                          <p className={`text-lg font-black ${isActive ? "text-orange-800" : ""}`}>
                             {cfg.costMultiplier}x Multiplier
                           </p>
                         </button>

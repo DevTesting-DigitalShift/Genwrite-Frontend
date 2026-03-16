@@ -351,7 +351,7 @@ const Onboarding = () => {
                       {formData.keywords.map((keyword, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100  rounded-full text-sm"
                         >
                           {keyword}
                           <button
@@ -422,9 +422,7 @@ const Onboarding = () => {
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                       Description
                     </p>
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {formData.describeBrand}
-                    </p>
+                    <p className=" text-sm leading-relaxed">{formData.describeBrand}</p>
                   </div>
                 )}
 
@@ -433,7 +431,7 @@ const Onboarding = () => {
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                       Author Persona
                     </p>
-                    <p className="text-gray-700 text-sm">{formData.persona}</p>
+                    <p className=" text-sm">{formData.persona}</p>
                   </div>
                 )}
 
@@ -444,10 +442,7 @@ const Onboarding = () => {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {formData.keywords.map((keyword, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm"
-                        >
+                        <span key={index} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
                           {keyword}
                         </span>
                       ))}

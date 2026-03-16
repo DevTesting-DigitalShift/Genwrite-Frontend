@@ -352,7 +352,7 @@ const StepContent = ({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Job Name</label>
+              <label className="block text-sm font-semibold  mb-2">Job Name</label>
               <input
                 type="text"
                 value={newJob.name}
@@ -369,7 +369,7 @@ const StepContent = ({
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
+              <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
                 Topics
                 <div
                   className="tooltip"
@@ -401,7 +401,7 @@ const StepContent = ({
                 >
                   <Plus />
                 </motion.button>
-                <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 h-auto btn min-h-auto border-gray-200">
+                <label className="px-4 py-2 bg-gray-100  border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 h-auto btn min-h-auto border-gray-200">
                   <Upload size={16} />
                   <input
                     type="file"
@@ -461,7 +461,7 @@ const StepContent = ({
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">
+              <span className="text-sm font-semibold ">
                 Perform Keyword Research?
                 <p className="text-xs text-gray-500">
                   Allow AI to find relevant keywords for the topics.
@@ -478,7 +478,7 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
+                <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
                   Keywords
                   <div
                     className="tooltip"
@@ -506,7 +506,7 @@ const StepContent = ({
                   >
                     <Plus />
                   </button>
-                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 btn min-h-auto h-auto border-gray-200">
+                  <label className="px-4 py-2 bg-gray-100  border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 btn min-h-auto h-auto border-gray-200">
                     <Upload size={16} />
                     <input
                       type="file"
@@ -566,7 +566,7 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 flex gap-2 items-center">
+              <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
                 References (URLs, max 3)
               </label>
               <div className="flex gap-2">
@@ -647,7 +647,7 @@ const StepContent = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="tone" className="block text-sm font-semibold  mb-2">
                   Tone of Voice
                 </label>
                 <select
@@ -666,10 +666,7 @@ const StepContent = ({
                 </select>
               </div>
               <div>
-                <label
-                  htmlFor="language"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label htmlFor="language" className="block text-sm font-semibold  mb-2">
                   Language <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -695,7 +692,7 @@ const StepContent = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold  mb-2">
                   Approx. Blog Length (Words)
                 </label>
                 <div className="relative">
@@ -726,7 +723,7 @@ const StepContent = ({
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="flex justify-between items-center">
-            <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+            <label className="block text-sm font-semibold ">Add Image</label>
             <div className="flex items-center">
               <Switch
                 checked={newJob.blogs.isCheckedGeneratedImages}
@@ -778,9 +775,7 @@ const StepContent = ({
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Schedule Type
-              </label>
+              <label className="block text-sm font-semibold  mb-2">Schedule Type</label>
               <select
                 value={newJob.schedule.type}
                 onChange={e => {
@@ -812,9 +807,7 @@ const StepContent = ({
             </div>
             {newJob.schedule.type === "weekly" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Select Days of Week
-                </label>
+                <label className="block text-sm font-semibold  mb-2">Select Days of Week</label>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
@@ -827,7 +820,7 @@ const StepContent = ({
                       className={`px-2 py-1 rounded ${
                         newJob.schedule.daysOfWeek?.includes(i)
                           ? "bg-[#1B6FC9] text-white"
-                          : "bg-gray-200 text-gray-700"
+                          : "bg-gray-200 "
                       }`}
                       onClick={() => {
                         setNewJob(prev => {
@@ -850,9 +843,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "monthly" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Select Dates of Month
-                </label>
+                <label className="block text-sm font-semibold  mb-2">Select Dates of Month</label>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
@@ -865,7 +856,7 @@ const StepContent = ({
                       className={`px-2 py-1 rounded ${
                         newJob.schedule.daysOfMonth?.includes(date)
                           ? "bg-[#1B6FC9] text-white"
-                          : "bg-gray-200 text-gray-700"
+                          : "bg-gray-200 "
                       }`}
                       onClick={() => {
                         setNewJob(prev => {
@@ -888,9 +879,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "custom" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Select Dates
-                </label>
+                <label className="block text-sm font-semibold  mb-2">Select Dates</label>
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
@@ -918,9 +907,7 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Number of Blogs
-              </label>
+              <label className="block text-sm font-semibold  mb-2">Number of Blogs</label>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -960,7 +947,7 @@ const StepContent = ({
               showFields={[
                 "extendedThinking",
                 "deepResearch",
-                "humanization",
+                "humanisation",
                 "includeFaqs",
                 "includeCompetitorResearch",
                 "addOutBoundLinks",
@@ -974,9 +961,7 @@ const StepContent = ({
             <div className="pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-sm font-semibold text-gray-700">
-                    Write with Brand Voice
-                  </span>
+                  <span className="text-sm font-semibold ">Write with Brand Voice</span>
                   <p className="text-xs text-gray-500 font-normal">
                     Apply your brand's unique tone and style.
                   </p>
@@ -1003,9 +988,7 @@ const StepContent = ({
               {newJob.blogs.useBrandVoice && brands.length > 0 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Select Brand Voice
-                    </label>
+                    <label className="block text-sm font-semibold ">Select Brand Voice</label>
                     <select
                       className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
                         errors.brandId ? "select-error" : ""
@@ -1035,10 +1018,10 @@ const StepContent = ({
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-semibold text-gray-700">
-                        Add CTA at the End
-                      </span>
-                      <p className="text-xs text-gray-500">Include a call-to-action to engage audience</p>
+                      <span className="text-sm font-semibold ">Add CTA at the End</span>
+                      <p className="text-xs text-gray-500">
+                        Include a call-to-action to engage audience
+                      </p>
                     </div>
                     <Switch
                       checked={newJob.blogs.addCTA}
@@ -1055,9 +1038,7 @@ const StepContent = ({
             <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-semibold text-gray-700">
-                    Enable Automatic Posting
-                  </span>
+                  <span className="text-sm font-semibold ">Enable Automatic Posting</span>
                   <p className="text-xs text-gray-500">
                     Automatically post the blog to your connected platforms.
                   </p>
@@ -1076,7 +1057,7 @@ const StepContent = ({
                     errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
                   }`}
                 >
-                  <label className="block text-sm font-semibold text-gray-700">
+                  <label className="block text-sm font-semibold ">
                     Select Your Publishing Platform
                   </label>
                   <p className="text-xs text-gray-500 font-normal mt-1">

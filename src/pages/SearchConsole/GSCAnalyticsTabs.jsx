@@ -81,7 +81,7 @@ export default function GSCAnalyticsTabs({
           header: ({ column }) => <SortableHeader column={column} title="Query" />,
           cell: info => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
-              <span className="text-gray-700 line-clamp-1 max-w-[180px] sm:max-w-[260px] text-left block">
+              <span className=" line-clamp-1 max-w-[180px] sm:max-w-[260px] text-left block">
                 {info.getValue()}
               </span>
             </div>
@@ -97,7 +97,7 @@ export default function GSCAnalyticsTabs({
           header: ({ column }) => <SortableHeader column={column} title="Country" />,
           cell: info => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
-              <span className="text-gray-700 line-clamp-1 max-w-[160px] text-left block">
+              <span className=" line-clamp-1 max-w-[160px] text-left block">
                 {info.getValue()} ({info.row.original.country})
               </span>
             </div>
@@ -113,7 +113,7 @@ export default function GSCAnalyticsTabs({
           header: ({ column }) => <SortableHeader column={column} title="Blog Title" />,
           cell: info => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
-              <span className="font-medium text-gray-700 line-clamp-1 max-w-[180px] sm:max-w-[280px] text-left block">
+              <span className="font-medium  line-clamp-1 max-w-[180px] sm:max-w-[280px] text-left block">
                 {info.getValue()}
               </span>
             </div>
@@ -144,17 +144,12 @@ export default function GSCAnalyticsTabs({
       }),
       columnHelper.accessor("ctr", {
         header: ({ column }) => <SortableHeader column={column} title="CTR" />,
-        cell: info => (
-          <span className="text-gray-700 font-medium">{Number(info.getValue()).toFixed(2)}%</span>
-        ),
-        sortingFn: (rowA, rowB) =>
-          parseFloat(rowA.original.ctr) - parseFloat(rowB.original.ctr),
+        cell: info => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}%</span>,
+        sortingFn: (rowA, rowB) => parseFloat(rowA.original.ctr) - parseFloat(rowB.original.ctr),
       }),
       columnHelper.accessor("position", {
         header: ({ column }) => <SortableHeader column={column} title="Position" />,
-        cell: info => (
-          <span className="text-gray-700 font-medium">{Number(info.getValue()).toFixed(2)}</span>
-        ),
+        cell: info => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}</span>,
         sortingFn: (rowA, rowB) =>
           parseFloat(rowA.original.position) - parseFloat(rowB.original.position),
       })

@@ -204,7 +204,7 @@ const ContactUs = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {/* Name Field */}
                       <div className="space-y-2">
-                        <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
+                        <label htmlFor="name" className="text-sm font-bold  ml-1">
                           Full Name <span className="text-red-500">*</span>
                         </label>
                         <div className="relative group">
@@ -228,7 +228,7 @@ const ContactUs = () => {
 
                       {/* Email Field */}
                       <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
+                        <label htmlFor="email" className="text-sm font-bold  ml-1">
                           Email Address <span className="text-red-500">*</span>
                         </label>
                         <div className="relative group">
@@ -253,7 +253,7 @@ const ContactUs = () => {
 
                     {/* Subject Field */}
                     <div className="space-y-2">
-                      <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
+                      <label htmlFor="subject" className="text-sm font-bold  ml-1">
                         Subject
                       </label>
                       <input
@@ -269,7 +269,7 @@ const ContactUs = () => {
 
                     {/* Message Field */}
                     <div className="space-y-2">
-                      <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
+                      <label htmlFor="message" className="text-sm font-bold  ml-1">
                         Message <span className="text-red-500">*</span>
                       </label>
                       <textarea
@@ -329,7 +329,7 @@ const ContactUs = () => {
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-none">
                       <Mail className="w-5 h-5 text-blue-500" />
                     </div>
-                    <span className="text-sm sm:text-base font-bold text-gray-700 group-hover:text-blue-600 truncate">
+                    <span className="text-sm sm:text-base font-bold  group-hover:text-blue-600 truncate">
                       {companyInfo.email.trim()}
                     </span>
                   </a>

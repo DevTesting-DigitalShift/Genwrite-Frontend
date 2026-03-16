@@ -240,15 +240,17 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       const rect = link.getBoundingClientRect()
       // Initial position (will be refined by useLayoutEffect)
       setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
-      
+
       setLinkPreviewUrl(currentUrl => {
-        if (currentUrl === url) return currentUrl;
-        return url;
+        if (currentUrl === url) return currentUrl
+        return url
       })
       setLinkPreviewElement(link)
 
       if (previewCache.current[url]) {
-        setLinkPreview(prev => prev === previewCache.current[url] ? prev : previewCache.current[url])
+        setLinkPreview(prev =>
+          prev === previewCache.current[url] ? prev : previewCache.current[url]
+        )
         if (previewCache.current[url].loading) return
         return
       }
@@ -258,7 +260,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       setLinkPreview(loadingState)
 
       getLinkPreview(url)
-        .catch(() => getLinkPreview(url, { proxyUrl: 'https://corsproxy.io/?' }))
+        .catch(() => getLinkPreview(url, { proxyUrl: "https://corsproxy.io/?" }))
         .then(data => {
           previewCache.current[url] = data
           // Check if we are still looking for THIS url
@@ -426,7 +428,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         const pos = normalEditor.view.posAtDOM(linkElem, 0)
         if (typeof pos === "number" && pos >= 0) {
           // add 1 to step inside the text node of the link so extendMarkRange works properly
-          normalEditor.chain().focus().setTextSelection(pos + 1).extendMarkRange('link').run()
+          normalEditor
+            .chain()
+            .focus()
+            .setTextSelection(pos + 1)
+            .extendMarkRange("link")
+            .run()
         }
       } catch (err) {
         console.error(err)
@@ -449,7 +456,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         const linkElem = linkPreviewElement
         const pos = normalEditor.view.posAtDOM(linkElem, 0)
         if (typeof pos === "number" && pos >= 0) {
-          normalEditor.chain().focus().setTextSelection(pos + 1).extendMarkRange('link').unsetLink().run()
+          normalEditor
+            .chain()
+            .focus()
+            .setTextSelection(pos + 1)
+            .extendMarkRange("link")
+            .unsetLink()
+            .run()
           toast.success("Link removed.")
         }
       } catch (err) {
@@ -857,7 +870,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           <button
             onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())}
             className={`p-2 rounded-md transition-colors ${
-              normalEditor?.isActive("bold") ? "bg-blue-100 text-blue-600" : "text-black hover:bg-gray-100"
+              normalEditor?.isActive("bold")
+                ? "bg-blue-100 text-blue-600"
+                : "text-black hover:bg-gray-100"
             }`}
             type="button"
           >
@@ -870,7 +885,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
             }
             className={`p-2 rounded-md transition-colors ${
-              normalEditor?.isActive("italic") ? "bg-blue-100 text-blue-600" : "text-black hover:bg-gray-100"
+              normalEditor?.isActive("italic")
+                ? "bg-blue-100 text-blue-600"
+                : "text-black hover:bg-gray-100"
             }`}
             type="button"
           >
@@ -883,7 +900,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               safeEditorAction(() => normalEditor.chain().focus().toggleUnderline().run())
             }
             className={`p-2 rounded-md transition-colors ${
-              normalEditor?.isActive("underline") ? "bg-blue-100 text-blue-600" : "text-black hover:bg-gray-100"
+              normalEditor?.isActive("underline")
+                ? "bg-blue-100 text-blue-600"
+                : "text-black hover:bg-gray-100"
             }`}
             type="button"
           >
@@ -1192,7 +1211,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <div className="tooltip tooltip-bottom" data-tip="Bold">
               <button
                 className={`p-2 rounded transition-colors ${
-                  normalEditor.isActive("bold") ? "bg-blue-100 text-blue-600" : "text-gray-700 hover:bg-gray-200"
+                  normalEditor.isActive("bold") ? "bg-blue-100 text-blue-600" : " hover:bg-gray-200"
                 }`}
                 onClick={() =>
                   safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())
@@ -1204,7 +1223,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <div className="tooltip tooltip-bottom" data-tip="Italic">
               <button
                 className={`p-2 rounded transition-colors ${
-                  normalEditor.isActive("italic") ? "bg-blue-100 text-blue-600" : "text-gray-700 hover:bg-gray-200"
+                  normalEditor.isActive("italic")
+                    ? "bg-blue-100 text-blue-600"
+                    : " hover:bg-gray-200"
                 }`}
                 onClick={() =>
                   safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
@@ -1216,7 +1237,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <div className="tooltip tooltip-bottom" data-tip="Underline">
               <button
                 className={`p-2 rounded transition-colors ${
-                  normalEditor.isActive("underline") ? "bg-blue-100 text-blue-600" : "text-gray-700 hover:bg-gray-200"
+                  normalEditor.isActive("underline")
+                    ? "bg-blue-100 text-blue-600"
+                    : " hover:bg-gray-200"
                 }`}
                 onClick={() =>
                   safeEditorAction(() => normalEditor.chain().focus().toggleUnderline().run())
@@ -1226,7 +1249,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               </button>
             </div>
             <div className="tooltip tooltip-bottom" data-tip="Link">
-              <button className="p-2 rounded text-gray-700 hover:bg-gray-200" onClick={handleAddLink}>
+              <button className="p-2 rounded  hover:bg-gray-200" onClick={handleAddLink}>
                 <LinkIcon className="w-5 h-5" />
               </button>
             </div>
@@ -1420,7 +1443,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700">Instruction</label>
+                      <label className="text-sm font-medium ">Instruction</label>
                       <textarea
                         placeholder="Describe changes (e.g. make it high res, fix lighting)"
                         value={enhanceForm.prompt}
@@ -1431,7 +1454,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Style</label>
+                        <label className="text-sm font-medium ">Style</label>
                         <select
                           value={enhanceForm.style}
                           onChange={e => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
@@ -1445,7 +1468,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Quality</label>
+                        <label className="text-sm font-medium ">Quality</label>
                         <select
                           value={enhanceForm.quality || "2k"}
                           onChange={e =>
@@ -1459,7 +1482,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-700">Aspect Ratio</label>
+                        <label className="text-sm font-medium ">Aspect Ratio</label>
                         <select
                           value={enhanceForm.dimensions || "1024x1024"}
                           onChange={e =>
@@ -1526,7 +1549,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                   <>
                     {/* Image URL */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium  mb-1">
                         Image URL <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1542,7 +1565,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                     {/* Alt Text */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium ">
                           Alt Text <span className="text-red-500">*</span>
                         </label>
                         {imageUrl && (

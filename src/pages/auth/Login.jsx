@@ -466,7 +466,7 @@ const Auth = ({ path }) => {
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all"
+                className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300  font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all"
               >
                 <FcGoogle className="text-xl mr-2" />
                 <span>{isSignup ? "Sign up with Google" : "Continue with Google"}</span>

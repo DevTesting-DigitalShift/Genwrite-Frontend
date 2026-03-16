@@ -120,8 +120,8 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
           "[&>h1]:text-3xl [&>h1]:font-bold [&>h1]:mb-4 [&>h1]:mt-6 [&>h1]:text-gray-900 " +
           "[&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:mb-3 [&>h2]:mt-5 [&>h2]:text-gray-800 " +
           "[&>h3]:text-xl [&>h3]:font-medium [&>h3]:mb-2 [&>h3]:mt-4 [&>h3]:text-gray-800 " +
-          "[&>h4]:text-lg [&>h4]:font-medium [&>h4]:mb-2 [&>h4]:mt-3 [&>h4]:text-gray-700 " +
-          "[&>p]:mb-4 [&>p]:leading-relaxed [&>p]:text-gray-700 " +
+          "[&>h4]:text-lg [&>h4]:font-medium [&>h4]:mb-2 [&>h4]:mt-3 [&>h4]: " +
+          "[&>p]:mb-4 [&>p]:leading-relaxed [&>p]: " +
           "[&>ul]:list-disc [&>ul]:pl-6 [&>ul>li]:mb-2 " +
           "[&>ol]:list-decimal [&>ol]:pl-6 [&>ol>li]:mb-2 " +
           "[&>blockquote]:border-l-4 [&>blockquote]:border-blue-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>blockquote]:my-4 [&>blockquote]:bg-blue-50 [&>blockquote]:py-2 [&>blockquote]:rounded-r-lg " +
@@ -394,7 +394,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
             <div className="space-y-4">
               <div>
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">URL</span>
+                  <span className="label-text font-medium ">URL</span>
                 </label>
                 <input
                   type="text"
@@ -407,7 +407,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">Link Text (optional)</span>
+                  <span className="label-text font-medium ">Link Text (optional)</span>
                 </label>
                 <input
                   type="text"
@@ -448,7 +448,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
             <div className="space-y-4">
               <div>
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">Image URL</span>
+                  <span className="label-text font-medium ">Image URL</span>
                 </label>
                 <input
                   type="text"
@@ -461,7 +461,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">Alt Text (optional)</span>
+                  <span className="label-text font-medium ">Alt Text (optional)</span>
                 </label>
                 <input
                   type="text"

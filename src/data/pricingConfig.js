@@ -95,7 +95,7 @@ export function computeCost({
   }
 
   // 5. Cost cutter toggle
-  if (costCutter) totalCost = Math.round(totalCost * 0.75)
+  if (costCutter) totalCost = Math.round(totalCost * 0.5)
 
   return Math.ceil(totalCost)
 }

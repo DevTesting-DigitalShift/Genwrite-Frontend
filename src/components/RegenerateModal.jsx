@@ -52,7 +52,7 @@ const RegenerateModal = ({
 
     // Apply Cost Cutter discount (25% off)
     if (regenForm.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
@@ -127,7 +127,7 @@ const RegenerateModal = ({
               {/* Topic & Title */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Topic</label>
+                  <label className="text-sm font-semibold  mb-2 block">Topic</label>
                   <input
                     type="text"
                     className="input outline-0 w-full"
@@ -140,9 +140,7 @@ const RegenerateModal = ({
                 {/* Perform Keyword Research Toggle - below Topic */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-semibold text-gray-700">
-                      Perform Keyword Research
-                    </span>
+                    <span className="text-sm font-semibold ">Perform Keyword Research</span>
                     <p className="text-xs text-gray-500 mt-0.5">
                       AI will auto-generate title and keywords based on your topic
                     </p>
@@ -159,7 +157,7 @@ const RegenerateModal = ({
                 {/* Only show Title input if performKeywordResearch is OFF */}
                 {!regenForm.options.performKeywordResearch && (
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 mb-2 block">Title</label>
+                    <label className="text-sm font-semibold  mb-2 block">Title</label>
                     <input
                       type="text"
                       className="input outline-0 w-full"
@@ -174,7 +172,7 @@ const RegenerateModal = ({
               {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  <label className="text-sm font-semibold  mb-2 block">
                     Focus Keywords (max 3)
                   </label>
                   <div className="flex items-center gap-2">
@@ -211,7 +209,7 @@ const RegenerateModal = ({
               {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Keywords</label>
+                  <label className="text-sm font-semibold  mb-2 block">Keywords</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -249,7 +247,7 @@ const RegenerateModal = ({
               {/* Tone & Length */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Tone</label>
+                  <label className="text-sm font-semibold  mb-2 block">Tone</label>
                   <select
                     className="select select-bordered w-full"
                     value={regenForm.tone}
@@ -263,9 +261,7 @@ const RegenerateModal = ({
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                    Word Count
-                  </label>
+                  <label className="text-sm font-semibold  mb-2 block">Word Count</label>
                   <select
                     className="select select-bordered w-full"
                     value={regenForm.userDefinedLength}
@@ -295,7 +291,7 @@ const RegenerateModal = ({
 
               {/* Add Images Toggle */}
               <div className="flex items-center justify-between py-1">
-                <span className="text-sm font-semibold text-gray-700">Add Images</span>
+                <span className="text-sm font-semibold ">Add Images</span>
                 <Switch
                   checked={regenForm.isCheckedGeneratedImages}
                   onCheckedChange={checked => {
@@ -329,16 +325,14 @@ const RegenerateModal = ({
           ) : (
             // Step 2: Content Enhancement Options + Brand Voice
             <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll">
-              <h4 className="text-sm font-semibold text-gray-700 mb-4">
-                Content Enhancement Options
-              </h4>
+              <h4 className="text-sm font-semibold  mb-4">Content Enhancement Options</h4>
 
               {/* Brand Voice - Moved to Step 2 */}
               <div className="p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
                 <BrandVoiceSelector
                   label="Write with Brand Voice"
                   size="large"
-                  labelClass="text-sm font-semibold text-gray-700"
+                  labelClass="text-sm font-semibold "
                   value={{
                     isCheckedBrand: regenForm.useBrandVoice,
                     brandId: regenForm.brandId,
@@ -356,7 +350,7 @@ const RegenerateModal = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">
+                    <span className="text-sm font-semibold ">
                       Add FAQs (Frequently Asked Questions)
                     </span>
                   </div>
@@ -369,7 +363,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">Include Interlinks</span>
+                    <span className="text-sm font-semibold ">Include Interlinks</span>
                   </div>
                   <Switch
                     checked={regenForm.options.includeInterlinks}
@@ -383,9 +377,7 @@ const RegenerateModal = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
                     <div>
-                      <span className="text-sm font-semibold text-gray-700">
-                        Perform Competitive Research
-                      </span>
+                      <span className="text-sm font-semibold ">Perform Competitive Research</span>
                     </div>
                   </div>
                   <Switch
@@ -399,7 +391,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">Show Outbound Links</span>
+                    <span className="text-sm font-semibold ">Show Outbound Links</span>
                   </div>
                   <Switch
                     checked={regenForm.options.addOutBoundLinks}
@@ -412,7 +404,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">Add a Quick Summary</span>
+                    <span className="text-sm font-semibold ">Add a Quick Summary</span>
                   </div>
                   <Switch
                     checked={regenForm.isCheckedQuick}
@@ -423,7 +415,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">Easy to Understand</span>
+                    <span className="text-sm font-semibold ">Easy to Understand</span>
                   </div>
                   <Switch
                     checked={regenForm.easyToUnderstand}
@@ -434,9 +426,7 @@ const RegenerateModal = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold text-gray-700">
-                      Embed YouTube Videos
-                    </span>
+                    <span className="text-sm font-semibold ">Embed YouTube Videos</span>
                   </div>
                   <Switch
                     checked={regenForm.embedYouTubeVideos}
@@ -445,13 +435,53 @@ const RegenerateModal = ({
                   />
                 </div>
 
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <span className="text-sm font-semibold ">Extended Thinking</span>
+                      <p className="text-[10px] text-gray-500">Deepen AI reasoning for logical outputs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.extendedThinking}
+                    onCheckedChange={checked => updateRegenField("options.extendedThinking", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <span className="text-sm font-semibold ">Deep Research</span>
+                      <p className="text-[10px] text-gray-400">Extensive multi-source investigative research</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.deepResearch}
+                    onCheckedChange={checked => updateRegenField("options.deepResearch", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <span className="text-sm font-semibold ">Humanisation</span>
+                      <p className="text-[10px] text-gray-400">Natural linguistic patterns to bypass AI filters</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.humanisation}
+                    onCheckedChange={checked => updateRegenField("options.humanisation", checked)}
+                    size="large"
+                  />
+                </div>
+
                 {/* Automate Posting */}
                 <div className="">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 mt-3">
-                      <span className="text-sm font-semibold text-gray-700">
-                        Enable Automate Posting
-                      </span>
+                      <span className="text-sm font-semibold ">Enable Automate Posting</span>
                     </div>
                     <Switch
                       checked={regenForm.wordpressPostStatus}
@@ -479,9 +509,7 @@ const RegenerateModal = ({
                   {regenForm.wordpressPostStatus && (
                     <div className="mt-6">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">
-                          Show Table of Content
-                        </span>
+                        <span className="text-sm font-semibold ">Show Table of Content</span>
                         <Switch
                           checked={regenForm.includeTableOfContents}
                           onCheckedChange={checked =>

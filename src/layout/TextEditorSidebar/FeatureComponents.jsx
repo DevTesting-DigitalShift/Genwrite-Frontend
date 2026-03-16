@@ -99,7 +99,7 @@ const StatCard = ({ title, value, icon: Icon, subtitle }) => {
             <Icon className="w-3.5 h-3.5 text-blue-600" />
           </div>
           <div>
-            <span className="text-sm font-medium text-gray-700">{title}</span>
+            <span className="text-sm font-medium ">{title}</span>
             {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
         </div>
@@ -245,18 +245,18 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-orange-500" />
-          <span className="text-xs font-medium text-gray-700">Original</span>
+          <span className="text-xs font-medium ">Original</span>
         </div>
-        <div className="p-2 bg-red-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-red-50 border border-red-100 rounded text-xs  leading-relaxed">
           {suggestion.original}
         </div>
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-xs font-medium text-gray-700">Suggested</span>
+          <span className="text-xs font-medium ">Suggested</span>
         </div>
-        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs  leading-relaxed">
           {suggestion.change}
         </div>
       </div>

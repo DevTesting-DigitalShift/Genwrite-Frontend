@@ -294,7 +294,7 @@ const PricingCard = ({
                   feature === "Everything in Basic, additionally:" ||
                   feature === "Everything in Pro, additionally:"
                     ? "text-gray-900 font-bold"
-                    : "text-gray-700"
+                    : ""
                 }`}
               >
                 {feature}
@@ -421,8 +421,10 @@ const Upgrade = () => {
           "Automatic Blog Posting",
           "Basic content analytics",
         ],
-        cta: !user?.subscription?.trialOpted 
-          ? (currency === "INR" ? "Start your plan at ₹90" : "Start today for $1") 
+        cta: !user?.subscription?.trialOpted
+          ? currency === "INR"
+            ? "Start your plan at ₹90"
+            : "Start today for $1"
           : "Get Started",
         type: "subscription",
         icon: <Zap className="w-8 h-8" />,
@@ -460,8 +462,10 @@ const Upgrade = () => {
           "AI content suggestions",
           "Advanced content insights",
         ],
-        cta: !user?.subscription?.trialOpted 
-          ? (currency === "INR" ? "Start your plan at ₹90" : "Start today for $1") 
+        cta: !user?.subscription?.trialOpted
+          ? currency === "INR"
+            ? "Start your plan at ₹90"
+            : "Start today for $1"
           : "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,

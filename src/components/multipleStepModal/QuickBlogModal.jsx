@@ -43,7 +43,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     embedYouTubeVideos: false,
     extendedThinking: false,
     deepResearch: false,
-    humanization: false,
+    humanisation: false,
   }
 
   const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
@@ -422,7 +422,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           {currentStep === 1 && (
             <div className="space-y-4 p-3 pt-0">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold  mb-2">
                   Topic <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -439,9 +439,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
               </div>
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Use Topic name as Blog Title
-                </label>
+                <label className="block text-sm font-semibold ">Use Topic name as Blog Title</label>
                 <Switch
                   checked={formData.exactTitle}
                   onCheckedChange={checked =>
@@ -452,7 +450,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
               <div className="form-control w-full">
                 <label className="label pb-1">
-                  <span className="label-text font-semibold text-gray-700">
+                  <span className="text-black text-sm font-semibold">
                     Language <span className="text-error">*</span>
                   </span>
                 </label>
@@ -473,9 +471,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
 
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Perform Keyword Research
-                </label>
+                <label className="block text-sm font-semibold ">Perform Keyword Research</label>
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={checked =>
@@ -494,7 +490,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {!formData.performKeywordResearch && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold  mb-2">
                       Focus Keywords (Max 3) <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
@@ -539,7 +535,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold  mb-2">
                       Keywords <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
@@ -590,7 +586,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <label className="block text-sm font-semibold">Add Images</label>
-                  <p className="text-xs text-gray-500">Search and add relevant images to your blog</p>
+                  <p className="text-xs text-gray-500">
+                    Search and add relevant images to your blog
+                  </p>
                 </div>
                 <Switch
                   checked={formData.addImages}
@@ -628,15 +626,15 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 showFields={[
                   "extendedThinking",
                   "deepResearch",
-                  "humanization",
+                  "humanisation",
                   "easyToUnderstand",
-                  "embedYouTubeVideos"
+                  "embedYouTubeVideos",
                 ]}
               />
 
               {/* Reference Links Section */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold  mb-2">
                   {type === "yt"
                     ? "YouTube Video Links "
                     : "Reference Links (e.g., articles, websites)"}{" "}

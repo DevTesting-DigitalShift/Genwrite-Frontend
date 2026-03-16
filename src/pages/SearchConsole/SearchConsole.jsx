@@ -283,35 +283,45 @@ const SearchConsole = () => {
       <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
         <Search className="w-6 h-6" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-1">
-        No Search Performance Data
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-1">No Search Performance Data</h3>
       <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
         We couldn't find any Google Search Console data. Here are a few possible reasons:
       </p>
-      
+
       <div className="space-y-3 text-left w-full mx-auto">
         <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">1</div>
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            1
+          </div>
           <div>
             <h4 className="font-semibold text-sm text-gray-800">Recently Published?</h4>
-            <p className="text-xs text-gray-600 mt-0.5">It takes 3-4 days for Google to rank new posts.</p>
+            <p className="text-xs text-gray-600 mt-0.5">
+              It takes 3-4 days for Google to rank new posts.
+            </p>
           </div>
         </div>
 
         <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">2</div>
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            2
+          </div>
           <div>
             <h4 className="font-semibold text-sm text-gray-800">Has it been deleted?</h4>
-            <p className="text-xs text-gray-600 mt-0.5">Deleted content won't show metrics without prior traffic.</p>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Deleted content won't show metrics without prior traffic.
+            </p>
           </div>
         </div>
 
         <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">3</div>
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            3
+          </div>
           <div>
             <h4 className="font-semibold text-sm text-gray-800">Check Date Range</h4>
-            <p className="text-xs text-gray-600 mt-0.5">Ensure the selected filter matches an active timeline.</p>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Ensure the selected filter matches an active timeline.
+            </p>
           </div>
         </div>
       </div>
@@ -326,7 +336,6 @@ const SearchConsole = () => {
 
       {!!user?.gsc ? (
         <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 min-h-screen">
-
           {/* ── Page Header ─────────────────────────────────── */}
           <div className="flex items-center justify-between mb-4 gap-3">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
@@ -418,12 +427,14 @@ const SearchConsole = () => {
               </select>
 
               {showDatePicker && (
-                <div className={clsx(
-                  "flex-1 min-w-[200px] rounded-lg transition-all duration-300",
-                  dateRange === "custom" && (!customDateRange[0] || !customDateRange[1])
-                    ? "ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                    : "ring-1 ring-transparent"
-                )}>
+                <div
+                  className={clsx(
+                    "flex-1 min-w-[200px] rounded-lg transition-all duration-300",
+                    dateRange === "custom" && (!customDateRange[0] || !customDateRange[1])
+                      ? "ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                      : "ring-1 ring-transparent"
+                  )}
+                >
                   <DateRangePicker
                     value={customDateRange}
                     onChange={handleCustomDateRangeChange}
@@ -469,7 +480,7 @@ const SearchConsole = () => {
               </div>
               <button
                 onClick={handleResetFilters}
-                className={`rounded-lg h-9 px-3 text-sm font-medium text-gray-700 whitespace-nowrap transition-colors ${
+                className={`rounded-lg h-9 px-3 text-sm font-medium  whitespace-nowrap transition-colors ${
                   isFilterApplied
                     ? "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700"
                     : "bg-gray-100 hover:bg-gray-200 border border-gray-200"

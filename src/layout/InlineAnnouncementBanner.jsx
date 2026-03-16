@@ -131,7 +131,7 @@ const InlineAnnouncementBanner = () => {
                   <span className="text-xs text-gray-500">{formattedDate.date}</span>
                 )}
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">{announcement.message}</p>
+              <p className="text-sm  leading-relaxed">{announcement.message}</p>
             </div>
           </div>
           <button

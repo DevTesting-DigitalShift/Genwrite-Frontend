@@ -119,7 +119,9 @@ const PluginsMain = () => {
         ? "*".repeat(10)
         : ""
     )
-    const [projectId, setProjectId] = useState(sanityInt?.credentials?.projectId || sanityInt?.projectId || "")
+    const [projectId, setProjectId] = useState(
+      sanityInt?.credentials?.projectId || sanityInt?.projectId || ""
+    )
     const [dataset, setDataset] = useState(sanityInt?.credentials?.dataset || "production")
     const [apiVersion, setApiVersion] = useState(sanityInt?.credentials?.apiVersion || "2024-01-01")
     const [documentType, setDocumentType] = useState(sanityInt?.credentials?.documentType || "post")
@@ -240,28 +242,26 @@ const PluginsMain = () => {
         let payload
         if (plugin.id === 112) {
           const isTokenMasked = authToken === "*".repeat(10)
-          payload = { 
-            type: "SERVERENDPOINT", 
-            url, 
-            frontend, 
-            credentials: { 
-              ...(isTokenMasked ? {} : { authToken }) 
-            } 
+          payload = {
+            type: "SERVERENDPOINT",
+            url,
+            frontend,
+            credentials: { ...(isTokenMasked ? {} : { authToken }) },
           }
         } else if (plugin.id === 115) {
           const isTokenMasked = authToken === "*".repeat(10)
-          payload = { 
-            type: "SANITY", 
-            url: frontend, 
-            frontend, 
-            credentials: { 
-              ...(isTokenMasked ? {} : { token: authToken }), 
-              projectId, 
-              dataset, 
-              apiVersion, 
-              documentType, 
-              blogRoute 
-            } 
+          payload = {
+            type: "SANITY",
+            url: frontend,
+            frontend,
+            credentials: {
+              ...(isTokenMasked ? {} : { token: authToken }),
+              projectId,
+              dataset,
+              apiVersion,
+              documentType,
+              blogRoute,
+            },
           }
         } else {
           if (wpUsername === "**********" || wpPassword === "**********") {
@@ -393,7 +393,7 @@ const PluginsMain = () => {
 
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <span className="text-gray-700">Connection Portal</span>
+              <span className="">Connection Portal</span>
               {wordpressStatus[plugin.id]?.success ? (
                 <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-semibold">
                   <CheckCircle2 size={14} /> Connected
@@ -407,7 +407,7 @@ const PluginsMain = () => {
 
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Store / Domain URL</label>
+                <label className="text-sm font-medium ">Store / Domain URL</label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                   <input
@@ -435,7 +435,7 @@ const PluginsMain = () => {
                 <button
                   onClick={handleInternalPing}
                   disabled={!domain || localLoading}
-                  className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-white border border-gray-200  hover:bg-gray-50 rounded-lg font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {localLoading ? (
                     <span className="loading loading-spinner loading-sm"></span>
@@ -465,7 +465,7 @@ const PluginsMain = () => {
 
         <div className="space-y-6">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <span className="text-gray-700">{plugin.pluginName} Integration</span>
+            <span className="">{plugin.pluginName} Integration</span>
             {wordpressStatus[plugin.id]?.success ? (
               <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-semibold">
                 <CheckCircle2 size={14} /> Connected
@@ -480,14 +480,16 @@ const PluginsMain = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-gray-900">
-                {plugin.id === 112 || plugin.id === 115 ? "Connection Credentials" : "Plugin Settings"}
+                {plugin.id === 112 || plugin.id === 115
+                  ? "Connection Credentials"
+                  : "Plugin Settings"}
               </h3>
               <button
                 onClick={handleToggleEdit}
                 className={clsx(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border",
-                  isEditing 
-                    ? "text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100" 
+                  isEditing
+                    ? "text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100"
                     : "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
                 )}
               >
@@ -506,10 +508,8 @@ const PluginsMain = () => {
             <div className="space-y-5">
               {plugin.id !== 115 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    {plugin.id === 112
-                      ? "Endpoint URL"
-                      : "WordPress URL"}
+                  <label className="text-sm font-medium ">
+                    {plugin.id === 112 ? "Endpoint URL" : "WordPress URL"}
                   </label>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
@@ -526,7 +526,7 @@ const PluginsMain = () => {
 
               {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium ">
                     {plugin.id === 115 ? "Sanity Frontend / URL" : "Frontend URL"}
                   </label>
                   <input
@@ -541,7 +541,9 @@ const PluginsMain = () => {
                     }}
                     disabled={!isEditing}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    placeholder={plugin.id === 115 ? "https://your-sanity-site.com" : "https://yourpage.com"}
+                    placeholder={
+                      plugin.id === 115 ? "https://your-sanity-site.com" : "https://yourpage.com"
+                    }
                   />
                 </div>
               )}
@@ -549,7 +551,7 @@ const PluginsMain = () => {
               {plugin.id === 115 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Sanity Project ID</label>
+                    <label className="text-sm font-medium ">Sanity Project ID</label>
                     <input
                       type="text"
                       value={projectId}
@@ -558,10 +560,10 @@ const PluginsMain = () => {
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
-                  
+
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Sanity Data Set</label>
+                      <label className="text-sm font-medium ">Sanity Data Set</label>
                       <input
                         type="text"
                         value={dataset}
@@ -573,10 +575,8 @@ const PluginsMain = () => {
                     </div>
                   </div>
 
-
-
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Blog Route</label>
+                    <label className="text-sm font-medium ">Blog Route</label>
                     <select
                       value={blogRoute}
                       onChange={e => setBlogRoute(e.target.value)}
@@ -593,7 +593,15 @@ const PluginsMain = () => {
                     </select>
                     {frontend && blogRoute && (
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                        <Globe size={12} /> Live URL preview: <span className="text-blue-600 font-medium">{frontend.replace(/\/$/, '')}{blogRoute.replace(':slug', 'my-post').replace(':yyyy', '2026').replace(':mm', '03').replace(':dd', '07')}</span>
+                        <Globe size={12} /> Live URL preview:{" "}
+                        <span className="text-blue-600 font-medium">
+                          {frontend.replace(/\/$/, "")}
+                          {blogRoute
+                            .replace(":slug", "my-post")
+                            .replace(":yyyy", "2026")
+                            .replace(":mm", "03")
+                            .replace(":dd", "07")}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -602,12 +610,13 @@ const PluginsMain = () => {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium ">
                     {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                   </label>
                   {(plugin.id === 115 || plugin.id === 111) && (
                     <span className="text-[10px] sm:text-xs text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1 shadow-sm">
-                      <AlertCircle size={12} className="text-amber-600" /> MUST HAVE EDITOR LEVEL ACCESS
+                      <AlertCircle size={12} className="text-amber-600" /> MUST HAVE EDITOR LEVEL
+                      ACCESS
                     </span>
                   )}
                 </div>
@@ -627,7 +636,7 @@ const PluginsMain = () => {
 
               {plugin.id === 111 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Application Password</label>
+                  <label className="text-sm font-medium ">Application Password</label>
                   <input
                     type="password"
                     value={wpPassword}
@@ -644,9 +653,7 @@ const PluginsMain = () => {
               onClick={isEditing ? handleConnect : handlePing}
               className={clsx(
                 "w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98]",
-                isEditing
-                  ? "bg-blue-600 hover:bg-blue-700"
-                  : "bg-emerald-600 hover:bg-emerald-700"
+                isEditing ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"
               )}
             >
               <div className="flex items-center justify-center gap-2">
@@ -768,7 +775,7 @@ const PluginsMain = () => {
                   className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
                     isActive
                       ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      : "border-transparent text-gray-500 hover: hover:border-gray-300"
                   }`}
                 >
                   <Icon size={18} className={isActive ? "text-blue-600" : "text-gray-400"} />
@@ -804,7 +811,11 @@ const PluginsMain = () => {
 const PluginHeader = ({ plugin }) => (
   <div className="flex items-start gap-6">
     <div className="w-20 h-20 shrink-0">
-      <img src={plugin.pluginImage} alt={plugin.name} className="w-full h-full object-contain rounded-md" />
+      <img
+        src={plugin.pluginImage}
+        alt={plugin.name}
+        className="w-full h-full object-contain rounded-md"
+      />
     </div>
     <div className="space-y-1">
       <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>

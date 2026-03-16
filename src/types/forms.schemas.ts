@@ -117,6 +117,12 @@ export const quickBlogFinalDataSchema = z.object({
     .max(3)
     .default([])
     .describe("Reference links or YouTube video URLs (max 3)"),
+
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
 })
 
 export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSchema>
@@ -211,6 +217,13 @@ export const bulkBlogFinalDataSchema = z.object({
 
   costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
 
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+
+
   easyToUnderstand: z
     .boolean()
     .default(false)
@@ -291,6 +304,13 @@ export const jobBlogConfigSchema = z.object({
 
   costCutter: z.boolean().default(true).describe("Enable cost cutter mode"),
 
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+
+
   easyToUnderstand: z
     .boolean()
     .default(false)
@@ -328,6 +348,9 @@ export const jobOptionsSchema = z.object({
     .describe("Embed YouTube videos in the blog content"),
 
   brandId: z.string().nullable().optional().describe("Brand voice ID for job"),
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
 })
 
 export const jobFinalDataSchema = z
@@ -376,6 +399,9 @@ export const advancedBlogOptionsSchema = z.object({
     .boolean()
     .default(false)
     .describe("Embed YouTube videos in the blog content"),
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
 })
 
 export const advancedBlogFinalDataSchema = z
@@ -517,6 +543,9 @@ export const regenerateBlogOptionsSchema = z.object({
     .boolean()
     .default(false)
     .describe("Embed YouTube videos in the blog content"),
+  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
+  deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
+  humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
 })
 
 export const regenerateBlogSchema = z.object({

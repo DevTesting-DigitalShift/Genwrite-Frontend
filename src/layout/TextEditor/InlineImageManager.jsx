@@ -165,7 +165,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
           />
           {/* Overlay hint on hover */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium  shadow">
               Click to edit image
             </span>
           </div>
@@ -202,7 +202,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
               {/* Image URL */}
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">
+                  <span className="label-text font-medium ">
                     Image URL <span className="text-red-500">*</span>
                   </span>
                 </label>
@@ -218,7 +218,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
               {/* Alt Text */}
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-medium text-gray-700">
+                  <span className="label-text font-medium ">
                     Alt Text <span className="text-red-500">*</span>
                   </span>
                 </label>

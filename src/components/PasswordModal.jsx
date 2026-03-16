@@ -122,7 +122,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
           {hasPassword && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Old Password</label>
+              <label className="block text-sm font-medium  mb-2">Old Password</label>
               <div className="relative">
                 <input
                   type={showOldPassword ? "text" : "password"}
@@ -154,7 +154,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+            <label className="block text-sm font-medium  mb-2">New Password</label>
             <div className="relative">
               <input
                 type={showNewPassword ? "text" : "password"}
@@ -189,7 +189,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <label className="block text-sm font-medium  mb-2">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}

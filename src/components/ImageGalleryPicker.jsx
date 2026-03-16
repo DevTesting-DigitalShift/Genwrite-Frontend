@@ -140,7 +140,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
           ) : images.length === 0 ? (
             <div className="py-20 flex flex-col items-center justify-center">
               <ImageIcon className="w-16 h-16 text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">No images found</h3>
+              <h3 className="text-lg font-semibold  mb-2">No images found</h3>
               <p className="text-gray-500 text-sm">Try adjusting your search</p>
             </div>
           ) : (

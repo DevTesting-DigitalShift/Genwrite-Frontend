@@ -70,7 +70,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     embedYouTubeVideos: false,
     extendedThinking: false,
     deepResearch: false,
-    humanization: false,
+    humanisation: false,
   }
 
   const initialErrorsState = {
@@ -732,7 +732,7 @@ const BulkBlogModal = ({ closeFnc }) => {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                <label className="text-sm font-semibold  mb-1 flex items-center gap-1">
                   Topics <span className="text-red-500">*</span>
                   <div
                     className="tooltip"
@@ -764,7 +764,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     Add
                   </button>
                   <label
-                    className={`flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200 ${
+                    className={`flex-1 sm:flex-none px-4 py-2 bg-gray-100  border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200 ${
                       errors.topicsCSV ? "border-red-500" : "border-gray-300"
                     }`}
                   >
@@ -817,7 +817,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700">
+                <span className="text-sm font-semibold ">
                   Perform Keyword Research?
                   <p className="text-xs text-gray-500">
                     Allow AI to find relevant keywords for the topics.
@@ -834,7 +834,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               {!formData.performKeywordResearch && (
                 <div className="space-y-6">
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                    <label className="text-sm font-semibold  mb-1 flex items-center gap-1">
                       Keywords <span className="text-red-500">*</span>
                       <div
                         className="tooltip"
@@ -863,7 +863,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         Add
                       </button>
                       <label
-                        className={`px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 ${
+                        className={`px-4 py-2 bg-gray-100  border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200 ${
                           errors.keywordsCSV ? "border-red-500" : "border-gray-300"
                         }`}
                       >
@@ -922,7 +922,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="tone" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="tone" className="block text-sm font-semibold  mb-2">
                     Tone of Voice
                   </label>
                   <select
@@ -943,10 +943,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label
-                    htmlFor="language"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="language" className="block text-sm font-semibold  mb-2">
                     Language <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -967,7 +964,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold  mb-2">
                     Approx. Blog Length (Words)
                   </label>
                   <div className="relative">
@@ -1008,7 +1005,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               <BrandVoiceSelector
                 label="Write with Brand Voice"
                 size="large"
-                labelClass="text-sm font-semibold text-gray-700"
+                labelClass="text-sm font-semibold "
                 value={{
                   isCheckedBrand: formData.isCheckedBrand,
                   brandId: formData.brandId,
@@ -1032,7 +1029,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 showFields={[
                   "extendedThinking",
                   "deepResearch",
-                  "humanization",
+                  "humanisation",
                   "includeCompetitorResearch",
                   "addOutBoundLinks",
                   "easyToUnderstand",
@@ -1054,8 +1051,10 @@ const BulkBlogModal = ({ closeFnc }) => {
               <div className="pt-4 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700">Add Image</label>
-                    <p className="text-xs text-gray-500">Search and add relevant images to your blogs</p>
+                    <label className="block text-sm font-semibold ">Add Image</label>
+                    <p className="text-xs text-gray-500">
+                      Search and add relevant images to your blogs
+                    </p>
                   </div>
                   <div className="flex items-center">
                     <Switch
@@ -1098,7 +1097,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
               <div className="pt-4 border-t border-gray-100">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold  mb-1">
                     Number of Blogs <span className="text-red-500">*</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
@@ -1155,7 +1154,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
-                  className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-semibold  bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Previous
                 </button>

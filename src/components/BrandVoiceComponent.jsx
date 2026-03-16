@@ -19,17 +19,14 @@ const BrandVoicesComponent = ({
           : "bg-white border border-gray-200 hover:bg-gray-50"
       }`}
       onClick={onSelect}
-      whileHover={{
-        y: -2,
-        boxShadow: "0 4px 15px rgba(99, 64, 241, 0.1)",
-      }}
+      whileHover={{ y: -2, boxShadow: "0 4px 15px rgba(99, 64, 241, 0.1)" }}
       whileTap={{ scale: 0.98 }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
           onSelect()
@@ -40,7 +37,7 @@ const BrandVoicesComponent = ({
       <div className="flex justify-between items-center">
         <h3
           className={`font-medium text-sm ${
-            isSelected ? "text-indigo-700" : "text-gray-700"
+            isSelected ? "text-indigo-700" : ""
           } truncate max-w-[70%]`}
         >
           {brandName}

@@ -261,7 +261,7 @@ const ResetPassword = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* New Password */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+              <label className="block text-sm font-semibold  mb-2">New Password</label>
               <div className="relative">
                 <div className="absolute top-4 left-4 text-gray-400 z-10">
                   <Lock className="w-5 h-5" />
@@ -283,7 +283,7 @@ const ResetPassword = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-10"
+                  className="absolute right-4 top-4 text-gray-500 hover: transition-colors z-10"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -336,9 +336,7 @@ const ResetPassword = () => {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Confirm Password
-              </label>
+              <label className="block text-sm font-semibold  mb-2">Confirm Password</label>
               <div className="relative">
                 <div className="absolute top-4 left-4 text-gray-400 z-10">
                   <Lock className="w-5 h-5" />
@@ -360,7 +358,7 @@ const ResetPassword = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-10"
+                  className="absolute right-4 top-4 text-gray-500 hover: transition-colors z-10"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -418,7 +416,7 @@ const ResetPassword = () => {
             transition={{ delay: 0.6 }}
             className="mt-6 pt-6 border-t border-gray-200"
           >
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Password Requirements:</h3>
+            <h3 className="text-sm font-semibold  mb-3">Password Requirements:</h3>
             <div className="grid grid-cols-1 gap-2 text-xs text-gray-600">
               <div
                 className={`flex items-center gap-2 ${

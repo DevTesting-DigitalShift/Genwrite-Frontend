@@ -23,7 +23,7 @@ const FeatureSettingsModal = ({ features }) => {
                   <div
                     className={`w-2 h-2 rounded-full ${isEnabled ? "bg-green-500" : "bg-gray-400"}`}
                   />
-                  <span className="text-sm font-medium text-gray-700 capitalize">
+                  <span className="text-sm font-medium  capitalize">
                     {key.replace(/([A-Z])/g, " $1").trim()}
                   </span>
                 </div>

@@ -135,7 +135,7 @@ const WhatsAppFloatButton = ({
                   size === "small" ? "3rem" : size === "large" ? "4.5rem" : "3.5rem",
               }}
             >
-              <span className="text-sm font-medium text-gray-700">Chat with us</span>
+              <span className="text-sm font-medium ">Chat with us</span>
               <div
                 className={`
                   absolute top-1/2 -translate-y-1/2 

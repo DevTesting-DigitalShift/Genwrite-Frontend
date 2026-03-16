@@ -13,10 +13,7 @@ const AnimatedDigit = React.memo(
           key={value} // ✅ ONLY this digit remounts
           initial={{ scale: 0.5, opacity: 0, y: -10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.25,
-            ease: [0.34, 1.56, 0.64, 1],
-          }}
+          transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
           className="inline-block"
         >
           {value}
@@ -53,7 +50,7 @@ const TimeUnit = React.memo(
           </motion.div>
         </div>
 
-        <span className="text-[10px] sm:text-xs font-semibold text-gray-700 mt-1 sm:mt-2 uppercase tracking-wider">
+        <span className="text-[10px] sm:text-xs font-semibold  mt-1 sm:mt-2 uppercase tracking-wider">
           {label}
         </span>
       </div>
@@ -146,7 +143,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-1">
             {discount} OFF ALL PLANS
           </h3>
-          <p className="text-xs sm:text-sm font-semibold text-gray-700">
+          <p className="text-xs sm:text-sm font-semibold ">
             <span className="hidden sm:inline">
               {timeLeft.status === "before" ? "Sale Starts In:" : "Sale Ends In:"}
             </span>

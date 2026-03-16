@@ -140,12 +140,18 @@ const OutlineEditor = () => {
       return
     }
 
-    if (type === "focusKeywords" && formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS) {
+    if (
+      type === "focusKeywords" &&
+      formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS
+    ) {
       setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
-    if (type === "resources" && formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS) {
+    if (
+      type === "resources" &&
+      formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS
+    ) {
       setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
@@ -282,7 +288,9 @@ const OutlineEditor = () => {
     }
   }
 
-  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
+  const visibleKeywords = showAllKeywords
+    ? formData.keywords
+    : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
 
   const min = BLOG_CONFIG.LENGTH.MIN
   const max = BLOG_CONFIG.LENGTH.MAX
@@ -454,7 +462,8 @@ const OutlineEditor = () => {
                             />
                           </span>
                         ))}
-                        {formData.keywords.length > BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS && (
+                        {formData.keywords.length >
+                          BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS && (
                           <button
                             onClick={() => setShowAllKeywords(!showAllKeywords)}
                             className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
@@ -496,18 +505,15 @@ const OutlineEditor = () => {
                       <div className="flex items-center gap-6">
                         <div className="relative flex-1">
                           <Slider
-                              min={BLOG_CONFIG.LENGTH.MIN}
-                              max={BLOG_CONFIG.LENGTH.MAX}
-                              step={BLOG_CONFIG.LENGTH.STEP}
-                              value={[formData.userDefinedLength]}
-                              onValueChange={(vals) =>
-                                handleInputChange(
-                                  { target: { value: vals[0] } },
-                                  "userDefinedLength"
-                                )
-                              }
-                              className="w-full"
-                            />
+                            min={BLOG_CONFIG.LENGTH.MIN}
+                            max={BLOG_CONFIG.LENGTH.MAX}
+                            step={BLOG_CONFIG.LENGTH.STEP}
+                            value={[formData.userDefinedLength]}
+                            onValueChange={vals =>
+                              handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
+                            }
+                            className="w-full"
+                          />
                         </div>
 
                         <div className="text-sm font-semibold text-slate-600 min-w-[90px] text-right">
@@ -745,10 +751,10 @@ const OutlineEditor = () => {
           {markdownContent ? (
             <div className="flex-1 flex flex-col sm:flex-row sm:space-x-4">
               <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
-                <h3 className="text-base sm:text-md font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
+                <h3 className="text-base sm:text-md font-semibold  mb-2 sm:mb-3 px-3 tracking-wide">
                   Preview
                 </h3>
-                <div className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none text-gray-700 shadow-sm text-xs sm:text-sm">
+                <div className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none  shadow-sm text-xs sm:text-sm">
                   <div
                     dangerouslySetInnerHTML={{
                       __html: markdownContent
@@ -765,7 +771,7 @@ const OutlineEditor = () => {
                 </div>
               </div>
               <div className="w-full sm:w-1/2">
-                <h3 className="text-base sm:text-md font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
+                <h3 className="text-base sm:text-md font-semibold  mb-2 sm:mb-3 px-3 tracking-wide">
                   Edit Your Blog Outline
                 </h3>
                 <textarea

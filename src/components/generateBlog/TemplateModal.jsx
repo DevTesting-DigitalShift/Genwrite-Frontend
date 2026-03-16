@@ -27,7 +27,9 @@ const TemplateModal = ({
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
-  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
+  const visibleKeywords = showAllKeywords
+    ? formData.keywords
+    : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
 
   useEffect(() => {
     if (isOpen) {
@@ -189,7 +191,7 @@ const TemplateModal = ({
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium  mb-1">
                   Topic <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -207,7 +209,7 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tone</label>
+                <label className="block text-sm font-medium  mb-1">Tone</label>
                 <select
                   value={formData.tone}
                   onChange={handleSelectChange}
@@ -222,7 +224,7 @@ const TemplateModal = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium  mb-1">
                   Focus Keywords (max 3) <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
@@ -269,7 +271,7 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium  mb-1">
                   Keywords <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
@@ -326,7 +328,7 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium  mb-1">
                   Title <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-4">
@@ -377,7 +379,7 @@ const TemplateModal = ({
                             className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
                               isSelected
                                 ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
-                                : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
+                                : "bg-gray-100  border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
                             }`}
                             aria-label={`Select title: ${generatedTitle}`}
                           >
@@ -390,7 +392,7 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium  mb-1">
                   Choose length of Blog <span className="text-red-500">*</span>
                 </label>
                 <Slider
@@ -398,7 +400,9 @@ const TemplateModal = ({
                   max={BLOG_CONFIG.LENGTH.MAX}
                   step={BLOG_CONFIG.LENGTH.STEP}
                   value={[formData.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT]}
-                  onValueChange={(vals) => handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")}
+                  onValueChange={vals =>
+                    handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
+                  }
                   className="w-full"
                 />
                 <span className="mt-2 text-sm text-gray-600 block">

@@ -6,6 +6,7 @@ import useContentStore from "@store/useContentStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import { toast } from "sonner"
 
 const PromptContent = () => {
   const [content, setContent] = useState("")
@@ -35,14 +36,23 @@ const PromptContent = () => {
     }
   }, [location.pathname, resetMetadata])
 
+  // Robust word count calculation that ignores HTML tags
+  const plainText = content.replace(/<[^>]*>/g, " ").trim()
+  const wordCount = plainText ? (plainText.match(/\S+/g) || []).length : 0
+  const promptLength = prompt.trim().length
+
   // Validation functions
-  const isPromptValid = prompt.trim().length >= 10
+  const isPromptValid = prompt.trim().length >= 10 && prompt.trim().length <= 500
   const isContentValid = wordCount >= 100 && wordCount <= 1000
   const canGenerate = isPromptValid && isContentValid && !isGenerating
 
   const handleGenerateContent = useCallback(async () => {
     if (!isPromptValid) {
-      toast.error("Prompt must be at least 10 characters long.")
+      if (prompt.trim().length < 10) {
+        toast.error("Prompt must be at least 10 characters long.")
+      } else if (prompt.trim().length > 500) {
+        toast.error("Prompt must not exceed 500 characters.")
+      }
       return
     }
 
@@ -102,18 +112,12 @@ const PromptContent = () => {
   const renderHtmlContent = htmlContent => {
     return (
       <div
-        className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
+        className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
         style={{ lineHeight: "1.6", color: "#374151" }}
       />
     )
   }
-
-  const wordCount = content
-    .trim()
-    .split(/\s+/)
-    .filter(word => word.length > 0).length
-  const promptLength = prompt.trim().length
 
   if (isGenerating) {
     return (
@@ -178,8 +182,10 @@ const PromptContent = () => {
                 </svg>
                 <h2 className="text-xl font-semibold text-gray-900">Prompt</h2>
               </div>
-              <span className={`text-sm ${promptLength >= 10 ? "text-green-600" : "text-red-500"}`}>
-                {promptLength}/10 minimum
+              <span
+                className={`text-sm ${promptLength >= 10 && promptLength <= 500 ? "text-green-600" : "text-red-500"}`}
+              >
+                {promptLength}/500 characters
               </span>
             </div>
             <textarea
@@ -187,6 +193,7 @@ const PromptContent = () => {
               onChange={e => setPrompt(e.target.value)}
               placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
               rows={4}
+              maxLength={500}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
                 prompt.trim() && !isPromptValid ? "border-red-300" : "border-gray-300"
               }`}
@@ -217,7 +224,9 @@ const PromptContent = () => {
                 </svg>
                 <h2 className="text-xl font-semibold text-gray-900">Content</h2>
               </div>
-              <span className={`text-sm ${wordCount >= 100 && wordCount <= 1000 ? "text-green-600" : "text-red-500"}`}>
+              <span
+                className={`text-sm ${wordCount >= 100 && wordCount <= 1000 ? "text-green-600" : "text-red-500"}`}
+              >
                 {wordCount}/100 words minimum (Max 1000)
               </span>
             </div>

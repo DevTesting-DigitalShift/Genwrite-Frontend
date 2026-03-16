@@ -165,7 +165,7 @@ const ShopifyVerification = () => {
                   </p>
 
                   <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 text-left">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-bold  uppercase tracking-widest mb-4 flex items-center gap-2">
                       Troubleshooting
                     </h3>
                     <ul className="text-sm text-gray-500 space-y-3">
@@ -268,7 +268,7 @@ const ShopifyVerification = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="text-gray-700 font-medium">
+                    <tbody className=" font-medium">
                       {sortedData.length > 0 ? (
                         sortedData.map(record => (
                           <tr key={record._id} className="hover:bg-purple-50/50 transition-colors">

@@ -7,7 +7,7 @@ import { BLOG_CONFIG } from "@/data/blogConfig"
 export interface AdvancedOptionsData {
   extendedThinking?: boolean
   deepResearch?: boolean
-  humanization?: boolean
+  humanisation?: boolean
   tone?: string
   userDefinedLength?: number
   includeFaqs?: boolean
@@ -96,10 +96,10 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
 
       {renderOptionRow(
         "Humanization",
-        "humanization",
+        "humanisation",
         <Switch
-          checked={getFieldValue("humanization") || false}
-          onCheckedChange={val => setFieldValue("humanization", val)}
+          checked={getFieldValue("humanisation") || false}
+          onCheckedChange={val => setFieldValue("humanisation", val)}
           size="large"
         />,
         "Natural linguistic patterns to bypass AI filters"

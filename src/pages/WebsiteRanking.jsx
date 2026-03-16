@@ -96,7 +96,7 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
             className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
               activeKey === item.key
                 ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                : "text-gray-500 hover: hover:bg-white/50"
             }`}
           >
             {item.label}
@@ -336,7 +336,7 @@ const WebsiteRanking = () => {
                             {idx + 1}
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-gray-700">{comp.domain}</td>
+                        <td className="px-6 py-4 font-semibold ">{comp.domain}</td>
                         <td className="px-6 py-4 text-center">
                           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             {Math.round((comp.totalScore || 0) * 10)}/100
@@ -384,19 +384,13 @@ const WebsiteRanking = () => {
                           <h3 className="text-lg font-bold mt-6 mb-3 text-indigo-700" {...props} />
                         ),
                         p: ({ node, ...props }) => (
-                          <p
-                            className="mb-4 text-gray-700 leading-relaxed text-[15px]"
-                            {...props}
-                          />
+                          <p className="mb-4  leading-relaxed text-[15px]" {...props} />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul className="list-disc pl-5 mb-4 text-gray-700 space-y-2" {...props} />
+                          <ul className="list-disc pl-5 mb-4  space-y-2" {...props} />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol
-                            className="list-decimal pl-5 mb-4 text-gray-700 space-y-2"
-                            {...props}
-                          />
+                          <ol className="list-decimal pl-5 mb-4  space-y-2" {...props} />
                         ),
                         li: ({ node, ...props }) => <li className="pl-1" {...props} />,
                         strong: ({ node, ...props }) => (
@@ -451,9 +445,7 @@ const WebsiteRanking = () => {
                               {i + 1}
                             </div>
                           </div>
-                          <span className="text-sm text-gray-700 leading-relaxed font-medium">
-                            {rec}
-                          </span>
+                          <span className="text-sm  leading-relaxed font-medium">{rec}</span>
                         </li>
                       ))}
                     </ul>
@@ -464,7 +456,7 @@ const WebsiteRanking = () => {
               {/* Target Keywords Summary */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="font-bold text-gray-700">Analyzed Keywords</h3>
+                  <h3 className="font-bold ">Analyzed Keywords</h3>
                 </div>
                 <div className="p-4 flex flex-wrap gap-2">
                   {rankings?.results?.map((r, i) => (
@@ -504,7 +496,7 @@ const WebsiteRanking = () => {
     return (
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm text-left text-gray-600">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+          <thead className="text-xs  uppercase bg-gray-50">
             <tr>
               <th className="px-6 py-3">Keyword Idea</th>
               <th className="px-6 py-3">Your Rank</th>
@@ -572,9 +564,7 @@ const WebsiteRanking = () => {
                 <Card className="rounded-xl shadow-sm border-gray-200 p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-700">
-                        Target Website URL
-                      </label>
+                      <label className="text-sm font-semibold ">Target Website URL</label>
                       <input
                         placeholder="https://example.com"
                         value={url}
@@ -584,7 +574,7 @@ const WebsiteRanking = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Region</label>
+                        <label className="text-sm font-semibold ">Region</label>
                         <input
                           value={region}
                           onChange={e => setRegion(e.target.value)}
@@ -592,9 +582,7 @@ const WebsiteRanking = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">
-                          Keywords to Check
-                        </label>
+                        <label className="text-sm font-semibold ">Keywords to Check</label>
                         <input
                           type="number"
                           min={1}
@@ -715,9 +703,7 @@ const WebsiteRanking = () => {
                           <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
                             Description
                           </p>
-                          <p className="text-gray-700 text-sm leading-relaxed">
-                            {analysisResult?.description}
-                          </p>
+                          <p className=" text-sm leading-relaxed">{analysisResult?.description}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 px-1">
@@ -757,7 +743,7 @@ const WebsiteRanking = () => {
                           {generatedPrompts.map((p, i) => (
                             <li
                               key={i}
-                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 font-bold text-gray-700 text-sm"
+                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 font-bold  text-sm"
                             >
                               <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">
                                 {i + 1}

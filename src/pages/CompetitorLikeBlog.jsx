@@ -246,7 +246,7 @@ const CompetitorLikeBlog = () => {
                     <h3 className="text-sm font-bold text-purple-800 mb-1 flex items-center gap-2">
                       <Palette className="w-4 h-4" /> Tone
                     </h3>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm ">
                       {result.analysis.tone.replace(
                         /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
                         ""
@@ -257,7 +257,7 @@ const CompetitorLikeBlog = () => {
                     <h3 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2">
                       <Layout className="w-4 h-4" /> Structure
                     </h3>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm ">
                       {result.analysis.structure.replace(
                         /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
                         ""
@@ -268,7 +268,7 @@ const CompetitorLikeBlog = () => {
                     <h3 className="text-sm font-bold text-indigo-800 mb-1 flex items-center gap-2">
                       <PenTool className="w-4 h-4" /> Style
                     </h3>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm ">
                       {result.analysis.style.replace(
                         /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
                         ""
@@ -288,7 +288,7 @@ const CompetitorLikeBlog = () => {
                 </h2>
                 <button
                   onClick={() => handleCopy(result.content)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                  className="p-2 text-gray-500 hover: hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 text-sm"
                   title="Copy content"
                 >
                   <Copy className="w-4 h-4" /> Copy
@@ -318,24 +318,18 @@ const CompetitorLikeBlog = () => {
                       <h4 className="text-lg font-bold text-gray-800 mt-4 mb-2" {...props} />
                     ),
                     p: ({ node, ...props }) => (
-                      <p className="mb-4 text-gray-700 leading-relaxed font-medium" {...props} />
+                      <p className="mb-4  leading-relaxed font-medium" {...props} />
                     ),
                     ul: ({ node, ...props }) => (
-                      <ul
-                        className="list-disc pl-6 space-y-2 mb-4 text-gray-700 font-medium"
-                        {...props}
-                      />
+                      <ul className="list-disc pl-6 space-y-2 mb-4  font-medium" {...props} />
                     ),
                     ol: ({ node, ...props }) => (
-                      <ol
-                        className="list-decimal pl-6 space-y-2 mb-4 text-gray-700 font-medium"
-                        {...props}
-                      />
+                      <ol className="list-decimal pl-6 space-y-2 mb-4  font-medium" {...props} />
                     ),
                     li: ({ node, ...props }) => <li className="pl-1" {...props} />,
                     blockquote: ({ node, ...props }) => (
                       <blockquote
-                        className="border-l-4 border-blue-500 pl-4 py-1 my-6 italic bg-blue-50/50 rounded-r-lg text-gray-700"
+                        className="border-l-4 border-blue-500 pl-4 py-1 my-6 italic bg-blue-50/50 rounded-r-lg "
                         {...props}
                       />
                     ),
@@ -361,7 +355,7 @@ const CompetitorLikeBlog = () => {
                     ),
                     td: ({ node, ...props }) => (
                       <td
-                        className="px-6 py-4 text-sm text-gray-700 border-b border-gray-100 font-medium"
+                        className="px-6 py-4 text-sm  border-b border-gray-100 font-medium"
                         {...props}
                       />
                     ),

@@ -298,7 +298,7 @@ const CategoriesModal = ({
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium  mb-1">
                     Select Your Publishing Platform
                     <p className="text-xs text-gray-500 mt-0.5">
                       Post your blog automatically to connected platforms only.
@@ -374,7 +374,7 @@ const CategoriesModal = ({
                                 ? "bg-indigo-100 text-indigo-700 border-indigo-200 cursor-default"
                                 : isCategoryLocked
                                   ? "bg-white text-gray-400 border-gray-200 cursor-not-allowed"
-                                  : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300 hover:shadow-sm"
+                                  : "bg-white  border-gray-200 hover:border-indigo-300 hover:shadow-sm"
                             }`}
                       >
                         {selectedCategory === category && (
@@ -392,9 +392,7 @@ const CategoriesModal = ({
 
               {/* Category Selection Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select or Add Category
-                </label>
+                <label className="block text-sm font-medium  mb-1">Select or Add Category</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -459,7 +457,7 @@ const CategoriesModal = ({
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium  bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-colors"
               >
                 Cancel
               </button>

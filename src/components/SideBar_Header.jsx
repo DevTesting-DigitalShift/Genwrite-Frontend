@@ -276,9 +276,7 @@ const SideBar_Header = () => {
                     to={Menu.path}
                     onClick={e => handleNavClick(Menu.path, e)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                      isActive
-                        ? "bg-blue-50 text-blue-600 shadow-sm"
-                        : "text-gray-700 hover:bg-gray-100"
+                      isActive ? "bg-blue-50 text-blue-600 shadow-sm" : " hover:bg-gray-100"
                     }`}
                   >
                     <Icon
@@ -351,7 +349,7 @@ const SideBar_Header = () => {
         <header className="fixed top-0 z-20 px-4 py-3 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg border-gray-200 w-full md:w-[calc(100%-5rem)]">
           <div className="flex items-center gap-2">
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              <FiMenu size={24} className="text-gray-700" />
+              <FiMenu size={24} className="" />
             </button>
             <a href="/dashboard">
               <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
@@ -392,7 +390,7 @@ const SideBar_Header = () => {
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
                     data-tour="help-icon"
                   >
-                    <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
+                    <HelpCircle className="transition-all duration-300 w-7 h-7 " />
                   </button>
                 </div>
                 <div className="dropdown dropdown-end relative">
@@ -471,7 +469,7 @@ const SideBar_Header = () => {
               <div className="flex items-center gap-2">
                 <RxAvatar size={30} />
                 <div className="dropdown dropdown-end">
-                  <div tabIndex={0} role="button" className="text-gray-700 text-sm cursor-pointer">
+                  <div tabIndex={0} role="button" className=" text-sm cursor-pointer">
                     UserName
                   </div>
                   <ul

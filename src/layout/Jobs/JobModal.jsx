@@ -10,7 +10,8 @@ import { toast } from "sonner"
 const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const scrollableRef = React.useRef(null)
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()
-  const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } = useAnalysisStore()
+  const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } =
+    useAnalysisStore()
   const initialJob = {
     name: "",
     schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
@@ -46,7 +47,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       embedYouTubeVideos: false,
       extendedThinking: false,
       deepResearch: false,
-      humanization: false,
+      humanisation: false,
     },
     status: "active",
     templateIds: [],
@@ -318,7 +319,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             <button
               key="previous"
               onClick={() => setCurrentStep(currentStep - 1)}
-              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-sm"
+              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200  rounded-sm"
               aria-label="Previous step"
             >
               Previous

@@ -252,9 +252,7 @@ const ImageModal = ({
                 {/* URL & Alt Text Inputs */}
                 <div className="space-y-4 px-1">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Image URL
-                    </label>
+                    <label className="block text-sm font-medium  mb-1">Image URL</label>
                     <input
                       value={url}
                       onChange={e => setUrl(e.target.value)}
@@ -264,7 +262,7 @@ const ImageModal = ({
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium ">
                         Alt Text <span className="text-gray-400 font-normal">(Optional)</span>
                       </label>
                       {url && (
@@ -317,7 +315,7 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
+                    <label className="block text-sm font-medium  mb-1">Prompt</label>
                     <textarea
                       placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
                       value={genForm.prompt}
@@ -329,7 +327,7 @@ const ImageModal = ({
 
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                      <label className="block text-sm font-medium  mb-1">Style</label>
                       <select
                         value={genForm.style}
                         onChange={e => setGenForm({ ...genForm, style: e.target.value })}
@@ -343,9 +341,7 @@ const ImageModal = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Aspect Ratio
-                      </label>
+                      <label className="block text-sm font-medium  mb-1">Aspect Ratio</label>
                       <select
                         value={genForm.aspectRatio}
                         onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
@@ -357,9 +353,7 @@ const ImageModal = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Quality
-                      </label>
+                      <label className="block text-sm font-medium  mb-1">Quality</label>
                       <select
                         value={genForm.imageSize}
                         onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
@@ -388,9 +382,7 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instruction
-                    </label>
+                    <label className="block text-sm font-medium  mb-1">Instruction</label>
                     <textarea
                       placeholder="e.g. Make it higher resolution, fix lighting..."
                       value={enhanceForm.prompt}
@@ -401,7 +393,7 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                    <label className="block text-sm font-medium  mb-1">Style</label>
                     <select
                       value={enhanceForm.style}
                       onChange={e => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
@@ -415,7 +407,7 @@ const ImageModal = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
+                    <label className="block text-sm font-medium  mb-1">Quality</label>
                     <select
                       value={enhanceForm.imageSize}
                       onChange={e => setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })}
@@ -484,7 +476,10 @@ const ImageModal = ({
 
             {view === VIEWS.GENERATE && (
               <>
-                <button className="btn btn-ghost border border-gray-300" onClick={() => setView(VIEWS.MAIN)}>
+                <button
+                  className="btn btn-ghost border border-gray-300"
+                  onClick={() => setView(VIEWS.MAIN)}
+                >
                   Cancel
                 </button>
                 <button

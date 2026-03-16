@@ -26,7 +26,7 @@ const AiModelSelector = ({
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        {label && <label className="block text-sm font-semibold text-gray-700">{label}</label>}
+        {label && <label className="block text-sm font-semibold ">{label}</label>}
         <div
           className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}
         >
@@ -60,7 +60,7 @@ const AiModelSelector = ({
                   <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
                 </div>
                 <span
-                  className={`text-sm font-bold tracking-tight ${isActive ? "text-[#1B6FC9]" : "text-gray-700"}`}
+                  className={`text-sm font-bold tracking-tight ${isActive ? "text-[#1B6FC9]" : ""}`}
                 >
                   {model.label}
                 </span>

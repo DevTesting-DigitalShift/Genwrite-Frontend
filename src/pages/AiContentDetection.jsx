@@ -177,7 +177,7 @@ const AiContentDetection = () => {
               </h2>
               <button
                 onClick={() => handleCopy(JSON.stringify(detectionResult, null, 2))}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy results"
               >
                 <Copy className="w-4 h-4" />
@@ -229,7 +229,7 @@ const AiContentDetection = () => {
                 </h3>
                 <ul className="space-y-3">
                   {detectionResult.analysis.map((point, idx) => (
-                    <li key={idx} className="flex gap-3 text-gray-700">
+                    <li key={idx} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>

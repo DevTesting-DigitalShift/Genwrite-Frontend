@@ -216,9 +216,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
                   value && (
                     <div key={key} className="flex items-center gap-2 text-xs">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      <span className="text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
-                      </span>
+                      <span className=" capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
                     </div>
                   )
               )}

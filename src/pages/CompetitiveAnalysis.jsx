@@ -431,7 +431,7 @@ const CompetitiveAnalysis = () => {
 
       <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
         {/* Page Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shrink-0">
@@ -457,7 +457,7 @@ const CompetitiveAnalysis = () => {
         </div>
 
         {/* Project Selection Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center gap-3 mb-4">
             <Search className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">Choose Project</h2>
@@ -481,7 +481,7 @@ const CompetitiveAnalysis = () => {
         </div>
 
         {!formData.selectedProject ? (
-          <div className="py-24 flex flex-col items-center justify-center text-center bg-white rounded-2xl border border-dashed border-gray-200 shadow-sm">
+          <div className="py-24 flex flex-col items-center justify-center text-center bg-white rounded-2xl border border-dashed border-gray-200">
             <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
               <Globe className="w-10 h-10 text-gray-300" />
             </div>
@@ -497,7 +497,7 @@ const CompetitiveAnalysis = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white px-4 py-2 rounded-full border border-slate-200">
                       Run Live Analysis:{" "}
                       <span className="text-blue-600">
                         {getEstimatedCost("analysis.competitors")} credits
@@ -514,7 +514,7 @@ const CompetitiveAnalysis = () => {
 
             {/* Overview Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 border-slate-100 shadow-sm">
+              <Card className="lg:col-span-2 border-slate-100 shadow-none">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Title & Content Preview
@@ -531,7 +531,7 @@ const CompetitiveAnalysis = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-slate-100 shadow-sm">
+              <Card className="border-slate-100 shadow-none">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Detected Keywords
@@ -558,13 +558,13 @@ const CompetitiveAnalysis = () => {
             </div>
 
             {/* Main Analysis Section */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-none">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full items-center">
                 <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 bg-slate-50 p-1 rounded-xl h-auto mb-8">
                   {hasAnalysisResults && (
                     <TabsTrigger
                       value="results"
-                      className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none"
                     >
                       Fresh Analysis
                     </TabsTrigger>
@@ -604,7 +604,7 @@ const CompetitiveAnalysis = () => {
                         className="space-y-6"
                       >
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <Card className="flex flex-col items-center justify-center p-6 bg-linear-to-b from-blue-50/30 to-white border-blue-50">
+                          <Card className="flex flex-col items-center justify-center p-6 bg-linear-to-b from-blue-50/30 to-white border-blue-50 shadow-none">
                             <CircularProgress score={analysisResults.insights?.blogScore || 0} />
                             <h4 className="mt-4 font-bold text-slate-800">SEO Health</h4>
                             <p className="text-sm text-slate-400 text-center mt-1 font-medium">
@@ -612,7 +612,7 @@ const CompetitiveAnalysis = () => {
                             </p>
                           </Card>
 
-                          <Card className="md:col-span-2 p-6 border-slate-100 bg-slate-50/30">
+                          <Card className="md:col-span-2 p-6 border-slate-100 bg-slate-50/30 shadow-none">
                             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                               <Activity className="w-5 h-5 text-blue-600" />
                               Strategic Recommendations
@@ -626,9 +626,9 @@ const CompetitiveAnalysis = () => {
                                 .map((s, idx) => (
                                   <div
                                     key={idx}
-                                    className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100 shadow-sm"
+                                    className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
                                   >
-                                    <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 shadow-sm">
+                                    <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 shadow-none">
                                       {idx + 1}
                                     </span>
                                     <span
@@ -652,14 +652,10 @@ const CompetitiveAnalysis = () => {
                         </div>
                       </motion.div>
                     ) : (
-                      <div className="text-center py-12">
-                        <Button
-                          onClick={handleSubmit}
-                          disabled={isLoading || analysisLoading}
-                          className="px-10 h-14 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-2xl shadow-xl hover:shadow-blue-200 transition-all hover:scale-105 active:scale-95"
-                        >
-                          Run Deep Analysis
-                        </Button>
+                      <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="text-slate-500 font-medium">
+                          Click the button below to start your deep analysis.
+                        </p>
                       </div>
                     )}
                   </TabsContent>
@@ -730,7 +726,7 @@ const CompetitiveAnalysis = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isLoading || analysisLoading}
-                className="px-8 h-16 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-lg text-lg"
+                className="px-8 h-12 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-lg text-lg shadow-none"
               >
                 {isLoading || analysisLoading ? (
                   <span className="flex items-center gap-3">

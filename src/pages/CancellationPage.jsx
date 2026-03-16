@@ -174,7 +174,7 @@ const CancellationPage = () => {
             <Crown className="w-6 h-6 text-orange-600" />
             <h2 className="text-2xl font-bold text-gray-900">Exclusive Retention Offer</h2>
           </div>
-          <div className="space-y-3 text-gray-700">
+          <div className="space-y-3 ">
             <div className="flex items-center gap-2">
               <Star className="w-5 h-5 text-orange-500" />
               <span>30% more credits on next billing cycle</span>
@@ -221,7 +221,7 @@ const CancellationPage = () => {
             whileTap={{ scale: 0.99 }}
             onClick={handleCancel}
             disabled={isProcessing}
-            className={`w-full mt-3 py-4 px-6 border-2 border-red-500 text-gray-700 font-semibold rounded-xl transition-all duration-300 hover:border-red-600 hover:bg-red-100 ${
+            className={`w-full mt-3 py-4 px-6 border-2 border-red-500  font-semibold rounded-xl transition-all duration-300 hover:border-red-600 hover:bg-red-100 ${
               isProcessing ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >

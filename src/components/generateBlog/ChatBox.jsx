@@ -22,7 +22,8 @@ const ChatBox = ({ isOpen, onClose }) => {
     },
     {
       question: "What are Quick Tools?",
-      answer: "Quick Tools are mini-features that let you generate intros, titles, summaries, and more in seconds.",
+      answer:
+        "Quick Tools are mini-features that let you generate intros, titles, summaries, and more in seconds.",
     },
   ]
 
@@ -35,24 +36,14 @@ const ChatBox = ({ isOpen, onClose }) => {
   }, [messages, showQuestions])
 
   const handleQuestionClick = (question, answer) => {
-    const userMsg = {
-      id: Date.now(),
-      text: question,
-      sender: "user",
-      timestamp: new Date(),
-    }
+    const userMsg = { id: Date.now(), text: question, sender: "user", timestamp: new Date() }
 
-    setMessages((prev) => [...prev, userMsg])
+    setMessages(prev => [...prev, userMsg])
     setShowQuestions(false)
 
     setTimeout(() => {
-      const aiMsg = {
-        id: Date.now() + 1,
-        text: answer,
-        sender: "ai",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, aiMsg])
+      const aiMsg = { id: Date.now() + 1, text: answer, sender: "ai", timestamp: new Date() }
+      setMessages(prev => [...prev, aiMsg])
     }, 800)
 
     setTimeout(() => {
@@ -93,7 +84,7 @@ const ChatBox = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-gray-100">
             {messages.length > 0 && (
               <div className="space-y-4 mb-4">
-                {messages.map((msg) => (
+                {messages.map(msg => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -105,7 +96,7 @@ const ChatBox = ({ isOpen, onClose }) => {
                       className={`max-w-[85%] rounded-2xl p-3 relative ${
                         msg.sender === "user"
                           ? "bg-indigo-500 text-white rounded-tr-none"
-                          : "bg-white text-gray-700 rounded-tl-none border border-gray-200"
+                          : "bg-white  rounded-tl-none border border-gray-200"
                       }`}
                     >
                       <div className="flex items-start gap-2">

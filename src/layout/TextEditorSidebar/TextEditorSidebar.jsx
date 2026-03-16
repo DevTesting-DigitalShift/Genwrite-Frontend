@@ -116,7 +116,7 @@ const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+        <span className="text-xs font-bold  uppercase tracking-wide flex items-center gap-2">
           {isUsingOnlyPopular ? (
             <Sparkles className="w-3.5 h-3.5 text-blue-500" />
           ) : (
@@ -288,6 +288,9 @@ const TextEditorSidebar = ({
       includeCompetitorResearch: false,
       addOutBoundLinks: false,
       performKeywordResearch: false,
+      humanisation: false,
+      extendedThinking: false,
+      deepResearch: false,
     },
     easyToUnderstand: false,
     embedYouTubeVideos: false,
@@ -703,6 +706,11 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
           addOutBoundLinks: blog.options?.addOutBoundLinks || false,
           performKeywordResearch: blog.options?.performKeywordResearch || false,
+          humanisation: blog.humanisation || blog.options?.humanisation || false,
+          extendedThinking: blog.extendedThinking || blog.options?.extendedThinking || false,
+          deepResearch: blog.deepResearch || blog.options?.deepResearch || false,
+          easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
+          embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
         },
         isCheckedQuick: blog.isCheckedQuick || false,
         wordpressPostStatus: blog.options?.automaticPosting || false,
@@ -837,8 +845,11 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
           addOutBoundLinks: regenForm.options.addOutBoundLinks,
           performKeywordResearch: regenForm.options.performKeywordResearch,
-          easyToUnderstand: regenForm.easyToUnderstand,
-          embedYouTubeVideos: regenForm.embedYouTubeVideos,
+          easyToUnderstand: regenForm.options.easyToUnderstand,
+          embedYouTubeVideos: regenForm.options.embedYouTubeVideos,
+          humanisation: regenForm.options.humanisation,
+          extendedThinking: regenForm.options.extendedThinking,
+          deepResearch: regenForm.options.deepResearch,
         },
       }
 
@@ -1493,7 +1504,7 @@ const TextEditorSidebar = ({
                   Author Persona
                 </h4>
               </div>
-              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs text-gray-700 leading-relaxed">
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs  leading-relaxed">
                 {brand.persona}
               </div>
             </div>
@@ -1858,7 +1869,7 @@ const TextEditorSidebar = ({
               />
               <span
                 className={`text-sm font-medium transition-colors ${
-                  includeImagesInExport ? "text-blue-900" : "text-gray-700"
+                  includeImagesInExport ? "text-blue-900" : ""
                 }`}
               >
                 Include Images
@@ -2332,12 +2343,27 @@ const TextEditorSidebar = ({
               { key: "costCutter", label: "Cost Cutter", value: blog?.costCutter },
               { key: "isCheckedBrand", label: "Brand Voice", value: blog?.isCheckedBrand },
               { key: "isCheckedQuick", label: "Quick Summary", value: blog?.isCheckedQuick },
+              {
+                key: "humanisation",
+                label: "Humanisation",
+                value: blog?.humanisation || blog?.options?.humanisation || false,
+              },
+              {
+                key: "extendedThinking",
+                label: "Extended Thinking",
+                value: blog?.extendedThinking || blog?.options?.extendedThinking || false,
+              },
+              {
+                key: "deepResearch",
+                label: "Deep Research",
+                value: blog?.deepResearch || blog?.options?.deepResearch || false,
+              },
             ].map((feature, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
               >
-                <span className="text-sm text-gray-700 font-medium">{feature.label}</span>
+                <span className="text-sm  font-medium">{feature.label}</span>
                 <div
                   className={`
                     flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border
@@ -2429,7 +2455,9 @@ const TextEditorSidebar = ({
                   key={section.id}
                   onClick={() => {
                     if (blog?.isArchived) {
-                      toast.error("This blog is archived. Please restore it to perform this action.")
+                      toast.error(
+                        "This blog is archived. Please restore it to perform this action."
+                      )
                       return
                     }
                     setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
@@ -2525,7 +2553,7 @@ const TextEditorSidebar = ({
                 </div>
                 <div>
                   <div
-                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : "text-gray-700"}`}
+                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
                   >
                     {task.label}
                   </div>
@@ -2646,7 +2674,7 @@ const TextEditorSidebar = ({
                   className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold text-gray-700">
+                    <span className="text-[12px] font-bold ">
                       {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
                         posting.integrationType ||
                         posting.platform}
@@ -2658,7 +2686,7 @@ const TextEditorSidebar = ({
                   <div className="space-y-1 mb-2">
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
+                      <span className="text-[12px] font-medium  text-right truncate max-w-[120px]">
                         {posting.metadata?.category || posting.category || blog.category}
                       </span>
                     </div>
@@ -2678,7 +2706,9 @@ const TextEditorSidebar = ({
                         className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
                         onClick={() => {
                           if (blog?.isArchived) {
-                            toast.error("This blog is archived. Please restore it to perform this action.")
+                            toast.error(
+                              "This blog is archived. Please restore it to perform this action."
+                            )
                             return
                           }
                           openRepostModal(posting)
@@ -2692,7 +2722,9 @@ const TextEditorSidebar = ({
                       className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
                       onClick={() => {
                         if (blog?.isArchived) {
-                          toast.error("This blog is archived. Please restore it to perform this action.")
+                          toast.error(
+                            "This blog is archived. Please restore it to perform this action."
+                          )
                           return
                         }
                         onPost({
@@ -2739,9 +2771,7 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Platform Select */}
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Platform
-              </label>
+              <label className="text-xs font-semibold  mb-1.5 block">Select Platform</label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
                   className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
@@ -2780,9 +2810,7 @@ const TextEditorSidebar = ({
             </div>
             {/* Category Select */}
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Category
-              </label>
+              <label className="text-xs font-semibold  mb-1.5 block">Select Category</label>
 
               {/* Active Category Tag */}
               {/* {selectedCategory && (
@@ -2982,7 +3010,9 @@ const TextEditorSidebar = ({
                   <button
                     onClick={() => {
                       if (blog?.isArchived && item.id === "regenerate") {
-                        toast.error("This blog is archived. Please restore it to perform this action.")
+                        toast.error(
+                          "This blog is archived. Please restore it to perform this action."
+                        )
                         return
                       }
                       if (item.id === "regenerate") {
@@ -3056,7 +3086,7 @@ const TextEditorSidebar = ({
           <h3 className="font-bold text-lg mb-4">Edit & Repost</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
+              <label className="text-xs font-semibold  mb-1.5 block">Platform</label>
               <select
                 className="select select-bordered outline-0 w-full"
                 value={repostSettings.platform}
@@ -3074,7 +3104,7 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
+              <label className="text-xs font-semibold  mb-1.5 block">Category</label>
               <input
                 type="text"
                 className="input input-bordered w-full"
