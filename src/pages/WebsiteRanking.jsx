@@ -141,6 +141,18 @@ const WebsiteRanking = () => {
     }
   }, [resetWebsiteRanking])
 
+  const handleResetManual = () => {
+    setManualStep(0)
+    setAnalysisResult(null)
+    setGeneratedPrompts([])
+    setRankingsResult(null)
+    toast.info("Manual tools reset")
+  }
+
+  // Cost calculation based on backend logic
+  const getOrchestratorCost = () => 8 + promptCount
+  const getManualRankingsCost = () => generatedPrompts.length
+
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {
     if (!url) return toast.error("Please enter a URL")
@@ -595,6 +607,22 @@ const WebsiteRanking = () => {
                     </div>
                   </div>
 
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3 px-6 py-2 bg-blue-50 border border-blue-100 rounded">
+                      <Zap className="w-4 h-4 text-blue-600" />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-blue-900">Total Cost:</span>
+                        <span className="text-sm font-black text-blue-600">
+                          {getOrchestratorCost()} Credits
+                        </span>
+                        <div className="h-3 w-px bg-blue-200 mx-1" />
+                        <span className="text-[10px] text-blue-500 font-medium">
+                          8 Base + {promptCount} Keywords
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     onClick={handleOrchestrator}
                     disabled={isOrchestratorLoading}
@@ -630,22 +658,35 @@ const WebsiteRanking = () => {
               ),
               children: (
                 <Card className="rounded-xl shadow-sm border-gray-200 p-0">
-                  <Steps
-                    current={manualStep}
-                    items={[
-                      { title: "Analyse", icon: <Search className="w-5 h-5" /> },
-                      { title: "Keywords", icon: <Zap className="w-5 h-5" /> },
-                      { title: "Rankings", icon: <BarChart2 className="w-5 h-5" /> },
-                      { title: "Report", icon: <FileText className="w-5 h-5" /> },
-                    ]}
-                  />
+                  <div className="flex justify-between items-center mb-6 px-2">
+                    <Steps
+                      current={manualStep}
+                      items={[
+                        { title: "Analyse", icon: <Search className="w-5 h-5" /> },
+                        { title: "Keywords", icon: <Zap className="w-5 h-5" /> },
+                        { title: "Rankings", icon: <BarChart2 className="w-5 h-5" /> },
+                        { title: "Report", icon: <FileText className="w-5 h-5" /> },
+                      ]}
+                    />
+                    <button
+                      onClick={handleResetManual}
+                      className="text-[10px] font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors uppercase tracking-widest mt-[-40px]"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Reset
+                    </button>
+                  </div>
 
                   {/* Step 0: Analyse */}
                   {manualStep === 0 && (
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                        Step 1: Website Reconnaissance
-                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-slate-800">
+                          Step 1: Website Reconnaissance
+                        </h3>
+                        <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded text-[10px] font-black uppercase">
+                          Cost: 3 Credits
+                        </div>
+                      </div>
 
                       <div className="flex gap-3">
                         <input
@@ -678,9 +719,14 @@ const WebsiteRanking = () => {
                   {/* Step 1: Prompts */}
                   {manualStep === 1 && (
                     <div className="space-y-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Zap className="text-amber-500" /> Step 2: Generate Keywords
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                          <Zap className="text-amber-500" /> Step 2: Generate Keywords
+                        </h3>
+                        <div className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[10px] font-black uppercase">
+                          Suggestion: 2 Credits
+                        </div>
+                      </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
@@ -718,23 +764,36 @@ const WebsiteRanking = () => {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={handleCreatePrompts}
-                        disabled={isCreatingPrompts}
-                        className="w-full bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isCreatingPrompts && <RefreshCw className="w-5 h-5 animate-spin" />}
-                        Generate Search Prompts
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setManualStep(0)}
+                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-bold transition-all"
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={handleCreatePrompts}
+                          disabled={isCreatingPrompts}
+                          className="flex-1 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {isCreatingPrompts && <RefreshCw className="w-5 h-5 animate-spin" />}
+                          Generate Search Prompts
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {/* Step 2: Rankings */}
                   {manualStep === 2 && (
                     <div className="space-y-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2">
-                        <BarChart2 className="text-indigo-600" /> Step 3: Check Rankings
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                          <BarChart2 className="text-indigo-600" /> Step 3: Check Rankings
+                        </h3>
+                        <div className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[10px] font-black uppercase">
+                          Cost: {getManualRankingsCost()} Credits
+                        </div>
+                      </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
                         <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
                           Generated Keywords
@@ -753,14 +812,22 @@ const WebsiteRanking = () => {
                           ))}
                         </ul>
                       </div>
-                      <button
-                        onClick={handleCheckRankings}
-                        disabled={isCheckingRankings}
-                        className="w-full bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isCheckingRankings && <RefreshCw className="w-5 h-5 animate-spin" />}
-                        Check Search Rankings
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setManualStep(1)}
+                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-bold transition-all"
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={handleCheckRankings}
+                          disabled={isCheckingRankings}
+                          className="flex-1 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {isCheckingRankings && <RefreshCw className="w-5 h-5 animate-spin" />}
+                          Check Search Rankings
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -769,30 +836,43 @@ const WebsiteRanking = () => {
                     <div className="space-y-6">
                       <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm">
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-800">
-                            Final Step: Growth Strategy
-                          </h3>
-                          <p className="text-sm text-slate-400 mt-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-lg font-semibold text-slate-800">
+                              Final Step: Growth Strategy
+                            </h3>
+                            <div className="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded text-[10px] font-black uppercase">
+                              Cost: 3 Credits
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-400">
                             Generate a comprehensive strategic roadmap based on aggregated insights.
                           </p>
                         </div>
 
-                        <button
-                          onClick={handleAdvancedAnalysis}
-                          disabled={isAnalyzingAdvanced}
-                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold  ${
-                            isAnalyzingAdvanced
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "bg-[#1B6FC9] text-white hover:bg-[#1B6FC9]/90"
-                          }`}
-                        >
-                          {isAnalyzingAdvanced ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <FileText className="w-4 h-4" />
-                          )}
-                          Build Strategy
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setManualStep(2)}
+                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-semibold transition-all"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={handleAdvancedAnalysis}
+                            disabled={isAnalyzingAdvanced}
+                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold  ${
+                              isAnalyzingAdvanced
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-[#1B6FC9] text-white hover:bg-[#1B6FC9]/90"
+                            }`}
+                          >
+                            {isAnalyzingAdvanced ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FileText className="w-4 h-4" />
+                            )}
+                            Build Strategy
+                          </button>
+                        </div>
                       </div>
 
                       {rankingsResult && (

@@ -1,6 +1,6 @@
 import { brandsQuery } from "@api/Brand/Brand.query"
 import type { Brand } from "@/types/brand"
-import React, { FC, useEffect, useMemo, useState } from "react"
+import React, { FC, useEffect, useState } from "react"
 import { toast } from "sonner"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
@@ -10,7 +10,6 @@ interface BrandVoiceSelectorProps {
   labelClass?: string
   value?: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }
   onChange?: (updated: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }) => void
-  errorText?: string
 }
 
 const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
@@ -18,10 +17,8 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   labelClass,
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
-  errorText,
 }) => {
   const [state, setState] = useState(value)
-  const formError = useMemo(() => errorText, [errorText])
   /** ✅ Fetch brand voices from API */
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
@@ -45,7 +42,10 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
     } else if (checked && (!brands || brands.length === 0)) {
       toast.error("No brand voices available. Create one to enable this option.")
     } else {
-      handleUpdate({ isCheckedBrand: checked, brandId: checked ? state.brandId : "" })
+      handleUpdate({
+        isCheckedBrand: checked,
+        brandId: checked ? state.brandId || (brands[0]?._id ?? "") : "",
+      })
     }
   }
 
@@ -70,48 +70,20 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
       </div>
 
       {state.isCheckedBrand && (
-        <div
-          className={clsx(
-            "flex flex-col gap-2 transition-all p-2 rounded-lg",
-            formError && "border border-red-500 bg-red-50"
-          )}
-        >
-          <label className={clsx(formError ? "text-red-500" : labelClass, "text-sm font-semibold")}>
-            {formError ? formError : "Select Brand Voice"}
-          </label>
+        <div className="flex flex-col gap-2 transition-all py-4 rounded-lg">
+          <label className={clsx(labelClass, "text-sm font-semibold")}>Select Brand Voice</label>
 
-          <div
-            className="w-full max-h-[150px] overflow-y-auto p-2 space-y-2 border border-gray-300 rounded-md bg-base-100"
-            style={{ scrollbarWidth: "thin", scrollBehavior: "smooth" }}
+          <select
+            className="select select-bordered w-full rounded-[10px] text-sm h-10 min-h-0 focus:outline-none"
+            value={state.brandId || ""}
+            onChange={e => handleUpdate({ brandId: e.target.value })}
           >
             {brands.map((brand: Brand) => (
-              <div
-                key={brand._id}
-                onClick={() => handleUpdate({ brandId: brand._id })}
-                className={clsx(
-                  "cursor-pointer p-2 border rounded-lg transition-all hover:shadow-sm flex items-center gap-2",
-                  state.brandId === brand._id
-                    ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
-                    : "border-gray-200 hover:border-blue-300"
-                )}
-              >
-                <input
-                  type="radio"
-                  name="brandId"
-                  className="radio radio-primary radio-sm"
-                  checked={state.brandId === brand._id}
-                  onChange={() => handleUpdate({ brandId: brand._id })}
-                />
-                <span className="font-semibold uppercase truncate text-sm">
-                  {brand.nameOfVoice}
-                </span>
-              </div>
+              <option key={brand._id} value={brand._id}>
+                {brand.nameOfVoice}
+              </option>
             ))}
-
-            {brands.length === 0 && (
-              <div className="text-center py-8 text-gray-400 text-sm">No brands found.</div>
-            )}
-          </div>
+          </select>
         </div>
       )}
 

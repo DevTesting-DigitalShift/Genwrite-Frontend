@@ -15,7 +15,7 @@ const BrandVoicesComponent = ({
     <motion.div
       className={`p-4 mt-2 rounded-xl cursor-pointer transition-all ${
         isSelected
-          ? "bg-gradient-to-r from-indigo-100 to-purple-100 border-2 border-indigo-300 shadow-md"
+          ? "bg-linear-to-r from-indigo-100 to-purple-100 border-2 border-indigo-300 shadow-md"
           : "bg-white border border-gray-200 hover:bg-gray-50"
       }`}
       onClick={onSelect}

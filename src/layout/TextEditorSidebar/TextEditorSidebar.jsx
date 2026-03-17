@@ -2605,7 +2605,7 @@ const TextEditorSidebar = ({
               blog?.isArchived
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "hover:shadow-xl hover:scale-[1.02] bg-linear-to-r from-indigo-600 to-blue-600"
-            }`}
+            } ${isProcessingSection ? "opacity-100! text-white" : ""}`}
           >
             {isProcessingSection ? (
               <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -3216,7 +3216,7 @@ const TextEditorSidebar = ({
 
       {/* Diff Viewer Modal */}
       <div className={`modal ${showDiff ? "modal-open" : ""} z-9999`}>
-        <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 shadow-2xl bg-white">
+        <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="flex items-center justify-between p-5 px-8 border-b border-gray-50 bg-white sticky top-0 z-20">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">

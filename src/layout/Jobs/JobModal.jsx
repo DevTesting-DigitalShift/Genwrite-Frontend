@@ -161,9 +161,6 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_IMAGES) {
         newErrors.numberOfImages = `Number of images must be between 0 and ${MAX_IMAGES}.`
       }
-      if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
-        newErrors.brandId = "Please select a brand voice."
-      }
       if (newJob.schedule.type === "weekly" && newJob.schedule.daysOfWeek.length === 0) {
         newErrors.daysOfWeek = "Please select at least one day of the week."
       }
@@ -292,7 +289,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
           </button>
         </div>
 
-        <div ref={scrollableRef} className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div ref={scrollableRef} className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-4">
           <StepContent
             currentStep={currentStep}
             newJob={newJob}

@@ -51,7 +51,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     brief: "" as string,
     aiModel: AI_MODELS[0].id as string,
     isCheckedGeneratedImages: false as boolean,
-    imageSource: IMAGE_OPTIONS[0].id as string,
+    imageSource: IMAGE_OPTIONS[0].id as any,
     numberOfImages: 0 as number,
     blogImages: [] as any[],
     referenceLinks: [] as string[],
@@ -238,8 +238,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           errors.blogImages = "Please upload at least 1 image."
         break
       case 3:
-        if (formData.isCheckedBrand && !formData.brandId.trim())
-          errors.brandId = "Please select a Brand Voice"
         if (formData.wordpressPostStatus && !formData.postingType)
           errors.postingType = "Please select a Publishing Platform"
         break
@@ -424,7 +422,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           <div className="space-y-3 p-4 pt-0">
             {/* Topic */}
             <div>
-              <label className="text-sm font-semibold text-slate-800">
+              <label className="text-sm font-semibold ">
                 Topic <span className="text-red-500">*</span>
               </label>
               <input
@@ -441,8 +439,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Language */}
             <div className="form-control space-y-2">
-              <label className="label pb-0">
-                <span className="label-text font-semibold text-slate-800">
+              <label>
+                <span className="text-sm font-semibold">
                   Language <span className="text-error">*</span>
                 </span>
               </label>
@@ -452,9 +450,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 onChange={e =>
                   handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
                 }
-                className="select w-full rounded-lg focus:outline-none focus:border-0"
+                className="select w-full rounded-lg focus:outline-none focus:border-0 mt-3"
               >
-                <option value="">Select language</option>
                 {LANGUAGES.map(lang => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
@@ -465,9 +462,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Auto Generate Toggle */}
             <div className="flex items-center justify-between mt-4">
-              <label className="text-sm font-semibold text-slate-800">
-                Auto Generate Title & Keywords
-              </label>
+              <label className="text-sm font-semibold ">Auto Generate Title & Keywords</label>
               <Switch
                 checked={formData.options.performKeywordResearch}
                 onCheckedChange={(checked: boolean) =>
@@ -482,7 +477,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <>
                 {/* Focus Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
+                  <label className="text-sm font-semibold ">
                     Focus Keywords (max 3) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -495,7 +490,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value.trim()
-                        if (val && formData.focusKeywords.length < 3) {
+                        if (val) {
+                          if (formData.focusKeywords.includes(val)) {
+                            toast.error("This focus keyword is already added.")
+                            return
+                          }
+                          if (formData.focusKeywords.length >= 3) {
+                            toast.error("Maximum 3 focus keywords allowed.")
+                            return
+                          }
                           handleInputChange({
                             target: {
                               name: "focusKeywords",
@@ -538,7 +541,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
+                  <label className="text-sm font-semibold ">
                     Keywords <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -552,6 +555,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value.trim()
                         if (val) {
+                          if (formData.keywords.includes(val)) {
+                            toast.error("This keyword is already added.")
+                            return
+                          }
                           handleInputChange({
                             target: { name: "keywords", value: [...formData.keywords, val] },
                           })
@@ -591,7 +598,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
+                  <label className="text-sm font-semibold ">
                     Blog Title <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
@@ -638,9 +645,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Exact Title Toggle */}
                 <div className="flex items-center justify-between my-4">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Use Exact Title for Blog
-                  </label>
+                  <label className="text-sm font-semibold ">Use Exact Title for Blog</label>
                   <Switch
                     checked={formData.options.exactTitle}
                     onCheckedChange={(checked: boolean) =>
@@ -655,8 +660,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Tone */}
               <div className="form-control space-y-2">
-                <label className="label pb-0">
-                  <span className="label-text font-semibold text-slate-800">Tone of Voice</span>
+                <label className="pb-0">
+                  <span className="text-sm font-semibold ">Tone of Voice</span>
                 </label>
 
                 <select
@@ -664,7 +669,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   onChange={e =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
-                  className={`select select-bordered w-full rounded-lg ${
+                  className={`select select-bordered w-full rounded-lg mt-3 ${
                     errors.tone ? "border-red-500" : ""
                   }`}
                 >
@@ -678,9 +683,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
               {/* Blog Length */}
               <div className="form-control space-y-3">
-                <label className="label">
-                  <span className="label-text font-semibold text-slate-800">Blog Length</span>
-                  <span className="label-text-alt font-semibold text-primary">
+                <label>
+                  <span className="text-sm font-semibold ">Blog Length</span>
+                  <span className="text-sm ml-2 font-semibold text-primary">
                     {formData.userDefinedLength} words
                   </span>
                 </label>
@@ -692,7 +697,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   onValueChange={(vals: number[]) =>
                     handleInputChange({ target: { name: "userDefinedLength", value: vals[0] } })
                   }
-                  className="w-full"
+                  className="w-full mt-5"
                 />
 
                 <div className="flex justify-between text-xs text-slate-400">
@@ -704,7 +709,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Brief */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-800">Add Brief Section</label>
+              <label className="text-sm font-semibold ">Add Brief Section</label>
               <textarea
                 name="brief"
                 rows={3}
@@ -730,15 +735,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             />
 
             {/* Feature Toggles */}
-            <div className="space-y-4">
-              <AdvancedOptions
-                formData={formData}
-                updateFormData={updateFormData}
-                isNestedOptions={true}
-                showFields={["easyToUnderstand", "embedYouTubeVideos"]}
-              />
-
-              <div className="flex items-center justify-between pb-4">
+            <div className="space-y-4 pt-3">
+              <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Add Images</span>
                 <Switch
                   size="large"
@@ -752,7 +750,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Image Source Settings */}
             {formData.isCheckedGeneratedImages && (
-              <div className="space-y-6 overflow-hidden mt-6">
+              <div className="space-y-6 overflow-hidden">
                 <ImageSourceSelector
                   value={formData.imageSource}
                   onChange={(sourceId: string) => {
@@ -935,7 +933,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             )}
 
             {/* Reference Links */}
-            <div className="space-y-4 mt-8">
+            <div className="space-y-4 mt-5">
               <h4 className="text-sm font-semibold">Reference Links (max 3)</h4>
 
               <input
@@ -946,7 +944,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     e.preventDefault()
                     const val = (e.target as HTMLInputElement).value.trim()
 
-                    if (val && formData.referenceLinks.length < 3) {
+                    if (val) {
+                      if (formData.referenceLinks.includes(val)) {
+                        toast.error("This reference link is already added.")
+                        return
+                      }
+                      if (formData.referenceLinks.length >= 3) {
+                        toast.error("Maximum 3 reference links allowed.")
+                        return
+                      }
                       handleInputChange({
                         target: {
                           name: "referenceLinks",
@@ -1011,8 +1017,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Add a Quick Summary</p>
-                  <p className="text-xs text-slate-500">Generate a concise summary for the readers</p>
+                  <p className="text-sm font-semibold ">Add a Quick Summary</p>
+                  <p className="text-xs text-slate-500">
+                    Generate a concise summary for the readers
+                  </p>
                 </div>
                 <Switch
                   size="large"
@@ -1039,16 +1047,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   brandId: val.brandId,
                   options: { ...opts, addCTA: val.addCTA },
                 })
-                updateErrors({ brandId: "" })
               }}
-              errorText={errors.brandId}
             />
 
             {/* Automatic Posting */}
-            <div className="space-y-4 pt-4 border-t border-slate-100">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Automatic Posting</p>
+                  <p className="text-sm font-semibold ">Automatic Posting</p>
                   <p className="text-xs text-slate-500">
                     Automatically post to your connected platforms
                   </p>
@@ -1102,12 +1108,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                     <div className="flex items-center justify-between pt-2">
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">Table of Contents</p>
+                        <p className="text-sm font-semibold ">Table of Contents</p>
                         <p className="text-xs text-slate-500">
                           Include a table of contents in your post
                         </p>
                       </div>
                       <Switch
+                        size="large"
                         checked={formData.options.includeTableOfContents}
                         onCheckedChange={(checked: boolean) =>
                           handleInputChange({

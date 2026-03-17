@@ -5,9 +5,10 @@ import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
 import { Slider } from "@/components/ui/slider"
 import { BLOG_CONFIG } from "@/data/blogConfig"
+import { useEffect } from "react"
 
 const ImageSourceSelector = ({
-  value,
+  value = IMAGE_SOURCE.STOCK,
   onChange,
   showUpload = false,
   showNone = false,
@@ -18,6 +19,12 @@ const ImageSourceSelector = ({
 }) => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!value) {
+      onChange(IMAGE_SOURCE.STOCK)
+    }
+  }, [value, onChange])
 
   const userPlan = user?.subscription?.plan || "free"
   const isAiLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
@@ -65,7 +72,7 @@ const ImageSourceSelector = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
-        <label className="text-sm font-semibold text-slate-800">Select Image Mode</label>
+        <label className="text-sm font-semibold">Select Image Mode</label>
         {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
       </div>
 
@@ -145,7 +152,7 @@ const ImageSourceSelector = ({
         <div className="pt-4 px-1 border-t border-slate-100 mt-4">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-slate-800">Number of Images</label>
-            <span className="text-sm font-bold text-[#1B6FC9] bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+            <span className="text-xs font-bold text-[#1B6FC9] bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
               {numberOfImages || 0} {numberOfImages === 1 ? "Image" : "Images"}
             </span>
           </div>

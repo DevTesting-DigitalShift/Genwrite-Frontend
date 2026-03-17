@@ -1,13 +1,24 @@
 import React from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { ArrowRight, Sparkles, Shield, UserCheck, FileText, Layout, Youtube, Search, TrendingUp, MessageSquare, MousePointerClick, Globe, Activity, Image as ImageIcon } from "lucide-react"
+import {
+  ArrowRight,
+  Sparkles,
+  Shield,
+  UserCheck,
+  FileText,
+  Layout,
+  Youtube,
+  Search,
+  TrendingUp,
+  MessageSquare,
+  MousePointerClick,
+  Globe,
+  Activity,
+  Image as ImageIcon,
+} from "lucide-react"
 
-const TOOL_TYPES = {
-  URL: "URL",
-  TEXT: "TEXT",
-  GENERIC: "GENERIC"
-}
+const TOOL_TYPES = { URL: "URL", TEXT: "TEXT", GENERIC: "GENERIC" }
 
 const ALL_TOOLS = {
   humanize: {
@@ -84,7 +95,7 @@ const ALL_TOOLS = {
   },
   builder: {
     id: "builder",
-    title: "AI Website Builder",
+    title: "Website AI Ranking",
     description: "Create stunning websites and landing pages in seconds.",
     path: "/competitive-analysis",
     icon: Globe,
@@ -111,7 +122,12 @@ const ALL_TOOLS = {
   },
 }
 
-const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?", transferValue = "" }) => {
+const ConnectedTools = ({
+  currentToolId,
+  suggestions = [],
+  title = "What's Next?",
+  transferValue = "",
+}) => {
   const navigate = useNavigate()
 
   const currentTool = ALL_TOOLS[currentToolId] || {}
@@ -123,15 +139,21 @@ const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?
     const sameType = Object.values(ALL_TOOLS).filter(
       t => t.type === currentType && t.id !== currentToolId
     )
-    
+
     // 2. Get generic tools (excluding current and same type)
     const generics = Object.values(ALL_TOOLS).filter(
-      t => t.type === TOOL_TYPES.GENERIC && t.id !== currentToolId && !sameType.find(st => st.id === t.id)
+      t =>
+        t.type === TOOL_TYPES.GENERIC &&
+        t.id !== currentToolId &&
+        !sameType.find(st => st.id === t.id)
     )
 
     // 3. Get other tools (fallback)
     const others = Object.values(ALL_TOOLS).filter(
-      t => t.id !== currentToolId && !sameType.find(st => st.id === t.id) && !generics.find(g => g.id === t.id)
+      t =>
+        t.id !== currentToolId &&
+        !sameType.find(st => st.id === t.id) &&
+        !generics.find(g => g.id === t.id)
     )
 
     // Combine them prioritising same type, then generic, then others
@@ -139,9 +161,13 @@ const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?
   }
 
   // Use either smart suggestions or manual suggestions
-  const toolsToShow = suggestions.length > 0
-    ? suggestions.map(id => ALL_TOOLS[id]).filter(tool => tool && tool.id !== currentToolId).slice(0, 3)
-    : getSmartSuggestions()
+  const toolsToShow =
+    suggestions.length > 0
+      ? suggestions
+          .map(id => ALL_TOOLS[id])
+          .filter(tool => tool && tool.id !== currentToolId)
+          .slice(0, 3)
+      : getSmartSuggestions()
 
   if (toolsToShow.length === 0) return null
 
@@ -161,13 +187,20 @@ const ConnectedTools = ({ currentToolId, suggestions = [], title = "What's Next?
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            onClick={() => navigate(tool.path, { state: { transferValue } })}
+            onClick={() => {
+              const finalValue = tool.id === "youtube" || tool.id === "scraping" ? "" : transferValue
+              navigate(tool.path, { state: { transferValue: finalValue } })
+            }}
             className="group cursor-pointer bg-white border border-gray-100 p-5 rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden"
           >
             {/* Background Gradient Blur */}
-            <div className={`absolute -right-4 -top-4 w-16 h-16 bg-linear-to-br ${tool.color} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-500`} />
-            
-            <div className={`w-12 h-12 bg-linear-to-br ${tool.color} rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform duration-300`}>
+            <div
+              className={`absolute -right-4 -top-4 w-16 h-16 bg-linear-to-br ${tool.color} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-500`}
+            />
+
+            <div
+              className={`w-12 h-12 bg-linear-to-br ${tool.color} rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform duration-300`}
+            >
               <tool.icon className="w-6 h-6 text-white" />
             </div>
 

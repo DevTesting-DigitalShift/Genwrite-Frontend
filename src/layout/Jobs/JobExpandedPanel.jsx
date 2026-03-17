@@ -168,50 +168,39 @@ const JobExpandedPanel = ({ job }) => {
     blogs.imageSource ||
     "—"
 
+  const hasTopics = (blogs.topics || []).length > 0
+  const hasKeywords = (blogs.keywords || []).length > 0
+  const hasTopContent = hasTopics || hasKeywords
+
   return (
     <div className="mx-4 mb-6 mt-2 rounded-[24px] border border-indigo-100 bg-white shadow-xl shadow-slate-200/40 overflow-hidden">
       {/* ── Top accent bar ── */}
       <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 via-blue-500 to-purple-500" />
 
-      {/* ── Row 1: Topics & Keywords (Full Width 50/50) ── */}
-      <div className="p-6 bg-slate-50/40 border-b border-indigo-50">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="space-y-3">
-            <SectionLabel>
-              <TagIcon size={10} className="text-indigo-500" />
-              Automation Topics
-            </SectionLabel>
-            <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
-          </div>
-          <div className="space-y-3">
-            <SectionLabel>Target Keywords</SectionLabel>
-            <ExpandableTagList items={blogs.keywords} color="sky" limit={6} />
+      {/* ── Row 1: Topics & Keywords ── */}
+      {hasTopContent && (
+        <div className="p-6 bg-slate-50/40 border-b border-indigo-50">
+          <div
+            className={`grid grid-cols-1 ${hasTopics && hasKeywords ? "md:grid-cols-2" : ""} gap-10`}
+          >
+            {hasTopics && (
+              <div className="space-y-3">
+                <SectionLabel>
+                  <TagIcon size={10} className="text-indigo-500" />
+                  Automation Topics
+                </SectionLabel>
+                <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
+              </div>
+            )}
+            {hasKeywords && (
+              <div className="space-y-3">
+                <SectionLabel>Target Keywords</SectionLabel>
+                <ExpandableTagList items={blogs.keywords} color="sky" limit={6} />
+              </div>
+            )}
           </div>
         </div>
-
-        {blogs.references?.length > 0 && (
-          <div className="mt-8 pt-6 border-t border-indigo-50/50 space-y-3">
-            <SectionLabel>
-              <FileText size={10} className="text-emerald-500" />
-              Reference URLs
-            </SectionLabel>
-            <div className="flex flex-col gap-2">
-              {blogs.references.map((item, i) => (
-                <a
-                  key={i}
-                  href={item}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-2 truncate bg-white/50 w-fit p-1.5 rounded-lg border border-indigo-50/50"
-                >
-                  <Link2 size={12} className="shrink-0" />
-                  <span className="truncate">{item}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {/* ── Col 1: Blog Specification ── */}
@@ -252,23 +241,45 @@ const JobExpandedPanel = ({ job }) => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Moved Reference URLs here */}
+          {(blogs.references || []).length > 0 && (
+            <div className="space-y-3 mt-8">
+              <SectionLabel>
+                <FileText size={10} className="text-emerald-500" />
+                Reference URLs
+              </SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {blogs.references.map((item, i) => (
+                  <a
+                    key={i}
+                    href={item}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-2 bg-white/50 p-1.5 rounded-lg border border-indigo-50/50 break-all w-full"
+                  >
+                    <Link2 size={12} className="shrink-0" />
+                    <span className="break-all">{item}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Imagery Config moved here to fill left column space */}
+          <div className="space-y-3 mt-8">
             <SectionLabel>
-              <Megaphone size={10} />
-              Brand Assets
+              <ImageIcon size={10} />
+              Imagery Config
             </SectionLabel>
-            <div
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
-                blogs.useBrandVoice
-                  ? "bg-purple-50 border-purple-200 text-purple-700"
-                  : "bg-slate-50 border-slate-100 text-slate-400"
-              }`}
-            >
-              <Shield
-                size={14}
-                className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"}
+            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
+              <KV
+                label="Image Source"
+                value={blogs.imageSource === "none" ? "Not Enabled" : imageSrcLabel}
+                valueClass={blogs.imageSource === "none" ? "text-slate-400" : "text-slate-700"}
               />
-              {blogs.useBrandVoice ? "Brand Voice Identity Active" : "No Brand Voice Applied"}
+              {blogs.imageSource !== "none" && (
+                <KV label="Images Count" value={blogs.numberOfImages || "AI Choice"} />
+              )}
             </div>
           </div>
         </div>
@@ -317,25 +328,7 @@ const JobExpandedPanel = ({ job }) => {
               <KV
                 label="Internal ID"
                 value={`#${job._id?.slice(-8)}`}
-                valueClass="font-mono text-[9px]"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <SectionLabel>
-              <ImageIcon size={10} />
-              Imagery Config
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <KV label="Image Source" value={imageSrcLabel} />
-              <KV label="Images Count" value={blogs.numberOfImages || "AI Choice"} />
-              <KV
-                label="AI Generation"
-                value={blogs.isCheckedGeneratedImages ? "Enabled" : "Disabled"}
-                valueClass={
-                  blogs.isCheckedGeneratedImages ? "text-emerald-600 font-bold" : "text-slate-400"
-                }
+                valueClass="font-mono"
               />
             </div>
           </div>
@@ -375,6 +368,26 @@ const JobExpandedPanel = ({ job }) => {
                 </div>
               )
             })}
+          </div>
+
+          <div className="space-y-3 mt-4">
+            <SectionLabel>
+              <Megaphone size={10} />
+              Brand Assets
+            </SectionLabel>
+            <div
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
+                blogs.useBrandVoice
+                  ? "bg-purple-50 border-purple-200 text-purple-700"
+                  : "bg-slate-50 border-slate-100 text-slate-400"
+              }`}
+            >
+              <Shield
+                size={14}
+                className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"}
+              />
+              {blogs.useBrandVoice ? "Brand Voice Identity Active" : "No Brand Voice Applied"}
+            </div>
           </div>
         </div>
       </div>

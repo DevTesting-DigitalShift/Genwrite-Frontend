@@ -93,7 +93,7 @@ export const tools = [
   },
   {
     id: "website-builder",
-    title: "AI Website Builder",
+    title: "Website AI Ranking",
     description: "Build websites without any hassle",
     icon: <Globe className="w-6 h-6" />,
     type: "navigation",
@@ -101,7 +101,7 @@ export const tools = [
     category: "seo",
     isPopular: true,
     stats: "480K",
-    credit: "Basic Plan: 10 Credits",
+    credit: "Starting from: 9 Credits",
   },
 
   // Other Tools from Toolbox & Dashboard

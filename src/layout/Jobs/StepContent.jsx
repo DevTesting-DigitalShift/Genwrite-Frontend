@@ -87,8 +87,8 @@ const StepContent = ({
 
     const existing =
       type === "topics"
-        ? newJob.blogs.topics.map(t => t.toLowerCase().trim())
-        : formData.keywords.map(k => k.toLowerCase().trim())
+        ? (newJob.blogs?.topics || []).map(t => t.toLowerCase().trim())
+        : (formData?.keywords || []).map(k => k.toLowerCase().trim())
     const seen = new Set()
     const newItems = trimmedInput
       .split(",")
@@ -201,8 +201,8 @@ const StepContent = ({
       // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
-          ? newJob.blogs.topics.map(t => t.toLowerCase().trim())
-          : formData.keywords.map(k => k.toLowerCase().trim())
+          ? (newJob.blogs?.topics || []).map(t => t.toLowerCase().trim())
+          : (formData?.keywords || []).map(k => k.toLowerCase().trim())
       const seen = new Set()
       const uniqueNewItems = items.filter(item => {
         const lower = item.toLowerCase().trim()
@@ -299,12 +299,12 @@ const StepContent = ({
   }
 
   const keywordsToShow = showAllKeywords
-    ? formData.keywords.slice().reverse()
-    : formData.keywords.slice().reverse().slice(0, 18)
+    ? (formData?.keywords || []).slice().reverse()
+    : (formData?.keywords || []).slice().reverse().slice(0, 18)
 
   const topicsToShow = showAllTopics
-    ? newJob.blogs.topics.slice().reverse()
-    : newJob.blogs.topics.slice().reverse().slice(0, 18)
+    ? (newJob.blogs?.topics || []).slice().reverse()
+    : (newJob.blogs?.topics || []).slice().reverse().slice(0, 18)
 
   const handleImageSourceChange = source => {
     setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, imageSource: source } }))
@@ -330,11 +330,7 @@ const StepContent = ({
             errors.templates && "border-2 border-red-500 rounded-lg"
           )}`}
         >
-          <p
-            className={`text-sm ${
-              errors?.templates ? "text-red-500" : "text-gray-600"
-            }  mt-3 mb-0 px-4`}
-          >
+          <p className={`text-sm ${errors?.templates ? "text-red-500" : "text-gray-600"} mb-4`}>
             {errors?.templates
               ? errors.templates
               : `Select up to 7 templates for the types of blogs you want to generate. (${newJob.blogs.templates.length}/7 selected)`}
@@ -429,7 +425,9 @@ const StepContent = ({
                             ...prev,
                             blogs: {
                               ...prev.blogs,
-                              topics: prev.blogs.topics.filter((_, i) => i !== actualIndex),
+                              topics: (prev.blogs?.topics || []).filter(
+                                (_, i) => i !== actualIndex
+                              ),
                             },
                           }))
                         }
@@ -441,7 +439,7 @@ const StepContent = ({
                     </span>
                   )
                 })}
-                {(newJob.blogs.topics.length > 18 || recentlyUploadedTopicsCount) && (
+                {(newJob.blogs?.topics?.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
                     onClick={() => setShowAllTopics(prev => !prev)}
                     className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -450,8 +448,8 @@ const StepContent = ({
                       <>Show less</>
                     ) : (
                       <>
-                        {newJob.blogs.topics.length > 18 &&
-                          `+${newJob.blogs.topics.length - 18} more`}
+                        {(newJob.blogs?.topics?.length || 0) > 18 &&
+                          `+${(newJob.blogs?.topics?.length || 0) - 18} more`}
                         {recentlyUploadedTopicsCount &&
                           ` (+${recentlyUploadedTopicsCount} uploaded)`}
                       </>
@@ -520,7 +518,7 @@ const StepContent = ({
                 {errors.keywords && <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {keywordsToShow.map((keyword, reversedIndex) => {
-                    const actualIndex = formData.keywords.length - 1 - reversedIndex
+                    const actualIndex = (formData?.keywords?.length || 0) - 1 - reversedIndex
                     return (
                       <span
                         key={`${keyword}-${actualIndex}`}
@@ -530,7 +528,7 @@ const StepContent = ({
                         <button
                           type="button"
                           onClick={() => {
-                            const updatedKeywords = [...formData.keywords]
+                            const updatedKeywords = [...(formData?.keywords || [])]
                             updatedKeywords.splice(actualIndex, 1)
                             setFormData(prev => ({ ...prev, keywords: updatedKeywords }))
                             setNewJob(prev => ({
@@ -545,7 +543,7 @@ const StepContent = ({
                       </span>
                     )
                   })}
-                  {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
+                  {((formData?.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
                     <span
                       onClick={() => setShowAllKeywords(prev => !prev)}
                       className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -554,8 +552,8 @@ const StepContent = ({
                         <>Show less</>
                       ) : (
                         <>
-                          {formData.keywords.length > 18 &&
-                            `+${formData.keywords.length - 18} more`}
+                          {(formData?.keywords?.length || 0) > 18 &&
+                            `+${(formData?.keywords?.length || 0) - 18} more`}
                           {recentlyUploadedKeywordsCount &&
                             ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
@@ -579,7 +577,7 @@ const StepContent = ({
                       e.preventDefault()
                       const val = formData.referenceInput?.trim()
                       if (!val) return
-                      if (newJob.blogs.references.length >= 3) {
+                      if ((newJob.blogs?.references?.length || 0) >= 3) {
                         toast.error("Maximum 3 references allowed.")
                         return
                       }
@@ -587,10 +585,19 @@ const StepContent = ({
                         toast.error("Please enter a valid URL.")
                         return
                       }
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: { ...prev.blogs, references: [...prev.blogs.references, val] },
-                      }))
+                      setNewJob(prev => {
+                        if ((prev.blogs?.references || []).includes(val)) {
+                          toast.error("This reference link is already added.")
+                          return prev
+                        }
+                        return {
+                          ...prev,
+                          blogs: {
+                            ...prev.blogs,
+                            references: [...(prev.blogs?.references || []), val],
+                          },
+                        }
+                      })
                       setFormData(prev => ({ ...prev, referenceInput: "" }))
                     }
                   }}
@@ -601,7 +608,7 @@ const StepContent = ({
                   onClick={() => {
                     const val = formData.referenceInput?.trim()
                     if (!val) return
-                    if (newJob.blogs.references.length >= 3) {
+                    if ((newJob.blogs?.references?.length || 0) >= 3) {
                       toast.error("Maximum 3 references allowed.")
                       return
                     }
@@ -609,10 +616,19 @@ const StepContent = ({
                       toast.error("Please enter a valid URL.")
                       return
                     }
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, references: [...prev.blogs.references, val] },
-                    }))
+                    setNewJob(prev => {
+                      if ((prev.blogs?.references || []).includes(val)) {
+                        toast.error("This reference link is already added.")
+                        return prev
+                      }
+                      return {
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          references: [...(prev.blogs?.references || []), val],
+                        },
+                      }
+                    })
                     setFormData(prev => ({ ...prev, referenceInput: "" }))
                   }}
                   className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 btn border-none min-h-auto h-auto"
@@ -621,7 +637,7 @@ const StepContent = ({
                 </button>
               </div>
               <div className="flex flex-col gap-2 mt-2">
-                {newJob.blogs.references.map((ref, idx) => (
+                {newJob.blogs?.references?.map((ref, idx) => (
                   <div
                     key={idx}
                     className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded text-xs text-blue-600 truncate"
@@ -633,7 +649,7 @@ const StepContent = ({
                           ...prev,
                           blogs: {
                             ...prev.blogs,
-                            references: prev.blogs.references.filter((_, i) => i !== idx),
+                            references: (prev.blogs?.references || []).filter((_, i) => i !== idx),
                           },
                         }))
                       }
@@ -691,7 +707,7 @@ const StepContent = ({
                   <option value="Chinese">Chinese</option>
                 </select>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-semibold  mb-2">
                   Approx. Blog Length (Words)
                 </label>
@@ -958,7 +974,7 @@ const StepContent = ({
             />
 
             {/* Group 3: Brand Voice Selector (Select Input Mode) */}
-            <div className="pt-4 border-t border-gray-100">
+            <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="text-sm font-semibold ">Write with Brand Voice</span>
@@ -967,6 +983,7 @@ const StepContent = ({
                   </p>
                 </div>
                 <Switch
+                  size="large"
                   checked={newJob.blogs.useBrandVoice}
                   onCheckedChange={checked => {
                     if (checked && brands.length === 0) {
@@ -978,7 +995,7 @@ const StepContent = ({
                       blogs: {
                         ...prev.blogs,
                         useBrandVoice: checked,
-                        brandId: checked ? prev.blogs.brandId : null,
+                        brandId: checked ? prev.blogs.brandId || (brands[0]?._id ?? null) : null,
                       },
                     }))
                   }}
@@ -990,30 +1007,21 @@ const StepContent = ({
                   <div>
                     <label className="block text-sm font-semibold ">Select Brand Voice</label>
                     <select
-                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
-                        errors.brandId ? "select-error" : ""
-                      }`}
+                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3`}
                       value={newJob.blogs.brandId || ""}
                       onChange={e => {
                         setNewJob(prev => ({
                           ...prev,
                           blogs: { ...prev.blogs, brandId: e.target.value },
                         }))
-                        setErrors(prev => ({ ...prev, brandId: false }))
                       }}
                     >
-                      <option value="" disabled>
-                        Select a brand voice
-                      </option>
                       {brands.map(brand => (
                         <option key={brand._id} value={brand._id}>
                           {brand.nameOfVoice}
                         </option>
                       ))}
                     </select>
-                    {errors.brandId && (
-                      <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>
-                    )}
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1024,6 +1032,7 @@ const StepContent = ({
                       </p>
                     </div>
                     <Switch
+                      size="large"
                       checked={newJob.blogs.addCTA}
                       onCheckedChange={checked =>
                         setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, addCTA: checked } }))
@@ -1035,7 +1044,7 @@ const StepContent = ({
             </div>
 
             {/* Group 4: Automatic Posting & Integration grouping (MUST BE LAST) */}
-            <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-col gap-4 mt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-sm font-semibold ">Enable Automatic Posting</span>
@@ -1044,6 +1053,7 @@ const StepContent = ({
                   </p>
                 </div>
                 <Switch
+                  size="large"
                   checked={newJob.options.wordpressPosting}
                   onCheckedChange={checked =>
                     handleCheckboxChange({ target: { name: "wordpressPosting", checked } })
@@ -1084,6 +1094,25 @@ const StepContent = ({
                   {errors.postingType && (
                     <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
                   )}
+                </div>
+              )}
+
+              {newJob.options.wordpressPosting && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Include Table of Content</span>
+                    <p className="text-xs text-gray-500">Add a table of content to the blog post</p>
+                  </div>
+                  <Switch
+                    size="large"
+                    checked={newJob.options.includeTableOfContents}
+                    onCheckedChange={checked =>
+                      setNewJob(prev => ({
+                        ...prev,
+                        options: { ...prev.options, includeTableOfContents: checked },
+                      }))
+                    }
+                  />
                 </div>
               )}
             </div>

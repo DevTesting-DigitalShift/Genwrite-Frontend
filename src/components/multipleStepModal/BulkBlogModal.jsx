@@ -71,6 +71,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     extendedThinking: false,
     deepResearch: false,
     humanisation: false,
+    wordpressPostStatus: false,
+    includeTableOfContents: false,
   }
 
   const initialErrorsState = {
@@ -177,7 +179,19 @@ const BulkBlogModal = ({ closeFnc }) => {
     if (currentStep === 2) {
       const newErrors = {
         aiModel: !formData.aiModel ? "Please select an AI model." : "",
-        brandId: formData.isCheckedBrand && !formData.brandId ? "Please select a brand voice." : "",
+        numberOfImages:
+          formData.isCheckedGeneratedImages &&
+          (formData.numberOfImages === "" ||
+            formData.numberOfImages < 0 ||
+            formData.numberOfImages > BLOG_CONFIG.IMAGES.MAX_COUNT)
+            ? `Number of images must be between 0 and ${BLOG_CONFIG.IMAGES.MAX_COUNT}.`
+            : "",
+        blogImages:
+          formData.isCheckedGeneratedImages &&
+          formData.imageSource === "customImage" &&
+          formData.blogImages.length === 0
+            ? "Please upload at least one custom image."
+            : "",
       }
       setErrors(prev => ({ ...prev, ...newErrors }))
       if (Object.values(newErrors).some(error => error)) {
@@ -228,7 +242,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         formData.blogImages.length === 0
           ? "Please upload at least one custom image."
           : "",
-      brandId: formData.isCheckedBrand && !formData.brandId ? "Please select a brand voice." : "",
+      brandId: "",
     }
 
     setErrors(prev => ({ ...prev, ...newErrors }))
@@ -239,7 +253,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         ? 0
         : newErrors.topics || newErrors.keywords
           ? 1
-          : newErrors.aiModel || newErrors.brandId
+          : newErrors.aiModel || newErrors.numberOfImages || newErrors.blogImages
             ? 2
             : 3
       setCurrentStep(errorStep)
@@ -713,7 +727,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
+        <div className="p-3 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
             <div
               className={`transition-all duration-200 ${
@@ -732,7 +746,7 @@ const BulkBlogModal = ({ closeFnc }) => {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="text-sm font-semibold  mb-1 flex items-center gap-1">
+                <label className="text-sm font-semibold mb-1 flex items-center gap-1">
                   Topics <span className="text-red-500">*</span>
                   <div
                     className="tooltip"
@@ -743,7 +757,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     </div>
                   </div>
                 </label>
-                <p className="text-xs text-gray-500 font-semibold mb-2">
+                <p className="text-xs text-slate-500 font-medium mb-2">
                   Enter the main topics for your blogs.
                 </p>
                 <div className="flex gap-2 mt-2">
@@ -819,7 +833,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold ">
                   Perform Keyword Research?
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500 font-medium">
                     Allow AI to find relevant keywords for the topics.
                   </p>
                 </span>
@@ -922,11 +936,11 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="tone" className="block text-sm font-semibold  mb-2">
+                  <label htmlFor="tone" className="block text-sm font-semibold">
                     Tone of Voice
                   </label>
                   <select
-                    className={`select select-bordered w-full h-10 min-h-0 text-sm ${
+                    className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
                       errors.tone ? "select-error" : ""
                     }`}
                     value={formData.tone}
@@ -943,11 +957,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="language" className="block text-sm font-semibold  mb-2">
+                  <label htmlFor="language" className="block text-sm font-semibold">
                     Language <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className="select select-bordered w-full h-10 min-h-0 text-sm"
+                    className="select select-bordered w-full h-10 min-h-0 text-sm mt-3"
                     value={formData.languageToWrite}
                     onChange={e => {
                       setFormData(prev => ({ ...prev, languageToWrite: e.target.value }))
@@ -964,10 +978,13 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold  mb-2">
-                    Approx. Blog Length (Words)
+                  <label className="block text-sm font-semibold mb-2">
+                    Approx. Blog Length
+                    <span className="text-sm ml-2 font-bold text-blue-600">
+                      {formData.userDefinedLength} words
+                    </span>
                   </label>
-                  <div className="relative">
+                  <div className="relative mt-5">
                     <Slider
                       min={BLOG_CONFIG.LENGTH.MIN}
                       max={BLOG_CONFIG.LENGTH.MAX}
@@ -978,81 +995,18 @@ const BulkBlogModal = ({ closeFnc }) => {
                       }
                       className="w-full"
                     />
-                    <span className="mt-2 text-sm text-gray-600 block">
-                      {formData.userDefinedLength} words
-                    </span>
                   </div>
                 </div>
               </div>
             </div>
           )}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <AiModelSelector
-                value={formData.aiModel}
-                onChange={modelId => {
-                  setFormData(prev => ({ ...prev, aiModel: modelId }))
-                  setErrors(prev => ({ ...prev, aiModel: "" }))
-                }}
-                showCostCutter={true}
-                costCutterValue={formData.costCutter}
-                onCostCutterChange={checked => {
-                  setFormData(prev => ({ ...prev, costCutter: checked }))
-                }}
-                error={errors.aiModel}
-              />
-
-              <BrandVoiceSelector
-                label="Write with Brand Voice"
-                size="large"
-                labelClass="text-sm font-semibold "
-                value={{
-                  isCheckedBrand: formData.isCheckedBrand,
-                  brandId: formData.brandId,
-                  addCTA: formData.addCTA,
-                }}
-                onChange={val => {
-                  setFormData(prev => ({
-                    ...prev,
-                    isCheckedBrand: val.isCheckedBrand,
-                    brandId: val.brandId,
-                    addCTA: val.addCTA,
-                  }))
-                  setErrors(prev => ({ ...prev, brandId: "" }))
-                }}
-                errorText={errors.brandId}
-              />
-
-              <AdvancedOptions
-                formData={formData}
-                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                showFields={[
-                  "extendedThinking",
-                  "deepResearch",
-                  "humanisation",
-                  "includeCompetitorResearch",
-                  "addOutBoundLinks",
-                  "easyToUnderstand",
-                  "embedYouTubeVideos",
-                ]}
-              />
-            </div>
-          )}
-          {currentStep === 3 && (
-            <div className="space-y-6">
+            <div className="space-y-8 p-4 pt-0">
               <div className="space-y-4">
-                <AdvancedOptions
-                  formData={formData}
-                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                  showFields={["includeInterlinks", "includeFaqs"]}
-                />
-              </div>
-
-              <div className="pt-4 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <label className="block text-sm font-semibold ">Add Image</label>
-                    <p className="text-xs text-gray-500">
+                    <label className="block text-sm font-semibold">Add Image</label>
+                    <p className="text-xs text-slate-500 font-medium">
                       Search and add relevant images to your blogs
                     </p>
                   </div>
@@ -1077,7 +1031,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </div>
                 </div>
                 {formData.isCheckedGeneratedImages && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <ImageSourceSelector
                       value={formData.imageSource}
                       onChange={handleImageSourceChange}
@@ -1089,18 +1043,34 @@ const BulkBlogModal = ({ closeFnc }) => {
                       }
                     />
                     {errors.numberOfImages && (
-                      <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                      <p className="text-red-500 text-xs mt-1 font-bold italic">
+                        {errors.numberOfImages}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-100">
+              <AiModelSelector
+                value={formData.aiModel}
+                onChange={modelId => {
+                  setFormData(prev => ({ ...prev, aiModel: modelId }))
+                  setErrors(prev => ({ ...prev, aiModel: "" }))
+                }}
+                showCostCutter={true}
+                costCutterValue={formData.costCutter}
+                onCostCutterChange={checked => {
+                  setFormData(prev => ({ ...prev, costCutter: checked }))
+                }}
+                error={errors.aiModel}
+              />
+
+              <div className="pt-4 border-t border-slate-100">
                 <div>
-                  <label className="block text-sm font-semibold  mb-1">
+                  <label className="block text-sm font-semibold">
                     Number of Blogs <span className="text-red-500">*</span>
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-slate-500 font-medium mb-3">
                     How many blogs to generate based on the topics provided.
                   </p>
                   <input
@@ -1114,12 +1084,122 @@ const BulkBlogModal = ({ closeFnc }) => {
                     onWheel={e => e.currentTarget.blur()}
                     className={`w-full px-3 py-2 border rounded-md text-sm ${
                       errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500`}
+                    } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
                     placeholder="e.g., 5"
                   />
                   {errors.numberOfBlogs && (
-                    <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
+                    <p className="text-red-500 text-xs mt-1 font-bold italic">
+                      {errors.numberOfBlogs}
+                    </p>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+          {currentStep === 3 && (
+            <div className="space-y-8 p-4 pt-0">
+              <div className="space-y-6">
+                <AdvancedOptions
+                  formData={formData}
+                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                  showFields={[
+                    "extendedThinking",
+                    "deepResearch",
+                    "humanisation",
+                    "includeCompetitorResearch",
+                    "addOutBoundLinks",
+                    "easyToUnderstand",
+                    "embedYouTubeVideos",
+                    "includeInterlinks",
+                    "includeFaqs",
+                  ]}
+                />
+
+                <BrandVoiceSelector
+                  label="Write with Brand Voice"
+                  size="large"
+                  labelClass="text-sm font-semibold"
+                  value={{
+                    isCheckedBrand: formData.isCheckedBrand,
+                    brandId: formData.brandId,
+                    addCTA: formData.addCTA,
+                  }}
+                  onChange={val => {
+                    setFormData(prev => ({
+                      ...prev,
+                      isCheckedBrand: val.isCheckedBrand,
+                      brandId: val.brandId,
+                      addCTA: val.addCTA,
+                    }))
+                  }}
+                />
+
+                {/* Automatic Posting */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Automatic Posting</p>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Automatically post to your connected platforms
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.wordpressPostStatus}
+                      size="large"
+                      onCheckedChange={checked => {
+                        const hasAnyIntegration =
+                          Object.keys(integrations?.integrations || {}).length > 0
+                        if (checked && !hasAnyIntegration) {
+                          toast.error("Please connect your account in plugins.")
+                          return
+                        }
+                        setFormData(prev => ({
+                          ...prev,
+                          wordpressPostStatus: checked,
+                          postingType: checked
+                            ? prev.postingType || Object.keys(integrations?.integrations || {})[0]
+                            : null,
+                        }))
+                      }}
+                    />
+                  </div>
+
+                  {formData.wordpressPostStatus &&
+                    integrations?.integrations &&
+                    Object.keys(integrations.integrations).length > 0 && (
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <label className="font-semibold text-sm">Publishing Platform</label>
+                        <select
+                          value={formData.postingType || ""}
+                          onChange={e =>
+                            setFormData(prev => ({ ...prev, postingType: e.target.value }))
+                          }
+                          className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none mt-3"
+                        >
+                          {Object.entries(integrations.integrations).map(([platform]) => (
+                            <option key={platform} value={platform}>
+                              {platform}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex items-center justify-between pt-2">
+                          <div>
+                            <p className="text-sm font-semibold">Table of Contents</p>
+                            <p className="text-xs text-slate-500 font-medium">
+                              Include a table of contents in your post
+                            </p>
+                          </div>
+                          <Switch
+                            checked={formData.includeTableOfContents}
+                            size="large"
+                            onCheckedChange={checked =>
+                              setFormData(prev => ({ ...prev, includeTableOfContents: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>

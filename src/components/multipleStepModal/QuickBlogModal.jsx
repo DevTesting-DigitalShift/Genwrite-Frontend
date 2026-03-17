@@ -41,8 +41,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     costCutter: true,
     easyToUnderstand: false,
     embedYouTubeVideos: false,
-    extendedThinking: false,
-    deepResearch: false,
     humanisation: false,
   }
 
@@ -460,7 +458,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   value={formData.languageToWrite}
                   onChange={handleChange}
                   className="select rounded-lg w-full bg-base-100 focus:border-0 outline-0"
-                  aria-label="Select language"
                 >
                   {LANGUAGES.map(lang => (
                     <option key={lang.value} value={lang.value}>
@@ -608,15 +605,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 />
               </div>
               {formData.addImages && (
-                <div className="mb-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                  <ImageSourceSelector
-                    value={formData.imageSource}
-                    onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
-                    numberOfImages={formData.numberOfImages}
-                    onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
-                    showUpload={false}
-                  />
-                </div>
+                <ImageSourceSelector
+                  value={formData.imageSource}
+                  onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                  numberOfImages={formData.numberOfImages}
+                  onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
+                  showUpload={false}
+                />
               )}
 
               {/* Advanced Tool Settings */}
@@ -624,8 +619,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 formData={formData}
                 updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
                 showFields={[
-                  "extendedThinking",
-                  "deepResearch",
                   "humanisation",
                   "easyToUnderstand",
                   "embedYouTubeVideos",
@@ -635,10 +628,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {/* Reference Links Section */}
               <div>
                 <label className="block text-sm font-semibold  mb-2">
-                  {type === "yt"
-                    ? "YouTube Video Links "
-                    : "Reference Links (e.g., articles, websites)"}{" "}
-                  (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
+                  {type === "yt" ? "YouTube Video Links " : "Reference Links "} (Max 3 links){" "}
+                  {type === "yt" && <span className="text-red-500">*</span>}
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">

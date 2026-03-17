@@ -325,34 +325,31 @@ const RegenerateModal = ({
           ) : (
             // Step 2: Content Enhancement Options + Brand Voice
             <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll">
-              <h4 className="text-sm font-semibold  mb-4">Content Enhancement Options</h4>
-
               {/* Brand Voice - Moved to Step 2 */}
-              <div className="p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-                <BrandVoiceSelector
-                  label="Write with Brand Voice"
-                  size="large"
-                  labelClass="text-sm font-semibold "
-                  value={{
-                    isCheckedBrand: regenForm.useBrandVoice,
-                    brandId: regenForm.brandId,
-                    addCTA: regenForm.addCTA,
-                  }}
-                  onChange={val => {
-                    updateRegenField("useBrandVoice", val.isCheckedBrand)
-                    updateRegenField("brandId", val.brandId)
-                    updateRegenField("addCTA", val.addCTA)
-                  }}
-                />
-              </div>
+              <BrandVoiceSelector
+                label="Write with Brand Voice"
+                size="large"
+                labelClass="text-sm font-semibold "
+                value={{
+                  isCheckedBrand: regenForm.useBrandVoice,
+                  brandId: regenForm.brandId,
+                  addCTA: regenForm.addCTA,
+                }}
+                onChange={val => {
+                  updateRegenField("useBrandVoice", val.isCheckedBrand)
+                  updateRegenField("brandId", val.brandId)
+                  updateRegenField("addCTA", val.addCTA)
+                }}
+              />
 
               {/* Enhancement Options */}
-              <div className="space-y-3">
+              <div className="space-y-6 mt-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-semibold ">
-                      Add FAQs (Frequently Asked Questions)
-                    </span>
+                  <div>
+                    <span className="text-sm font-semibold ">Add FAQs</span>
+                    <p className="text-[10px] text-gray-500">
+                      Include a section for common reader questions
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.includeFaqs}
@@ -362,8 +359,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
+                  <div>
                     <span className="text-sm font-semibold ">Include Interlinks</span>
+                    <p className="text-[10px] text-gray-500">
+                      Connect your post with other relevant internal pages
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.includeInterlinks}
@@ -375,10 +375,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
-                    <div>
-                      <span className="text-sm font-semibold ">Perform Competitive Research</span>
-                    </div>
+                  <div>
+                    <span className="text-sm font-semibold ">Perform Competitive Research</span>
+                    <p className="text-[10px] text-gray-500">
+                      Power your content with insights from top competitors
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.includeCompetitorResearch}
@@ -390,8 +391,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
+                  <div>
                     <span className="text-sm font-semibold ">Show Outbound Links</span>
+                    <p className="text-[10px] text-gray-500">
+                      Cite high-authority external websites for SEO
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.addOutBoundLinks}
@@ -403,8 +407,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
+                  <div>
                     <span className="text-sm font-semibold ">Add a Quick Summary</span>
+                    <p className="text-[10px] text-gray-500">
+                      Add a short TL;DR summary at the top
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.isCheckedQuick}
@@ -414,8 +421,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
+                  <div>
                     <span className="text-sm font-semibold ">Easy to Understand</span>
+                    <p className="text-[10px] text-gray-500">
+                      Optimized for readability and simple comprehension
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.easyToUnderstand}
@@ -425,8 +435,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
+                  <div>
                     <span className="text-sm font-semibold ">Embed YouTube Videos</span>
+                    <p className="text-[10px] text-gray-500">
+                      Enhance your post with relevant video content
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.embedYouTubeVideos}
@@ -436,25 +449,27 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="text-sm font-semibold ">Extended Thinking</span>
-                      <p className="text-[10px] text-gray-500">Deepen AI reasoning for logical outputs</p>
-                    </div>
+                  <div>
+                    <span className="text-sm font-semibold ">Extended Thinking</span>
+                    <p className="text-[10px] text-gray-500">
+                      Deepen AI reasoning for logical outputs
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.extendedThinking}
-                    onCheckedChange={checked => updateRegenField("options.extendedThinking", checked)}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.extendedThinking", checked)
+                    }
                     size="large"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="text-sm font-semibold ">Deep Research</span>
-                      <p className="text-[10px] text-gray-400">Extensive multi-source investigative research</p>
-                    </div>
+                  <div>
+                    <span className="text-sm font-semibold ">Deep Research</span>
+                    <p className="text-[10px] text-gray-500">
+                      Extensive multi-source investigative research
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.deepResearch}
@@ -464,11 +479,11 @@ const RegenerateModal = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="text-sm font-semibold ">Humanisation</span>
-                      <p className="text-[10px] text-gray-400">Natural linguistic patterns to bypass AI filters</p>
-                    </div>
+                  <div>
+                    <span className="text-sm font-semibold ">Humanisation</span>
+                    <p className="text-[10px] text-gray-500">
+                      Natural linguistic patterns to bypass AI filters
+                    </p>
                   </div>
                   <Switch
                     checked={regenForm.options.humanisation}
@@ -478,10 +493,13 @@ const RegenerateModal = ({
                 </div>
 
                 {/* Automate Posting */}
-                <div className="">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 mt-3">
+                    <div>
                       <span className="text-sm font-semibold ">Enable Automate Posting</span>
+                      <p className="text-[10px] text-gray-500">
+                        Directly publish to your WordPress or other accounts
+                      </p>
                     </div>
                     <Switch
                       checked={regenForm.wordpressPostStatus}
@@ -507,9 +525,14 @@ const RegenerateModal = ({
                   </div>
 
                   {regenForm.wordpressPostStatus && (
-                    <div className="mt-6">
+                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold ">Show Table of Content</span>
+                        <div>
+                          <span className="text-sm font-semibold ">Show Table of Content</span>
+                          <p className="text-[10px] text-gray-500">
+                            Help users navigate with a structural outline
+                          </p>
+                        </div>
                         <Switch
                           checked={regenForm.includeTableOfContents}
                           onCheckedChange={checked =>
@@ -519,24 +542,26 @@ const RegenerateModal = ({
                         />
                       </div>
 
-                      <label className="text-sm font-semibold text-gray-600 block my-2 mt-6">
-                        Choose Platform
-                      </label>
-                      <select
-                        className="select select-bordered outline-0 w-full mb-3"
-                        value={regenForm.postingType || ""}
-                        onChange={e => updateRegenField("postingType", e.target.value)}
-                      >
-                        <option value="" disabled>
-                          Select Platform
-                        </option>
-                        {integrations?.integrations &&
-                          Object.keys(integrations.integrations).map(platform => (
-                            <option key={platform} value={platform}>
-                              {platform}
-                            </option>
-                          ))}
-                      </select>
+                      <div>
+                        <label className="text-sm font-semibold text-gray-600 block mb-2">
+                          Choose Platform
+                        </label>
+                        <select
+                          className="select select-bordered outline-0 w-full"
+                          value={regenForm.postingType || ""}
+                          onChange={e => updateRegenField("postingType", e.target.value)}
+                        >
+                          <option value="" disabled>
+                            Select Platform
+                          </option>
+                          {integrations?.integrations &&
+                            Object.keys(integrations.integrations).map(platform => (
+                              <option key={platform} value={platform}>
+                                {platform}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
