@@ -65,6 +65,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const estimatedCost = useMemo(() => {
     const features = []
     if (formData.performKeywordResearch) features.push("keywordResearch")
+    if (formData.humanisation) features.push("humanisation")
 
     let cost = computeCost({
       wordCount: 1500,
@@ -82,6 +83,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     return cost
   }, [
     formData.performKeywordResearch,
+    formData.humanisation,
     formData.addImages,
     formData.imageSource,
     formData.costCutter,
@@ -579,51 +581,51 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </>
               )}
 
-              {/* Add Images & Source Selection */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <label className="block text-sm font-semibold">Add Images</label>
-                  <p className="text-xs text-gray-500">
-                    Search and add relevant images to your blog
-                  </p>
+              <div className="space-y-6">
+                {/* Add Images & Source Selection */}
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <label className="block text-sm font-semibold">Add Images</label>
+                    <p className="text-xs text-gray-500">
+                      Search and add relevant images to your blog
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <Switch
+                      checked={formData.addImages}
+                      onCheckedChange={checked => {
+                        setFormData(prev => ({
+                          ...prev,
+                          addImages: checked,
+                          imageSource: checked
+                            ? prev.imageSource === "none" || !prev.imageSource
+                              ? "stock"
+                              : prev.imageSource
+                            : "none",
+                        }))
+                        setErrors(prev => ({ ...prev, imageSource: "" }))
+                      }}
+                      size="large"
+                    />
+                  </div>
                 </div>
-                <Switch
-                  checked={formData.addImages}
-                  onCheckedChange={checked => {
-                    setFormData(prev => ({
-                      ...prev,
-                      addImages: checked,
-                      imageSource: checked
-                        ? prev.imageSource === "none" || !prev.imageSource
-                          ? "stock"
-                          : prev.imageSource
-                        : "none",
-                    }))
-                    setErrors(prev => ({ ...prev, imageSource: "" }))
-                  }}
-                  size="large"
+                {formData.addImages && (
+                  <ImageSourceSelector
+                    value={formData.imageSource}
+                    onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    numberOfImages={formData.numberOfImages}
+                    onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
+                    showUpload={false}
+                  />
+                )}
+
+                {/* Advanced Tool Settings */}
+                <AdvancedOptions
+                  formData={formData}
+                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                  showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
                 />
               </div>
-              {formData.addImages && (
-                <ImageSourceSelector
-                  value={formData.imageSource}
-                  onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
-                  numberOfImages={formData.numberOfImages}
-                  onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
-                  showUpload={false}
-                />
-              )}
-
-              {/* Advanced Tool Settings */}
-              <AdvancedOptions
-                formData={formData}
-                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                showFields={[
-                  "humanisation",
-                  "easyToUnderstand",
-                  "embedYouTubeVideos",
-                ]}
-              />
 
               {/* Reference Links Section */}
               <div>

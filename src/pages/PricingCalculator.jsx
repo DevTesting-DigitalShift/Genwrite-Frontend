@@ -45,6 +45,9 @@ const PricingCalculator = () => {
     internalLinking: false,
     faqGeneration: false,
     automaticPosting: false,
+    humanisation: false,
+    extendedThinking: false,
+    deepResearch: false,
   })
   const [imageType, setImageType] = useState("none")
   const [imageCount, setImageCount] = useState(0)

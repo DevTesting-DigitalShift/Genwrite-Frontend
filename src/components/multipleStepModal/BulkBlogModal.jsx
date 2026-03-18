@@ -54,8 +54,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     imageSource: IMAGE_SOURCE.STOCK,
     isCheckedBrand: false,
     includeCompetitorResearch: false,
-    includeInterlinks: true,
-    includeFaqs: true,
+    includeInterlinks: false,
+    includeFaqs: false,
     numberOfBlogs: 1,
     numberOfImages: 0,
     aiModel: "gemini",
@@ -114,6 +114,9 @@ const BulkBlogModal = ({ closeFnc }) => {
     if (formData.includeInterlinks) features.push("internalLinking")
     if (formData.includeFaqs) features.push("faqGeneration")
     if (formData.addOutBoundLinks) features.push("outboundLinks")
+    if (formData.humanisation) features.push("humanisation")
+    if (formData.extendedThinking) features.push("extendedThinking")
+    if (formData.deepResearch) features.push("deepResearch")
 
     const blogCost = computeCost({
       wordCount: formData.userDefinedLength,
@@ -140,6 +143,9 @@ const BulkBlogModal = ({ closeFnc }) => {
     formData.includeInterlinks,
     formData.includeFaqs,
     formData.addOutBoundLinks,
+    formData.humanisation,
+    formData.extendedThinking,
+    formData.deepResearch,
     formData.userDefinedLength,
     formData.aiModel,
     formData.isCheckedGeneratedImages,
@@ -727,7 +733,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-3 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
+        <div className="p-6 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
             <div
               className={`transition-all duration-200 ${
@@ -1097,52 +1103,65 @@ const BulkBlogModal = ({ closeFnc }) => {
             </div>
           )}
           {currentStep === 3 && (
-            <div className="space-y-8 p-4 pt-0">
+            <div className="space-y-6 p-4 pt-0">
+              {/* 1-4. AdvancedOptions Group A */}
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+              />
+
+              {/* (5. Quick Summary skipped - not in Bulk) */}
+
+              {/* 6-9. AdvancedOptions Group B */}
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={[
+                  "includeFaqs",
+                  "includeInterlinks",
+                  "addOutBoundLinks",
+                  "includeCompetitorResearch",
+                ]}
+              />
+
+              {/* 10. Embed YouTube Videos */}
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={["embedYouTubeVideos"]}
+              />
+
+              {/* 11. Write with Brand Voice */}
+              <BrandVoiceSelector
+                label="Write with Brand Voice"
+                size="large"
+                labelClass="text-sm font-semibold"
+                value={{
+                  isCheckedBrand: formData.isCheckedBrand,
+                  brandId: formData.brandId,
+                  addCTA: formData.addCTA,
+                }}
+                onChange={val => {
+                  setFormData(prev => ({
+                    ...prev,
+                    isCheckedBrand: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    addCTA: val.addCTA,
+                  }))
+                }}
+              />
+
+              {/* 12. Automatic Posting */}
               <div className="space-y-6">
-                <AdvancedOptions
-                  formData={formData}
-                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                  showFields={[
-                    "extendedThinking",
-                    "deepResearch",
-                    "humanisation",
-                    "includeCompetitorResearch",
-                    "addOutBoundLinks",
-                    "easyToUnderstand",
-                    "embedYouTubeVideos",
-                    "includeInterlinks",
-                    "includeFaqs",
-                  ]}
-                />
-
-                <BrandVoiceSelector
-                  label="Write with Brand Voice"
-                  size="large"
-                  labelClass="text-sm font-semibold"
-                  value={{
-                    isCheckedBrand: formData.isCheckedBrand,
-                    brandId: formData.brandId,
-                    addCTA: formData.addCTA,
-                  }}
-                  onChange={val => {
-                    setFormData(prev => ({
-                      ...prev,
-                      isCheckedBrand: val.isCheckedBrand,
-                      brandId: val.brandId,
-                      addCTA: val.addCTA,
-                    }))
-                  }}
-                />
-
-                {/* Automatic Posting */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold">Automatic Posting</p>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Automatically post to your connected platforms
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <p className="text-sm font-semibold">Automatic Posting</p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Automatically post to your connected platforms
+                    </p>
+                  </div>
+                  <div className="flex items-center">
                     <Switch
                       checked={formData.wordpressPostStatus}
                       size="large"
@@ -1163,44 +1182,44 @@ const BulkBlogModal = ({ closeFnc }) => {
                       }}
                     />
                   </div>
-
-                  {formData.wordpressPostStatus &&
-                    integrations?.integrations &&
-                    Object.keys(integrations.integrations).length > 0 && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <label className="font-semibold text-sm">Publishing Platform</label>
-                        <select
-                          value={formData.postingType || ""}
-                          onChange={e =>
-                            setFormData(prev => ({ ...prev, postingType: e.target.value }))
-                          }
-                          className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none mt-3"
-                        >
-                          {Object.entries(integrations.integrations).map(([platform]) => (
-                            <option key={platform} value={platform}>
-                              {platform}
-                            </option>
-                          ))}
-                        </select>
-
-                        <div className="flex items-center justify-between pt-2">
-                          <div>
-                            <p className="text-sm font-semibold">Table of Contents</p>
-                            <p className="text-xs text-slate-500 font-medium">
-                              Include a table of contents in your post
-                            </p>
-                          </div>
-                          <Switch
-                            checked={formData.includeTableOfContents}
-                            size="large"
-                            onCheckedChange={checked =>
-                              setFormData(prev => ({ ...prev, includeTableOfContents: checked }))
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
                 </div>
+
+                {formData.wordpressPostStatus &&
+                  integrations?.integrations &&
+                  Object.keys(integrations.integrations).length > 0 && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label className="font-semibold text-sm">Publishing Platform</label>
+                      <select
+                        value={formData.postingType || ""}
+                        onChange={e =>
+                          setFormData(prev => ({ ...prev, postingType: e.target.value }))
+                        }
+                        className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none mt-3"
+                      >
+                        {Object.entries(integrations.integrations).map(([platform]) => (
+                          <option key={platform} value={platform}>
+                            {platform}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <p className="text-sm font-semibold">Table of Contents</p>
+                          <p className="text-xs text-slate-500 font-medium">
+                            Include a table of contents in your post
+                          </p>
+                        </div>
+                        <Switch
+                          checked={formData.includeTableOfContents}
+                          size="large"
+                          onCheckedChange={checked =>
+                            setFormData(prev => ({ ...prev, includeTableOfContents: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
           )}

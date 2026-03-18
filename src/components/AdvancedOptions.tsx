@@ -60,7 +60,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
     if (!isFieldVisible(id)) return null
 
     return (
-      <div className="flex items-center justify-between py-3">
+      <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <label className={labelClass}>{label}</label>
           {description && <p className="text-xs text-gray-500">{description}</p>}
@@ -71,29 +71,20 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-6">
+      {/* 1. Easy to Understand */}
       {renderOptionRow(
-        "Extended Thinking",
-        "extendedThinking",
+        "Easy to Understand",
+        "easyToUnderstand",
         <Switch
-          checked={getFieldValue("extendedThinking") || false}
-          onCheckedChange={val => setFieldValue("extendedThinking", val)}
+          checked={getFieldValue("easyToUnderstand") || false}
+          onCheckedChange={val => setFieldValue("easyToUnderstand", val)}
           size="large"
         />,
-        "Deepen AI reasoning for logical outputs"
+        "Use simple language and shorter sentences"
       )}
 
-      {renderOptionRow(
-        "Deep Research",
-        "deepResearch",
-        <Switch
-          checked={getFieldValue("deepResearch") || false}
-          onCheckedChange={val => setFieldValue("deepResearch", val)}
-          size="large"
-        />,
-        "Extensive multi-source investigative research"
-      )}
-
+      {/* 2. Humanization */}
       {renderOptionRow(
         "Humanization",
         "humanisation",
@@ -105,6 +96,31 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Natural linguistic patterns to bypass AI filters"
       )}
 
+      {/* 3. Extended Thinking */}
+      {renderOptionRow(
+        "Extended Thinking",
+        "extendedThinking",
+        <Switch
+          checked={getFieldValue("extendedThinking") || false}
+          onCheckedChange={val => setFieldValue("extendedThinking", val)}
+          size="large"
+        />,
+        "Deepen AI reasoning for logical outputs"
+      )}
+
+      {/* 4. Deep Research */}
+      {renderOptionRow(
+        "Deep Research",
+        "deepResearch",
+        <Switch
+          checked={getFieldValue("deepResearch") || false}
+          onCheckedChange={val => setFieldValue("deepResearch", val)}
+          size="large"
+        />,
+        "Extensive multi-source investigative research"
+      )}
+
+      {/* 5. Tone of Voice (Optional placement, but keeping it visible if needed) */}
       {renderOptionRow(
         "Tone of Voice",
         "tone",
@@ -122,6 +138,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Primary communication style"
       )}
 
+      {/* 6. Blog Length (Optional placement) */}
       {renderOptionRow(
         "Blog Length",
         "userDefinedLength",
@@ -141,6 +158,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Approximate target word count"
       )}
 
+      {/* 7. Include FAQs */}
       {renderOptionRow(
         "Include FAQs",
         "includeFaqs",
@@ -152,6 +170,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Add frequently asked questions section"
       )}
 
+      {/* 8. Include Interlinks */}
       {renderOptionRow(
         "Include Interlinks",
         "includeInterlinks",
@@ -163,28 +182,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Link between relevant generated content"
       )}
 
-      {renderOptionRow(
-        "Embed YouTube Videos",
-        "embedYouTubeVideos",
-        <Switch
-          checked={getFieldValue("embedYouTubeVideos") || false}
-          onCheckedChange={val => setFieldValue("embedYouTubeVideos", val)}
-          size="large"
-        />,
-        "Search and embed relevant videos"
-      )}
-
-      {renderOptionRow(
-        "Enable Competitive Research",
-        "includeCompetitorResearch",
-        <Switch
-          checked={getFieldValue("includeCompetitorResearch") || false}
-          onCheckedChange={val => setFieldValue("includeCompetitorResearch", val)}
-          size="large"
-        />,
-        "Analyze top performing similar sub-topics"
-      )}
-
+      {/* 9. Show Outbound Links */}
       {renderOptionRow(
         "Show Outbound Links",
         "addOutBoundLinks",
@@ -196,15 +194,28 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "Include links to high-authority external sites"
       )}
 
+      {/* 10. Enable Competitive Research */}
       {renderOptionRow(
-        "Easy to Understand",
-        "easyToUnderstand",
+        "Enable Competitive Research",
+        "includeCompetitorResearch",
         <Switch
-          checked={getFieldValue("easyToUnderstand") || false}
-          onCheckedChange={val => setFieldValue("easyToUnderstand", val)}
+          checked={getFieldValue("includeCompetitorResearch") || false}
+          onCheckedChange={val => setFieldValue("includeCompetitorResearch", val)}
           size="large"
         />,
-        "Use simple language and shorter sentences"
+        "Analyze top performing similar sub-topics"
+      )}
+
+      {/* 11. Embed YouTube Videos */}
+      {renderOptionRow(
+        "Embed YouTube Videos",
+        "embedYouTubeVideos",
+        <Switch
+          checked={getFieldValue("embedYouTubeVideos") || false}
+          onCheckedChange={val => setFieldValue("embedYouTubeVideos", val)}
+          size="large"
+        />,
+        "Search and embed relevant videos"
       )}
     </div>
   )

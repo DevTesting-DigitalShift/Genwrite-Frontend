@@ -561,7 +561,7 @@ const PluginsMain = () => {
                     />
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium ">Sanity Data Set</label>
                       <input

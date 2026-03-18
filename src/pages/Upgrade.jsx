@@ -423,7 +423,7 @@ const Upgrade = () => {
         ],
         cta: !user?.subscription?.trialOpted
           ? currency === "INR"
-            ? "Start your plan at ₹90"
+            ? "Start your free trial"
             : "Start today for $1"
           : "Get Started",
         type: "subscription",
@@ -464,7 +464,7 @@ const Upgrade = () => {
         ],
         cta: !user?.subscription?.trialOpted
           ? currency === "INR"
-            ? "Start your plan at ₹90"
+            ? "Start your free trial"
             : "Start today for $1"
           : "Upgrade to Pro",
         type: "subscription",

@@ -166,6 +166,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     if (formData.options.includeFaqs) features.push("faqGeneration")
     if (formData.isCheckedQuick) features.push("quickSummary")
     if (formData.options.addOutBoundLinks) features.push("outboundLinks")
+    if (formData.options.humanisation) features.push("humanisation")
+    if (formData.options.extendedThinking) features.push("extendedThinking")
+    if (formData.options.deepResearch) features.push("deepResearch")
 
     let cost = computeCost({
       wordCount: formData.userDefinedLength,
@@ -190,6 +193,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     formData.options.performKeywordResearch,
     formData.options.includeInterlinks,
     formData.options.includeFaqs,
+    formData.options.humanisation,
+    formData.options.extendedThinking,
+    formData.options.deepResearch,
     formData.isCheckedQuick,
     formData.options.addOutBoundLinks,
     formData.userDefinedLength,
@@ -995,43 +1001,52 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       }
       case 3:
         return (
-          <div className="space-y-8 p-4 pt-0">
-            {/* Options List */}
-            <div className="space-y-6">
-              <AdvancedOptions
-                formData={formData}
-                updateFormData={updateFormData}
-                isNestedOptions={true}
-                showFields={[
-                  "extendedThinking",
-                  "deepResearch",
-                  "humanisation",
-                  "includeFaqs",
-                  "includeInterlinks",
-                  "embedYouTubeVideos",
-                  "includeCompetitorResearch",
-                  "addOutBoundLinks",
-                  "easyToUnderstand",
-                ]}
-              />
+          <div className="space-y-6 p-4 pt-0">
+            {/* 1-4. AdvancedOptions Group A */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+            />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold ">Add a Quick Summary</p>
-                  <p className="text-xs text-slate-500">
-                    Generate a concise summary for the readers
-                  </p>
-                </div>
+            {/* 5. Add Quick Summary */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Add a Quick Summary</label>
+                <p className="text-xs text-slate-500">Generate a concise summary for the readers</p>
+              </div>
+              <div className="flex items-center">
                 <Switch
                   size="large"
                   checked={formData.isCheckedQuick}
-                  onCheckedChange={(checked: boolean) =>
-                    updateFormData({ isCheckedQuick: checked })
-                  }
+                  onCheckedChange={(checked: boolean) => updateFormData({ isCheckedQuick: checked })}
                 />
               </div>
             </div>
 
+            {/* 6-9. AdvancedOptions Group B */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={[
+                "includeFaqs",
+                "includeInterlinks",
+                "addOutBoundLinks",
+                "includeCompetitorResearch",
+              ]}
+            />
+
+            {/* 10. Embed YouTube Videos */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={["embedYouTubeVideos"]}
+            />
+
+            {/* 11. Write with Brand Voice */}
             <BrandVoiceSelector
               label="Write with Brand Voice"
               value={{
@@ -1050,33 +1065,35 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               }}
             />
 
-            {/* Automatic Posting */}
-            <div className="space-y-4">
+            {/* 12. Automatic Posting */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold ">Automatic Posting</p>
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold">Automatic Posting</label>
                   <p className="text-xs text-slate-500">
                     Automatically post to your connected platforms
                   </p>
                 </div>
-                <Switch
-                  checked={formData.wordpressPostStatus}
-                  size="large"
-                  onCheckedChange={(checked: boolean) => {
-                    const hasAnyIntegration =
-                      Object.keys(integrations?.integrations || {}).length > 0
-                    if (checked && !hasAnyIntegration) {
-                      toast.error("Please connect your account in plugins.")
-                      return
-                    }
-                    updateFormData({
-                      wordpressPostStatus: checked,
-                      postingType: checked
-                        ? formData.postingType || Object.keys(integrations?.integrations || {})[0]
-                        : null,
-                    })
-                  }}
-                />
+                <div className="flex items-center">
+                  <Switch
+                    checked={formData.wordpressPostStatus}
+                    size="large"
+                    onCheckedChange={(checked: boolean) => {
+                      const hasAnyIntegration =
+                        Object.keys(integrations?.integrations || {}).length > 0
+                      if (checked && !hasAnyIntegration) {
+                        toast.error("Please connect your account in plugins.")
+                        return
+                      }
+                      updateFormData({
+                        wordpressPostStatus: checked,
+                        postingType: checked
+                          ? formData.postingType || Object.keys(integrations?.integrations || {})[0]
+                          : null,
+                      })
+                    }}
+                  />
+                </div>
               </div>
 
               {formData.wordpressPostStatus &&
