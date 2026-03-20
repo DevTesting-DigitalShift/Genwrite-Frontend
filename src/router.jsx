@@ -35,7 +35,7 @@ const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
-const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
+
 const ImageGallery = lazy(() => import("@pages/ImageGallery"))
 const Onboarding = lazy(() => import("@pages/Onboarding"))
 const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
@@ -87,7 +87,7 @@ const router = createBrowserRouter([
             ],
           },
           { path: "shopify-verify", element: r(ShopifyVerification) },
-          { path: "pricing-calculator", element: r(PricingCalculator) },
+
           { path: "onboarding", element: r(Onboarding) },
           { path: "*", element: r(ErrorPage) },
         ],

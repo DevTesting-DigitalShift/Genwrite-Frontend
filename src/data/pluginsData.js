@@ -1,4 +1,5 @@
 import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
+import { SiSanity } from "react-icons/si"
 
 export const pluginsData = pingFn => [
   {
@@ -131,7 +132,7 @@ export const pluginsData = pingFn => [
     updatedDate: "Mar 2026",
     downloadLink: "#",
     isVisible: true,
-    icon: FaServer,
+    icon: SiSanity,
     message: "Push AI-generated blogs directly to your Sanity CMS using a Write Token.",
     onCheck: async () => {
       try {
