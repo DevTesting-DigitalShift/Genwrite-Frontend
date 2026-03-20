@@ -703,28 +703,39 @@ const PluginsMain = () => {
         )}
 
         {plugin.id === 115 && (
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* Left Content */}
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600 shrink-0">
-                  <PlayCircle size={20} />
+          <div className="mt-6 space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600 shrink-0">
+                    <PlayCircle size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-blue-900 text-sm">Sanity Setup Guide</h4>
+                    <p className="text-xs text-blue-700">
+                      Learn how to connect your Sanity studio.
+                    </p>
+                  </div>
                 </div>
-
-                <div>
-                  <h4 className="font-semibold text-blue-900 text-sm">Sanity Setup Guide</h4>
-                  <p className="text-xs text-blue-700">Learn how to connect your Sanity studio.</p>
-                </div>
+                <a
+                  href="https://youtu.be/Lrs3Vg7PEs0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto text-center px-4 py-2 bg-white text-blue-600 text-xs font-bold border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  Watch Guide
+                </a>
               </div>
+            </div>
 
-              {/* Button */}
+            <div className="pt-2">
               <a
-                href="https://youtube.com/sanity-test"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto text-center px-4 py-2 bg-white text-blue-600 text-xs font-bold border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                href="/FRONTEND_GUIDE.pdf"
+                download="FRONTEND_GUIDE.pdf"
+                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed border-emerald-500 text-emerald-600 font-bold hover:bg-emerald-50 transition-all active:scale-[0.98]"
               >
-                Watch Guide
+                <Download size={18} />
+                Download Frontend Schema Guide (PDF)
               </a>
             </div>
           </div>
