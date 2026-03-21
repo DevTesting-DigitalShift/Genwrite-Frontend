@@ -12,8 +12,7 @@ import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useStripe } from "@stripe/react-stripe-js"
-import PaymentForm from "./payment/PaymentForm"
+
 
 const PricingCard = ({
   plan,
@@ -317,7 +316,7 @@ const Upgrade = () => {
   const navigate = useNavigate()
   const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
-  const [paymentIntent, setPaymentIntent] = useState(null)
+
 
   const CONVERSION_RATE = 90 // USD to INR conversion rate
 
@@ -601,12 +600,21 @@ const Upgrade = () => {
         return
       }
 
-      // New cases from upgrade endpoint
+      // New cases from upgrade endpoint — handle 3DS/SCA natively via Stripe SDK
       if (data?.requiresAction && data?.clientSecret) {
-        // Show PaymentForm component (as in previous message)
-        setPaymentIntent({ clientSecret: data.clientSecret })
-        toast.info(`Complete payment of ${data.amountDue} ${data.currency} to upgrade.`)
-        // Render <PaymentForm clientSecret={data.clientSecret} ... />
+        toast.info(`Authenticating payment of ${data.amountDue} ${data.currency}...`)
+        const { paymentIntent: confirmedIntent, error: actionError } = await stripe.handleNextAction({
+          clientSecret: data.clientSecret,
+        })
+        if (actionError) {
+          toast.error(actionError.message || "Payment authentication failed. Please try again.")
+        } else if (confirmedIntent?.status === "succeeded") {
+          toast.success("Payment successful! Your plan will update shortly.")
+          navigate("/transactions", { replace: true })
+        } else {
+          toast.warning("Payment is pending. Check your transactions for updates.")
+          navigate("/transactions", { replace: true })
+        }
         return
       }
 
@@ -785,20 +793,7 @@ const Upgrade = () => {
         </div>
       )}
 
-      {paymentIntent?.clientSecret && (
-        <div className="payment-modal">
-          <h3>Complete your {paymentIntent.plan?.name} purchase</h3>
-          <PaymentForm
-            clientSecret={paymentIntent.clientSecret}
-            onSuccess={() => {
-              toast.success("Payment successful!")
-              navigate("/transactions")
-              setPaymentIntent(null)
-            }}
-            onError={err => toast.error(err.message)}
-          />
-        </div>
-      )}
+
     </div>
   )
 }

@@ -1,11 +1,13 @@
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function PaymentForm({ clientSecret, onSuccess, onError }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState('');
+  const [hasError, setHasError] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,9 +30,11 @@ export default function PaymentForm({ clientSecret, onSuccess, onError }) {
     });
 
     if (error) {
+      setHasError(true);
       setMessage(error.message || 'An unexpected error occurred.');
       onError?.(error);
     } else {
+      setHasError(false);
       // Payment succeeded → show success UI
       // Real access granted via webhook, so you can be optimistic here
       setMessage('Payment processed successfully! Your plan/credits will update shortly.');
@@ -56,7 +60,7 @@ export default function PaymentForm({ clientSecret, onSuccess, onError }) {
         {isProcessing ? 'Processing...' : 'Pay now'}
       </button>
 
-      {message && <div style={{ color: error ? 'red' : 'green', marginTop: '1rem' }}>{message}</div>}
+      {message && <div style={{ color: hasError ? 'red' : 'green', marginTop: '1rem' }}>{message}</div>}
     </form>
   );
 }
