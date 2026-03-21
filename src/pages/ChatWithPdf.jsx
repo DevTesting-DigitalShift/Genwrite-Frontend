@@ -294,7 +294,7 @@ const ChatWithPdf = () => {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50/30 scroll-smooth">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 scroll-smooth">
                   {messages.map((msg, idx) => (
                     <motion.div
                       key={msg.id}
@@ -310,7 +310,7 @@ const ChatWithPdf = () => {
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm ${msg.role === "user" ? "bg-linear-to-br from-slate-900 to-slate-800 text-white rounded-tr-none" : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"}`}
+                        className={`max-w-[85%] md:max-w-[75%] p-3 md:p-4 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-indigo-50/50 text-indigo-900 border border-indigo-100 rounded-tr-none" : "bg-white text-slate-600 border border-slate-100 rounded-tl-none shadow-xs"}`}
                       >
                         {msg.role === "model" ? (
                           <div className="prose prose-sm max-w-none prose-slate">
@@ -405,12 +405,17 @@ const ChatWithPdf = () => {
           )}
 
           {file && messages.length > 2 && (
-            <div className="bg-white rounded-3xl p-6 mt-6 border border-slate-100 shadow-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl p-4 mt-4 border border-slate-100 shadow-sm shrink-0"
+            >
               <ConnectedTools
                 currentToolId="chatpdf"
                 transferValue={messages[messages.length - 1]?.content || ""}
+                isCompact={true}
               />
-            </div>
+            </motion.div>
           )}
         </div>
       </div>

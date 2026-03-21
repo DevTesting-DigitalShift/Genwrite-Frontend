@@ -127,6 +127,7 @@ const ConnectedTools = ({
   suggestions = [],
   title = "What's Next?",
   transferValue = "",
+  isCompact = false,
 }) => {
   const navigate = useNavigate()
 
@@ -172,12 +173,14 @@ const ConnectedTools = ({
   if (toolsToShow.length === 0) return null
 
   return (
-    <div className="mt-12 pt-8 border-t border-gray-100">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-blue-600" />
+    <div className={isCompact ? "" : "mt-12 pt-8 border-t border-gray-100"}>
+      <div className={`flex items-center gap-3 ${isCompact ? "mb-4" : "mb-6"}`}>
+        <div
+          className={`${isCompact ? "w-6 h-6" : "w-8 h-8"} bg-blue-50 rounded-lg flex items-center justify-center`}
+        >
+          <Sparkles className={`${isCompact ? "w-3 h-3" : "w-4 h-4"} text-blue-600`} />
         </div>
-        <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+        <h3 className={`${isCompact ? "text-lg" : "text-xl"} font-bold text-gray-900`}>{title}</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -191,7 +194,7 @@ const ConnectedTools = ({
               const finalValue = tool.id === "youtube" || tool.id === "scraping" ? "" : transferValue
               navigate(tool.path, { state: { transferValue: finalValue } })
             }}
-            className="group cursor-pointer bg-white border border-gray-100 p-5 rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden"
+            className={`group cursor-pointer bg-white border border-gray-100 ${isCompact ? "p-3.5" : "p-5"} rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden`}
           >
             {/* Background Gradient Blur */}
             <div
@@ -199,19 +202,25 @@ const ConnectedTools = ({
             />
 
             <div
-              className={`w-12 h-12 bg-linear-to-br ${tool.color} rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform duration-300`}
+              className={`${isCompact ? "w-10 h-10" : "w-12 h-12"} bg-linear-to-br ${tool.color} rounded-xl flex items-center justify-center ${isCompact ? "mb-2.5" : "mb-4"} shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform duration-300`}
             >
-              <tool.icon className="w-6 h-6 text-white" />
+              <tool.icon className={`${isCompact ? "w-5 h-5" : "w-6 h-6"} text-white`} />
             </div>
 
-            <h4 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            <h4
+              className={`${isCompact ? "text-base" : "text-lg"} font-bold text-gray-900 mb-1.5 group-hover:text-blue-600 transition-colors`}
+            >
               {tool.title}
             </h4>
-            <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed mb-4">
+            <p
+              className={`${isCompact ? "text-xs" : "text-sm"} text-gray-500 line-clamp-2 leading-relaxed ${isCompact ? "mb-3" : "mb-4"}`}
+            >
               {tool.description}
             </p>
 
-            <div className="flex items-center text-blue-600 text-sm font-bold group-hover:gap-2 transition-all">
+            <div
+              className={`flex items-center text-blue-600 ${isCompact ? "text-[12px]" : "text-sm"} font-bold group-hover:gap-2 transition-all`}
+            >
               Try It Now
               <ArrowRight className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100" />
             </div>

@@ -345,6 +345,36 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             }
           },
         }),
+        // Custom Div Node to preserve .section-content and other containers
+        Node.create({
+          name: "div",
+          group: "block",
+          content: "block+",
+          parseHTML() {
+            return [{ tag: "div" }]
+          },
+          renderHTML({ HTMLAttributes }) {
+            return ["div", HTMLAttributes, 0]
+          },
+          addAttributes() {
+            return {
+              class: {
+                default: null,
+                parseHTML: element => element.getAttribute("class"),
+                renderHTML: attributes => {
+                  return { class: attributes.class }
+                },
+              },
+              id: {
+                default: null,
+                parseHTML: element => element.getAttribute("id"),
+                renderHTML: attributes => {
+                  return { id: attributes.id }
+                },
+              },
+            }
+          },
+        }),
         Image.configure({
           HTMLAttributes: { class: "rounded-lg mx-auto w-full h-auto object-contain" },
         }),

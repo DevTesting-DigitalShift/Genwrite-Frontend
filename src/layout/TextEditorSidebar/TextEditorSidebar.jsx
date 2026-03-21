@@ -497,7 +497,13 @@ const TextEditorSidebar = ({
             if (contentDiv) {
               contentDiv.innerHTML = response.data.content
             } else {
-              sectionEl.innerHTML = response.data.content
+              // If .section-content wrapper is missing, preserve headers and wrap/replace content
+              const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
+              const headerHTML = headings.map(h => h.outerHTML).join("")
+              
+              // Only prepend headers if they aren't already in the AI response
+              const hasHeaderInResponse = /<h[1-6]/.test(response.data.content)
+              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + response.data.content
             }
           }
 
@@ -572,7 +578,8 @@ const TextEditorSidebar = ({
 
         let htmlContent = response.data.previousContent
         const doc1 = parser.parseFromString(htmlContent, "text/html")
-        htmlContent = doc1.querySelector(".section-content").innerHTML
+        const oldContentDiv = doc1.querySelector(".section-content")
+        htmlContent = oldContentDiv ? oldContentDiv.innerHTML : htmlContent
 
         // Open Diff Modal instead of instant replace
         setDiffData({ old: htmlContent, new: response.data.content, full: newFullContent })
