@@ -82,8 +82,6 @@ const BlogsPage = () => {
     return item ? JSON.parse(item) : initialBlogFilter
   })
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
   const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
 
   const [tempGscClicks, setTempGscClicks] = useState(blogFilters.gscClicks)
@@ -126,9 +124,9 @@ const BlogsPage = () => {
     isLoading: isLoadingActive,
     isRefetching: isRefetchingActive,
     data: activeData,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
+    hasNextPage: hasNextPageActive,
+    fetchNextPage: fetchNextPageActive,
+    isFetchingNextPage: isFetchingNextPageActive,
     refetch: refetchActive,
   } = useInfiniteQuery({
     queryKey: ["blogs", userId, blogFilters],
@@ -168,40 +166,63 @@ const BlogsPage = () => {
     // No polling — socket events (blog:statusChanged) handle live updates
   })
 
-  const { data: trashData, isLoading: isLoadingTrash } = useQuery({
-    queryKey: ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
-    queryFn: async () => {
-      const queryParams = {
+  const {
+    isLoading: isLoadingTrash,
+    isRefetching: isRefetchingTrash,
+    data: trashData,
+    hasNextPage: hasNextPageTrash,
+    fetchNextPage: fetchNextPageTrash,
+    isFetchingNextPage: isFetchingNextPageTrash,
+  } = useInfiniteQuery({
+    queryKey: ["trashedBlogs", userId, blogFilters],
+    initialPageParam: 1,
+    queryFn: async ({ pageParam = 1 }) => {
+      let params = {
         isArchived: true,
-        status: blogFilters.status !== BLOG_STATUS.ALL ? blogFilters.status : undefined,
+        page: pageParam,
+        limit: ITEMS_PER_PAGE,
         q: blogFilters.q || undefined,
+        status: blogFilters.status !== BLOG_STATUS.ALL ? blogFilters.status : undefined,
         sort: blogFilters.sort,
         start: blogFilters.start || undefined,
         end: blogFilters.end || undefined,
         gscClicks: blogFilters.gscClicks || undefined,
         gscImpressions: blogFilters.gscImpressions || undefined,
-        page: currentPage,
-        limit: pageSize,
       }
-      const response = await getAllBlogs(queryParams)
-      return { trashedBlogs: response.data || [], totalBlogs: response.totalItems || 0 }
+      params = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+      )
+      console.log("[BlogsPage] Fetching trashed blogs with params:", params)
+      const res = await getAllBlogs(params)
+      return {
+        data: res?.data ?? [],
+        page: res?.page ?? 1,
+        totalPages: res?.totalPages ?? 1,
+        hasMore: res?.hasMore ?? false,
+        totalItems: res?.totalItems ?? 0,
+      }
+    },
+    getNextPageParam: lastPage => {
+      return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
     },
     enabled: !!user && isTrashcan,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   const allBlogs = useMemo(() => {
-    if (isTrashcan) {
-      return trashData?.trashedBlogs || []
-    }
-    return activeData?.pages.flatMap(p => p.data) ?? []
+    const data = isTrashcan ? trashData : activeData
+    return data?.pages.flatMap(p => p.data) ?? []
   }, [isTrashcan, trashData, activeData])
 
-  const totalItems = isTrashcan
-    ? trashData?.totalBlogs || 0
-    : (activeData?.pages[0]?.totalItems ?? 0)
+  const totalItems = (isTrashcan ? trashData : activeData)?.pages[0]?.totalItems ?? 0
 
   const isLoading = isTrashcan ? isLoadingTrash : isLoadingActive
-  const isRefetching = isTrashcan ? false : isRefetchingActive
+  const isRefetching = isTrashcan ? isRefetchingTrash : isRefetchingActive
+  const hasNextPage = isTrashcan ? hasNextPageTrash : hasNextPageActive
+  const fetchNextPage = isTrashcan ? fetchNextPageTrash : fetchNextPageActive
+  const isFetchingNextPage = isTrashcan ? isFetchingNextPageTrash : isFetchingNextPageActive
 
   const resetFilters = useCallback(() => {
     const freshStart = { ...initialBlogFilter, start: user?.createdAt }
@@ -209,7 +230,6 @@ const BlogsPage = () => {
     setTempGscClicks(null)
     setTempGscImpressions(null)
     sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
-    setCurrentPage(1)
     toast.success("Filters reset to basics")
   }, [user, isTrashcan, userId, initialBlogFilter])
 
@@ -317,17 +337,17 @@ const BlogsPage = () => {
   const handleRestore = useCallback(
     async id => {
       // Optimistic UI Update
-      queryClient.setQueryData(
-        ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
-        oldData => {
-          if (!oldData) return oldData
-          return {
-            ...oldData,
-            trashedBlogs: oldData.trashedBlogs.filter(blog => blog._id !== id),
-            totalBlogs: Math.max(0, oldData.totalBlogs - 1),
-          }
+      queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            data: page.data.filter(blog => blog._id !== id),
+            totalItems: Math.max(0, page.totalItems - 1),
+          })),
         }
-      )
+      })
       toast.success("Article is restored. Check My Projects", {
         action: { label: "View", onClick: () => navigate("/blogs") },
       })
@@ -340,19 +360,22 @@ const BlogsPage = () => {
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       }
     },
-    [queryClient, userId, blogFilters, currentPage, pageSize, navigate]
+    [queryClient, userId, blogFilters, navigate]
   )
 
   const handleRestoreAll = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(
-      ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
-      oldData => {
-        if (!oldData) return oldData
-        return { ...oldData, trashedBlogs: [], totalBlogs: 0 }
+    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+      if (!oldData) return oldData
+      return {
+        ...oldData,
+        pages: oldData.pages.map(page => ({
+          ...page,
+          data: [],
+          totalItems: 0,
+        })),
       }
-    )
-    setCurrentPage(1)
+    })
     toast.success("All articles are restored. Check My Projects", {
       action: { label: "View", onClick: () => navigate("/blogs") },
     })
@@ -364,18 +387,21 @@ const BlogsPage = () => {
       toast.error("Restoration failed")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
     }
-  }, [queryClient, userId, blogFilters, currentPage, pageSize, navigate])
+  }, [queryClient, userId, blogFilters, navigate])
 
   const handleBulkDelete = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(
-      ["trashedBlogs", userId, blogFilters, currentPage, pageSize],
-      oldData => {
-        if (!oldData) return oldData
-        return { ...oldData, trashedBlogs: [], totalBlogs: 0 }
+    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+      if (!oldData) return oldData
+      return {
+        ...oldData,
+        pages: oldData.pages.map(page => ({
+          ...page,
+          data: [],
+          totalItems: 0,
+        })),
       }
-    )
-    setCurrentPage(1)
+    })
     toast.success("Trash emptied. Permanent deletion complete.")
 
     try {
@@ -384,10 +410,7 @@ const BlogsPage = () => {
       toast.error("delete failed")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
     }
-  }, [queryClient, userId, blogFilters, currentPage, pageSize])
-
-  // Total pages for trashcan pagination
-  const totalTrashPages = Math.ceil(totalItems / pageSize)
+  }, [queryClient, userId, blogFilters])
 
   return (
     <div className="md:p-6 p-3 md:mt-0 mt-6">
@@ -705,7 +728,7 @@ const BlogsPage = () => {
 
             {/* Pagination Matrix */}
             <div className="pt-10 flex flex-col items-center gap-10">
-              {!isTrashcan && hasNextPage && (
+              {hasNextPage && (
                 <div className="flex flex-col items-center gap-6">
                   <div className="flex items-center gap-3">
                     <div className="h-px w-10 bg-slate-200" />
@@ -725,60 +748,6 @@ const BlogsPage = () => {
                     ) : (
                       <>Load More</>
                     )}
-                  </button>
-                </div>
-              )}
-
-              {isTrashcan && totalItems > pageSize && (
-                <div className="flex items-center gap-2 join">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className="join-item btn btn-outline border-slate-200 h-12 w-12 p-0"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-
-                  {[...Array(totalTrashPages)].map((_, i) => {
-                    const page = i + 1
-                    // Show limited pages if many
-                    if (totalTrashPages > 5) {
-                      if (
-                        page !== 1 &&
-                        page !== totalTrashPages &&
-                        (page < currentPage - 1 || page > currentPage + 1)
-                      ) {
-                        if (page === currentPage - 2 || page === currentPage + 2)
-                          return (
-                            <span key={i} className="join-item btn btn-disabled">
-                              ...
-                            </span>
-                          )
-                        return null
-                      }
-                    }
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentPage(page)}
-                        className={clsx(
-                          "join-item btn h-12 w-12 border-slate-200",
-                          currentPage === page
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "bg-white text-slate-600 hover:bg-slate-50"
-                        )}
-                      >
-                        {page}
-                      </button>
-                    )
-                  })}
-
-                  <button
-                    disabled={currentPage === totalTrashPages}
-                    onClick={() => setCurrentPage(prev => Math.min(totalTrashPages, prev + 1))}
-                    className="join-item btn btn-outline border-slate-200 h-12 w-12 p-0"
-                  >
-                    <ChevronRight size={18} />
                   </button>
                 </div>
               )}
