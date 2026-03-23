@@ -239,7 +239,7 @@ const Profile = () => {
   const isChanged = !initialProfileData || !isEqual(profileData, initialProfileData)
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 lg:p-12 mb-20 font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-slate-50/50 p-0 pt-10 md:pt-0 sm:p-6 lg:p-12 mb-20 font-sans antialiased text-slate-800">
       <Helmet>
         <title>Profile Settings | GenWrite</title>
       </Helmet>
@@ -249,12 +249,12 @@ const Profile = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl p-8 shadow-sm border border-slate-200"
+          className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200"
         >
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8">
             {/* Avatar Section */}
             <div className="relative group">
-              <div className="w-32 h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 flex items-center justify-center text-4xl font-semibold text-slate-400">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 flex items-center justify-center text-3xl sm:text-4xl font-semibold text-slate-400">
                 {profileData.profilePicture ? (
                   <img
                     src={profileData.profilePicture}
@@ -271,7 +271,7 @@ const Profile = () => {
             <div className="flex-1 space-y-4 text-center md:text-left">
               <div className="space-y-1">
                 <div className="flex flex-wrap justify-center md:justify-start items-center gap-2">
-                  <h1 className="text-3xl font-semibold">
+                  <h1 className="text-2xl sm:text-3xl font-semibold">
                     {profileData.personalDetails.name || "Set your name"}
                   </h1>
                   {profileData.emailVerified && (
@@ -318,17 +318,17 @@ const Profile = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl p-8 shadow-sm border border-slate-200"
+          className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200"
         >
           {/* Section Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4 border-b border-slate-100 pb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 sm:mb-10 gap-6 sm:gap-4 border-b border-slate-100 pb-6 sm:pb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+              <div className="p-2 sm:p-3 bg-blue-50 text-blue-600 rounded-2xl">
                 <Users size={24} />
               </div>
-              <h2 className="text-2xl font-semibold text-slate-900">Personal Details</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">Personal Details</h2>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-row items-center gap-2 w-auto">
               <button
                 onClick={() => setPasswordModalVisible(true)}
                 className="btn bg-slate-600 hover:bg-slate-700 text-white border-none rounded-lg font-semibold px-6 h-12 gap-2"
@@ -346,7 +346,7 @@ const Profile = () => {
           </div>
 
           {/* Form Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
             <ProfileInput
               label="Full Name"
               name="personalDetails.name"
@@ -444,6 +444,23 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* Mobile-only Action Buttons */}
+          <div className="flex sm:hidden flex-row items-center gap-3 pt-6 mt-2 border-t border-slate-100">
+            <button
+              onClick={() => setPasswordModalVisible(true)}
+              className="px-2 h-11 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold flex-1 text-[11px] whitespace-nowrap"
+            >
+              Change Password
+            </button>
+            <button
+              disabled={!isChanged}
+              onClick={handleSave}
+              className={`px-2 h-11 ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} rounded-lg font-bold flex-1 text-[11px] shadow-sm whitespace-nowrap`}
+            >
+              Save Changes
+            </button>
+          </div>
         </motion.div>
 
         {/* Action Grid */}
@@ -453,7 +470,7 @@ const Profile = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6"
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
@@ -508,7 +525,7 @@ const Profile = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6"
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
@@ -548,19 +565,19 @@ const Profile = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="bg-white rounded-lg p-8 shadow-sm border border-slate-200 space-y-6 lg:col-span-2"
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6 lg:col-span-2"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-100 pb-6 sm:pb-8">
                <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
                    <Crown size={24} />
                  </div>
                  <div>
-                   <h3 className="text-xl font-semibold text-slate-900">Subscription Status</h3>
-                   <p className="text-slate-500 text-sm">Manage your plan and billing cycle.</p>
+                   <h3 className="text-lg sm:text-xl font-semibold text-slate-900">Subscription Status</h3>
+                   <p className="text-slate-500 text-xs sm:text-sm">Manage your plan and billing cycle.</p>
                  </div>
                </div>
-               <a href="/transactions" className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none self-start sm:self-auto font-semibold">
+               <a href="/transactions" className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none w-full sm:w-auto font-semibold h-10">
                  Manage Billing
                </a>
             </div>
@@ -633,11 +650,11 @@ const Profile = () => {
 }
 
 const ProfileInput = ({ label, ...props }) => (
-  <div className="space-y-2">
-    <label className="text-sm font-semibold text-slate-600 ml-1">{label}</label>
+  <div className="space-y-1.5">
+    <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
     <input
       {...props}
-      className="w-full mt-1 h-14 px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
+      className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
     />
   </div>
 )
@@ -655,12 +672,12 @@ const DatePickerField = ({ label, value, onChange }) => {
   const displayValue = value ? dayjs(value).format("DD MMM YYYY") : "Pick a date"
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-semibold text-slate-600 ml-1">{label}</label>
+    <div className="space-y-1.5">
+      <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
-            className={`w-full mt-1 h-14 px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 font-medium transition-all flex items-center justify-between ${
+            className={`w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 font-medium transition-all flex items-center justify-between ${
               !value ? "text-slate-300" : ""
             }`}
           >

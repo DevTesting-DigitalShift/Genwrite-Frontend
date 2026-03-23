@@ -478,7 +478,7 @@ const PluginsMain = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between gap-4 mb-6">
               <h3 className="text-lg font-bold text-gray-900">
                 {plugin.id === 112 || plugin.id === 115
                   ? "Connection Credentials"
@@ -487,19 +487,21 @@ const PluginsMain = () => {
               <button
                 onClick={handleToggleEdit}
                 className={clsx(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border",
+                  "flex items-center justify-center transition-all border rounded-lg",
                   isEditing
                     ? "text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100"
-                    : "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
+                    : "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100",
+                  "w-10 h-10 sm:w-auto sm:px-4 sm:py-2"
                 )}
+                title={isEditing ? "Cancel Changes" : "Edit Settings"}
               >
                 {isEditing ? (
                   <>
-                    <XCircle size={15} /> Cancel Changes
+                    <XCircle size={18} /> <span className="hidden sm:inline-block ml-2 text-sm font-bold">Cancel Changes</span>
                   </>
                 ) : (
                   <>
-                    <Edit size={15} /> Edit Settings
+                    <Edit size={18} /> <span className="hidden sm:inline-block ml-2 text-sm font-bold">Edit Settings</span>
                   </>
                 )}
               </button>
@@ -652,7 +654,7 @@ const PluginsMain = () => {
             <button
               onClick={isEditing ? handleConnect : handlePing}
               className={clsx(
-                "w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98]",
+                "w-full py-3.5 sm:py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98] text-sm sm:text-base px-2",
                 isEditing ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"
               )}
             >
@@ -661,12 +663,13 @@ const PluginsMain = () => {
                   <span className="loading loading-spinner loading-sm"></span>
                 ) : isEditing ? (
                   <>
-                    <ShieldCheck size={18} /> Save Integration Configuration
+                    <ShieldCheck size={18} className="hidden sm:block" /> 
+                    <span className="text-center">Save Integration Configuration</span>
                   </>
                 ) : (
                   <>
-                    <RefreshCw size={18} className={clsx(localLoading && "animate-spin")} />
-                    Check Connection Status
+                    <RefreshCw size={18} className={clsx(localLoading && "animate-spin", "hidden sm:block")} />
+                    <span className="text-center">Check Connection Status</span>
                   </>
                 )}
               </div>
@@ -820,8 +823,8 @@ const PluginsMain = () => {
 }
 
 const PluginHeader = ({ plugin }) => (
-  <div className="flex items-start gap-6">
-    <div className="w-20 h-20 shrink-0">
+  <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
       <img
         src={plugin.pluginImage}
         alt={plugin.name}
@@ -829,14 +832,14 @@ const PluginHeader = ({ plugin }) => (
       />
     </div>
     <div className="space-y-1">
-      <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>
-      <p className="text-gray-500 text-base leading-relaxed max-w-2xl">{plugin.description}</p>
-      <div className="flex flex-wrap items-center gap-4 pt-2 text-sm text-gray-500 font-medium">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>
+      <p className="text-xs sm:text-base text-gray-500 leading-relaxed max-w-2xl">{plugin.description}</p>
+      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 pt-2 text-[10px] sm:text-sm text-gray-500 font-medium">
         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-          <Tag size={13} /> <span>v{plugin.version}</span>
+          <Tag size={12} className="sm:size-4" /> <span>v{plugin.version}</span>
         </div>
         <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-          <Clock size={13} /> <span>Updated {plugin.updatedDate}</span>
+          <Clock size={12} className="sm:size-4" /> <span>Updated {plugin.updatedDate}</span>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   XCircle,
   AlertCircle,
   Info,
+  Clock,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 
@@ -133,27 +134,43 @@ const NotificationDropdown = ({ notifications }) => {
                     return (
                       <li
                         key={idx}
-                        className={`border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors duration-150 ${!item.read ? "bg-blue-50/30" : ""}`}
+                        className={`relative group border-b border-gray-50 last:border-none transition-all duration-200 
+                          ${!item.read ? "bg-blue-50/40 hover:bg-blue-50/60" : "hover:bg-gray-50/80"}`}
                       >
+                        {/* Left edge indicator for unread */}
+                        {!item.read && (
+                          <div className="absolute left-0 top-2 bottom-2 w-1 bg-blue-500 rounded-r-full" />
+                        )}
+
                         <div className="flex gap-4 p-4 items-start">
                           <div
-                            className={`mt-1 p-2 rounded-full bg-white border border-gray-100 shadow-xs ${typeConfig.color}`}
+                            className={`mt-0.5 p-2 rounded-xl transition-all duration-300 transform group-hover:scale-110 
+                              ${!item.read ? "bg-white shadow-sm" : "bg-gray-100 group-hover:bg-white group-hover:shadow-xs"} 
+                              ${typeConfig.color}`}
                           >
-                            <Icon size={18} />
+                            <Icon 
+                              size={18} 
+                              className="transition-all duration-300 group-hover:stroke-[2.5px]" 
+                            />
                           </div>
+
                           <div className="flex-1 min-w-0">
                             <p
-                              className={`text-sm wrap-break-words leading-snug ${!item.read ? "font-semibold text-gray-900" : "text-gray-600"}`}
+                              className={`text-[13px] leading-relaxed transition-colors duration-200
+                                ${!item.read ? "font-bold text-gray-900" : "text-gray-600 group-hover:text-gray-900"}`}
                             >
                               {item.message}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1.5 font-medium flex items-center gap-1">
-                              {formatDate(item.createdAt)}
-                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                                <Clock size={10} />
+                                {formatDate(item.createdAt)}
+                              </p>
+                              {!item.read && (
+                                <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                              )}
+                            </div>
                           </div>
-                          {!item.read && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0"></div>
-                          )}
                         </div>
                       </li>
                     )

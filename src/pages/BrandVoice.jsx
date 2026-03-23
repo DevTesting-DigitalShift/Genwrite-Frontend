@@ -379,7 +379,7 @@ const BrandVoice = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto"
+      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-2 sm:p-6 md:p-10 w-full mx-auto mb-20 md:mb-0"
     >
       <Helmet>
         <title>Brand Voice | GenWrite</title>
@@ -420,7 +420,7 @@ const BrandVoice = () => {
                 value={formData.postLink}
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
-                className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-lg ${
+                className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 flex-1 ${
                   errors.postLink ? "input-error" : "focus:border-indigo-500"
                 }`}
                 whileFocus={{ scale: 1.01 }}
@@ -428,7 +428,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <button
-                className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
                 onClick={handleFetchSiteInfo}
                 disabled={
                   siteInfo.loading ||
@@ -625,15 +625,15 @@ const BrandVoice = () => {
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+          <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
             <button
-              className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-2 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[11px] sm:text-base flex-1 sm:flex-none"
               onClick={handleSave}
               disabled={isUploading || showTrialMessage}
             >
               {isUploading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" />
+                <span className="flex items-center justify-center gap-1 sm:gap-2">
+                  <Loader2 className="animate-spin w-3 h-3 sm:w-5 sm:h-5" />
                   Saving...
                 </span>
               ) : formData._id ? (
@@ -644,7 +644,7 @@ const BrandVoice = () => {
             </button>
 
             <button
-              className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-base flex-none sm:flex-none"
               onClick={resetForm}
               disabled={isUploading}
             >
