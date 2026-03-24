@@ -37,6 +37,7 @@ export const POPULAR_CATEGORIES = [
  */
 export interface NavItem {
   id: string
+
   icon: any
   label: string
 }

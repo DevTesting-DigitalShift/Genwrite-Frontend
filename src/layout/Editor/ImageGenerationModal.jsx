@@ -10,21 +10,21 @@ const ImageGenerationModal = ({ onClose }) => {
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
-  const handleTagToggle = (tag) => {
+  const handleTagToggle = tag => {
     const isSelected = data.tags.includes(tag)
     if (isSelected) {
-      setData({ ...data, tags: data.tags.filter((t) => t !== tag) })
+      setData({ ...data, tags: data.tags.filter(t => t !== tag) })
     } else {
       setData({ ...data, tags: [...data.tags, tag] })
     }
   }
 
-  const handleKeywordInputKeyDown = (e) => {
+  const handleKeywordInputKeyDown = e => {
     if ((e.key === "Enter" || e.key === ",") && e.target.value.trim()) {
       e.preventDefault()
       const keyword = e.target.value.trim().replace(/,$/, "")
       if (!data.keywords.includes(keyword)) {
-        setData((prev) => ({ ...prev, keywords: [...prev.keywords, keyword] }))
+        setData(prev => ({ ...prev, keywords: [...prev.keywords, keyword] }))
       }
       e.target.value = ""
     }
@@ -33,16 +33,13 @@ const ImageGenerationModal = ({ onClose }) => {
   const handleAddKeywordManually = () => {
     const value = keywordInputRef.current?.value.trim()
     if (value && !data.keywords.includes(value)) {
-      setData((prev) => ({ ...prev, keywords: [...prev.keywords, value] }))
+      setData(prev => ({ ...prev, keywords: [...prev.keywords, value] }))
       keywordInputRef.current.value = ""
     }
   }
 
-  const handleRemoveKeyword = (keywordToRemove) => {
-    setData({
-      ...data,
-      keywords: data.keywords.filter((keyword) => keyword !== keywordToRemove),
-    })
+  const handleRemoveKeyword = keywordToRemove => {
+    setData({ ...data, keywords: data.keywords.filter(keyword => keyword !== keywordToRemove) })
   }
 
   return (
@@ -51,10 +48,7 @@ const ImageGenerationModal = ({ onClose }) => {
         {/* Header */}
         <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
           <h3 className="text-2xl font-semibold font-montserrat">Generate an Image</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
+          <button onClick={onClose} className="text-gray-500 hover: focus:outline-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"
@@ -83,7 +77,7 @@ const ImageGenerationModal = ({ onClose }) => {
                 placeholder="Enter brief description"
                 rows="3"
                 value={data.brief}
-                onChange={(e) => setData({ ...data, brief: e.target.value })}
+                onChange={e => setData({ ...data, brief: e.target.value })}
               />
 
               {/* Tags */}
@@ -175,7 +169,7 @@ const ImageGenerationModal = ({ onClose }) => {
             <>
               <button
                 onClick={handlePrev}
-                className="px-5 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
+                className="px-5 py-2 bg-gray-200  rounded-md hover:bg-gray-300 transition"
               >
                 Back
               </button>

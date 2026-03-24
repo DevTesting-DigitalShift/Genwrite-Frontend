@@ -1,29 +1,19 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useGscStore from "@store/useGscStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button, message, Select, DatePicker, Card, Pagination } from "antd"
 import { RefreshCw, Search, Download } from "lucide-react"
-import Fuse from "fuse.js"
+import DateRangePicker from "@components/ui/DateRangePicker"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
+import { toast } from "sonner"
 
 const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
-
-const { Option } = Select
-const { RangePicker } = DatePicker
-
-// Configure Fuse.js for frontend search
-const fuseOptions = {
-  keys: ["url", "query", "countryName", "blogTitle"],
-  threshold: 0.3,
-}
 
 const SearchConsole = () => {
   const [error, setError] = useState(null)
@@ -34,74 +24,37 @@ const SearchConsole = () => {
   const [filterType, setFilterType] = useState("search")
   const [blogUrlFilter, setBlogUrlFilter] = useState(null)
   const [blogTitleFilter, setBlogTitleFilter] = useState(null)
+  // searchQuery is passed directly to GSCAnalyticsTabs — Fuse runs inside the table
   const [searchQuery, setSearchQuery] = useState("")
-  const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US")
-  const [pageSize, setPageSize] = useState(10)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [userCountry] = useState(navigator.language.split("-")[1] || "US")
+  const [autoFallbackDone, setAutoFallbackDone] = useState(false)
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
+  const { clearAnalytics, fetchGscAnalytics } = useGscStore()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
 
-  // Debounced search query - waits 5 seconds after user stops typing
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const isFilterApplied = useMemo(
+    () => dateRange !== "7d" || blogUrlFilter || blogTitleFilter || searchQuery,
+    [dateRange, blogUrlFilter, blogTitleFilter, searchQuery]
+  )
 
-  // Debounce effect for search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 5000) // 5 second delay
-
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
-  // Check if filters are applied for Reset Filters button styling
-  const isFilterApplied = useMemo(() => {
-    return (
-      dateRange !== "7d" ||
-      customDateRange[0] !== null ||
-      customDateRange[1] !== null ||
-      blogUrlFilter ||
-      blogTitleFilter ||
-      searchQuery ||
-      pageSize !== 10 ||
-      currentPage !== 1
-    )
-  }, [
-    dateRange,
-    customDateRange,
-    blogUrlFilter,
-    blogTitleFilter,
-    searchQuery,
-    pageSize,
-    currentPage,
-  ])
-
-  // Check authentication immediately on mount
   useEffect(() => {
     if (!user?.gsc) {
-      dispatch(clearAnalytics())
+      clearAnalytics()
       queryClient.clear()
     }
-  }, [user, dispatch, queryClient])
+  }, [user, clearAnalytics, queryClient])
 
-  // Update session storage
   useEffect(() => {
     sessionStorage.setItem(
       "gscFilters",
-      JSON.stringify({
-        filterType,
-        blogUrlFilter,
-        blogTitleFilter,
-        userCountry,
-      })
+      JSON.stringify({ filterType, blogUrlFilter, blogTitleFilter, userCountry })
     )
   }, [filterType, blogUrlFilter, blogTitleFilter, userCountry])
 
-  // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
     let from, to
-    if (customDateRange[0] && customDateRange[1]) {
+    if (dateRange === "custom" && customDateRange[0] && customDateRange[1]) {
       from = customDateRange[0].startOf("day").format("YYYY-MM-DD")
       to = customDateRange[1].endOf("day").format("YYYY-MM-DD")
     } else {
@@ -126,7 +79,6 @@ const SearchConsole = () => {
     return { from, to }
   }, [dateRange, customDateRange])
 
-  // Determine dimensions
   const getDimensions = useCallback(() => {
     const dimensions = ["page"]
     if (activeTab === "query") dimensions.push("query")
@@ -134,22 +86,18 @@ const SearchConsole = () => {
     return dimensions
   }, [activeTab])
 
-  // TanStack Query for fetching analytics data
   const {
     data: blogData = [],
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ["gscAnalytics", activeTab, dateRange, customDateRange],
     queryFn: async () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
-      const params = {
-        from,
-        to,
-        query: JSON.stringify(dimensions),
-      }
-      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+      const params = { from, to, query: JSON.stringify(dimensions) }
+      const data = await fetchGscAnalytics(params)
       return data.gscData.map((item, index) => ({
         id: `${item.page || item.query || item.country}-${index}`,
         url: item.page || "-",
@@ -169,59 +117,52 @@ const SearchConsole = () => {
     onError: err => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
-        message.error("Your Google Search Console session has expired. Please reconnect.")
-        dispatch(clearAnalytics())
+        toast.error("Your Google Search Console session has expired. Please reconnect.")
+        clearAnalytics()
         queryClient.clear()
       }
     },
   })
 
-  const blogTitles = useMemo(() => {
-    return [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))]
-  }, [blogData])
+  const blogTitles = useMemo(
+    () => [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))],
+    [blogData]
+  )
 
-  // Handle tab change
+  useEffect(() => {
+    if (!isLoading && !isFetching && blogData.length === 0 && !autoFallbackDone) {
+      if (dateRange === "7d" || dateRange === "30d") {
+        setAutoFallbackDone(true)
+        setDateRange("180d")
+      } else {
+        setAutoFallbackDone(true)
+      }
+    }
+  }, [isLoading, isFetching, blogData.length, autoFallbackDone, dateRange])
+
   const handleTabChange = key => {
     setActiveTab(key)
     setSearchQuery("")
-    setCurrentPage(1) // Reset to first page on tab change
   }
 
-  // Handle date range change
   const handleDateRangeChange = value => {
     setDateRange(value)
     setCustomDateRange([null, null])
     setError(null)
     setShowDatePicker(value === "custom")
-    setCurrentPage(1) // Reset to first page on date range change
     refetch()
   }
 
-  // Handle custom date range change
   const handleCustomDateRangeChange = dates => {
     if (dates && dates[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
-      setCurrentPage(1) // Reset to first page on custom date range change
       refetch()
     } else {
       setError("Please select both start and end dates.")
     }
   }
 
-  // Handle blog title filter change
-  const handleBlogTitleChange = value => {
-    setBlogTitleFilter(value)
-    setCurrentPage(1) // Reset to first page on filter change
-  }
-
-  // Handle search query change
-  const handleSearch = value => {
-    setSearchQuery(value)
-    setCurrentPage(1) // Reset to first page on search
-  }
-
-  // Reset filters
   const handleResetFilters = () => {
     setFilterType("search")
     setBlogUrlFilter("")
@@ -230,25 +171,15 @@ const SearchConsole = () => {
     setDateRange("7d")
     setCustomDateRange([dayjs().subtract(6, "days"), dayjs()])
     setShowDatePicker(false)
-    setPageSize(10)
-    setCurrentPage(1)
     refetch()
   }
 
   const aggregateData = data => {
     const grouped = {}
-
     data.forEach(row => {
       const key = row.country
-
       if (!grouped[key]) {
-        grouped[key] = {
-          ...row,
-          clicks: row.clicks,
-          impressions: row.impressions,
-          ctr: row.ctr,
-          position: row.position,
-        }
+        grouped[key] = { ...row }
       } else {
         grouped[key].clicks += row.clicks
         grouped[key].impressions += row.impressions
@@ -262,11 +193,10 @@ const SearchConsole = () => {
             : 0
       }
     })
-
     return Object.values(grouped)
   }
 
-  // Filter data with Fuse.js
+  // URL/title pre-filter (Fuse text search happens inside GSCAnalyticsTabs)
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
@@ -278,21 +208,10 @@ const SearchConsole = () => {
     if (activeTab === "country") {
       result = aggregateData(result)
     }
-    if (debouncedSearchQuery && filterType === "search") {
-      const fuse = new Fuse(result, fuseOptions)
-      result = fuse.search(debouncedSearchQuery).map(({ item }) => item)
-    }
     return result
-  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, debouncedSearchQuery, activeTab])
+  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, activeTab])
 
-  // Paginate filtered data
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    return filteredData.slice(startIndex, endIndex)
-  }, [filteredData, currentPage, pageSize])
-
-  // Calculate metrics for mini cards
+  // Metrics always calculated on full filteredData (before Fuse)
   const metrics = useMemo(() => {
     const totalClicks = filteredData.reduce((sum, item) => sum + item.clicks, 0)
     const totalImpressions = filteredData.reduce((sum, item) => sum + item.impressions, 0)
@@ -312,15 +231,12 @@ const SearchConsole = () => {
     return { totalClicks, totalImpressions, avgCtr, avgPosition }
   }, [filteredData])
 
-  // Export to Excel using ExcelJS
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet("Search Performance")
-
     const isPageTab = activeTab === "page"
     const isQueryTab = activeTab === "query"
     const isCountryTab = activeTab === "country"
-
     const columns = [
       ...(isPageTab && !blogTitleFilter
         ? [{ header: "Blog Title", key: "blogTitle", width: 30 }]
@@ -335,11 +251,9 @@ const SearchConsole = () => {
       { header: "CTR (%)", key: "ctr", width: 10 },
       { header: "Position", key: "position", width: 10 },
     ]
-
     worksheet.columns = columns
-
-    filteredData.forEach((item, index) => {
-      const rowData = {
+    filteredData.forEach(item => {
+      worksheet.addRow({
         ...(isPageTab && !blogTitleFilter ? { blogTitle: item.blogTitle } : {}),
         ...(isPageTab ? { url: item.url } : {}),
         ...(isQueryTab ? { query: item.query } : {}),
@@ -348,18 +262,10 @@ const SearchConsole = () => {
         impressions: item.impressions,
         ctr: `${item.ctr}%`,
         position: item.position,
-      }
-
-      worksheet.addRow(rowData)
+      })
     })
-
     worksheet.getRow(1).font = { bold: true }
-    worksheet.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "F0F0F0" },
-    }
-
+    worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F0F0F0" } }
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -372,11 +278,55 @@ const SearchConsole = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  // Handle pagination change
-  const handlePaginationChange = (page, pageSizeValue) => {
-    setCurrentPage(page)
-    setPageSize(pageSizeValue)
-  }
+  const renderEmptyState = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 text-center max-w-xl mx-auto mt-6">
+      <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+        <Search className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-1">No Search Performance Data</h3>
+      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+        We couldn't find any Google Search Console data. Here are a few possible reasons:
+      </p>
+
+      <div className="space-y-3 text-left w-full mx-auto">
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            1
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Recently Published?</h4>
+            <p className="text-xs text-gray-600 mt-0.5">
+              It takes 3-4 days for Google to rank new posts.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            2
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Has it been deleted?</h4>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Deleted content won't show metrics without prior traffic.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+            3
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm text-gray-800">Check Date Range</h4>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Ensure the selected filter matches an active timeline.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -385,200 +335,191 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-2 md:p-6 min-h-screen mt-5 md:mt-0">
-          <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
-            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Search Performance
-              </h1>
-              <div className="flex gap-3 items-stretch sm:items-center mt-2 md:mt-0">
-                <Button
-                  icon={<Download className="size-4 mr-2" />}
-                  title="Export"
-                  onClick={handleExport}
-                  disabled={isLoading}
-                  type="dashed"
-                  className="w-full sm:w-auto bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
-                >
-                  Export
-                </Button>
-                <Button
-                  icon={<RefreshCw className={clsx("size-4 mr-2", isLoading && "animate-spin")} />}
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  type="dashed"
-                  className="w-full sm:w-auto bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
-                >
-                  Refresh
-                </Button>
+        <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 min-h-screen">
+          {/* ── Page Header ─────────────────────────────────── */}
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
+              Search Performance
+            </h1>
+            <div className="flex gap-2 shrink-0">
+              <button
+                title="Export to Excel"
+                onClick={handleExport}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              <button
+                title="Refresh data"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                <RefreshCw className={clsx("w-4 h-4", isLoading && "animate-spin")} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Metric Cards ─────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {[
+              {
+                label: "Total Clicks",
+                value: new Intl.NumberFormat().format(metrics.totalClicks),
+                color: "text-blue-600",
+                bg: "from-blue-100/70 to-blue-50/70",
+                sub: "across filtered data",
+              },
+              {
+                label: "Total Impressions",
+                value: new Intl.NumberFormat().format(metrics.totalImpressions),
+                color: "text-purple-600",
+                bg: "from-purple-100/70 to-purple-50/70",
+                sub: "across filtered data",
+              },
+              {
+                label: "Avg. CTR",
+                value: `${metrics.avgCtr}%`,
+                color: "text-teal-600",
+                bg: "from-teal-100/70 to-teal-50/70",
+                sub: "click-through rate",
+              },
+              {
+                label: "Avg. Position",
+                value: metrics.avgPosition,
+                color: "text-amber-600",
+                bg: "from-amber-100/70 to-amber-50/70",
+                sub: "search result rank",
+              },
+            ].map(card => (
+              <div
+                key={card.label}
+                className={`rounded-xl text-center p-3 sm:p-5 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br ${card.bg}`}
+              >
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-500 block mb-1.5 uppercase tracking-wide">
+                  {card.label}
+                </span>
+                <p className={`text-lg sm:text-2xl font-bold ${card.color}`}>{card.value}</p>
+                <p className="text-[10px] text-gray-400 mt-1 hidden sm:block">{card.sub}</p>
               </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Total Clicks
-                  </span>
-                }
-                className="rounded-lg text-center p-2 sm:p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
-              >
-                <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                  {new Intl.NumberFormat().format(metrics.totalClicks)}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Total clicks on filtered data
-                </p>
-              </Card>
+            ))}
+          </div>
 
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Total Impressions
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
-                <p className="text-xl sm:text-2xl font-bold text-purple-600">
-                  {new Intl.NumberFormat().format(metrics.totalImpressions)}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Total impressions on filtered data
-                </p>
-              </Card>
-
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Average CTR
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
-                <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Average click-through rate
-                </p>
-              </Card>
-
-              <Card
-                title={
-                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                    Average Position
-                  </span>
-                }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70 p-2 sm:p-4 md:p-6 text-center"
-              >
-                <p className="text-xl sm:text-2xl font-bold text-amber-600">
-                  {metrics.avgPosition}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                  Average search result position
-                </p>
-              </Card>
-            </div>
-
-            <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-              <Select
+          {/* ── Filters ──────────────────────────────────────── */}
+          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 mb-4 border border-gray-200">
+            {/* Row 1: Date + Blog title select */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <select
                 value={dateRange}
-                onChange={handleDateRangeChange}
-                className={clsx("flex-1 max-w-36", dateRange && "border-blue-500")}
-                placeholder="Select Date Range"
-                style={{ borderRadius: "8px" }}
+                onChange={e => handleDateRangeChange(e.target.value)}
+                className={clsx(
+                  "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg",
+                  dateRange !== "7d" && "border-blue-500"
+                )}
               >
-                <Option value="7d">Last 7 Days</Option>
-                <Option value="30d">Last 30 Days</Option>
-                <Option value="180d">Last 6 Months</Option>
-                <Option value="custom">Custom Range</Option>
-              </Select>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+                <option value="180d">Last 6 Months</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
               {showDatePicker && (
-                <RangePicker
-                  value={customDateRange}
-                  onChange={handleCustomDateRangeChange}
-                  disabledDate={current => current && current > dayjs().endOf("day")}
+                <div
                   className={clsx(
-                    "flex-1 min-w-56",
-                    customDateRange[0] && customDateRange[1] && "border-blue-500"
+                    "flex-1 min-w-[200px] rounded-lg transition-all duration-300",
+                    dateRange === "custom" && (!customDateRange[0] || !customDateRange[1])
+                      ? "ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                      : "ring-1 ring-transparent"
                   )}
-                  placeholder={["Start Date", "End Date"]}
-                  allowEmpty={[false, false]}
-                  style={{ borderRadius: "8px" }}
-                />
+                >
+                  <DateRangePicker
+                    value={customDateRange}
+                    onChange={handleCustomDateRangeChange}
+                    maxDate={dayjs().endOf("day")}
+                    className={clsx(
+                      "w-full",
+                      customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
+                    )}
+                  />
+                </div>
               )}
-              <div className="relative flex-1 min-w-[200px] max-w-1/2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+
+              <select
+                value={blogTitleFilter || ""}
+                onChange={e => setBlogTitleFilter(e.target.value || null)}
+                className={clsx(
+                  "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[160px]",
+                  blogTitleFilter && "border-blue-500"
+                )}
+              >
+                <option value="">All Blog Titles</option>
+                {blogTitles.map(title => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Row 2: Search + Reset */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="Search title, query, or country"
-                  className={`pl-9 pr-4 py-1 w-full bg-white border ${
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Fuzzy search title, query, country…"
+                  className={`pl-9 pr-4 py-1 h-9 w-full bg-white border ${
                     searchQuery ? "border-blue-500" : "border-gray-300"
                   } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 />
               </div>
-
-              <Select
-                value={blogTitleFilter}
-                onChange={handleBlogTitleChange}
-                className={clsx("flex-1 min-w-[200px]", blogTitleFilter && "border-blue-500")}
-                placeholder="Select Blog Title"
-                allowClear
-                style={{ borderRadius: "8px" }}
-              >
-                {blogTitles.map(title => (
-                  <Option key={title} value={title}>
-                    {title}
-                  </Option>
-                ))}
-              </Select>
-
-              <Button
+              <button
                 onClick={handleResetFilters}
-                type="default"
-                className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
+                className={`rounded-lg h-9 px-3 text-sm font-medium  whitespace-nowrap transition-colors ${
                   isFilterApplied
-                    ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
-                    : "bg-gray-100 hover:bg-gray-200 border-gray-300"
+                    ? "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700"
+                    : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
                 }`}
               >
-                Reset Filters
-              </Button>
+                Reset
+              </button>
             </div>
           </div>
+
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
+            <div className="bg-red-50 text-red-600 p-3 sm:p-4 rounded-lg mb-4 flex items-center border border-red-200 text-sm">
               <span>{error}</span>
             </div>
           )}
+
           {blogTitleFilter && (
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
-              </h2>
-            </div>
+            <p className="mb-3 text-sm text-gray-600">
+              Filtered by: <span className="font-semibold text-blue-600">{blogTitleFilter}</span>
+            </p>
           )}
-          <GSCAnalyticsTabs
-            items={[
-              { key: "query", label: "Queries" },
-              { key: "page", label: "Pages" },
-              { key: "country", label: "Countries" },
-            ]}
-            filteredData={paginatedData} // Use paginated data instead of filteredData
-            activeTab={activeTab}
-            handleTabChange={handleTabChange}
-            isLoading={isLoading}
-          />
-          <div className="mt-6 flex justify-end">
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={filteredData.length}
-              onChange={handlePaginationChange}
-              showSizeChanger
-              pageSizeOptions={["10", "50", "100"]}
-              className="ant-pagination"
+
+          {/* ── Table ────────────────────────────────────────── */}
+          {!isLoading && !isFetching && blogData.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <GSCAnalyticsTabs
+              items={[
+                { key: "query", label: "Queries" },
+                { key: "page", label: "Pages" },
+                { key: "country", label: "Countries" },
+              ]}
+              filteredData={filteredData}
+              searchQuery={searchQuery}
+              activeTab={activeTab}
+              handleTabChange={handleTabChange}
+              isLoading={isLoading || isFetching}
             />
-          </div>
+          )}
         </div>
       ) : (
         <GSCLogin />

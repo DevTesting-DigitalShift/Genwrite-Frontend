@@ -65,7 +65,7 @@ const BrandVoicePanel: React.FC<BrandVoicePanelProps> = ({ blog, onRegenerateWit
       className="flex flex-col h-full bg-white"
     >
       {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
+      <div className="p-4 border-b bg-linear-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
             <Crown className="w-5 h-5 text-white" />
@@ -91,7 +91,7 @@ const BrandVoicePanel: React.FC<BrandVoicePanelProps> = ({ blog, onRegenerateWit
                 Author Persona
               </h4>
             </div>
-            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs text-gray-700 leading-relaxed">
+            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs  leading-relaxed">
               {persona}
             </div>
           </motion.div>
@@ -103,7 +103,7 @@ const BrandVoicePanel: React.FC<BrandVoicePanelProps> = ({ blog, onRegenerateWit
             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               Brand Description
             </h4>
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs text-gray-700 leading-relaxed">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs  leading-relaxed">
               {describeBrand}
             </div>
           </motion.div>

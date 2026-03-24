@@ -1,10 +1,10 @@
 import React, { useState } from "react"
-import { Button, Dropdown, Tooltip, message } from "antd"
-import { MenuOutlined, CopyOutlined, ReloadOutlined, CloseOutlined } from "@ant-design/icons"
+import { Menu, RotateCw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useDispatch, useSelector } from "react-redux"
-import { retryBlog } from "@store/slices/blogSlice"
+import useAuthStore from "@store/useAuthStore"
+import { useRetryBlogMutation } from "@api/queries/blogQueries"
+import { toast } from "sonner"
 
 import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
 // import ChatBox from "../generateBlog/ChatBox"
@@ -14,71 +14,65 @@ const SmallBottomBox = ({ id }) => {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
+
+  const { mutateAsync: retryBlog, isPending: isRetrying } = useRetryBlogMutation()
 
   const closeModal = () => setModalOpen(false)
   const closeChat = () => setIsChatOpen(false)
 
   const handleRetry = async () => {
     try {
-      const resultAction = await dispatch(retryBlog({ id: id._id, payload: { createNew: true } }))
-
-      if (retryBlog.fulfilled.match(resultAction)) {
-        message.success(resultAction.payload?.message || "Blog regenerated successfully!")
-        navigate("/blogs")
-      } else {
-        message.error(resultAction.payload || "Failed to regenerate blog.")
-      }
+      const response = await retryBlog({ id: id._id, payload: { createNew: true } })
+      toast.success(response?.message || "Blog regenerated successfully!")
+      navigate("/blogs")
     } catch (error) {
-      message.error(error.message || "Failed to regenerate blog.")
       console.error("Error regenerating blog:", error)
+      toast.error("Failed to regenerate blog")
     }
   }
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      // handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "Rewrite is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
     } else {
       handlePopup({
         title: "Regenerate Blog",
         description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
+        confirmText: "Regenerate",
         onConfirm: handleRetry,
       })
     }
   }
 
-  const menuItems = [
-    {
-      key: "regenerate",
-      label: (
-        <span className="flex items-center gap-2">
-          <ReloadOutlined />
-          Regenerate
-        </span>
-      ),
-      onClick: handleRegenerate,
-    },
-  ]
-
   return (
     <>
       <div className="mt-1 ml-auto flex items-end">
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
-          <Button
-            type="default"
-            icon={<MenuOutlined />}
-            className="text-gray-700 border-gray-300 hover:bg-gray-100"
-          />
-        </Dropdown>
+        <div className="dropdown dropdown-end">
+          <div
+            tabIndex={0}
+            role="button"
+            className={`btn btn-sm btn-ghost border border-gray-300 hover:bg-gray-100 ${isRetrying ? "loading" : ""}`}
+          >
+            {!isRetrying && <Menu size={16} />}
+          </div>
+          <ul
+            tabIndex={0}
+            className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-52"
+          >
+            <li>
+              <button
+                onClick={handleRegenerate}
+                disabled={isRetrying}
+                className="flex items-center gap-2"
+              >
+                <RotateCw size={14} />
+                Regenerate
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
 
       {/* Modals */}

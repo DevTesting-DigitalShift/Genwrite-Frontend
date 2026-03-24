@@ -1,10 +1,10 @@
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 export const useProAction = () => {
   const navigate = useNavigate()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
   const userPlan = user?.plan ?? user?.subscription?.plan
@@ -14,6 +14,12 @@ export const useProAction = () => {
     user?.subscription?.plan === "free" &&
     user?.subscription?.status === "unpaid" &&
     totalCredits == 0
+
+  // New user who hasn't opted into a trial yet, failed payment, or is clearly on a free plan — must go to pricing
+  const needsUpgrade =
+    user?.trialOpted === false ||
+    user?.subscription?.status === "unpaid" ||
+    user?.subscription?.plan === "free"
 
   const handleProAction = (callback, options = {}) => {
     if (showTrialMessage) {
@@ -32,5 +38,5 @@ export const useProAction = () => {
     callback?.()
   }
 
-  return { handleProAction, showTrialMessage }
+  return { handleProAction, showTrialMessage, needsUpgrade }
 }

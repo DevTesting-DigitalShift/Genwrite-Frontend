@@ -1,161 +1,376 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { motion } from "framer-motion"
-import { useDispatch, useSelector } from "react-redux"
+import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
-import { Pagination, Button, message } from "antd"
-import { FiPlus } from "react-icons/fi"
-import { RefreshCcw } from "lucide-react"
-import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
-import { selectUser } from "@store/slices/authSlice"
-import SkeletonLoader from "@components/UI/SkeletonLoader"
+import {
+  Plus,
+  RefreshCw,
+  Briefcase,
+  Search,
+  AlertTriangle,
+  Sparkles,
+  Zap,
+  LayoutGrid,
+  List,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Tag as TagIcon,
+  Hash,
+  Globe,
+  Cpu,
+  Image,
+  Calendar,
+  Clock,
+  FileText,
+  Layers,
+  Settings2,
+  Bot,
+  Megaphone,
+  BookOpen,
+  Link2,
+  Youtube,
+  BarChart2,
+  AlignLeft,
+  Repeat,
+  CheckCircle2,
+  XCircle,
+  Send,
+  Shield,
+} from "lucide-react"
+import { getJobs, startJob, stopJob, deleteJob } from "@api/jobApi"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+
+import {
+  useJobsQuery,
+  useToggleJobStatusMutation,
+  useDeleteJobMutation,
+} from "@api/queries/jobQueries"
+import SkeletonLoader from "@components/ui/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
-import { AlertTriangle } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import JobExpandedPanel from "@/layout/Jobs/JobExpandedPanel"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getSocket } from "@utils/socket"
+import { toast } from "sonner"
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 12
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
+  const [expandedRows, setExpandedRows] = useState(new Set())
+
+  const toggleExpand = id => {
+    setExpandedRows(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const renderTags = (arr, jobId, limit = 2) => {
+    if (!arr?.length) return <span className="text-slate-300 text-xs">—</span>
+    const display = arr.slice(0, limit)
+    const remaining = arr.length - limit
+    return (
+      <div className="flex flex-wrap gap-1">
+        {display.map((item, i) => (
+          <span
+            key={i}
+            className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-medium border border-indigo-100 wrap-break-word max-w-[150px]"
+          >
+            {item}
+          </span>
+        ))}
+        {remaining > 0 && (
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              toggleExpand(jobId)
+            }}
+            className="text-[10px] font-bold text-indigo-600 bg-indigo-100/50 hover:bg-indigo-200/50 px-1.5 py-0.5 rounded-md border border-indigo-200 transition-colors"
+          >
+            +{remaining} more
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const formatDate = dateStr => {
+    if (!dateStr) return <span className="text-slate-300 italic text-[11px]">Never</span>
+    try {
+      const d = new Date(dateStr)
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm font-semibold text-slate-700">
+            {d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+          <span className="text-[10px] text-slate-400">
+            {d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )
+    } catch {
+      return <span className="text-slate-300">—</span>
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-100 overflow-hidden">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        <table className="w-full text-left border-collapse min-w-[860px]">
+          <thead>
+            <tr className="bg-slate-50/80 border-b border-slate-200">
+              <th className="w-10 px-3 py-4" />
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Job
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Last Run
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Schedule
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Topics
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                AI / Lang
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map(job => {
+              const isExpanded = expandedRows.has(job._id)
+              const schedule = job.schedule || {}
+              const scheduleDayStr =
+                schedule.type === "weekly" && schedule.daysOfWeek?.length
+                  ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
+                  : null
+
+              return (
+                <>
+                  {/* ─── Main row ─── */}
+                  <tr
+                    key={job._id}
+                    className={`transition-colors group border-b border-slate-100 ${
+                      isExpanded ? "bg-indigo-50/30" : "hover:bg-slate-50/60"
+                    }`}
+                  >
+                    {/* Expand toggle */}
+                    <td className="pl-3 py-4">
+                      <button
+                        onClick={() => toggleExpand(job._id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                        title={isExpanded ? "Collapse" : "Expand all details"}
+                      >
+                        <ChevronRight
+                          size={14}
+                          className={`transition-transform duration-200 ${
+                            isExpanded ? "rotate-90 text-indigo-500" : ""
+                          }`}
+                        />
+                      </button>
+                    </td>
+
+                    {/* Job name */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            job.status === "active"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-indigo-50 text-indigo-500"
+                          }`}
+                        >
+                          <Briefcase size={16} />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm capitalize leading-tight wrap-break-word max-w-[220px]">
+                            {job.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            #{job._id?.slice(-6)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={() => onToggleStatus(job)}
+                        disabled={isToggling}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                          job.status === "active"
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                        }`}
+                      >
+                        {job.status === "active" ? "▶ Running" : "⏸ Paused"}
+                      </button>
+                    </td>
+
+                    {/* Last run */}
+                    <td className="px-5 py-4">{formatDate(job.lastRun)}</td>
+
+                    {/* Schedule */}
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700 capitalize">
+                          {schedule.type || "Manual"}
+                        </span>
+                        {scheduleDayStr && (
+                          <span className="text-[10px] text-slate-400">{scheduleDayStr}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400">
+                          {job.blogs?.numberOfBlogs} blog{job.blogs?.numberOfBlogs !== 1 ? "s" : ""}
+                          /run
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Topics */}
+                    <td className="px-5 py-4 max-w-[180px]">{renderTags(job.blogs?.topics, job._id, 2)}</td>
+
+                    {/* AI / Lang */}
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit">
+                          {job.blogs?.aiModel?.toUpperCase() || "GEMINI"}
+                        </span>
+                        <span className="text-[11px] text-slate-400 pl-0.5">
+                          {job.blogs?.languageToWrite || "English"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => onEdit(job)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => onDelete(job)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* ─── Expanded detail panel ─── */}
+                  {isExpanded && (
+                    <tr key={`${job._id}-detail`}>
+                      <td colSpan={8} className="bg-slate-50/60 p-0 border-b border-indigo-100">
+                        <JobExpandedPanel job={job} />
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
 const Jobs = () => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { showJobModal } = useSelector(state => state.jobs)
-  const { selectedKeywords } = useSelector(state => state.analysis)
-  const user = useSelector(selectUser)
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showWarning, setShowWarning] = useState(false)
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const usage = user?.usage?.createdJobs
-  const usageLimit = user?.usageLimits?.createdJobs
-
-  // TanStack Query for fetching jobs
-  const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
-    queryKey: ["jobs", user?.id],
-    queryFn: async () => {
-      const response = await dispatch(fetchJobs()).unwrap()
-      return response || []
-    },
-    staleTime: Infinity, // Data never becomes stale
-    gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: "always", // Fetch only if cache is empty
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    enabled: !!user, // Only fetch if user is logged in
+  const { handlePopup } = useConfirmPopup()
+  const openJobModal = useJobStore(state => state.openJobModal)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem("jobs_view_mode") || "grid"
   })
 
-  // Socket for real-time updates
+  useEffect(() => {
+    localStorage.setItem("jobs_view_mode", viewMode)
+  }, [viewMode])
+
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
+  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteJobMutation()
+
+  const user = useAuthStore(state => state.user)
+  const updateUserPartial = useAuthStore(state => state.updateUserPartial)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
+  const totalBlogsGenerated = useMemo(() => {
+    return queryJobs.filter(j => !j.isArchived).reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
+  }, [queryJobs])
+
+  const usage = user?.usage?.createdJobs || 0
+  const usageLimit = user?.usageLimits?.createdJobs || 0
+  // const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+
   useEffect(() => {
     const socket = getSocket()
-    if (!socket || !user) {
-      console.debug("Socket or user not available, skipping WebSocket setup")
-      return
-    }
-
-    console.debug("Setting up WebSocket listeners for user:", user.id)
+    if (!socket || !user) return
 
     const handleJobChange = (data, eventType) => {
-      console.debug(`Received ${eventType}:`, data)
-
-      // Check if job stopped due to insufficient credits
       if (
         (data?.status === "stop" || data?.status === "stopped") &&
         data?.reason?.toLowerCase().includes("insufficient credits")
       ) {
-        message.error({
-          content: (
-            <div>
-              <strong>Job Stopped: Insufficient Credits</strong>
-              <p className="mt-1">
-                {data.reason || "This job was stopped because you don't have enough credits."}
-              </p>
-              <a
-                href="/pricing"
-                className="text-blue-600 hover:text-blue-700 font-semibold underline"
-                onClick={e => {
-                  e.preventDefault()
-                  navigate("/pricing")
-                }}
-              >
-                Add Credits →
-              </a>
-            </div>
-          ),
-          duration: 8,
-          className: "insufficient-credits-notification",
-        })
+        toast.error("Job Stopped: Insufficient Credits")
       }
+      // Fix: queryKey must match useJobsQuery's key ["jobs"], not ["jobs", user.id]
+      queryClient.invalidateQueries({ queryKey: ["jobs"] })
+    }
 
-      const queryKey = ["jobs", user.id]
-
-      if (eventType === "job:deleted") {
-        queryClient.setQueryData(queryKey, (old = []) =>
-          old.filter(job => job._id !== (data._id || data.jobId))
-        )
-        queryClient.removeQueries({ queryKey: ["job", data._id || data.jobId] })
-      } else {
-        // Handle create, update, statusChanged uniformly: update if exists, add if not
-        queryClient.setQueryData(queryKey, (old = []) => {
-          const jobIdToFind = data._id || data.jobId
-          const index = old.findIndex(job => job._id === jobIdToFind)
-
-          if (index > -1) {
-            // Create a new array with the updated job (immutable update)
-            const newJobs = [...old]
-            newJobs[index] = { ...old[index], ...data, _id: jobIdToFind }
-            console.debug(`Updated job at index ${index}:`, newJobs[index])
-            return newJobs
-          } else {
-            // Add new job at the beginning (for job:created)
-            console.debug(`Adding new job:`, data)
-            return [{ ...data, _id: jobIdToFind }, ...old]
-          }
-        })
-        queryClient.setQueryData(["job", data._id || data.jobId], old => ({ ...old, ...data }))
+    const handleUsageUpdate = data => {
+      if (data?.usage) {
+        updateUserPartial({ usage: data.usage })
       }
     }
 
-    // Handle user notifications (for insufficient credits)
-    const handleUserNotification = () => {
-      // Refetch user to get latest notifications
-      // The notification will be displayed by the NotificationDropdown component
-      console.debug("User notification received, checking for insufficient credits")
-
-      // Also invalidate jobs query to ensure UI is in sync
-      queryClient.invalidateQueries({ queryKey: ["jobs", user.id] })
-    }
-
-    socket.on("job:statusChanged", data => handleJobChange(data, "job:statusChanged"))
-    socket.on("job:updated", data => handleJobChange(data, "job:updated"))
-    socket.on("job:created", data => handleJobChange(data, "job:created"))
-    socket.on("job:deleted", data => handleJobChange(data, "job:deleted"))
-    socket.on("user:notification", handleUserNotification)
-
-    // Test connection
-    socket.on("connect", () => console.debug("Socket connected"))
-    socket.on("disconnect", () => console.debug("Socket disconnected"))
+    socket.on("job:statusChanged", data => handleJobChange(data, "statusChanged"))
+    socket.on("job:updated", data => handleJobChange(data, "updated"))
+    socket.on("job:created", data => handleJobChange(data, "created"))
+    socket.on("job:deleted", data => handleJobChange(data, "deleted"))
+    socket.on("user:usage", handleUsageUpdate)
 
     return () => {
-      console.debug("Cleaning up WebSocket listeners")
       socket.off("job:statusChanged")
       socket.off("job:updated")
       socket.off("job:created")
       socket.off("job:deleted")
-      socket.off("user:notification")
-      socket.off("connect")
-      socket.off("disconnect")
+      socket.off("user:usage", handleUsageUpdate)
     }
-  }, [queryClient, user, navigate])
+  }, [queryClient, user, navigate, updateUserPartial])
 
-  // Clear cache on user logout
   useEffect(() => {
     if (!user) {
       queryClient.removeQueries({ queryKey: ["jobs"] })
       setCurrentPage(1)
-      setShowWarning(false)
       setIsUserLoaded(false)
     } else {
       setIsUserLoaded(!!(user?.name || user?.credits))
@@ -172,157 +387,295 @@ const Jobs = () => {
 
   const handleOpenJobModal = useCallback(() => {
     if (!checkJobLimit()) return
-    dispatch(openJobModal(null)) // Pass null for new job
-  }, [dispatch, checkJobLimit])
+    openJobModal(null)
+  }, [checkJobLimit, openJobModal])
 
-  const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["jobs", user?.id] })
-  }, [queryClient, user])
+  const handleEditJob = useCallback(
+    job => {
+      openJobModal(job)
+    },
+    [openJobModal]
+  )
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [currentPage])
+  const handleRefresh = () => {
+    refetch()
+    toast.success("Jobs list refreshed")
+  }
 
-  const totalPages = useMemo(() => Math.ceil(queryJobs.length / PAGE_SIZE), [queryJobs])
+  const activeJobsCount = queryJobs.filter(j => j.status === "active").length
+  const stoppedJobsCount = queryJobs.filter(j => j.status !== "active").length
+
+  const filteredJobs = useMemo(() => {
+    return queryJobs.filter(
+      job =>
+        job.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job._id?.toString().includes(searchQuery)
+    )
+  }, [queryJobs, searchQuery])
 
   const paginatedJobs = useMemo(() => {
     const startIndex = (currentPage - 1) * PAGE_SIZE
-    return queryJobs.slice(startIndex, startIndex + PAGE_SIZE)
-  }, [queryJobs, currentPage])
+    return filteredJobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [filteredJobs, currentPage])
+
+  const totalPages = Math.ceil(filteredJobs.length / PAGE_SIZE)
+  const usagePercentage = usageLimit > 0 ? Math.min(100, Math.round((usage / usageLimit) * 100)) : 0
 
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
   }
-  //asd
+
   return (
     <>
       <Helmet>
-        <title>Content Agent | GenWrite</title>
+        <title>Content Automation | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen p-4 lg:p-8">
-        <div>
-          <div className="flex justify-between mt-5 md:mt-0">
-            <div className="mb-8">
-              <motion.h1
-                initial={{ y: -20 }}
-                animate={{ y: 0 }}
-                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-              >
-                Jobs Automation
-              </motion.h1>
-              <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
+
+      <div className="min-h-screen">
+        <div className="space-y-10 md:p-6 p-3 md:mt-0 mt-6">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Content Automation
+              </h1>
+              <p className="text-gray-600 mt-2">Manage your automated content generation pipelines</p>
             </div>
-            <div className="flex gap-2">
-              {usage >= usageLimit && (
+
+            <div className="flex items-center gap-3">
+              <div className="join bg-white p-1 gap-1 rounded-xl border border-slate-200 shadow-sm">
                 <button
-                  onClick={() => setShowWarning(prev => !prev)}
-                  className="text-yellow-500 hover:text-yellow-600 transition"
-                  title="View usage warning"
+                  onClick={() => setViewMode("grid")}
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
+                    viewMode === "grid"
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "text-slate-400"
+                  }`}
                 >
-                  <AlertTriangle className="w-6 h-6" />
+                  <LayoutGrid size={18} />
                 </button>
-              )}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  type="default"
-                  icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-                  onClick={handleRefresh}
-                  disabled={queryLoading}
-                  className="text-xs sm:text-sm px-4 py-2"
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
+                    viewMode === "list"
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "text-slate-400"
+                  }`}
                 >
-                  Refresh
-                </Button>
-              </motion.div>
+                  <List size={18} />
+                </button>
+              </div>
+
+              <button
+                onClick={handleRefresh}
+                disabled={queryLoading}
+                className="btn btn-ghost bg-white rounded-lg hover:bg-slate-100 text-slate-600 font-bold border border-slate-200 h-12 px-6 shadow-sm"
+              >
+                <RefreshCw
+                  size={18}
+                  className={`${queryLoading ? "animate-spin" : ""} mr-2 text-slate-400`}
+                />
+                Refresh
+              </button>
             </div>
           </div>
 
-          {showWarning && usage >= usageLimit && (
-            <div className="flex items-start mb-10 gap-3 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm text-sm">
-              <div className="pt-1 text-yellow-500">
-                <AlertTriangle className="w-5 h-5" />
+          {/* Stats & Create Banner */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 p-8 rounded-2xl border border-slate-200 bg-white relative overflow-hidden group shadow-sm">
+              <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-800">Account Overview</h3>
+                    <p className="text-slate-500 font-medium text-xs">Capacity & status metrics</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                    <Briefcase size={20} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Jobs Used */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jobs Created</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-900">{usage}</span>
+                      <span className="text-sm font-bold text-slate-400">/ {usageLimit}</span>
+                    </div>
+                  </div>
+                  {/* Active */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Status</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl font-black text-emerald-600">{activeJobsCount}</span>
+                    </div>
+                  </div>
+                  {/* Paused */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paused Jobs</p>
+                    <span className="text-3xl font-black text-slate-400">{stoppedJobsCount}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Consumption</span>
+                    <span className={usagePercentage > 90 ? "text-rose-500" : "text-blue-600"}>{usagePercentage}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${usagePercentage}%` }}
+                      className={`h-full rounded-full ${usagePercentage > 90 ? "bg-rose-500" : "bg-blue-600"}`}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="text-yellow-900">
-                <p className="font-semibold mb-1">Monthly Job Creation Limit Reached</p>
-                <p className="mb-1">
-                  You've created <span className="font-bold text-black">{usage}</span> out of{" "}
-                  <span className="font-bold text-black">{usageLimit}</span> allowed jobs this
-                  month. You can't create any more jobs until your next billing cycle.
-                </p>
-                <p className="text-red-400 text-xs font-semibold">
-                  Tip: Update your current job instead of deleting and recreating.
-                </p>
-              </div>
             </div>
-          )}
 
-          <motion.div
-            className="w-full md:w-1/2 lg:w-1/3 h-52 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl cursor-pointer mb-8 transition-all duration-300 border border-gray-100"
-            onClick={handleOpenJobModal}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <span className="bg-blue-50 rounded-2xl p-4 shadow-inner">
-                <FiPlus className="w-7 h-7 text-blue-600" />
-              </span>
-            </div>
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 tracking-wide">Create New Job</h3>
-              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
-                Automate content generation with custom templates and scheduling.
-              </p>
-            </div>
-          </motion.div>
-
-          {queryJobs.length > 0 && (
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
-          )}
-
-          {queryLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(PAGE_SIZE)].map((_, index) => (
-                <SkeletonLoader key={index} />
-              ))}
-            </div>
-          ) : queryJobs.length === 0 ? (
-            <div
-              className="flex flex-col justify-center items-center"
-              style={{ minHeight: "calc(100vh - 250px)" }}
+            <button
+              onClick={handleOpenJobModal}
+              disabled={usage >= usageLimit}
+              className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
+                usage >= usageLimit
+                  ? "bg-slate-100 cursor-not-allowed grayscale"
+                  : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800"
+              }`}
             >
-              <p className="text-xl text-gray-600">No jobs available.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {" "}
-              {/* No transition class to avoid animations */}
-              {paginatedJobs.map(job => (
-                <JobCard
-                  key={job._id}
-                  job={job}
-                  setCurrentPage={setCurrentPage}
-                  paginatedJobs={paginatedJobs}
-                />
-              ))}
-            </div>
-          )}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                current={currentPage}
-                pageSize={PAGE_SIZE}
-                total={queryJobs.length}
-                onChange={page => setCurrentPage(page)}
-                showSizeChanger={false}
-                responsive
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+                <Sparkles size={160} />
+              </div>
+
+              <div className="relative z-10 h-full flex flex-col justify-between">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-xl text-white rounded-lg flex items-center justify-center border border-white/20">
+                  <Plus size={32} strokeWidth={3} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white mb-2">Create New Job</h3>
+                  <p className="text-indigo-100 font-medium leading-relaxed opacity-80">
+                    Setup a new automated content generation stream.
+                  </p>
+                </div>
+                {usage >= usageLimit && (
+                  <div 
+                    className="mt-4 flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest tooltip tooltip-top [--tooltip-font-size:10px]"
+                    data-tip={`Job limit reached: ${usage}/${usageLimit} jobs used on ${userPlan} plan.`}
+                  >
+                    <AlertTriangle size={14} /> Full Capacity
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
+
+          {/* Job List/Grid Section */}
+          <div className="space-y-6">
+            {queryLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-64 bg-white rounded-[32px] border border-slate-100 animate-pulse p-8 space-y-4"
+                  >
+                    <div className="flex gap-4">
+                      <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-100 rounded-full w-3/4" />
+                        <div className="h-3 bg-slate-100 rounded-full w-1/2" />
+                      </div>
+                    </div>
+                    <div className="h-24 bg-slate-50 rounded-2xl" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              <div className="py-24 bg-white rounded-[40px] border border-slate-100 flex flex-col items-center justify-center text-center space-y-4 shadow-xl shadow-slate-200/40">
+                <div className="w-24 h-24 bg-slate-50 text-slate-300 rounded-[32px] flex items-center justify-center">
+                  <Briefcase size={40} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-slate-900">No pipelines found</h3>
+                  <p className="text-slate-400 font-medium">Start automating your content today.</p>
+                </div>
+                <button
+                  onClick={handleOpenJobModal}
+                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4"
+                >
+                  Deploy Your First Job
+                </button>
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {paginatedJobs.map(job => (
+                  <JobCard
+                    key={job._id}
+                    job={job}
+                    setCurrentPage={setCurrentPage}
+                    paginatedJobs={paginatedJobs}
+                    onEdit={handleEditJob}
+                  />
+                ))}
+              </div>
+            ) : (
+              <JobListView
+                data={paginatedJobs}
+                onEdit={handleEditJob}
+                isToggling={isToggling}
+                onToggleStatus={job => {
+                  toggleStatus({ jobId: job._id, currentStatus: job.status })
+                }}
+                onDelete={job => {
+                  handlePopup({
+                    title: "Terminate Job",
+                    description: `This action will permanently remove the pipeline "${job.name}". Are you sure?`,
+                    confirmText: "Terminate",
+                    onConfirm: () => deleteMutate(job._id),
+                    confirmProps: { className: "btn-error" },
+                  })
+                }}
               />
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center pt-8">
+              <div className="join bg-white shadow-xl shadow-slate-200/40 rounded-2xl border border-slate-100 p-1">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`join-item btn h-12 w-12 rounded-xl text-sm font-black transition-all border-none ${
+                      currentPage === i + 1
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                        : "btn-ghost text-slate-400 hover:bg-slate-50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
           )}
         </div>
-        <JobModal
-          showJobModal={showJobModal}
-          selectedKeywords={selectedKeywords}
-          user={user}
-          userPlan={userPlan}
-          isUserLoaded={isUserLoaded}
-        />
+
+        <JobModal user={user} userPlan={userPlan} isUserLoaded={isUserLoaded} />
       </div>
     </>
   )

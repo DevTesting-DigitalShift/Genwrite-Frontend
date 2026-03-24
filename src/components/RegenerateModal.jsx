@@ -1,24 +1,15 @@
 import { useState, useCallback } from "react"
-import { Modal, Button, Input, Select, Switch, InputNumber, message, Spin } from "antd"
-import { RefreshCw, Plus, X, Zap, Lightbulb } from "lucide-react"
+import { toast } from "sonner"
+import { RefreshCw, Plus, X, Zap } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { TONES } from "@/data/blogData"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
-
-// AI Models config
-const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  {
-    id: "claude",
-    label: "Claude",
-    logo: "/Images/claude.webp",
-    restrictedPlans: ["free", "basic"],
-  },
-]
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
 
 const RegenerateModal = ({
   isOpen,
@@ -28,6 +19,7 @@ const RegenerateModal = ({
   regenForm,
   updateRegenField,
   userPlan,
+  user,
   integrations,
 }) => {
   const navigate = useNavigate()
@@ -60,7 +52,7 @@ const RegenerateModal = ({
 
     // Apply Cost Cutter discount (25% off)
     if (regenForm.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
@@ -76,7 +68,7 @@ const RegenerateModal = ({
       .map(k => k.trim().toLowerCase())
       .filter(k => k && !existing.includes(k))
     if (type === "focus" && regenForm.focusKeywords.length + newKws.length > 3) {
-      return message.warning("Max 3 focus keywords")
+      return toast.warning("Max 3 focus keywords")
     }
     if (newKws.length > 0) updateRegenField(field, [...regenForm[field], ...newKws])
     type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
@@ -101,334 +93,243 @@ const RegenerateModal = ({
   }
 
   return (
-    <Modal
-      title={
-        <div className="flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-blue-600" />
-          <span className="text-sm font-semibold">
-            Regenerate Blog - Step {regenerateStep} of 2
-          </span>
+    <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
+      <div className="modal-box w-11/12 max-w-2xl p-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-base-100">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-blue-600" />
+            <span className="text-base font-semibold">
+              Regenerate Blog - Step {regenerateStep} of 2
+            </span>
+          </div>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      }
-      open={isOpen}
-      onCancel={handleClose}
-      footer={
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-500">
-            <div className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-gray-600 font-medium">Estimated Cost:</span>
-              <span className="font-bold text-blue-600 text-sm">
-                {calculateRegenCost()} credits
-              </span>
+
+        <div className="p-6 relative">
+          {isRegenerating && (
+            <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center">
+              <span className="loading loading-spinner loading-lg text-primary"></span>
+              <p className="mt-4 font-semibold text-gray-600">Processing...</p>
             </div>
-          </div>
-          <div className="flex gap-2">
-            {regenerateStep === 2 && (
-              <Button size="large" onClick={() => setRegenerateStep(1)}>
-                Back
-              </Button>
-            )}
-            {regenerateStep === 1 ? (
-              <Button
-                type="primary"
-                size="large"
-                onClick={() => setRegenerateStep(2)}
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 border-0"
-              >
-                Next: Enhancement Options
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                size="large"
-                loading={isRegenerating}
-                onClick={handleSubmit}
-                icon={<RefreshCw className="w-4 h-4" />}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 border-0"
-              >
-                Regenerate Blog
-              </Button>
-            )}
-          </div>
-        </div>
-      }
-      centered
-      width={650}
-    >
-      <Spin spinning={isRegenerating} tip="Processing...">
-        {regenerateStep === 1 ? (
-          // Step 1: Regenerate Blog Settings
-          <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
-            <p className="text-sm text-gray-500 mb-4">
-              Configure your blog regeneration settings. You can modify the topic, keywords, tone,
-              and other options.
-            </p>
+          )}
 
-            {/* Topic & Title */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Topic</label>
-                <Input
-                  size="large"
-                  value={regenForm.topic}
-                  onChange={e => updateRegenField("topic", e.target.value)}
-                  placeholder="Blog topic..."
-                />
-              </div>
+          {regenerateStep === 1 ? (
+            // Step 1: Regenerate Blog Settings
+            <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+              <p className="text-sm text-gray-500 mb-4">
+                Configure your blog regeneration settings. You can modify the topic, keywords, tone,
+                and other options.
+              </p>
 
-              {/* Perform Keyword Research Toggle - below Topic */}
-              <div className="flex items-center justify-between">
+              {/* Topic & Title */}
+              <div className="space-y-4">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Perform Keyword Research
-                  </span>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    AI will auto-generate title and keywords based on your topic
-                  </p>
+                  <label className="text-sm font-semibold  mb-2 block">Topic</label>
+                  <input
+                    type="text"
+                    className="input outline-0 w-full"
+                    value={regenForm.topic}
+                    onChange={e => updateRegenField("topic", e.target.value)}
+                    placeholder="Blog topic..."
+                  />
                 </div>
-                <Switch
-                  checked={regenForm.options.performKeywordResearch}
-                  onChange={val => updateRegenField("options.performKeywordResearch", val)}
-                />
+
+                {/* Perform Keyword Research Toggle - below Topic */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Perform Keyword Research</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      AI will auto-generate title and keywords based on your topic
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.performKeywordResearch}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.performKeywordResearch", checked)
+                    }
+                    size="large"
+                  />
+                </div>
+
+                {/* Only show Title input if performKeywordResearch is OFF */}
+                {!regenForm.options.performKeywordResearch && (
+                  <div>
+                    <label className="text-sm font-semibold  mb-2 block">Title</label>
+                    <input
+                      type="text"
+                      className="input outline-0 w-full"
+                      value={regenForm.title}
+                      onChange={e => updateRegenField("title", e.target.value)}
+                      placeholder="Blog title..."
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Only show Title input if performKeywordResearch is OFF */}
+              {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
-                  <Input
-                    size="large"
-                    value={regenForm.title}
-                    onChange={e => updateRegenField("title", e.target.value)}
-                    placeholder="Blog title..."
-                  />
+                  <label className="text-sm font-semibold  mb-2 block">
+                    Focus Keywords (max 3)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="input outline-0 w-full"
+                      value={focusKeywordInput}
+                      onChange={e => setFocusKeywordInput(e.target.value)}
+                      onKeyDown={e =>
+                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
+                      }
+                      placeholder="Add keyword..."
+                    />
+                    <button className="btn btn-primary" onClick={() => addRegenKeyword("focus")}>
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {regenForm.focusKeywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold"
+                      >
+                        {kw}
+                        <button onClick={() => removeRegenKeyword("focus", i)}>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
 
-            {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
-            {!regenForm.options.performKeywordResearch && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Focus Keywords (max 3)
-                </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    size="large"
-                    value={focusKeywordInput}
-                    onChange={e => setFocusKeywordInput(e.target.value)}
-                    onKeyDown={e =>
-                      e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
-                    }
-                    placeholder="Add keyword..."
-                  />
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={() => addRegenKeyword("focus")}
-                    icon={<Plus className="w-4 h-4" />}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {regenForm.focusKeywords.map((kw, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                    >
-                      {kw}
-                      <button onClick={() => removeRegenKeyword("focus", i)}>
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
-            {!regenForm.options.performKeywordResearch && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    size="large"
-                    value={keywordInput}
-                    onChange={e => setKeywordInput(e.target.value)}
-                    onKeyDown={e =>
-                      e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-                    }
-                    placeholder="Add keywords..."
-                  />
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={() => addRegenKeyword("secondary")}
-                    icon={<Plus className="w-4 h-4" />}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {regenForm.keywords.map((kw, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium"
-                    >
-                      {kw}
-                      <button onClick={() => removeRegenKeyword("secondary", i)}>
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tone & Length */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Tone</label>
-                <Select
-                  size="large"
-                  value={regenForm.tone}
-                  onChange={val => updateRegenField("tone", val)}
-                  options={TONES.map(t => ({ label: t, value: t }))}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Word Count</label>
-                <Select
-                  size="large"
-                  value={regenForm.userDefinedLength}
-                  onChange={val => updateRegenField("userDefinedLength", val)}
-                  options={[
-                    { label: "500 words", value: 500 },
-                    { label: "1,000 words", value: 1000 },
-                    { label: "1,500 words", value: 1500 },
-                    { label: "2,000 words", value: 2000 },
-                    { label: "2,500 words", value: 2500 },
-                    { label: "3,000 words", value: 3000 },
-                    { label: "3,500 words", value: 3500 },
-                    { label: "4,000 words", value: 4000 },
-                    { label: "4,500 words", value: 4500 },
-                    { label: "5,000 words", value: 5000 },
-                  ]}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* AI Model */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">AI Model</label>
-              <div className="grid grid-cols-3 gap-3">
-                {AI_MODELS.map(model => (
-                  <button
-                    key={model.id}
-                    onClick={() => {
-                      if (model.restrictedPlans.includes(userPlan)) {
-                        openUpgradePopup({ featureName: model.label, navigate })
-                      } else {
-                        updateRegenField("aiModel", model.id)
+              {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
+              {!regenForm.options.performKeywordResearch && (
+                <div>
+                  <label className="text-sm font-semibold  mb-2 block">Keywords</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="input outline-0 w-full"
+                      value={keywordInput}
+                      onChange={e => setKeywordInput(e.target.value)}
+                      onKeyDown={e =>
+                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
                       }
-                    }}
-                    className={`p-3 rounded-lg border-2 text-center text-sm font-medium transition-all ${
-                      regenForm.aiModel === model.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
+                      placeholder="Add keywords..."
+                    />
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => addRegenKeyword("secondary")}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {regenForm.keywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold"
+                      >
+                        {kw}
+                        <button onClick={() => removeRegenKeyword("secondary", i)}>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tone & Length */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold  mb-2 block">Tone</label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={regenForm.tone}
+                    onChange={e => updateRegenField("tone", e.target.value)}
                   >
-                    <img src={model.logo} alt={model.label} className="w-6 h-6 mx-auto mb-1.5" />
-                    {model.label}
-                  </button>
-                ))}
+                    {TONES.map(t => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold  mb-2 block">Word Count</label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={regenForm.userDefinedLength}
+                    onChange={e => updateRegenField("userDefinedLength", parseInt(e.target.value))}
+                  >
+                    <option value={500}>500 words</option>
+                    <option value={1000}>1,000 words</option>
+                    <option value={1500}>1,500 words</option>
+                    <option value={2000}>2,000 words</option>
+                    <option value={2500}>2,500 words</option>
+                    <option value={3000}>3,000 words</option>
+                    <option value={3500}>3,500 words</option>
+                    <option value={4000}>4,000 words</option>
+                    <option value={4500}>4,500 words</option>
+                    <option value={5000}>5,000 words</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            {/* Add Images Section - Radio Buttons */}
-            <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="text-sm font-semibold text-gray-700 block">Add Images</label>
+              <AiModelSelector
+                value={regenForm.aiModel}
+                onChange={modelId => updateRegenField("aiModel", modelId)}
+                showCostCutter={true}
+                costCutterValue={regenForm.costCutter}
+                onCostCutterChange={checked => updateRegenField("costCutter", checked)}
+              />
 
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                  <input
-                    type="radio"
-                    name="imageSource"
-                    checked={!regenForm.isCheckedGeneratedImages}
-                    onChange={() => {
-                      updateRegenField("isCheckedGeneratedImages", false)
+              {/* Add Images Toggle */}
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm font-semibold ">Add Images</span>
+                <Switch
+                  checked={regenForm.isCheckedGeneratedImages}
+                  onCheckedChange={checked => {
+                    updateRegenField("isCheckedGeneratedImages", checked)
+                    if (checked) {
+                      const newSource =
+                        regenForm.imageSource === IMAGE_SOURCE.NONE || !regenForm.imageSource
+                          ? IMAGE_SOURCE.STOCK
+                          : regenForm.imageSource
+                      updateRegenField("imageSource", newSource)
+                    } else {
                       updateRegenField("imageSource", IMAGE_SOURCE.NONE)
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-gray-700">None</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                  <input
-                    type="radio"
-                    name="imageSource"
-                    checked={
-                      regenForm.isCheckedGeneratedImages &&
-                      regenForm.imageSource === IMAGE_SOURCE.STOCK
                     }
-                    onChange={() => {
-                      updateRegenField("isCheckedGeneratedImages", true)
-                      updateRegenField("imageSource", IMAGE_SOURCE.STOCK)
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Stock Images</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                  <input
-                    type="radio"
-                    name="imageSource"
-                    checked={
-                      regenForm.isCheckedGeneratedImages &&
-                      regenForm.imageSource === IMAGE_SOURCE.AI
-                    }
-                    onChange={() => {
-                      updateRegenField("isCheckedGeneratedImages", true)
-                      updateRegenField("imageSource", IMAGE_SOURCE.AI)
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-gray-700">AI Generated</span>
-                </label>
+                  }}
+                  size="large"
+                />
               </div>
 
               {regenForm.isCheckedGeneratedImages && (
-                <div className="pt-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-2">
-                    Number of Images: {regenForm.numberOfImages ?? 0}
-                  </label>
-                  <InputNumber
-                    size="large"
-                    min={0}
-                    max={20}
-                    value={regenForm.numberOfImages ?? 0}
-                    onChange={val => updateRegenField("numberOfImages", val ?? 0)}
-                    className="w-full"
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <ImageSourceSelector
+                    value={regenForm.imageSource || IMAGE_SOURCE.STOCK}
+                    onChange={newSource => updateRegenField("imageSource", newSource)}
+                    showNone={false}
+                    numberOfImages={regenForm.numberOfImages}
+                    onNumberChange={val => updateRegenField("numberOfImages", val)}
                   />
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          // Step 2: Content Enhancement Options + Brand Voice
-          <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2 p-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-4">
-              Content Enhancement Options
-            </h4>
-
-            {/* Brand Voice - Moved to Step 2 */}
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          ) : (
+            // Step 2: Content Enhancement Options + Brand Voice
+            <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll">
+              {/* Brand Voice - Moved to Step 2 */}
               <BrandVoiceSelector
                 label="Write with Brand Voice"
-                size="default"
-                labelClass="text-sm font-semibold text-gray-700"
+                size="large"
+                labelClass="text-sm font-semibold "
                 value={{
                   isCheckedBrand: regenForm.useBrandVoice,
                   brandId: regenForm.brandId,
@@ -440,151 +341,280 @@ const RegenerateModal = ({
                   updateRegenField("addCTA", val.addCTA)
                 }}
               />
-            </div>
 
-            {/* Enhancement Options */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">
-                    Add FAQs (Frequently Asked Questions)
-                  </span>
-                </div>
-                <Switch
-                  checked={regenForm.options.includeFaqs}
-                  onChange={val => updateRegenField("options.includeFaqs", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
-                </div>
-                <Switch
-                  checked={regenForm.options.includeInterlinks}
-                  onChange={val => updateRegenField("options.includeInterlinks", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">
-                      Perform Competitive Research
-                    </span>
-                  </div>
-                </div>
-                <Switch
-                  checked={regenForm.options.includeCompetitorResearch}
-                  onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">Show Outbound Links</span>
-                </div>
-                <Switch
-                  checked={regenForm.options.addOutBoundLinks}
-                  onChange={val => updateRegenField("options.addOutBoundLinks", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
-                </div>
-                <Switch
-                  checked={regenForm.isCheckedQuick}
-                  onChange={val => updateRegenField("isCheckedQuick", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">Easy to Understand</span>
-                </div>
-                <Switch
-                  checked={regenForm.easyToUnderstand}
-                  onChange={val => updateRegenField("easyToUnderstand", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-sm font-medium text-gray-700">Embed YouTube Videos</span>
-                </div>
-                <Switch
-                  checked={regenForm.embedYouTubeVideos}
-                  onChange={val => updateRegenField("embedYouTubeVideos", val)}
-                />
-              </div>
-
-              {/* Automate Posting */}
-              <div className="">
+              {/* Enhancement Options */}
+              <div className="space-y-6 mt-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 mt-3">
-                    <span className="text-sm font-medium text-gray-700">
-                      Enable Automate Posting
-                    </span>
+                  <div>
+                    <span className="text-sm font-semibold ">Add FAQs</span>
+                    <p className="text-[10px] text-gray-500">
+                      Include a section for common reader questions
+                    </p>
                   </div>
                   <Switch
-                    checked={regenForm.wordpressPostStatus}
-                    onChange={val => updateRegenField("wordpressPostStatus", val)}
+                    checked={regenForm.options.includeFaqs}
+                    onCheckedChange={checked => updateRegenField("options.includeFaqs", checked)}
+                    size="large"
                   />
                 </div>
 
-                {regenForm.wordpressPostStatus && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Show Table of Content
-                      </span>
-                      <Switch
-                        checked={regenForm.includeTableOfContents}
-                        onChange={val => updateRegenField("includeTableOfContents", val)}
-                      />
-                    </div>
-
-                    <label className="text-sm font-medium text-gray-600 block my-2 mt-6">
-                      Choose Platform
-                    </label>
-                    <Select
-                      className="w-full mb-3"
-                      placeholder="Select Platform"
-                      value={regenForm.postingType}
-                      onChange={val => updateRegenField("postingType", val)}
-                      options={[
-                        { label: "WORDPRESS", value: "WORDPRESS" },
-                        { label: "SERVERENDPOINT", value: "SERVERENDPOINT" },
-                        { label: "SHOPIFY", value: "SHOPIFY" },
-                      ]}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Cost Cutter */}
-              <div className="flex items-center justify-between py-4 px-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 trans mt-3ition-colors border-2 border-green-200">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-gray-700">Cost Cutter</span>
-                    <span className="ml-2 text-sm text-green-600 font-semibold">Save 25%</span>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Reduce credits by 25% with optimized generation
+                    <span className="text-sm font-semibold ">Include Interlinks</span>
+                    <p className="text-[10px] text-gray-500">
+                      Connect your post with other relevant internal pages
                     </p>
                   </div>
+                  <Switch
+                    checked={regenForm.options.includeInterlinks}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.includeInterlinks", checked)
+                    }
+                    size="large"
+                  />
                 </div>
-                <Switch
-                  checked={regenForm.costCutter}
-                  onChange={val => updateRegenField("costCutter", val)}
-                />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Perform Competitive Research</span>
+                    <p className="text-[10px] text-gray-500">
+                      Power your content with insights from top competitors
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.includeCompetitorResearch}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.includeCompetitorResearch", checked)
+                    }
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Show Outbound Links</span>
+                    <p className="text-[10px] text-gray-500">
+                      Cite high-authority external websites for SEO
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.addOutBoundLinks}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.addOutBoundLinks", checked)
+                    }
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Add a Quick Summary</span>
+                    <p className="text-[10px] text-gray-500">
+                      Add a short TL;DR summary at the top
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.isCheckedQuick}
+                    onCheckedChange={checked => updateRegenField("isCheckedQuick", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Easy to Understand</span>
+                    <p className="text-[10px] text-gray-500">
+                      Optimized for readability and simple comprehension
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.easyToUnderstand}
+                    onCheckedChange={checked => updateRegenField("easyToUnderstand", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Embed YouTube Videos</span>
+                    <p className="text-[10px] text-gray-500">
+                      Enhance your post with relevant video content
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.embedYouTubeVideos}
+                    onCheckedChange={checked => updateRegenField("embedYouTubeVideos", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Extended Thinking</span>
+                    <p className="text-[10px] text-gray-500">
+                      Deepen AI reasoning for logical outputs
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.extendedThinking}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.extendedThinking", checked)
+                    }
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Deep Research</span>
+                    <p className="text-[10px] text-gray-500">
+                      Extensive multi-source investigative research
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.deepResearch}
+                    onCheckedChange={checked => updateRegenField("options.deepResearch", checked)}
+                    size="large"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold ">Humanisation</span>
+                    <p className="text-[10px] text-gray-500">
+                      Natural linguistic patterns to bypass AI filters
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regenForm.options.humanisation}
+                    onCheckedChange={checked => updateRegenField("options.humanisation", checked)}
+                    size="large"
+                  />
+                </div>
+
+                {/* Automate Posting */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-semibold ">Enable Automate Posting</span>
+                      <p className="text-[10px] text-gray-500">
+                        Directly publish to your WordPress or other accounts
+                      </p>
+                    </div>
+                    <Switch
+                      checked={regenForm.wordpressPostStatus}
+                      onCheckedChange={checked => {
+                        const hasIntegrations =
+                          Object.keys(integrations?.integrations || {}).length > 0
+                        if (checked && !hasIntegrations) {
+                          toast.error("Please connect your account in plugins.")
+                          return
+                        }
+                        updateRegenField("wordpressPostStatus", checked)
+                        if (checked) {
+                          const firstKey = Object.keys(integrations?.integrations || {})[0]
+                          if (firstKey && !regenForm.postingType) {
+                            updateRegenField("postingType", firstKey)
+                          }
+                        } else {
+                          updateRegenField("postingType", null)
+                        }
+                      }}
+                      size="large"
+                    />
+                  </div>
+
+                  {regenForm.wordpressPostStatus && (
+                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-semibold ">Show Table of Content</span>
+                          <p className="text-[10px] text-gray-500">
+                            Help users navigate with a structural outline
+                          </p>
+                        </div>
+                        <Switch
+                          checked={regenForm.includeTableOfContents}
+                          onCheckedChange={checked =>
+                            updateRegenField("includeTableOfContents", checked)
+                          }
+                          size="large"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-semibold text-gray-600 block mb-2">
+                          Choose Platform
+                        </label>
+                        <select
+                          className="select select-bordered outline-0 w-full"
+                          value={regenForm.postingType || ""}
+                          onChange={e => updateRegenField("postingType", e.target.value)}
+                        >
+                          <option value="" disabled>
+                            Select Platform
+                          </option>
+                          {integrations?.integrations &&
+                            Object.keys(integrations.integrations).map(platform => (
+                              <option key={platform} value={platform}>
+                                {platform}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="modal-action px-6 py-4 bg-base-100 border-t border-gray-300 flex justify-between items-center mt-0">
+          <div className="text-sm text-gray-500">
+            <div className="flex items-center gap-1">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span className="text-sm text-gray-600 font-semibold">Estimated Cost:</span>
+              <span className="font-bold text-blue-600 text-sm">
+                {calculateRegenCost()} credits
+              </span>
+            </div>
           </div>
-        )}
-      </Spin>
-    </Modal>
+          <div className="flex gap-2">
+            {regenerateStep === 2 && (
+              <button className="btn" onClick={() => setRegenerateStep(1)}>
+                Back
+              </button>
+            )}
+            {regenerateStep === 1 ? (
+              <button
+                className="btn btn-primary bg-linear-to-r from-blue-500 rounded-lg to-indigo-600 border-0 text-white"
+                onClick={() => setRegenerateStep(2)}
+              >
+                Next: Enhancement Options
+              </button>
+            ) : (
+              <button
+                className="btn btn-primary bg-linear-to-r from-blue-600 rounded-lg to-purple-600 border-0 text-white"
+                disabled={isRegenerating}
+                onClick={handleSubmit}
+              >
+                {isRegenerating ? (
+                  <span className="loading loading-spinner"></span>
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Regenerate Blog
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={handleClose}>close</button>
+      </form>
+    </dialog>
   )
 }
 

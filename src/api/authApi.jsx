@@ -23,15 +23,23 @@ const retry = async (fn, retries = 3, delay = 1000) => {
 }
 
 export const login = async reqBody => {
-  reqBody.ip = await getIP()
-  const response = await axiosInstance.post("/auth/login", reqBody)
-  return response.data
+  try {
+    reqBody.ip = await getIP()
+    const response = await axiosInstance.post("/auth/login", reqBody)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Login failed")
+  }
 }
 
 export const signup = async body => {
-  body.ip = await getIP()
-  const response = await axiosInstance.post("/auth/register", body)
-  return response.data
+  try {
+    body.ip = await getIP()
+    const response = await axiosInstance.post("/auth/register", body)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Signup failed")
+  }
 }
 export const UserLogout = async () => {
   const response = await axiosInstance.get(`/auth/logout`)

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   RefreshCw,
@@ -8,18 +8,12 @@ import {
   Send,
   ExternalLink,
   Target,
-  Plus,
   X,
   TagIcon,
   BarChart3,
   Wand2,
-  Settings,
-  Zap,
   Lightbulb,
   ChevronLeft,
-  ChevronRight,
-  SlidersHorizontal,
-  Eye,
   BarChart,
   RefreshCcw,
   Crown,
@@ -28,95 +22,112 @@ import {
   Lock,
   Globe,
   Info,
-  Calendar,
   User,
   ImageIcon,
   Pencil,
   CheckCircle,
   MessageSquare,
 } from "lucide-react"
-import {
-  Button,
-  message,
-  Input,
-  Select,
-  Slider,
-  Switch,
-  InputNumber,
-  Tooltip,
-  Badge,
-  Collapse,
-} from "antd"
-import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import {
-  generateMetadataThunk,
-  getIntegrationsThunk,
-  getCategoriesThunk,
-  resetCategories,
-} from "@store/slices/otherSlice"
+import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
-import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
-import { Modal } from "antd"
-import { TONES } from "@/data/blogData"
-import { retryBlogById, exportBlogAsPdf, getBlogPostings, exportBlog } from "@api/blogApi"
+import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
-import { useQueryClient } from "@tanstack/react-query"
-import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
+import ContentDiffViewer from "../Editor/ContentDiffViewer"
+import axiosInstance from "@/api"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { fetchCategories, generateMetadata } from "@api/otherApi"
+import { runCompetitiveAnalysis } from "@api/analysisApi"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
-import * as Cheerio from "cheerio"
-import TurndownService from "turndown"
 
-import axios from "axios"
 import { marked } from "marked"
+import TurndownService from "turndown"
+import { Switch } from "@components/ui/switch"
 
-const { TextArea } = Input
-const { Panel } = Collapse
+const renderer = {
+  heading({ text, depth: level }) {
+    const slug = String(text)
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+    return `<h${level} id="${slug}">${text}</h${level}>`
+  },
+}
 
-// WordPress Categories Component
-const WordPressCategories = ({ onSelect, currentCategory }) => {
+marked.use({ renderer })
+
+// Platform Categories Component (Supports WP, Sanity, Shopify, Server)
+const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchWPCategories = async () => {
+    const fetchPlatformCategories = async () => {
+      if (!platform) {
+        setCategories([])
+        return
+      }
+
       setLoading(true)
       try {
-        const response = await axios.get(
-          "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
+        const response = await axiosInstance.get(
+          `http://localhost:8000/api/v1/integrations/category?type=${platform.toUpperCase()}`
         )
         if (Array.isArray(response.data)) {
           setCategories(response.data)
+        } else {
+          setCategories([])
         }
       } catch (error) {
-        console.error("Failed to fetch WP categories", error)
+        console.error(`Failed to fetch ${platform} categories`, error)
+        setCategories([])
       } finally {
         setLoading(false)
       }
     }
 
-    fetchWPCategories()
-  }, [])
+    fetchPlatformCategories()
+  }, [platform])
 
-  if (categories.length === 0 && !loading) return null
+  // Merge platform categories with popular categories and deduplicate (case-insensitive)
+  const displayCategories = useMemo(() => {
+    const combined = [...categories]
+    const lowerCategories = categories.map(c => c.toLowerCase())
+
+    POPULAR_CATEGORIES.forEach(cat => {
+      if (!lowerCategories.includes(cat.toLowerCase())) {
+        combined.push(cat)
+      }
+    })
+    return combined
+  }, [categories])
+
+  const isUsingOnlyPopular = categories.length === 0
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-          WordPress Categories
+        <span className="text-xs font-bold  uppercase tracking-wide flex items-center gap-2">
+          {isUsingOnlyPopular ? (
+            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+          ) : (
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+          )}
+          {platform && !isUsingOnlyPopular
+            ? `${platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase()} Categories`
+            : "Popular Categories"}
         </span>
         <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-          {categories.length} available
+          {displayCategories.length} available
         </span>
       </div>
 
@@ -126,47 +137,40 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
             <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat, idx) => (
-              <button
-                key={idx}
-                onClick={() => onSelect(cat)}
-                className={`
-                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
-                  ${
-                    currentCategory === cat
-                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
-                  }
-                `}
-              >
-                {cat}
-                {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
-              </button>
-            ))}
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-wrap gap-2">
+              {displayCategories.map((cat, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSelect(cat)}
+                  type="button"
+                  className={`
+                    px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
+                    ${
+                      currentCategory === cat
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
+                    }
+                  `}
+                >
+                  {cat}
+                  {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
       <p className="text-[10px] text-gray-400 mt-2 px-1">
-        Select a category from your WordPress site to populate the field above.
+        {isUsingOnlyPopular
+          ? "Select a popular category to keep your content organized."
+          : `Select a category from your ${platform} site to populate the field above.`}
       </p>
     </div>
   )
 }
 
-// AI Models config
-const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  {
-    id: "claude",
-    label: "Claude",
-    logo: "/Images/claude.webp",
-    restrictedPlans: ["free", "basic"],
-  },
-]
-
-// Popular WordPress categories (limited to 15 for relevance)
+// Popular categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
   "Blogging",
   "Technology",
@@ -206,6 +210,7 @@ const TextEditorSidebar = ({
   setIsSidebarOpen,
   unsavedChanges,
   activeEditorVersion, // NEW PROP
+  setEditorContent,
 }) => {
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -233,9 +238,6 @@ const TextEditorSidebar = ({
   // Blog slug editor state
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
   const [isEditingSlug, setIsEditingSlug] = useState(false)
-
-  const { data: integrations } = useSelector(state => state.wordpress)
-  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
 
   // Posting State (Migrated from CategoriesModal)
   const [selectedCategory, setSelectedCategory] = useState("")
@@ -286,6 +288,9 @@ const TextEditorSidebar = ({
       includeCompetitorResearch: false,
       addOutBoundLinks: false,
       performKeywordResearch: false,
+      humanisation: false,
+      extendedThinking: false,
+      deepResearch: false,
     },
     easyToUnderstand: false,
     embedYouTubeVideos: false,
@@ -303,21 +308,26 @@ const TextEditorSidebar = ({
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
   const [availableSections, setAvailableSections] = useState([])
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
+
+  // Diff Viewer State
+  const [showDiff, setShowDiff] = useState(false)
+  const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
 
   // Sidebar navigation items
   const NAV_ITEMS = [
     { id: "overview", icon: BarChart3, label: "Overview" },
-    { id: "seo", icon: TrendingUp, label: "SEO" },
-    { id: "bloginfo", icon: Info, label: "Blog Info" },
+    { id: "seo", icon: TrendingUp, label: "SEO Settings" },
+    { id: "bloginfo", icon: Info, label: "Blog Details" },
     ...(blog?.brandId || blog?.nameOfVoice
       ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
       : []),
-    { id: "posting", icon: Send, label: "Posting" },
-    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+    { id: "posting", icon: Send, label: "Publish" },
     // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
     ...(availableSections.length > 0 && activeEditorVersion === 1
       ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
       : []),
+    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
   ]
 
   // Clear section selection when switching tabs to simple cleanup
@@ -339,32 +349,47 @@ const TextEditorSidebar = ({
       let sections = []
       // ... (rest of parsing logic will remain, just inserting the hook before it)
 
-      // STRATEGY 1: Structured HTML with <section> tags
-      // Use Cheerio to parse the generic content first
-      // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
-      const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
-      const $htmlSections = $("section")
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(editorContent, "text/html")
 
-      if ($htmlSections.length > 0) {
-        $htmlSections.each((i, el) => {
-          const $el = $(el)
-          const id = $el.attr("id")
+      // STRATEGY 1: Structured HTML with <section> tags
+      // Target sections inside #sections-wrapper if available to exclude meta/cta/faq
+      let htmlSections = Array.from(doc.querySelectorAll("#sections-wrapper section"))
+
+      // Fallback: If no wrapper found, try all valid content sections (excluding meta/cta/faq/summary)
+      if (htmlSections.length === 0) {
+        const allSections = Array.from(doc.querySelectorAll("section"))
+        const excludeSelector =
+          "#blog-meta, #blog-cta, #faq-section, .blog-base-meta, .blog-brand-cta, .faq-section, .blog-quick-summary"
+        htmlSections = allSections.filter(el => !el.matches(excludeSelector))
+      }
+
+      if (htmlSections.length > 0) {
+        htmlSections.forEach((el, i) => {
+          const id = el.id
 
           // Skip if no ID (cannot target)
           if (!id) return
 
           // Try to find a heading inside this section
-          const $heading = $el.find("h1, h2, h3, h4, h5, h6").first()
-          const title = $heading.length ? $heading.text().trim() : `Section ${i + 1}`
+          const heading = el.querySelector("h1, h2, h3, h4, h5, h6")
+          const title = heading ? heading.textContent.trim() : `Section ${i + 1}`
 
           // Get text preview
           // Prefer content inside .section-content if available, otherwise full section text
-          // Removing the title from the preview text
-          const $content = $el.find(".section-content").length ? $el.find(".section-content") : $el
-          let text = $content.text()
-          if ($heading.length) {
-            text = text.replace($heading.text(), "")
+          const contentEl = el.querySelector(".section-content") || el
+
+          // Remove heading text from preview if it exists inside the content element
+          let text = ""
+          if (heading && contentEl.contains(heading)) {
+            const clone = contentEl.cloneNode(true)
+            const cloneHeading = clone.querySelector("h1, h2, h3, h4, h5, h6")
+            if (cloneHeading) cloneHeading.remove()
+            text = clone.textContent || ""
+          } else {
+            text = contentEl.textContent || ""
           }
+
           text = text.replace(/\s+/g, " ").trim()
 
           const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
@@ -373,56 +398,7 @@ const TextEditorSidebar = ({
         })
       }
 
-      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback)
-      // Only runs if no proper <section> tags were found
-      if (sections.length === 0) {
-        // Configure marked to match TipTap's ID generation
-        const renderer = {
-          heading(text, level) {
-            const slug = text
-              .toLowerCase()
-              .replace(/[^\w]+/g, "-")
-              .replace(/^-+|-+$/g, "")
-            return `<h${level} id="${slug}">${text}</h${level}>`
-          },
-        }
-        marked.use({ renderer })
-
-        // Convert Markdown to HTML to ensure we catch all headers with generated IDs
-        const html = marked.parse(editorContent)
-        const $md = Cheerio.load(html)
-
-        $md("h1, h2, h3").each((i, el) => {
-          const $el = $md(el)
-          const id = $el.attr("id")
-          const title = $el.text().trim()
-
-          // Extract content preview (next elements until next header)
-          let contentPreview = ""
-          let $next = $el.next()
-          let charCount = 0
-          const MAX_PREVIEW = 120
-
-          while ($next.length && !$next.is("h1, h2, h3") && charCount < MAX_PREVIEW) {
-            const text = $next.text().trim()
-            if (text) {
-              contentPreview += text + " "
-              charCount += text.length
-            }
-            $next = $next.next()
-          }
-
-          if (id) {
-            sections.push({
-              id,
-              title: title || `Heading ${i + 1}`,
-              preview:
-                contentPreview.trim().substring(0, MAX_PREVIEW) +
-                (charCount >= MAX_PREVIEW ? "..." : ""),
-            })
-          }
-        })
-      }
+      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback) has been disabled per request.
 
       setAvailableSections(sections)
 
@@ -437,10 +413,14 @@ const TextEditorSidebar = ({
   }, [editorContent])
 
   const handleSectionTask = async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!sectionToolState.sectionId) return message.error("Please select a section")
-    if (sectionToolState.task === "custom" && !sectionToolState.instructions.trim()) {
-      return message.error("Please enter instructions for custom task")
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!sectionToolState.sectionId) return toast.error("Please select a section")
+    if (sectionToolState.task === "promptChanges" && !sectionToolState.instructions.trim()) {
+      return toast.error("Please enter instructions for custom task")
     }
 
     setIsProcessingSection(true)
@@ -452,67 +432,169 @@ const TextEditorSidebar = ({
       }
 
       // API Call
-      const response = await axios.post(
-        `http://localhost:8000/api/v1/blogs/${blog._id}/sectionTask`,
-        payload
-      )
+      const response = await axiosInstance.post(`/blogs/${blog._id}/sectionTask`, payload)
 
-      if (response.data && response.data.content) {
-        // Assume API returns the new HTML content for the section
-        // We need to replace the OLD section content with New content
-        // We use Cheerio on the current editorContent to find the target section and replace it
+      if (response.data && (response.data.content || response.data.markdown)) {
+        let newFullContent = editorContent
+        let originalSectionContent = ""
+        let newSectionContent = response.data.markdown || response.data.content || ""
 
-        const $ = Cheerio.load(editorContent)
-        const $section = $(`#${sectionToolState.sectionId}`)
+        // Helper to normalize slugs similar to how TipTap/Marked does
+        const getSlug = text =>
+          text
+            .toLowerCase()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "")
 
-        if ($section.length) {
-          // Get original outerHTML for replacement reference (if using handleReplace)
-          // But strict replace might be hard if formating changed slightly.
-          // Better to replace in the Cheerio, get full HTML, then setEditorContent
+        const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
+        turndownService.keep([
+          "p",
+          "div",
+          "iframe",
+          "table",
+          "tr",
+          "th",
+          "td",
+          "figure",
+          "figcaption",
+          "section",
+          "article",
+        ])
 
-          // Check if response.data.content is full section HTML or just inner content
-          // Assuming it returns inner content or we replace inner content based on logic
-          // The prompt example implies "sending data section wise", response likely updates that section.
+        // STRATEGY 1: DOMParser (HTML Content)
+        // Only works if editorContent contains actual HTML tags with IDs
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(editorContent, "text/html")
+        const sectionEl = doc.getElementById(sectionToolState.sectionId)
 
-          // If the response is the new HTML for the SECTION content (inner):
-          // $section.find('.section-content').html(response.data.content)
+        if (sectionEl) {
+          // Found explicit HTML section
+          originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
 
-          // However, to be safe, let's look at TextEditor.jsx structure:
-          // <section ...><div class="section-wrapper"> ... <div class="section-content">CONTENT</div> ... </div></section>
+          // Special handling for the Meta/Overview section to preserve structure
+          if (sectionToolState.sectionId === "blog-meta") {
+            const titleEl = sectionEl.querySelector(".blog-title")
+            const descEl = sectionEl.querySelector(".blog-description")
 
-          // If the backend returns just the text/content without wrappers, we should inject it into .section-content
-          // If the backend returns the whole section HTML, we replace the section.
+            // Try to split response content into title and description if it contains both
+            // Usually AI returns description, but sometimes it includes the title
+            if (response.data.content) {
+              const resDoc = parser.parseFromString(response.data.content, "text/html")
+              const resTitle = resDoc.querySelector("h1, h2, h3")
+              const resParas = Array.from(resDoc.querySelectorAll("p"))
 
-          // Strategy: Replace .section-content contents.
-          const $contentDiv = $section.find(".section-content")
-          if ($contentDiv.length) {
-            $contentDiv.html(response.data.content)
+              if (resTitle && titleEl) {
+                titleEl.textContent = resTitle.textContent
+              }
+              if (resParas.length > 0 && descEl) {
+                descEl.innerHTML = resParas[0].innerHTML
+              } else if (descEl) {
+                descEl.innerHTML = response.data.content
+              }
+            }
           } else {
-            // Fallback: append or replace html
-            $section.html(response.data.content)
+            const contentDiv = sectionEl.querySelector(".section-content")
+            if (contentDiv) {
+              contentDiv.innerHTML = response.data.content
+            } else {
+              // If .section-content wrapper is missing, preserve headers and wrap/replace content
+              const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
+              const headerHTML = headings.map(h => h.outerHTML).join("")
+              
+              // Only prepend headers if they aren't already in the AI response
+              const hasHeaderInResponse = /<h[1-6]/.test(response.data.content)
+              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + response.data.content
+            }
           }
 
-          const newFullHtml = $.html()
+          // Convert modified HTML back to Markdown to match editor format
+          const modifiedHtml = doc.body.innerHTML
+          newFullContent = turndownService.turndown(modifiedHtml)
 
-          // If handleReplace is available and we want to be fancy, we use it.
-          // But explicit setEditorContent is safer here as we reconstructed the whole DOM.
-          setEditorContent(newFullHtml) // This updates parent
-
-          message.success("Section updated successfully!")
-
-          // Clear instructions if custom
-          if (sectionToolState.task === "custom") {
-            setSectionToolState(prev => ({ ...prev, instructions: "" }))
+          // If we got HTML back, clean it up for comparison too
+          if (response.data.content && !response.data.markdown) {
+            newSectionContent = turndownService.turndown(response.data.content)
           }
         } else {
-          message.error("Section not found in current content")
+          // STRATEGY 2: Markdown Content (Fallback)
+          // Parse markdown line-by-line to find the header matching the sectionId
+          // Then replace content until next header
+          const lines = editorContent.split("\n")
+          let startLine = -1
+          let endLine = -1
+          let foundHeaderLevel = 0
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            // Match Headers: # Title, ## Title, etc.
+            const match = line.match(/^(#{1,6})\s+(.*)$/)
+            if (match) {
+              const level = match[1].length
+              const text = match[2].trim()
+              const slug = getSlug(text)
+
+              if (slug === sectionToolState.sectionId) {
+                // Found our start header
+                startLine = i
+                foundHeaderLevel = level
+              } else if (startLine !== -1) {
+                // We are inside the section, and found another header
+                // If this header is same level or higher (smaller number), our section ends here.
+                // Actually, strictly speaking, any header ends the previous section block in simple markdown structure
+                endLine = i
+                break
+              }
+            }
+          }
+
+          if (startLine !== -1) {
+            // Found the section
+            if (endLine === -1) endLine = lines.length
+
+            originalSectionContent = lines.slice(startLine, endLine).join("\n")
+
+            // Construct new content:
+            // 1. Everything before the header (lines 0 to startLine-1)
+            // 2. The Header itself (lines[startLine]) - we keep the header!
+            // 3. The NEW Content (from API markdown or content)
+            // 4. Everything after (lines[endLine] to end)
+
+            const before = lines.slice(0, startLine + 1).join("\n") // Include header line
+            const after = lines.slice(endLine).join("\n")
+
+            newFullContent = `${before}\n\n${newSectionContent}\n\n${after}`
+
+            // For the diff display, let's include the header in the 'new' version too if possible
+            // or just keep it consistent with originalSectionContent
+            newSectionContent = `${lines[startLine]}\n\n${newSectionContent}`
+          } else {
+            toast.error(
+              "Could not locate section in current content. Ensure section headers are not modified."
+            )
+            setIsProcessingSection(false)
+            return
+          }
+        }
+
+        let htmlContent = response.data.previousContent
+        const doc1 = parser.parseFromString(htmlContent, "text/html")
+        const oldContentDiv = doc1.querySelector(".section-content")
+        htmlContent = oldContentDiv ? oldContentDiv.innerHTML : htmlContent
+
+        // Open Diff Modal instead of instant replace
+        setDiffData({ old: htmlContent, new: response.data.content, full: newFullContent })
+        setShowDiff(true)
+
+        // Clear instructions if custom
+        if (sectionToolState.task === "promptChanges") {
+          setSectionToolState(prev => ({ ...prev, instructions: "" }))
         }
       } else {
-        message.warning("No content returned from AI")
+        toast.warning("No content returned from AI")
       }
     } catch (error) {
       console.error("Section task failed:", error)
-      message.error(error.response?.data?.message || "Failed to process section task")
+      toast.error(error.response?.data?.message || "Failed to process section task")
     } finally {
       setIsProcessingSection(false)
     }
@@ -521,7 +603,17 @@ const TextEditorSidebar = ({
   // UI State for categories to prevent flickering or disappearing on re-renders
   const [uiCategories, setUiCategories] = useState([])
 
-  // Sync UI categories with Redux, preserving data during re-renders
+  const { user } = useAuthStore()
+  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
+
+  const { integrations, categories, fetchIntegrations } = useIntegrationStore()
+  const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
+  const { setBlogPrompt } = useBlogStore()
+
+  // Sync UI categories with Store, preserving data during re-renders
   useEffect(() => {
     if (categories?.length > 0) {
       setUiCategories(categories)
@@ -533,20 +625,14 @@ const TextEditorSidebar = ({
     setUiCategories([])
   }, [selectedIntegration?.platform])
 
-  const user = useSelector(state => state.auth.user)
-  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
-  const { handlePopup } = useConfirmPopup()
-  const { loading: isAnalyzingCompetitive } = useSelector(state => state.analysis)
-  const { analysisResult } = useSelector(state => state.analysis)
   const result = analysisResult?.[blog?._id]
 
   const hasAnyIntegration =
     integrations?.integrations && Object.keys(integrations.integrations).length > 0
   const isDisabled = isPosting || !hasAnyIntegration
   const isPro = ["free", "basic"].includes(userPlan)
+
+  console.log(isPro)
 
   const PLATFORM_LABELS = {
     WORDPRESS: "WordPress",
@@ -627,6 +713,11 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
           addOutBoundLinks: blog.options?.addOutBoundLinks || false,
           performKeywordResearch: blog.options?.performKeywordResearch || false,
+          humanisation: blog.humanisation || blog.options?.humanisation || false,
+          extendedThinking: blog.extendedThinking || blog.options?.extendedThinking || false,
+          deepResearch: blog.deepResearch || blog.options?.deepResearch || false,
+          easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
+          embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
         },
         isCheckedQuick: blog.isCheckedQuick || false,
         wordpressPostStatus: blog.options?.automaticPosting || false,
@@ -637,8 +728,8 @@ const TextEditorSidebar = ({
   }, [blog])
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
+    fetchIntegrations()
+  }, [fetchIntegrations])
 
   // Initialize enhancement options from blog
   useEffect(() => {
@@ -651,24 +742,36 @@ const TextEditorSidebar = ({
   const getWordCount = text => {
     if (!text) return 0
 
-    // Plain text case
-    if (!/<article/i.test(text)) {
+    // Plain text case (heuristic check for HTML tags)
+    if (!/<[a-z][\s\S]*>/i.test(text)) {
       return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
     }
 
-    const $ = Cheerio.load(text)
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(text, "text/html")
 
-    // Remove non-visible / non-content elements
-    $(
-      "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-    ).remove()
+      // Remove non-visible / non-content elements
+      const elementsToRemove = doc.querySelectorAll(
+        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
+      )
+      elementsToRemove.forEach(el => el.remove())
 
-    // If article exists, scope to it; otherwise use body/root
-    const content = $("article").length ? $("article") : $.root()
+      // If article exists, use it; otherwise use body
+      const content = doc.querySelector("article") || doc.body
+      const strippedText = content.textContent || ""
 
-    const strippedText = content.text()
-
-    return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+    } catch (e) {
+      console.error("Error parsing HTML for word count:", e)
+      // Fallback to simple regex strip
+      return text
+        .replace(/<[^>]*>/g, " ")
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .filter(Boolean).length
+    }
   }
 
   // Update regen form field
@@ -708,7 +811,11 @@ const TextEditorSidebar = ({
 
   // Handlers
   const handleRegenerate = async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    if (!blog?._id) return toast.error("Blog ID missing")
 
     // Open the regenerate modal
     setIsRegenerateModalOpen(true)
@@ -745,8 +852,11 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
           addOutBoundLinks: regenForm.options.addOutBoundLinks,
           performKeywordResearch: regenForm.options.performKeywordResearch,
-          easyToUnderstand: regenForm.easyToUnderstand,
-          embedYouTubeVideos: regenForm.embedYouTubeVideos,
+          easyToUnderstand: regenForm.options.easyToUnderstand,
+          embedYouTubeVideos: regenForm.options.embedYouTubeVideos,
+          humanisation: regenForm.options.humanisation,
+          extendedThinking: regenForm.options.extendedThinking,
+          deepResearch: regenForm.options.deepResearch,
         },
       }
 
@@ -800,45 +910,43 @@ const TextEditorSidebar = ({
       await retryBlogById(blog._id, validatedPayload)
 
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      message.success("Blog regeneration started!")
+      toast.success("Blog regeneration started!")
       setIsRegenerateModalOpen(false)
       navigate("/blogs")
     } catch (error) {
-      message.error(error.message || "Failed to regenerate")
+      toast.error(error.message || "Failed to regenerate")
     } finally {
       setIsRegenerating(false)
     }
   }
 
-  const handleAnalyzing = useCallback(() => {
+  const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")
-    handlePopup({
-      title: "SEO Analysis",
-      description: (
-        <>
-          Run competitive analysis? <span className="font-bold">10 credits</span>
-        </>
-      ),
-      confirmText: "Run",
-      onConfirm: async () => {
-        try {
-          await dispatch(
-            fetchCompetitiveAnalysisThunk({
-              blogId: blog._id,
-              title: blog.title,
-              content: blog.content,
-              keywords: keywords || blog?.focusKeywords || [],
-            })
-          ).unwrap()
-          setActivePanel("seo")
-        } catch {
-          message.error("Analysis failed")
-        }
-      },
-    })
-  }, [isPro, navigate, handlePopup, dispatch, blog, keywords])
+
+    const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
+    setLoading(true)
+    try {
+      const result = await runCompetitiveAnalysis({
+        blogId: blog._id,
+        title: blog.title,
+        content: blog.content,
+        keywords: keywords || blog?.focusKeywords || [],
+      })
+      setAnalysisResult(blog._id, result)
+      setActivePanel("seo")
+    } catch (err) {
+      setError(err.message)
+      toast.error("Analysis failed")
+    } finally {
+      setLoading(false)
+    }
+  }, [isPro, navigate, blog, keywords])
 
   const handleMetadataGen = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (isPro) return navigate("/pricing")
     handlePopup({
       title: "Generate Metadata",
@@ -850,24 +958,22 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsGeneratingMetadata(true)
         try {
-          const result = await dispatch(
-            generateMetadataThunk({
-              content: editorContent,
-              keywords: keywords || [],
-              focusKeywords: blog?.focusKeywords || [],
-            })
-          ).unwrap()
+          const result = await generateMetadata({
+            content: editorContent,
+            keywords: keywords || [],
+            focusKeywords: blog?.focusKeywords || [],
+          })
           // Show the generated metadata in accept/reject modal
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
         } catch {
-          message.error("Generation failed")
+          toast.error("Generation failed")
         } finally {
           setIsGeneratingMetadata(false)
         }
       },
     })
-  }, [isPro, navigate, handlePopup, dispatch, editorContent, keywords, blog])
+  }, [isPro, navigate, handlePopup, editorContent, keywords, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {
@@ -878,7 +984,7 @@ const TextEditorSidebar = ({
       })
       setGeneratedMetadataModal(false)
       setGeneratedMetadata(null)
-      message.success("Metadata applied! Click Save to keep changes.")
+      toast.success("Metadata applied! Click Save to keep changes.")
     }
   }, [generatedMetadata])
 
@@ -886,7 +992,7 @@ const TextEditorSidebar = ({
   const handleRejectMetadata = useCallback(() => {
     setGeneratedMetadataModal(false)
     setGeneratedMetadata(null)
-    message.info("Metadata discarded")
+    toast.info("Metadata discarded")
   }, [])
 
   // Enhancement option toggle handler
@@ -897,21 +1003,29 @@ const TextEditorSidebar = ({
 
   // Save enhancement options
   const handleSaveEnhancement = useCallback(async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     setIsSavingEnhancement(true)
     try {
       await handleSubmit({ options: enhancementOptions })
       setHasEnhancementChanges(false)
-      message.success("Enhancement settings saved!")
+      toast.success("Enhancement settings saved!")
     } catch {
-      message.error("Failed to save settings")
+      toast.error("Failed to save settings")
     } finally {
       setIsSavingEnhancement(false)
     }
   }, [enhancementOptions, handleSubmit])
 
   const handleCustomPromptBlog = useCallback(async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (isPro) return navigate("/pricing")
-    if (!customPrompt.trim()) return message.error("Enter a prompt")
+    if (!customPrompt.trim()) return toast.error("Enter a prompt")
     handlePopup({
       title: "Apply Custom Prompt",
       description: (
@@ -922,15 +1036,14 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsHumanizing(true)
         try {
-          const result = await dispatch(
-            fetchBlogPrompt({ id: blog._id, prompt: customPrompt })
-          ).unwrap()
-          setHumanizedContent(result.data)
+          const { getBlogPrompt } = await import("@api/blogApi")
+          const res = await getBlogPrompt(blog._id, customPrompt)
+          setHumanizedContent(res.data)
           setIsHumanizeModalOpen(true)
           setCustomPrompt("")
-          message.success("Prompt applied!")
+          toast.success("Prompt applied!")
         } catch {
-          message.error("Failed")
+          toast.error("Failed")
         } finally {
           setIsHumanizing(false)
         }
@@ -940,7 +1053,6 @@ const TextEditorSidebar = ({
     isPro,
     navigate,
     handlePopup,
-    dispatch,
     blog,
     customPrompt,
     setHumanizedContent,
@@ -949,24 +1061,25 @@ const TextEditorSidebar = ({
   ])
 
   const handleMetadataSave = useCallback(async () => {
-    if (!metadata.title && !metadata.description) return message.error("Enter metadata")
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    if (!metadata.title && !metadata.description) return toast.error("Enter metadata")
     try {
       await handleSubmit({ metadata })
-      message.success("Saved!")
+      toast.success("Saved!")
     } catch {
-      message.error("Save failed")
+      toast.error("Save failed")
     }
   }, [handleSubmit, metadata])
 
   const handlePdfExport = useCallback(async () => {
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport ? "Preparing PDF with images..." : "Generating PDF...",
-        key: "pdf-export",
-      })
+      toast.loading("Exporting PDF...", { id: "pdf-export" })
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "pdf",
@@ -990,14 +1103,18 @@ const TextEditorSidebar = ({
       const successMsg = includeImagesInExport
         ? "PDF with images downloaded as ZIP!"
         : "PDF downloaded successfully!"
-      message.success({ content: successMsg, key: "pdf-export" })
+      toast.success(successMsg, { id: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
-      message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
+      toast.error(error.message || "Failed to export PDF", { id: "pdf-export" })
     }
   }, [blog, editorContent, includeImagesInExport])
 
   const handleKeywordRewrite = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     handlePopup({
       title: "Rewrite Keywords",
       description: "Rewrite content with keywords? (3 times max)",
@@ -1019,8 +1136,12 @@ const TextEditorSidebar = ({
   }
 
   const handleRepostSubmit = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     if (!repostSettings.platform || !repostSettings.category) {
-      return message.error("Platform and Category are required")
+      return toast.error("Platform and Category are required")
     }
 
     try {
@@ -1079,11 +1200,11 @@ const TextEditorSidebar = ({
   // Auto-fetch categories when integration changes
   useEffect(() => {
     if (selectedIntegration?.platform) {
-      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase()))
-        .unwrap()
-        .catch(() => {})
+      if (fetchCategories) {
+        fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
+      }
     }
-  }, [dispatch, selectedIntegration?.platform])
+  }, [fetchCategories, selectedIntegration?.platform])
 
   // Initialize posting form based on Blog Data & History
   useEffect(() => {
@@ -1183,6 +1304,10 @@ const TextEditorSidebar = ({
   ])
 
   const handlePostClick = useCallback(() => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     // 1. Plan Check
     if (userPlan === "free") {
       return handlePopup({
@@ -1210,7 +1335,7 @@ const TextEditorSidebar = ({
     setErrors(newErrors)
 
     if (!isValid) {
-      message.error("Please fill in required fields")
+      toast.error("Please fill in required fields")
       return
     }
 
@@ -1238,19 +1363,8 @@ const TextEditorSidebar = ({
           (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
             error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
         ) {
-          message.error({
-            content: (
-              <span>
-                WordPress API has changed. Kindly update your WordPress credentials.
-                <span
-                  className="underline cursor-pointer ml-1 font-bold"
-                  onClick={() => navigate("/integration")}
-                >
-                  Update Now
-                </span>
-              </span>
-            ),
-            duration: 5,
+          toast.error("WordPress API has changed. Kindly update your WordPress credentials.", {
+            duration: 5000,
           })
         }
       }
@@ -1267,7 +1381,7 @@ const TextEditorSidebar = ({
             await handleSubmit({ metadata })
             executePost()
           } catch (error) {
-            message.error("Failed to save changes")
+            toast.error("Failed to save changes")
           }
         },
         onCancel: e => {
@@ -1326,11 +1440,6 @@ const TextEditorSidebar = ({
     const brand = isBrandPopulated ? blog.brandId : {}
 
     const nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
-    const describeBrand =
-      brand.describeBrand || blog.describeBrand || brand.description || blog.description
-    const persona = brand.persona || blog.persona
-    const postLink = brand.postLink || blog.postLink || brand.url
-    const brandKeywords = brand.keywords || (isBrandPopulated ? [] : []) // Don't fall back to blog keywords here
 
     if (!blog?.brandId && !blog?.nameOfVoice) {
       return (
@@ -1344,8 +1453,18 @@ const TextEditorSidebar = ({
             across your content.
           </p>
           <button
-            onClick={() => setIsRegenerateModalOpen(true)}
-            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all"
+            onClick={() => {
+              if (blog?.isArchived) {
+                toast.error("This blog is archived. Please restore it to perform this action.")
+                return
+              }
+              setIsRegenerateModalOpen(true)
+            }}
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              blog?.isArchived
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : "bg-gray-900 text-white hover:bg-black"
+            }`}
           >
             Regenerate with Brand
           </button>
@@ -1356,19 +1475,29 @@ const TextEditorSidebar = ({
     return (
       <div className="flex flex-col h-full bg-white">
         {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
-              <Crown className="w-5 h-5 text-white" />
+        <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
+                <Crown className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 line-clamp-1">
+                  {brand.nameOfVoice || brand.name || "Brand Voice"}
+                </h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                  Brand Identity
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-gray-900 line-clamp-1">
-                {brand.nameOfVoice || brand.name || "Brand Voice"}
-              </h3>
-              <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">
-                Authenticated Identity
-              </p>
-            </div>
+            {setIsSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1382,7 +1511,7 @@ const TextEditorSidebar = ({
                   Author Persona
                 </h4>
               </div>
-              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs text-gray-700 leading-relaxed">
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs  leading-relaxed">
                 {brand.persona}
               </div>
             </div>
@@ -1434,8 +1563,8 @@ const TextEditorSidebar = ({
 
   const renderOverviewPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-white sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
               <BarChart3 className="w-5 h-5 text-white" />
@@ -1457,9 +1586,9 @@ const TextEditorSidebar = ({
           {setIsSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -1527,11 +1656,11 @@ const TextEditorSidebar = ({
             onClick={handleAnalyzing}
             disabled={isAnalyzingCompetitive}
             className={`
-              w-full py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-sm
+              w-full py-3 px-4 rounded-lg text-xs font-bold transition-all shadow-sm
               ${
                 isAnalyzingCompetitive
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+                  : "bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white"
               }
             `}
           >
@@ -1553,16 +1682,14 @@ const TextEditorSidebar = ({
       })
     }
 
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport
-          ? "Preparing Markdown with images..."
-          : "Generating Markdown...",
-        key: "md-export",
-      })
+      toast.loading(
+        includeImagesInExport ? "Preparing Markdown with images..." : "Generating Markdown...",
+        { id: "md-export" }
+      )
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "markdown",
@@ -1586,10 +1713,10 @@ const TextEditorSidebar = ({
       const successMsg = includeImagesInExport
         ? "Markdown with images downloaded as ZIP!"
         : "Markdown downloaded successfully!"
-      message.success({ content: successMsg, key: "md-export" })
+      toast.success(successMsg, { id: "md-export" })
     } catch (error) {
       console.error("Markdown export error:", error)
-      message.error({ content: error.message || "Failed to export Markdown", key: "md-export" })
+      toast.error(error.message || "Failed to export Markdown", { id: "md-export" })
     }
   }
 
@@ -1603,14 +1730,14 @@ const TextEditorSidebar = ({
       })
     }
 
-    if (!blog?._id) return message.error("Blog ID missing")
-    if (!editorContent?.trim()) return message.error("No content to export")
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      message.loading({
-        content: includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
-        key: "html-export",
-      })
+      toast.loading(
+        includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
+        { id: "html-export" }
+      )
 
       const { data: blob, filename } = await exportBlog(blog._id, {
         type: "html",
@@ -1634,42 +1761,49 @@ const TextEditorSidebar = ({
       const successMsg = includeImagesInExport
         ? "HTML with images downloaded as ZIP!"
         : "HTML downloaded successfully!"
-      message.success({ content: successMsg, key: "html-export" })
+      toast.success(successMsg, { id: "html-export" })
     } catch (error) {
       console.error("HTML export error:", error)
-      message.error({ content: error.message || "Failed to export HTML", key: "html-export" })
+      toast.error(error.message || "Failed to export HTML", { id: "html-export" })
     }
   }
 
   const renderSeoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-100">
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">SEO & Export</h3>
+                <h3 className="font-bold text-gray-900">SEO & Export</h3>
                 {isPro && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    <Crown className="w-4 h-4" />
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
+                    PRO
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 font-medium">
-                Metadata, analysis & export options
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Metadata & Assets
               </p>
             </div>
           </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* SEO Metadata Section */}
-        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-600" />
@@ -1677,36 +1811,47 @@ const TextEditorSidebar = ({
             </span>
             <button
               onClick={handleMetadataGen}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+              disabled={blog?.isArchived}
+              className={`text-xs font-medium flex items-center gap-1 ${
+                blog?.isArchived
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-blue-600 hover:text-blue-700 hover:underline"
+              }`}
             >
               <Sparkles className="w-3 h-3" /> Generate
             </button>
           </div>
           <div className="space-y-3">
-            <Input
+            <input
+              type="text"
               value={metadata.title}
               onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
-              size="small"
+              className="input input-bordered input-sm w-full"
             />
-            <TextArea
+            <textarea
               value={metadata.description}
               onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              className="!resize-none"
+              className="textarea textarea-bordered w-full text-sm resize-none"
             />
           </div>
           <button
             onClick={handleMetadataSave}
-            className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+            disabled={blog?.isArchived}
+            className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
+              blog?.isArchived
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+            }`}
           >
             Save Metadata
           </button>
         </div>
 
         {/* Export Section */}
-        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
             <Download className="w-4 h-4 text-green-600" />
             <span className="text-sm font-semibold text-gray-900">Export Blog</span>
@@ -1731,17 +1876,18 @@ const TextEditorSidebar = ({
               />
               <span
                 className={`text-sm font-medium transition-colors ${
-                  includeImagesInExport ? "text-blue-900" : "text-gray-700"
+                  includeImagesInExport ? "text-blue-900" : ""
                 }`}
               >
                 Include Images
               </span>
             </div>
-            <Switch
+            <input
+              type="checkbox"
+              className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
-              onChange={setIncludeImagesInExport}
+              onChange={e => setIncludeImagesInExport(e.target.checked)}
               disabled={userPlan === "free"}
-              size="small"
             />
           </div>
           {includeImagesInExport && userPlan !== "free" && (
@@ -1774,7 +1920,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-blue-50 to-indigo-50
+            bg-linear-to-br from-blue-50 to-indigo-50
             hover:from-blue-100 hover:to-indigo-100
             text-blue-700 border-blue-200
             hover:border-blue-300 hover:shadow-lg
@@ -1805,7 +1951,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-purple-50 to-pink-50
+            bg-linear-to-br from-purple-50 to-pink-50
             hover:from-purple-100 hover:to-pink-100
             text-purple-700 border-purple-200
             hover:border-purple-300 hover:shadow-lg
@@ -1836,7 +1982,7 @@ const TextEditorSidebar = ({
         userPlan === "free"
           ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
           : `
-            bg-gradient-to-br from-green-50 to-emerald-50
+            bg-linear-to-br from-green-50 to-emerald-50
             hover:from-green-100 hover:to-emerald-100
             text-green-700 border-green-200
             hover:border-green-300 hover:shadow-lg
@@ -1868,48 +2014,43 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Detailed Analysis Breakdown */}
             {result.insights?.analysis && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart className="w-4 h-4 text-purple-600" />
                   <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
                 </div>
-                <Collapse
-                  ghost
-                  className="bg-transparent"
-                  items={Object.entries(result.insights.analysis).map(([category, data]) => ({
-                    key: category,
-                    label: (
-                      <div className="flex items-center justify-between w-full pr-2">
+                <div className="space-y-2">
+                  {Object.entries(result.insights.analysis).map(([category, data]) => (
+                    <div
+                      key={category}
+                      className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
+                    >
+                      <input type="checkbox" className="peer" />
+                      <div className="collapse-title flex items-center justify-between pr-8">
                         <span className="font-medium text-gray-800 text-sm">
                           {category.replace(/([A-Z])/g, " $1").trim()}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-indigo-600">
-                            {data.score}/{data.maxScore}
-                          </span>
-                        </div>
+                        <span className="text-xs font-bold text-indigo-600">
+                          {data.score}/{data.maxScore}
+                        </span>
                       </div>
-                    ),
-                    children: (
-                      <div className="">
+                      <div className="collapse-content">
                         <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
                           {data.feedback}
                         </p>
                       </div>
-                    ),
-                  }))}
-                />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Actionable Suggestions */}
             {result.insights?.suggestions && result.insights.suggestions.length > 0 && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Lightbulb className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-semibold text-gray-900">
-                    Actionable Suggestions
-                  </span>
+                  <span className="text-sm font-semibold text-gray-900">Suggestions</span>
                   <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                     {result.insights.suggestions.length}
                   </span>
@@ -1923,7 +2064,7 @@ const TextEditorSidebar = ({
                       transition={{ delay: idx * 0.05 }}
                       className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
                     >
-                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
                       </div>
                       <p className="text-xs text-amber-900 leading-relaxed flex-1">{suggestion}</p>
@@ -1935,7 +2076,7 @@ const TextEditorSidebar = ({
 
             {/* Competitors Analysis */}
             {result.competitors && result.competitors.length > 0 && (
-              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="w-4 h-4 text-blue-600" />
                   <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
@@ -1952,143 +2093,52 @@ const TextEditorSidebar = ({
     </div>
   )
 
-  const renderSuggestionsPanel = () => {
-    // Handle applying a single suggestion
-    const handleApplySuggestion = (index, suggestion) => {
-      if (handleReplace && suggestion) {
-        // handleReplace in MainEditorPage already removes the suggestion from the list
-        handleReplace(suggestion.original, suggestion.change)
-        message.success("Change applied successfully!")
-      }
-    }
-
-    // Handle rejecting a suggestion
-    const handleRejectSuggestion = index => {
-      setProofreadingResults(prev => prev.filter((_, i) => i !== index))
-    }
-
-    // Handle applying all suggestions
-    const handleApplyAll = () => {
-      if (proofreadingResults?.length > 0) {
-        proofreadingResults.forEach(s => handleReplace(s.original, s.change))
-        setProofreadingResults([])
-        message.success(`Applied ${proofreadingResults.length} changes!`)
-      }
-    }
-
-    // Add original index to each suggestion for tracking
-    const suggestionsWithIndex =
-      proofreadingResults?.map((s, i) => ({ ...s, originalIndex: i })) || []
-
-    return (
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
-                <Lightbulb className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-gray-900">AI Proofreading</h3>
-                  {isPro && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                      <Crown className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">Grammar & style suggestions</p>
-              </div>
-            </div>
-            {proofreadingResults?.length > 0 && (
-              <span className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full">
-                {proofreadingResults.length}
-              </span>
-            )}
-          </div>
-
-          {proofreadingResults?.length > 0 && (
-            <button
-              onClick={handleApplyAll}
-              className="w-full mt-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Apply All {proofreadingResults.length} Changes
-            </button>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-          {isAnalyzingProofreading ? (
-            <div className="text-center py-16">
-              <div className="relative w-16 h-16 mx-auto mb-4">
-                <div className="absolute inset-0 border-4 border-blue-200 rounded-full" />
-                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              </div>
-              <p className="text-sm font-medium text-gray-700 mb-1">Analyzing your content...</p>
-              <p className="text-xs text-gray-500">This may take a moment</p>
-            </div>
-          ) : suggestionsWithIndex.length > 0 ? (
-            <AnimatePresence mode="popLayout">
-              {suggestionsWithIndex.map((suggestion, i) => (
-                <ProofreadingSuggestion
-                  key={`${suggestion.original}-${i}`}
-                  suggestion={suggestion}
-                  index={suggestion.originalIndex}
-                  onApply={handleApplySuggestion}
-                  onReject={handleRejectSuggestion}
-                />
-              ))}
-            </AnimatePresence>
-          ) : (
-            <div className="text-center py-16 h-[80vh] flex flex-col items-center justify-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
-                <Lightbulb className="w-10 h-10 text-gray-400" />
-              </div>
-              <h4 className="font-semibold text-gray-700 mb-1">No suggestions yet</h4>
-              <p className="text-xs text-gray-500 mb-4 max-w-[200px] mx-auto">
-                Run AI proofreading to get grammar and style suggestions
-              </p>
-              <button
-                onClick={handleProofreading}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
-              >
-                Run AI Proofreading
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
+  // Suggestions panel removed
   const renderBlogInfoPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
-            <Info className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-orange-600 rounded-xl shadow-lg shadow-slate-100">
+              <Info className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Blog Content</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Technical Data
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Blog Information</h3>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">
-              Metadata and settings used for this blog
-            </p>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
         {/* Blog Slug */}
-        <div className="p-3 bg-white border rounded-lg">
+        <div className="p-3 bg-white border border-gray-300 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-gray-500">Blog Slug</div>
             {!hasPublishedLinks && (
               <button
-                onClick={() => setIsEditingSlug(!isEditingSlug)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                onClick={() => {
+                  if (blog?.isArchived) {
+                    toast.error("This blog is archived. Please restore it to perform this action.")
+                    return
+                  }
+                  setIsEditingSlug(!isEditingSlug)
+                }}
+                className={`text-xs font-semibold ${
+                  blog?.isArchived
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700"
+                }`}
               >
                 {isEditingSlug ? "Cancel" : "Edit"}
               </button>
@@ -2096,33 +2146,31 @@ const TextEditorSidebar = ({
           </div>
           {isEditingSlug && !hasPublishedLinks ? (
             <div className="space-y-2">
-              <Input
-                size="small"
+              <input
+                type="text"
                 value={blogSlug}
                 onChange={e => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
-                className="text-sm font-mono"
+                className="input input-bordered input-sm w-full text-sm font-mono"
               />
-              <Button
-                size="small"
-                type="primary"
-                block
+              <button
                 onClick={async () => {
                   if (!blogSlug.trim()) {
-                    return message.error("Slug cannot be empty")
+                    return toast.error("Slug cannot be empty")
                   }
                   try {
                     await handleSubmit({ slug: blogSlug })
                     setIsEditingSlug(false)
-                    message.success("Slug updated successfully")
+                    toast.success("Slug updated successfully")
                   } catch (error) {
                     console.error("Failed to update slug:", error)
-                    message.error("Failed to update slug")
+                    toast.error("Failed to update slug")
                   }
                 }}
+                className="btn btn-sm btn-primary w-full text-white"
               >
                 Save Slug
-              </Button>
+              </button>
             </div>
           ) : (
             <div>
@@ -2138,11 +2186,11 @@ const TextEditorSidebar = ({
 
         {/* Template & Category */}
         <div className="space-y-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Template</div>
             <div className="font-semibold text-gray-900">{blog?.template || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Category</div>
             <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
           </div>
@@ -2150,7 +2198,7 @@ const TextEditorSidebar = ({
 
         {/* Brand Information */}
         {(blog?.brandId || blog?.nameOfVoice) && (
-          <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
+          <div className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-purple-600" />
               <div className="text-xs font-bold text-purple-900 uppercase tracking-wider">
@@ -2172,7 +2220,7 @@ const TextEditorSidebar = ({
 
         {/* Tags */}
         {blog?.tags && blog.tags.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.tags.map((tag, i) => (
@@ -2190,7 +2238,7 @@ const TextEditorSidebar = ({
 
         {/* Keywords */}
         {blog?.keywords && blog.keywords.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.keywords.map((kw, i) => (
@@ -2204,7 +2252,7 @@ const TextEditorSidebar = ({
 
         {/* Focus Keywords */}
         {blog?.focusKeywords && blog.focusKeywords.length > 0 && (
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
               {blog.focusKeywords.map((kw, i) => (
@@ -2221,11 +2269,11 @@ const TextEditorSidebar = ({
 
         {/* Tone & Word Count */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Tone</div>
             <div className="font-semibold text-gray-900">{blog?.tone || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Target Length</div>
             <div className="font-semibold text-gray-900">{blog?.userDefinedLength || 0} words</div>
           </div>
@@ -2233,11 +2281,11 @@ const TextEditorSidebar = ({
 
         {/* AI Model & Image Source */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">AI Model</div>
             <div className="font-semibold text-gray-900 capitalize">{blog?.aiModel || "N/A"}</div>
           </div>
-          <div className="p-3 bg-white border rounded-lg">
+          <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Image Source</div>
             <div className="font-semibold text-gray-900 capitalize">
               {blog?.imageSource || "none"}
@@ -2302,12 +2350,27 @@ const TextEditorSidebar = ({
               { key: "costCutter", label: "Cost Cutter", value: blog?.costCutter },
               { key: "isCheckedBrand", label: "Brand Voice", value: blog?.isCheckedBrand },
               { key: "isCheckedQuick", label: "Quick Summary", value: blog?.isCheckedQuick },
+              {
+                key: "humanisation",
+                label: "Humanisation",
+                value: blog?.humanisation || blog?.options?.humanisation || false,
+              },
+              {
+                key: "extendedThinking",
+                label: "Extended Thinking",
+                value: blog?.extendedThinking || blog?.options?.extendedThinking || false,
+              },
+              {
+                key: "deepResearch",
+                label: "Deep Research",
+                value: blog?.deepResearch || blog?.options?.deepResearch || false,
+              },
             ].map((feature, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
               >
-                <span className="text-sm text-gray-700 font-medium">{feature.label}</span>
+                <span className="text-sm  font-medium">{feature.label}</span>
                 <div
                   className={`
                     flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border
@@ -2340,15 +2403,27 @@ const TextEditorSidebar = ({
 
   const renderSectionToolsPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
-            <Wand2 className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
+              <Wand2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Section Tools</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                AI Modification
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">AI Section Tools</h3>
-            <p className="text-xs text-blue-600 font-medium">Edit specific sections</p>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -2386,6 +2461,12 @@ const TextEditorSidebar = ({
                 <div
                   key={section.id}
                   onClick={() => {
+                    if (blog?.isArchived) {
+                      toast.error(
+                        "This blog is archived. Please restore it to perform this action."
+                      )
+                      return
+                    }
                     setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
                     // Dispatch highlight event
                     window.dispatchEvent(
@@ -2397,7 +2478,9 @@ const TextEditorSidebar = ({
                             ${
                               sectionToolState.sectionId === section.id
                                 ? "bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200"
-                                : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
+                                : blog?.isArchived
+                                  ? "bg-gray-50 border-gray-100 cursor-not-allowed"
+                                  : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
                             }
                         `}
                 >
@@ -2449,7 +2532,7 @@ const TextEditorSidebar = ({
                 desc: "Fix grammar and spelling",
               },
               {
-                id: "custom",
+                id: "promptChanges",
                 label: "Custom Prompt",
                 icon: MessageSquare,
                 desc: "Give your own instructions",
@@ -2469,7 +2552,7 @@ const TextEditorSidebar = ({
               >
                 <div
                   className={`
-                            p-2 rounded-full 
+                            p-2 rounded-full
                             ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
                         `}
                 >
@@ -2477,7 +2560,7 @@ const TextEditorSidebar = ({
                 </div>
                 <div>
                   <div
-                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : "text-gray-700"}`}
+                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
                   >
                     {task.label}
                   </div>
@@ -2494,7 +2577,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Custom Instructions */}
-        {sectionToolState.task === "custom" && sectionToolState.sectionId && (
+        {sectionToolState.task === "promptChanges" && sectionToolState.sectionId && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -2503,39 +2586,41 @@ const TextEditorSidebar = ({
             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
               Your Instructions
             </label>
-            <TextArea
+            <textarea
               placeholder="E.g., Make it more professional and add 2 examples..."
               rows={4}
               value={sectionToolState.instructions}
               onChange={e =>
                 setSectionToolState(prev => ({ ...prev, instructions: e.target.value }))
               }
-              className="!bg-gray-50 !border-gray-200 !text-sm focus:!bg-white"
+              className="textarea textarea-bordered w-full text-sm bg-gray-50 focus:bg-white"
             />
           </motion.div>
         )}
 
         {/* Action Button */}
         <div className="pt-2">
-          <Button
-            type="primary"
-            icon={
-              isProcessingSection ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )
-            }
+          <button
             onClick={handleSectionTask}
             disabled={
               isProcessingSection ||
+              blog?.isArchived ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
-            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-blue-600 border-none shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl font-semibold text-sm"
+            className={`btn btn-primary w-full shadow-lg transition-all border-none rounded-xl ${
+              blog?.isArchived
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : "hover:shadow-xl hover:scale-[1.02] bg-linear-to-r from-indigo-600 to-blue-600"
+            } ${isProcessingSection ? "opacity-100! text-white" : ""}`}
           >
+            {isProcessingSection ? (
+              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
             {isProcessingSection ? "Processing..." : "Run AI Task"}
-          </Button>
+          </button>
           <p className="text-[10px] text-center text-gray-400 mt-2">
             This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
             directly.
@@ -2547,14 +2632,27 @@ const TextEditorSidebar = ({
 
   const renderPostingPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
-            <Send className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-green-600 rounded-xl shadow-lg shadow-green-100">
+              <Send className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">Publishing</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Distribution & History
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Publishing</h3>
-          </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -2583,7 +2681,7 @@ const TextEditorSidebar = ({
                   className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold text-gray-700">
+                    <span className="text-[12px] font-bold ">
                       {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
                         posting.integrationType ||
                         posting.platform}
@@ -2595,7 +2693,7 @@ const TextEditorSidebar = ({
                   <div className="space-y-1 mb-2">
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
+                      <span className="text-[12px] font-medium  text-right truncate max-w-[120px]">
                         {posting.metadata?.category || posting.category || blog.category}
                       </span>
                     </div>
@@ -2610,21 +2708,32 @@ const TextEditorSidebar = ({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tooltip title="Edit settings and repost">
-                      <Button
-                        size="small"
-                        className="flex items-center justify-center p-0 w-8 h-8 rounded-lg border-gray-200 hover:text-blue-600 hover:border-blue-200"
-                        onClick={() => openRepostModal(posting)}
-                        disabled={isPosting}
+                    <div className="tooltip" data-tip="Edit settings and repost">
+                      <button
+                        className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => {
+                          if (blog?.isArchived) {
+                            toast.error(
+                              "This blog is archived. Please restore it to perform this action."
+                            )
+                            return
+                          }
+                          openRepostModal(posting)
+                        }}
+                        disabled={isPosting || blog?.isArchived}
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                    </Tooltip>
-                    <Button
-                      size="small"
-                      block
-                      className="text-[12px] font-semibold h-8"
+                      </button>
+                    </div>
+                    <button
+                      className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
                       onClick={() => {
+                        if (blog?.isArchived) {
+                          toast.error(
+                            "This blog is archived. Please restore it to perform this action."
+                          )
+                          return
+                        }
                         onPost({
                           ...formData,
                           categories:
@@ -2635,10 +2744,10 @@ const TextEditorSidebar = ({
                           type: { platform: posting.integrationType || posting.platform },
                         })
                       }}
-                      disabled={isPosting}
+                      disabled={isPosting || blog?.isArchived}
                     >
                       Repost Same Settings
-                    </Button>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -2669,26 +2778,29 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Platform Select */}
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Platform
-              </label>
+              <label className="text-xs font-semibold  mb-1.5 block">Select Platform</label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
-                <Select
-                  className={`w-full ${platformError ? "border-red-500" : ""}`}
-                  placeholder="Choose platform..."
-                  value={selectedIntegration?.rawPlatform || undefined}
-                  onChange={v => {
+                <select
+                  className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
+                    blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
+                  value={selectedIntegration?.rawPlatform || ""}
+                  disabled={blog?.isArchived}
+                  onChange={e => {
+                    const v = e.target.value
                     const d = integrations.integrations[v]
                     handleIntegrationChange(v, d?.url)
                   }}
-                  status={platformError ? "error" : ""}
                 >
+                  <option value="" disabled>
+                    Choose platform...
+                  </option>
                   {Object.entries(integrations.integrations).map(([k, v]) => (
-                    <Select.Option key={k} value={k}>
+                    <option key={k} value={k}>
                       {PLATFORM_LABELS[k] || k}
-                    </Select.Option>
+                    </option>
                   ))}
-                </Select>
+                </select>
               ) : (
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
                   No platforms connected.{" "}
@@ -2705,9 +2817,7 @@ const TextEditorSidebar = ({
             </div>
             {/* Category Select */}
             <div>
-              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                Select Category
-              </label>
+              <label className="text-xs font-semibold  mb-1.5 block">Select Category</label>
 
               {/* Active Category Tag */}
               {/* {selectedCategory && (
@@ -2725,72 +2835,43 @@ const TextEditorSidebar = ({
                 </div>
               )} */}
 
-              <Select
-                mode="tags"
-                className="w-full"
+              <input
+                type="text"
+                className={`input input-bordered outline-0 w-full ${categoryError ? "input-error" : ""}`}
                 placeholder="Select or type..."
-                value={selectedCategory ? [selectedCategory] : []}
-                onChange={handleCategoryChange}
+                value={selectedCategory || ""}
+                onChange={e => handleCategoryChange([e.target.value])}
                 disabled={isCategoryLocked}
-                showSearch
-                allowClear
-                status={categoryError ? "error" : ""}
-                options={POPULAR_CATEGORIES.map(c => ({ value: c, label: c }))}
               />
 
               {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
 
-              {/* Auto Suggestions */}
-              {/* Auto Suggestions - Using persistent UI state */}
-              {uiCategories?.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
-                    Suggested Categories
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                    {uiCategories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => handleCategoryAdd(cat)}
-                        disabled={!!selectedCategory}
-                        className={`px-2 py-1 rounded text-[10px] border transition-all ${
-                          selectedCategory === cat
-                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
-                            : selectedCategory
-                              ? "opacity-40"
-                              : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-white hover:border-gray-300"
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
+              {selectedIntegration?.platform === "shopify" && (
+                <div className="mt-2 p-2.5 bg-amber-50 text-amber-800 text-[10px] border border-amber-200 rounded-xl flex items-start gap-2 shadow-xs">
+                  <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Public Release Warning:</span> Shopify categories
+                    cannot be changed once the post is public. Please ensure this is correct.
                   </div>
                 </div>
               )}
 
-              {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
-                <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">
-                  <Info className="inline w-3 h-3 mr-1" />
-                  Shopify categories are permanent once posted.
-                </div>
-              )}
+              {/* Consistently show Categories for all platforms (WordPress, Shopify, Sanity, Server) */}
+              <PlatformCategories
+                onSelect={handleCategoryAdd}
+                currentCategory={selectedCategory}
+                platform={selectedIntegration?.rawPlatform}
+              />
             </div>
             {/* ToC Toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
               <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
               <Switch
-                size="small"
                 checked={includeTableOfContents}
-                onChange={setIncludeTableOfContents}
+                onCheckedChange={setIncludeTableOfContents}
+                disabled={blog?.isArchived}
               />
             </div>
-            {/* WordPress Categories (Moved Below ToC) */}
-            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
-              <WordPressCategories
-                onSelect={handleCategoryAdd}
-                currentCategory={selectedCategory}
-              />
-            )}
             <div className="h-4" /> {/* Spacer */}
           </div>
         </div>
@@ -2800,15 +2881,12 @@ const TextEditorSidebar = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
         <button
           onClick={handlePostClick}
-          disabled={isPosting || !hasAnyIntegration}
-          className={`
-            w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95
-            ${
-              isPosting || !hasAnyIntegration
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
-            }
-          `}
+          disabled={isPosting || blog?.isArchived}
+          className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
+            isPosting || blog?.isArchived
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
+          }`}
         >
           {isPosting ? (
             <>
@@ -2838,8 +2916,6 @@ const TextEditorSidebar = ({
         return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
-      case "regenerate":
-        return renderSuggestionsPanel()
       case "sectionTools":
         return renderSectionToolsPanel()
       default:
@@ -2847,56 +2923,55 @@ const TextEditorSidebar = ({
     }
   }
 
-  // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 border-l border-gray-200 flex flex-col items-center gap-2">
+      <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 shadow-xs bg-gray-50/50 h-full">
         <div className="flex flex-col gap-2">
-          <Tooltip title="Expand Sidebar" placement="left">
+          <div className="tooltip tooltip-left" data-tip="Expand Sidebar">
             <button
               onClick={() => setIsCollapsed(false)}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-300 group"
             >
               <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
             </button>
-          </Tooltip>
-          {/* Divider */}
-          <div className="w-8 h-px bg-gray-300 my-2" />
+          </div>
+          <div className="w-8 h-px bg-gray-300 mx-auto my-2" />
         </div>
-
-        {NAV_ITEMS.map(item => {
-          const Icon = item.icon
-          const isActive = activePanel === item.id
-          return (
-            <Tooltip key={item.id} title={item.label} placement="left">
-              <button
-                onClick={() => {
-                  if (item.id === "regenerate") {
-                    setIsRegenerateModalOpen(true)
-                  } else {
-                    if (isActive && !isCollapsed) {
-                      setIsCollapsed(true)
+        <div className="flex flex-col gap-3">
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon
+            const isActive = activePanel === item.id
+            return (
+              <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
+                <button
+                  onClick={() => {
+                    if (item.id === "regenerate") {
+                      setIsRegenerateModalOpen(true)
                     } else {
-                      setActivePanel(item.id)
-                      setIsCollapsed(false)
+                      if (isActive && !isCollapsed) {
+                        setIsCollapsed(true)
+                      } else {
+                        setActivePanel(item.id)
+                        setIsCollapsed(false)
+                      }
                     }
-                  }
-                }}
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                  isActive && !isCollapsed
-                    ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
-                    : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 transition-transform ${
-                    isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                  }}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 relative group ${
+                    isActive && !isCollapsed
+                      ? "bg-linear-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200"
+                      : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                   }`}
-                />
-              </button>
-            </Tooltip>
-          )
-        })}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-transform duration-300 ${
+                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                    }`}
+                  />
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
     )
   }
@@ -2905,7 +2980,7 @@ const TextEditorSidebar = ({
     <>
       <div className="flex h-full">
         {/* Content Panel */}
-        <div className="flex-1 w-80 bg-white border-l overflow-hidden flex flex-col">
+        <div className="flex-1 w-80 bg-white border-l border-gray-300 overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={activePanel}
@@ -2921,7 +2996,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Icon Navigation Bar - Premium Theme */}
-        <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+        <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 shadow-xs bg-gray-50/50 h-full">
           <div className="flex flex-col gap-2">
             {/* Mobile close */}
             <div className="md:hidden">
@@ -2932,222 +3007,273 @@ const TextEditorSidebar = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Divider */}
-            <div className="w-full h-px bg-gray-300 my-2" />
           </div>
-          {NAV_ITEMS.map(item => {
-            const Icon = item.icon
-            const isActive = activePanel === item.id
-            return (
-              <Tooltip key={item.id} title={item.label} placement="left">
-                <button
-                  onClick={() => {
-                    if (item.id === "regenerate") {
-                      // Open the regenerate modal
-                      setIsRegenerateModalOpen(true)
-                    } else {
-                      if (isActive && !isCollapsed) {
-                        setIsCollapsed(true)
-                      } else {
-                        setActivePanel(item.id)
-                        setIsCollapsed(false)
+          <div className="flex flex-col gap-3 mt-5">
+            {NAV_ITEMS.map(item => {
+              const Icon = item.icon
+              const isActive = activePanel === item.id
+              return (
+                <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
+                  <button
+                    onClick={() => {
+                      if (blog?.isArchived && item.id === "regenerate") {
+                        toast.error(
+                          "This blog is archived. Please restore it to perform this action."
+                        )
+                        return
                       }
-                    }
-                  }}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                    isActive && !isCollapsed
-                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
-                      : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-transform ${
-                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                      if (item.id === "regenerate") {
+                        // Open the regenerate modal
+                        setIsRegenerateModalOpen(true)
+                      } else {
+                        if (isActive && !isCollapsed) {
+                          setIsCollapsed(true)
+                        } else {
+                          setActivePanel(item.id)
+                          setIsCollapsed(false)
+                        }
+                      }
+                    }}
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 relative group ${
+                      isActive && !isCollapsed
+                        ? "text-white"
+                        : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                     }`}
-                  />
-                </button>
-              </Tooltip>
-            )
-          })}
+                  >
+                    {isActive && !isCollapsed && (
+                      <motion.div
+                        layoutId="activeTabIndicator"
+                        className="absolute inset-0 bg-linear-to-br from-blue-600 to-indigo-700 rounded-lg"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <Icon
+                      className={`w-5 h-5 transition-transform duration-300 relative z-10 ${
+                        isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                      }`}
+                    />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
       {/* Modals */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
+      <div className={`modal ${choosePlatformOpen ? "modal-open" : ""}`}>
+        <div className="modal-box max-w-xs">
+          <div className="flex items-center gap-2 mb-4">
             <Globe className="w-5 h-5 text-blue-600" />
-            <span>Published Platforms</span>
+            <h3 className="font-bold text-lg">Published Platforms</h3>
           </div>
-        }
-        open={choosePlatformOpen}
-        onCancel={() => setChoosePlatformOpen(false)}
-        footer={null}
-        centered
-        width={320}
-      >
-        <div className="space-y-2">
-          {integrationLinks.map(({ platform, link, label }) => (
-            <button
-              key={platform}
-              onClick={() => window.open(link, "_blank")}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm"
-            >
-              {label} <ExternalLink className="w-4 h-4" />
+          <div className="space-y-2">
+            {integrationLinks.map(({ platform, link, label }) => (
+              <button
+                key={platform}
+                onClick={() => window.open(link, "_blank")}
+                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
+              >
+                {label} <ExternalLink className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={() => setChoosePlatformOpen(false)}>
+              Close
             </button>
-          ))}
+          </div>
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={() => setChoosePlatformOpen(false)}></div>
+      </div>
 
       {/* Edit & Repost Modal */}
-      <Modal
-        title="Edit & Repost"
-        open={isRepostModalOpen}
-        onCancel={() => setIsRepostModalOpen(false)}
-        centered
-        width={400}
-        footer={[
-          <div className="flex justify-end gap-2">
-            <Button key="cancel" onClick={() => setIsRepostModalOpen(false)}>
+      <div className={`modal ${isRepostModalOpen ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Edit & Repost</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold  mb-1.5 block">Platform</label>
+              <select
+                className="select select-bordered outline-0 w-full"
+                value={repostSettings.platform}
+                onChange={e => setRepostSettings({ ...repostSettings, platform: e.target.value })}
+              >
+                {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {PLATFORM_LABELS[k] || k}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-400 mt-1">
+                Platform cannot be changed for reposting.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold  mb-1.5 block">Category</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                placeholder="Select or type..."
+                value={repostSettings.category || ""}
+                onChange={e => setRepostSettings({ ...repostSettings, category: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={repostSettings.includeTableOfContents}
+                onChange={e =>
+                  setRepostSettings({ ...repostSettings, includeTableOfContents: e.target.checked })
+                }
+              />
+            </div>
+
+            {repostSettings.platform && (
+              <PlatformCategories
+                onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
+                currentCategory={repostSettings.category}
+                platform={repostSettings.platform}
+              />
+            )}
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={() => setIsRepostModalOpen(false)}>
               Cancel
-            </Button>
-            <Button
-              key="submit"
-              type="primary"
+            </button>
+            <button
+              className={`btn btn-sm btn-primary text-white ${isPosting ? "loading" : ""}`}
               onClick={handleRepostSubmit}
-              loading={isPosting}
-              className="bg-blue-600"
             >
               Repost Now
-            </Button>
-          </div>,
-        ]}
-      >
-        <div className="space-y-4 py-2">
-          {/* Platform Select */}
-          <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
-            <Select
-              className="w-full"
-              value={repostSettings.platform}
-              onChange={v => setRepostSettings({ ...repostSettings, platform: v })}
-            >
-              {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
-                <Select.Option key={k} value={k}>
-                  {PLATFORM_LABELS[k] || k}
-                </Select.Option>
-              ))}
-            </Select>
-            <p className="text-[10px] text-gray-400 mt-1">
-              Platform cannot be changed for reposting.
-            </p>
+            </button>
           </div>
-
-          {/* Category Select */}
-          <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
-            <Select
-              mode="tags"
-              className="w-full"
-              placeholder="Select or type..."
-              value={repostSettings.category ? [repostSettings.category] : []}
-              onChange={vals =>
-                setRepostSettings({ ...repostSettings, category: vals[vals.length - 1] || "" })
-              }
-            >
-              {POPULAR_CATEGORIES.map(c => (
-                <Select.Option key={c} value={c} label={c}>
-                  {c}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-
-          {/* ToC Toggle */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
-            <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-            <Switch
-              size="small"
-              checked={repostSettings.includeTableOfContents}
-              onChange={c => setRepostSettings({ ...repostSettings, includeTableOfContents: c })}
-            />
-          </div>
-
-          {/* WordPress Categories */}
-          {repostSettings.platform === "WORDPRESS" && (
-            <WordPressCategories
-              onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
-              currentCategory={repostSettings.category}
-            />
-          )}
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={() => setIsRepostModalOpen(false)}></div>
+      </div>
 
       {/* Generated Metadata Accept/Reject Modal */}
-      <Modal
-        title="Generated SEO Metadata"
-        open={generatedMetadataModal}
-        onCancel={handleRejectMetadata}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={handleRejectMetadata}>Reject</Button>
-            <Button
-              type="primary"
+      <div className={`modal ${generatedMetadataModal ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Generated SEO Metadata</h3>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Review the AI-generated metadata below. Accept to apply these changes or reject to
+              keep your current data.
+            </p>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Generated Title
+              </label>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Generated Description
+              </label>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  {generatedMetadata?.description ||
+                    generatedMetadata?.metaDescription ||
+                    "No description generated"}
+                </p>
+              </div>
+            </div>
+
+            {/* Current values for comparison */}
+            <div className="border-t pt-4 mt-4">
+              <p className="text-xs font-medium text-gray-400 mb-2">
+                Current Values (will be replaced if accepted):
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Title:</span> {metadata.title || "Not set"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Description:</span>{" "}
+                  {metadata.description || "Not set"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="modal-action">
+            <button className="btn btn-sm" onClick={handleRejectMetadata}>
+              Reject
+            </button>
+            <button
               onClick={handleAcceptMetadata}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 border-0"
+              className="btn btn-sm btn-success text-white bg-linear-to-r from-green-500 to-emerald-600 border-0"
             >
               Accept & Apply
-            </Button>
-          </div>
-        }
-        centered
-        width={500}
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500 mb-4">
-            Review the AI-generated metadata below. Accept to apply these changes or reject to keep
-            your current data.
-          </p>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Generated Title</label>
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-gray-800">
-                {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Generated Description
-            </label>
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-gray-800">
-                {generatedMetadata?.description ||
-                  generatedMetadata?.metaDescription ||
-                  "No description generated"}
-              </p>
-            </div>
-          </div>
-
-          {/* Current values for comparison */}
-          <div className="border-t pt-4 mt-4">
-            <p className="text-xs font-medium text-gray-400 mb-2">
-              Current Values (will be replaced if accepted):
-            </p>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500">
-                <span className="font-medium">Title:</span> {metadata.title || "Not set"}
-              </p>
-              <p className="text-xs text-gray-500">
-                <span className="font-medium">Description:</span>{" "}
-                {metadata.description || "Not set"}
-              </p>
-            </div>
+            </button>
           </div>
         </div>
-      </Modal>
+        <div className="modal-backdrop" onClick={handleRejectMetadata}></div>
+      </div>
+
+      {/* Diff Viewer Modal */}
+      <div className={`modal ${showDiff ? "modal-open" : ""} z-9999`}>
+        <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 bg-white">
+          <div className="flex items-center justify-between p-5 px-8 border-b border-gray-50 bg-white sticky top-0 z-20">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 text-xl tracking-tight">
+                  Review Section Changes
+                </h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    Task: {sectionToolState?.task || "Refinement"}
+                  </span>
+                  <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                  <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
+                    AI REFINED
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              onClick={() => setShowDiff(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden p-6 sm:p-8 bg-slate-50/50">
+            <ContentDiffViewer
+              oldMarkdown={diffData.old}
+              newMarkdown={diffData.new}
+              onAccept={() => {
+                if (typeof setEditorContent === "function") {
+                  setEditorContent(diffData.full)
+                }
+                setShowDiff(false)
+                toast.success("Changes applied successfully!")
+              }}
+              onReject={() => setShowDiff(false)}
+              acceptLabel="Accept & Apply to Section"
+              rejectLabel="Discard Changes"
+            />
+          </div>
+        </div>
+        <div
+          className="modal-backdrop bg-slate-900/60 backdrop-blur-md"
+          onClick={() => setShowDiff(false)}
+        ></div>
+      </div>
 
       {/* Regenerate Modal */}
       <RegenerateModal
@@ -3158,6 +3284,7 @@ const TextEditorSidebar = ({
         regenForm={regenForm}
         updateRegenField={updateRegenField}
         userPlan={userPlan}
+        user={user}
         integrations={integrations}
       />
 

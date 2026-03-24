@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import {
   Copy,
   RefreshCw,
@@ -8,29 +9,35 @@ import {
   Link as LinkIcon,
   FileText,
   ListChecks,
+  Shield,
 } from "lucide-react"
-import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { summarizeYoutube, resetYoutubeSummary } from "@store/slices/toolsSlice"
-import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import { toast } from "sonner"
+import { Helmet } from "react-helmet"
+
+import useToolsStore from "@store/useToolsStore"
+import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
+import ConnectedTools from "@components/ConnectedTools"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
-  const [inputUrl, setInputUrl] = useState("")
-  const dispatch = useDispatch()
+  const location = useLocation()
+  const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
+  const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
+  const { result: summaryResult, error } = youtubeSummary
   const {
-    loading: isLoading,
-    result: summaryResult,
-    error,
-  } = useSelector(state => state.tools.youtubeSummary)
-  const user = useSelector(state => state.auth.user)
+    mutate: summarizeVideo,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useYoutubeSummaryMutation()
+  const isLoading = isPending || isMutationLoading
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputUrl("")
-      dispatch(resetYoutubeSummary())
+      resetYoutubeSummary()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidYoutubeUrl = url => {
     const youtubeRegex =
@@ -40,12 +47,12 @@ const YouTubeSummarization = () => {
 
   const handleSubmit = async () => {
     if (!inputUrl.trim()) {
-      message.error("Please enter a YouTube URL")
+      toast.error("Please enter a YouTube URL")
       return
     }
 
     if (!isValidYoutubeUrl(inputUrl)) {
-      message.error(
+      toast.error(
         "Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
       )
       return
@@ -53,22 +60,24 @@ const YouTubeSummarization = () => {
 
     const payload = { url: inputUrl.trim() }
 
-    try {
-      await dispatch(summarizeYoutube(payload)).unwrap()
-      message.success("Video summarized successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to summarize video. Please try again.")
-      console.error(err)
-    }
+    summarizeVideo(payload, {
+      onSuccess: () => {
+        toast.success("Video summarized successfully!")
+      },
+      onError: err => {
+        toast.error(err?.message || "Failed to summarize video. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
     try {
       await navigator.clipboard.writeText(content)
-      message.success("Content copied to clipboard")
+      toast.success("Content copied to clipboard")
     } catch (err) {
       console.error("Failed to copy content")
-      message.error("Failed to copy content")
+      toast.error("Failed to copy content")
     }
   }
 
@@ -80,48 +89,87 @@ const YouTubeSummarization = () => {
 
   const handleReset = () => {
     setInputUrl("")
-    dispatch(resetYoutubeSummary())
-    message.info("Content reset")
+    resetYoutubeSummary()
+    toast.info("Content reset")
   }
+
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Summarizing YouTube video..." isYouTube={true} />
+        <ProgressLoadingScreen
+          message="Summarizing YouTube video..."
+          isYouTube={true}
+          timer={timer} // Pass the custom timer
+        />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-red-50/20 to-purple-50/30">
-      <div className="max-w-7xl mx-auto space-y-6 p-5">
-        {/* Header */}
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-red-50/20 to-purple-50/30">
+      <Helmet>
+        <title>YouTube Summarization - GenWrite</title>
+      </Helmet>
+      <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-red-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
                 <Youtube className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                   YouTube Summarization
                 </h1>
-                <p className="text-sm sm:text-base text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                   Summarize long YouTube videos into clear insights, highlights, and key takeaways.
                 </p>
               </div>
             </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Reset all content"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset
-              </button>
-            </div>
+            <button
+              onClick={handleReset}
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              title="Reset all content"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
           </div>
         </div>
 
@@ -137,20 +185,26 @@ const YouTubeSummarization = () => {
               value={inputUrl}
               onChange={e => setInputUrl(e.target.value)}
               placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-red-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+              className={`btn btn-primary h-auto py-3 w-full bg-linear-to-r from-red-600 to-purple-600 border-none text-white font-bold rounded-xl transition-all duration-300 hover:shadow-lg shadow-red-200/50 normal-case ${
                 !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:from-red-700 hover:to-purple-700 hover:scale-105"
+                  : "hover:scale-[1.02]"
               }`}
             >
-              <Youtube className="w-5 h-5" />
-              Summarize Video
-            </Button>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Summarizing...
+                </>
+              ) : (
+                <>Summarize Video</>
+              )}
+            </button>
           </div>
         </div>
 
@@ -164,7 +218,7 @@ const YouTubeSummarization = () => {
               </h2>
               <button
                 onClick={handleCopySummary}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy summary"
               >
                 <Copy className="w-4 h-4" />
@@ -183,14 +237,14 @@ const YouTubeSummarization = () => {
                       e.target.style.display = "none"
                     }}
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                  <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4">
                     <h3 className="text-white font-semibold text-lg">{summaryResult.title}</h3>
                   </div>
                 </div>
               )}
 
               {!summaryResult.thumbnail && (
-                <div className="bg-gradient-to-br from-red-50 to-purple-50 p-6 rounded-xl border border-red-100">
+                <div className="bg-linear-to-br from-red-50 to-purple-50 p-6 rounded-xl border border-red-100">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <Youtube className="w-5 h-5 text-red-600" />
                     {summaryResult.title}
@@ -204,13 +258,11 @@ const YouTubeSummarization = () => {
                   <FileText className="w-5 h-5 text-blue-600" />
                   Summary
                 </h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {summaryResult.summary}
-                </p>
+                <p className=" leading-relaxed whitespace-pre-wrap">{summaryResult.summary}</p>
               </div>
 
               {/* Key Points */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              <div className="bg-linear-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <ListChecks className="w-5 h-5 text-blue-600" />
@@ -223,8 +275,8 @@ const YouTubeSummarization = () => {
 
                 <ul className="space-y-3">
                   {summaryResult.keyPoints.map((point, idx) => (
-                    <li key={idx} className="flex gap-3 text-gray-700">
-                      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                    <li key={idx} className="flex gap-3 ">
+                      <span className="shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>
                       <span className="leading-relaxed">{point}</span>
@@ -245,6 +297,11 @@ const YouTubeSummarization = () => {
                     {inputUrl}
                   </p>
                 </div>
+              </div>
+
+              {/* Connected Tools Suggestion */}
+              <div className="p-6 pt-0">
+                <ConnectedTools currentToolId="youtube" transferValue={inputUrl} />
               </div>
             </div>
           </div>

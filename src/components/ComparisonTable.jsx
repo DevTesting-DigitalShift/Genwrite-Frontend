@@ -9,23 +9,13 @@ const ComparisonTable = ({ plans }) => {
       index: 1,
       name: "Blog Creation",
       features: [
-        {
-          name: "Single blog",
-          available: ["basic", "pro", "enterprise", "credits"],
-        },
+        { name: "Single blog", available: ["basic", "pro", "enterprise", "credits"] },
         { name: "Multiple blogs", available: ["pro", "enterprise", "credits"] },
-        {
-          name: "Quick blog",
-          available: ["basic", "pro", "enterprise", "credits"],
-        },
+        { name: "Quick blog", available: ["basic", "pro", "enterprise", "credits"] },
         {
           name: "Automated job runs",
           available: ["pro", "enterprise", "basic"],
-          details: {
-            basic: "1 Jobs",
-            pro: "5 Jobs",
-            enterprise: "Custom Jobs",
-          },
+          details: { basic: "1 Jobs", pro: "5 Jobs", enterprise: "Custom Jobs" },
         },
       ],
     },
@@ -36,26 +26,15 @@ const ComparisonTable = ({ plans }) => {
         {
           name: "AI-generated blogs",
           available: ["basic", "pro", "enterprise", "credits"],
-          details: {
-            basic: "upto 10 Blogs",
-            pro: "upto 45 Blogs",
-            enterprise: "Custom Blogs",
-          },
+          details: { basic: "upto 10 Blogs", pro: "upto 45 Blogs", enterprise: "Custom Blogs" },
         },
         {
           name: "AI images with blogs",
           available: ["basic", "pro", "enterprise", "credits"],
-          details: {
-            basic: "50 Images",
-            pro: "200 Images",
-            enterprise: "Custom Images",
-          },
+          details: { basic: "50 Images", pro: "200 Images", enterprise: "Custom Images" },
         },
         { name: "Proofreading", available: ["pro", "enterprise"] },
-        {
-          name: "Custom AI Model",
-          available: ["pro", "enterprise"],
-        },
+        { name: "Custom AI Model", available: ["pro", "enterprise"] },
       ],
     },
     {
@@ -66,28 +45,16 @@ const ComparisonTable = ({ plans }) => {
           name: "Google Search Console data",
           available: ["basic", "pro", "enterprise", "credits"],
         },
-        {
-          name: "Competitive analysis",
-          available: ["pro", "enterprise", "credits"],
-        },
+        { name: "Competitive analysis", available: ["pro", "enterprise", "credits"] },
       ],
     },
     {
       index: 4,
       name: "Blog Improvisation",
       features: [
-        {
-          name: "Retry Blogs Generation",
-          available: ["pro", "enterprise", "credits"],
-        },
-        {
-          name: "Re-Write Blogs/Lines",
-          available: ["basic", "pro", "enterprise", "credits"],
-        },
-        {
-          name: "Re-Generate Blogs Generation",
-          available: ["pro", "enterprise", "credits"],
-        },
+        { name: "Retry Blogs Generation", available: ["pro", "enterprise", "credits"] },
+        { name: "Re-Write Blogs/Lines", available: ["basic", "pro", "enterprise", "credits"] },
+        { name: "Re-Generate Blogs Generation", available: ["pro", "enterprise", "credits"] },
       ],
     },
     {
@@ -95,10 +62,7 @@ const ComparisonTable = ({ plans }) => {
       name: "Exports & Posting",
       features: [
         { name: "Export blogs", available: ["pro", "enterprise", "credits"] },
-        {
-          name: "Automatic Wordpress Posting",
-          available: ["pro", "enterprise", "credits"],
-        },
+        { name: "Automatic Wordpress Posting", available: ["pro", "enterprise", "credits"] },
       ],
     },
   ]
@@ -141,7 +105,9 @@ const ComparisonTable = ({ plans }) => {
                       key={plan.name}
                       className="p-2 sm:p-3 md:p-4 text-center min-w-[120px] sm:min-w-[150px]"
                     >
-                      <div className={`text-lg sm:text-xl md:text-2xl font-bold ${styles.text}`}>
+                      <div
+                        className={`text-lg sm:text-xl md:text-2xl font-semibold ${styles.text}`}
+                      >
                         {plan.name}
                       </div>
                       {plan?.seats && (
@@ -169,7 +135,7 @@ const ComparisonTable = ({ plans }) => {
                 <React.Fragment key={category.name}>
                   <tr className={`${category.index > 0 ? "mt-6 sm:mt-10" : ""}`}>
                     <td
-                      className={`p-2 sm:p-3 md:p-4 uppercase tracking-widest font-bold text-gray-700 text-sm sm:text-base md:text-lg ${
+                      className={`p-2 sm:p-3 md:p-4 uppercase tracking-widest font-bold  text-sm sm:text-base md:text-lg ${
                         category.index > 1 ? "pt-6 sm:pt-8 md:pt-10" : ""
                       } sticky left-0 bg-white z-30`}
                     >
@@ -196,7 +162,7 @@ const ComparisonTable = ({ plans }) => {
                         } hover:bg-gray-100 transition-all duration-200`}
                       >
                         <td
-                          className="p-2 sm:p-3 md:p-4 text-gray-700 text-xs sm:text-sm md:text-base
+                          className="p-2 sm:p-3 md:p-4  text-xs sm:text-sm md:text-base
              sticky left-0 bg-white z-20" // 👈 add this
                         >
                           {feature.name}

@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { createNewQuickBlog } from "../../store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
-import { message, Modal, Tooltip } from "antd"
-import { Plus, X, Crown } from "lucide-react" // Added Crown icon
+import { toast } from "sonner"
+import { Plus, X, Crown } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
+import { IMAGE_SOURCE, LANGUAGES, IMAGE_OPTIONS } from "@/data/blogData"
+import ImageSourceSelector from "@components/ImageSourceSelector"
+import AdvancedOptions from "@components/AdvancedOptions"
+import { Switch } from "@components/ui/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
@@ -27,6 +29,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     performKeywordResearch: false,
     addImages: false,
     imageSource: IMAGE_SOURCE.NONE,
+    numberOfImages: 0,
     template: null,
     templateIds: [],
     keywords: [],
@@ -38,18 +41,21 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     costCutter: true,
     easyToUnderstand: false,
     embedYouTubeVideos: false,
+    humanisation: false,
   }
 
   const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
 
-  const [formData, setFormData] = useState(initialFormData)
+  const [formData, setFormData] = useState({
+    ...initialFormData,
+    embedYouTubeVideos: type === "yt" ? true : initialFormData.embedYouTubeVideos,
+  })
   const [errors, setErrors] = useState(initialErrors)
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const user = useSelector(selectUser)
   const queryClient = useQueryClient()
 
   // Check if user has a pro subscription
@@ -59,6 +65,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const estimatedCost = useMemo(() => {
     const features = []
     if (formData.performKeywordResearch) features.push("keywordResearch")
+    if (formData.humanisation) features.push("humanisation")
 
     let cost = computeCost({
       wordCount: 1500,
@@ -66,16 +73,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       aiModel: "gemini",
       includeImages: formData.addImages,
       imageSource: formData.imageSource,
-      numberOfImages: 0,
+      numberOfImages: formData.numberOfImages,
     })
 
     if (formData.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
   }, [
     formData.performKeywordResearch,
+    formData.humanisation,
     formData.addImages,
     formData.imageSource,
     formData.costCutter,
@@ -126,13 +134,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     setErrors(newErrors)
 
     if (Object.values(newErrors).some(error => error)) {
-      message.error("Please fill all required fields correctly.")
+      toast.error("Please fill all required fields correctly.")
       return
     }
 
     if (otherLinks.length > 3) {
       setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
-      message.error("You can only add up to 3 links.")
+      toast.error("You can only add up to 3 links.")
       return
     }
 
@@ -170,40 +178,28 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
 
-    handlePopup({
-      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
-      description: (
-        <>
-          <span>
-            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
-            <b>{estimatedCost} credits</b>.
-          </span>
-          <br />
-          <span>Are you sure you want to proceed?</span>
-        </>
-      ),
-      onConfirm: async () => {
-        const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
+    const submitBlog = async () => {
+      const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
 
-        try {
-          // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-          const validatedData = validateQuickBlogData(finalData)
+      try {
+        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+        const validatedData = validateQuickBlogData(finalData)
 
-          // Dispatch and await the result
-          await dispatch(
-            createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
-          ).unwrap()
+        // Dispatch and await the result
+        const { createNewQuickBlog } = useBlogStore.getState()
+        await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
 
-          // ✅ Only close modal on success
-          handleClose()
-        } catch (error) {
-          // ❌ Don't close modal - let user retry
-          message.error(error?.message || "Failed to create blog. Please try again.")
-        } finally {
-          hideLoading(loadingId)
-        }
-      },
-    })
+        // ✅ Only close modal on success
+        handleClose()
+      } catch (error) {
+        // ❌ Don't close modal - let user retry
+        toast.error(error?.message || "Failed to create blog. Please try again.")
+      } finally {
+        hideLoading(loadingId)
+      }
+    }
+
+    submitBlog()
   }
 
   // Handle template selection
@@ -356,7 +352,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       const validation = validateUrl(link)
       if (!validation.valid) {
         setErrors(prev => ({ ...prev, otherLinks: validation.error }))
-        message.error(validation.error)
+        toast.error(validation.error)
         return
       }
 
@@ -400,81 +396,33 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   ]
 
   return (
-    <>
-      {" "}
-      <Modal
-        title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
-        open={true}
-        onCancel={handleClose}
-        footer={
-          currentStep === 0
-            ? [
-                <button
-                  key="next"
-                  onClick={handleNext}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
-                  aria-label="Next step"
-                >
-                  Next
-                </button>,
-              ]
-            : [
-                <div key="footer-content" className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-gray-600">Estimated Cost:</span>
-                    <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-                    {formData.costCutter && (
-                      <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-                    )}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      key="previous"
-                      onClick={() => setCurrentStep(0)}
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-                      aria-label="Previous step"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      key="submit"
-                      onClick={handleSubmit}
-                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
-                      aria-label="Submit quick blog"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </div>,
-              ]
-        }
-        width={800}
-        centered
-        transitionName=""
-        maskTransitionName=""
-        destroyOnHidden
-      >
-        <div className="p-2 space-y-2 !max-h-[75vh] overflow-y-auto custom-scroll">
+    <dialog className="modal modal-open bg-black/60">
+      <div className="modal-box w-full max-w-3xl p-0 overflow-hidden bg-white">
+        <div className="flex items-center justify-between p-4 px-6">
+          <h3 className="font-bold text-md">{`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}</h3>
+          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
-            <>
-              <div
-                className={` overflow-clip p-4 pt-0 ${
-                  errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
-                }`}
-              >
-                <TemplateSelection
-                  userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                  onClick={handlePackageSelect}
-                  preSelectedIds={formData.templateIds}
-                />
-              </div>
-              {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
-            </>
+            <div
+              className={`rounded-xl transition-all duration-200 ${
+                errors.template ? "border-2 border-red-500 p-1 pb-0" : "border-0"
+              }`}
+            >
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+                onClick={handlePackageSelect}
+                preSelectedIds={formData.templateIds}
+                error={errors.template}
+              />
+            </div>
           )}
           {currentStep === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-4 p-3 pt-0">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold  mb-2">
                   Topic <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -484,37 +432,34 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border ${
                     errors.topic ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50`}
+                  } rounded-md text-sm bg`}
                   placeholder="Enter the blog topic"
                   aria-label="Blog topic"
                 />
                 {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
               </div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Use Topic name as Blog Title
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.exactTitle}
-                    onChange={e => setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-semibold ">Use Topic name as Blog Title</label>
+                <Switch
+                  checked={formData.exactTitle}
+                  onCheckedChange={checked =>
+                    setFormData(prev => ({ ...prev, exactTitle: checked }))
+                  }
+                  size="large"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Language <span className="text-red-500">*</span>
+              <div className="form-control w-full">
+                <label className="label pb-1">
+                  <span className="text-black text-sm font-semibold">
+                    Language <span className="text-error">*</span>
+                  </span>
                 </label>
+
                 <select
                   name="languageToWrite"
                   value={formData.languageToWrite}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] focus:border-transparent"
-                  aria-label="Select language"
+                  className="select rounded-lg w-full bg-base-100 focus:border-0 outline-0"
                 >
                   {LANGUAGES.map(lang => (
                     <option key={lang.value} value={lang.value}>
@@ -524,34 +469,27 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Perform Keyword Research
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.performKeywordResearch}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        performKeywordResearch: e.target.checked,
-                        focusKeywords: e.target.checked ? [] : prev.focusKeywords,
-                        keywords: e.target.checked ? [] : prev.keywords,
-                        focusKeywordInput: "",
-                        keywordInput: "",
-                      }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-semibold ">Perform Keyword Research</label>
+                <Switch
+                  checked={formData.performKeywordResearch}
+                  onCheckedChange={checked =>
+                    setFormData(prev => ({
+                      ...prev,
+                      performKeywordResearch: checked,
+                      focusKeywords: checked ? [] : prev.focusKeywords,
+                      keywords: checked ? [] : prev.keywords,
+                      focusKeywordInput: "",
+                      keywordInput: "",
+                    }))
+                  }
+                  size="large"
+                />
               </div>
               {!formData.performKeywordResearch && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold  mb-2">
                       Focus Keywords (Max 3) <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
@@ -581,7 +519,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       {formData.focusKeywords.map((keyword, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                         >
                           {keyword}
                           <button
@@ -596,7 +534,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold  mb-2">
                       Keywords <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
@@ -626,7 +564,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       {formData.keywords.map((keyword, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                         >
                           {keyword}
                           <button
@@ -643,98 +581,57 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </>
               )}
 
-              {/* Add Images & Source Selection */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Add Images</label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.addImages}
-                    onChange={e => setFormData(prev => ({ ...prev, addImages: e.target.checked }))}
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-              {formData.addImages && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Image Source
-                  </label>
-                  <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
-                    {imageSources.map(source => (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-                      ${
-                        formData.imageSource === source.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full`}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={handleChange}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      </label>
-                    ))}
+              <div className="space-y-6">
+                {/* Add Images & Source Selection */}
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <label className="block text-sm font-semibold">Add Images</label>
+                    <p className="text-xs text-gray-500">
+                      Search and add relevant images to your blog
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <Switch
+                      checked={formData.addImages}
+                      onCheckedChange={checked => {
+                        setFormData(prev => ({
+                          ...prev,
+                          addImages: checked,
+                          imageSource: checked
+                            ? prev.imageSource === "none" || !prev.imageSource
+                              ? "stock"
+                              : prev.imageSource
+                            : "none",
+                        }))
+                        setErrors(prev => ({ ...prev, imageSource: "" }))
+                      }}
+                      size="large"
+                    />
                   </div>
                 </div>
-              )}
-
-              {/* Easy to Understand Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Easy to Understand
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.easyToUnderstand}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                    }
-                    className="sr-only peer"
+                {formData.addImages && (
+                  <ImageSourceSelector
+                    value={formData.imageSource}
+                    onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    numberOfImages={formData.numberOfImages}
+                    onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
+                    showUpload={false}
                   />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
-              </div>
+                )}
 
-              {/* Embed YouTube Videos Toggle */}
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Embed YouTube Videos
-                </label>
-                <label className="relative inline-block w-11 h-6 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.embedYouTubeVideos}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
-                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
-                </label>
+                {/* Advanced Tool Settings */}
+                <AdvancedOptions
+                  formData={formData}
+                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                  showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
+                />
               </div>
 
               {/* Reference Links Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {type === "yt"
-                    ? "YouTube Video Links "
-                    : "Reference Links (e.g., articles, websites)"}{" "}
-                  (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
+                <label className="block text-sm font-semibold  mb-2">
+                  {type === "yt" ? "YouTube Video Links " : "Reference Links "} (Max 3 links){" "}
+                  {type === "yt" && <span className="text-red-500">*</span>}
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -745,7 +642,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
                       }
                       onKeyDown={e => handleKeyDown(e)}
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50`}
+                      className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
                     />
@@ -764,7 +661,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     {otherLinks.map((link, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                       >
                         {link}
                         <button
@@ -781,29 +678,25 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
 
               {/* Cost Cutter Toggle */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                    <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                    <p className="text-xs text-green-700">Use AI Flash model for 50% savings</p>
                   </div>
-                  <label className="relative inline-block w-14 h-7 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.costCutter}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
-                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
-                  </label>
+                  <Switch
+                    checked={formData.costCutter}
+                    onCheckedChange={checked =>
+                      setFormData(prev => ({ ...prev, costCutter: checked }))
+                    }
+                    className="data-[state=checked]:bg-green-500"
+                    size="large"
+                  />
                 </div>
               </div>
 
               {/* Blog Configuration Info */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm">
+              <div className="bg-linear-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm">
                 <h3 className="text-base font-semibold text-blue-900 mb-3 flex items-center gap-2">
                   📝 Blog Configuration
                 </h3>
@@ -811,7 +704,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <div className="space-y-2 text-sm">
                   {/* Row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">Word Count</span>
+                    <span className="text-blue-900/70 font-semibold">Word Count</span>
                     <span className="font-semibold text-blue-900">~1500 words</span>
                   </div>
 
@@ -820,7 +713,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
                   {/* Row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">AI Model</span>
+                    <span className="text-blue-900/70 font-semibold">AI Model</span>
                     <span className="font-semibold text-blue-900">Gemini Flash</span>
                   </div>
 
@@ -829,12 +722,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
                   {/* Row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-900/70">Images</span>
+                    <span className="text-blue-900/70 font-semibold">Images</span>
                     <span className="font-semibold text-blue-900">
                       {formData.addImages
-                        ? formData.imageSource.includes("ai")
-                          ? "AI Generated"
-                          : "Stock Images"
+                        ? `${formData.imageSource.includes("ai") ? "AI Generated" : "Stock Images"} (${formData.numberOfImages || "AI Decides"})`
                         : "None"}
                     </span>
                   </div>
@@ -843,8 +734,52 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             </div>
           )}
         </div>
-      </Modal>
-    </>
+
+        <div className="p-4 border-t border-gray-300 bg-gray-50">
+          {currentStep === 0 ? (
+            <div className="flex justify-end">
+              <button
+                onClick={handleNext}
+                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Cost Section */}
+              <div className="flex items-center gap-2 w-full text-sm">
+                <span className="text-gray-600 font-semibold">Estimated Cost:</span>
+                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                {formData.costCutter && (
+                  <span className="text-xs text-green-600 font-semibold">(-50% off)</span>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 w-full justify-end">
+                <button
+                  onClick={() => setCurrentStep(0)}
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Previous
+                </button>
+
+                <button
+                  onClick={handleSubmit}
+                  className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={handleClose}>close</button>
+      </form>
+    </dialog>
   )
 }
 

@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import { motion } from "framer-motion"
-import { Button, Tag } from "antd"
 import {
   TrendingUp,
   FileText,
@@ -9,8 +8,8 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
+  Crown,
 } from "lucide-react"
-import { CrownTwoTone } from "@ant-design/icons"
 
 const FeatureCard = ({
   title,
@@ -23,10 +22,7 @@ const FeatureCard = ({
   children,
 }) => (
   <motion.div
-    whileHover={{
-      scale: 1.02,
-      transition: { duration: 0.2 },
-    }}
+    whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
     className="bg-white rounded-lg shadow-sm border hover:shadow-xl border-gray-200 p-4"
   >
     <div className="flex items-start gap-3 mb-3">
@@ -36,22 +32,21 @@ const FeatureCard = ({
       <div className="flex-1">
         <div className="flex items-center gap-4 mb-1">
           <h3 className="font-semibold text-gray-900">{title}</h3>
-          {isPro && <CrownTwoTone className="text-2xl ml-auto mr-2" />}
+          {isPro && <Crown className="w-5 h-5 text-yellow-500 ml-auto" />}
         </div>
         <p className="text-sm text-gray-600">{description}</p>
       </div>
     </div>
     {children}
-    <Button
+    <button
       onClick={onClick}
-      loading={isLoading}
       disabled={isLoading}
-      type="primary"
-      className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
-      ghost={isPro}
+      className={`btn btn-primary w-full min-h-0 h-10 text-sm rounded-lg font-medium transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg border-none ${
+        isLoading ? "loading" : ""
+      } ${isPro ? "btn-outline" : ""}`}
     >
       {isLoading ? "Processing..." : buttonText}
-    </Button>
+    </button>
   </motion.div>
 )
 
@@ -104,7 +99,7 @@ const StatCard = ({ title, value, icon: Icon, subtitle }) => {
             <Icon className="w-3.5 h-3.5 text-blue-600" />
           </div>
           <div>
-            <span className="text-sm font-medium text-gray-700">{title}</span>
+            <span className="text-sm font-medium ">{title}</span>
             {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
         </div>
@@ -147,7 +142,11 @@ const CompetitorsList = ({ competitors }) => {
               rel="noopener noreferrer"
               className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              {item.score && <Tag color="blue">{(item.score * 100).toFixed(2)}%</Tag>}
+              {item.score && (
+                <div className="badge badge-info badge-outline text-[10px] h-4">
+                  {(item.score * 100).toFixed(2)}%
+                </div>
+              )}
               Visit <ExternalLink className="w-3 h-3" />
             </a>
           </div>
@@ -198,13 +197,19 @@ const AnalysisInsights = ({ insights }) => {
             className="p-3 bg-blue-50 rounded-lg border border-blue-100"
           >
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <div className="flex justify-between">
                   <p className="font-medium text-blue-900 text-sm mb-1">
                     {key.replace(/([A-Z])/g, " $1").trim()}
                   </p>
-                  <p>{score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}</p>
+                  <p>
+                    {score && (
+                      <div className="badge badge-outline badge-primary text-[10px]">
+                        {score.replace("/", " / ")}
+                      </div>
+                    )}
+                  </p>
                 </div>
                 <p
                   className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
@@ -240,33 +245,31 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-orange-500" />
-          <span className="text-xs font-medium text-gray-700">Original</span>
+          <span className="text-xs font-medium ">Original</span>
         </div>
-        <div className="p-2 bg-red-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-red-50 border border-red-100 rounded text-xs  leading-relaxed">
           {suggestion.original}
         </div>
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-xs font-medium text-gray-700">Suggested</span>
+          <span className="text-xs font-medium ">Suggested</span>
         </div>
-        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs  leading-relaxed">
           {suggestion.change}
         </div>
       </div>
       <div className="flex gap-2">
-        <Button
-          size="small"
-          type="primary"
+        <button
           onClick={() => onApply(index, suggestion)}
-          className="flex-1 !bg-gradient-to-r !from-green-500 !to-emerald-600 !border-0"
+          className="btn btn-success btn-sm flex-1 text-white"
         >
           Accept
-        </Button>
-        <Button size="small" onClick={() => onReject(index)} className="flex-1">
+        </button>
+        <button onClick={() => onReject(index)} className="btn btn-ghost btn-outline btn-sm flex-1">
           Reject
-        </Button>
+        </button>
       </div>
     </div>
   </div>

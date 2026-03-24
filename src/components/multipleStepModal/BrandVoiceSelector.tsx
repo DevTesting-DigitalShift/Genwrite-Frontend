@@ -1,34 +1,24 @@
 import { brandsQuery } from "@api/Brand/Brand.query"
 import type { Brand } from "@/types/brand"
-import { Flex, message, Switch, Typography, Radio, Space, Card } from "antd"
-import React, { FC, useEffect, useMemo, useState } from "react"
+import React, { FC, useEffect, useState } from "react"
+import { toast } from "sonner"
 import clsx from "clsx"
+import { Switch } from "@components/ui/switch"
 
 interface BrandVoiceSelectorProps {
   label: string
   labelClass?: string
-  value?: {
-    isCheckedBrand: boolean
-    brandId: string
-    addCTA: boolean
-  }
+  value?: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }
   onChange?: (updated: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }) => void
-  errorText?: string
-  size?: "small" | "default"
 }
-
-const { Text, Paragraph } = Typography
 
 const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   label,
   labelClass,
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
-  errorText,
-  size = "small",
 }) => {
   const [state, setState] = useState(value)
-  const formError = useMemo(() => errorText, [errorText])
   /** ✅ Fetch brand voices from API */
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
@@ -44,101 +34,76 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   }
 
   /** Toggle Brand Voice section */
-  const handleBrandToggle = (checked: boolean) => {
+  const handleBrandToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked
     if (error) {
-      message.error("Brand Fetchin Error, please try after some time.")
+      toast.error("Brand Fetching Error, please try after some time.")
       console.error(error)
     } else if (checked && (!brands || brands.length === 0)) {
-      message.warning("No brand voices available. Create one to enable this option.")
+      toast.error("No brand voices available. Create one to enable this option.")
     } else {
       handleUpdate({
         isCheckedBrand: checked,
-        brandId: checked ? state.brandId : "",
+        brandId: checked ? state.brandId || (brands[0]?._id ?? "") : "",
       })
     }
   }
 
   return (
-    <>
-      <Flex vertical gap={8}>
-        <Flex justify="space-between" className="form-item-wrapper">
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-between items-center form-item-wrapper">
+        <div>
           <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
             {label}
           </label>
-          <Switch
-            size={size}
-            id={`blog-isCheckedBrand`}
-            checked={state.isCheckedBrand}
-            onChange={handleBrandToggle}
-            disabled={isLoading || !brands || brands.length === 0}
-          />
-        </Flex>
+          <p className="text-xs text-gray-500">Apply your brand's unique tone and style</p>
+        </div>
+        <Switch
+          id="blog-isCheckedBrand"
+          size="large"
+          checked={state.isCheckedBrand}
+          onCheckedChange={(checked: boolean) => {
+            handleBrandToggle({ target: { checked } } as any)
+          }}
+          disabled={isLoading || !brands || brands.length === 0}
+        />
+      </div>
 
-        <Flex
-          vertical
-          gap={4}
-          hidden={!state.isCheckedBrand}
-          className={clsx(formError && "p-1 rounded-lg border !border-red-500")}
-        >
-          <label className={clsx(formError && "text-red-500", labelClass)}>
-            {formError ? formError : "Select Brand Voice"}
-          </label>
-          <Radio.Group
+      {state.isCheckedBrand && (
+        <div className="flex flex-col gap-2 transition-all py-4 rounded-lg">
+          <label className={clsx(labelClass, "text-sm font-semibold")}>Select Brand Voice</label>
+
+          <select
+            className="select select-bordered w-full rounded-[10px] text-sm h-10 min-h-0 focus:outline-none"
+            value={state.brandId || ""}
             onChange={e => handleUpdate({ brandId: e.target.value })}
-            value={state.brandId}
-            className="w-full"
           >
-            <Space
-              direction="vertical"
-              className="w-full h-[200px] overflow-y-auto p-2"
-              style={{
-                scrollbarWidth: "thin",
-                scrollBehavior: "smooth",
-              }}
-            >
-              {brands.map((brand: Brand) => (
-                <Card
-                  key={brand._id}
-                  size="small"
-                  hoverable
-                  className={clsx(
-                    "transition-all border mt-2 hover:ring-2 hover:ring-purple-500",
-                    state.brandId === brand._id ? "border-blue-500 bg-blue-50" : "border-gray-400"
-                  )}
-                >
-                  <Radio value={brand._id}>
-                    <Space direction="vertical" size={2}>
-                      <Text className="font-montserrat font-medium uppercase line-clamp-1">
-                        {brand.nameOfVoice}
-                      </Text>
-                      <Paragraph
-                        type="secondary"
-                        style={{ marginBottom: 0 }}
-                        ellipsis={{ rows: 2, expandable: false }}
-                      >
-                        {brand.describeBrand}
-                      </Paragraph>
-                    </Space>
-                  </Radio>
-                </Card>
-              ))}
-            </Space>
-          </Radio.Group>
-        </Flex>
+            {brands.map((brand: Brand) => (
+              <option key={brand._id} value={brand._id}>
+                {brand.nameOfVoice}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-        <Flex justify="space-between" hidden={!state.isCheckedBrand} className="!mt-4">
-          <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
-            Add CTA at the End
-          </label>
+      {state.isCheckedBrand && (
+        <div className="flex justify-between items-center mt-2 pl-1">
+          <div>
+            <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
+              Add CTA at the End
+            </label>
+            <p className="text-xs text-gray-500">Include a call-to-action to engage audience</p>
+          </div>
           <Switch
-            size={size}
             id="blog-brand-add-cta"
+            size="large"
             checked={state.addCTA}
-            onChange={checked => handleUpdate({ addCTA: checked })}
+            onCheckedChange={(checked: boolean) => handleUpdate({ addCTA: checked })}
           />
-        </Flex>
-      </Flex>
-    </>
+        </div>
+      )}
+    </div>
   )
 }
 

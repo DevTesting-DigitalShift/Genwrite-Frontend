@@ -1,7 +1,7 @@
-import { pingIntegrationThunk } from "@store/slices/otherSlice"
 import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
+import { SiSanity } from "react-icons/si"
 
-export const pluginsData = dispatch => [
+export const pluginsData = pingFn => [
   {
     id: 111,
     name: "WordPress",
@@ -18,7 +18,7 @@ export const pluginsData = dispatch => [
     isVisible: true,
     onCheck: async () => {
       try {
-        const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
+        const result = await pingFn("WORDPRESS")
         return {
           status: result.status || "success",
           message: result.message || "WordPress connection verified",
@@ -49,7 +49,7 @@ export const pluginsData = dispatch => [
     isVisible: true,
     onCheck: async () => {
       try {
-        const result = await dispatch(pingIntegrationThunk("SERVERENDPOINT")).unwrap()
+        const result = await pingFn("SERVERENDPOINT")
         return {
           status: result.status || "success",
           message: result.message || "Server-to-Server connection verified",
@@ -76,11 +76,22 @@ export const pluginsData = dispatch => [
     isVisible: true,
     icon: FaShopify, // or use any lucide icon you want
     message: "Easily publish product content and blog posts directly to Shopify.",
-    onCheck: async () => ({
-      status: 200,
-      message: "Temporary mock connection successful",
-      success: true,
-    }),
+    onCheck: async () => {
+      try {
+        const result = await pingFn("SHOPIFY")
+        return {
+          status: result.status || "success",
+          message: result.message || "Shopify connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Shopify Connection Error",
+          success: false,
+        }
+      }
+    },
   },
   {
     id: 114,
@@ -94,10 +105,50 @@ export const pluginsData = dispatch => [
     isVisible: false,
     icon: FaWix,
     message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
-    onCheck: async () => ({
-      status: 200,
-      message: "Temporary mock connection successful",
-      success: true,
-    }),
+    onCheck: async () => {
+      try {
+        const result = await pingFn("WIX")
+        return {
+          status: result.status || "success",
+          message: result.message || "Wix connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Wix Connection Error",
+          success: false,
+        }
+      }
+    },
+  },
+  {
+    id: 115,
+    pluginName: "Sanity CMS Integration",
+    name: "Sanity CMS",
+    pluginImage: "/Images/sanity.png",
+    description: "Connect your Sanity CMS project to GenWrite for automatic blog publishing.",
+    version: "1.0.0",
+    updatedDate: "Mar 2026",
+    downloadLink: "#",
+    isVisible: true,
+    icon: SiSanity,
+    message: "Push AI-generated blogs directly to your Sanity CMS using a Write Token.",
+    onCheck: async () => {
+      try {
+        const result = await pingFn("SANITY")
+        return {
+          status: result.status || "success",
+          message: result.message || "Sanity connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Sanity Connection Error",
+          success: false,
+        }
+      }
+    },
   },
 ]

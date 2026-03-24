@@ -1,13 +1,8 @@
 import { motion } from "framer-motion"
-import { Info, Crown, TagIcon, User, Calendar } from "lucide-react"
-import { Button, Input, message } from "antd"
-import { useState } from "react"
+import { Info, Crown, TagIcon } from "lucide-react"
 import { useAnimations } from "../hooks/useAnimations"
 import type { BlogInfoPanelProps } from "../types"
 
-/**
- * Blog Info Panel - Display and edit blog metadata like slug, template, category, etc.
- */
 const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
   blog,
   blogSlug,
@@ -21,15 +16,15 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
 
   const handleSlugSave = async () => {
     if (!blogSlug.trim()) {
-      return message.error("Slug cannot be empty")
+      return alert("Slug cannot be empty")
     }
     try {
       await onSlugSave(blogSlug)
       setIsEditingSlug(false)
-      message.success("Slug updated successfully")
+      alert("Slug updated successfully")
     } catch (error) {
       console.error("Failed to update slug:", error)
-      message.error("Failed to update slug")
+      alert("Failed to update slug")
     }
   }
 
@@ -42,9 +37,9 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="p-3 border-b bg-linear-to-r from-gray-50 to-blue-50">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
+          <div className="p-2 bg-linear-to-br from-blue-600 to-indigo-600 rounded-lg">
             <Info className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -73,16 +68,16 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
           </div>
           {isEditingSlug && !hasPublishedLinks ? (
             <div className="space-y-2">
-              <Input
-                size="small"
+              <input
+                type="text"
                 value={blogSlug}
                 onChange={e => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
-                className="text-sm font-mono"
+                className="input input-bordered input-sm w-full text-sm font-mono focus:outline-hidden"
               />
-              <Button size="small" type="primary" block onClick={handleSlugSave}>
+              <button onClick={handleSlugSave} className="btn btn-sm btn-primary w-full text-white">
                 Save Slug
-              </Button>
+              </button>
             </div>
           ) : (
             <div>
@@ -112,7 +107,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
         {(blog?.brandId || blog?.nameOfVoice) && (
           <motion.div
             variants={item}
-            className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg"
+            className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg"
           >
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-purple-600" />
@@ -221,9 +216,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
                   value && (
                     <div key={key} className="flex items-center gap-2 text-xs">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      <span className="text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
-                      </span>
+                      <span className=" capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
                     </div>
                   )
               )}

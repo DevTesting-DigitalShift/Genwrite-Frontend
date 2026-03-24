@@ -1,22 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
-import { useDispatch, useSelector } from "react-redux"
-import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
+import useBrandStore from "@store/useBrandStore"
+import { Info, Loader2, Trash, Upload, RefreshCcw, X } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { Modal, Tooltip, message, Button } from "antd"
-// import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchSiteInfo, resetSiteInfo } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
+import { toast } from "sonner"
 
 const BrandVoice = () => {
-  const user = useSelector(state => state.auth.user)
-  const dispatch = useDispatch()
-  // const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { siteInfo, fetchSiteInfo, resetSiteInfo } = useBrandStore()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
@@ -31,7 +29,6 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { siteInfo } = useSelector(state => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -47,7 +44,7 @@ const BrandVoice = () => {
     return <UpgradeModal featureName="Brand Voice" />
   }
 
-  const { brand: BrandVoice } = useEntityMutations()
+  const { brand: brandVoiceMutations } = useEntityMutations()
 
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
@@ -55,7 +52,7 @@ const BrandVoice = () => {
     if (!formData._id) {
       resetForm()
     }
-  }, [dispatch])
+  }, [])
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
@@ -97,8 +94,8 @@ const BrandVoice = () => {
     setLastScrapedUrl("")
     setIsFormReset(true)
     setShowAllKeywords(false)
-    dispatch(resetSiteInfo())
-  }, [brands])
+    resetSiteInfo()
+  }, [brands, resetSiteInfo])
 
   const validateForm = useCallback(() => {
     const newErrors = {}
@@ -165,10 +162,7 @@ const BrandVoice = () => {
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData(prev => ({
-          ...prev,
-          keywords: [...prev.keywords, ...newKeywords],
-        }))
+        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
         setInputValue("")
         setErrors(prev => ({ ...prev, keywords: undefined }))
         setIsFormReset(false)
@@ -178,10 +172,7 @@ const BrandVoice = () => {
   )
 
   const removeKeyword = useCallback(keyword => {
-    setFormData(prev => ({
-      ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword),
-    }))
+    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== keyword) }))
     setIsFormReset(false)
   }, [])
 
@@ -189,18 +180,18 @@ const BrandVoice = () => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
+      toast.error("Invalid file type. Please upload a .csv file.")
       event.target.value = null
       return
     }
     const maxSizeInBytes = 20 * 1024
     if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      toast.error("File size exceeds 20KB limit. Please upload a smaller file.")
       event.target.value = null
       return
     }
     if (file.type !== "text/csv") {
-      message.error("Please upload a valid CSV file.")
+      toast.error("Please upload a valid CSV file.")
       event.target.value = null
       return
     }
@@ -211,14 +202,11 @@ const BrandVoice = () => {
         .split(/,|\n|;/)
         .map(kw => kw.trim())
         .filter(kw => kw.length > 0)
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...new Set([...prev.keywords, ...keywords])],
-      }))
+      setFormData(prev => ({ ...prev, keywords: [...new Set([...prev.keywords, ...keywords])] }))
       setErrors(prev => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
-    reader.onerror = () => message.error("Error reading CSV file.")
+    reader.onerror = () => toast.error("Error reading CSV file.")
     reader.readAsText(file)
     event.target.value = null
   }, [])
@@ -241,16 +229,16 @@ const BrandVoice = () => {
     )
 
     if (isDuplicate) {
-      message.error("A brand voice already exists with that name and link.")
+      toast.error("A brand voice already exists with that name and link.")
       setIsUploading(false)
       return
     }
 
     try {
       if (formData._id) {
-        await BrandVoice.update.mutateAsync({ id: formData._id, data: payload })
+        await brandVoiceMutations.update.mutateAsync({ id: formData._id, data: payload })
       } else {
-        await BrandVoice.create.mutateAsync(payload)
+        await brandVoiceMutations.create.mutateAsync(payload)
       }
       resetForm()
       // queryClient.invalidateQueries(["brands"])
@@ -259,7 +247,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, dispatch, validateForm, resetForm, brands])
+  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations])
 
   const handleEdit = useCallback(brand => {
     setFormData({
@@ -290,25 +278,23 @@ const BrandVoice = () => {
         confirmText: "Delete",
         onConfirm: async () => {
           try {
-            await BrandVoice.delete.mutateAsync(brand._id)
+            await brandVoiceMutations.delete.mutateAsync(brand._id)
             if (formData?.selectedVoice?._id === brand._id) {
               resetForm()
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
-            message.error("Failed to delete Brand Voice")
+            toast.error("Failed to delete Brand Voice")
           }
         },
         confirmProps: {
           type: "text",
           className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
         },
-        cancelProps: {
-          danger: false,
-        },
+        cancelProps: { danger: false },
       })
     },
-    [dispatch, formData.selectedVoice, resetForm]
+    [brandVoiceMutations, formData.selectedVoice, resetForm]
   )
 
   const handleSelect = useCallback(voice => {
@@ -319,31 +305,27 @@ const BrandVoice = () => {
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors(prev => ({
-        ...prev,
-        postLink: "Post link is required to fetch site info.",
-      }))
+      setErrors(prev => ({ ...prev, postLink: "Post link is required to fetch site info." }))
       return
     }
     if (url === lastScrapedUrl) {
-      message.info("This URL has already been fetched.")
+      toast.info("This URL has already been fetched.")
       return
     }
     try {
       new URL(url)
-      dispatch(fetchSiteInfo(url))
-        .unwrap()
+      fetchSiteInfo(url)
         .then(() => {
           setIsFormReset(false)
         })
-        .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
+        .catch(() => toast.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setErrors(prev => ({
         ...prev,
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
     }
-  }, [formData.postLink, lastScrapedUrl, dispatch])
+  }, [formData.postLink, lastScrapedUrl])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])
@@ -397,7 +379,7 @@ const BrandVoice = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto"
+      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-2 sm:p-6 md:p-10 w-full mx-auto mb-20 md:mb-0"
     >
       <Helmet>
         <title>Brand Voice | GenWrite</title>
@@ -409,7 +391,7 @@ const BrandVoice = () => {
         animate={{ x: 0 }}
       >
         <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Create Your Brand Voice
           </h1>
         </div>
@@ -419,23 +401,16 @@ const BrandVoice = () => {
 
         <div className="space-y-4 sm:space-y-6">
           <div>
-            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="postLink" className="text-sm font-medium  flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
-              <Tooltip
-                title="Add a link of your home page to fetch site info"
-                styles={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "220px",
-                }}
+              <div
+                className="tooltip tooltip-right"
+                data-tip="Add a link of your home page to fetch site info"
               >
                 <span className="cursor-pointer">
                   <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
-              </Tooltip>
+              </div>
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
               <motion.input
@@ -445,24 +420,21 @@ const BrandVoice = () => {
                 value={formData.postLink}
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
-                className={`flex-grow p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
-                  errors.postLink ? "border-red-500" : "border-gray-300"
+                className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 flex-1 ${
+                  errors.postLink ? "input-error" : "focus:border-indigo-500"
                 }`}
                 whileFocus={{ scale: 1.01 }}
                 aria-invalid={!!errors.postLink}
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
-              <motion.button
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              <button
+                className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
                 onClick={handleFetchSiteInfo}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
                 disabled={
                   siteInfo.loading ||
                   (formData.postLink && formData.postLink === lastScrapedUrl) ||
                   showTrialMessage
                 }
-                aria-label="Fetch Site Info"
               >
                 {siteInfo.loading ? (
                   <span className="flex items-center gap-2">
@@ -472,7 +444,7 @@ const BrandVoice = () => {
                 ) : (
                   "Fetch Site Info"
                 )}
-              </motion.button>
+              </button>
             </div>
             {errors.postLink && (
               <p id="postLink-error" className="text-red-500 text-xs sm:text-sm mt-1">
@@ -482,10 +454,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="nameOfVoice"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="nameOfVoice" className="text-sm font-medium  flex gap-2 mb-1">
               Name of Voice <span className="text-red-500">*</span>
             </label>
             <motion.input
@@ -495,8 +464,8 @@ const BrandVoice = () => {
               value={formData.nameOfVoice}
               onChange={handleInputChange}
               placeholder="e.g., Friendly Tech"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
-                errors.nameOfVoice ? "border-red-500" : "border-gray-300"
+              className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
+                errors.nameOfVoice ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.nameOfVoice}
@@ -510,26 +479,19 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="keywords" className="text-sm font-medium  flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
-              <Tooltip
-                title="Upload a .csv file in the format: `Keyword` as header"
-                styles={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "220px",
-                }}
+              <div
+                className="tooltip tooltip-right"
+                data-tip="Upload a .csv file in the format: `Keyword` as header"
               >
                 <span className="cursor-pointer">
                   <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
-              </Tooltip>
+              </div>
             </label>
             <motion.div
-              className={`flex bg-white border rounded-lg p-2 sm:p-3 flex-col gap-2 ${
+              className={`flex bg-white border rounded-md p-3 flex-col gap-2 ${
                 errors.keywords ? "border-red-500" : "border-gray-300"
               }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
@@ -542,7 +504,7 @@ const BrandVoice = () => {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-grow bg-transparent border-none outline-none text-sm sm:text-base"
+                  className="grow bg-transparent border-none text-black outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
                   aria-describedby={errors.keywords ? "keywords-error" : undefined}
                 />
@@ -573,26 +535,16 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="sitemapUrl"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="sitemapUrl" className="text-sm font-medium  flex gap-2 mb-1">
               Sitemap URL <span className="text-red-500">*</span>
-              <Tooltip
-                title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
-                styles={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "320px",
-                }}
+              <div
+                className="tooltip tooltip-right"
+                data-tip="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
               >
                 <span className="cursor-pointer">
                   <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
-              </Tooltip>
+              </div>
             </label>
             <motion.input
               id="sitemapUrl"
@@ -601,8 +553,8 @@ const BrandVoice = () => {
               value={formData.sitemapUrl}
               onChange={handleInputChange}
               placeholder="e.g., https://example.com/sitemap.xml"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
-                errors.sitemapUrl ? "border-red-500" : "border-gray-300"
+              className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
+                errors.sitemapUrl ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.sitemapUrl}
@@ -616,10 +568,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="describeBrand"
-              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
-            >
+            <label htmlFor="describeBrand" className="text-sm font-medium  flex gap-2 mb-1">
               Describe Your Brand <span className="text-red-500">*</span>
             </label>
             <motion.textarea
@@ -628,8 +577,8 @@ const BrandVoice = () => {
               value={formData.describeBrand}
               onChange={handleInputChange}
               placeholder="Describe your brand's tone and personality"
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
-                errors.describeBrand ? "border-red-500" : "border-gray-300"
+              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
+                errors.describeBrand ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={4}
               whileFocus={{ scale: 1.01 }}
@@ -644,23 +593,16 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label htmlFor="persona" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+            <label htmlFor="persona" className="text-sm font-medium  flex gap-2 mb-1">
               Author Persona <span className="text-red-500">*</span>
-              <Tooltip
-                title="Describe the author's bio, writing style, tones (e.g., professional, casual), dialect preferences, target audiences, and brand identities. This helps generate content that resonates with your brand voice."
-                styles={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "320px",
-                }}
+              <div
+                className="tooltip tooltip-top"
+                data-tip="Describe the author's bio, writing style, tones (e.g., professional, casual), dialect preferences, target audiences, and brand identities. This helps generate content that resonates with your brand voice."
               >
                 <span className="cursor-pointer">
                   <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
-              </Tooltip>
+              </div>
             </label>
             <motion.textarea
               id="persona"
@@ -668,8 +610,8 @@ const BrandVoice = () => {
               value={formData.persona}
               onChange={handleInputChange}
               placeholder="e.g., A seasoned tech blogger with a friendly, conversational tone. Writes for developers and startup founders. Uses American English with occasional technical jargon."
-              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
-                errors.persona ? "border-red-500" : "border-gray-300"
+              className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
+                errors.persona ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={3}
               whileFocus={{ scale: 1.01 }}
@@ -683,18 +625,15 @@ const BrandVoice = () => {
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
-            <motion.button
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+          <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
+            <button
+              className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-2 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[11px] sm:text-base flex-1 sm:flex-none"
               onClick={handleSave}
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.98 }}
               disabled={isUploading || showTrialMessage}
-              aria-label={formData._id ? "Update Brand Voice" : "Save Brand Voice"}
             >
               {isUploading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" />
+                <span className="flex items-center justify-center gap-1 sm:gap-2">
+                  <Loader2 className="animate-spin w-3 h-3 sm:w-5 sm:h-5" />
                   Saving...
                 </span>
               ) : formData._id ? (
@@ -702,18 +641,15 @@ const BrandVoice = () => {
               ) : (
                 "Save Brand Voice"
               )}
-            </motion.button>
+            </button>
 
-            <motion.button
-              className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            <button
+              className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-base flex-none sm:flex-none"
               onClick={resetForm}
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.98 }}
               disabled={isUploading}
-              aria-label="Clear Form"
             >
               Clear
-            </motion.button>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -728,16 +664,12 @@ const BrandVoice = () => {
             Your Brand Voices
           </h2>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<RefreshCcw className="w-4 h-4" />}
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="text-xs sm:text-sm px-4 py-2"
-            />
+            <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCcw className="w-4 h-4" />
+            </button>
           </motion.div>
         </div>
-        <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">
+        <div className="space-y-3 overflow-y-auto max-h-screen sm:max-h-[calc(100vh-250px)]">
           {isLoading ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />

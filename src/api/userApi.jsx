@@ -44,3 +44,8 @@ export const updateEmailPreferencesAPI = async payload => {
   const response = await axiosInstance.put("/user/email-preferences", payload)
   return response.data
 }
+
+export const getSubscriptionStatusAPI = async () => {
+  const response = await axiosInstance.get("/user/sub-status")
+  return response.data
+}

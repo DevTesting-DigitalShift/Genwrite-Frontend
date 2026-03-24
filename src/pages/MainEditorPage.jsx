@@ -1,36 +1,45 @@
 import { useCallback, useEffect, useState, useRef } from "react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
+import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import {
-  createManualBlog,
-  fetchBlogById,
-  updateBlogById,
-  clearSelectedBlog,
-} from "../store/slices/blogSlice"
 import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { Button, message, Modal, Typography, Popover } from "antd"
+import { toast } from "sonner"
+import { Sparkles as SparklesIcon } from "lucide-react"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
-import { OpenAIFilled } from "@ant-design/icons"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
-import EditorVersionWrapper from "@/layout/TextEditor/EditorVersionWrapper"
+import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import "../layout/TextEditor/editor.css"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getBlogById, createSimpleBlog, updateBlog } from "@api/blogApi"
+import { TONES } from "@/data/blogData"
 
 const MainEditorPage = () => {
   const { id } = useParams()
-  const dispatch = useDispatch()
-  const blog = useSelector(state => state.blog.selectedBlog)
-  const { metadata } = useSelector(state => state.wordpress)
+  const queryClient = useQueryClient()
+
+  // Zustand Stores
+  const { user } = useAuthStore()
+  const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
+
+  // TanStack Query for fetching blog
+  const { data: fetchedBlog, isLoading: isBlogFetching } = useQuery({
+    queryKey: ["blog", id],
+    queryFn: () => getBlogById(id),
+    enabled: !!id,
+  })
+
+  const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
   const [activeTab, setActiveTab] = useState("Normal")
-  const [isLoading, setIsLoading] = useState(!!id)
+  // isLoading is now derived from isBlogFetching
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
   const [editorTitle, setEditorTitle] = useState("")
@@ -48,17 +57,15 @@ const MainEditorPage = () => {
   const [humanizePrompt, setHumanizePrompt] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
-  const user = useSelector(state => state.auth.user)
-  const userPlan = user?.plan ?? user?.subscription?.plan
+
   const navigate = useNavigate()
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [unsavedChanges, setUnsavedChanges] = useState(false)
-  const { Title } = Typography
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
-    tone: "Informative",
+    tone: TONES[0],
     focusKeywords: [],
     keywords: [],
     userDefinedLength: 1200,
@@ -88,16 +95,22 @@ const MainEditorPage = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [unsavedChanges])
 
+  // Block in-app React Router navigation (back button, links) when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      unsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  )
+
   useEffect(() => {
-    if (id) {
-      setIsLoading(true)
-      dispatch(fetchBlogById(id))
-        .unwrap()
-        .catch(() => message.error("Failed to load blog."))
-        .finally(() => setIsLoading(false))
-    } else {
+    if (fetchedBlog) {
+      setSelectedBlog(fetchedBlog)
+    }
+  }, [fetchedBlog, setSelectedBlog])
+
+  useEffect(() => {
+    if (!id) {
       // Clear selected blog when creating a new blog
-      dispatch(clearSelectedBlog())
+      clearBlogUI()
       // Clear editor state to prevent showing previous blog content
       setEditorContent("")
       setEditorTitle("")
@@ -105,7 +118,7 @@ const MainEditorPage = () => {
       setIsPosted(null)
       setFormData({ category: "", includeTableOfContents: false })
     }
-  }, [id, dispatch])
+  }, [id, clearBlogUI])
 
   useEffect(() => {
     if (blog && id) {
@@ -119,13 +132,8 @@ const MainEditorPage = () => {
         title: blog.title || "",
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
-      if (blog.textVersion) {
-        setEditorVersion(blog.textVersion)
-      }
     }
   }, [blog, id])
-
-  const [editorVersion, setEditorVersion] = useState(2) // Default to Section Editor (v2)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -139,7 +147,7 @@ const MainEditorPage = () => {
 
   const handleReplace = useCallback((original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
-      message.error("Invalid suggestion format.")
+      toast.error("Invalid suggestion format.")
       return
     }
 
@@ -160,25 +168,25 @@ const MainEditorPage = () => {
     setIsPosting(true)
 
     if (!editorTitle) {
-      message.error("Blog title is missing.")
+      toast.error("Blog title is missing.")
       setIsPosting(false)
       return
     }
     if (!editorContent.trim()) {
-      message.error("Blog content is empty.")
+      toast.error("Blog content is empty.")
       setIsPosting(false)
       return
     }
     if (!postData.categories) {
       // 🔄 changed from categories → category
-      message.error("Please select a category.")
+      toast.error("Please select a category.")
       setIsPosting(false)
       return
     }
 
     const selectedCategory = postData.categories || formData.categories
     if (!selectedCategory) {
-      message.error("Please select a category.")
+      toast.error("Please select a category.")
       setIsPosting(false)
       return
     }
@@ -198,11 +206,11 @@ const MainEditorPage = () => {
 
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
       setIsPosted(prev => ({ ...(prev || {}), [postData.type.platform]: postedData }))
-      message.success(
+      toast.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )
     } catch (error) {
-      message.error(
+      toast.error(
         error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
       )
     } finally {
@@ -222,82 +230,81 @@ const MainEditorPage = () => {
   }
 
   const handleSave = async (updateData = {}) => {
-    const { metadata, slug, ...rest } = updateData
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
       return
     }
+    const { metadata: seoMetadata, slug, ...rest } = updateData
 
     if (!editorTitle.trim()) {
-      message.error("Blog title is required.")
+      toast.error("Blog title is required.")
       return
     }
 
     setIsSaving(true)
     try {
-      const response = await dispatch(
-        updateBlogById({
-          id: blog._id,
-          title: editorTitle,
-          content: editorContent,
-          published: blog?.published,
-          focusKeywords: blog?.focusKeywords,
-          keywords,
-          slug: slug !== undefined ? slug : blog?.slug,
-          seoMetadata: metadata
-            ? { title: metadata.title, description: metadata.description }
-            : blog?.seoMetadata || { title: "", description: "" },
-          ...rest,
-        })
-      ).unwrap()
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        slug: slug !== undefined ? slug : blog?.slug,
+        seoMetadata: seoMetadata
+          ? { title: seoMetadata.title, description: seoMetadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+        ...rest,
+      }
 
-      message.success("Blog updated successfully")
+      const response = await updateBlog(blog._id, payload)
+
+      toast.success("Blog updated successfully")
       setUnsavedChanges(false) // Reset unsavedChanges after save
 
-      setIsLoading(true)
-      setTimeout(() => {
-        dispatch(fetchBlogById(id))
-          .unwrap()
-          .finally(() => setIsLoading(false))
-      }, 2000)
+      // Refresh query data
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
 
       return response
     } catch (error) {
       console.error("Error updating the blog:", error)
-      message.error("Failed to save blog.")
+      toast.error("Failed to save blog.")
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleOptimizeSave = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     setIsSaving(true)
     try {
-      await dispatch(
-        updateBlogById({
-          id: blog._id,
-          title: editorTitle,
-          content: editorContent,
-          published: blog?.published,
-          focusKeywords: blog?.focusKeywords,
-          keywords,
-          seoMetadata: metadata
-            ? { title: metadata.title, description: metadata.description }
-            : blog?.seoMetadata || { title: "", description: "" },
-        })
-      ).unwrap()
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        seoMetadata: metadata
+          ? { title: metadata.title, description: metadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+      }
+      await updateBlog(blog._id, payload)
       const res = await sendRetryLines(blog._id)
       if (res.data) {
         setSaveContent(res.data)
         setSaveModalOpen(true)
-        message.success("Review the suggested content.")
+        toast.success("Review the suggested content.")
       } else {
-        message.error("No content received from retry.")
+        toast.error("No content received from retry.")
       }
       setUnsavedChanges(false) // Reset unsavedChanges after save
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
     } catch (error) {
       console.error("Error updating the blog:", error)
-      message.error("Failed to save blog.")
+      toast.error("Failed to save blog.")
     } finally {
       setIsSaving(false)
     }
@@ -306,7 +313,7 @@ const MainEditorPage = () => {
   const handleAcceptSave = () => {
     if (saveContent) {
       setEditorContent(saveContent)
-      message.success("Content updated successfully!")
+      toast.success("Content updated successfully!")
     }
     setSaveModalOpen(false)
     setSaveContent(null)
@@ -315,7 +322,7 @@ const MainEditorPage = () => {
   const handleRejectSave = () => {
     setSaveModalOpen(false)
     setSaveContent(null)
-    message.info("Changes discarded.")
+    toast.info("Changes discarded.")
   }
 
   const tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
@@ -324,7 +331,6 @@ const MainEditorPage = () => {
     const isEmpty =
       !templateFormData.title?.trim() ||
       !templateFormData.topic?.trim() ||
-      !templateFormData.tone?.trim() ||
       !templateFormData.template ||
       !templateFormData.userDefinedLength ||
       templateFormData.userDefinedLength <= 0 ||
@@ -333,7 +339,7 @@ const MainEditorPage = () => {
       !templateFormData.keywords ||
       templateFormData.keywords.length === 0
 
-    if (isEmpty && !id) navigate("/toolbox")
+    if (isEmpty && !id) navigate("/blogs")
     setShowTemplateModal(false)
   }
 
@@ -354,7 +360,6 @@ const MainEditorPage = () => {
     const newErrors = {}
     if (!blogData.title) newErrors.title = true
     if (!blogData.topic) newErrors.topic = true
-    if (!blogData.tone) newErrors.tone = true
     if (!blogData.template) newErrors.template = true
     if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
       newErrors.userDefinedLength = true
@@ -364,27 +369,30 @@ const MainEditorPage = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(prev => ({ ...prev, ...newErrors }))
-      message.error("Please fill all required fields correctly.")
       return
     }
 
     try {
-      const res = await dispatch(createManualBlog({ blogData, user })).unwrap()
+      const res = await createSimpleBlog(blogData)
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
       console.error("Failed to create blog:", err)
-      message.error(err?.message || "Failed to create blog")
+      toast.error(err?.message || "Failed to create blog")
     }
   }
 
   const handleTitleChange = e => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
     const newTitle = e.target.value
     if (getWordCount(newTitle) <= 60) {
       setEditorTitle(newTitle)
       setFormData(prev => ({ ...prev, title: newTitle }))
     } else {
-      message.error("Title exceeds 60 words.")
+      toast.error("Title exceeds 60 words.")
     }
   }
 
@@ -399,17 +407,17 @@ const MainEditorPage = () => {
   const handleAcceptHumanizedContent = useCallback(() => {
     setEditorContent(humanizedContent)
     setIsHumanizeModalOpen(false)
-    message.success("Humanized content applied successfully!")
+    toast.success("Humanized content applied successfully!")
   }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen])
 
   const handleAcceptOriginalContent = useCallback(() => {
     setIsHumanizeModalOpen(false)
-    message.info("Retained original content.")
+    toast.info("Retained original content.")
   }, [setIsHumanizeModalOpen])
 
-  if (isLoading || isPosting || blog?.status === "pending") {
+  if (isBlogFetching || isPosting || blog?.status === "pending") {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
+      <div className="fixed inset-0 z-999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
         <LoadingScreen />
       </div>
     )
@@ -420,76 +428,150 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div
-        className={`flex flex-col max-h-screen overflow-y-hidden ${
-          showTemplateModal ? "blur-sm" : ""
-        }`}
-      >
-        <Modal
-          open={saveModalOpen}
-          centered
-          footer={[
-            <div className="flex justify-end gap-3 w-full" key="footer">
-              <Button
-                key="reject"
-                onClick={handleRejectSave}
-                className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md"
-              >
-                Reject
-              </Button>
-              <Button
-                key="accept"
-                type="primary"
-                onClick={handleAcceptSave}
-                className="px-3 sm:px-4 py-2 rounded-md"
-              >
-                Accept
-              </Button>
-            </div>,
-          ]}
-          onCancel={handleRejectSave}
-          width="100%"
-          className="rounded-lg max-w-[600px] sm:max-w-[700px] md:max-w-[800px]"
-        >
-          <div className="flex flex-col gap-4">
-            <Title level={3} className="text-lg ml-5 sm:text-xl !mb-0 text-gray-800">
-              Suggested Content
-            </Title>
 
-            <div className="p-5 custom-scroll border border-gray-200 rounded-lg shadow-inner max-h-[70vh] overflow-y-auto prose prose-sm sm:prose-base leading-relaxed text-gray-700">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                components={{
-                  a: ({ href, children }) => (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 font-medium hover:underline"
-                    >
-                      {children}
-                    </a>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="font-semibold text-gray-900">{children}</strong>
-                  ),
-                  p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                }}
+      {/* Unsaved Changes Confirmation Modal */}
+      {blocker.state === "blocked" && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => blocker.reset()}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm mx-4">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center">
+                <Save className="w-7 h-7 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900 mb-1">Unsaved Changes</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  You have unsaved changes that will be lost if you leave. Do you want to save
+                  before leaving?
+                </p>
+              </div>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
+                  onClick={() => blocker.proceed()}
+                >
+                  Leave Anyway
+                </button>
+                <button
+                  className="flex-1 py-2.5 rounded-lg bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-semibold text-sm"
+                  onClick={async () => {
+                    await handleSave({})
+                    blocker.proceed()
+                  }}
+                >
+                  Save & Leave
+                </button>
+              </div>
+              <button
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => blocker.reset()}
               >
-                {saveContent}
-              </ReactMarkdown>
+                Stay on page
+              </button>
             </div>
           </div>
-        </Modal>
+        </div>
+      )}
 
-        <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
+      <div className="flex flex-col max-h-screen overflow-y-hidden">
+        {saveModalOpen && (
+          <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleRejectSave}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+            >
+              <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <SparklesIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">AI Suggestions</h3>
+                    <p className="text-blue-100 text-sm opacity-80">
+                      Optimized content recommendation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRejectSave}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scroll">
+                <div className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-600 prose-p:leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-bold hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-black text-slate-900">{children}</strong>
+                      ),
+                      p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                      li: ({ children }) => <li className="mb-2">{children}</li>,
+                    }}
+                  >
+                    {saveContent}
+                  </ReactMarkdown>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={handleRejectSave}
+                  className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  onClick={handleAcceptSave}
+                  className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Apply Suggestions
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
+            {blog?.isArchived && (
+              <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center justify-center gap-2 text-amber-800">
+                <Info className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  This blog is archived. Please restore it to make changes.
+                </span>
+              </div>
+            )}
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 mt-5 lg:mt-0 w-full">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                     <FileText className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
                   </div>
                   <div className="flex-1">
@@ -510,14 +592,16 @@ const MainEditorPage = () => {
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
+                      blog?.isArchived ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
+                        : "bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
                     }`}
                     disabled={
                       isSaving ||
+                      blog?.isArchived ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -560,37 +644,30 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px] custom-scroll">
-              {isLoading ? (
+            <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
+              {isBlogFetching ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
               ) : (
-                <EditorVersionWrapper
-                  // Controlled version state
-                  currentVersion={editorVersion}
-                  onVersionChange={setEditorVersion}
-                  // Original props
-                  textVersion={blog?.textVersion || 2}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
+                <TipTapEditor
                   blog={blog}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
                   content={editorContent}
                   setContent={setEditorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
                   title={editorTitle}
                   setTitle={setEditorTitle}
-                  isSavingKeyword={isSaving}
                   handleSubmit={handleSave}
-                  className="w-full"
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  isSavingKeyword={isSaving}
                   humanizedContent={humanizedContent}
                   showDiff={isHumanizeModalOpen}
                   handleAcceptHumanizedContent={handleAcceptHumanizedContent}
                   handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  editorContent={editorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
                   wordpressMetadata={metadata}
                   onReplaceReady={handleReplaceReady}
                 />
@@ -599,7 +676,7 @@ const MainEditorPage = () => {
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
-              activeEditorVersion={editorVersion}
+              activeEditorVersion={1} // Hardcoded to TipTap
               blog={blog}
               keywords={keywords}
               setKeywords={setKeywords}
@@ -636,7 +713,7 @@ const MainEditorPage = () => {
                 className="fixed inset-y-0 right-0 w-4/5 max-w-xs bg-white shadow-lg z-50 overflow-y-auto md:hidden"
               >
                 <TextEditorSidebar
-                  activeEditorVersion={editorVersion}
+                  activeEditorVersion={1} // Hardcoded to TipTap
                   blog={blog}
                   keywords={keywords}
                   setKeywords={setKeywords}
@@ -666,18 +743,18 @@ const MainEditorPage = () => {
             )}
           </AnimatePresence>
         </div>
-
-        <TemplateModal
-          closeFnc={handleTemplateModalClose}
-          isOpen={showTemplateModal}
-          handleSubmit={handleSubmit}
-          errors={errors}
-          setErrors={setErrors}
-          formData={templateFormData}
-          setFormData={setTemplateFormData}
-          className="w-full max-w-lg"
-        />
       </div>
+
+      <TemplateModal
+        closeFnc={handleTemplateModalClose}
+        isOpen={showTemplateModal}
+        handleSubmit={handleSubmit}
+        errors={errors}
+        setErrors={setErrors}
+        formData={templateFormData}
+        setFormData={setTemplateFormData}
+        className="w-full max-w-lg"
+      />
     </>
   )
 }

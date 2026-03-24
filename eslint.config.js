@@ -4,9 +4,7 @@ import tseslint from "@typescript-eslint/eslint-plugin"
 import tsParser from "@typescript-eslint/parser"
 
 export default [
-  {
-    ignores: ["dist", "node_modules"],
-  },
+  { ignores: ["dist", "node_modules"] },
 
   // ============================
   // JS / JSX (NO TS PARSER)
@@ -38,14 +36,9 @@ export default [
       parser: tsParser,
       ecmaVersion: "latest",
       sourceType: "module",
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
+      globals: { ...globals.browser, ...globals.node },
     },
-    plugins: {
-      "@typescript-eslint": tseslint,
-    },
+    plugins: { "@typescript-eslint": tseslint },
     rules: {
       ...js.configs.recommended.rules,
       ...tseslint.configs.recommended.rules,
@@ -54,7 +47,7 @@ export default [
       "no-undef": "off",
 
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 
@@ -63,17 +56,8 @@ export default [
   // ============================
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        project: "./tsconfig.json",
-      },
-    },
-    plugins: {
-      "@typescript-eslint": tseslint,
-    },
-    rules: {
-      "@typescript-eslint/no-floating-promises": "warn",
-    },
+    languageOptions: { parser: tsParser, parserOptions: { project: "./tsconfig.json" } },
+    plugins: { "@typescript-eslint": tseslint },
+    rules: { "@typescript-eslint/no-floating-promises": "warn" },
   },
 ]

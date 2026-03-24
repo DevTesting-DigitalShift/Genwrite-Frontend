@@ -83,12 +83,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
     const element = document.querySelector(step.target)
     if (element) {
       const rect = element.getBoundingClientRect()
-      setTargetRect({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height,
-      })
+      setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
     } else {
       setTargetRect(null)
     }
@@ -136,11 +131,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
 
   const getTooltipPosition = () => {
     if (!targetRect) {
-      return {
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-      }
+      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
     }
 
     const step = steps[currentStep]
@@ -235,8 +226,8 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
                     ${targetRect.left - 8}px ${targetRect.top - 8}px, 
                     ${targetRect.left + targetRect.width + 8}px ${targetRect.top - 8}px, 
                     ${targetRect.left + targetRect.width + 8}px ${
-                    targetRect.top + targetRect.height + 8
-                  }px, 
+                      targetRect.top + targetRect.height + 8
+                    }px, 
                     ${targetRect.left - 8}px ${targetRect.top + targetRect.height + 8}px, 
                     ${targetRect.left - 8}px 100%, 
                     100% 100%, 
@@ -288,15 +279,8 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
           {/* Pulsing pointer for click instruction */}
           {waitingForUserAction && targetRect && (
             <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
               className="fixed z-[9999] pointer-events-none"
               style={{
                 top: `${targetRect.top + targetRect.height / 2 - 16}px`,
@@ -379,7 +363,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
               <div className="flex items-center justify-between">
                 <button
                   onClick={handleSkip}
-                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-sm text-gray-500 hover: transition-colors"
                 >
                   Skip Tour
                 </button>
@@ -388,7 +372,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
                   {currentStep > 0 && (
                     <button
                       onClick={handleBack}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
+                      className="px-4 py-2 text-sm font-medium  hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Back

@@ -1,21 +1,19 @@
-import { fetchGscAuthUrl } from "@store/slices/gscSlice"
-import { Button, message } from "antd"
-import { Flex } from "antd"
+import useGscStore from "@store/useGscStore"
+import { toast } from "sonner"
 import { LogIn } from "lucide-react"
 import { useCallback, useState } from "react"
 import { FcGoogle } from "react-icons/fc"
-import { useDispatch } from "react-redux"
 
 const GSCLogin = () => {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState(null)
-  const dispatch = useDispatch()
+  const { fetchGscAuthUrl } = useGscStore()
 
   // Connect to Google Search Console
   const connectGSC = useCallback(async () => {
     try {
       setIsConnecting(true)
-      const authUrl = await dispatch(fetchGscAuthUrl()).unwrap()
+      const authUrl = await fetchGscAuthUrl()
       const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
@@ -33,11 +31,11 @@ const GSCLogin = () => {
         if (event.origin !== expectedOrigin) return
         const status = event.data || {}
         if (status === "GSC Connected") {
-          message.success("Google Search Console connected!")
+          toast.success("Google Search Console connected!")
           clearInterval(popupCheck) // ✅ stop checking
           window.location.reload()
         } else {
-          message.error(status || "Authentication failed")
+          toast.error(status || "Authentication failed")
           setError(status || "Authentication failed")
         }
         window.removeEventListener("message", handleMessage)
@@ -45,14 +43,14 @@ const GSCLogin = () => {
 
       window.addEventListener("message", handleMessage)
     } catch (err) {
-      message.error(err.message || "Failed to connect to Google Search Console")
+      toast.error(err.message || "Failed to connect to Google Search Console")
       setError(err.message || "Connection failed")
       setIsConnecting(false)
     }
-  }, [dispatch])
+  }, [fetchGscAuthUrl])
 
   return (
-    <Flex align="center" justify="center" className="h-[80vh] p-6">
+    <div className="flex items-center justify-center h-[80vh] p-6">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center border border-gray-200">
         <FcGoogle size={48} className="mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Connect Google Search Console</h2>
@@ -60,18 +58,44 @@ const GSCLogin = () => {
           Link your Google Search Console account to view performance data.
         </p>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
-        <Button
+        <button
           onClick={connectGSC}
           disabled={isConnecting}
-          icon={<LogIn className="!size-5 mr-2" />}
-          type="primary"
-          loading={isConnecting}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:!bg-gradient-to-l rounded-lg h-12 text-lg font-medium tracking-wider"
+          className="btn w-full bg-linear-to-r from-blue-600 to-purple-600 hover:opacity-90 border-none rounded-lg h-12 text-base font-medium tracking-wider text-white flex items-center justify-center gap-2 disabled:opacity-70"
         >
-          {isConnecting ? "Connecting..." : "Connect GSC"}
-        </Button>
+          {isConnecting ? (
+            <>
+              <svg
+                className="w-4 h-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              Connecting...
+            </>
+          ) : (
+            <>
+              <LogIn className="size-5" />
+              Connect GSC
+            </>
+          )}
+        </button>
       </div>
-    </Flex>
+    </div>
   )
 }
 

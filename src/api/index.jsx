@@ -1,11 +1,10 @@
 import axios from "axios"
+import { toast } from "sonner"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`, // Replace with your API base URL
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 })
 
 // Add request interceptor
@@ -32,15 +31,22 @@ axiosInstance.interceptors.response.use(
     return response
   },
   error => {
-    // Only delete token for errors except 404
-    if (status && status !== 404 && status >= 400 && status < 600) {
+    const status = error.response ? error.response.status : null
+
+    // Only delete token for 401 Unauthorized
+    if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
-      //reset Redux auth state
-      store.dispatch(logout())
+      // Use sonner toast
+      toast.error("Session expired. Please login again.")
 
-      window.location.href = "/login"
+      // Redirect to login handled below
+      if (window.location.pathname !== "/login") {
+        setTimeout(() => {
+          window.location.href = "/login"
+        }, 1500)
+      }
     }
 
     return Promise.reject(error)

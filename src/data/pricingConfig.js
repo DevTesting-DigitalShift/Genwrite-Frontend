@@ -12,13 +12,16 @@ export const pricingConfig = {
     internalLinking: { label: "Internal Linking", cost: 10 },
     faqGeneration: { label: "FAQ Generation", cost: 10 },
     automaticPosting: { label: "Automatic Posting", cost: 10 },
+    humanisation: { label: "AI Humanisation", cost: 20 },
+    extendedThinking: { label: "Extended Thinking", cost: 15 },
+    deepResearch: { label: "Deep Research", cost: 15 },
   },
   images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
   aiModels: {
     gemini: { label: "Gemini", costMultiplier: 1 },
-    openai: { label: "ChatGPT", costMultiplier: 1.5 },
-    chatgpt: { label: "ChatGPT", costMultiplier: 1.5 },
-    claude: { label: "Claude", costMultiplier: 2 },
+    openai: { label: "ChatGPT", costMultiplier: 1.25 },
+    chatgpt: { label: "ChatGPT", costMultiplier: 1.25 },
+    claude: { label: "Claude", costMultiplier: 1.5 },
   },
 }
 
@@ -77,6 +80,15 @@ export function computeCost({
   if (options.automaticPosting || features.includes("automaticPosting")) {
     totalCost += pricingConfig.features.automaticPosting.cost
   }
+  if (options.humanisation || features.includes("humanisation")) {
+    totalCost += pricingConfig.features.humanisation.cost
+  }
+  if (options.extendedThinking || features.includes("extendedThinking")) {
+    totalCost += pricingConfig.features.extendedThinking.cost
+  }
+  if (options.deepResearch || features.includes("deepResearch")) {
+    totalCost += pricingConfig.features.deepResearch.cost
+  }
 
   // 4. Image Costs
   if (includeImages) {
@@ -95,7 +107,7 @@ export function computeCost({
   }
 
   // 5. Cost cutter toggle
-  if (costCutter) totalCost = Math.round(totalCost * 0.75)
+  if (costCutter) totalCost = Math.round(totalCost * 0.5)
 
   return Math.ceil(totalCost)
 }

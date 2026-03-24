@@ -1,44 +1,62 @@
-import { Suspense, useEffect } from "react"
-import { Outlet } from "react-router-dom"
+import { useEffect } from "react"
+import { Outlet, useLocation } from "react-router-dom"
 import { Helmet } from "react-helmet"
-import LoadingScreen from "@components/UI/LoadingScreen"
-import { message } from "antd"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { LoadingProvider, useLoading } from "@/context/LoadingContext"
+import { toast } from "sonner"
+import useToolsStore from "@store/useToolsStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { Elements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
 
 const AppContent = () => {
   const { isLoading, loadingMessage } = useLoading()
+  const location = useLocation()
 
-  // Show desktop warning on mobile devices
   useEffect(() => {
     const hasShown = sessionStorage.getItem("desktopWarningShown")
     if (window.innerWidth < 1024 && !hasShown) {
-      message.warning("For the best experience, please use desktop view.", 5)
+      toast.warning("For the best experience, please use desktop view.")
       sessionStorage.setItem("desktopWarningShown", "true")
     }
   }, [])
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    
+    // Reset stores when navigating to main pages (dashboard, blogs, etc.)
+    const mainPages = ["/dashboard", "/blogs", "/profile", "/pricing"]
+    if (mainPages.includes(location.pathname)) {
+      useToolsStore.getState().resetAllTools()
+      useAnalysisStore.getState().clearSelectedKeywords()
+    }
+  }, [location.pathname])
+
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <>
       <Helmet>
         <title>GenWrite</title>
       </Helmet>
 
-      {/* Show loading screen from LoadingContext */}
       {isLoading && <LoadingScreen message={loadingMessage} />}
 
       <Outlet />
-    </Suspense>
+    </>
   )
 }
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
 const App = () => {
   return (
-    <LoadingProvider>
-      <ConfirmPopupProvider>
-        <AppContent />
-      </ConfirmPopupProvider>
-    </LoadingProvider>
+    <Elements stripe={stripePromise}>
+      <LoadingProvider>
+        <ConfirmPopupProvider>
+          <AppContent />
+        </ConfirmPopupProvider>
+      </LoadingProvider>
+    </Elements>
   )
 }
 

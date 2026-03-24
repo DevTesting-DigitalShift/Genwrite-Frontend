@@ -1,6 +1,5 @@
 import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
-import { message } from "antd"
 
 export const createQuickBlog = async (blogData, type) => {
   try {
@@ -171,6 +170,15 @@ export const restoreBlogById = async id => {
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to restore blog")
+  }
+}
+
+export const restoreAllBlogs = async () => {
+  try {
+    const response = await axiosInstance.patch("/blogs/restore")
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to restore blogs")
   }
 }
 

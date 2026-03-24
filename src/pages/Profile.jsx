@@ -1,23 +1,38 @@
 import React, { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  CreditCardIcon,
-  BanknotesIcon,
-  CheckIcon,
-  ShieldCheckIcon,
-  LockClosedIcon,
-  UserGroupIcon,
-  EnvelopeIcon,
-  ShareIcon,
-  ClipboardDocumentIcon,
-  ArrowPathIcon,
-} from "@heroicons/react/24/solid"
-import { useSelector, useDispatch } from "react-redux"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
-import { DatePicker, message, Select, Tag, Tooltip, Switch } from "antd"
+  CreditCard,
+  Check,
+  ShieldCheck,
+  Lock,
+  Users,
+  Mail,
+  Share2,
+  Copy,
+  User,
+  Phone,
+  Briefcase,
+  Building2,
+  CalendarIcon,
+  Heart,
+  Camera,
+  ChevronRight,
+  Info,
+  Type,
+  Layout,
+  Clock,
+  Coins,
+  Minus,
+  X,
+  Crown,
+} from "lucide-react"
+import { Calendar } from "@components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
+import isEqual from "lodash-es/isEqual"
+import useAuthStore from "@store/useAuthStore"
+import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
-import { updateProfile } from "@store/slices/userSlice"
 import PasswordModal from "@components/PasswordModal"
 import {
   updatePasswordAPI,
@@ -25,68 +40,65 @@ import {
   generateReferralCodeAPI,
   getEmailPreferencesAPI,
   updateEmailPreferencesAPI,
+  getSubscriptionStatusAPI,
 } from "@api/userApi"
-
-const DEMO_PROFILE = {
-  profilePicture: "",
-  personalDetails: {
-    name: "eg : Siva Dheeraj",
-    email: "eg : sivadheeraj@example.com",
-    phone: "eg : +91 9990292929",
-    bio: "eg : Lead Product Designer",
-    jobTitle: "eg : Senior UX Engineer",
-    company: "eg : Tech Innovators Inc",
-    dob: "eg : 1990-05-15",
-    interests: ["technology", "art"],
-  },
-}
+import { toast } from "sonner"
+import { Switch } from "@components/ui/switch"
 
 const INTEREST_OPTIONS = [
-  { value: "technology", label: "Technology", color: "#1890ff" },
-  { value: "sports", label: "Sports", color: "#52c41a" },
-  { value: "music", label: "Music", color: "#722ed1" },
-  { value: "art", label: "Art", color: "#eb2f96" },
-  { value: "other", label: "Other", color: "#fa8c16" },
+  { value: "technology", label: "Technology" },
+  { value: "sports", label: "Sports" },
+  { value: "music", label: "Music" },
+  { value: "art", label: "Art" },
+  { value: "other", label: "Other" },
 ]
 
-const PLAN_COLORS = {
-  free: "from-gray-500 to-gray-600",
-  basic: "from-blue-500 to-blue-600",
-  pro: "from-purple-500 to-purple-600",
-  enterprise: "from-yellow-500 to-yellow-600",
-}
-
-const STATUS_COLORS = {
-  active: "bg-green-500",
-  canceled: "bg-red-500",
-  past_due: "bg-orange-500",
-  unpaid: "bg-red-600",
+const SUBSCRIPTION_STATUS_CONFIG = {
+  active: { label: "Active", className: "bg-green-500 text-white" },
+  trialing: { label: "Trial", className: "bg-blue-500 text-white" },
+  unpaid: { label: "Unpaid", className: "bg-rose-500 text-white" },
+  canceled: { label: "Cancelled", className: "bg-slate-400 text-white" },
+  past_due: { label: "Past Due", className: "bg-amber-500 text-white" },
 }
 
 const Profile = () => {
-  const [profileData, setProfileData] = useState(DEMO_PROFILE)
-  const { user } = useSelector(state => state.auth)
-  const dispatch = useDispatch()
+  const { user, loadAuthenticatedUser } = useAuthStore()
+  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
+
+  const [profileData, setProfileData] = useState({
+    profilePicture: "",
+    personalDetails: {
+      name: "",
+      email: "",
+      phone: "",
+      bio: "",
+      jobTitle: "",
+      company: "",
+      dob: "",
+      interests: [],
+    },
+    subscription: { plan: "free", status: "active" },
+    emailVerified: false,
+  })
+  const [initialProfileData, setInitialProfileData] = useState(null)
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
   const [referralStats, setReferralStats] = useState({ totalJoined: 0, converted: 0 })
+  const [referralCode, setReferralCode] = useState("")
   const [emailPreferences, setEmailPreferences] = useState({
     promotionalEmails: false,
     newFeatureUpdates: false,
     accountAlerts: false,
   })
-  const [referralCode, setReferralCode] = useState("")
+  const [subscriptionDetails, setSubscriptionDetails] = useState(null)
 
   useEffect(() => {
-    dispatch(loadAuthenticatedUser())
-  }, [dispatch])
-
-  const totalCredits = (user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)
+    loadAuthenticatedUser()
+  }, [loadAuthenticatedUser])
 
   useEffect(() => {
     if (!user) return
-
-    setProfileData(prev => ({
-      profilePicture: user.avatar || prev.profilePicture,
+    const data = {
+      profilePicture: user.avatar || "",
       personalDetails: {
         name: user.name || "",
         email: user.email || "",
@@ -94,7 +106,7 @@ const Profile = () => {
         bio: user.bio || "",
         jobTitle: user.jobTitle || "",
         company: user.company || "",
-        dob: user.dob || "",
+        dob: user.dob ? dayjs(user.dob).format("YYYY-MM-DD") : "",
         interests: user.interests || ["other"],
       },
       subscription: {
@@ -102,64 +114,64 @@ const Profile = () => {
         status: user.subscription?.status || "active",
       },
       emailVerified: user.emailVerified || false,
-    }))
-
-    if (user.referral?.referralId) {
-      setReferralCode(user.referral.referralId)
     }
+    setProfileData(data)
+    setInitialProfileData(data)
+    if (user.referral?.referralId) setReferralCode(user.referral.referralId)
   }, [user])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, prefsRes] = await Promise.all([
+        const [statsRes, prefsRes, subRes] = await Promise.all([
           getReferralStatsAPI(),
           getEmailPreferencesAPI(),
+          getSubscriptionStatusAPI(),
         ])
         setReferralStats(statsRes)
-        if (prefsRes.emailPreference) {
+        if (prefsRes.emailPreference)
           setEmailPreferences(prev => ({ ...prev, ...prefsRes.emailPreference }))
-        }
+        if (subRes) setSubscriptionDetails(subRes)
       } catch (error) {
-        console.error("Failed to fetch additional profile data", error)
+        console.error(error)
       }
     }
-
-    if (user) {
-      fetchData()
-    }
+    if (user) fetchData()
   }, [user])
 
   const handleSave = async () => {
-    const payload = {
-      avatar: profileData.profilePicture,
-      name: profileData.personalDetails.name,
-      bio: profileData.personalDetails.bio,
-      email: profileData.personalDetails.email,
-      phone: profileData.personalDetails.phone,
-      jobTitle: profileData.personalDetails.jobTitle,
-      company: profileData.personalDetails.company,
-      dob: profileData.personalDetails.dob,
-      interests: profileData.personalDetails.interests,
+    if (!initialProfileData) return
+    const changes = {}
+    if (profileData.profilePicture !== initialProfileData.profilePicture)
+      changes.avatar = profileData.profilePicture
+    const pd = profileData.personalDetails,
+      ipd = initialProfileData.personalDetails
+    if (pd.name !== ipd.name) changes.name = pd.name
+    if (pd.bio !== ipd.bio) changes.bio = pd.bio
+    if (pd.phone !== ipd.phone) changes.phone = pd.phone
+    if (pd.jobTitle !== ipd.jobTitle) changes.jobTitle = pd.jobTitle
+    if (pd.company !== ipd.company) changes.company = pd.company
+    if (pd.dob !== ipd.dob) changes.dob = pd.dob
+    if (!isEqual(pd.interests, ipd.interests)) changes.interests = pd.interests
+
+    if (Object.keys(changes).length === 0) {
+      toast.info("No changes detected")
+      return
     }
 
     try {
-      await dispatch(updateProfile(payload)).unwrap()
-      message.success("Profile updated successfully!")
+      await updateProfileMutate(changes)
+      toast.success("Profile synchronized successfully!")
+      setInitialProfileData(profileData)
     } catch (err) {
-      message.error("Error updating profile, try again")
+      toast.error("Update failed. Try again.")
     }
   }
 
   const handleInputChange = e => {
     const { name, value } = e.target
-
     if (name === "personalDetails.phone") {
-      const numericValue = value.replace(/[^0-9]/g, "")
-      if (numericValue.length > 15) {
-        message.error("Phone number cannot exceed 15 digits.")
-        return
-      }
+      const numericValue = value.replace(/[^0-9]/g, "").slice(0, 15)
       setProfileData(prev => ({
         ...prev,
         personalDetails: { ...prev.personalDetails, phone: numericValue },
@@ -172,11 +184,12 @@ const Profile = () => {
     }
   }
 
-  const handleInterestsChange = selectedInterests => {
-    setProfileData(prev => ({
-      ...prev,
-      personalDetails: { ...prev.personalDetails, interests: selectedInterests },
-    }))
+  const toggleInterest = val => {
+    setProfileData(prev => {
+      const current = prev.personalDetails.interests
+      const updated = current.includes(val) ? current.filter(i => i !== val) : [...current, val]
+      return { ...prev, personalDetails: { ...prev.personalDetails, interests: updated } }
+    })
   }
 
   const handlePasswordSubmit = async values => {
@@ -184,15 +197,10 @@ const Profile = () => {
       const payload = user?.hasPassword
         ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
         : { newPassword: values.newPassword }
-
-      const response = await updatePasswordAPI(payload)
-
-      if (!response.success) {
-        throw new Error(response.message || "Failed to update password")
-      }
-
-      // Reload user data to update hasPassword status
-      dispatch(loadAuthenticatedUser())
+      const res = await updatePasswordAPI(payload)
+      if (!res.success) throw new Error(res.message)
+      toast.success("Password updated successfully")
+      loadAuthenticatedUser()
     } catch (error) {
       throw error
     }
@@ -202,343 +210,434 @@ const Profile = () => {
     try {
       const res = await generateReferralCodeAPI()
       setReferralCode(res.referralId)
-      message.success("Referral code generated!")
-      // Update user in store to reflect new referral code
-      dispatch(loadAuthenticatedUser())
+      toast.success("Referral program enabled!")
+      loadAuthenticatedUser()
     } catch (error) {
-      message.error("Failed to generate referral code")
+      toast.error("Referral generation failed")
     }
   }
 
   const copyReferralCode = () => {
     if (!referralCode) return
-    navigator.clipboard.writeText(referralCode)
-    message.success("Referral code copied to clipboard!")
+    const link = `${window.location.origin}/signup?referal=${referralCode}`
+    navigator.clipboard.writeText(link)
+    toast.success("Affiliate link copied!")
   }
 
   const handleEmailPreferenceChange = async (key, checked) => {
     const newPrefs = { ...emailPreferences, [key]: checked }
-    setEmailPreferences(newPrefs) // Optimistic update
+    setEmailPreferences(newPrefs)
     try {
       await updateEmailPreferencesAPI({ emailPreference: newPrefs })
-      message.success("Preferences updated")
+      toast.success("Preferences saved")
     } catch (error) {
-      setEmailPreferences(emailPreferences) // Revert on failure
-      message.error("Failed to update preferences")
+      setEmailPreferences(emailPreferences)
+      toast.error("Preference update failed")
     }
   }
 
+  const isChanged = !initialProfileData || !isEqual(profileData, initialProfileData)
+
   return (
-    <>
+    <div className="min-h-screen bg-slate-50/50 p-0 pt-10 md:pt-0 sm:p-6 lg:p-12 mb-20 font-sans antialiased text-slate-800">
       <Helmet>
-        <title>Profile | GenWrite</title>
+        <title>Profile Settings | GenWrite</title>
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen p-3 sm:p-4 md:p-6 mt-5"
-      >
-        <div className="max-w-4xl mx-auto">
-          {/* Header Card */}
-          <motion.div
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mb-4 sm:mb-6"
-          >
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              {/* Profile Picture */}
-              <div className="flex-shrink-0">
-                {profileData?.profilePicture ? (
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Top Header Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200"
+        >
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8">
+            {/* Avatar Section */}
+            <div className="relative group">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 flex items-center justify-center text-3xl sm:text-4xl font-semibold text-slate-400">
+                {profileData.profilePicture ? (
                   <img
                     src={profileData.profilePicture}
+                    className="w-full h-full object-cover"
                     alt="Profile"
-                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 object-cover shadow-md"
                   />
                 ) : (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-bold shadow-md">
-                    {profileData?.personalDetails?.name
-                      ? `${profileData?.personalDetails.name[0]?.toUpperCase()}`
-                      : "NA"}
-                  </div>
+                  profileData.personalDetails.name?.[0] || <User size={48} />
                 )}
               </div>
+            </div>
 
-              {/* User Info */}
-              <div className="flex-1 text-center sm:text-left">
-                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-2 mb-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {profileData.personalDetails.name || "Full Name"}
+            {/* Profile Info Section */}
+            <div className="flex-1 space-y-4 text-center md:text-left">
+              <div className="space-y-1">
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-2">
+                  <h1 className="text-2xl sm:text-3xl font-semibold">
+                    {profileData.personalDetails.name || "Set your name"}
                   </h1>
                   {profileData.emailVerified && (
-                    <Tooltip title="Email Verified">
-                      <ShieldCheckIcon className="w-5 h-5 mt-2 sm:w-6 sm:h-6 text-blue-500" />
-                    </Tooltip>
+                    <ShieldCheck className="size-6 text-blue-500 fill-blue-50" />
                   )}
                 </div>
-                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-2">
-                  {profileData.personalDetails.bio || "Add your bio"}
-                </p>
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                  <span
-                    className={`px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r ${
-                      PLAN_COLORS[profileData.subscription?.plan] || PLAN_COLORS.free
-                    } text-white rounded-full text-xs sm:text-sm font-medium capitalize`}
-                  >
-                    <CreditCardIcon className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                    {profileData.subscription?.plan || "free"}
-                  </span>
-                  <span className="px-3 sm:px-4 py-1 sm:py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
-                    <BanknotesIcon className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                    {totalCredits} Credits
-                  </span>
-                  <span
-                    className={`px-3 sm:px-4 py-1 sm:py-1.5 ${
-                      STATUS_COLORS[profileData.subscription?.status] || STATUS_COLORS.active
-                    } text-white rounded-full text-xs sm:text-sm font-medium capitalize`}
-                  >
-                    {profileData.subscription?.status || "active"}
-                  </span>
+                <button className="font-semibold text-gray-500">
+                  {profileData.personalDetails.bio}
+                </button>
+              </div>
+
+              {/* Badges Row */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                <div className="flex items-center gap-2 bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm">
+                  <CreditCard size={14} className="opacity-80" />
+                  {profileData.subscription?.plan}
+                </div>
+                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-100 shadow-sm">
+                  <Coins size={14} />
+                  {(user?.credits?.base || 0) + (user?.credits?.extra || 0)} Credits
+                </div>
+                {/* Dynamic subscription status badge */}
+                {(() => {
+                  const raw = user?.subscription?.status || "active"
+                  const config = SUBSCRIPTION_STATUS_CONFIG[raw] || {
+                    label: raw.replace(/_/g, " "),
+                    className: "bg-slate-400 text-white",
+                  }
+                  return (
+                    <div
+                      className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase shadow-sm tracking-wide ${config.className}`}
+                    >
+                      {config.label}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Detailed Info Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200"
+        >
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 sm:mb-10 gap-6 sm:gap-4 border-b border-slate-100 pb-6 sm:pb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 sm:p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                <Users size={24} />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">Personal Details</h2>
+            </div>
+            <div className="hidden sm:flex flex-row items-center gap-2 w-auto">
+              <button
+                onClick={() => setPasswordModalVisible(true)}
+                className="btn bg-slate-600 hover:bg-slate-700 text-white border-none rounded-lg font-semibold px-6 h-12 gap-2"
+              >
+                <Lock size={18} /> Change Password
+              </button>
+              <button
+                disabled={!isChanged}
+                onClick={handleSave}
+                className={`btn ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} border-none rounded-lg font-semibold px-8 h-12 gap-2 shadow-sm transition-all`}
+              >
+                <Check size={18} /> Save Changes
+              </button>
+            </div>
+          </div>
+
+          {/* Form Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
+            <ProfileInput
+              label="Full Name"
+              name="personalDetails.name"
+              value={profileData.personalDetails.name}
+              onChange={handleInputChange}
+              placeholder="Your full name"
+            />
+            <ProfileInput
+              label="Email"
+              value={profileData.personalDetails.email}
+              disabled
+              placeholder="your@email.com"
+            />
+            <ProfileInput
+              label="Phone"
+              name="personalDetails.phone"
+              value={profileData.personalDetails.phone}
+              onChange={handleInputChange}
+              placeholder="eg : +91 9990292929"
+            />
+            <ProfileInput
+              label="Job Title"
+              name="personalDetails.jobTitle"
+              value={profileData.personalDetails.jobTitle}
+              onChange={handleInputChange}
+              placeholder="eg : Senior UX Engineer"
+            />
+            <ProfileInput
+              label="Company"
+              name="personalDetails.company"
+              value={profileData.personalDetails.company}
+              onChange={handleInputChange}
+              placeholder="eg : Tech Innovators Inc"
+            />
+            <DatePickerField
+              label="Date of Birth"
+              value={profileData.personalDetails.dob}
+              onChange={dateStr =>
+                setProfileData(prev => ({
+                  ...prev,
+                  personalDetails: { ...prev.personalDetails, dob: dateStr },
+                }))
+              }
+            />
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-1">Bio</label>
+              <textarea
+                name="personalDetails.bio"
+                value={profileData.personalDetails.bio}
+                onChange={handleInputChange}
+                className="textarea w-full h-32 font-semibold rounded-lg mt-1 bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-700 p-4 transition-all"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm font-semibold text-slate-600 ml-1">Interests</label>
+              <div className="relative">
+                <div className="flex flex-wrap gap-2 p-3 min-h-[56px] mt-1 bg-white border border-slate-200 rounded-lg items-center">
+                  {profileData.personalDetails.interests.map(val => (
+                    <div
+                      key={val}
+                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-medium border border-slate-200"
+                    >
+                      {INTEREST_OPTIONS.find(o => o.value === val)?.label || val}
+                      <button onClick={() => toggleInterest(val)} className="hover:text-red-500">
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="relative">
+                    <select
+                      className="select select-sm focus:ring-0 outline-0 select-bordered w-full min-w-[140px] bg-base-100 text-slate-700 font-semibold shadow-sm focus:outline-none"
+                      onChange={e => {
+                        if (e.target.value) toggleInterest(e.target.value)
+                        e.target.value = ""
+                      }}
+                      defaultValue=""
+                    >
+                      <option disabled value="">
+                        Add Interest
+                      </option>
+
+                      {INTEREST_OPTIONS.filter(
+                        o => !profileData.personalDetails.interests.includes(o.value)
+                      ).map(o => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Personal Details Card */}
+          {/* Mobile-only Action Buttons */}
+          <div className="flex sm:hidden flex-row items-center gap-3 pt-6 mt-2 border-t border-slate-100">
+            <button
+              onClick={() => setPasswordModalVisible(true)}
+              className="px-2 h-11 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold flex-1 text-[11px] whitespace-nowrap"
+            >
+              Change Password
+            </button>
+            <button
+              disabled={!isChanged}
+              onClick={handleSave}
+              className={`px-2 h-11 ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} rounded-lg font-bold flex-1 text-[11px] shadow-sm whitespace-nowrap`}
+            >
+              Save Changes
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Action Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Referral Card */}
           <motion.div
-            initial={{ y: 20 }}
-            animate={{ y: 0 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6"
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <UserGroupIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-                Personal Details
-              </h2>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => setPasswordModalVisible(true)}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <LockClosedIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {user?.hasPassword ? "Change Password" : "Set Password"}
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Save Changes
-                </button>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                <Share2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Referral Loop</h3>
+                <p className="text-slate-500 text-sm">Grow our community & earn bonuses.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <ProfileField
-                label="Full Name"
-                name="personalDetails.name"
-                value={profileData.personalDetails.name}
-                onChange={handleInputChange}
-                placeholder={DEMO_PROFILE.personalDetails.name}
-              />
-
-              <ProfileField
-                label="Email"
-                name="personalDetails.email"
-                value={profileData.personalDetails.email}
-                onChange={handleInputChange}
-                placeholder={DEMO_PROFILE.personalDetails.email}
-                disabled={true}
-              />
-
-              <ProfileField
-                label="Phone"
-                name="personalDetails.phone"
-                value={profileData.personalDetails.phone}
-                onChange={handleInputChange}
-                placeholder={DEMO_PROFILE.personalDetails.phone}
-                maxLength={15}
-              />
-
-              <ProfileField
-                label="Job Title"
-                name="personalDetails.jobTitle"
-                value={profileData.personalDetails.jobTitle}
-                onChange={handleInputChange}
-                placeholder={DEMO_PROFILE.personalDetails.jobTitle}
-              />
-
-              <ProfileField
-                label="Company"
-                name="personalDetails.company"
-                value={profileData.personalDetails.company}
-                onChange={handleInputChange}
-                placeholder={DEMO_PROFILE.personalDetails.company}
-              />
-
-              {/* Date of Birth */}
-              <div className="space-y-2">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                  Date of Birth
-                </label>
-                <DatePicker
-                  format="YYYY-MM-DD"
-                  value={
-                    profileData.personalDetails.dob ? dayjs(profileData.personalDetails.dob) : null
-                  }
-                  onChange={(date, dateString) =>
-                    handleInputChange({
-                      target: { name: "personalDetails.dob", value: dateString },
-                    })
-                  }
-                  className="w-full"
-                  size="large"
-                  placeholder={DEMO_PROFILE.personalDetails.dob}
-                  disabledDate={current => current && current > dayjs().endOf("day")}
-                />
-              </div>
-
-              {/* Bio - Full Width */}
-              <div className="sm:col-span-2 space-y-2">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700">Bio</label>
-                <textarea
-                  name="personalDetails.bio"
-                  value={profileData.personalDetails.bio || ""}
-                  onChange={handleInputChange}
-                  placeholder="Tell us about yourself..."
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm sm:text-base"
-                  rows={4}
-                />
-              </div>
-
-              {/* Interests - Full Width */}
-              <div className="sm:col-span-2 space-y-2">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                  Interests
-                </label>
-                <Select
-                  mode="multiple"
-                  value={profileData.personalDetails.interests}
-                  onChange={handleInterestsChange}
-                  className="w-full"
-                  placeholder="Select your interests"
-                  options={INTEREST_OPTIONS}
-                  maxTagCount="responsive"
-                  size="large"
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Referral Program Card */}
-          <motion.div
-            initial={{ y: 20 }}
-            animate={{ y: 0 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mt-6"
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <ShareIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Referral Program</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {referralCode ? (
               <div className="space-y-4">
-                <p className="text-gray-600 text-sm">
-                  Share your referral code with friends and earn rewards when they subscribe.
-                </p>
-                {referralCode ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 font-mono text-lg font-bold text-gray-800 tracking-wider">
-                      {referralCode}
-                    </div>
-                    <button
-                      onClick={copyReferralCode}
-                      className="p-3 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                      title="Copy Code"
-                    >
-                      <ClipboardDocumentIcon className="w-6 h-6" />
-                    </button>
-                  </div>
-                ) : (
+                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <code className="text-lg font-semibold text-slate-700 font-mono flex-1">
+                    {referralCode}
+                  </code>
                   <button
-                    onClick={handleGenerateReferral}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-shadow"
+                    onClick={copyReferralCode}
+                    className="btn btn-sm btn-ghost hover:bg-blue-50 text-blue-600 rounded-xl"
                   >
-                    <ArrowPathIcon className="w-5 h-5" />
-                    Generate Referral Code
+                    <Copy size={16} />
                   </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50/50 p-4 rounded-2xl text-center">
+                    <span className="block text-2xl font-medium text-blue-600">
+                      {referralStats.totalJoined}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400">Joined</span>
+                  </div>
+                  <div className="bg-emerald-50/50 p-4 rounded-2xl text-center">
+                    <span className="block text-2xl font-medium text-emerald-600">
+                      {referralStats.converted}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400">Converted</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleGenerateReferral}
+                className="w-full h-16 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+              >
+                Activate Referral <ChevronRight size={20} />
+              </button>
+            )}
+          </motion.div>
+
+          {/* Preferences Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                <Mail size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Communication</h3>
+                <p className="text-slate-500 text-sm">Manage your email preferences.</p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <MinimalToggle
+                label="System Alerts"
+                desc="Security & server updates."
+                checked={emailPreferences.accountAlerts}
+                onChange={() => {}}
+                disabled
+              />
+              <MinimalToggle
+                label="Marketing"
+                desc="Promotions & tips."
+                checked={emailPreferences.promotionalEmails}
+                onChange={c => handleEmailPreferenceChange("promotionalEmails", c)}
+              />
+              <MinimalToggle
+                label="Feature Updates"
+                desc="New tools & protocols."
+                checked={emailPreferences.newFeatureUpdates}
+                onChange={c => handleEmailPreferenceChange("newFeatureUpdates", c)}
+              />
+            </div>
+          </motion.div>
+
+          {/* Subscription Status Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6 lg:col-span-2"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-100 pb-6 sm:pb-8">
+               <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                   <Crown size={24} />
+                 </div>
+                 <div>
+                   <h3 className="text-lg sm:text-xl font-semibold text-slate-900">Subscription Status</h3>
+                   <p className="text-slate-500 text-xs sm:text-sm">Manage your plan and billing cycle.</p>
+                 </div>
+               </div>
+               <a href="/transactions" className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none w-full sm:w-auto font-semibold h-10">
+                 Manage Billing
+               </a>
+            </div>
+
+            {subscriptionDetails ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-2">
+                {subscriptionDetails.subscription?.plan && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Current Plan</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.plan}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.subscription?.status && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Status</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.status.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.subscription?.renewalDate && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Renewal Date</p>
+                    <p className="text-lg font-semibold text-slate-800">
+                      {dayjs(subscriptionDetails.subscription.renewalDate).format("DD MMM YYYY")}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.subscription?.billingPeriod && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Billing Period</p>
+                    <p className="text-lg font-semibold text-slate-800 capitalize">
+                      {subscriptionDetails.subscription.billingPeriod}
+                    </p>
+                  </div>
+                )}
+                {subscriptionDetails.trial?.hasEverTrialed && (
+                  <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p className="text-sm font-semibold text-slate-500">Trial Usage</p>
+                    <p className="text-lg font-semibold text-slate-800">
+                      {subscriptionDetails.trial.isCurrentlyTrialing
+                        ? "Currently Active"
+                        : "Trial Used"}
+                    </p>
+                  </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-1">
-                    {referralStats.totalJoined}
+            ) : (
+               <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-4 py-1">
+                     <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                     <div className="h-4 bg-slate-200 rounded w-1/2"></div>
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-600 font-medium">Referred Users</div>
-                </div>
-                <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <div className="text-3xl font-bold text-purple-600 mb-1">
-                    {referralStats.converted}
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-600 font-medium">Converted</div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Email Preferences Card */}
-          <motion.div
-            initial={{ y: 20 }}
-            animate={{ y: 0 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mt-6 mb-6"
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <EnvelopeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Email Notifications</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Promotions & Offers</h3>
-                  <p className="text-sm text-gray-500">
-                    Receive emails about new discounts and deals.
-                  </p>
-                </div>
-                <Switch
-                  checked={emailPreferences.promotionalEmails}
-                  onChange={checked => handleEmailPreferenceChange("promotionalEmails", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Feature Updates</h3>
-                  <p className="text-sm text-gray-500">
-                    Stay informed about new features and improvements.
-                  </p>
-                </div>
-                <Switch
-                  checked={emailPreferences.newFeatureUpdates}
-                  onChange={checked => handleEmailPreferenceChange("newFeatureUpdates", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Account Alerts</h3>
-                  <p className="text-sm text-gray-500">
-                    Get notified about important security changes.
-                  </p>
-                </div>
-                <Switch
-                  checked={emailPreferences.accountAlerts}
-                  onChange={checked => handleEmailPreferenceChange("accountAlerts", checked)}
-                />
-              </div>
-            </div>
+               </div>
+            )}
           </motion.div>
         </div>
-      </motion.div>
+      </div>
 
       <PasswordModal
         visible={passwordModalVisible}
@@ -546,32 +645,71 @@ const Profile = () => {
         hasPassword={user?.hasPassword || false}
         onSubmit={handlePasswordSubmit}
       />
-    </>
+    </div>
   )
 }
 
-const ProfileField = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder,
-  maxLength,
-  disabled = false,
-}) => (
-  <div className="space-y-2">
-    <label className="block text-xs sm:text-sm font-medium text-gray-700">{label}</label>
+const ProfileInput = ({ label, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
     <input
-      type={name === "personalDetails.phone" ? "tel" : "text"}
-      name={name}
-      value={value || ""}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base"
-      maxLength={maxLength}
-      pattern={name === "personalDetails.phone" ? "[0-9]*" : undefined}
-      disabled={disabled}
+      {...props}
+      className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
     />
+  </div>
+)
+
+const DatePickerField = ({ label, value, onChange }) => {
+  const [open, setOpen] = useState(false)
+
+  const selected = value ? dayjs(value).toDate() : undefined
+
+  const handleSelect = date => {
+    onChange(date ? dayjs(date).format("YYYY-MM-DD") : "")
+    setOpen(false)
+  }
+
+  const displayValue = value ? dayjs(value).format("DD MMM YYYY") : "Pick a date"
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className={`w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 font-medium transition-all flex items-center justify-between ${
+              !value ? "text-slate-300" : ""
+            }`}
+          >
+            <span>{displayValue}</span>
+            <CalendarIcon size={18} className="text-slate-400 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 shadow-lg border border-slate-200" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={handleSelect}
+            captionLayout="dropdown"
+            fromYear={1940}
+            toYear={new Date().getFullYear()}
+            defaultMonth={selected}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+const MinimalToggle = ({ label, desc, checked, onChange, disabled }) => (
+  <div className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all">
+    <div className="pr-4">
+      <h4 className="font-semibold text-sm text-slate-800">{label}</h4>
+      <p className="text-xs text-slate-400 font-medium">{desc}</p>
+    </div>
+
+    <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
   </div>
 )
 

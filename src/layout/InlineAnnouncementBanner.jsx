@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
-import { message } from "antd"
 import dayjs from "dayjs"
-import { useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 
 // Configuration for different announcement types
 const announcementConfig = {
@@ -59,7 +57,7 @@ const fetchAnnouncements = async () => {
 // Inline Announcement Banner Component
 const InlineAnnouncementBanner = () => {
   const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false)
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
 
   // useEffect for announcement banner visibility
   useEffect(() => {
@@ -120,7 +118,7 @@ const InlineAnnouncementBanner = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
             <div
-              className={`flex items-center justify-center h-10 w-10 rounded-full ${config.bgColor} flex-shrink-0`}
+              className={`flex items-center justify-center h-10 w-10 rounded-full ${config.bgColor} shrink-0`}
             >
               {IconComponent && (
                 <IconComponent className={`h-5 w-5 ${config.iconColor}`} aria-hidden="true" />
@@ -133,7 +131,7 @@ const InlineAnnouncementBanner = () => {
                   <span className="text-xs text-gray-500">{formattedDate.date}</span>
                 )}
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">{announcement.message}</p>
+              <p className="text-sm  leading-relaxed">{announcement.message}</p>
             </div>
           </div>
           <button
@@ -141,7 +139,7 @@ const InlineAnnouncementBanner = () => {
               setShowAnnouncementBanner(false)
               sessionStorage.setItem("hasSeenAnnouncementBanner", "true")
             }}
-            className="flex-shrink-0 ml-3 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+            className="shrink-0 ml-3 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
             aria-label="Close announcement"
           >
             <X className="h-4 w-4" />

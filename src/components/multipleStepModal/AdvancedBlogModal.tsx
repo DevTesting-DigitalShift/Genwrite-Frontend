@@ -1,55 +1,43 @@
-import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
-import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { selectUser } from "@store/slices/authSlice"
-import { fetchGeneratedTitles, createNewBlog } from "@store/slices/blogSlice"
-import { store } from "@store/index"
-import {
-  Badge,
-  Button,
-  Empty,
-  Flex,
-  Input,
-  InputNumber,
-  message,
-  Modal,
-  Radio,
-  RadioChangeEvent,
-  Select,
-  Slider,
-  Space,
-  Switch,
-  Tag,
-  Tooltip,
-  Typography,
-  UploadFile,
-} from "antd"
-import clsx from "clsx"
-import { Crown, Sparkles, TriangleAlert } from "lucide-react"
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import "./antd.css"
-import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
+import { setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
-import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
+import { BLOG_CONFIG } from "@/data/blogConfig"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
+import AdvancedOptions from "@components/AdvancedOptions"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
-
-const { Text } = Typography
+import AiModelSelector from "@components/AiModelSelector"
+import ImageSourceSelector from "@components/ImageSourceSelector"
+import { toast } from "sonner"
+import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import { getGeneratedTitles } from "@api/blogApi"
+import clsx from "clsx"
+import { Switch } from "@components/ui/switch"
+import { Slider } from "@components/ui/slider"
+import { X } from "lucide-react"
+import useIntegrationStore from "@store/useIntegrationStore"
 
 interface AdvancedBlogModalProps {
-  onSubmit: (data: any) => void
+  onSubmit: (data: unknown) => void
   closeFnc: () => void
 }
 
 // Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
-  const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
+  const STEP_TITLES = [
+    "Step 1  : Template Selection",
+    "Step 2: Basic Information",
+    "Step 3: Customization",
+    "Step 4: Blog Options",
+  ]
 
   const initialData = {
     templateIds: [] as number[],
@@ -58,20 +46,22 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     focusKeywords: [] as string[],
     keywords: [] as string[],
     title: "" as string,
-    tone: "" as string,
-    userDefinedLength: 1000 as number,
+    tone: TONES[0] as string,
+    userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT as number,
     brief: "" as string,
     aiModel: AI_MODELS[0].id as string,
     isCheckedGeneratedImages: false as boolean,
-    imageSource: IMAGE_OPTIONS[0].id as string,
+    imageSource: IMAGE_OPTIONS[0].id as any,
     numberOfImages: 0 as number,
-    blogImages: [] as UploadFile[],
+    blogImages: [] as any[],
     referenceLinks: [] as string[],
     isCheckedQuick: false as boolean,
     isCheckedBrand: false as boolean,
     brandId: "" as string,
     languageToWrite: "English" as string,
     costCutter: true as boolean,
+    wordpressPostStatus: false as boolean,
+    postingType: null as string | null,
     options: {
       exactTitle: false as boolean,
       performKeywordResearch: false as boolean,
@@ -82,26 +72,33 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       addCTA: false as boolean,
       easyToUnderstand: false as boolean,
       embedYouTubeVideos: false as boolean,
+      includeTableOfContents: false as boolean,
+      extendedThinking: false as boolean,
+      deepResearch: false as boolean,
+      humanisation: false as boolean,
     },
   }
 
-  const BLOG_OPTIONS = [
-    { key: "isCheckedQuick", label: "Add a Quick Summary" },
-    { key: "options.includeFaqs", label: "Add FAQs (Frequently Asked Questions)" },
-    { key: "options.includeInterlinks", label: "Include Interlinks" },
-    { key: "options.includeCompetitorResearch", label: "Perform Competitive Research" },
-    { key: "options.addOutBoundLinks", label: "Show Outbound Links" },
-  ]
-
   type FormError = Partial<Record<keyof typeof initialData, string>>
-  type AppDispatch = typeof store.dispatch
 
-  const dispatch = useDispatch<AppDispatch>()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
+  const { integrations, fetchIntegrations } = useIntegrationStore()
+
+  useEffect(() => {
+    fetchIntegrations()
+  }, [])
+
+  useEffect(() => {
+    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      if (!formData.postingType) {
+        setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+      }
+    }
+  }, [integrations])
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -124,7 +121,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             formData.focusKeywords.length === 0 ? "Please enter at least 1 focus keyword" : "",
           keywords: formData.keywords.length === 0 ? "Please enter at least 1 keyword" : "",
         })
-        message.error(
+        toast.error(
           "Please enter a topic and at least one focus keyword and keyword before generating titles."
         )
         return
@@ -136,27 +133,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         keywords: formData.keywords,
         ...(generatedTitles?.length > 0 && { oldTitles: generatedTitles }),
       }
-      const result = (await dispatch(fetchGeneratedTitles(payload)).unwrap()) as string[]
+      const result = await getGeneratedTitles(payload)
       setGeneratedTitles(result)
     } catch (error) {
       console.error("Error generating titles:", error)
-      message.error("Failed to generate titles. Please try again later.")
+      toast.error("Failed to generate titles. Please try again later.")
     } finally {
       setIsGenerating(false)
     }
   }
 
   // setting the selected analyzed keywords from keywords planner
-  const selectedKeywords = useSelector(selectSelectedAnalysisKeywords)
+  const { selectedKeywords, pendingImport, setPendingImport } = useAnalysisStore()
   useEffect(() => {
-    if (selectedKeywords) {
+    if (pendingImport === "blog" && selectedKeywords) {
       setFormData(prev => ({
         ...prev,
         focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
         keywords: selectedKeywords.keywords || prev.keywords,
       }))
+      setPendingImport(null)
     }
-  }, [selectedKeywords])
+  }, [selectedKeywords, pendingImport, setPendingImport])
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -168,6 +166,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     if (formData.options.includeFaqs) features.push("faqGeneration")
     if (formData.isCheckedQuick) features.push("quickSummary")
     if (formData.options.addOutBoundLinks) features.push("outboundLinks")
+    if (formData.options.humanisation) features.push("humanisation")
+    if (formData.options.extendedThinking) features.push("extendedThinking")
+    if (formData.options.deepResearch) features.push("deepResearch")
 
     let cost = computeCost({
       wordCount: formData.userDefinedLength,
@@ -176,13 +177,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       includeImages: formData.isCheckedGeneratedImages,
       imageSource: formData.imageSource,
       numberOfImages:
-        formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
+        formData.imageSource === IMAGE_SOURCE.UPLOAD
           ? formData.blogImages.length
           : formData.numberOfImages,
     })
 
     if (formData.costCutter) {
-      cost = Math.round(cost * 0.75)
+      cost = Math.round(cost * 0.5)
     }
 
     return cost
@@ -192,6 +193,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     formData.options.performKeywordResearch,
     formData.options.includeInterlinks,
     formData.options.includeFaqs,
+    formData.options.humanisation,
+    formData.options.extendedThinking,
+    formData.options.deepResearch,
     formData.isCheckedQuick,
     formData.options.addOutBoundLinks,
     formData.userDefinedLength,
@@ -215,8 +219,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     const errors: FormError = {}
     switch (currentStep) {
       case 0:
-        if (formData.templateIds.length !== 1) errors.template = "Please select at least 1 template"
-
+        if (formData.templateIds.length === 0)
+          errors.template = "Please select a template to continue."
+        else if (formData.templateIds.length > 1) errors.template = "Please select only 1 template."
         break
       case 1:
         if (!formData.topic.length) errors.topic = "Please enter a topic name"
@@ -229,20 +234,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
           if (!formData.title.length) errors.title = "Please enter a title"
         }
-
-        if (!formData.tone.trim()) errors.tone = "Please select a tone of voice"
         break
       case 2:
         if (
           formData.isCheckedGeneratedImages &&
-          formData.imageSource === IMAGE_OPTIONS.at(-1)?.id &&
+          formData.imageSource === IMAGE_SOURCE.UPLOAD &&
           formData.blogImages.length == 0
         )
           errors.blogImages = "Please upload at least 1 image."
         break
       case 3:
-        if (formData.isCheckedBrand && !formData.brandId.trim())
-          errors.brandId = "Please select a Brand Voice"
+        if (formData.wordpressPostStatus && !formData.postingType)
+          errors.postingType = "Please select a Publishing Platform"
+        break
     }
     if (Object.keys(errors).length) {
       updateErrors(errors)
@@ -305,7 +309,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         data.imageSource = IMAGE_SOURCE.NONE
       }
 
-      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id) {
+      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_SOURCE.UPLOAD) {
         delete data.blogImages
       }
       if (!formData.isCheckedBrand) {
@@ -322,16 +326,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       const loadingId = showLoading("Creating your blog...")
 
       try {
-        // Type assertion needed because thunk is defined in JSX file without proper TypeScript types
-        await dispatch(
-          createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
-        ).unwrap()
+        const { createNewBlog } = useBlogStore.getState()
+
+        await createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
 
         // ✅ Only close modal on success
         handleClose()
       } catch (error: unknown) {
         // ❌ Don't close modal - let user retry
-        message.error((error as Error)?.message || "Failed to create blog. Please try again.")
+        toast.error((error as Error)?.message || "Failed to create blog. Please try again.")
       } finally {
         hideLoading(loadingId)
       }
@@ -340,15 +343,17 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
     updateFormData({ template: templates?.[0]?.name || "", templateIds: templates?.map(t => t.id) })
-    updateErrors({ template: "" })
+    // Clear error as soon as exactly 1 template is selected
+    if (templates?.length === 1) {
+      updateErrors({ template: "" })
+    }
   }, [])
 
   const handleInputChange = useCallback(
     (
       event:
-        | React.ChangeEvent<HTMLInputElement>
-        | RadioChangeEvent
-        | { target: { name: string; value: string | number | boolean | string[] | UploadFile[] } }
+        | React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+        | { target: { name: string; value: string | number | boolean | string[] | any[] } }
     ) => {
       const { name, value } = event.target
 
@@ -359,617 +364,851 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       if (keys.length > 1) {
         setFormData(prev => setValueByPath(prev, keys, value))
       } else {
-        updateFormData({ [name]: value } as any)
+        // Special handling for image toggle
+        if (name === "isCheckedGeneratedImages") {
+          setFormData(prev => ({
+            ...prev,
+            isCheckedGeneratedImages: value as boolean,
+            imageSource: value
+              ? prev.imageSource === IMAGE_SOURCE.NONE
+                ? IMAGE_SOURCE.STOCK
+                : prev.imageSource
+              : IMAGE_SOURCE.NONE,
+          }))
+          updateErrors({ isCheckedGeneratedImages: "", imageSource: "" } as any)
+          return
+        }
+
+        updateFormData({ [name]: value } as unknown as Partial<typeof initialData>)
 
         updateErrors({ [name]: "" })
       }
     },
-    []
+    [updateFormData, updateErrors]
   )
 
   const renderSteps = () => {
     switch (currentStep) {
       case 0:
         return (
-          <Flex
-            vertical
-            gap={8}
-            className={clsx("rounded-md !p-2", errors?.template && "border-2 border-red-500")}
-          >
-            <label className={clsx("text-base mb-2", errors?.template && "text-red-500")}>
-              {errors?.template ? (
-                errors.template
-              ) : (
-                <>
-                  Select Template:{" "}
-                  <span className="font-semibold uppercase text-violet-800 underline">
-                    {formData.template}
-                  </span>
-                </>
+          <div className="space-y-4">
+            {/* Instruction hint */}
+            <div className="flex items-center justify-between px-1">
+              <p className="text-sm text-slate-500">
+                Select <span className="font-semibold text-slate-700">exactly 1 template</span> to
+                continue to the next step.
+              </p>
+              {formData.templateIds.length > 0 && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                  {formData.templateIds.length} selected
+                </span>
               )}
-            </label>
-            <TemplateSelection
-              userSubscriptionPlan={user?.subscription?.plan || "free"}
-              preSelectedIds={formData.templateIds}
-              onClick={handleTemplateSelection}
-            />
-          </Flex>
+            </div>
+
+            {/* Template grid with error highlight */}
+            <div
+              className={clsx(
+                "rounded-xl transition-all duration-200",
+                errors?.template ? "border-2 border-red-500 p-1" : "p-1"
+              )}
+            >
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan || "free"}
+                preSelectedIds={formData.templateIds}
+                onClick={handleTemplateSelection}
+                error={errors?.template}
+              />
+            </div>
+
+            {/* Inline error message handled by TemplateSelection internally */}
+          </div>
         )
       case 1:
         return (
-          <Flex vertical gap={4} justify="space-evenly" className="p-2">
+          <div className="space-y-3 p-4 pt-0">
             {/* Topic */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-topic">
+            <div>
+              <label className="text-sm font-semibold ">
                 Topic <span className="text-red-500">*</span>
               </label>
-              <Input
-                id="blog-topic"
+              <input
                 name="topic"
                 placeholder="e.g., Tech Blog"
                 value={formData.topic}
                 onChange={handleInputChange}
-                className={clsx(
-                  "!bg-gray-50 antd-placeholder",
-                  errors.topic && "ring-1 !ring-[#ef4444]",
-                  "rounded-lg focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
-                )}
+                className={`w-full mt-2 p-2 rounded-md border bg-white text-sm 
+        focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600
+        ${errors.topic ? "border-red-500" : "border-slate-300"}`}
               />
-              {errors.topic && <Text className="error-text">{errors.topic}</Text>}
-            </Space>
+              {errors.topic && <p className="text-xs mt-1 text-red-500">{errors.topic}</p>}
+            </div>
 
-            {/* Language Selection */}
-            <label htmlFor="blog-language">
-              Language <span className="text-red-500">*</span>
-            </label>
-            <Select
-              id="blog-language"
-              placeholder="Select a language"
-              value={formData.languageToWrite}
-              onChange={val =>
-                handleInputChange({ target: { name: "languageToWrite", value: val } })
-              }
-              options={LANGUAGES}
-              className="custom-placeholder"
-            />
-
-            <Flex justify="space-between" className="mt-3 form-item-wrapper">
-              <label htmlFor="blog-auto-generate-title-keywords">
-                Auto Generate Title & Keywords
+            {/* Language */}
+            <div className="form-control space-y-2">
+              <label>
+                <span className="text-sm font-semibold">
+                  Language <span className="text-error">*</span>
+                </span>
               </label>
+
+              <select
+                value={formData.languageToWrite}
+                onChange={e =>
+                  handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
+                }
+                className="select w-full rounded-lg focus:outline-none focus:border-0 mt-3"
+              >
+                {LANGUAGES.map(lang => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Auto Generate Toggle */}
+            <div className="flex items-center justify-between mt-4">
+              <label className="text-sm font-semibold ">Auto Generate Title & Keywords</label>
               <Switch
-                id="blog-auto-generate-title-keywords"
-                value={formData.options.performKeywordResearch}
-                onChange={checked =>
+                checked={formData.options.performKeywordResearch}
+                onCheckedChange={(checked: boolean) =>
                   handleInputChange({
                     target: { name: "options.performKeywordResearch", value: checked },
                   })
                 }
               />
-            </Flex>
+            </div>
 
-            {/* Focus Keywords */}
-            <Space
-              direction="vertical"
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper"
-            >
-              <label htmlFor="blog-focus-keywords">
-                Focus Keywords (max 3) <span className="text-red-500">*</span>
-              </label>
-              <Select
-                id="blog-focus-keywords"
-                mode="tags"
-                placeholder="Add Focus keywords"
-                value={formData.focusKeywords}
-                open={false}
-                onChange={val =>
-                  handleInputChange({ target: { name: "focusKeywords", value: val } })
-                }
-                maxCount={3}
-                tokenSeparators={[","]}
-                className={clsx(
-                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.focusKeywords && "!border-red-500",
-                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
-                )}
-                style={{ width: "100%" }}
-              />
-              {errors.focusKeywords && <Text className="error-text">{errors.focusKeywords}</Text>}
-            </Space>
-            {/* Keywords */}
-            <Space
-              direction="vertical"
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper"
-            >
-              <label htmlFor="blog-keywords">
-                Keywords <span className="text-red-500">*</span>
-              </label>
-              <Select
-                id="blog-keywords"
-                mode="tags"
-                placeholder="Add Keywords"
-                value={formData.keywords}
-                open={false}
-                onChange={val => handleInputChange({ target: { name: "keywords", value: val } })}
-                tokenSeparators={[","]}
-                className={clsx(
-                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
-                  errors.keywords && "!border-red-500",
-                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
-                )}
-                style={{ width: "100%" }}
-              />
-              {errors.keywords && <Text className="error-text">{errors.keywords}</Text>}
-            </Space>
-            {/* Title */}
-
-            <Flex
-              vertical
-              gap={8}
-              hidden={formData.options.performKeywordResearch}
-              className="form-item-wrapper !mb-4"
-            >
-              <label htmlFor="blog-title">
-                Blog Title <span className="text-red-500">*</span>
-              </label>
-              <Space.Compact block>
-                <Input
-                  id="blog-title"
-                  name="title"
-                  placeholder="e.g., How to create a blog"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className={clsx(
-                    " !bg-gray-50 antd-placeholder",
-                    errors.title && "ring-1 !ring-[#ef4444]",
-                    "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
-                  )}
-                />
-                <Button
-                  type="primary"
-                  title="AI Generated Titles"
-                  icon={<Sparkles className="size-5" />}
-                  block
-                  loading={isGenerating}
-                  onClick={handleGenerateTitles}
-                  className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
-                >
-                  Generate {generatedTitles?.length ? "More" : "Titles"}
-                </Button>
-              </Space.Compact>
-              {errors.title && <Text className="error-text">{errors.title}</Text>}
-
-              {generatedTitles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {generatedTitles.map((t, i) => (
-                    <Tag
-                      key={i}
-                      color="geekblue"
-                      className={clsx(
-                        "cursor-pointer text-[length:1rem] bg-black",
-                        formData.title === t && "!bg-blue-500 !text-white",
-                        "hover:!bg-blue-400 hover:!text-black p-1"
-                      )}
-                      onClick={() => {
-                        handleInputChange({ target: { name: "title", value: t } })
-                      }}
-                    >
-                      {t}
-                    </Tag>
-                  ))}
-                </div>
-              )}
-            </Flex>
-            <Flex
-              justify="space-between"
-              className="mt-3 form-item-wrapper"
-              hidden={formData.options.performKeywordResearch}
-            >
-              <label htmlFor="blog-use-exact-title">Use Exact Title for Blog</label>
-              <Switch
-                id="blog-use-exact-title"
-                value={formData.options.exactTitle}
-                onChange={checked =>
-                  handleInputChange({ target: { name: "options.exactTitle", value: checked } })
-                }
-              />
-            </Flex>
-            {/* Tones & Word Length */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-around" gap={20}>
-                <Flex vertical className="w-full" gap={8}>
-                  <label htmlFor="blog-tone">
-                    Tone of Voice <span className="text-red-500">*</span>
+            {!formData.options.performKeywordResearch && (
+              <>
+                {/* Focus Keywords */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold ">
+                    Focus Keywords (max 3) <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    id="blog-tone"
-                    placeholder="Select a tone"
-                    value={formData.tone || undefined}
-                    onChange={val => handleInputChange({ target: { name: "tone", value: val } })}
-                    options={TONES.map(t => ({ label: t, value: t }))}
-                    className="custom-placeholder"
-                  />
-                  {errors.tone && <Text className="error-text">{errors.tone}</Text>}
-                </Flex>
-                <Flex vertical className="w-full" gap={8}>
-                  <label>
-                    Blog Words Length :{" "}
-                    <Text strong underline className="text-[length:16px] px-2">
-                      {formData.userDefinedLength} words
-                    </Text>
-                  </label>
-
-                  <Slider
-                    id="blog-word-length"
-                    value={formData.userDefinedLength}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "userDefinedLength", value: val } })
-                    }
-                    min={500}
-                    max={5000}
-                    tooltip={{ formatter: val => `${val} words`, placement: "bottom" }}
-                    classNames={{
-                      rail: "!bg-gray-400",
-                      track: "!bg-gradient-to-tr !from-blue-600 !via-violet-500 !to-purple-500",
-                      handle: "hover:!ring-1 hover:!ring-purple-400",
+                  <input
+                    placeholder="Type and press comma"
+                    className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.focusKeywords ? "border-red-500" : "border-slate-300"
+            }`}
+                    onKeyDown={e => {
+                      if (e.key === "," || e.key === "Enter") {
+                        e.preventDefault()
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (val) {
+                          if (formData.focusKeywords.includes(val)) {
+                            toast.error("This focus keyword is already added.")
+                            return
+                          }
+                          if (formData.focusKeywords.length >= 3) {
+                            toast.error("Maximum 3 focus keywords allowed.")
+                            return
+                          }
+                          handleInputChange({
+                            target: {
+                              name: "focusKeywords",
+                              value: [...formData.focusKeywords, val],
+                            },
+                          })
+                          ;(e.target as HTMLInputElement).value = ""
+                        }
+                      }
                     }}
                   />
-                </Flex>
-              </Flex>
-            </Space>
-            {/* Brief Section */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-brief">Add Brief Section</label>
-              <Input.TextArea
-                id="blog-brief"
+                  {errors.focusKeywords && (
+                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.focusKeywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
+                      >
+                        {kw}
+                        <button
+                          title="Remove keyword"
+                          onClick={() => {
+                            handleInputChange({
+                              target: {
+                                name: "focusKeywords",
+                                value: formData.focusKeywords.filter((_, idx) => idx !== i),
+                              },
+                            })
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keywords */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold ">
+                    Keywords <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    placeholder="Type and press comma"
+                    className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.keywords ? "border-red-500" : "border-slate-300"
+            }`}
+                    onKeyDown={e => {
+                      if (e.key === "," || e.key === "Enter") {
+                        e.preventDefault()
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (val) {
+                          if (formData.keywords.includes(val)) {
+                            toast.error("This keyword is already added.")
+                            return
+                          }
+                          handleInputChange({
+                            target: { name: "keywords", value: [...formData.keywords, val] },
+                          })
+                          ;(e.target as HTMLInputElement).value = ""
+                        }
+                      }
+                    }}
+                  />
+                  {errors.keywords && (
+                    <p className="text-xs mt-1 text-red-500">{errors.keywords}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.keywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
+                      >
+                        {kw}
+                        <button
+                          title="Remove keyword"
+                          onClick={() => {
+                            handleInputChange({
+                              target: {
+                                name: "keywords",
+                                value: formData.keywords.filter((_, idx) => idx !== i),
+                              },
+                            })
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold ">
+                    Blog Title <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      name="title"
+                      placeholder="e.g., How to create a blog"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      className={`flex-1 mt-2 p-2 rounded-md border bg-white text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+                errors.title ? "border-red-500" : "border-slate-300"
+              }`}
+                    />
+                    <button
+                      onClick={handleGenerateTitles}
+                      disabled={isGenerating}
+                      className="mt-2 p-2 rounded-md bg-blue-600 text-white text-sm font-semibold
+              hover:bg-blue-700 transition disabled:opacity-50"
+                    >
+                      {isGenerating ? "Generating..." : "Generate"}
+                    </button>
+                  </div>
+                  {errors.title && <p className="text-xs mt-1 text-red-500">{errors.title}</p>}
+
+                  {generatedTitles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {generatedTitles.map((t, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleInputChange({ target: { name: "title", value: t } })}
+                          className={`px-3 py-1 text-xs rounded-md border transition
+                  ${
+                    formData.title === t
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white border-slate-300 hover:bg-slate-100"
+                  }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Exact Title Toggle */}
+                <div className="flex items-center justify-between my-4">
+                  <label className="text-sm font-semibold ">Use Exact Title for Blog</label>
+                  <Switch
+                    checked={formData.options.exactTitle}
+                    onCheckedChange={(checked: boolean) =>
+                      handleInputChange({ target: { name: "options.exactTitle", value: checked } })
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Tone + Length */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Tone */}
+              <div className="form-control space-y-2">
+                <label className="pb-0">
+                  <span className="text-sm font-semibold ">Tone of Voice</span>
+                </label>
+
+                <select
+                  value={formData.tone}
+                  onChange={e =>
+                    handleInputChange({ target: { name: "tone", value: e.target.value } })
+                  }
+                  className={`select select-bordered w-full rounded-lg mt-3 ${
+                    errors.tone ? "border-red-500" : ""
+                  }`}
+                >
+                  {TONES.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Blog Length */}
+              <div className="form-control space-y-3">
+                <label>
+                  <span className="text-sm font-semibold ">Blog Length</span>
+                  <span className="text-sm ml-2 font-semibold text-primary">
+                    {formData.userDefinedLength} words
+                  </span>
+                </label>
+                <Slider
+                  min={BLOG_CONFIG.LENGTH.MIN}
+                  max={BLOG_CONFIG.LENGTH.MAX}
+                  step={BLOG_CONFIG.LENGTH.STEP}
+                  value={[formData.userDefinedLength]}
+                  onValueChange={(vals: number[]) =>
+                    handleInputChange({ target: { name: "userDefinedLength", value: vals[0] } })
+                  }
+                  className="w-full mt-5"
+                />
+
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>{BLOG_CONFIG.LENGTH.MIN}</span>
+                  <span>{BLOG_CONFIG.LENGTH.MAX}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Brief */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold ">Add Brief Section</label>
+              <textarea
                 name="brief"
-                autoSize={{ minRows: 1, maxRows: 3 }}
+                rows={3}
                 value={formData.brief}
                 onChange={handleInputChange}
                 placeholder="Enter the brief info or instructions"
-                className="antd-placeholder"
+                className="w-full mt-2 px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm
+        focus:outline-none resize-none"
               />
-            </Space>
-          </Flex>
+            </div>
+          </div>
         )
 
       case 2: {
-        const isValidURL = (str: string) => {
-          try {
-            const url = new URL(str)
-            return url.protocol === "http:" || url.protocol === "https:"
-          } catch {
-            return false
-          }
-        }
-
         return (
-          <Flex vertical gap={20} className="p-2">
-            {/* AI Models */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label>Select AI Model</label>
-              <Radio.Group
-                name="aiModel"
-                value={formData.aiModel}
-                onChange={handleInputChange}
-                defaultValue={AI_MODELS[0]?.id}
-                block
-                className="p-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full"
-              >
-                {AI_MODELS.map(model => (
-                  <Radio.Button
-                    key={model.id}
-                    value={model.id}
-                    className="rounded-lg !px-4 !py-3 !border-[3px] hover:border-blue-400 hover:bg-purple-50 min-h-fit"
-                  >
-                    <img src={model.logo} alt={model.label} className="size-6 object-contain" />
-                    <span className="text-[length:15px] font-medium text-gray-800">
-                      {model.label}
-                    </span>
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
-            </Space>
-            {/* Cost Cutter Toggle */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-              <Flex justify="space-between" align="center">
-                <div>
-                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-                </div>
+          <div className="space-y-3 p-4 pt-0">
+            <AiModelSelector
+              value={formData.aiModel}
+              onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
+              showCostCutter={true}
+              costCutterValue={formData.costCutter}
+              onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
+            />
+
+            {/* Feature Toggles */}
+            <div className="space-y-4 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Add Images</span>
                 <Switch
-                  checked={formData.costCutter}
-                  onChange={checked => updateFormData({ costCutter: checked })}
+                  size="large"
+                  checked={formData.isCheckedGeneratedImages}
+                  onCheckedChange={(checked: boolean) =>
+                    updateFormData({ isCheckedGeneratedImages: checked })
+                  }
                 />
-              </Flex>
+              </div>
             </div>
 
-            {/* Easy to Understand Toggle */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="easy-to-understand-toggle">Easy to Understand</label>
-                <Switch
-                  id="easy-to-understand-toggle"
-                  checked={formData.options.easyToUnderstand}
-                  onChange={checked =>
-                    handleInputChange({
-                      target: { name: "options.easyToUnderstand", value: checked },
-                    })
-                  }
-                />
-              </Flex>
-            </Space>
-
-            {/* Embed YouTube Videos Toggle */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="embed-youtube-toggle">Embed YouTube Videos</label>
-                <Switch
-                  id="embed-youtube-toggle"
-                  checked={formData.options.embedYouTubeVideos}
-                  onChange={checked =>
-                    handleInputChange({
-                      target: { name: "options.embedYouTubeVideos", value: checked },
-                    })
-                  }
-                />
-              </Flex>
-            </Space>
-            {/* Image Settings */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <Flex justify="space-between">
-                <label htmlFor="add-image-toggle">Add Images</label>
-                <Switch
-                  id="add-image-toggle"
-                  value={formData.isCheckedGeneratedImages}
-                  onChange={val => {
-                    ;[
-                      { name: "isCheckedGeneratedImages", value: val },
-                      { name: "blogImages", value: [] },
-                    ].map(t => handleInputChange({ target: t }))
+            {/* Image Source Settings */}
+            {formData.isCheckedGeneratedImages && (
+              <div className="space-y-6 overflow-hidden">
+                <ImageSourceSelector
+                  value={formData.imageSource}
+                  onChange={(sourceId: string) => {
+                    handleInputChange({ target: { name: "imageSource", value: sourceId } })
+                  }}
+                  showUpload={true}
+                  error={errors.imageSource}
+                  numberOfImages={formData.numberOfImages}
+                  onNumberChange={(val: number) => {
+                    handleInputChange({ target: { name: "numberOfImages", value: val } })
                   }}
                 />
-              </Flex>
-            </Space>
-            <Space
-              direction="vertical"
-              hidden={!formData.isCheckedGeneratedImages}
-              className="form-item-wrapper"
-            >
-              <label>Select Image Mode</label>
-              <Radio.Group
-                name="imageSource"
-                value={formData.imageSource}
-                onChange={e => {
-                  handleInputChange(e)
-                  if (e.target.value != IMAGE_OPTIONS.at(-1)?.id) {
-                    handleInputChange({ target: { name: "blogImages", value: [] } })
-                  }
-                }}
-                defaultValue={IMAGE_OPTIONS[0]?.id}
-                block
-                className="p-2 !grid grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 !gap-4 w-full"
-              >
-                {IMAGE_OPTIONS.map((option, index) => {
-                  const isButtonDisabled = option.restrict && user?.subscription?.plan == "free"
-                  const isAILimitReached =
-                    index == 1 && user?.usage?.aiImages >= user?.usageLimits?.aiImages
-                  return (
-                    <Badge.Ribbon
-                      key={option.id + index}
-                      text={
-                        isButtonDisabled ? (
-                          <Crown className="p-1" />
-                        ) : isAILimitReached ? (
-                          <TriangleAlert className="p-0.5" />
-                        ) : (
-                          ""
-                        )
-                      }
-                      className={clsx(
-                        "absolute -top-2 z-10",
-                        (index == 0 || !(isButtonDisabled || isAILimitReached)) && "hidden"
-                      )}
-                      color={
-                        isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
-                      }
-                    >
-                      <Tooltip
-                        title={
-                          <Text
-                            strong
-                            className="text-[length:15px] text-gray-200 font-montserrat tracking-wide"
-                          >
-                            {isButtonDisabled
-                              ? "Only For Subscribed Users"
-                              : isAILimitReached
-                                ? "AI Image Limit Reached"
-                                : option.label}
-                          </Text>
-                        }
-                        className="w-full"
-                        autoAdjustOverflow
-                        color={
-                          isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
-                        }
-                        placement={index == 0 ? "left" : "top"}
-                        showArrow
-                      >
-                        <Radio.Button
-                          value={option.id}
-                          disabled={isButtonDisabled || isAILimitReached}
-                          className="rounded-lg !px-4 !py-3 !border-[3px] text-red-600 hover:border-blue-400 hover:bg-violet-50 min-h-fit min-w-fit"
-                        >
-                          <span className="text-[length:15px] font-medium text-gray-800">
-                            {option.label}
-                          </span>
-                        </Radio.Button>
-                      </Tooltip>
-                    </Badge.Ribbon>
-                  )
-                })}
-              </Radio.Group>
-            </Space>
-            <Space
-              direction="vertical"
-              hidden={!formData.isCheckedGeneratedImages}
-              className="form-item-wrapper"
-            >
-              {formData.imageSource != IMAGE_OPTIONS.at(-1)?.id ? (
-                <Flex align="center" justify="space-between">
-                  <label htmlFor="blog-img-count">Number of Images (0 = Decided by AI) : </label>
-                  <InputNumber
-                    id="blog-img-count"
-                    name="numberOfImages"
-                    min={0}
-                    max={15}
-                    value={formData.numberOfImages}
-                    defaultValue={0}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "numberOfImages", value: val || 0 } })
-                    }
-                    className="w-1/3 !text-base"
-                  />
-                </Flex>
-              ) : (
-                <>
-                  <BlogImageUpload
-                    id="blog-upload-images"
-                    label="Upload Custom Images"
-                    maxCount={15}
-                    initialFiles={formData.blogImages}
-                    onChange={file =>
-                      handleInputChange({ target: { name: "blogImages", value: file } })
-                    }
-                  />
-                  {errors.blogImages && <Text className="error-text">{errors.blogImages}</Text>}
-                </>
-              )}
-            </Space>
-            {/* Reference Links */}
-            <Space direction="vertical" className="form-item-wrapper">
-              <label htmlFor="blog-references">Reference Links (max 3)</label>
-              <Select
-                id="blog-references"
-                mode="tags"
-                placeholder="Add Reference Links"
-                value={formData.referenceLinks}
-                open={false}
-                onChange={val => {
-                  const invalidLinks = val.filter(link => !isValidURL(link.trim()))
-                  if (invalidLinks.length > 0) {
-                    message.warning(
-                      "Only valid URLs starting from http:// or https:// are allowed."
-                    )
-                  }
-                  const validLinks = val.filter(isValidURL)
 
-                  handleInputChange({ target: { name: "referenceLinks", value: validLinks } })
+                {/* Custom Image Upload Zone */}
+                {formData.imageSource === IMAGE_SOURCE.UPLOAD && (
+                  <div className="space-y-3 mt-2">
+                    <div
+                      className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
+                        ${
+                          errors.blogImages
+                            ? "border-red-400 bg-red-50"
+                            : "border-slate-300 bg-slate-50 hover:border-[#1B6FC9] hover:bg-blue-50/30"
+                        }
+                      `}
+                      onClick={() => {
+                        const input = document.createElement("input")
+                        input.type = "file"
+                        input.accept = "image/*"
+                        input.multiple = true
+                        input.onchange = async (e: Event) => {
+                          const files = Array.from((e.target as HTMLInputElement).files || [])
+                          if (
+                            formData.blogImages.length + files.length >
+                            BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT
+                          ) {
+                            toast.error(
+                              `You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`
+                            )
+                            return
+                          }
+                          const oversized = files.filter(
+                            f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                          )
+                          if (oversized.length > 0) {
+                            toast.error(
+                              `Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`
+                            )
+                            return
+                          }
+                          const readers = files.map(
+                            file =>
+                              new Promise<any>(resolve => {
+                                const reader = new FileReader()
+                                reader.onload = ev =>
+                                  resolve({
+                                    originFileObj: file,
+                                    name: file.name,
+                                    type: file.type,
+                                    src: ev.target?.result as string,
+                                  })
+                                reader.readAsDataURL(file)
+                              })
+                          )
+                          const newImages = await Promise.all(readers)
+                          updateFormData({ blogImages: [...formData.blogImages, ...newImages] })
+                          updateErrors({ blogImages: "" })
+                        }
+                        input.click()
+                      }}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={async e => {
+                        e.preventDefault()
+                        const files = Array.from(e.dataTransfer.files).filter(f =>
+                          f.type.startsWith("image/")
+                        )
+                        if (
+                          formData.blogImages.length + files.length >
+                          BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT
+                        ) {
+                          toast.error(
+                            `You can upload a maximum of ${BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images.`
+                          )
+                          return
+                        }
+                        const oversized = files.filter(
+                          f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                        )
+                        if (oversized.length > 0) {
+                          toast.error(
+                            `Each image must be ${BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB or less.`
+                          )
+                          return
+                        }
+                        const readers = files.map(
+                          file =>
+                            new Promise<any>(resolve => {
+                              const reader = new FileReader()
+                              reader.onload = ev =>
+                                resolve({
+                                  originFileObj: file,
+                                  name: file.name,
+                                  type: file.type,
+                                  src: ev.target?.result as string,
+                                })
+                              reader.readAsDataURL(file)
+                            })
+                        )
+                        const newImages = await Promise.all(readers)
+                        updateFormData({ blogImages: [...formData.blogImages, ...newImages] })
+                        updateErrors({ blogImages: "" })
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2 text-slate-400 pointer-events-none">
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-600">
+                          Click or drag images here
+                        </p>
+                        <div className="text-xs text-slate-500 mt-2 space-y-1">
+                          <p>Supported: PNG, JPEG, WEBP</p>
+                          <p>
+                            Max {BLOG_CONFIG.IMAGES.MAX_UPLOAD_COUNT} images • Max{" "}
+                            {BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB}MB per image
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {errors.blogImages && (
+                      <p className="text-xs text-red-500 font-medium">{errors.blogImages}</p>
+                    )}
+
+                    {/* Preview grid */}
+                    {formData.blogImages.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {formData.blogImages.map((img, i) => (
+                          <div key={i} className="relative group aspect-square">
+                            <img
+                              src={img.src || img}
+                              alt={`Upload ${i + 1}`}
+                              className="w-full h-full object-cover rounded-lg border border-slate-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateFormData({
+                                  blogImages: formData.blogImages.filter((_, idx) => idx !== i),
+                                })
+                              }
+                              className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
+                                flex items-center justify-center opacity-0 group-hover:opacity-100
+                                transition-opacity text-[10px] leading-none"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-400 text-right">
+                      {formData.blogImages.length} / 15 images uploaded
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reference Links */}
+            <div className="space-y-4 mt-5">
+              <h4 className="text-sm font-semibold">Reference Links (max 3)</h4>
+
+              <input
+                placeholder="Add reference links"
+                className="input input-bordered w-full rounded-lg"
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    const val = (e.target as HTMLInputElement).value.trim()
+
+                    if (val) {
+                      if (formData.referenceLinks.includes(val)) {
+                        toast.error("This reference link is already added.")
+                        return
+                      }
+                      if (formData.referenceLinks.length >= 3) {
+                        toast.error("Maximum 3 reference links allowed.")
+                        return
+                      }
+                      handleInputChange({
+                        target: {
+                          name: "referenceLinks",
+                          value: [...formData.referenceLinks, val],
+                        },
+                      })
+                      ;(e.target as HTMLInputElement).value = ""
+                    }
+                  }
                 }}
-                maxCount={3}
-                tokenSeparators={[",", " "]}
-                className="!w-full !bg-gray-50 [&>.ant-select-arrow]:hidden custom-placeholder border rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
               />
-            </Space>
-          </Flex>
+
+              <div className="space-y-2">
+                {formData.referenceLinks.map((link, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-md"
+                  >
+                    <span className="text-sm text-slate-600 truncate">{link}</span>
+
+                    <button
+                      onClick={() =>
+                        handleInputChange({
+                          target: {
+                            name: "referenceLinks",
+                            value: formData.referenceLinks.filter((_, idx) => idx !== i),
+                          },
+                        })
+                      }
+                      className="text-slate-400 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )
       }
       case 3:
         return (
-          <Flex vertical gap="middle" className="p-2">
-            {BLOG_OPTIONS.map((option, index) => (
-              <Flex key={option.key + index} justify="space-between" className="form-item-wrapper">
-                <label htmlFor={`blog-${option.key}`}>{option.label}</label>
-                <Switch
-                  id={`blog-${option.key}`}
-                  value={getValueByPath(formData, option.key)}
-                  onChange={checked =>
-                    handleInputChange({ target: { name: option.key, value: checked } })
-                  }
-                />
-              </Flex>
-            ))}
+          <div className="space-y-6 p-4 pt-0">
+            {/* 1-4. AdvancedOptions Group A */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+            />
 
-            <Space direction="vertical" className="form-item-wrapper">
-              <BrandVoiceSelector
-                label="Write with Brand Voice"
-                value={{
-                  isCheckedBrand: formData.isCheckedBrand,
-                  brandId: formData.brandId,
-                  addCTA: formData.options.addCTA,
-                }}
-                size="default"
-                onChange={val => {
-                  const opts = formData.options
-                  updateFormData({
-                    isCheckedBrand: val.isCheckedBrand,
-                    brandId: val.brandId,
-                    options: { ...opts, addCTA: val.addCTA },
-                  })
-                  updateErrors({ brandId: "" })
-                }}
-                errorText={errors.brandId}
-              />
-            </Space>
-          </Flex>
+            {/* 5. Add Quick Summary */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Add a Quick Summary</label>
+                <p className="text-xs text-slate-500">Generate a concise summary for the readers</p>
+              </div>
+              <div className="flex items-center">
+                <Switch
+                  size="large"
+                  checked={formData.isCheckedQuick}
+                  onCheckedChange={(checked: boolean) => updateFormData({ isCheckedQuick: checked })}
+                />
+              </div>
+            </div>
+
+            {/* 6-9. AdvancedOptions Group B */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={[
+                "includeFaqs",
+                "includeInterlinks",
+                "addOutBoundLinks",
+                "includeCompetitorResearch",
+              ]}
+            />
+
+            {/* 10. Embed YouTube Videos */}
+            <AdvancedOptions
+              formData={formData}
+              updateFormData={updateFormData}
+              isNestedOptions={true}
+              showFields={["embedYouTubeVideos"]}
+            />
+
+            {/* 11. Write with Brand Voice */}
+            <BrandVoiceSelector
+              label="Write with Brand Voice"
+              value={{
+                isCheckedBrand: formData.isCheckedBrand,
+                brandId: formData.brandId,
+                addCTA: formData.options.addCTA,
+              }}
+              labelClass="text-sm font-semibold"
+              onChange={val => {
+                const opts = formData.options
+                updateFormData({
+                  isCheckedBrand: val.isCheckedBrand,
+                  brandId: val.brandId,
+                  options: { ...opts, addCTA: val.addCTA },
+                })
+              }}
+            />
+
+            {/* 12. Automatic Posting */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold">Automatic Posting</label>
+                  <p className="text-xs text-slate-500">
+                    Automatically post to your connected platforms
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <Switch
+                    checked={formData.wordpressPostStatus}
+                    size="large"
+                    onCheckedChange={(checked: boolean) => {
+                      const hasAnyIntegration =
+                        Object.keys(integrations?.integrations || {}).length > 0
+                      if (checked && !hasAnyIntegration) {
+                        toast.error("Please connect your account in plugins.")
+                        return
+                      }
+                      updateFormData({
+                        wordpressPostStatus: checked,
+                        postingType: checked
+                          ? formData.postingType || Object.keys(integrations?.integrations || {})[0]
+                          : null,
+                      })
+                    }}
+                  />
+                </div>
+              </div>
+
+              {formData.wordpressPostStatus &&
+                integrations?.integrations &&
+                Object.keys(integrations.integrations).length > 0 && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Publishing Platform
+                    </label>
+                    <select
+                      value={formData.postingType || ""}
+                      onChange={e => updateFormData({ postingType: e.target.value })}
+                      className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none"
+                    >
+                      <option value="" disabled>
+                        Select Platform
+                      </option>
+                      {Object.entries(integrations.integrations).map(([platform]) => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.postingType && (
+                      <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                        {errors.postingType}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <p className="text-sm font-semibold ">Table of Contents</p>
+                        <p className="text-xs text-slate-500">
+                          Include a table of contents in your post
+                        </p>
+                      </div>
+                      <Switch
+                        size="large"
+                        checked={formData.options.includeTableOfContents}
+                        onCheckedChange={(checked: boolean) =>
+                          handleInputChange({
+                            target: { name: "options.includeTableOfContents", value: checked },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
         )
       default:
-        return <Empty />
+        return null
     }
   }
 
   return (
-    <>
-      {" "}
-      <Modal
-        title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
-        open={true}
-        onCancel={handleClose}
-        footer={
-          <Flex justify="space-between" align="center" gap={12} className="mt-2">
+    <dialog className="modal modal-open bg-black/60">
+      <div className="modal-box w-full max-w-3xl p-0 overflow-hidden bg-white">
+        <div className="flex items-center justify-between p-4 px-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-md font-black text-slate-900 tracking-tight">
+              Generate Advanced Blog | {STEP_TITLES[currentStep]}
+            </h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors group"
+          >
+            <X className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+          </button>
+        </div>
+
+        <div
+          className="p-4 pt-0 max-h-[70vh] overflow-y-auto custom-scroll space-y-4"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {renderSteps()}
+        </div>
+
+        <div className="p-4 border-t border-gray-300 bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Cost Section */}
             {(currentStep === 2 || currentStep === 3) && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+              <div className="flex items-center w-full gap-2 text-sm">
+                <span className="text-gray-600 font-semibold">Estimated Cost:</span>
+                <span className="font-bold text-blue-600">{estimatedCost}</span>
                 {formData.costCutter && (
-                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                  <span className="text-xs text-green-600 font-medium">(-50% off)</span>
                 )}
               </div>
             )}
-            <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 w-full">
               {currentStep > 0 && (
-                <Button
+                <button
                   onClick={handlePrev}
-                  type="default"
-                  className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
+                  className="w-full sm:w-auto px-6 py-2 bg-gray-200 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200/90 transition-colors"
                 >
                   Previous
-                </Button>
+                </button>
               )}
-              <Button
+
+              <button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
-                type="default"
-                className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
               >
                 {currentStep === 3 ? "Generate Blog" : "Next"}
-              </Button>
-            </Flex>
-          </Flex>
-        }
-        width={700}
-        centered
-        transitionName=""
-        maskTransitionName=""
-        destroyOnHidden
-        className="m-2"
-      >
-        <div className="h-full !max-h-[80vh] overflow-auto" style={{ scrollbarWidth: "none" }}>
-          {renderSteps()}
+              </button>
+            </div>
+          </div>
         </div>
-      </Modal>
-    </>
+      </div>
+    </dialog>
   )
 }
 

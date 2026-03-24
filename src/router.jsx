@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import LoadingScreen from "@components/ui/LoadingScreen"
 import App from "./App"
 import ErrorBoundary from "./layout/error/ErrorBoundary"
 import VerifiedEmail from "@pages/VerifiedEmail"
@@ -10,7 +10,6 @@ const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
-const ToolboxSettings = lazy(() => import("@pages/ToolboxPage"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
@@ -36,29 +35,30 @@ const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
-const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
+
 const ImageGallery = lazy(() => import("@pages/ImageGallery"))
 const Onboarding = lazy(() => import("@pages/Onboarding"))
 const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
 const YouTubeSummarization = lazy(() => import("@pages/YouTubeSummarization"))
 const KeywordScraping = lazy(() => import("@pages/KeywordScraping"))
 const ChatWithPdf = lazy(() => import("@pages/ChatWithPdf"))
+const CompetitorLikeBlog = lazy(() => import("@pages/CompetitorLikeBlog"))
+const WebsiteRanking = lazy(() => import("@pages/WebsiteRanking"))
+const PerformanceMonitoring = lazy(() => import("@pages/PerformanceMonitoring"))
+const CompetitiveAnalysis = lazy(() => import("@pages/CompetitiveAnalysis"))
+const KeywordResearch = lazy(() => import("@pages/KeywordResearch"))
 
-/**
- * Wraps a component in React.Suspense with fallback support.
- *
- * @param {React.ComponentType} Component - The lazy-loaded or regular component.
- * @param {Object} props - The props to pass to the component.
- * @param {React.ReactNode} [fallback=null] - Optional fallback content.
- * @returns {JSX.Element}
- */
-function withSuspense(Component, props = {}, fallback = null) {
+const RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
+
+function withLayoutSuspense(Layout, props = {}) {
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <Component {...props} />
+      <Layout {...props} />
     </Suspense>
   )
 }
+
+const r = (Component, props = {}) => <Component {...props} />
 
 const router = createBrowserRouter([
   {
@@ -68,63 +68,66 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: withSuspense(PublicRoutesLayout),
+        element: withLayoutSuspense(PublicRoutesLayout),
         children: [
-          { path: "login", element: withSuspense(Login, { path: "login" }) },
-          { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
-          { path: "signup", element: withSuspense(Login, { path: "signup" }) },
-          { path: "forgot-password", element: withSuspense(ForgotPassword) },
-          { path: "reset-password", element: withSuspense(ResetPassword) },
-          { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
-          { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
-          { path: "email-verify/:email", element: withSuspense(EmailVerification) },
-          { path: "verify-email", element: withSuspense(VerifiedEmail) },
+          { path: "login", element: r(Login, { path: "login" }) },
+          { path: "unsubscribe", element: r(UnsubscribeEmail) },
+          { path: "signup", element: r(Login, { path: "signup" }) },
+          { path: "forgot-password", element: r(ForgotPassword) },
+          { path: "reset-password", element: r(ResetPassword) },
+          { path: "privacy-policy", element: r(PrivacyPolicy) },
+          { path: "terms-and-conditions", element: r(TermsAndConditions) },
           {
             path: "payment",
             children: [
-              { path: "success", element: withSuspense(SuccessPage) },
-              { path: "cancel", element: withSuspense(CancelPage) },
+              { path: "success", element: r(SuccessPage) },
+              { path: "cancel", element: r(CancelPage) },
             ],
           },
-          { path: "shopify-verify", element: withSuspense(ShopifyVerification) },
-          { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
-          { path: "onboarding", element: withSuspense(Onboarding) },
-          { path: "*", element: withSuspense(ErrorPage) },
+          { path: "shopify-verify", element: r(ShopifyVerification) },          
+          { path: "onboarding", element: r(Onboarding) },
+          { path: "*", element: r(ErrorPage) },
         ],
       },
       {
         path: "/",
-        element: withSuspense(PrivateRoutesLayout),
+        element: withLayoutSuspense(PrivateRoutesLayout),
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: "dashboard", element: withSuspense(Dashboard) },
-          { path: "toolbox", element: withSuspense(ToolboxSettings) },
-          { path: "editor", element: withSuspense(ToolBox) },
-          { path: "blog/:id", element: withSuspense(ToolBox) },
-          { path: "blogs", element: withSuspense(BlogsPage) },
-          { path: "integrations", element: withSuspense(PluginsMain) },
-          { path: "jobs", element: withSuspense(jobs) },
-          { path: "trashcan", element: withSuspense(BlogsPage) },
-          { path: "pricing", element: withSuspense(pricing) },
-          { path: "profile", element: withSuspense(Profile) },
-          { path: "brand-voice", element: withSuspense(BrandVoice) },
-          { path: "transactions", element: withSuspense(Transactions) },
-          { path: "credit-logs", element: withSuspense(CreditLogsTable) },
-          { path: "contact", element: withSuspense(ContactUs) },
-          { path: "blog-performance", element: withSuspense(SearchConsole) },
-          { path: "humanize-content", element: withSuspense(HumanizeContent) },
-          { path: "outline", element: withSuspense(OutlineEditor) },
-          { path: "blog-editor", element: withSuspense(ToolBox) },
-          { path: "blog-editor/:id", element: withSuspense(ToolBox) },
-          { path: "cancel-subscription", element: withSuspense(CancellationPage) },
-          { path: "analytics", element: withSuspense(AnalyticsPage) },
-          { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
-          { path: "prompt-content", element: withSuspense(PromptContent) },
-          { path: "image-gallery", element: withSuspense(ImageGallery) },
-          { path: "content-detection", element: withSuspense(AiContentDetection) },
-          { path: "youtube-summarization", element: withSuspense(YouTubeSummarization) },
-          { path: "keyword-scraping", element: withSuspense(KeywordScraping) },
-          { path: "chat-with-pdf", element: withSuspense(ChatWithPdf) },
+          { path: "dashboard", element: r(Dashboard) },
+          { path: "editor", element: r(ToolBox) },
+          { path: "blog/:id", element: r(ToolBox) },
+          { path: "blogs", element: r(BlogsPage) },
+          { path: "integrations", element: r(PluginsMain) },
+          { path: "jobs", element: r(jobs) },
+          { path: "trashcan", element: r(BlogsPage) },
+          { path: "pricing", element: r(pricing) },
+          { path: "profile", element: r(Profile) },
+          { path: "brand-voice", element: r(BrandVoice) },
+          { path: "transactions", element: r(Transactions) },
+          { path: "credit-logs", element: r(CreditLogsTable) },
+          { path: "contact", element: r(ContactUs) },
+          { path: "blog-performance", element: r(SearchConsole) },
+          { path: "humanize-content", element: r(HumanizeContent) },
+          { path: "outline", element: r(OutlineEditor) },
+          { path: "blog-editor", element: r(ToolBox) },
+          { path: "blog-editor/:id", element: r(ToolBox) },
+          { path: "cancel-subscription", element: r(CancellationPage) },
+          { path: "analytics", element: r(AnalyticsPage) },
+          { path: "generate-metadata", element: r(GenerateMetaData) },
+          { path: "prompt-content", element: r(PromptContent) },
+          { path: "image-gallery", element: r(ImageGallery) },
+          { path: "content-detection", element: r(AiContentDetection) },
+          { path: "youtube-summarization", element: r(YouTubeSummarization) },
+          { path: "keyword-scraping", element: r(KeywordScraping) },
+          { path: "chat-with-pdf", element: r(ChatWithPdf) },
+          { path: "competitor-like-blog", element: r(CompetitorLikeBlog) },
+          { path: "website-ranking", element: r(WebsiteRanking) },
+          { path: "performance-monitoring", element: r(PerformanceMonitoring) },
+          { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
+          { path: "keyword-research", element: r(KeywordResearch) },
+          { path: "email-verify/:email", element: r(EmailVerification) },
+          { path: "verify-email", element: <VerifiedEmail /> },
         ],
       },
     ],

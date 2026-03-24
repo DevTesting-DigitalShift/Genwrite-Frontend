@@ -21,8 +21,10 @@ node_modules
 *.sln
 *.sw?
 
-anupDoc.md
-
 *.env
 .env
 todo.txt
+dist
+
+.firebase
+.firebase/*

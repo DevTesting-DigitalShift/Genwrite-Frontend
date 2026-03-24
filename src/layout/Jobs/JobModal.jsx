@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { Modal, message } from "antd"
-import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/jobSlice"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
-import { useQueryClient } from "@tanstack/react-query"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
+import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { validateJobData } from "@/types/forms.schemas"
+import { toast } from "sonner"
 
-const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
+const JobModal = ({ user, userPlan, isUserLoaded }) => {
+  const scrollableRef = React.useRef(null)
+  const { showJobModal, closeJobModal, selectedJob } = useJobStore()
+  const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } =
+    useAnalysisStore()
   const initialJob = {
     name: "",
     schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
@@ -16,15 +19,15 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       numberOfBlogs: 1,
       topics: [],
       keywords: [],
+      references: [],
       templates: [],
-      tone: "Professional",
+      tone: TONES[0],
       userDefinedLength: 1000,
       imageSource: IMAGE_SOURCE.STOCK,
       aiModel: "gemini",
       brandId: null,
       useBrandVoice: false,
       isCheckedGeneratedImages: true,
-      isCheckedCustomImages: false,
       addCTA: true,
       numberOfImages: 0,
       blogImages: [],
@@ -42,13 +45,16 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       addOutBoundLinks: false,
       easyToUnderstand: false,
       embedYouTubeVideos: false,
+      extendedThinking: false,
+      deepResearch: false,
+      humanisation: false,
     },
     status: "active",
     templateIds: [],
   }
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
-  const { selectedJob } = useSelector(state => state.jobs)
+  const { mutate: createJobMutate, isPending: isCreating } = useCreateJobMutation()
+  const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
+
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [formData, setFormData] = useState({
@@ -65,6 +71,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
   const MAX_BLOGS = 10
+  const MAX_IMAGES = 15
 
   // Clear Job Modules and it's states on close
   useEffect(() => {
@@ -74,14 +81,14 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: [],
         keywordInput: "",
         performKeywordResearch: false,
-        postingType: "WORDPRESS",
+        postingType: null,
         aiModel: "gemini",
       })
       setCurrentStep(1)
       setErrors({})
-      dispatch(clearSelectedKeywords())
+      clearSelectedKeywords()
     }
-  }, [showJobModal])
+  }, [showJobModal, clearSelectedKeywords])
 
   useEffect(() => {
     if (selectedJob) {
@@ -101,56 +108,37 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
   }, [selectedJob])
 
   useEffect(() => {
-    let baseJob = selectedJob ? { ...selectedJob } : initialJob
-    let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
-    let mergedKeywords = [
-      ...(baseJob.blogs.keywords || []),
-      ...(selectedKeywords?.focusKeywords || []),
-      ...(selectedKeywords?.allKeywords || []),
-    ]
-
-    setNewJob({
-      ...baseJob,
-      blogs: {
-        ...baseJob.blogs,
-        topics: [...new Set(mergedTopics)],
-        keywords: [...new Set(mergedKeywords)],
-      },
-    })
-
-    setFormData(prev => ({
-      ...prev,
-      keywords: [
-        ...new Set([
-          ...(prev.keywords || []),
-          ...(selectedKeywords?.focusKeywords || []),
-          ...(selectedKeywords?.allKeywords || []),
-        ]),
-      ],
-    }))
-  }, [selectedKeywords, selectedJob])
-
-  useEffect(() => {
-    const uniqueKeywords = [
-      ...new Set([
+    if (pendingImport === "job" && selectedKeywords) {
+      let baseJob = selectedJob ? { ...selectedJob } : initialJob
+      let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
+      let mergedKeywords = [
+        ...(baseJob.blogs.keywords || []),
         ...(selectedKeywords?.focusKeywords || []),
         ...(selectedKeywords?.allKeywords || []),
-      ]),
-    ]
-    if (uniqueKeywords.length > 0) {
+      ]
+
+      setNewJob({
+        ...baseJob,
+        blogs: {
+          ...baseJob.blogs,
+          topics: [...new Set(mergedTopics)],
+          keywords: [...new Set(mergedKeywords)],
+        },
+      })
+
       setFormData(prev => ({
         ...prev,
-        keywords: [...new Set([...prev.keywords, ...uniqueKeywords])],
+        keywords: [
+          ...new Set([
+            ...(prev.keywords || []),
+            ...(selectedKeywords?.focusKeywords || []),
+            ...(selectedKeywords?.allKeywords || []),
+          ]),
+        ],
       }))
-      setNewJob(prev => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          keywords: [...new Set([...prev.blogs.keywords, ...uniqueKeywords])],
-        },
-      }))
+      setPendingImport(null)
     }
-  }, [selectedKeywords])
+  }, [selectedKeywords, selectedJob, pendingImport, setPendingImport])
 
   const validateSteps = step => {
     const newErrors = {}
@@ -162,7 +150,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     if (step === 2 || step === "all") {
       if (!newJob.name) newErrors.name = "Please enter a job name."
       if (newJob.blogs.topics.length === 0) newErrors.topics = "Please add at least one topic."
-      if (!newJob.blogs.tone) newErrors.tone = "Please select a tone."
       if (!formData.performKeywordResearch && formData.keywords.length === 0) {
         newErrors.keywords = "Please add at least one keyword or enable keyword research."
       }
@@ -171,11 +158,8 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
         newErrors.numberOfBlogs = `Number of blogs must be between 1 and ${MAX_BLOGS}.`
       }
-      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_BLOGS) {
-        newErrors.numberOfImages = `Number of images must be between 0 and 20.`
-      }
-      if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
-        newErrors.brandId = "Please select a brand voice."
+      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_IMAGES) {
+        newErrors.numberOfImages = `Number of images must be between 0 and ${MAX_IMAGES}.`
       }
       if (newJob.schedule.type === "weekly" && newJob.schedule.daysOfWeek.length === 0) {
         newErrors.daysOfWeek = "Please select at least one day of the week."
@@ -196,7 +180,27 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       }
     }
     setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) {
+      if (scrollableRef.current) {
+        scrollableRef.current.scrollTo({ top: 0, behavior: "smooth" })
+      }
+    }
     return Object.keys(newErrors).length === 0
+  }
+
+  const resetModal = () => {
+    closeJobModal()
+    setNewJob(initialJob)
+    setFormData({
+      keywords: [],
+      keywordInput: "",
+      performKeywordResearch: false,
+      postingType: null,
+      aiModel: "gemini",
+    })
+    setCurrentStep(1)
+    setErrors({})
+    clearSelectedKeywords()
   }
 
   const handleCreateJob = async () => {
@@ -208,10 +212,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
-        // Set imageSource to "none" if images are disabled
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
+        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
       },
       options: {
         ...newJob.options,
@@ -219,33 +223,18 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
       },
     }
-    try {
-      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-      const validatedPayload = validateJobData(jobPayload)
-      const newJobData = await dispatch(
-        createJobThunk({ jobPayload: validatedPayload, user })
-      ).unwrap()
-      queryClient.setQueryData(["jobs", user.id], (old = []) => [newJobData, ...old])
-      dispatch(closeJobModal())
-      setNewJob(initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: "WORDPRESS",
-        aiModel: "gemini",
-      })
-      setCurrentStep(1)
-      setErrors({})
-      dispatch(clearSelectedKeywords())
-    } catch (error) {
-      console.error("Failed to create job. Please try again.", error)
-    }
+
+    const validatedPayload = validateJobData(jobPayload)
+    createJobMutate(validatedPayload, {
+      onSuccess: () => {
+        resetModal()
+      },
+    })
   }
 
   const handleUpdateJob = async jobId => {
     if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
+      toast.error("User data is still loading. Please try again.")
       return
     }
     if (!validateSteps("all")) return
@@ -256,10 +245,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
-        // Set imageSource to "none" if images are disabled
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
+        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
       },
       options: {
         ...newJob.options,
@@ -267,121 +256,117 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
       },
     }
-    try {
-      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-      const validatedPayload = validateJobData(jobPayload)
-      const updatedJobData = await dispatch(
-        updateJobThunk({ jobId, jobPayload: validatedPayload })
-      ).unwrap()
-      queryClient.setQueryData(["jobs", user.id], (old = []) =>
-        old.map(job => (job._id === jobId ? { ...job, ...updatedJobData } : job))
-      )
-      dispatch(closeJobModal())
-      setNewJob(initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: "WORDPRESS",
-        aiModel: "gemini",
-      })
-      setCurrentStep(1)
-      setErrors({})
-      dispatch(clearSelectedKeywords())
-    } catch (error) {
-      console.error(error)
-    }
+
+    const validatedPayload = validateJobData(jobPayload)
+    updateJobMutate(
+      { jobId, jobPayload: validatedPayload },
+      {
+        onSuccess: () => {
+          resetModal()
+        },
+      }
+    )
   }
 
-  const footerButtons = [
-    currentStep > 1 && (
-      <button
-        key="previous"
-        onClick={() => setCurrentStep(currentStep - 1)}
-        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg mr-3 hover:bg-gray-300"
-        aria-label="Previous step"
-      >
-        Previous
-      </button>
-    ),
-    currentStep < 3 && (
-      <button
-        key="next"
-        onClick={() => {
-          if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
-        }}
-        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
-        aria-label="Next step"
-      >
-        Next
-      </button>
-    ),
-    currentStep === 3 && (
-      <button
-        key="next-step-4"
-        onClick={() => {
-          if (validateSteps(currentStep)) setCurrentStep(4)
-        }}
-        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
-        aria-label="Next step"
-      >
-        Next
-      </button>
-    ),
-    currentStep === 4 && (
-      <button
-        key="submit"
-        onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
-        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
-        aria-label={selectedJob ? "Update job" : "Create job"}
-      >
-        {selectedJob ? "Update" : "Create"} Job
-      </button>
-    ),
-  ]
+  if (!showJobModal) return null
 
   return (
-    <Modal
-      title={`Step ${currentStep}: ${
-        currentStep === 1
-          ? "Select Templates"
-          : currentStep === 2
-            ? "Job Details"
-            : currentStep === 3
-              ? "Schedule Settings"
-              : "Blog Options"
-      }`}
-      open={showJobModal}
-      onCancel={() => {
-        dispatch(closeJobModal())
-      }}
-      footer={footerButtons}
-      width={800}
-      centered
-      className="custom-modal"
-    >
-      <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
-        <StepContent
-          currentStep={currentStep}
-          newJob={newJob}
-          setNewJob={setNewJob}
-          formData={formData}
-          setFormData={setFormData}
-          errors={errors}
-          setErrors={setErrors}
-          recentlyUploadedTopicsCount={recentlyUploadedTopicsCount}
-          setRecentlyUploadedTopicsCount={setRecentlyUploadedTopicsCount}
-          recentlyUploadedKeywordsCount={recentlyUploadedKeywordsCount}
-          setRecentlyUploadedKeywordsCount={setRecentlyUploadedKeywordsCount}
-          showAllTopics={showAllTopics}
-          setShowAllTopics={setShowAllTopics}
-          showAllKeywords={showAllKeywords}
-          setShowAllKeywords={setShowAllKeywords}
-          user={user}
-          userPlan={userPlan}
-        />
+    <div className="modal modal-open z-50">
+      <div className="modal-box w-11/12 max-w-3xl p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center p-4 border-b border-gray-300">
+          <h3 className="font-bold text-lg">
+            Step {currentStep}:{" "}
+            {currentStep === 1
+              ? "Select Templates"
+              : currentStep === 2
+                ? "Job Details"
+                : currentStep === 3
+                  ? "Schedule Settings"
+                  : "Blog Options"}
+          </h3>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={() => closeJobModal()}>
+            ✕
+          </button>
+        </div>
+
+        <div ref={scrollableRef} className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-4">
+          <StepContent
+            currentStep={currentStep}
+            newJob={newJob}
+            setNewJob={setNewJob}
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+            setErrors={setErrors}
+            recentlyUploadedTopicsCount={recentlyUploadedTopicsCount}
+            setRecentlyUploadedTopicsCount={setRecentlyUploadedTopicsCount}
+            recentlyUploadedKeywordsCount={recentlyUploadedKeywordsCount}
+            setRecentlyUploadedKeywordsCount={setRecentlyUploadedKeywordsCount}
+            showAllTopics={showAllTopics}
+            setShowAllTopics={setShowAllTopics}
+            showAllKeywords={showAllKeywords}
+            setShowAllKeywords={setShowAllKeywords}
+            user={user}
+            userPlan={userPlan}
+          />
+        </div>
+
+        <div className="modal-action p-4 border-t border-gray-300 mt-0 bg-gray-50 flex justify-end gap-2">
+          {currentStep > 1 && (
+            <button
+              key="previous"
+              onClick={() => setCurrentStep(currentStep - 1)}
+              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200  rounded-sm"
+              aria-label="Previous step"
+            >
+              Previous
+            </button>
+          )}
+          {currentStep < 3 && (
+            <button
+              key="next"
+              onClick={() => {
+                if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
+              }}
+              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none shadow-none"
+              aria-label="Next step"
+            >
+              Next
+            </button>
+          )}
+          {currentStep === 3 && (
+            <button
+              key="next-step-4"
+              onClick={() => {
+                if (validateSteps(currentStep)) setCurrentStep(4)
+              }}
+              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              aria-label="Next step"
+            >
+              Next
+            </button>
+          )}
+          {currentStep === 4 && (
+            <button
+              key="submit"
+              onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
+              className="btn btn-primary min-h-auto h-auto font-normal text-base normal-case px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              aria-label={selectedJob ? "Update job" : "Create job"}
+              disabled={isCreating || isUpdating}
+            >
+              {isCreating || isUpdating
+                ? "Processing..."
+                : selectedJob
+                  ? "Update Job"
+                  : "Create Job"}
+            </button>
+          )}
+        </div>
       </div>
-    </Modal>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={() => closeJobModal()}>close</button>
+      </form>
+    </div>
   )
 }
 
