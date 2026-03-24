@@ -398,25 +398,7 @@ const ChatWithPdf = () => {
             )}
           </AnimatePresence>
 
-          {!file && (
-            <div className="mt-8">
-              <ConnectedTools currentToolId="chatpdf" transferValue={input} />
-            </div>
-          )}
-
-          {file && messages.length > 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl p-4 mt-4 border border-slate-100 shadow-sm shrink-0"
-            >
-              <ConnectedTools
-                currentToolId="chatpdf"
-                transferValue={messages[messages.length - 1]?.content || ""}
-                isCompact={true}
-              />
-            </motion.div>
-          )}
+          {/* Suggestions removed as requested */}
         </div>
       </div>
     </div>

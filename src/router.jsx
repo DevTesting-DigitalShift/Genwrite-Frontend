@@ -77,8 +77,6 @@ const router = createBrowserRouter([
           { path: "reset-password", element: r(ResetPassword) },
           { path: "privacy-policy", element: r(PrivacyPolicy) },
           { path: "terms-and-conditions", element: r(TermsAndConditions) },
-          { path: "email-verify/:email", element: r(EmailVerification) },
-          { path: "verify-email", element: <VerifiedEmail /> },
           {
             path: "payment",
             children: [
@@ -86,8 +84,7 @@ const router = createBrowserRouter([
               { path: "cancel", element: r(CancelPage) },
             ],
           },
-          { path: "shopify-verify", element: r(ShopifyVerification) },
-
+          { path: "shopify-verify", element: r(ShopifyVerification) },          
           { path: "onboarding", element: r(Onboarding) },
           { path: "*", element: r(ErrorPage) },
         ],
@@ -129,6 +126,8 @@ const router = createBrowserRouter([
           { path: "performance-monitoring", element: r(PerformanceMonitoring) },
           { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
           { path: "keyword-research", element: r(KeywordResearch) },
+          { path: "email-verify/:email", element: r(EmailVerification) },
+          { path: "verify-email", element: <VerifiedEmail /> },
         ],
       },
     ],
