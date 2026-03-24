@@ -316,7 +316,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             <button
               key="previous"
               onClick={() => setCurrentStep(currentStep - 1)}
-              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200  rounded-sm"
+              className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 rounded-md transition-all"
               aria-label="Previous step"
             >
               Previous
@@ -328,7 +328,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
               onClick={() => {
                 if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
               }}
-              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none shadow-none"
+              className="btn min-h-auto h-auto font-bold text-base px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label="Next step"
             >
               Next
@@ -340,7 +340,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
               onClick={() => {
                 if (validateSteps(currentStep)) setCurrentStep(4)
               }}
-              className="btn btn-primary min-h-auto h-auto font-normal text-base px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              className="btn min-h-auto h-auto font-bold text-base px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label="Next step"
             >
               Next
@@ -350,7 +350,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             <button
               key="submit"
               onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
-              className="btn btn-primary min-h-auto h-auto font-normal text-base normal-case px-6 py-2 text-white bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 border-none"
+              className="btn min-h-auto h-auto font-bold text-base normal-case px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label={selectedJob ? "Update job" : "Create job"}
               disabled={isCreating || isUpdating}
             >

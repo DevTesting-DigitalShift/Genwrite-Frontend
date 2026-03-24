@@ -232,7 +232,7 @@ const SideBar_Header = () => {
         {/* Logo Header */}
         <div className="flex items-center mt-2 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
-            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <Menu className="w-5 h-5 text-white" />
             </div>
           ) : (
@@ -247,15 +247,17 @@ const SideBar_Header = () => {
           <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full h-14 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group relative overflow-hidden"
+              className="w-full h-14 bg-primary hover:bg-[#3B4BB8] text-white font-bold rounded-xl transition-all duration-300 shadow-none flex items-center justify-center gap-2 group relative overflow-hidden border border-white/10"
             >
-              <div className="shimmer-effect absolute inset-0 pointer-events-none z-0" />
+              <div className="shimmer-effect absolute inset-0 pointer-events-none z-0 opacity-20" />
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300 relative z-10" />
               )}
-              <span className="capitalize relative z-10">{user?.subscription?.plan} Plan</span>
+              <span className="capitalize relative z-10 tracking-tight">
+                {user?.subscription?.plan} Plan
+              </span>
             </button>
           </div>
         )}
@@ -275,8 +277,10 @@ const SideBar_Header = () => {
                   <NavLink
                     to={Menu.path}
                     onClick={e => handleNavClick(Menu.path, e)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                      isActive ? "bg-blue-50 text-blue-600 shadow-sm" : " hover:bg-gray-100"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900"
                     }`}
                   >
                     <Icon
@@ -395,7 +399,7 @@ const SideBar_Header = () => {
                 </div>
                 <div className="dropdown dropdown-end relative">
                   <div tabIndex={0} role="button" className="avatar cursor-pointer ml-5 mr-5">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-tr from-blue-400 to-purple-700 text-white font-bold flex items-center justify-center overflow-hidden shadow-inner">
+                    <div className="w-12 h-12 rounded-full bg-primary text-white font-bold flex items-center justify-center overflow-hidden shadow-none border-2 border-primary/20">
                       {user?.avatar ? (
                         <img
                           src={user.avatar}

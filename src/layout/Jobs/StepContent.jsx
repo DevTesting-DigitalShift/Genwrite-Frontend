@@ -357,7 +357,7 @@ const StepContent = ({
                   setNewJob({ ...newJob, name: e.target.value })
                   setErrors(prev => ({ ...prev, name: false }))
                 }}
-                className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                   errors.name ? "input-error" : ""
                 }`}
                 aria-label="Job name"
@@ -382,7 +382,7 @@ const StepContent = ({
                     e.key === "Enter" && handleAddItems(formData.topicInput, "topics")
                   }
                   onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
-                  className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                     errors.topics ? "input-error" : ""
                   }`}
                   placeholder="Add a topic..."
@@ -392,7 +392,7 @@ const StepContent = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAddItems(formData.topicInput, "topics")}
-                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg btn border-none min-h-auto h-auto"
+                  className="px-6 py-2 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-md btn border-none min-h-auto h-auto transition-all"
                   aria-label="Add topic"
                 >
                   <Plus />
@@ -415,7 +415,7 @@ const StepContent = ({
                   return (
                     <span
                       key={`${topic}-${actualIndex}`}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-800"
                     >
                       {topic}
                       <button
@@ -493,14 +493,14 @@ const StepContent = ({
                     onKeyDown={e =>
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
-                    className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                       errors.keywords ? "input-error" : "border-gray-300"
                     }`}
                     placeholder="e.g., digital marketing trends, AI in business"
                   />
                   <button
                     onClick={() => handleAddItems(formData.keywordInput, "keywords")}
-                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 btn border-none min-h-auto h-auto"
+                    className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                   >
                     <Plus />
                   </button>
@@ -522,7 +522,7 @@ const StepContent = ({
                     return (
                       <span
                         key={`${keyword}-${actualIndex}`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-800"
                       >
                         {keyword}
                         <button
@@ -601,7 +601,7 @@ const StepContent = ({
                       setFormData(prev => ({ ...prev, referenceInput: "" }))
                     }
                   }}
-                  className="flex-1 px-3 py-2 border rounded-md text-sm border-gray-300 focus:outline-none focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border rounded-md text-sm border-gray-300 focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6]"
                   placeholder="https://example.com/blog-post"
                 />
                 <button
@@ -631,7 +631,7 @@ const StepContent = ({
                     })
                     setFormData(prev => ({ ...prev, referenceInput: "" }))
                   }}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 btn border-none min-h-auto h-auto"
+                  className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                 >
                   <Plus />
                 </button>
@@ -833,9 +833,9 @@ const StepContent = ({
                     <button
                       key={i}
                       type="button"
-                      className={`px-2 py-1 rounded ${
+                      className={`px-2 py-1 rounded-md transition-all ${
                         newJob.schedule.daysOfWeek?.includes(i)
-                          ? "bg-[#1B6FC9] text-white"
+                          ? "bg-[#4C5BD6] text-white"
                           : "bg-gray-200 "
                       }`}
                       onClick={() => {
@@ -869,9 +869,9 @@ const StepContent = ({
                     <button
                       key={date}
                       type="button"
-                      className={`px-2 py-1 rounded ${
+                      className={`px-2 py-1 rounded-md transition-all ${
                         newJob.schedule.daysOfMonth?.includes(date)
-                          ? "bg-[#1B6FC9] text-white"
+                          ? "bg-[#4C5BD6] text-white"
                           : "bg-gray-200 "
                       }`}
                       onClick={() => {

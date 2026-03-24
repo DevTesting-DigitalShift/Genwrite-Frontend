@@ -48,7 +48,7 @@ const AiModelSelector = ({
                   relative border-2 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-200
                   ${
                     isActive
-                      ? "border-[#1B6FC9] bg-blue-50/50 shadow-sm ring-1 ring-blue-100"
+                      ? "border-[#4C5BD6] bg-blue-50/50 shadow-sm ring-1 ring-blue-100"
                       : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                   }
                   ${isRestricted ? "opacity-60 grayscale-[0.3]" : "opacity-100"}
@@ -60,7 +60,7 @@ const AiModelSelector = ({
                   <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
                 </div>
                 <span
-                  className={`text-sm font-bold tracking-tight ${isActive ? "text-[#1B6FC9]" : ""}`}
+                  className={`text-sm font-bold tracking-tight ${isActive ? "text-[#4C5BD6]" : ""}`}
                 >
                   {model.label}
                 </span>

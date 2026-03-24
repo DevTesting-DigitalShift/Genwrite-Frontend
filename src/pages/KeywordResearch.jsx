@@ -434,26 +434,28 @@ const KeywordResearch = () => {
     allFilteredKeywords.every(row => selectedKeywords?.allKeywords?.includes(row.keyword))
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
       <Helmet>
         <title>Keyword Research | GenWrite</title>
       </Helmet>
       <div className="max-w-[1200px] mx-auto space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 px-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 px-6">
           <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+              <Search className="w-5 h-5" strokeWidth={2.5} />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <Search className="w-6 h-6 text-[#1B6FC9]" />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Keyword Research
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-gray-500 mt-0.5">
                 Discover high-potential keywords and analyze their performance.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6 space-y-6">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <input
@@ -461,12 +463,12 @@ const KeywordResearch = () => {
                 value={newKeyword}
                 onChange={e => setNewKeyword(e.target.value)}
                 onKeyDown={handleKeyPress}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]/20 focus:border-[#1B6FC9] transition-all text-sm"
+                className="w-full px-4 py-3 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-sm placeholder-gray-400"
               />
             </div>
             <Button
               onClick={addKeyword}
-              className="bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-semibold px-8 py-3 h-auto rounded-lg transition-all shadow-md shadow-[#1B6FC9]/10"
+              className="bg-primary hover:bg-[#3B4BB8] text-white font-semibold px-8 py-3 rounded-md transition-all h-11 flex items-center justify-center"
             >
               Add Keywords
             </Button>
@@ -485,7 +487,7 @@ const KeywordResearch = () => {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
-                    className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl flex items-center shadow-sm hover:border-blue-300 hover:text-blue-600 transition-all"
+                    className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl flex items-center shadow-none hover:border-primary hover:text-primary transition-all"
                   >
                     <span className="text-sm font-medium">{keyword}</span>
                     <button
@@ -503,7 +505,8 @@ const KeywordResearch = () => {
           <Button
             onClick={analyzeKeywords}
             disabled={keywords.length === 0 || analyzing}
-            className="w-full bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white text-base py-5 rounded-lg shadow-lg shadow-[#1B6FC9]/10 transition-all font-bold"
+            shape="pill"
+            className="w-full bg-primary hover:bg-[#3B4BB8] text-white text-base py-5 rounded-xl transition-all font-bold"
           >
             {analyzing ? (
               <span className="flex items-center gap-3">
@@ -517,7 +520,7 @@ const KeywordResearch = () => {
 
           {!analyzing && keywordAnalysisResult?.length > 0 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 border-t border-slate-100">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-3 mr-4">
                     <Switch
@@ -544,11 +547,11 @@ const KeywordResearch = () => {
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#1B6FC9] uppercase tracking-wider">
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">
                     Selection Pool
                   </span>
                   <div className="flex items-center gap-2">
-                    <div className="text-sm text-blue-800 font-bold bg-blue-200/50 px-4 py-1.5 rounded-full border border-blue-300/30">
+                    <div className="text-sm text-primary font-bold bg-primary/10 px-4 py-1.5 rounded-lg border border-primary/20">
                       {selectedKeywords?.allKeywords?.length || 0} / 35 max
                     </div>
                   </div>
@@ -566,7 +569,7 @@ const KeywordResearch = () => {
                               key={header.id}
                               className={clsx(
                                 "py-4 font-bold text-slate-800 select-none",
-                                header.column.getCanSort() && "cursor-pointer hover:text-[#1B6FC9]"
+                                header.column.getCanSort() && "cursor-pointer hover:text-primary"
                               )}
                               onClick={header.column.getToggleSortingHandler()}
                             >
@@ -575,9 +578,9 @@ const KeywordResearch = () => {
                                 {header.column.getCanSort() && (
                                   <div className="flex flex-col text-[10px]">
                                     {header.column.getIsSorted() === "asc" ? (
-                                      <ArrowUp size={14} className="text-[#1B6FC9] opacity-100" />
+                                      <ArrowUp size={14} className="text-primary opacity-100" />
                                     ) : header.column.getIsSorted() === "desc" ? (
-                                      <ArrowDown size={14} className="text-[#1B6FC9] opacity-100" />
+                                      <ArrowDown size={14} className="text-primary opacity-100" />
                                     ) : (
                                       <ArrowUp01 size={14} className="opacity-20 translate-y-px" />
                                     )}
@@ -593,7 +596,7 @@ const KeywordResearch = () => {
                       {currentRows.map(row => (
                         <TableRow
                           key={row.id}
-                          className="group hover:bg-[#1B6FC9]/5 border-slate-100 transition-colors"
+                          className="group hover:bg-primary/5 border-slate-100 transition-colors"
                         >
                           {row.getVisibleCells().map(cell => (
                             <TableCell key={cell.id} className="py-3.5">
@@ -668,7 +671,7 @@ const KeywordResearch = () => {
                       size="sm"
                       disabled={currentPage === 1}
                       onClick={() => handlePageChange(currentPage - 1)}
-                      className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30 transition-colors"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 hover:text-[#4C5BD6] hover:border-[#4C5BD6]/30 transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -713,8 +716,8 @@ const KeywordResearch = () => {
                               onClick={() => handlePageChange(item)}
                               className={`h-9 w-9 p-0 rounded-lg text-sm font-bold transition-all ${
                                 currentPage === item
-                                  ? "bg-[#1B6FC9] shadow-md shadow-[#1B6FC9]/20 text-white hover:bg-[#1B6FC9]"
-                                  : "hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30"
+                                  ? "bg-primary shadow-md shadow-primary/20 text-white hover:bg-primary"
+                                  : "hover:bg-primary/5 hover:text-primary hover:border-primary/30"
                               }`}
                             >
                               {item}
@@ -728,7 +731,7 @@ const KeywordResearch = () => {
                       size="sm"
                       disabled={currentPage === totalPages}
                       onClick={() => handlePageChange(currentPage + 1)}
-                      className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 hover:text-[#1B6FC9] hover:border-[#1B6FC9]/30 transition-colors"
+                      className="h-9 w-9 p-0 rounded-lg hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-colors"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -741,7 +744,8 @@ const KeywordResearch = () => {
                   variant="outline"
                   onClick={showAutoKeywords}
                   disabled={analyzing || !keywordAnalysisResult?.length}
-                  className="bg-white border-[#1B6FC9]/20 text-[#1B6FC9] hover:bg-[#1B6FC9]/5 py-5 px-6 text-base rounded-lg font-bold transition-all"
+                  shape="pill"
+                  className="bg-white border-primary/20 text-primary hover:bg-primary/5 py-5 px-6 text-base rounded-xl font-bold transition-all"
                 >
                   <Info className="w-5 h-5 mr-3" />
                   Auto-Select
@@ -750,14 +754,16 @@ const KeywordResearch = () => {
                 <Button
                   onClick={handleCreateBlog}
                   disabled={!hasSelectedKeywords}
-                  className="bg-[#1B6FC9]/10 hover:bg-[#1B6FC9]/20 text-[#1B6FC9] py-5 px-8 text-base font-bold rounded-lg transition-all border border-[#1B6FC9]/20"
+                  shape="pill"
+                  className="bg-primary/10 hover:bg-primary/20 text-primary py-5 px-8 text-base font-bold rounded-xl transition-all border border-primary/20"
                 >
                   Create Blog
                 </Button>
                 <Button
                   onClick={handleCreateJob}
                   disabled={!hasSelectedKeywords}
-                  className="bg-purple-100/50 hover:bg-purple-200/50 text-purple-700 py-5 px-8 text-base font-bold rounded-lg transition-all border border-purple-200/50"
+                  shape="pill"
+                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 py-5 px-8 text-base font-bold rounded-xl transition-all border border-purple-200"
                 >
                   Create Job
                 </Button>
@@ -775,8 +781,8 @@ const KeywordResearch = () => {
       <Dialog open={autoSelectVisible} onOpenChange={setAutoSelectVisible}>
         <DialogContent className="max-w-[450px] rounded-2xl border-none p-0">
           <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100 rounded-t-2xl">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#1B6FC9]" />
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
+              <Sparkles className="w-5 h-5 text-primary" />
               Smart Auto-Selection
             </DialogTitle>
           </DialogHeader>
@@ -789,7 +795,7 @@ const KeywordResearch = () => {
               {getAutoSelectedKeywords().map(kw => (
                 <div
                   key={kw}
-                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100 capitalize font-bold"
+                  className="text-xs bg-primary/5 text-primary px-3 py-1.5 rounded-lg border border-primary/10 capitalize font-bold"
                 >
                   {kw}
                 </div>
@@ -809,7 +815,7 @@ const KeywordResearch = () => {
             </Button>
             <Button
               onClick={acceptAutoKeywords}
-              className="bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold flex-1 shadow-lg shadow-[#1B6FC9]/10"
+              className="bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white font-bold flex-1 rounded-md h-11"
             >
               Accept Recommendations
             </Button>

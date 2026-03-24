@@ -75,12 +75,12 @@ const PricingCard = ({
   const getCardStyles = () => {
     const baseStyles = {
       container: isDisabled
-        ? `bg-linear-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 opacity-90`
-        : `bg-linear-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-300 hover:shadow-xl`,
-      price: `text-teal-700`,
+        ? `bg-gray-50 border-gray-200 opacity-90`
+        : `bg-white border-gray-200 hover:border-primary/40 hover:shadow-lg`,
+      price: `text-gray-900`,
       button: isDisabled
-        ? `bg-teal-600 hover:bg-teal-700 text-white`
-        : `bg-teal-600 hover:bg-teal-700 text-white`,
+        ? `bg-gray-300 text-gray-600`
+        : `bg-primary hover:bg-primary/90 text-white`,
     }
 
     switch (plan.tier) {
@@ -89,26 +89,26 @@ const PricingCard = ({
       case "pro":
         return {
           container: isDisabled
-            ? `bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 opacity-90`
-            : `bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-400 hover:shadow-xl shadow-lg`,
-          price: `text-blue-700`,
+            ? `bg-gray-50 border-gray-200 opacity-90`
+            : `bg-white border-primary/30 shadow-none hover:shadow-xl hover:border-primary/60`,
+          price: `text-primary`,
           button: isDisabled
-            ? `bg-blue-600 hover:bg-blue-700 text-white`
-            : `bg-blue-600 hover:bg-blue-700 text-white`,
+            ? `bg-gray-300 text-gray-600`
+            : `bg-primary hover:bg-primary/90 text-white`,
         }
       case "enterprise":
         return {
           container: isDisabled
-            ? `bg-linear-to-br from-purple-50 to-pink-50 border-2 border-purple-200 opacity-90`
-            : `bg-linear-to-br from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-300 hover:shadow-xl`,
+            ? `bg-gray-50 border-gray-200 opacity-90`
+            : `bg-white border-purple-200 hover:border-purple-400 hover:shadow-xl`,
           price: `text-purple-700`,
           button: isDisabled
-            ? `bg-purple-600 hover:bg-purple-700 text-white`
+            ? `bg-gray-300 text-gray-600`
             : `bg-purple-600 hover:bg-purple-700 text-white`,
         }
       case "credits":
         return {
-          container: `bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-300 hover:shadow-xl`,
+          container: `bg-white border-emerald-200 hover:border-emerald-400 hover:shadow-xl`,
           price: `text-emerald-700`,
           button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
         }
@@ -168,10 +168,10 @@ const PricingCard = ({
       {plan.featured &&
         !isDisabled &&
         (userSubscription?.plan?.toLowerCase() === "basic" && plan.tier === "pro" ? (
-          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="bg-linear-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
-              <Star className="w-4 h-4" />
-              Most Popular
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
+            <div className="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+              <Star className="w-3.5 h-3.5 fill-white" />
+              MOST POPULAR
             </div>
           </div>
         ) : userSubscription?.plan?.toLowerCase() === "pro" && plan.tier === "enterprise" ? (
@@ -184,7 +184,7 @@ const PricingCard = ({
         ) : null)}
 
       <div
-        className={`relative rounded-2xl transition-all duration-300 ${styles.container} overflow-hidden h-full flex flex-col`}
+        className={`relative rounded-xl transition-all duration-300 ${styles.container} overflow-hidden h-full flex flex-col shadow-none`}
       >
         {/* Header Section */}
         <div className="px-6 pt-5 rounded-t-2xl">
@@ -654,14 +654,14 @@ const Upgrade = () => {
       </Helmet>
       <motion.div className="flex flex-col items-center justify-center mb-8 sm:mb-10 md:mb-12 text-center px-4">
         <motion.h1
-          whileHover={{ scale: 1.02 }}
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          whileHover={{ scale: 1.01 }}
+          className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 tracking-tight"
         >
           Flexible Pricing Plans
         </motion.h1>
 
         <motion.div
-          className="h-1 w-16 sm:w-20 md:w-24 bg-linear-to-r from-blue-500 to-purple-500 rounded-full mt-3"
+          className="h-1.5 w-20 bg-primary rounded-full mt-4"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.3 }}
@@ -695,10 +695,10 @@ const Upgrade = () => {
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
-                  className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
                     billingPeriod === period
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-primary text-white shadow-none"
+                      : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
                   {period === "annual" ? (
@@ -783,10 +783,10 @@ const Upgrade = () => {
         <div className="flex justify-center sm:justify-end mt-4 sm:mt-6 px-4 sm:mr-8 lg:mr-20">
           <a
             href="/cancel-subscription"
-            className="text-sm font-medium text-white transition-colors 
-        bg-linear-to-r from-blue-600 to-purple-600 
-        rounded-lg px-4 py-2 shadow-sm 
-        hover:from-blue-700 hover:to-purple-700"
+            className="text-sm font-bold text-white transition-colors 
+        bg-gray-900 
+        rounded-xl px-5 py-2.5 shadow-none 
+        hover:bg-gray-800"
           >
             Thinking of leaving GenWrite?
           </a>

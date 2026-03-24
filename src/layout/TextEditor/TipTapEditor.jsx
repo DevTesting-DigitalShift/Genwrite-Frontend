@@ -879,7 +879,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               }
               className={`p-2 rounded-md transition-colors ${
                 normalEditor?.isActive("heading", { level })
-                  ? "bg-blue-100 text-blue-600"
+                  ? "bg-primary/10 text-primary"
                   : "text-black hover:bg-gray-100"
               }`}
               type="button"
@@ -901,7 +901,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())}
             className={`p-2 rounded-md transition-colors ${
               normalEditor?.isActive("bold")
-                ? "bg-blue-100 text-blue-600"
+                ? "bg-primary/10 text-primary"
                 : "text-black hover:bg-gray-100"
             }`}
             type="button"
@@ -916,7 +916,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             }
             className={`p-2 rounded-md transition-colors ${
               normalEditor?.isActive("italic")
-                ? "bg-blue-100 text-blue-600"
+                ? "bg-primary/10 text-primary"
                 : "text-black hover:bg-gray-100"
             }`}
             type="button"
@@ -931,7 +931,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             }
             className={`p-2 rounded-md transition-colors ${
               normalEditor?.isActive("underline")
-                ? "bg-blue-100 text-blue-600"
+                ? "bg-primary/10 text-primary"
                 : "text-black hover:bg-gray-100"
             }`}
             type="button"
@@ -953,7 +953,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               }
               className={`p-2 rounded-md transition-colors ${
                 normalEditor?.isActive({ textAlign: align })
-                  ? "bg-blue-100 text-blue-600"
+                  ? "bg-primary/10 text-primary"
                   : "text-black hover:bg-gray-100"
               }`}
               type="button"
@@ -977,7 +977,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             }
             className={`p-2 rounded-md transition-colors ${
               normalEditor?.isActive("bulletList")
-                ? "bg-blue-100 text-blue-600"
+                ? "bg-primary/10 text-primary"
                 : "text-black hover:bg-gray-100"
             }`}
             type="button"

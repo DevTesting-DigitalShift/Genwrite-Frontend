@@ -731,7 +731,7 @@ const Auth = ({ path }) => {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading || (isSignup && !termsAccepted)}
-                  className={`btn w-full btn-block h-14 border-none text-lg rounded-lg shadow-lg text-white normal-case bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 hover:shadow-xl ${
+                  className={`btn w-full btn-block h-14 border-none text-lg rounded-xl shadow-none text-white normal-case bg-primary hover:bg-[#3B4BB8] transition-all duration-200 ${
                     loading || (isSignup && !termsAccepted) ? "btn-disabled opacity-70" : ""
                   }`}
                 >

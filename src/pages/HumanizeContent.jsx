@@ -165,14 +165,14 @@ const HumanizeContent = () => {
         />
       </Helmet>
       <div className="max-w-7xl mx-auto space-y-8 p-3 md:p-10 mt-6 md:mt-0">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-primary" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   Humanize Content
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
@@ -182,7 +182,7 @@ const HumanizeContent = () => {
             </div>
             <button
               onClick={handleReset}
-              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
             >
               <RefreshCw className="w-4 h-4" />
@@ -192,17 +192,17 @@ const HumanizeContent = () => {
         </div>
 
         {/* Input Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <FileText className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Input Content</h2>
+            <FileText className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold text-gray-900">Input Content</h2>
           </div>
           <div className="space-y-4">
             <textarea
               value={inputContent}
               onChange={e => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (100–1000 words)..."
-              className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full h-60 p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl resize-none focus:border-primary focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
             />
             <div className="flex justify-end items-center">
               <p
@@ -219,10 +219,10 @@ const HumanizeContent = () => {
             <button
               onClick={handleMagicWandClick}
               disabled={isPending || !inputContent.trim() || wordCount < 100 || wordCount > 1000}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-primary text-white font-bold rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 ${
                 !inputContent.trim() || wordCount < 100 || wordCount > 1000
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
+                  : "hover:bg-[#3B4BB8] hover:scale-[1.02]"
               }`}
             >
               Process Content
@@ -232,10 +232,10 @@ const HumanizeContent = () => {
 
         {/* Results Section */}
         {(outputContent || isPending) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
-                <Sparkles className="w-5 h-5 text-purple-600" />
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-primary" />
                 Processing Results
               </h2>
             </div>
@@ -244,7 +244,7 @@ const HumanizeContent = () => {
               <div className="flex flex-col border-r border-gray-200">
                 <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
                       <FileText className="w-4 h-4 text-gray-600" />
                       Original Content
                     </h3>
@@ -269,10 +269,10 @@ const HumanizeContent = () => {
 
               {/* Processed Content Panel */}
               <div className="flex flex-col">
-                <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
+                <div className="flex items-center justify-between p-4 bg-primary/5 border-b border-gray-200">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-blue-600" />
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
                       Processed Content
                     </h3>
                     {outputContent?.rewrittenHumanizationScore && (
@@ -306,7 +306,7 @@ const HumanizeContent = () => {
                   {isPending ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
                         <p className="text-gray-600 font-medium">Processing your content...</p>
                         <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
                       </div>

@@ -292,7 +292,7 @@ const CompetitiveAnalysis = () => {
         <AccordionItem
           key={idx}
           value={`item-${idx}`}
-          className="border border-gray-300 rounded-lg px-4 overflow-hidden"
+          className="border border-gray-200 rounded-lg px-4 overflow-hidden"
         >
           <div className="py-2">
             <AccordionTrigger className="hover:no-underline py-2 flex-1 text-left">
@@ -351,7 +351,7 @@ const CompetitiveAnalysis = () => {
               <AccordionItem
                 key={idx}
                 value={`link-${idx}`}
-                className="border border-gray-300 rounded-lg px-4 bg-white shadow-sm"
+                className="border border-gray-200 rounded-lg px-4 bg-white shadow-none"
               >
                 <div className="flex items-center justify-between">
                   <AccordionTrigger className="hover:no-underline py-4 flex-1 text-left">
@@ -393,7 +393,7 @@ const CompetitiveAnalysis = () => {
           <AccordionItem
             key={idx}
             value={`analysis-${idx}`}
-            className="border border-gray-300 rounded-lg px-4 bg-white shadow-sm overflow-hidden"
+            className="border border-gray-200 rounded-lg px-4 bg-white shadow-none overflow-hidden"
           >
             <AccordionTrigger className="hover:no-underline py-4">
               <div className="flex items-center justify-between w-full pr-6">
@@ -431,24 +431,25 @@ const CompetitiveAnalysis = () => {
 
       <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
         {/* Page Header */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-none p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0 border border-blue-100">
+                <Globe className="w-5 h-5" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   Competitive Analysis
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                <p className="text-sm text-gray-500 mt-0.5">
                   Benchmark your content against top-performing competitors.
                 </p>
               </div>
             </div>
             <button
               onClick={handleReset}
-              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
+              title="Reset content"
             >
               <RefreshCw className="w-4 h-4" />
               Reset
@@ -457,16 +458,16 @@ const CompetitiveAnalysis = () => {
         </div>
 
         {/* Project Selection Section */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-none p-6">
           <div className="flex items-center gap-3 mb-4">
             <Search className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Choose Project</h2>
+            <h2 className="text-lg font-bold text-gray-900 uppercase tracking-tight">Choose Project</h2>
           </div>
           <Select onValueChange={handleProjectSelect} value={id || ""}>
             <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl focus:ring-blue-500/20">
               <SelectValue placeholder="Select a blog from your library..." />
             </SelectTrigger>
-            <SelectContent className="max-h-[300px] border-gray-300">
+            <SelectContent className="max-h-[300px] border-gray-200 rounded-xl">
               {blogs.map(blog => (
                 <SelectItem
                   key={blog._id}
@@ -726,7 +727,7 @@ const CompetitiveAnalysis = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isLoading || analysisLoading}
-                className="px-8 h-12 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-bold rounded-lg text-lg shadow-none"
+                className="px-10 h-14 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white font-bold rounded-full text-lg shadow-lg shadow-[#4C5BD6]/20 transition-all scale-100 hover:scale-[1.02]"
               >
                 {isLoading || analysisLoading ? (
                   <span className="flex items-center gap-3">

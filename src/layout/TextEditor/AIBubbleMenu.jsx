@@ -192,7 +192,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
         >
           {isProcessing ? (
             <div className="flex items-center gap-2 px-3 py-2">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
               <span className="text-sm text-gray-600">Processing...</span>
             </div>
           ) : (
@@ -206,11 +206,11 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
               <div className="tooltip tooltip-bottom" data-tip="Rewrite selected text with AI">
                 <button
                   onClick={() => handleAIOperation("rewrite")}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
                   disabled={isProcessing}
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span className="font-medium">Rewrite</span>
+                  <span className="font-bold">Rewrite</span>
                 </button>
               </div>
             </>
@@ -222,19 +222,19 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
       {aiResultModalOpen && (
         <div className="modal modal-open z-9999">
           <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 shadow-2xl bg-white">
-            <div className="flex items-center justify-between p-5 px-8 border-b border-gray-50 bg-white sticky top-0 z-20">
+            <div className="flex items-center justify-between p-5 px-8 border-b border-gray-200 bg-white sticky top-0 z-20">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-gray-900 text-xl tracking-tight">Review AI Changes</h3>
+                  <h3 className="font-bold text-gray-900 text-xl tracking-tight">Review AI Changes</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                       Processing: {currentOperation}
                     </span>
                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
+                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest">
                       AI GENERATED
                     </span>
                   </div>

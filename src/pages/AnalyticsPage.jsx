@@ -33,10 +33,9 @@ const StatsCard = ({ title, value, icon, iconBg, cardBg, ringColor, progress, li
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       className={`
-        group relative ${cardBg} p-4 rounded-xl border border-gray-200
-        shadow-sm hover:shadow-md transition-all duration-300
-        hover:ring-1 hover:ring-offset-2 ${ringColor}
-        text-gray-900 border-gray-200
+        group relative border border-gray-200 p-4 rounded-xl
+        shadow-none hover:shadow-lg transition-all duration-300
+        text-gray-900 ${cardBg}
       `}
     >
       <div className="relative z-10">
@@ -66,8 +65,8 @@ const StatsCard = ({ title, value, icon, iconBg, cardBg, ringColor, progress, li
 
 const ChartCard = ({ title, children, className = "" }) => (
   <div
-    className={`rounded-2xl p-6 shadow-sm border transition-all duration-300
-      bg-white border-gray-100 text-gray-900
+    className={`rounded-xl p-6 shadow-none border transition-all duration-300
+      bg-white border-gray-200 text-gray-900
       hover:shadow-lg ${className}`}
   >
     <div className="flex items-center justify-between mb-6">
@@ -286,34 +285,30 @@ const AnalyticsPage = () => {
     {
       title: "Total Blogs",
       value: totalBlogs,
-      icon: <FileText className="w-5 h-5 text-white" />,
-      iconBg: "bg-pink-500",
-      cardBg: "bg-pink-100",
-      ringColor: "ring-pink-100",
+      icon: <FileText className="w-5 h-5 text-pink-500" />,
+      iconBg: "bg-pink-50",
+      cardBg: "bg-white",
     },
     {
       title: "Posted Blogs",
       value: postedBlogs,
-      icon: <UploadCloud className="w-5 h-5 text-white" />,
-      iconBg: "bg-emerald-600",
-      cardBg: "bg-emerald-100",
-      ringColor: "ring-emerald-100",
+      icon: <UploadCloud className="w-5 h-5 text-emerald-500" />,
+      iconBg: "bg-emerald-50",
+      cardBg: "bg-white",
     },
     {
       title: "Archived Blogs",
       value: archivedBlogs,
-      icon: <Archive className="w-5 h-5 text-white" />,
-      iconBg: "bg-amber-500",
-      cardBg: "bg-amber-100",
-      ringColor: "ring-amber-100",
+      icon: <Archive className="w-5 h-5 text-amber-500" />,
+      iconBg: "bg-amber-50",
+      cardBg: "bg-white",
     },
     {
       title: "Branded Blogs",
       value: brandedBlogs,
-      icon: <BadgePercent className="w-5 h-5 text-white" />,
-      iconBg: "bg-blue-600",
-      cardBg: "bg-blue-100",
-      ringColor: "ring-blue-100",
+      icon: <BadgePercent className="w-5 h-5 text-primary" />,
+      iconBg: "bg-primary/10",
+      cardBg: "bg-white",
     },
   ]
 
@@ -323,20 +318,18 @@ const AnalyticsPage = () => {
       value: usage.createdJobs,
       limit: usageLimits.createdJobs,
       progress: usage.createdJobs,
-      icon: <FilePlus className="w-5 h-5 text-white" />,
-      iconBg: "bg-purple-500",
-      cardBg: "bg-purple-50",
-      ringColor: "ring-purple-200",
+      icon: <FilePlus className="w-5 h-5 text-primary" />,
+      iconBg: "bg-primary/10",
+      cardBg: "bg-white",
     },
     {
       title: "AI Images",
       value: usage.aiImages,
       limit: usageLimits.aiImages,
       progress: usage.aiImages,
-      icon: <ImageIcon className="w-5 h-5 text-white" />,
-      iconBg: "bg-teal-600",
-      cardBg: "bg-teal-50",
-      ringColor: "ring-teal-200",
+      icon: <ImageIcon className="w-5 h-5 text-teal-600" />,
+      iconBg: "bg-teal-50",
+      cardBg: "bg-white",
     },
   ]
 
@@ -354,7 +347,7 @@ const AnalyticsPage = () => {
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12 gap-6"
         >
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Blog Analytics
             </h1>
             <p className="text-base mt-1 text-gray-600">
@@ -366,15 +359,15 @@ const AnalyticsPage = () => {
         {statusLoading || !user ? (
           <SkeletonLoader />
         ) : error ? (
-          <div className="text-center py-20 bg-white rounded-[40px] border border-slate-200 shadow-2xl shadow-slate-200/20">
+          <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-none">
             <AlertCircle className="w-16 h-16 text-rose-500 mx-auto mb-6" />
-            <p className="text-xl font-bold text-slate-900 mb-2">Systems Interrupted</p>
+            <p className="text-xl font-bold text-gray-900 mb-2">Systems Interrupted</p>
             <p className="text-slate-500 mb-8">
               {error.message || "Failed to establish uplink with data nodes."}
             </p>
             <button
               onClick={handleRetry}
-              className="btn btn-lg bg-slate-950 text-white font-black rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-900/20 border-none px-8"
+              className="bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-all active:scale-95 shadow-lg shadow-gray-200 p-4 px-8"
             >
               Restart Scan
             </button>
@@ -383,8 +376,8 @@ const AnalyticsPage = () => {
           <div className="space-y-16">
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
@@ -411,8 +404,8 @@ const AnalyticsPage = () => {
 
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Gauge className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Gauge className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
@@ -440,8 +433,8 @@ const AnalyticsPage = () => {
 
             <section>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                  <StopCircle className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <StopCircle className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">

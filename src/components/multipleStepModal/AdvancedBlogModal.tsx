@@ -621,8 +621,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     <button
                       onClick={handleGenerateTitles}
                       disabled={isGenerating}
-                      className="mt-2 p-2 rounded-md bg-blue-600 text-white text-sm font-semibold
-              hover:bg-blue-700 transition disabled:opacity-50"
+                      className="mt-2 px-6 py-2 rounded-md bg-[#4C5BD6] text-white text-sm font-bold
+              hover:bg-[#3B4BB8] transition disabled:opacity-50"
                     >
                       {isGenerating ? "Generating..." : "Generate"}
                     </button>
@@ -778,7 +778,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         ${
                           errors.blogImages
                             ? "border-red-400 bg-red-50"
-                            : "border-slate-300 bg-slate-50 hover:border-[#1B6FC9] hover:bg-blue-50/30"
+                            : "border-slate-300 bg-slate-50 hover:border-[#4C5BD6] hover:bg-blue-50/30"
                         }
                       `}
                       onClick={() => {
@@ -1020,7 +1020,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 <Switch
                   size="large"
                   checked={formData.isCheckedQuick}
-                  onCheckedChange={(checked: boolean) => updateFormData({ isCheckedQuick: checked })}
+                  onCheckedChange={(checked: boolean) =>
+                    updateFormData({ isCheckedQuick: checked })
+                  }
                 />
               </div>
             </div>
@@ -1180,7 +1182,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {(currentStep === 2 || currentStep === 3) && (
               <div className="flex items-center w-full gap-2 text-sm">
                 <span className="text-gray-600 font-semibold">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{estimatedCost}</span>
+                <span className="font-bold text-[#4C5BD6]">{estimatedCost}</span>
                 {formData.costCutter && (
                   <span className="text-xs text-green-600 font-medium">(-50% off)</span>
                 )}
@@ -1192,7 +1194,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
-                  className="w-full sm:w-auto px-6 py-2 bg-gray-200 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200/90 transition-colors"
+                  className="w-full sm:w-auto px-8 py-2 bg-gray-200 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200/90 font-bold transition-colors"
                 >
                   Previous
                 </button>
@@ -1200,7 +1202,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
               <button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
-                className="w-full sm:w-auto px-6 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 transition-colors"
+                className="w-full sm:w-auto px-8 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-colors"
               >
                 {currentStep === 3 ? "Generate Blog" : "Next"}
               </button>

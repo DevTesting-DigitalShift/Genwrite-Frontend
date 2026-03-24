@@ -456,7 +456,7 @@ const MainEditorPage = () => {
                   Leave Anyway
                 </button>
                 <button
-                  className="flex-1 py-2.5 rounded-lg bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white font-semibold text-sm"
+                  className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-[#3B4BB8] text-white font-bold text-sm transition-all shadow-none"
                   onClick={async () => {
                     await handleSave({})
                     blocker.proceed()
@@ -571,14 +571,14 @@ const MainEditorPage = () => {
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 mt-5 lg:mt-0 w-full">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <FileText className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
+                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center border border-indigo-100">
+                    <FileText className="w-5 h-5" strokeWidth={2.5} />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
-                    <p className="text-gray-600 text-xs sm:text-sm">
+                    <p className="text-gray-500 text-sm mt-0.5">
                       Write and optimize your content
                     </p>
                   </div>
@@ -590,14 +590,14 @@ const MainEditorPage = () => {
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => handleSave({ metadata })}
-                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
+                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
                       blog?.isArchived ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
+                        : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
                     }`}
                     disabled={
                       isSaving ||

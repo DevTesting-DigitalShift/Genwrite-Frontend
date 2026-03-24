@@ -779,7 +779,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   />
                   <button
                     onClick={handleAddTopic}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                    className="flex-1 sm:flex-none px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                   >
                     Add
                   </button>
@@ -878,7 +878,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       />
                       <button
                         onClick={handleAddKeyword}
-                        className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                        className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                       >
                         Add
                       </button>
@@ -1108,7 +1108,12 @@ const BulkBlogModal = ({ closeFnc }) => {
               <AdvancedOptions
                 formData={formData}
                 updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                showFields={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+                showFields={[
+                  "easyToUnderstand",
+                  "humanisation",
+                  "extendedThinking",
+                  "deepResearch",
+                ]}
               />
 
               {/* (5. Quick Summary skipped - not in Bulk) */}
@@ -1235,7 +1240,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-gray-600 font-semibold">Estimated Cost:</span>
 
-                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                <span className="font-bold text-[#4C5BD6]">{estimatedCost} credits</span>
 
                 {formData.costCutter && (
                   <span className="text-xs text-green-600 font-semibold">(-50% off)</span>
@@ -1253,7 +1258,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
-                  className="w-full sm:w-auto px-4 py-2 text-sm font-semibold  bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
+                  className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Previous
                 </button>
@@ -1261,7 +1266,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
               <button
                 onClick={currentStep === 3 ? handleSubmit : handleNext}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 transition"
+                className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
               >
                 {currentStep === 3 ? "Generate Blogs" : "Next"}
               </button>

@@ -101,19 +101,19 @@ const AiContentDetection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
       <Helmet>
         <title>AI Content Detection</title>
       </Helmet>
       <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   AI Content Detection
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
@@ -123,7 +123,7 @@ const AiContentDetection = () => {
             </div>
             <button
               onClick={handleReset}
-              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
             >
               <RefreshCw className="w-4 h-4" />
@@ -133,7 +133,7 @@ const AiContentDetection = () => {
         </div>
 
         {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <FileText className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">Input Content</h2>
@@ -143,7 +143,7 @@ const AiContentDetection = () => {
               value={inputContent}
               onChange={e => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (minimum 20 words)..."
-              className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full h-60 p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl resize-none focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
             />
             <div className="flex justify-end items-center">
               <p

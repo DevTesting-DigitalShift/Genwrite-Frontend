@@ -29,7 +29,7 @@ import ConnectedTools from "@components/ConnectedTools"
 
 const Card = ({ children, className = "" }) => (
   <div
-    className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}
+    className={`bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden ${className}`}
   >
     <div className="p-6">{children}</div>
   </div>
@@ -46,7 +46,7 @@ const Tag = ({ children, color, className = "" }) => {
   const colorClass = colorMap[color] || "bg-gray-50 text-gray-600 border-gray-100"
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border ${colorClass} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border ${colorClass} ${className}`}
     >
       {children}
     </span>
@@ -65,7 +65,7 @@ const Steps = ({ current, items = [] }) => {
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                 isActive
-                  ? "border-blue-600 bg-blue-600 text-white"
+                  ? "border-primary bg-primary text-white"
                   : isCompleted
                     ? "border-emerald-500 bg-emerald-500 text-white"
                     : "border-gray-200 bg-white text-gray-400"
@@ -74,7 +74,7 @@ const Steps = ({ current, items = [] }) => {
               {isCompleted ? <CheckCircle className="w-5 h-5" /> : item.icon}
             </div>
             <span
-              className={`text-[10px] font-black uppercase tracking-widest ${isActive ? "text-blue-600" : isCompleted ? "text-emerald-600" : "text-gray-400"}`}
+              className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? "text-primary" : isCompleted ? "text-emerald-600" : "text-gray-400"}`}
             >
               {item.title}
             </span>
@@ -95,8 +95,8 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
             onClick={() => onChange(item.key)}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
               activeKey === item.key
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover: hover:bg-white/50"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-500 hover: bg-white/50"
             }`}
           >
             {item.label}
@@ -232,12 +232,12 @@ const WebsiteRanking = () => {
       <div className="space-y-8 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* 1. High-Level Executive Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-blue-50 border-blue-100 shadow-sm col-span-1 md:col-span-2">
+          <Card className="bg-primary/5 border-primary/20 shadow-none col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Globe className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Globe className="w-5 h-5 text-primary" />
               </div>
-              <h3 className="font-semibold text-blue-900">Analysis Target</h3>
+              <h3 className="font-semibold text-primary/90">Analysis Target</h3>
             </div>
             <div className="flex justify-between items-start">
               <div>
@@ -258,14 +258,14 @@ const WebsiteRanking = () => {
               </div>
               {rankings?.totalDomainsFound && (
                 <div className="text-right">
-                  <p className="text-xs text-blue-600 font-semibold mb-1">Competitors Found</p>
-                  <p className="text-xl font-bold text-blue-700">{rankings.totalDomainsFound}</p>
+                  <p className="text-xs text-primary/60 font-bold mb-1">Competitors Found</p>
+                  <p className="text-xl font-bold text-primary">{rankings.totalDomainsFound}</p>
                 </div>
               )}
             </div>
           </Card>
 
-          <Card className="bg-emerald-50 border-emerald-100 shadow-sm">
+          <Card className="bg-emerald-50 border-emerald-100 shadow-none">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-emerald-600" />
@@ -280,24 +280,24 @@ const WebsiteRanking = () => {
             <p className="text-xs text-emerald-700 mt-1">Among competitors</p>
           </Card>
 
-          <Card className="bg-purple-50 border-purple-100 shadow-sm">
+          <Card className="bg-primary/5 border-primary/20 shadow-none">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <ShieldCheck className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShieldCheck className="w-5 h-5 text-primary" />
               </div>
-              <h3 className="font-semibold text-purple-900">Visibility Score</h3>
+              <h3 className="font-semibold text-primary/90">Visibility Score</h3>
             </div>
             <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold text-purple-600">
+              <p className="text-3xl font-bold text-primary">
                 {rankings?.ourCompanyStats?.stats?.coverageRatio
                   ? `${Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100)}%`
                   : "0%"}
               </p>
             </div>
-            <p className="text-xs text-purple-700 mt-1">Keyword Coverage</p>
+            <p className="text-xs text-primary/60 mt-1">Keyword Coverage</p>
           </Card>
 
-          <Card className="bg-amber-50 border-amber-100 shadow-sm">
+          <Card className="bg-amber-50 border-amber-100 shadow-none">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-amber-100 rounded-lg">
                 <Zap className="w-5 h-5 text-amber-600" />
@@ -311,10 +311,10 @@ const WebsiteRanking = () => {
 
         {/* 2. Top Competitors Leaderboard */}
         {rankings?.top10?.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-linear-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-                <Rocket className="w-5 h-5 text-orange-500" />
+                <Rocket className="w-5 h-5 text-amber-500" />
                 Top Competitors Leaderboard
               </h2>
               <Tag color="orange">Top 10</Tag>
@@ -335,14 +335,14 @@ const WebsiteRanking = () => {
                       <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-none ${
                               idx === 0
-                                ? "bg-yellow-400"
+                                ? "bg-amber-400"
                                 : idx === 1
                                   ? "bg-gray-400"
                                   : idx === 2
                                     ? "bg-orange-400"
-                                    : "bg-blue-100 text-blue-600"
+                                    : "bg-primary/10 text-primary border border-primary/20"
                             }`}
                           >
                             {idx + 1}
@@ -372,10 +372,10 @@ const WebsiteRanking = () => {
             {/* Main Report Column */}
             {markdownContent && (
               <div className="space-y-8">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
                   <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-bold flex items-center gap-2 text-indigo-900">
-                      <FileText className="w-5 h-5 text-indigo-600" />
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
+                      <FileText className="w-5 h-5 text-primary" />
                       Strategic Analysis & Roadmap
                     </h2>
                   </div>
@@ -384,16 +384,16 @@ const WebsiteRanking = () => {
                       remarkPlugins={[remarkGfm]}
                       components={{
                         h1: ({ node, ...props }) => (
-                          <h1 className="text-2xl font-bold mt-6 mb-4 text-indigo-900" {...props} />
+                          <h1 className="text-2xl font-bold mt-6 mb-4 text-gray-900" {...props} />
                         ),
                         h2: ({ node, ...props }) => (
                           <h2
-                            className="text-xl font-bold mt-8 mb-4 text-indigo-800 border-b border-indigo-100 pb-2"
+                            className="text-xl font-bold mt-8 mb-4 text-gray-800 border-b border-gray-100 pb-2"
                             {...props}
                           />
                         ),
                         h3: ({ node, ...props }) => (
-                          <h3 className="text-lg font-bold mt-6 mb-3 text-indigo-700" {...props} />
+                          <h3 className="text-lg font-bold mt-6 mb-3 text-gray-700" {...props} />
                         ),
                         p: ({ node, ...props }) => (
                           <p className="mb-4  leading-relaxed text-[15px]" {...props} />
@@ -406,14 +406,14 @@ const WebsiteRanking = () => {
                         ),
                         li: ({ node, ...props }) => <li className="pl-1" {...props} />,
                         strong: ({ node, ...props }) => (
-                          <strong className="font-bold text-indigo-900" {...props} />
+                          <strong className="font-bold text-primary" {...props} />
                         ),
                         a: ({ node, ...props }) => (
-                          <a className="text-blue-600 hover:underline font-medium" {...props} />
+                          <a className="text-primary hover:underline font-bold" {...props} />
                         ),
                         blockquote: ({ node, ...props }) => (
                           <blockquote
-                            className="border-l-4 border-indigo-200 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r-lg"
+                            className="border-l-4 border-primary/20 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r-lg"
                             {...props}
                           />
                         ),
@@ -441,14 +441,14 @@ const WebsiteRanking = () => {
             <div className="space-y-6">
               {/* Quick Actions / Recommendations List */}
               {recommendations.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-4">
-                  <div className="bg-linear-to-r from-emerald-50 to-white px-6 py-4 border-b border-emerald-100">
+                <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden sticky top-4">
+                  <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-900">
                       <CheckCircle className="w-5 h-5 text-emerald-600" />
                       Action Plan
                     </h2>
                   </div>
-                  <div className="p-6 bg-emerald-50/10">
+                  <div className="p-6 bg-emerald-50/5">
                     <ul className="space-y-4">
                       {recommendations.map((rec, i) => (
                         <li key={i} className="flex gap-3 items-start">
@@ -466,7 +466,7 @@ const WebsiteRanking = () => {
               )}
 
               {/* Target Keywords Summary */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100">
                   <h3 className="font-bold ">Analyzed Keywords</h3>
                 </div>
@@ -483,10 +483,10 @@ const WebsiteRanking = () => {
         )}
 
         {/* 4. Full Rankings Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <List className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
+              <List className="w-5 h-5 text-primary" />
               Detailed Keyword Rankings
             </h2>
           </div>
@@ -533,7 +533,7 @@ const WebsiteRanking = () => {
                     {r.topCompanies?.slice(0, 3).map((c, idx) => (
                       <span
                         key={idx}
-                        className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded border border-blue-100"
+                        className="bg-primary/5 text-primary text-xs px-2 py-0.5 rounded-md border border-primary/10 font-bold"
                       >
                         {c}
                       </span>
@@ -549,16 +549,22 @@ const WebsiteRanking = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="space-y-6 mt-6 md:mt-0">
         <div className="mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Globe className="text-blue-600 shrink-0" /> Website Grading &amp; SEO Strategy
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">
-            AI-powered analysis to check your website's health, rankings, and generate actionable
-            growth strategies.
-          </p>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-primary/5 text-primary rounded-lg flex items-center justify-center shrink-0">
+              <Globe className="w-5 h-5" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Website Grading & SEO Strategy
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                AI-powered analysis to check your website's health, rankings, and growth strategies.
+              </p>
+            </div>
+          </div>
         </div>
 
         <CustomTabs
@@ -573,50 +579,50 @@ const WebsiteRanking = () => {
                 </span>
               ),
               children: (
-                <Card className="rounded-xl shadow-sm border-gray-200 p-0">
+                <Card className="rounded-xl shadow-none border border-gray-200 p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold ">Target Website URL</label>
+                      <label className="text-sm font-semibold text-gray-700">Target Website URL</label>
                       <input
                         placeholder="https://example.com"
                         value={url}
                         onChange={e => setUrl(e.target.value)}
-                        className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none placeholder-gray-400"
+                        className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all placeholder-gray-400"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold ">Region</label>
+                        <label className="text-sm font-semibold text-gray-700">Region</label>
                         <input
                           value={region}
                           onChange={e => setRegion(e.target.value)}
-                          className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none"
+                          className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold ">Keywords to Check</label>
+                        <label className="text-sm font-semibold text-gray-700">Keywords to Check</label>
                         <input
                           type="number"
                           min={1}
                           max={10}
                           value={promptCount}
                           onChange={e => setPromptCount(Number(e.target.value))}
-                          className="w-full mt-2 p-3 border border-gray-200 rounded-lg outline-none"
+                          className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3 px-6 py-2 bg-blue-50 border border-blue-100 rounded">
-                      <Zap className="w-4 h-4 text-blue-600" />
+                    <div className="flex items-center gap-3 px-6 py-2 bg-primary/5 border border-primary/20 rounded-md">
+                      <Zap className="w-4 h-4 text-primary" />
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-blue-900">Total Cost:</span>
-                        <span className="text-sm font-black text-blue-600">
+                        <span className="text-xs font-bold text-gray-700">Total Cost:</span>
+                        <span className="text-sm font-bold text-primary">
                           {getOrchestratorCost()} Credits
                         </span>
-                        <div className="h-3 w-px bg-blue-200 mx-1" />
-                        <span className="text-[10px] text-blue-500 font-medium">
+                        <div className="h-3 w-px bg-primary/20 mx-1" />
+                        <span className="text-[10px] text-primary/60 font-bold uppercase tracking-wider">
                           8 Base + {promptCount} Keywords
                         </span>
                       </div>
@@ -626,7 +632,7 @@ const WebsiteRanking = () => {
                   <button
                     onClick={handleOrchestrator}
                     disabled={isOrchestratorLoading}
-                    className="w-full rounded-lg text-white flex items-center justify-center bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-3"
+                    className="w-full rounded-md text-white flex items-center justify-center bg-primary hover:bg-[#3B4BB8] gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-3 transition-all"
                   >
                     {isOrchestratorLoading ? (
                       <RefreshCw className="w-5 h-5 animate-spin" />
@@ -657,7 +663,7 @@ const WebsiteRanking = () => {
                 </span>
               ),
               children: (
-                <Card className="rounded-xl shadow-sm border-gray-200 p-0">
+                <Card className="rounded-xl shadow-none border-gray-200 p-0">
                   <div className="flex justify-between items-center mb-6 px-2">
                     <Steps
                       current={manualStep}
@@ -683,7 +689,7 @@ const WebsiteRanking = () => {
                         <h3 className="text-lg font-semibold text-slate-800">
                           Step 1: Website Reconnaissance
                         </h3>
-                        <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded text-[10px] font-black uppercase">
+                         <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Cost: 3 Credits
                         </div>
                       </div>
@@ -694,16 +700,16 @@ const WebsiteRanking = () => {
                           placeholder="https://example.com"
                           value={url}
                           onChange={e => setUrl(e.target.value)}
-                          className="input w-full focus:outline-none rounded-lg border border-gray-300"
+                          className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-primary focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
                         />
 
                         <button
                           onClick={handleAnalyse}
                           disabled={!url || isAnalysing}
-                          className={`btn px-6 rounded-lg shadow-sm transition-all duration-200 ${
+                          className={`btn px-6 rounded-md transition-all duration-200 ${
                             isAnalysing
                               ? "btn-disabled"
-                              : "bg-linear-to-r from-indigo-600 to-violet-600 text-white hover:scale-105"
+                              : "bg-primary hover:bg-[#3B4BB8] text-white"
                           }`}
                         >
                           {isAnalysing ? (
@@ -723,20 +729,20 @@ const WebsiteRanking = () => {
                         <h3 className="text-lg font-bold flex items-center gap-2">
                           <Zap className="text-amber-500" /> Step 2: Generate Keywords
                         </h3>
-                        <div className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[10px] font-black uppercase">
+                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Suggestion: 2 Credits
                         </div>
                       </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
                               Website Name
                             </p>
                             <p className="font-bold text-gray-800">{analysisResult?.name}</p>
                           </div>
-                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
                               Region & Language
                             </p>
                             <div className="flex gap-2">
@@ -745,14 +751,14 @@ const WebsiteRanking = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">
+                        <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
                             Description
                           </p>
                           <p className=" text-sm leading-relaxed">{analysisResult?.description}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 px-1">
+                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-3 px-1">
                             Identified Expertise
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -774,7 +780,7 @@ const WebsiteRanking = () => {
                         <button
                           onClick={handleCreatePrompts}
                           disabled={isCreatingPrompts}
-                          className="flex-1 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {isCreatingPrompts && <RefreshCw className="w-5 h-5 animate-spin" />}
                           Generate Search Prompts
@@ -790,12 +796,12 @@ const WebsiteRanking = () => {
                         <h3 className="text-lg font-bold flex items-center gap-2">
                           <BarChart2 className="text-indigo-600" /> Step 3: Check Rankings
                         </h3>
-                        <div className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[10px] font-black uppercase">
+                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Cost: {getManualRankingsCost()} Credits
                         </div>
                       </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
-                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
+                        <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-4">
                           Generated Keywords
                         </p>
                         <ul className="space-y-2">
@@ -804,7 +810,7 @@ const WebsiteRanking = () => {
                               key={i}
                               className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 font-bold  text-sm"
                             >
-                              <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
                                 {i + 1}
                               </div>
                               {p}
@@ -822,7 +828,7 @@ const WebsiteRanking = () => {
                         <button
                           onClick={handleCheckRankings}
                           disabled={isCheckingRankings}
-                          className="flex-1 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {isCheckingRankings && <RefreshCw className="w-5 h-5 animate-spin" />}
                           Check Search Rankings
@@ -840,7 +846,7 @@ const WebsiteRanking = () => {
                             <h3 className="text-lg font-semibold text-slate-800">
                               Final Step: Growth Strategy
                             </h3>
-                            <div className="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded text-[10px] font-black uppercase">
+                            <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
                               Cost: 3 Credits
                             </div>
                           </div>
@@ -859,10 +865,10 @@ const WebsiteRanking = () => {
                           <button
                             onClick={handleAdvancedAnalysis}
                             disabled={isAnalyzingAdvanced}
-                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold  ${
+                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold transition-all ${
                               isAnalyzingAdvanced
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : "bg-[#1B6FC9] text-white hover:bg-[#1B6FC9]/90"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                                : "bg-primary text-white hover:bg-[#3B4BB8]"
                             }`}
                           >
                             {isAnalyzingAdvanced ? (

@@ -346,7 +346,7 @@ const SearchConsole = () => {
                 title="Export to Excel"
                 onClick={handleExport}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-50 transition-all"
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
@@ -355,7 +355,7 @@ const SearchConsole = () => {
                 title="Refresh data"
                 onClick={() => refetch()}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 bg-linear-to-l from-blue-400 to-purple-400 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-50 transition-all"
               >
                 <RefreshCw className={clsx("w-4 h-4", isLoading && "animate-spin")} />
                 <span className="hidden sm:inline">Refresh</span>
@@ -480,7 +480,7 @@ const SearchConsole = () => {
               </div>
               <button
                 onClick={handleResetFilters}
-                className={`rounded-lg h-9 px-3 text-sm font-medium  whitespace-nowrap transition-colors ${
+                className={`rounded-md h-9 px-3 text-sm font-medium  whitespace-nowrap transition-colors ${
                   isFilterApplied
                     ? "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700"
                     : "bg-gray-100 hover:bg-gray-200 border border-gray-200"

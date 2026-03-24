@@ -150,16 +150,16 @@ const CompetitorLikeBlog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6 p-0 mt-10 md:mt-0 md:p-5">
         {/* Header */}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3 justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                  <PenTool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                  <PenTool className="w-5 h-5 text-white" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -174,7 +174,7 @@ const CompetitorLikeBlog = () => {
 
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -185,7 +185,7 @@ const CompetitorLikeBlog = () => {
         </div>
 
         {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-2">
               <LinkIcon className="w-5 h-5 text-blue-600" />
@@ -196,7 +196,7 @@ const CompetitorLikeBlog = () => {
               value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="https://example.com/competitor-blog-post"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
           </div>
 
@@ -210,7 +210,7 @@ const CompetitorLikeBlog = () => {
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder="e.g., The Future of AI in Marketing"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-purple-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
           </div>
 

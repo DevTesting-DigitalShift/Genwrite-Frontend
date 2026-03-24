@@ -464,7 +464,7 @@ const ImageGallery = () => {
                   <button
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
-                    className="btn btn-primary flex-1 md:flex-none p-4 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 rounded-md border-0 shadow-none text-white font-semibold text-md"
+                    className="btn btn-primary flex-1 md:flex-none px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-full border-0 shadow-lg shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02]"
                   >
                     Generate
                   </button>

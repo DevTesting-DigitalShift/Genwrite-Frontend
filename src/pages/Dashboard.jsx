@@ -230,11 +230,11 @@ const Dashboard = () => {
       >
         {/* Header / Hero Section */}
         <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-semibold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
             {getGreeting()},{" "}
-            <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
+            <span className="text-primary">{user?.name?.split(" ")[0] || "there"}</span>
           </h1>
-          <p className="text-gray-600 mt-2 text-base font-medium">Your creative command center</p>
+          <p className="text-gray-500 mt-2 text-base font-medium">Your creative command center</p>
         </motion.div>
 
         {/* Analytics Cards */}
@@ -247,9 +247,9 @@ const Dashboard = () => {
             <motion.div
               variants={itemVariants}
               onClick={() => navigate("/analytics")}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-indigo-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all cursor-pointer"
+              className="group relative overflow-hidden rounded-xl bg-white p-5 border border-indigo-100 shadow-none hover:shadow-lg hover:border-indigo-300 transition-all cursor-pointer"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
+              <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.04] transition-opacity" />
               <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-base text-indigo-600 font-bold">Analytics</p>
@@ -267,9 +267,9 @@ const Dashboard = () => {
             {/* Total Blogs */}
             <motion.div
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
+              className="group relative overflow-hidden rounded-xl bg-white p-5 border border-gray-200 shadow-none hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.04] transition-opacity" />
               <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Blogs</p>
@@ -284,17 +284,17 @@ const Dashboard = () => {
             {/* Posted */}
             <motion.div
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
+              className="group relative overflow-hidden rounded-xl bg-white p-5 border border-gray-200 shadow-none hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-[0.04] transition-opacity" />
               <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Posted</p>
-                  <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
+                  <p className="text-2xl md:text-3xl font-bold text-emerald-600 mt-1">
                     {postedBlogs}
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-green-500/10 text-green-600">
+                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600">
                   <UploadCloud className="w-5 h-5" />
                 </div>
               </div>
@@ -303,9 +303,9 @@ const Dashboard = () => {
             {/* Archived */}
             <motion.div
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
+              className="group relative overflow-hidden rounded-xl bg-white p-5 border border-gray-200 shadow-none hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-[0.04] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Archived</p>
@@ -322,17 +322,17 @@ const Dashboard = () => {
             {/* Branded */}
             <motion.div
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
+              className="group relative overflow-hidden rounded-xl bg-white p-5 border border-gray-200 shadow-none hover:shadow-md transition-all"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+              <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.04] transition-opacity" />
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Branded</p>
-                  <p className="text-2xl md:text-3xl font-bold text-purple-600 mt-1">
+                  <p className="text-2xl md:text-3xl font-bold text-primary mt-1">
                     {brandedBlogs}
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary">
                   <BadgePercent className="w-5 h-5" />
                 </div>
               </div>
@@ -425,7 +425,7 @@ const Dashboard = () => {
               </h2>
               <button
                 onClick={() => navigate("/all-blogs")}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-primary hover:text-primary/80 font-bold"
               >
                 View All
               </button>
@@ -436,7 +436,7 @@ const Dashboard = () => {
                 <motion.div
                   key={blog._id}
                   onClick={() => navigate(`/blog/${blog._id}`)}
-                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
+                  className="group bg-white rounded-xl border border-gray-200 shadow-none hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
                 >
                   <div className="p-5 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-3">
@@ -452,7 +452,7 @@ const Dashboard = () => {
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-3 leading-snug">
+                    <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-3 leading-snug">
                       {blog.title || "Untitled Blog"}
                     </h4>
 
@@ -479,7 +479,7 @@ const Dashboard = () => {
           href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed right-[-30px] bottom-36 z-50 bg-blue-600 text-white px-4 py-2 rounded-t-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md origin-bottom-right"
+          className="fixed right-[-30px] bottom-36 z-50 bg-primary text-white px-4 py-2 rounded-t-lg rotate-90 flex items-center gap-2 hover:bg-primary/90 transition-all duration-300 shadow-md origin-bottom-right"
         >
           Feedback
         </a>

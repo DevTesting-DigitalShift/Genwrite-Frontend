@@ -22,11 +22,11 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
     return (
       <motion.div
         whileHover={{ y: -4 }}
-        className="group flex flex-col justify-between p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[200px] relative"
+        className="group flex flex-col justify-between p-6 bg-white border border-gray-200 rounded-xl shadow-none hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] relative"
         onClick={handleClick}
       >
         {item.credit && (
-          <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-none">
             <Coins className="w-3 h-3" />
             {item.credit}
           </div>
@@ -34,7 +34,7 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
         <div>
           <div className="flex items-center gap-3 mb-4">
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.bgColor || "bg-indigo-50"} ${item.color || "text-indigo-600"}`}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.bgColor || "bg-primary/10"} ${item.color || "text-primary"}`}
             >
               {item.icon}
             </div>
@@ -47,7 +47,7 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
 
         <button
           onClick={handleClick}
-          className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm text-center"
+          className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-none text-center"
         >
           {item.title}
         </button>
@@ -59,11 +59,11 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="group flex flex-col justify-between p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[140px] relative"
+      className="group flex flex-col justify-between p-5 bg-white border border-gray-200 rounded-xl shadow-none hover:shadow-lg transition-all cursor-pointer h-full min-h-[140px] relative"
       onClick={handleClick}
     >
       {item.credit && (
-        <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+        <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-none">
           <Coins className="w-3 h-3" />
           {item.credit}
         </div>

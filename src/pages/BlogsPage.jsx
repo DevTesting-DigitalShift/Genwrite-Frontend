@@ -146,7 +146,6 @@ const BlogsPage = () => {
       params = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
       )
-      console.log("[BlogsPage] Fetching blogs with params:", params)
       const res = await getAllBlogs(params)
       return {
         data: res?.data ?? [],
@@ -192,7 +191,6 @@ const BlogsPage = () => {
       params = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
       )
-      console.log("[BlogsPage] Fetching trashed blogs with params:", params)
       const res = await getAllBlogs(params)
       return {
         data: res?.data ?? [],
@@ -421,7 +419,7 @@ const BlogsPage = () => {
       {/* Header Grid */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8 mt-5 md:mt-0">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-[#4C5BD6] tracking-tight">
             {isTrashcan ? "Trashcan" : "Blogs Generated"}
           </h1>
           <p className="text-gray-500 text-sm max-w-md">
@@ -435,7 +433,7 @@ const BlogsPage = () => {
           {!isTrashcan && (
             <button
               onClick={() => handleProAction(() => navigate("/blog-editor"))}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium cursor-pointer "
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10"
             >
               <Plus
                 size={20}
@@ -495,8 +493,8 @@ const BlogsPage = () => {
           <DebouncedSearchInput
             initialValue={blogFilters.q}
             onSearch={val => updateBlogFilters({ q: val })}
-            placeholder="Search by title or keywords..."
-            className="w-full text-sm placeholder-gray-400 focus:outline-none h-11 pl-10 pr-4 bg-slate-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+            placeholder="Search blogs by title or content..."
+            className="w-full text-sm placeholder-gray-400 h-11 pl-10 pr-4 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:border-primary focus:ring-0 transition-all font-medium"
           />
         </div>
 
@@ -638,7 +636,7 @@ const BlogsPage = () => {
                 <div className="pt-2">
                   <button
                     onClick={handleApplyDetailedFilters}
-                    className="w-full py-2.5 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded text-sm font-bold flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all"
                   >
                     Apply Advanced Filters
                   </button>

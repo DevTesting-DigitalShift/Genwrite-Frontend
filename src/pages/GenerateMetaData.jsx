@@ -90,16 +90,16 @@ const GenerateMetaData = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-12 px-4 md:px-6">
       {/* Header Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-none p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#6366f1] rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0 border border-indigo-100">
+            <Sparkles className="w-5 h-5" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[#0f172a] tracking-tight">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
               SEO Metadata Generator
             </h1>
-            <p className="text-gray-400 text-sm font-medium">
+            <p className="text-gray-500 text-sm mt-0.5">
               Create SEO-friendly metadata for your content
             </p>
           </div>
@@ -107,7 +107,7 @@ const GenerateMetaData = () => {
 
         <button
           onClick={handleReset}
-          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors py-2 border-gray-300 border p-3 rounded-lg"
+          className="flex items-center justify-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors py-2 px-4 border border-gray-300 rounded-md"
         >
           <RefreshCw className="w-4 h-4" />
           Reset
@@ -116,9 +116,9 @@ const GenerateMetaData = () => {
 
       <div className="space-y-6">
         {/* Input Section */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-none overflow-hidden">
           <div className="p-6 md:p-8 space-y-6">
-            <div className="flex items-center gap-2 text-[#4f46e5]">
+            <div className="flex items-center gap-2 text-indigo-600">
               <FileText className="w-5 h-5" />
               <h2 className="text-sm font-bold uppercase tracking-wider">Content</h2>
             </div>
@@ -128,12 +128,12 @@ const GenerateMetaData = () => {
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="Paste content or enter URL..."
-                className="w-full min-h-[350px] p-5 text-gray-600 bg-white border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-gray-300 text-base leading-relaxed"
+                className="w-full min-h-[350px] p-5 text-gray-800 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:border-indigo-600 focus:ring-0 outline-none transition-all resize-none placeholder-gray-400 text-base leading-relaxed font-medium"
               />
 
               <div className="mt-4 flex justify-end">
                 <span
-                  className={`text-[11px] font-semibold tracking-tight ${(wordCount() < 100 || wordCount() > 1000) && content.length > 0 && !isUrl(content) ? "text-amber-500" : "text-gray-300"}`}
+                  className={`text-[11px] font-semibold tracking-tight ${(wordCount() < 100 || wordCount() > 1000) && content.length > 0 && !isUrl(content) ? "text-amber-500" : "text-gray-400"}`}
                 >
                   Word count: {wordCount()} (Min 100, Max 1000 words required)
                 </span>

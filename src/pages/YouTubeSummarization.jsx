@@ -142,19 +142,19 @@ const YouTubeSummarization = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-red-50/20 to-purple-50/30">
+    <div className="min-h-screen">
       <Helmet>
         <title>YouTube Summarization - GenWrite</title>
       </Helmet>
       <div className="max-w-7xl mx-auto space-y-6 p-3 md:p-10 mt-6 md:mt-0">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-red-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                <Youtube className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center shrink-0 border border-red-100">
+                <Youtube className="w-5 h-5" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   YouTube Summarization
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
@@ -164,7 +164,7 @@ const YouTubeSummarization = () => {
             </div>
             <button
               onClick={handleReset}
-              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
             >
               <RefreshCw className="w-4 h-4" />
@@ -174,7 +174,7 @@ const YouTubeSummarization = () => {
         </div>
 
         {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <LinkIcon className="w-5 h-5 text-red-600" />
             <h2 className="text-xl font-semibold text-gray-900">YouTube Video URL</h2>
@@ -185,15 +185,15 @@ const YouTubeSummarization = () => {
               value={inputUrl}
               onChange={e => setInputUrl(e.target.value)}
               placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-red-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
             <button
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)}
-              className={`btn btn-primary h-auto py-3 w-full bg-linear-to-r from-red-600 to-purple-600 border-none text-white font-bold rounded-xl transition-all duration-300 hover:shadow-lg shadow-red-200/50 normal-case ${
+              className={`btn btn-primary h-auto py-3 w-full bg-primary hover:bg-[#3B4BB8] border-none text-white font-bold rounded-md transition-all duration-300 shadow-none normal-case ${
                 !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:scale-[1.02]"
+                  : "hover:scale-[1.01]"
               }`}
             >
               {isLoading ? (

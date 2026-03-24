@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 
 const SectionLabel = ({ children }) => (
-  <p className="text-[10px] font-bold text-[#1B6FC9] uppercase tracking-wider mb-2 flex items-center gap-1">
+  <p className="text-[10px] font-bold text-[#4C5BD6] uppercase tracking-wider mb-2 flex items-center gap-1">
     {children}
   </p>
 )

@@ -64,14 +64,14 @@ export const ConfirmPopupProvider = ({ children }) => {
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   onClick={() => handleClose({ source: "button" })}
-                  className="btn"
+                  className="btn rounded-md"
                   {...cancelProps}
                 >
                   {cancelText}
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="btn"
+                  className="btn rounded-md"
                   disabled={loading}
                   {...confirmProps}
                 >

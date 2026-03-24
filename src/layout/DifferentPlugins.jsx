@@ -36,16 +36,16 @@ const DifferentPlugins = ({
         </div>
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <a href={pluginLink} download className="w-full sm:w-auto">
-            <button className="w-full bg-[#1B6FC9] text-white text-xs sm:text-sm font-normal px-3 sm:px-4 py-2 rounded-md hover:bg-[#155a9c] transition-colors">
+            <button className="w-full bg-[#4C5BD6] text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full hover:bg-[#3B4BB8] transition-all shadow-sm shadow-[#4C5BD6]/10">
               Install Plugin
             </button>
           </a>
           <button
             onClick={onCheck}
-            className={`w-full transition-all text-xs sm:text-sm font-normal px-3 sm:px-4 py-2 rounded-md text-white ${
+            className={`w-full transition-all text-xs sm:text-sm font-bold px-4 py-2 rounded-full text-white shadow-sm ${
               wordpressStatus?.success
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-[#1B6FC9] hover:bg-[#155a9c]"
+                ? "bg-green-600 hover:bg-green-700 shadow-green-600/10"
+                : "bg-[#4C5BD6] hover:bg-[#3B4BB8] shadow-[#4C5BD6]/10"
             }`}
           >
             {wordpressStatus?.success ? "Connected" : "Connect"}

@@ -129,15 +129,15 @@ const KeywordScraping = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6 p-5">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3 justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                  <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                  <Search className="w-5 h-5 text-white" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Keyword Scraping</h1>
@@ -149,7 +149,7 @@ const KeywordScraping = () => {
 
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -160,7 +160,7 @@ const KeywordScraping = () => {
         </div>
 
         {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-none border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <LinkIcon className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">Website URL</h2>
@@ -171,12 +171,12 @@ const KeywordScraping = () => {
               value={inputUrl}
               onChange={e => setInputUrl(e.target.value)}
               placeholder="Enter website URL (e.g., https://example.com)"
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
+              className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
             <button
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidUrl(inputUrl)}
-              className={`btn btn-primary border-none flex items-center justify-center gap-2 px-6 h-14 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-blue-200/50 ${
+              className={`btn btn-primary border-none flex items-center justify-center gap-2 px-6 h-14 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-md transition-all duration-300 hover:shadow-xl hover:shadow-blue-200/50 ${
                 !inputUrl.trim() || !isValidUrl(inputUrl)
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:scale-[1.02] active:scale-95"

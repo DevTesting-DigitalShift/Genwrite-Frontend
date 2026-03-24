@@ -399,7 +399,7 @@ const OutlineEditor = () => {
                         />
                         <button
                           onClick={() => handleAddKeyword("focusKeywords")}
-                          className="w-10 p-1.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
+                          className="w-10 p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -443,7 +443,7 @@ const OutlineEditor = () => {
                         />
                         <button
                           onClick={() => handleAddKeyword("keywords")}
-                          className="w-10 p-1.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-blue-700/90"
+                          className="w-10 p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -466,7 +466,7 @@ const OutlineEditor = () => {
                           BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS && (
                           <button
                             onClick={() => setShowAllKeywords(!showAllKeywords)}
-                            className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
+                            className="text-xs font-bold text-primary hover:text-primary/80 ml-1"
                           >
                             {showAllKeywords
                               ? "Show Less"
@@ -538,7 +538,7 @@ const OutlineEditor = () => {
                                 key={voice._id}
                                 className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all border ${
                                   formData.brandId === voice._id
-                                    ? "bg-blue-50 border-blue-200 shadow-sm"
+                                    ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
                               >
@@ -587,7 +587,7 @@ const OutlineEditor = () => {
                         />
                         <button
                           onClick={() => handleAddKeyword("resources")}
-                          className="w-10 p-1 bg-[#1B6FC9] text-white rounded-lg hover:bg-blue-700/90"
+                          className="w-10 p-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -596,7 +596,7 @@ const OutlineEditor = () => {
                         {formData.resources.map((resource, index) => (
                           <div
                             key={index}
-                            className="badge h-auto py-2 bg-slate-50 text-blue-600 border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
+                            className="badge h-auto py-2 bg-slate-50 text-primary border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
                           >
                             <span className="max-w-[150px] truncate">{resource}</span>
                             <X
@@ -666,7 +666,7 @@ const OutlineEditor = () => {
                   {currentStep === 0 && (
                     <button
                       onClick={handleNext}
-                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       Next
                     </button>
@@ -675,7 +675,7 @@ const OutlineEditor = () => {
                   {currentStep === 1 && (
                     <button
                       onClick={handleNext}
-                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       Next
                     </button>
@@ -685,15 +685,15 @@ const OutlineEditor = () => {
                     <button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       {isSubmitting ? (
-                        <>
-                          <span className="loading loading-spinner"></span>
-                          Generating...
-                        </>
+                        <div className="flex items-center gap-2">
+                          <span className="loading loading-spinner loading-xs"></span>
+                          <span>Generating...</span>
+                        </div>
                       ) : (
-                        <>Generate Outline</>
+                        <span>Generate Outline</span>
                       )}
                     </button>
                   )}
@@ -721,7 +721,7 @@ const OutlineEditor = () => {
         )}
         <div className="py-6 min-h-screen flex flex-col">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
-            <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 text-center sm:text-left">
               Blog Outline Editor
             </h1>
 
@@ -778,7 +778,7 @@ const OutlineEditor = () => {
                   id="outline-editor"
                   value={markdownContent}
                   onChange={handleContentChange}
-                  className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-blue-600 resize-none shadow-sm"
+                  className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-xl text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-0 resize-none shadow-none"
                   aria-label="Edit blog outline"
                   placeholder="Edit your blog outline here..."
                 />

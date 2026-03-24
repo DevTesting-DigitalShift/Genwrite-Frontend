@@ -138,7 +138,7 @@ const Transactions = () => {
       <div className="space-y-12">
         {/* Simple Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-blue-600 tracking-tight">
+          <h1 className="text-3xl font-bold text-[#4C5BD6] tracking-tight">
             Subscription & Transactions
           </h1>
           <p className="text-gray-500 text-sm mt-2 max-w-md">
@@ -302,7 +302,7 @@ const Transactions = () => {
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex-1 px-6 bg-[#1B6FC9] text-white font-bold rounded-xl shadow-lg shadow-blue-900/10 hover:bg-[#1B6FC9]/90 flex items-center justify-center gap-2 h-14 transition-all duration-200"
+                  className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-full shadow-lg shadow-[#4C5BD6]/20 hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-14 transition-all duration-300"
                 >
                   <TrendingUp size={18} />
                   <span>Upgrade Plan</span>
@@ -310,7 +310,7 @@ const Transactions = () => {
                 {user?.subscription?.plan && user.subscription.plan !== "free" && (
                   <button
                     onClick={handleManageSubscription}
-                    className="flex-1 px-6 bg-[#1B6FC9] text-white font-bold rounded-xl shadow-lg shadow-blue-900/10 hover:bg-[#1B6FC9]/90 flex items-center justify-center gap-2 h-14 transition-all duration-200"
+                    className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-full shadow-lg shadow-[#4C5BD6]/20 hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-14 transition-all duration-300"
                   >
                     <CreditCard size={18} />
                     <span>Billing & Payments</span>

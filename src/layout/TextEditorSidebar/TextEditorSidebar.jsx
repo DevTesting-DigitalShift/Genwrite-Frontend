@@ -632,8 +632,6 @@ const TextEditorSidebar = ({
   const isDisabled = isPosting || !hasAnyIntegration
   const isPro = ["free", "basic"].includes(userPlan)
 
-  console.log(isPro)
-
   const PLATFORM_LABELS = {
     WORDPRESS: "WordPress",
     SHOPIFY: "Shopify",
@@ -1656,11 +1654,11 @@ const TextEditorSidebar = ({
             onClick={handleAnalyzing}
             disabled={isAnalyzingCompetitive}
             className={`
-              w-full py-3 px-4 rounded-lg text-xs font-bold transition-all shadow-sm
+              w-full py-3 px-4 rounded-md text-xs font-bold transition-all
               ${
                 isAnalyzingCompetitive
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white"
+                  : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
               }
             `}
           >
@@ -2099,8 +2097,8 @@ const TextEditorSidebar = ({
       <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orange-600 rounded-xl shadow-lg shadow-slate-100">
-              <Info className="w-5 h-5 text-white" />
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 italic">
+              <Info className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-gray-900 line-clamp-1">Blog Content</h3>
@@ -2406,8 +2404,8 @@ const TextEditorSidebar = ({
       <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
-              <Wand2 className="w-5 h-5 text-white" />
+            <div className="p-2.5 bg-primary/10 text-primary rounded-lg border border-primary/20">
+              <Wand2 className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-gray-900 line-clamp-1">Section Tools</h3>
@@ -2477,10 +2475,10 @@ const TextEditorSidebar = ({
                             group relative p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
                             ${
                               sectionToolState.sectionId === section.id
-                                ? "bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200"
+                                ? "bg-primary/10 border-primary/40 shadow-none ring-1 ring-primary/20"
                                 : blog?.isArchived
                                   ? "bg-gray-50 border-gray-100 cursor-not-allowed"
-                                  : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
+                                  : "bg-white border-gray-200 hover:border-primary/30 hover:shadow-none"
                             }
                         `}
                 >
