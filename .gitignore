@@ -24,6 +24,7 @@ node_modules
 *.env
 .env
 todo.txt
+
 dist
 
 .firebase
