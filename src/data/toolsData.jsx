@@ -94,7 +94,7 @@ export const tools = [
   {
     id: "website-builder",
     title: "Website AI Ranking",
-    description: "Build websites without any hassle",
+    description: "Analyze and improve your website’s SEO",
     icon: <Globe className="w-6 h-6" />,
     type: "navigation",
     path: "/website-ranking", // Mapping to Website Ranking for now as closest match

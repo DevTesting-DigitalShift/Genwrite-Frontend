@@ -61,16 +61,8 @@ const PrivateRoutesLayout = () => {
     const isAllowed = ALLOWED_ROUTES.some(r => currentPath.startsWith(r))
     if (isAllowed) return
 
-    // Push them to /pricing and show the modal
+    // Push them to /pricing
     navigate("/pricing", { replace: true })
-    handlePopup({
-      title: "Choose a Plan to Continue",
-      description:
-        "You don't have an active plan yet. Pick a plan to unlock all features and start creating content.",
-      confirmText: "View Plans",
-      cancelText: "Maybe Later",
-      onConfirm: () => navigate("/pricing"),
-    })
   }, [location.pathname, needsUpgrade, user])
 
   // Show loading screen while authenticating or connecting socket

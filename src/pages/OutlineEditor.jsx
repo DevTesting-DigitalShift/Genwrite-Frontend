@@ -14,6 +14,8 @@ import { TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import { Slider } from "@/components/ui/slider"
 import { Helmet } from "react-helmet"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
@@ -189,7 +191,7 @@ const OutlineEditor = () => {
   }
 
   const handleBrandSelect = brandId => {
-    setFormData(prev => ({ ...prev, brandId }))
+    setFormData(prev => ({ ...prev, brandId: prev.brandId === brandId ? null : brandId }))
   }
 
   const handleSubmit = async () => {
@@ -307,8 +309,8 @@ const OutlineEditor = () => {
       <div className="px-6">
         {isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div onClick={handleClose} className="absolute inset-0 bg-black/60" />
-            <div className="relative gap-2 w-full max-w-3xl bg-white rounded-lg flex flex-col max-h-[90vh]">
+            <div onClick={handleClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <div className="relative gap-2 w-full max-w-3xl bg-white rounded-md flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
                 <h2 className="text-base font-bold">
@@ -322,7 +324,7 @@ const OutlineEditor = () => {
                 </h2>
                 <button
                   onClick={handleClose}
-                  className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                  className="p-2 hover:bg-slate-50 rounded-md transition-colors text-slate-400 hover:text-slate-600"
                 >
                   <X size={20} />
                 </button>
@@ -358,7 +360,7 @@ const OutlineEditor = () => {
                         value={formData.topic}
                         onChange={e => handleInputChange(e, "topic")}
                         placeholder="e.g. How to use AI for content marketing"
-                        className={`input outline-0 w-full rounded-lg focus:ring ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        className={`input outline-0 w-full rounded-md focus:ring ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       />
                       {errors.topic && (
                         <span className="text-rose-500 text-xs">Topic is required</span>
@@ -372,7 +374,7 @@ const OutlineEditor = () => {
                       <select
                         value={formData.tone}
                         onChange={e => handleSelectChange(e.target.value)}
-                        className={`select select-bordered w-full rounded-lg focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        className={`select select-bordered w-full rounded-md focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       >
                         {TONES.map(t => (
                           <option key={t} value={t}>
@@ -395,11 +397,11 @@ const OutlineEditor = () => {
                           onChange={e => handleKeywordInputChange(e, "focusKeywords")}
                           onKeyDown={e => handleKeyPress(e, "focusKeywords")}
                           placeholder="Type and press Enter..."
-                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          className={`input outline-0 w-full pr-2 rounded-md ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
                           onClick={() => handleAddKeyword("focusKeywords")}
-                          className="w-10 p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+                          className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -408,7 +410,7 @@ const OutlineEditor = () => {
                         {formData.focusKeywords.map((keyword, index) => (
                           <span
                             key={index}
-                            className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
+                            className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-md gap-2 text-xs font-bold"
                           >
                             {keyword}
                             <X
@@ -439,11 +441,11 @@ const OutlineEditor = () => {
                           onChange={e => handleKeywordInputChange(e, "keywords")}
                           onKeyDown={e => handleKeyPress(e, "keywords")}
                           placeholder="Add secondary keywords..."
-                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          className={`input outline-0 w-full pr-2 rounded-md ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
                           onClick={() => handleAddKeyword("keywords")}
-                          className="w-10 p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+                          className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -452,7 +454,7 @@ const OutlineEditor = () => {
                         {visibleKeywords.map((keyword, index) => (
                           <span
                             key={index}
-                            className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-lg gap-2 text-xs font-bold"
+                            className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-md gap-2 text-xs font-bold"
                           >
                             {keyword}
                             <X
@@ -490,7 +492,7 @@ const OutlineEditor = () => {
                         value={formData.title}
                         onChange={e => handleInputChange(e, "title")}
                         placeholder="Project title..."
-                        className={`input outline-0 w-full rounded-lg focus:ring ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                        className={`input outline-0 w-full rounded-md focus:ring ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       />
                       {errors.title && (
                         <span className="text-rose-500 text-xs">Title is required</span>
@@ -527,26 +529,40 @@ const OutlineEditor = () => {
                 {currentStep === 2 && (
                   <div className="space-y-6">
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
-                        <span className="label-text font-bold text-slate-700">Brand Voice</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="label text-sm p-0">
+                          <span className="label-text font-bold text-slate-700">Brand Voice</span>
+                        </label>
+                        {formData.brandId && (
+                          <button
+                            onClick={() => handleBrandSelect(formData.brandId)}
+                            className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
+                          >
+                            Clear Selection
+                          </button>
+                        )}
+                      </div>
                       <div className="mt-2 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
                         {brands?.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                             {brands.map(voice => (
                               <label
                                 key={voice._id}
-                                className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all border ${
+                                className={`flex items-start gap-3 p-4 rounded-md cursor-pointer transition-all border ${
                                   formData.brandId === voice._id
                                     ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleBrandSelect(voice._id);
+                                }}
                               >
                                 <input
                                   type="radio"
                                   className="radio radio-primary radio-xs"
                                   checked={formData.brandId === voice._id}
-                                  onChange={() => handleBrandSelect(voice._id)}
+                                  readOnly
                                 />
                                 <div>
                                   <div className="font-bold text-slate-700 text-sm">
@@ -583,11 +599,11 @@ const OutlineEditor = () => {
                           onChange={e => handleKeywordInputChange(e, "resources")}
                           onKeyDown={e => handleKeyPress(e, "resources")}
                           placeholder="Add URLs to context or sources..."
-                          className={`input outline-0 w-full pr-2g rounded-lg ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                          className={`input outline-0 w-full pr-2 rounded-md ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
                           onClick={() => handleAddKeyword("resources")}
-                          className="w-10 p-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+                          className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
                           <Plus size={20} className="ml-1" />
                         </button>
@@ -596,7 +612,7 @@ const OutlineEditor = () => {
                         {formData.resources.map((resource, index) => (
                           <div
                             key={index}
-                            className="badge h-auto py-2 bg-slate-50 text-primary border-slate-100 rounded-lg gap-2 text-xs font-bold flex items-center"
+                            className="badge h-auto py-2 bg-slate-50 text-primary border-slate-100 rounded-md gap-2 text-xs font-bold flex items-center"
                           >
                             <span className="max-w-[150px] truncate">{resource}</span>
                             <X
@@ -618,30 +634,17 @@ const OutlineEditor = () => {
 
                 {currentStep === 3 && (
                   <div className="space-y-4">
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="p-8 bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
                       {markdownContent ? (
-                        <div
-                          className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
-                          dangerouslySetInnerHTML={{
-                            __html: markdownContent
-                              .replace(
-                                /^#+\s+/gm,
-                                match =>
-                                  `<h${match.length} class="font-bold text-slate-900 mt-4 outline-header">`
-                              )
-                              .replace(/\n/gm, "<br>")
-                              .replace(
-                                /\*\*(.*?)\*\*/g,
-                                "<strong class='text-slate-900'>$1</strong>"
-                              )
-                              .replace(/\*(.*?)\*/g, "<em class='italic'>$1</em>")
-                              .replace(/^- (.*)$/gm, "<li class='list-disc ml-4'>$1</li>")
-                              .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>"),
-                          }}
-                        />
+                        <div className="prose prose-sm prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {markdownContent}
+                          </ReactMarkdown>
+                        </div>
                       ) : (
-                        <div className="text-center py-10 text-slate-400">
-                          <p className="text-sm font-medium italic">No content generated yet.</p>
+                        <div className="text-center py-20 text-slate-400">
+                          <Sparkles className="mx-auto mb-4 opacity-20" size={48} />
+                          <p className="text-sm font-medium italic">No outline generated yet.</p>
                         </div>
                       )}
                     </div>
@@ -654,7 +657,7 @@ const OutlineEditor = () => {
                 {currentStep > 0 && currentStep < 4 ? (
                   <button
                     onClick={handlePrev}
-                    className="px-6 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                    className="px-6 py-2 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-colors font-medium"
                   >
                     Back
                   </button>
@@ -666,7 +669,7 @@ const OutlineEditor = () => {
                   {currentStep === 0 && (
                     <button
                       onClick={handleNext}
-                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
+                      className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       Next
                     </button>
@@ -675,7 +678,7 @@ const OutlineEditor = () => {
                   {currentStep === 1 && (
                     <button
                       onClick={handleNext}
-                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
+                      className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       Next
                     </button>
@@ -685,7 +688,7 @@ const OutlineEditor = () => {
                     <button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="px-8 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-none font-bold"
+                      className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
                       {isSubmitting ? (
                         <div className="flex items-center gap-2">
@@ -702,13 +705,13 @@ const OutlineEditor = () => {
                     <>
                       <button
                         onClick={handleExportMarkdown}
-                        className="btn btn-ghost px-6 rounded-2xl text-emerald-600 font-bold hover:bg-emerald-50 border border-emerald-100"
+                        className="px-6 py-2.5 rounded-md text-primary font-bold hover:bg-primary/5 border border-primary/10 transition-all"
                       >
                         Export .MD
                       </button>
                       <button
                         onClick={handleClose}
-                        className="btn btn-primary px-10 rounded-2xl bg-slate-900 border-none text-white font-black shadow-lg hover:bg-slate-800"
+                        className="px-10 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                       >
                         Finish Editor
                       </button>
@@ -727,7 +730,7 @@ const OutlineEditor = () => {
 
             <button
               onClick={handleExportMarkdown}
-              className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base font-medium flex justify-center items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
               aria-label="Export as Markdown"
             >
               <svg
@@ -749,36 +752,28 @@ const OutlineEditor = () => {
           </div>
 
           {markdownContent ? (
-            <div className="flex-1 flex flex-col sm:flex-row sm:space-x-4">
-              <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
-                <h3 className="text-base sm:text-md font-semibold  mb-2 sm:mb-3 px-3 tracking-wide">
+            <div className="flex-1 flex flex-col sm:flex-row sm:space-x-6">
+              <div className="w-full sm:w-1/2 mb-6 sm:mb-0 flex flex-col">
+                <h3 className="text-sm font-semibold mb-3 px-1 text-slate-500 uppercase tracking-widest">
                   Preview
                 </h3>
-                <div className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none  shadow-sm text-xs sm:text-sm">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: markdownContent
-                        .replace(/^#+\s+/gm, match => `<h${match.length}>`)
-                        .replace(/\n/gm, "<br>")
-                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                        .replace(/^- (.*)$/gm, "<li>$1</li>")
-                        .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>")
-                        .replace(/^(<h[1-6]>.*<\/h[1-6]>)$/gm, '<div class="mt-3 sm:mt-4">$1</div>')
-                        .replace(/^(<ul>.*<\/ul>)$/gm, '<div class="mt-2">$1</div>'),
-                    }}
-                  />
+                <div className="flex-1 p-6 sm:p-8 border border-gray-200 rounded-md bg-white overflow-y-auto shadow-sm min-h-[500px]">
+                  <div className="prose prose-sm sm:prose-base prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {markdownContent}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
-              <div className="w-full sm:w-1/2">
-                <h3 className="text-base sm:text-md font-semibold  mb-2 sm:mb-3 px-3 tracking-wide">
-                  Edit Your Blog Outline
+              <div className="w-full sm:w-1/2 flex flex-col">
+                <h3 className="text-sm font-semibold mb-3 px-1 text-slate-500 uppercase tracking-widest">
+                  Markdown Editor
                 </h3>
                 <textarea
                   id="outline-editor"
                   value={markdownContent}
                   onChange={handleContentChange}
-                  className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-xl text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-0 resize-none shadow-none"
+                  className="flex-1 min-h-[500px] p-6 sm:p-8 border border-gray-200 rounded-md text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-0 resize-none shadow-sm"
                   aria-label="Edit blog outline"
                   placeholder="Edit your blog outline here..."
                 />

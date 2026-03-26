@@ -32,13 +32,13 @@ const RegenerateModal = ({
     const features = []
 
     // Add features based on selections
-    if (regenForm.useBrandVoice) features.push("brandVoice")
+    if (regenForm.isCheckedBrand) features.push("brandVoice")
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
     if (regenForm.options.performKeywordResearch) features.push("keywordResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
     if (regenForm.isCheckedQuick) features.push("quickSummary")
-    if (regenForm.wordpressPostStatus) features.push("automaticPosting")
+    if (regenForm.options.automaticPosting) features.push("automaticPosting")
 
     let cost = computeCost({
       wordCount: regenForm.userDefinedLength || 1000,
@@ -47,7 +47,7 @@ const RegenerateModal = ({
       includeImages: regenForm.isCheckedGeneratedImages,
       imageSource: regenForm.imageSource,
       numberOfImages: regenForm.numberOfImages || 3,
-      isCheckedBrand: regenForm.useBrandVoice,
+      isCheckedBrand: regenForm.isCheckedBrand,
     })
 
     // Apply Cost Cutter discount (25% off)
@@ -186,7 +186,10 @@ const RegenerateModal = ({
                       }
                       placeholder="Add keyword..."
                     />
-                    <button className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all" onClick={() => addRegenKeyword("focus")}>
+                    <button
+                      className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
+                      onClick={() => addRegenKeyword("focus")}
+                    >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
@@ -331,18 +334,18 @@ const RegenerateModal = ({
                 size="large"
                 labelClass="text-sm font-semibold "
                 value={{
-                  isCheckedBrand: regenForm.useBrandVoice,
+                  isCheckedBrand: regenForm.isCheckedBrand,
                   brandId: regenForm.brandId,
-                  addCTA: regenForm.addCTA,
+                  addCTA: regenForm.options.addCTA,
                 }}
                 onChange={val => {
-                  updateRegenField("useBrandVoice", val.isCheckedBrand)
+                  updateRegenField("isCheckedBrand", val.isCheckedBrand)
                   updateRegenField("brandId", val.brandId)
-                  updateRegenField("addCTA", val.addCTA)
+                  updateRegenField("options.addCTA", val.addCTA)
                 }}
               />
 
-              {/* Enhancement Options */}
+              {/* E nhancement Options */}
               <div className="space-y-6 mt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -428,8 +431,10 @@ const RegenerateModal = ({
                     </p>
                   </div>
                   <Switch
-                    checked={regenForm.easyToUnderstand}
-                    onCheckedChange={checked => updateRegenField("easyToUnderstand", checked)}
+                    checked={regenForm.options.easyToUnderstand}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.easyToUnderstand", checked)
+                    }
                     size="large"
                   />
                 </div>
@@ -442,8 +447,10 @@ const RegenerateModal = ({
                     </p>
                   </div>
                   <Switch
-                    checked={regenForm.embedYouTubeVideos}
-                    onCheckedChange={checked => updateRegenField("embedYouTubeVideos", checked)}
+                    checked={regenForm.options.embedYouTubeVideos}
+                    onCheckedChange={checked =>
+                      updateRegenField("options.embedYouTubeVideos", checked)
+                    }
                     size="large"
                   />
                 </div>
@@ -502,7 +509,7 @@ const RegenerateModal = ({
                       </p>
                     </div>
                     <Switch
-                      checked={regenForm.wordpressPostStatus}
+                      checked={regenForm.options.automaticPosting}
                       onCheckedChange={checked => {
                         const hasIntegrations =
                           Object.keys(integrations?.integrations || {}).length > 0
@@ -510,21 +517,21 @@ const RegenerateModal = ({
                           toast.error("Please connect your account in plugins.")
                           return
                         }
-                        updateRegenField("wordpressPostStatus", checked)
+                        updateRegenField("options.automaticPosting", checked)
                         if (checked) {
                           const firstKey = Object.keys(integrations?.integrations || {})[0]
-                          if (firstKey && !regenForm.postingType) {
-                            updateRegenField("postingType", firstKey)
+                          if (firstKey && !regenForm.postingDefaultType) {
+                            updateRegenField("postingDefaultType", firstKey)
                           }
                         } else {
-                          updateRegenField("postingType", null)
+                          updateRegenField("postingDefaultType", null)
                         }
                       }}
                       size="large"
                     />
                   </div>
 
-                  {regenForm.wordpressPostStatus && (
+                  {regenForm.options.automaticPosting && (
                     <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
@@ -534,9 +541,9 @@ const RegenerateModal = ({
                           </p>
                         </div>
                         <Switch
-                          checked={regenForm.includeTableOfContents}
+                          checked={regenForm.options.includeTableOfContents}
                           onCheckedChange={checked =>
-                            updateRegenField("includeTableOfContents", checked)
+                            updateRegenField("options.includeTableOfContents", checked)
                           }
                           size="large"
                         />
@@ -548,8 +555,8 @@ const RegenerateModal = ({
                         </label>
                         <select
                           className="select select-bordered outline-0 w-full"
-                          value={regenForm.postingType || ""}
-                          onChange={e => updateRegenField("postingType", e.target.value)}
+                          value={regenForm.postingDefaultType || ""}
+                          onChange={e => updateRegenField("postingDefaultType", e.target.value)}
                         >
                           <option value="" disabled>
                             Select Platform
@@ -583,7 +590,10 @@ const RegenerateModal = ({
           </div>
           <div className="flex gap-2">
             {regenerateStep === 2 && (
-              <button className="btn rounded-md transition-all" onClick={() => setRegenerateStep(1)}>
+              <button
+                className="btn rounded-md transition-all"
+                onClick={() => setRegenerateStep(1)}
+              >
                 Back
               </button>
             )}

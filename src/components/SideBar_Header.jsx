@@ -57,14 +57,6 @@ const SideBar_Header = () => {
         return true
       }
       if (e) e.preventDefault()
-      handlePopup({
-        title: "Choose a Plan to Continue",
-        description:
-          "You don't have an active plan yet. Pick a plan to unlock all features and start creating content.",
-        confirmText: "View Plans",
-        cancelText: "Maybe Later",
-        onConfirm: () => navigate("/pricing"),
-      })
       return false
     }
     navigate(path)

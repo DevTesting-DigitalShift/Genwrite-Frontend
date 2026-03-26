@@ -3,14 +3,14 @@ import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
 import { ArrowLeft, HelpCircle, Home } from "lucide-react"
 
-const ErrorPage = () => {
+const ErrorPage = ({ title = "Page Not Found", message = "Sorry, we couldn’t find the page you’re looking for.", errorCode = "404" }) => {
   return (
     <div className="min-h-screen relative overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Helmet>
-        <title>404 - Page Not Found | GenWrite</title>
+        <title>{errorCode} - {title} | GenWrite</title>
         <meta
           name="description"
-          content="The page you are looking for could not be found. Return to the dashboard or contact support for assistance."
+          content={message}
         />
       </Helmet>
 
@@ -57,13 +57,13 @@ const ErrorPage = () => {
             transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
             className="mb-6"
           >
-            <span className="text-6xl sm:text-8xl font-bold text-red-500 drop-shadow-md">404</span>
+            <span className="text-6xl sm:text-8xl font-bold text-red-500 drop-shadow-md">{errorCode}</span>
           </motion.div>
 
           {/* Error Message */}
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{title}</h1>
           <p className="text-base sm:text-lg text-gray-600 leading-relaxed mb-8" aria-live="polite">
-            Sorry, we couldn’t find the page you’re looking for.
+            {message}
           </p>
 
           {/* Action Buttons */}
@@ -79,7 +79,7 @@ const ErrorPage = () => {
               Go Back Home
             </motion.a>
             <motion.button
-              onClick={() => history.back()}
+              onClick={() => window.history.back()}
               whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)" }}
               whileTap={{ scale: 0.95 }}
               className="flex items-center justify-center gap-2 rounded-md bg-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 w-full sm:w-auto"

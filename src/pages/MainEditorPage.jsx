@@ -31,10 +31,11 @@ const MainEditorPage = () => {
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
 
   // TanStack Query for fetching blog
-  const { data: fetchedBlog, isLoading: isBlogFetching } = useQuery({
+  const { data: fetchedBlog, isLoading: isBlogFetching, isError, error } = useQuery({
     queryKey: ["blog", id],
     queryFn: () => getBlogById(id),
     enabled: !!id,
+    retry: false,
   })
 
   const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
@@ -106,6 +107,19 @@ const MainEditorPage = () => {
       setSelectedBlog(fetchedBlog)
     }
   }, [fetchedBlog, setSelectedBlog])
+
+  useEffect(() => {
+    if (isError) {
+      const status = error?.response?.status || 404
+      const message =
+        status === 403
+          ? "Access Restricted: This blog belongs to another account."
+          : "Blog Not Available: The requested blog doesn't exist or has been deleted."
+
+      toast.error(message)
+      navigate("/blogs", { replace: true })
+    }
+  }, [isError, error, navigate])
 
   useEffect(() => {
     if (!id) {

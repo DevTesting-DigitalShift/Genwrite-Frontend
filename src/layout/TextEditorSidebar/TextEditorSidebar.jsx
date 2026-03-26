@@ -278,9 +278,8 @@ const TextEditorSidebar = ({
     isCheckedGeneratedImages: false,
     imageSource: DEFAULT_IMAGE_SOURCE,
     numberOfImages: 0,
-    useBrandVoice: false,
+    isCheckedBrand: false,
     brandId: "",
-    addCTA: false,
     costCutter: false,
     options: {
       includeFaqs: false,
@@ -291,13 +290,14 @@ const TextEditorSidebar = ({
       humanisation: false,
       extendedThinking: false,
       deepResearch: false,
+      easyToUnderstand: false,
+      embedYouTubeVideos: false,
+      automaticPosting: false,
+      includeTableOfContents: false,
+      addCTA: false,
     },
-    easyToUnderstand: false,
-    embedYouTubeVideos: false,
     isCheckedQuick: false,
-    wordpressPostStatus: false,
-    postingType: null,
-    includeTableOfContents: false,
+    postingDefaultType: null,
   })
 
   // AI Section Tools State
@@ -699,12 +699,9 @@ const TextEditorSidebar = ({
         isCheckedGeneratedImages: isImagesEnabled,
         imageSource: imageSource,
         numberOfImages: blog.numberOfImages,
-        useBrandVoice: blog.isCheckedBrand || false,
+        isCheckedBrand: blog.isCheckedBrand || false,
         brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
-        addCTA: blog.options?.addCTA || false,
         costCutter: blog.costCutter || false,
-        easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
-        embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
         options: {
           includeFaqs: blog.options?.includeFaqs || false,
           includeInterlinks: blog.options?.includeInterlinks || false,
@@ -716,11 +713,12 @@ const TextEditorSidebar = ({
           deepResearch: blog.deepResearch || blog.options?.deepResearch || false,
           easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
           embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
+          automaticPosting: blog.options?.automaticPosting || false,
+          includeTableOfContents: blog.options?.includeTableOfContents || false,
+          addCTA: blog.options?.addCTA || false,
         },
         isCheckedQuick: blog.isCheckedQuick || false,
-        wordpressPostStatus: blog.options?.automaticPosting || false,
-        postingType: blog.postingDefaultType || null,
-        includeTableOfContents: blog.options?.includeTableOfContents || false,
+        postingDefaultType: blog.postingDefaultType || null,
       })
     }
   }, [blog])
@@ -788,12 +786,12 @@ const TextEditorSidebar = ({
     const features = []
 
     // Add features based on selections
-    if (regenForm.useBrandVoice) features.push("brandVoice")
+    if (regenForm.isCheckedBrand) features.push("brandVoice")
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
     if (regenForm.isCheckedQuick) features.push("quickSummary")
-    if (regenForm.wordpressPostStatus) features.push("automaticPosting")
+    if (regenForm.options.automaticPosting) features.push("automaticPosting")
     // Note: addOutBoundLinks does not add extra credits
 
     return computeCost({
@@ -803,7 +801,7 @@ const TextEditorSidebar = ({
       includeImages: regenForm.isCheckedGeneratedImages,
       imageSource: regenForm.imageSource,
       numberOfImages: regenForm.numberOfImages || 3,
-      isCheckedBrand: regenForm.useBrandVoice,
+      isCheckedBrand: regenForm.isCheckedBrand,
     })
   }, [regenForm])
 
@@ -844,6 +842,8 @@ const TextEditorSidebar = ({
         userDefinedLength: regenForm.userDefinedLength,
         aiModel: regenForm.aiModel,
         costCutter: regenForm.costCutter,
+        isCheckedQuick: regenForm.isCheckedQuick,
+        isCheckedBrand: regenForm.isCheckedBrand,
         options: {
           includeFaqs: regenForm.options.includeFaqs,
           includeInterlinks: regenForm.options.includeInterlinks,
@@ -855,18 +855,21 @@ const TextEditorSidebar = ({
           humanisation: regenForm.options.humanisation,
           extendedThinking: regenForm.options.extendedThinking,
           deepResearch: regenForm.options.deepResearch,
+          addCTA: regenForm.options.addCTA,
+          automaticPosting: regenForm.options.automaticPosting,
+          includeTableOfContents: regenForm.options.includeTableOfContents,
         },
       }
 
       // Only include title, focusKeywords, keywords if performKeywordResearch is OFF
-      // When keyword research is ON, AI will auto-generate these based on topic
       if (!regenForm.options.performKeywordResearch) {
         payload.title = regenForm.title
         payload.focusKeywords = regenForm.focusKeywords
         payload.keywords = regenForm.keywords
       }
 
-      // Only add image-related fields if images are enabled
+      // Image settings
+      payload.isCheckedGeneratedImages = regenForm.isCheckedGeneratedImages
       if (regenForm.isCheckedGeneratedImages) {
         payload.imageSource = regenForm.imageSource
         payload.numberOfImages = regenForm.numberOfImages || 0
@@ -874,31 +877,14 @@ const TextEditorSidebar = ({
         payload.imageSource = "none"
       }
 
-      // Always send isCheckedBrand based on useBrandVoice state
-      payload.isCheckedBrand = regenForm.useBrandVoice
-
-      // Only add brand voice related fields if enabled
-      if (regenForm.useBrandVoice && regenForm.brandId) {
+      // Brand settings
+      if (regenForm.isCheckedBrand && regenForm.brandId) {
         payload.brandId = regenForm.brandId
-        // Add CTA to options if enabled
-        if (regenForm.addCTA) {
-          payload.options.addCTA = true
-        }
       }
 
-      // Only add quick summary if enabled
-      if (regenForm.isCheckedQuick) {
-        payload.isCheckedQuick = true
-      }
-
-      // Only add posting fields if enabled
-      if (regenForm.wordpressPostStatus && regenForm.postingType) {
-        payload.options.automaticPosting = true
-        payload.postingDefaultType = regenForm.postingType
-        // Add table of contents to options if enabled
-        if (regenForm.includeTableOfContents) {
-          payload.options.includeTableOfContents = true
-        }
+      // Posting settings
+      if (regenForm.options.automaticPosting && regenForm.postingDefaultType) {
+        payload.postingDefaultType = regenForm.postingDefaultType
       }
 
       // Validate and transform the payload

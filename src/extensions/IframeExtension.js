@@ -6,6 +6,8 @@ export const Iframe = Node.create({
   group: "block",
 
   atom: true,
+  selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {

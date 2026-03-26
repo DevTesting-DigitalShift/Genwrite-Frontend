@@ -35,6 +35,8 @@ import {
   Check,
   ExternalLink,
   Loader,
+  Youtube,
+  Video,
 } from "lucide-react"
 import { toast } from "sonner"
 import { marked } from "marked"
@@ -130,6 +132,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const lastSavedContentRef = useRef(lastSavedContent)
   // Force re-render on editor state changes (selection, formatting, etc.)
   const [, setSelectionTick] = useState(0)
+
+  const [ytModalOpen, setYtModalOpen] = useState(false)
+  const [ytUrl, setYtUrl] = useState("")
 
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
@@ -401,7 +406,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           HTMLAttributes: { class: "text-blue-600 hover:underline" },
         }),
         Underline,
-        // Iframe,
+        Iframe,
       ],
       content: "<p></p>",
       editorProps: {
@@ -725,6 +730,34 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     [normalEditor]
   )
 
+  const handleAddYoutube = useCallback(() => {
+    safeEditorAction(() => {
+      setYtUrl("")
+      setYtModalOpen(true)
+    })
+  }, [safeEditorAction])
+
+  const handleConfirmYoutube = useCallback(() => {
+    if (!ytUrl) return
+
+    let embedUrl = ytUrl
+
+    // Simple YouTube URL to embed URL conversion
+    if (ytUrl.includes("youtube.com/watch?v=")) {
+      const videoId = ytUrl.split("v=")[1]?.split("&")[0]
+      embedUrl = `https://www.youtube.com/embed/${videoId}`
+    } else if (ytUrl.includes("youtu.be/")) {
+      const videoId = ytUrl.split("youtu.be/")[1]?.split("?")[0]
+      embedUrl = `https://www.youtube.com/embed/${videoId}`
+    }
+
+    if (normalEditor) {
+      normalEditor.chain().focus().setIframe({ src: embedUrl }).run()
+      setYtModalOpen(false)
+      toast.success("YouTube video embedded.")
+    }
+  }, [ytUrl, normalEditor])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = event => {
@@ -1024,6 +1057,15 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <ImageIcon className="w-4 h-4" />
           </button>
         </div>
+        <div className="tooltip tooltip-bottom" data-tip="YouTube">
+          <button
+            onClick={handleAddYoutube}
+            className="p-2 rounded-md text-black hover:bg-gray-100 shrink-0"
+            type="button"
+          >
+            <Youtube className="w-4 h-4" />
+          </button>
+        </div>
         <div className="relative" ref={tableButtonRef}>
           <div className="tooltip tooltip-bottom" data-tip="Table">
             <button
@@ -1311,6 +1353,44 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             </div>
           </div>
           <div className="modal-backdrop" onClick={() => setLinkModalOpen(false)} />
+        </dialog>
+      )}
+
+      {ytModalOpen && (
+        <dialog open className="modal modal-open z-10000">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <Youtube className="w-6 h-6 text-red-600" />
+              Embed YouTube Video
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">YouTube URL</span>
+                </label>
+                <input
+                  type="text"
+                  value={ytUrl}
+                  onChange={e => setYtUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="input input-bordered w-full"
+                  onKeyDown={e => e.key === "Enter" && handleConfirmYoutube()}
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Paste a YouTube link or an embed URL. We'll handle the conversion for you.
+              </p>
+            </div>
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setYtModalOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary bg-red-600" onClick={handleConfirmYoutube}>
+                Embed Video
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setYtModalOpen(false)} />
         </dialog>
       )}
 
