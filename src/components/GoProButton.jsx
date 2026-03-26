@@ -24,7 +24,7 @@ const GoProButton = () => {
         className="btn border-none bg-linear-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-bold font-montserrat tracking-wide py-2 px-6 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize no-underline h-auto min-h-auto text-base relative overflow-hidden"
       >
         <div className="shimmer-effect absolute inset-0 pointer-events-none z-0" />
-        <Crown size={20} className="relative z-10" /> 
+        <Crown size={20} className="relative z-10" />
         <span className="relative z-10">{userPlan === "pro" ? "Upgrade" : "Go Pro"}</span>
       </Link>
     </motion.div>

@@ -353,7 +353,7 @@ const Dashboard = () => {
             {creationTools.map(tool => (
               <motion.div
                 key={tool.id}
-                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
+                className="group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
                 onClick={() => setActiveModel(tool.modelKey)}
               >
                 {tool.credit && (

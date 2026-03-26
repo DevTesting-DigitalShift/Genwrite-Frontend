@@ -8,7 +8,9 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
+  GitCompare,
 } from "lucide-react"
+import ReactDiffViewer from "react-diff-viewer-continued"
 import { toast } from "sonner"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -32,6 +34,7 @@ const HumanizeContent = () => {
   const leftPanelRef = useRef()
   const rightPanelRef = useRef()
   const isScrollingSyncRef = useRef(false)
+  const [isDiffView, setIsDiffView] = useState(false)
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -144,6 +147,7 @@ const HumanizeContent = () => {
   const handleReset = () => {
     setInputContent("")
     resetHumanizeState()
+    setIsDiffView(false)
     toast.info("Content reset")
   }
 
@@ -172,9 +176,7 @@ const HumanizeContent = () => {
                 <Sparkles className="w-5 h-5 text-primary" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Humanize Content
-                </h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Humanize Content</h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                   Transform your content with AI-powered processing
                 </p>
@@ -202,27 +204,31 @@ const HumanizeContent = () => {
               value={inputContent}
               onChange={e => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (100–1000 words)..."
-              className="w-full h-60 p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl resize-none focus:border-primary focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
+              className={`w-full h-60 p-4 border-2 ${
+                wordCount > 1000 ? "border-red-500" : "border-transparent"
+              } bg-gray-50 rounded-xl resize-none focus:border-primary focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium`}
             />
             <div className="flex justify-end items-center">
               <p
-                className={`text-sm mb-2 ${wordCount < 100 || wordCount > 1000 ? "text-yellow-500" : "text-green-600"}`}
+                className={`text-sm mb-2 ${
+                  wordCount < 100 ? "text-yellow-500" : wordCount > 1000 ? "text-red-600 font-bold" : "text-green-600"
+                }`}
               >
                 Word count: {wordCount}{" "}
                 {wordCount < 100
                   ? "(Minimum 100 words required)"
                   : wordCount > 1000
-                    ? "(Maximum 1000 words allowed)"
+                    ? "(Maximum limit exceeded! Please reduce content.)"
                     : ""}
               </p>
             </div>
             <button
               onClick={handleMagicWandClick}
               disabled={isPending || !inputContent.trim() || wordCount < 100 || wordCount > 1000}
-              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-primary text-white font-bold rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 ${
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-primary text-white font-bold rounded-xl transition-all duration-300 border-none ${
                 !inputContent.trim() || wordCount < 100 || wordCount > 1000
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-[#3B4BB8] hover:scale-[1.02]"
+                  : "hover:scale-[1.01] active:scale-[0.99] hover:bg-[#6c79f0] cursor-pointer"
               }`}
             >
               Process Content
@@ -233,90 +239,152 @@ const HumanizeContent = () => {
         {/* Results Section */}
         {(outputContent || isPending) && (
           <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-primary" />
                 Processing Results
               </h2>
+              <button
+                onClick={() => setIsDiffView(!isDiffView)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300 font-medium ${
+                  isDiffView
+                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-primary hover:text-primary"
+                }`}
+              >
+                <GitCompare className="w-4 h-4" />
+                {isDiffView ? "View Original & Processed" : "View Comparison (Diff)"}
+              </button>
             </div>
-            <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
-              {/* Original Content Panel */}
-              <div className="flex flex-col border-r border-gray-200">
-                <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-gray-600" />
-                      Original Content
-                    </h3>
-                    {outputContent?.originalHumanizationScore && (
-                      <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                        Score: {outputContent.originalHumanizationScore}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleCopy(inputContent, "original")}
-                    className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
-                    title="Copy original content"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-                  {inputContent}
+            {isDiffView && outputContent?.rewrittenContent ? (
+              <div className="p-4 bg-gray-50 overflow-x-auto min-h-[400px]">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                  <ReactDiffViewer
+                    oldValue={inputContent}
+                    newValue={outputContent.rewrittenContent}
+                    splitView={true}
+                    leftTitle="Original"
+                    rightTitle="Processed"
+                    compareMethod="diffChars"
+                    hideLineNumbers={false}
+                    styles={{
+                      variables: {
+                        light: {
+                          diffViewerBackground: "#ffffff",
+                          diffViewerColor: "#374151",
+                          addedBackground: "#ecfdf5",
+                          addedColor: "#065f46",
+                          removedBackground: "#fef2f2",
+                          removedColor: "#991b1b",
+                          wordAddedBackground: "#ccfbf1",
+                          wordRemovedBackground: "#fee2e2",
+                          addedGutterBackground: "#d1fae5",
+                          removedGutterBackground: "#fee2e2",
+                          gutterColor: "#9ca3af",
+                          codeFoldGutterBackground: "#f9fafb",
+                          codeFoldBackground: "#f3f4f6",
+                          emptyLineBackground: "#f9fafb",
+                          foldPlaceholderColor: "#6b7280",
+                          addedGutterColor: "#047857",
+                          removedGutterColor: "#b91c1c",
+                        },
+                      },
+                      line: {
+                        padding: "4px 0",
+                        lineHeight: "1.6",
+                        fontSize: "0.875rem",
+                      },
+                      gutter: {
+                        padding: "0 12px",
+                        minWidth: "50px",
+                      },
+                      contentText: {
+                        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+                      },
+                    }}
+                  />
                 </div>
               </div>
-
-              {/* Processed Content Panel */}
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between p-4 bg-primary/5 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      Processed Content
-                    </h3>
-                    {outputContent?.rewrittenHumanizationScore && (
-                      <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
-                        Score: {outputContent.rewrittenHumanizationScore}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
+            ) : (
+              <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
+                {/* Original Content Panel */}
+                <div className="flex flex-col border-r border-gray-200">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-600" />
+                        Original Content
+                      </h3>
+                      {outputContent?.originalHumanizationScore && (
+                        <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                          Score: {outputContent.originalHumanizationScore}
+                        </span>
+                      )}
+                    </div>
                     <button
-                      onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
-                      disabled={!outputContent?.rewrittenContent}
-                      className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Copy processed content"
+                      onClick={() => handleCopy(inputContent, "original")}
+                      className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
+                      title="Copy original content"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() =>
-                        handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
-                      }
-                      disabled={!outputContent?.rewrittenContent}
-                      className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download processed content"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
+                  </div>
+                  <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                    {inputContent}
                   </div>
                 </div>
-                <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-                  {isPending ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-600 font-medium">Processing your content...</p>
-                        <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
-                      </div>
+
+                {/* Processed Content Panel */}
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between p-4 bg-primary/5 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        Processed Content
+                      </h3>
+                      {outputContent?.rewrittenHumanizationScore && (
+                        <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                          Score: {outputContent.rewrittenHumanizationScore}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    outputContent?.rewrittenContent
-                  )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
+                        disabled={!outputContent?.rewrittenContent}
+                        className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Copy processed content"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
+                        }
+                        disabled={!outputContent?.rewrittenContent}
+                        className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Download processed content"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                    {isPending ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                          <p className="text-gray-600 font-medium">Processing your content...</p>
+                          <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
+                        </div>
+                      </div>
+                    ) : (
+                      outputContent?.rewrittenContent
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Connected Tools Suggestion */}
             <div className="p-6 pt-0">
