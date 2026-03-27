@@ -494,7 +494,7 @@ const BlogsPage = () => {
             initialValue={blogFilters.q}
             onSearch={val => updateBlogFilters({ q: val })}
             placeholder="Search blogs by title or content..."
-            className="w-full text-sm placeholder-gray-400 h-11 pl-10 pr-4 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:border-primary focus:ring-0 transition-all font-medium"
+            className="w-full text-sm placeholder-gray-400 h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-all font-medium"
           />
         </div>
 

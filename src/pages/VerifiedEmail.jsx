@@ -29,15 +29,7 @@ const VerifiedEmail = () => {
 
   // 🔥 VERIFY EMAIL USING TOKEN
   useEffect(() => {
-    if (!token) {
-      if (!isPending) setErrorMessage("Invalid verification token")
-      return
-    }
-
-    if (hasVerified.current) {
-      console.debug("Already verified, skipping duplicate call")
-      return
-    }
+    if (!token || hasVerified.current || isPending) return
 
     verifyEmail(
       { token },
@@ -50,7 +42,7 @@ const VerifiedEmail = () => {
         },
       }
     )
-  }, [token, verifyEmail, isPending])
+  }, [token, verifyEmail])
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

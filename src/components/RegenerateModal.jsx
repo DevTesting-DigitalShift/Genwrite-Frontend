@@ -532,7 +532,7 @@ const RegenerateModal = ({
                   </div>
 
                   {regenForm.options.automaticPosting && (
-                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                    <div className="mt-4 space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-sm font-semibold ">Show Table of Content</span>

@@ -25,6 +25,9 @@ axiosInstance.interceptors.request.use(
   }
 )
 
+// Local state for toast throttling
+let last429Toast = 0
+
 // Add response interceptor
 axiosInstance.interceptors.response.use(
   response => {
@@ -33,7 +36,16 @@ axiosInstance.interceptors.response.use(
   error => {
     const status = error.response ? error.response.status : null
 
-    // Only delete token for 401 Unauthorized
+    // 1. Throttled 429 Too Many Requests
+    if (status === 429) {
+      const now = Date.now()
+      if (now - last429Toast > 5000) {
+        toast.error("Too many requests. Please try after some time.")
+        last429Toast = now
+      }
+    }
+
+    // 2. Only delete token for 401 Unauthorized
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")

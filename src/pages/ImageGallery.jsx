@@ -464,7 +464,7 @@ const ImageGallery = () => {
                   <button
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
-                    className="btn btn-primary flex-1 md:flex-none px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-full border-0 shadow-lg shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02]"
+                    className="btn btn-primary flex-1 md:flex-none px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02]"
                   >
                     Generate
                   </button>
@@ -599,22 +599,22 @@ const ImageGallery = () => {
         {/* Preview Modal */}
         <AnimatePresence>
           {previewImage && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-xs">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setPreviewImage(null)}
-                className="absolute inset-0 bg-slate-900/80"
+                className="fixed inset-0 -z-10"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 40 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[800px]"
+                className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-auto lg:h-[90vh] max-h-[90vh] lg:max-h-[850px] my-auto"
               >
                 {/* Left Side: Visual Canvas */}
-                <div className="flex-none h-[45vh] lg:h-auto lg:flex-1 bg-slate-950 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden group">
+                <div className="flex-none h-[35vh] sm:h-[40vh] lg:h-auto lg:flex-1 bg-slate-950 relative flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-hidden group">
                   <div
                     className="absolute inset-0 opacity-40 blur-3xl saturate-200 transition-all duration-1000"
                     style={{
@@ -661,16 +661,16 @@ const ImageGallery = () => {
                 {/* Right Side: Configuration & AI Tools */}
                 <div className="w-full lg:w-[450px] bg-white flex flex-col flex-1 lg:flex-none lg:h-full overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-100">
                   {/* Panel Header */}
-                  <div className="p-5 lg:p-8 pb-4 lg:pb-6">
+                  <div className="p-4 lg:p-8 pb-3 lg:pb-6">
                     <h2 className="text-xl lg:text-2xl font-black text-slate-900 leading-tight">
                       {isEnhanceMode ? "Enhance Image" : previewImage.title || "Untitled Creation"}
                     </h2>
                   </div>
 
                   {/* Scrollable Intelligence Area */}
-                  <div className="flex-1 overflow-y-auto p-5 lg:p-8 pt-0 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-4 lg:p-8 pt-0 custom-scrollbar">
                     {isEnhanceMode ? (
-                      <div className="space-y-6 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
+                      <div className="space-y-4 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
                         <div className="space-y-3 lg:space-y-4">
                           <label className="text-xs lg:text-sm font-medium text-slate-400">
                             Refinement Instruction

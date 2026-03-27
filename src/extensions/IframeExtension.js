@@ -64,17 +64,17 @@ export const Iframe = Node.create({
       // Control overlay for edit/delete
       const overlay = document.createElement("div")
       overlay.className =
-        "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"
+        "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none"
       overlay.contentEditable = "false"
 
       const buttonContainer = document.createElement("div")
-      buttonContainer.className = "flex gap-2"
+      buttonContainer.className = "absolute top-4 right-4 flex gap-2 pointer-events-auto"
 
       // Delete button
       const deleteBtn = document.createElement("button")
       deleteBtn.className =
         "px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-1 shadow-lg"
-      deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Remove`
+      deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`
       deleteBtn.onclick = e => {
         e.preventDefault()
         e.stopPropagation()

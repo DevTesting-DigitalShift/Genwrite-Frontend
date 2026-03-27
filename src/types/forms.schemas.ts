@@ -546,30 +546,89 @@ export const regenerateBlogOptionsSchema = z.object({
   extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
   deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
   humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+  performKeywordResearch: z
+    .boolean()
+    .default(false)
+    .describe("Auto-generate title and keywords based on topic"),
 })
 
-export const regenerateBlogSchema = z.object({
-  createNew: z.boolean().describe("Whether to create new content from scratch"),
-  topic: z.string().min(1, "Topic cannot be empty").optional(),
-  title: z.string().optional(),
-  focusKeywords: z.array(z.string()).max(3).optional(),
-  keywords: z.array(z.string()).optional(),
-  tone: z.string().optional(),
-  userDefinedLength: z.number().min(500).max(5000).optional(),
-  aiModel: aiModelSchema.optional(),
-  isCheckedGeneratedImages: z.boolean().optional(),
-  imageSource: imageSourceSchema.optional(),
-  numberOfImages: z.number().min(0).max(15).default(0),
-  isCheckedBrand: z.boolean().optional(),
-  brandId: z.string().optional(),
-  addCTA: z.boolean().optional(),
-  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
-  isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
-  postingDefaultType: postingTypeSchema
-    .optional()
-    .describe("Publishing platform for automatic posting"),
-  options: regenerateBlogOptionsSchema,
-})
+export const regenerateBlogSchema = z
+  .object({
+    createNew: z.boolean().describe("Whether to create new content from scratch"),
+    topic: z.string().min(1, "Topic cannot be empty").optional(),
+    title: z.string().optional(),
+    focusKeywords: z.array(z.string()).max(3).optional(),
+    keywords: z.array(z.string()).optional(),
+    tone: z.string().optional(),
+    userDefinedLength: z.number().min(500).max(5000).optional(),
+    aiModel: aiModelSchema.optional(),
+    isCheckedGeneratedImages: z.boolean().optional(),
+    imageSource: imageSourceSchema.optional(),
+    numberOfImages: z.number().min(0).max(15).default(0),
+    isCheckedBrand: z.boolean().optional(),
+    brandId: z.string().optional(),
+    addCTA: z.boolean().optional(),
+    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+    isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
+    postingDefaultType: postingTypeSchema
+      .optional()
+      .describe("Publishing platform for automatic posting"),
+    options: regenerateBlogOptionsSchema,
+  })
+  .superRefine((data, ctx) => {
+    // When createNew is true, require essential fields (mirroring backend logic)
+    if (data.createNew) {
+      if (!data.topic) {
+        ctx.addIssue({
+          path: ["topic"],
+          code: z.ZodIssueCode.custom,
+          message: "Topic is required when creating new content",
+        })
+      }
+
+      if (!data.tone) {
+        ctx.addIssue({
+          path: ["tone"],
+          code: z.ZodIssueCode.custom,
+          message: "Tone is required when creating new content",
+        })
+      }
+
+      if (data.options?.automaticPosting && !data.postingDefaultType) {
+        ctx.addIssue({
+          path: ["postingDefaultType"],
+          code: z.ZodIssueCode.custom,
+          message: "Posting default type is required when automatic posting is enabled",
+        })
+      }
+
+      // Require valid brandId when isCheckedBrand is true
+      if (data.isCheckedBrand) {
+        if (!data.brandId?.trim() || !/^[a-fA-F0-9]{24}$/.test(data.brandId)) {
+          ctx.addIssue({
+            path: ["brandId"],
+            code: z.ZodIssueCode.custom,
+            message: "A valid Brand ID is required when using brand voice",
+          })
+        }
+      }
+    }
+  })
+  .transform(data => {
+    if (data.createNew) {
+      // Clean up brandId if not checked
+      if (!data.isCheckedBrand) {
+        delete data.brandId
+      }
+
+      // Merge top-level addCTA into options for consistency (legacy support)
+      if (data.addCTA !== undefined) {
+        data.options = { ...data.options, addCTA: data.addCTA }
+      }
+    }
+    delete data.addCTA
+    return data
+  })
 
 export type RegenerateBlogSchemaType = z.infer<typeof regenerateBlogSchema>
 
