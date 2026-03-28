@@ -1,5 +1,4 @@
 import Carousel from "@components/multipleStepModal/Carousel"
-import { packages } from "@/data/templates"
 import { toast } from "sonner"
 import { Plus, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react"
 import React, { useCallback, useState } from "react"
@@ -14,8 +13,8 @@ import { TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import { Slider } from "@/components/ui/slider"
 import { Helmet } from "react-helmet"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
@@ -55,7 +54,9 @@ const OutlineEditor = () => {
 
   const handleClose = () => {
     setIsOpen(false)
-    navigate("/dashboard")
+    if (!markdownContent) {
+      navigate("/dashboard")
+    }
   }
 
   const handlePrev = () => {
@@ -233,7 +234,7 @@ const OutlineEditor = () => {
     try {
       const response = await createOutline(blogData)
       setMarkdownContent(response)
-      setIsOpen(false)
+      setCurrentStep(3) // Stay in modal and move to preview
     } catch (err) {
       console.error("Failed to create blog:", err)
       toast.error(err?.message || "Failed to create outline")
@@ -257,39 +258,6 @@ const OutlineEditor = () => {
     setMarkdownContent(e.target.value)
   }
 
-  const handleFormat = format => {
-    const textarea = document.getElementById("outline-editor")
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = markdownContent.substring(start, end)
-    let newText = markdownContent
-
-    if (format === "bold") {
-      newText =
-        markdownContent.substring(0, start) + `**${selectedText}**` + markdownContent.substring(end)
-    } else if (format === "italic") {
-      newText =
-        markdownContent.substring(0, start) + `*${selectedText}*` + markdownContent.substring(end)
-    } else if (format === "list") {
-      const lines = selectedText.split("\n").filter(line => line.trim())
-      const formattedLines = lines.map(line => `- ${line.trim()}`).join("\n")
-      newText =
-        markdownContent.substring(0, start) + formattedLines + markdownContent.substring(end)
-    }
-
-    setMarkdownContent(newText)
-  }
-
-  const isImageUrl = url => {
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"]
-    try {
-      const urlObj = new URL(url)
-      return imageExtensions.some(ext => urlObj.pathname.toLowerCase().endsWith(ext))
-    } catch {
-      return false
-    }
-  }
-
   const visibleKeywords = showAllKeywords
     ? formData.keywords
     : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
@@ -310,7 +278,7 @@ const OutlineEditor = () => {
         {isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={handleClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <div className="relative gap-2 w-full max-w-3xl bg-white rounded-md flex flex-col max-h-[90vh]">
+            <div className="relative gap-2 w-full max-w-4xl bg-white rounded-md flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
                 <h2 className="text-base font-bold">
@@ -553,9 +521,9 @@ const OutlineEditor = () => {
                                     ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleBrandSelect(voice._id);
+                                onClick={e => {
+                                  e.preventDefault()
+                                  handleBrandSelect(voice._id)
                                 }}
                               >
                                 <input
@@ -634,27 +602,23 @@ const OutlineEditor = () => {
 
                 {currentStep === 3 && (
                   <div className="space-y-4">
-                    <div className="p-8 bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
-                      {markdownContent ? (
-                        <div className="prose prose-sm prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {markdownContent}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <div className="text-center py-20 text-slate-400">
-                          <Sparkles className="mx-auto mb-4 opacity-20" size={48} />
-                          <p className="text-sm font-medium italic">No outline generated yet.</p>
-                        </div>
-                      )}
-                    </div>
+                    {markdownContent ? (
+                      <div className="blog-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="text-center py-20 text-slate-400">
+                        <Sparkles className="mx-auto mb-4 opacity-20" size={48} />
+                        <p className="text-sm font-medium italic">No outline generated yet.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Footer */}
               <div className="px-8 py-6 border-t border-gray-300 flex items-center justify-between gap-3 bg-slate-50/10">
-                {currentStep > 0 && currentStep < 4 ? (
+                {currentStep > 0 && currentStep < 3 ? (
                   <button
                     onClick={handlePrev}
                     className="px-6 py-2 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-colors font-medium"
@@ -705,15 +669,15 @@ const OutlineEditor = () => {
                     <>
                       <button
                         onClick={handleExportMarkdown}
-                        className="px-6 py-2.5 rounded-md text-primary font-bold hover:bg-primary/5 border border-primary/10 transition-all"
+                        className="px-6 py-2.5 rounded-md text-primary font-bold hover:bg-primary/5 border border-primary/10 transition-all text-sm"
                       >
                         Export .MD
                       </button>
                       <button
-                        onClick={handleClose}
-                        className="px-10 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
+                        onClick={() => setIsOpen(false)}
+                        className="px-10 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none text-sm"
                       >
-                        Finish Editor
+                        Edit Outline
                       </button>
                     </>
                   )}
@@ -722,66 +686,58 @@ const OutlineEditor = () => {
             </div>
           </div>
         )}
-        <div className="py-6 min-h-screen flex flex-col">
+        <div className="py-6 min-h-screen flex flex-col max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 text-center sm:text-left">
-              Blog Outline Editor
-            </h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Blog Outline Editor</h1>
 
-            <button
-              onClick={handleExportMarkdown}
-              className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
-              aria-label="Export as Markdown"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 sm:h-5 w-4 sm:w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => setIsOpen(true)}
+                className="flex-1 sm:flex-none px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary/5 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Export as Markdown
-            </button>
+                See Preview
+              </button>
+              <button
+                onClick={handleExportMarkdown}
+                className="flex-1 sm:flex-none px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
+                aria-label="Export as Markdown"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 sm:h-5 w-4 sm:w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Export .MD
+              </button>
+            </div>
           </div>
 
           {markdownContent ? (
-            <div className="flex-1 flex flex-col sm:flex-row sm:space-x-6">
-              <div className="w-full sm:w-1/2 mb-6 sm:mb-0 flex flex-col">
-                <h3 className="text-sm font-semibold mb-3 px-1 text-slate-500 uppercase tracking-widest">
-                  Preview
-                </h3>
-                <div className="flex-1 p-6 sm:p-8 border border-gray-200 rounded-md bg-white overflow-y-auto shadow-sm min-h-[500px]">
-                  <div className="prose prose-sm sm:prose-base prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {markdownContent}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full sm:w-1/2 flex flex-col">
-                <h3 className="text-sm font-semibold mb-3 px-1 text-slate-500 uppercase tracking-widest">
-                  Markdown Editor
-                </h3>
-                <textarea
-                  id="outline-editor"
-                  value={markdownContent}
-                  onChange={handleContentChange}
-                  className="flex-1 min-h-[500px] p-6 sm:p-8 border border-gray-200 rounded-md text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-0 resize-none shadow-sm"
-                  aria-label="Edit blog outline"
-                  placeholder="Edit your blog outline here..."
-                />
-              </div>
+            <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+              <textarea
+                id="outline-editor"
+                value={markdownContent}
+                onChange={handleContentChange}
+                className="flex-1 min-h-[600px] p-8 sm:p-12 text-sm sm:text-base font-mono bg-white outline-0 resize-none leading-relaxed"
+                aria-label="Edit blog outline"
+                placeholder="Edit your blog outline here..."
+              />
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-gray-500 text-xs sm:text-sm">No content available to display.</p>
+            <div className="flex-1 flex flex-col items-center justify-center bg-white border border-dashed border-gray-200 rounded-md py-20">
+              <Sparkles className="text-slate-200 mb-4" size={48} />
+              <p className="text-gray-500 text-sm">
+                No content generated yet. Click the button above to start.
+              </p>
             </div>
           )}
         </div>

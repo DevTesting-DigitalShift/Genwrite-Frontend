@@ -10,7 +10,15 @@ import { useProAction } from "@/hooks/useProAction"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 // Routes that needsUpgrade users are allowed to visit freely
-const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
+const ALLOWED_ROUTES = [
+  "/pricing",
+  "/transactions",
+  "/profile",
+  "/contact",
+  "/onboarding",
+  "/email-verify",
+  "/verify-email",
+]
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
@@ -68,6 +76,13 @@ const PrivateRoutesLayout = () => {
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {
     return <LoadingScreen message="Authenticating..." />
+  }
+
+  const bareRoutes = ["/onboarding", "/email-verify", "/verify-email"]
+  const isBareRoute = bareRoutes.some(path => location.pathname.startsWith(path))
+
+  if (isBareRoute) {
+    return token ? <Outlet /> : <Navigate to="/login" replace />
   }
 
   return token ? (
