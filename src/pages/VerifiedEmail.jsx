@@ -27,22 +27,36 @@ const VerifiedEmail = () => {
     }
   }, [data])
 
-  // 🔥 VERIFY EMAIL USING TOKEN
+  // 🔥 VERIFY EMAIL USING TOKEN — runs exactly once
   useEffect(() => {
     if (!token || hasVerified.current || isPending) return
 
+    hasVerified.current = true // Set BEFORE call to block any re-renders during flight
     verifyEmail(
       { token },
       {
-        onSuccess: data => {
-          hasVerified.current = true
-        },
         onError: err => {
           console.error("Verification error:", err)
         },
       }
     )
-  }, [token, verifyEmail])
+  }, [token, isPending, verifyEmail])
+
+  // Early return for missing token
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-lg bg-white shadow-2xl rounded-3xl p-12 text-center">
+          <AlertCircle className="size-16 text-rose-600 mx-auto mb-6" />
+          <h1 className="text-3xl font-black mb-4">Invalid Link</h1>
+          <p className="text-gray-500 mb-8">No verification token found in the URL.</p>
+          <button onClick={() => navigate("/")} className="btn btn-ghost w-full rounded-2xl">
+            <ArrowLeft className="size-5 mr-2" /> Back to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
