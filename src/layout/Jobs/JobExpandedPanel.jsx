@@ -23,7 +23,10 @@ import {
   Search,
   Sparkles,
   Cpu,
+  Settings2,
 } from "lucide-react"
+
+import { brandsQuery } from "@api/Brand/Brand.query"
 
 const SectionLabel = ({ children }) => (
   <p className="text-[10px] font-bold text-[#4C5BD6] uppercase tracking-wider mb-2 flex items-center gap-1">
@@ -136,24 +139,13 @@ const KV = ({ label, value, valueClass = "text-slate-700" }) => (
 )
 
 const JobExpandedPanel = ({ job }) => {
+  const { data: brands = [] } = brandsQuery.useList()
   const blogs = job.blogs || {}
   const options = job.options || {}
   const schedule = job.schedule || {}
 
-  const OPTION_MAP = [
-    { key: "wordpressPosting", label: "Automatic Posting", icon: Globe },
-    { key: "includeFaqs", label: "FAQ", icon: BookOpen },
-    { key: "includeTableOfContents", label: "TOC", icon: AlignLeft },
-    { key: "includeCompetitorResearch", label: "Competitor Research", icon: BarChart2 },
-    { key: "includeInterlinks", label: "Interlinks", icon: Link2 },
-    { key: "performKeywordResearch", label: "Keyword Research", icon: Hash },
-    { key: "addOutBoundLinks", label: "Outbound Links", icon: Link2 },
-    { key: "embedYouTubeVideos", label: "YouTube Embed", icon: Youtube },
-    { key: "easyToUnderstand", label: "Easy Language", icon: BookOpen },
-    { key: "extendedThinking", label: "Extended Thinking", icon: Brain },
-    { key: "deepResearch", label: "Deep Research", icon: Search },
-    { key: "humanisation", label: "Humanisation", icon: Sparkles },
-  ]
+  const sectionStyle = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+  const gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
 
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   const scheduleDays =
@@ -170,31 +162,33 @@ const JobExpandedPanel = ({ job }) => {
 
   const hasTopics = (blogs.topics || []).length > 0
   const hasKeywords = (blogs.keywords || []).length > 0
-  const hasTopContent = hasTopics || hasKeywords
+
+  // Lookup brand name
+  const brandName = blogs.brandId 
+    ? brands.find(b => b._id === blogs.brandId)?.nameOfVoice || `ID: ...${blogs.brandId.slice(-6)}`
+    : "Default Global Voice"
 
   return (
-    <div className="mx-4 mb-6 mt-2 rounded-[24px] border border-indigo-100 bg-white shadow-xl shadow-slate-200/40 overflow-hidden">
-      {/* ── Top accent bar ── */}
-      <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 via-blue-500 to-purple-500" />
-
-      {/* ── Row 1: Topics & Keywords ── */}
-      {hasTopContent && (
-        <div className="p-6 bg-slate-50/40 border-b border-indigo-50">
-          <div
-            className={`grid grid-cols-1 ${hasTopics && hasKeywords ? "md:grid-cols-2" : ""} gap-10`}
-          >
+    <div className="mx-4 mb-8 mt-4 rounded-[x28px] border border-slate-200 bg-slate-50/30 overflow-hidden shadow-inner">
+      {/* ── Top Strategy Bar ── */}
+      {(hasTopics || hasKeywords) && (
+        <div className="p-6 border-b border-slate-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {hasTopics && (
               <div className="space-y-3">
                 <SectionLabel>
                   <TagIcon size={10} className="text-indigo-500" />
-                  Automation Topics
+                  Automation Strategy / Topics
                 </SectionLabel>
                 <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
               </div>
             )}
             {hasKeywords && (
               <div className="space-y-3">
-                <SectionLabel>Target Keywords</SectionLabel>
+                <SectionLabel>
+                  <Hash size={10} className="text-sky-500" />
+                  Target Keywords
+                </SectionLabel>
                 <ExpandableTagList items={blogs.keywords} color="sky" limit={6} />
               </div>
             )}
@@ -202,191 +196,107 @@ const JobExpandedPanel = ({ job }) => {
         </div>
       )}
 
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {/* ── Col 1: Blog Specification ── */}
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <SectionLabel>
-              <Layers size={10} />
-              Structure & Style
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <div className="mb-2">
-                <p className="text-[10px] text-slate-400 mb-1 font-bold">Templates</p>
-                <TagList items={blogs.templates} color="amber" />
-              </div>
-              <KV label="Voice Tone" value={blogs.tone} />
-              <KV
-                label="Article Length"
-                value={
-                  blogs.userDefinedLength
-                    ? `${blogs.userDefinedLength.toLocaleString()} words`
-                    : "Auto"
-                }
-              />
-              <KV label="Language" value={blogs.languageToWrite} />
-              <KV label="AI Model" value={blogs.aiModel?.toUpperCase()} />
-              <div className="pt-2 mt-2 border-t border-slate-100/50 space-y-2">
-                <KV
-                  label="Cost Cutter"
-                  value={blogs.costCutter ? "Optimized" : "Disabled"}
-                  valueClass={blogs.costCutter ? "text-emerald-600 font-bold" : "text-slate-400"}
-                />
-                <KV
-                  label="Post CTA"
-                  value={blogs.addCTA ? "Enabled" : "Disabled"}
-                  valueClass={blogs.addCTA ? "text-indigo-600 font-bold" : "text-slate-400"}
-                />
-              </div>
+      {/* ── Main Data Grid ── */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        
+        {/* Card 1: Content Engine */}
+        <div className={sectionStyle}>
+          <SectionLabel><Cpu size={10} /> Content Specification</SectionLabel>
+          <div className="space-y-2.5">
+            <div className="pb-2">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-bold uppercase tracking-tighter">Selected Templates</p>
+              <TagList items={blogs.templates} color="amber" />
             </div>
-          </div>
-
-          {/* Moved Reference URLs here */}
-          {(blogs.references || []).length > 0 && (
-            <div className="space-y-3 mt-8">
-              <SectionLabel>
-                <FileText size={10} className="text-emerald-500" />
-                Reference URLs
-              </SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {blogs.references.map((item, i) => (
-                  <a
-                    key={i}
-                    href={item}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-2 bg-white/50 p-1.5 rounded-lg border border-indigo-50/50 break-all w-full"
-                  >
-                    <Link2 size={12} className="shrink-0" />
-                    <span className="break-all">{item}</span>
-                  </a>
-                ))}
+            <div className="grid grid-cols-1 gap-2 pt-1">
+              <KV label="AI Engine" value={blogs.aiModel?.toUpperCase() || "GEMINI"} valueClass="text-indigo-600" />
+              <KV label="Writing Tone" value={blogs.tone} />
+              <KV label="Language" value={blogs.languageToWrite || "English"} />
+              <KV label="Target Length" value={blogs.userDefinedLength ? `${blogs.userDefinedLength} words` : "Auto"} />
+              <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2">
+                <Pill on={blogs.costCutter} label="Cost Cutter" />
+                <Pill on={blogs.addCTA} label="Add CTA" />
+                <Pill on={blogs.easyToUnderstand || options.easyToUnderstand} label="Simple Language" />
               </div>
-            </div>
-          )}
-
-          {/* Imagery Config moved here to fill left column space */}
-          <div className="space-y-3 mt-8">
-            <SectionLabel>
-              <ImageIcon size={10} />
-              Imagery Config
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <KV
-                label="Image Source"
-                value={blogs.imageSource === "none" ? "Not Enabled" : imageSrcLabel}
-                valueClass={blogs.imageSource === "none" ? "text-slate-400" : "text-slate-700"}
-              />
-              {blogs.imageSource !== "none" && (
-                <KV label="Images Count" value={blogs.numberOfImages || "AI Choice"} />
-              )}
             </div>
           </div>
         </div>
 
-        {/* ── Col 2: Deployment & Results ── */}
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <SectionLabel>
-              <Calendar size={10} />
-              Schedule & Run
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <KV
-                label="Type"
-                value={schedule.type || "Manual"}
-                valueClass="text-slate-900 font-bold"
-              />
-              {scheduleDays && <KV label="Active On" value={scheduleDays} />}
-              <KV label="Volume" value={`${blogs.numberOfBlogs} Blogs / Run`} />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <SectionLabel>
-              <FileText size={10} />
-              Stats & Logs
-            </SectionLabel>
-            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <KV
-                label="Last Activity"
-                value={
-                  job.lastRun
-                    ? new Date(job.lastRun).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "Never"
-                }
-              />
-              <KV
-                label="Total Generated"
-                value={`${job.createdBlogs?.length ?? 0} Blogs`}
-                valueClass="text-slate-900 font-bold"
-              />
-              <KV
-                label="Internal ID"
-                value={`#${job._id?.slice(-8)}`}
-                valueClass="font-mono"
-              />
-            </div>
+        {/* Card 2: Strategic Automation */}
+        <div className={sectionStyle}>
+          <SectionLabel><Sparkles size={10} /> Intelligence & Structure</SectionLabel>
+          <div className="grid grid-cols-1 gap-2">
+             <Pill on={options.includeFaqs} label="FAQ Generation" />
+             <Pill on={options.includeTableOfContents} label="Table of Contents" />
+             <Pill on={options.performKeywordResearch} label="Keyword Research" />
+             <Pill on={options.includeCompetitorResearch} label="Competitor Analysis" />
+             <Pill on={options.extendedThinking || blogs.extendedThinking} label="Extended Thinking" />
+             <Pill on={options.deepResearch || blogs.deepResearch} label="Deep Research" />
+             <Pill on={options.humanisation || blogs.humanisation} label="Humanisation" />
           </div>
         </div>
 
-        {/* ── Col 3: Advanced Engine ── */}
-        <div className="xl:col-span-1 md:col-span-2 xl:col-start-3">
-          <SectionLabel>
-            <Zap size={10} />
-            Advanced Features
-          </SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3 mt-2">
-            {OPTION_MAP.map(({ key, label, icon: Icon }) => {
-              const isOn = !!options[key]
-              return (
-                <div
-                  key={key}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-[10px] font-bold transition-all ${
-                    isOn
-                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-700 shadow-xs"
-                      : "bg-slate-50/50 border-slate-100 text-slate-400 opacity-60"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <Icon size={12} className={isOn ? "text-emerald-500" : "text-slate-300"} />
-                    <span className="truncate">{label}</span>
-                  </div>
-                  {isOn ? (
-                    <span className="text-emerald-600 bg-emerald-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">
-                      Active
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">
-                      Off
-                    </span>
-                  )}
+        {/* Card 3: Media & Connectivity */}
+        <div className={sectionStyle}>
+          <SectionLabel><ImageIcon size={10} /> Imagery & Rich Media</SectionLabel>
+          <div className="space-y-3">
+             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5">
+                <KV label="Source" value={imageSrcLabel} valueClass="font-bold text-slate-900" />
+                <KV label="Quantity" value={blogs.numberOfImages > 0 ? `${blogs.numberOfImages} per post` : "Auto"} />
+             </div>
+             <div className="flex flex-wrap gap-2">
+                <Pill on={blogs.isCheckedGeneratedImages} label="AI Gen Images" />
+                <Pill on={blogs.isCheckedCustomImages} label="Custom Media" />
+                <Pill on={options.embedYouTubeVideos} label="YouTube Embeds" />
+             </div>
+             {(blogs.references || []).length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                   <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Reference Links</p>
+                   <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
+                      {blogs.references.map((url, i) => (
+                        <a key={url+i} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-1.5 bg-white border border-slate-100 rounded-lg text-[10px] text-blue-600 hover:bg-blue-50 transition-colors">
+                           <Link2 size={10} /> <span className="truncate">{url}</span>
+                        </a>
+                      ))}
+                   </div>
                 </div>
-              )
-            })}
+             )}
           </div>
+        </div>
 
-          <div className="space-y-3 mt-4">
-            <SectionLabel>
-              <Megaphone size={10} />
-              Brand Assets
-            </SectionLabel>
-            <div
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all shadow-xs ${
-                blogs.useBrandVoice
-                  ? "bg-purple-50 border-purple-200 text-purple-700"
-                  : "bg-slate-50 border-slate-100 text-slate-400"
-              }`}
-            >
-              <Shield
-                size={14}
-                className={blogs.useBrandVoice ? "text-purple-500" : "text-slate-300"}
-              />
-              {blogs.useBrandVoice ? "Brand Voice Identity Active" : "No Brand Voice Applied"}
+        {/* Card 4: Logistics & Branding */}
+        <div className={sectionStyle}>
+          <SectionLabel><Settings2 size={10} /> Logistics & Posting</SectionLabel>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <KV label="Schedule" value={schedule.type || "Manual"} valueClass="text-indigo-600 font-bold" />
+              {scheduleDays && <KV label="Frequency" value={scheduleDays} />}
+              <KV label="Last Pipeline Run" value={job.lastRun ? new Date(job.lastRun).toLocaleDateString() : "Never"} />
+            </div>
+            
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+               <div className={`p-2.5 rounded-xl border flex flex-col gap-1 ${blogs.useBrandVoice ? "bg-purple-50 border-purple-100" : "bg-slate-50 border-slate-100"}`}>
+                  <div className="flex items-center gap-2">
+                    <Shield size={12} className={blogs.useBrandVoice ? "text-purple-600" : "text-slate-400"} />
+                    <span className={`text-[10px] font-bold ${blogs.useBrandVoice ? "text-purple-700" : "text-slate-500"}`}>Brand Identity</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 pl-5">{brandName}</span>
+               </div>
+
+               <div className={`p-2.5 rounded-xl border flex flex-col gap-1 ${options.wordpressPosting ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100"}`}>
+                  <div className="flex items-center gap-2">
+                    <Globe size={12} className={options.wordpressPosting ? "text-emerald-600" : "text-slate-400"} />
+                    <span className={`text-[10px] font-bold ${options.wordpressPosting ? "text-emerald-700" : "text-slate-500"}`}>Auto Posting</span>
+                  </div>
+                  <div className="pl-5 flex items-center justify-between">
+                     <span className="text-[10px] text-slate-500 uppercase font-black">{blogs.postingType || "DRAFT"}</span>
+                     <Pill on={options.wordpressPosting} label="Live" />
+                  </div>
+               </div>
+            </div>
+
+            <div className="pt-2 flex flex-wrap gap-2">
+               <Pill on={options.addOutBoundLinks} label="Outbound" />
+               <Pill on={options.includeInterlinks} label="Interlinks" />
             </div>
           </div>
         </div>
