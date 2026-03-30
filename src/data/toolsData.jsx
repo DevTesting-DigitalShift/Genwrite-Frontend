@@ -20,6 +20,7 @@ import {
 import { FaYoutube } from "react-icons/fa"
 import { ImMagicWand } from "react-icons/im"
 import { ACTIVE_MODELS } from "@/data/dashModels"
+import { COSTS } from "@/data/blogData"
 
 export const categories = [
   { id: "all", label: "All Tools" },
@@ -89,7 +90,7 @@ export const tools = [
     category: "text",
     isPopular: true,
     stats: "100K",
-    credit: "5 Credits",
+    credit: `${COSTS.BLOG.HUMANISED_CONTENT} Credits`,
   },
   {
     id: "website-builder",
@@ -101,7 +102,7 @@ export const tools = [
     category: "seo",
     isPopular: true,
     stats: "480K",
-    credit: "Starting from: 9 Credits",
+    credit: `Starting from: ${COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE} Credits`,
   },
 
   // Other Tools from Toolbox & Dashboard
@@ -113,7 +114,7 @@ export const tools = [
     type: "navigation",
     path: "/outline",
     category: "blog",
-    credit: "5 Credits",
+    credit: `${COSTS.BLOG.OUTLINE} Credits`,
   },
   {
     id: "competitor-analysis",
@@ -123,7 +124,7 @@ export const tools = [
     type: "navigation",
     path: "/competitive-analysis",
     category: "seo",
-    credit: "10 Credits",
+    credit: `${COSTS.ANALYSIS.COMPETITORS} Credits`,
   },
   {
     id: "keyword-research",
@@ -143,7 +144,7 @@ export const tools = [
     type: "navigation",
     path: "/keyword-scraping",
     category: "seo",
-    credit: "5 Credits",
+    credit: `${COSTS.TOOLS.KEYWORD_SCRAPER} Credits`,
   },
   {
     id: "generate-metadata",
@@ -153,7 +154,7 @@ export const tools = [
     type: "navigation",
     path: "/generate-metadata",
     category: "seo",
-    credit: "5 Credits",
+    credit: `${COSTS.BLOG.METADATA} Credits`,
   },
   {
     id: "boost-content",
@@ -163,7 +164,7 @@ export const tools = [
     type: "navigation",
     path: "/prompt-content",
     category: "seo",
-    credit: "5 Credits",
+    credit: `${COSTS.BLOG.PROMPT_CONTENT} Credits`,
   },
   {
     id: "content-detection",
@@ -173,7 +174,7 @@ export const tools = [
     type: "navigation",
     path: "/content-detection",
     category: "text",
-    credit: "2 Credits",
+    credit: `${COSTS.TOOLS.DETECTOR} Credits`,
   },
   {
     id: "youtube-summarization",
@@ -183,7 +184,7 @@ export const tools = [
     type: "navigation",
     path: "/youtube-summarization",
     category: "youtube",
-    credit: "5 Credits",
+    credit: `${COSTS.TOOLS.YOUTUBE_SUMMARIZER} Credits`,
   },
   {
     id: "chat-pdf",
@@ -193,7 +194,7 @@ export const tools = [
     type: "navigation",
     path: "/chat-with-pdf",
     category: "text",
-    credit: "5 Credits",
+    credit: `${COSTS.TOOLS.PDF_CHAT} Credits`,
   },
   {
     id: "competitor-like-blog",
@@ -203,7 +204,7 @@ export const tools = [
     type: "navigation",
     path: "/competitor-like-blog",
     category: "blog",
-    credit: "10 Credits",
+    credit: `${COSTS.COMPETITOR_LIKE_BLOG} Credits`,
   },
   {
     id: "performance-monitoring",

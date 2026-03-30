@@ -1,27 +1,33 @@
+import { COSTS, MODEL_MULTIPLIER } from "@/data/blogData"
+
 // Pricing configuration for the PricingCalculator
 // All costs are in credits - Updated image source handling
 export const pricingConfig = {
   wordCount: {
     base: 100, // words per unit
-    cost: 10, // credits per base
+    cost: 1, // Normalized cost per unit, scaled by overall blog cost logic
   },
   features: {
     brandVoice: { label: "Brand Voice", cost: 10 },
-    competitorResearch: { label: "Competitor Research", cost: 10 },
-    keywordResearch: { label: "Keyword Research", cost: 10 },
+    competitorResearch: { label: "Competitor Research", cost: COSTS.ANALYSIS.COMPETITORS },
+    keywordResearch: { label: "Keyword Research", cost: COSTS.ANALYSIS.KEYWORDS },
     internalLinking: { label: "Internal Linking", cost: 10 },
     faqGeneration: { label: "FAQ Generation", cost: 10 },
     automaticPosting: { label: "Automatic Posting", cost: 10 },
-    humanisation: { label: "AI Humanisation", cost: 20 },
+    humanisation: { label: "AI Humanisation", cost: COSTS.BLOG.HUMANISED_CONTENT },
     extendedThinking: { label: "Extended Thinking", cost: 15 },
     deepResearch: { label: "Deep Research", cost: 15 },
   },
-  images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
+  images: { 
+    stock: { featureFee: 10 }, 
+    ai: { featureFee: COSTS.IMAGE.GENERATE * 10 }, // Scaling appropriately
+    upload: { perImageFee: 5 } 
+  },
   aiModels: {
-    gemini: { label: "Gemini", costMultiplier: 1 },
-    openai: { label: "ChatGPT", costMultiplier: 1.25 },
-    chatgpt: { label: "ChatGPT", costMultiplier: 1.25 },
-    claude: { label: "Claude", costMultiplier: 1.5 },
+    gemini: { label: "Gemini", costMultiplier: MODEL_MULTIPLIER.GEMINI },
+    openai: { label: "ChatGPT", costMultiplier: MODEL_MULTIPLIER.OPENAI },
+    chatgpt: { label: "ChatGPT", costMultiplier: MODEL_MULTIPLIER.CHATGPT },
+    claude: { label: "Claude", costMultiplier: MODEL_MULTIPLIER.CLAUDE },
   },
 }
 

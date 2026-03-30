@@ -49,6 +49,7 @@ const OutlineEditor = () => {
     resources: false,
   })
   const [markdownContent, setMarkdownContent] = useState(null)
+  const [activeTab, setActiveTab] = useState("edit")
 
   const { data: brands = [], isLoading: loadingBrands, error: brandError } = brandsQuery.useList()
 
@@ -234,7 +235,8 @@ const OutlineEditor = () => {
     try {
       const response = await createOutline(blogData)
       setMarkdownContent(response)
-      setCurrentStep(3) // Stay in modal and move to preview
+      setIsOpen(false) // Close modal on success
+      setActiveTab("edit") // Default to edit tab
     } catch (err) {
       console.error("Failed to create blog:", err)
       toast.error(err?.message || "Failed to create outline")
@@ -286,9 +288,7 @@ const OutlineEditor = () => {
                     ? "Select Template"
                     : currentStep === 1
                       ? "Blog Details"
-                      : currentStep === 2
-                        ? "Brand Voice & Resources"
-                        : "Generated Outline"}
+                      : "Brand Voice & Resources"}
                 </h2>
                 <button
                   onClick={handleClose}
@@ -599,26 +599,11 @@ const OutlineEditor = () => {
                     </div>
                   </div>
                 )}
-
-                {currentStep === 3 && (
-                  <div className="space-y-4">
-                    {markdownContent ? (
-                      <div className="blog-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <div className="text-center py-20 text-slate-400">
-                        <Sparkles className="mx-auto mb-4 opacity-20" size={48} />
-                        <p className="text-sm font-medium italic">No outline generated yet.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Footer */}
               <div className="px-8 py-6 border-t border-gray-300 flex items-center justify-between gap-3 bg-slate-50/10">
-                {currentStep > 0 && currentStep < 3 ? (
+                {currentStep > 0 ? (
                   <button
                     onClick={handlePrev}
                     className="px-6 py-2 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-colors font-medium"
@@ -630,16 +615,7 @@ const OutlineEditor = () => {
                 )}
 
                 <div className="flex gap-3">
-                  {currentStep === 0 && (
-                    <button
-                      onClick={handleNext}
-                      className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
-                    >
-                      Next
-                    </button>
-                  )}
-
-                  {currentStep === 1 && (
+                  {currentStep < 2 && (
                     <button
                       onClick={handleNext}
                       className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
@@ -664,23 +640,6 @@ const OutlineEditor = () => {
                       )}
                     </button>
                   )}
-
-                  {currentStep === 3 && (
-                    <>
-                      <button
-                        onClick={handleExportMarkdown}
-                        className="px-6 py-2.5 rounded-md text-primary font-bold hover:bg-primary/5 border border-primary/10 transition-all text-sm"
-                      >
-                        Export .MD
-                      </button>
-                      <button
-                        onClick={() => setIsOpen(false)}
-                        className="px-10 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none text-sm"
-                      >
-                        Edit Outline
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
@@ -691,12 +650,6 @@ const OutlineEditor = () => {
             <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Blog Outline Editor</h1>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="flex-1 sm:flex-none px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary/5 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
-              >
-                See Preview
-              </button>
               <button
                 onClick={handleExportMarkdown}
                 className="flex-1 sm:flex-none px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
@@ -721,25 +674,59 @@ const OutlineEditor = () => {
             </div>
           </div>
 
-          {markdownContent ? (
-            <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
-              <textarea
-                id="outline-editor"
-                value={markdownContent}
-                onChange={handleContentChange}
-                className="flex-1 min-h-[600px] p-8 sm:p-12 text-sm sm:text-base font-mono bg-white outline-0 resize-none leading-relaxed"
-                aria-label="Edit blog outline"
-                placeholder="Edit your blog outline here..."
-              />
+          <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+            {/* Tabs Header */}
+            <div className="bg-slate-50/50 border-b border-gray-200 flex items-center p-1 gap-1">
+               <button
+                 onClick={() => setActiveTab("edit")}
+                 className={clsx(
+                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
+                   activeTab === "edit" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                 )}
+               >
+                 Edit Mode
+               </button>
+               <button
+                 onClick={() => setActiveTab("preview")}
+                 className={clsx(
+                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
+                   activeTab === "preview" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                 )}
+               >
+                 Preview
+               </button>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center bg-white border border-dashed border-gray-200 rounded-md py-20">
-              <Sparkles className="text-slate-200 mb-4" size={48} />
-              <p className="text-gray-500 text-sm">
-                No content generated yet. Click the button above to start.
-              </p>
-            </div>
-          )}
+
+            {/* Editor/Preview Content */}
+            {markdownContent ? (
+              <div className="flex-1 flex flex-col min-h-[600px]">
+                {activeTab === "edit" ? (
+                  <textarea
+                    id="outline-editor"
+                    value={markdownContent}
+                    onChange={handleContentChange}
+                    className="flex-1 p-8 sm:p-12 text-sm sm:text-base font-mono bg-white outline-0 resize-none leading-relaxed"
+                    aria-label="Edit blog outline"
+                    placeholder="Edit your blog outline here..."
+                  />
+                ) : (
+                  <div className="flex-1 p-8 sm:p-12 prose prose-slate max-w-none prose-sm sm:prose-base blog-content overflow-y-auto">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center py-20">
+                <Sparkles className="text-slate-200 mb-4" size={48} />
+                <p className="text-gray-500 text-sm italic">
+                  No content generated yet.{" "}
+                  <button onClick={() => setIsOpen(true)} className="text-primary font-bold hover:underline">
+                    Click here to start
+                  </button>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

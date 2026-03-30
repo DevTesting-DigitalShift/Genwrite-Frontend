@@ -74,24 +74,40 @@ export const IMAGE_OPTIONS = [
   },
 ]
 
-// Credit Costs for AI Operations
 // Credit Costs for AI Operations (Synced with Backend)
-export const COSTS = {
-  GENERATE: 2, // Image Generation
-  ENHANCE: 5, // Image Enhancement
-  ALT_TEXT: 2,
-  REWRITE: 3,
-  PROOFREAD: 5,
-  ANALYSIS: 10,
-  METADATA: 5,
-  DETECTOR: 2,
-  KEYWORD_SCRAPER: 5,
-  YOUTUBE_SUMMARIZER: 5,
-  OUTLINE: 10,
-  HUMANISED_CONTENT: 5,
-  PROMPT_CONTENT: 5,
-  CHAT_WITH_PDF: 1,
-  COMPETITOR_LIKE_BLOG: 10,
+export const COSTS = Object.freeze({
+  ANALYSIS: {
+    COMPETITORS: 10,
+    KEYWORDS: 5,
+  },
+  BLOG: {
+    PROOFREAD: 5,
+    REWRITE: 3,
+    METADATA: 5,
+    HUMANISED_CONTENT: 5,
+    OUTLINE: 10,
+    PROMPT_CONTENT: 5,
+    QUICK: 10,
+    SINGLE: 10,
+    REGENERATE: 15,
+  },
+  SECTION_TASK: {
+    PROOFREAD: 10,
+    REWRITE: 10,
+    ANALYSIS: 10,
+    PROMPT: 10,
+  },
+  TOOLS: {
+    DETECTOR: 2,
+    KEYWORD_SCRAPER: 5,
+    YOUTUBE_SUMMARIZER: 5,
+    PDF_CHAT: 1,
+  },
+  IMAGE: {
+    GENERATE: 2,
+    ALT_TEXT: 2,
+    ENHANCE: 5,
+  },
   WEBSITE_RANKING: {
     ANALYSER: 3,
     PROMPT_CREATOR: 2,
@@ -99,4 +115,25 @@ export const COSTS = {
     ADVANCED_ANALYSIS: 3,
     ORCHESTRATOR_BASE: 8,
   },
+  COMPETITOR_LIKE_BLOG: 10,
+})
+
+// Cost Multipliers based on AI model
+export const MODEL_MULTIPLIER = {
+  OPENAI: 3,
+  CHATGPT: 3,
+  CLAUDE: 5,
+  GEMINI: 1,
+}
+
+/**
+ * Converts backend (Gemini-based) credits to model-specific credits
+ * @param geminiCredits Base credits for Gemini
+ * @param aiModel Targeted AI model
+ * @returns {number} Final credit cost
+ */
+export function convertGeminiToAICredits(geminiCredits: number, aiModel?: string): number {
+  const model = (aiModel?.toUpperCase() || "GEMINI") as keyof typeof MODEL_MULTIPLIER
+  const multiplier = MODEL_MULTIPLIER[model] ?? (MODEL_MULTIPLIER.GEMINI as number)
+  return Math.ceil(geminiCredits * multiplier)
 }

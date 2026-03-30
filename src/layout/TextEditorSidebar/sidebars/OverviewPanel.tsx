@@ -4,6 +4,7 @@ import { useAnimations } from "../hooks/useAnimations"
 import useViewport from "@/hooks/useViewport"
 import type { OverviewPanelProps } from "../types"
 import { ScoreCard } from "../FeatureComponents"
+import { COSTS } from "@/data/blogData"
 
 /**
  * Overview Panel - Dashboard with stats, scores, and quick actions
@@ -156,7 +157,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
               }
             `}
           >
-            {isAnalyzing ? "Analyzing Content..." : "Run Analysis (10 Credits)"}
+            {isAnalyzing ? "Analyzing Content..." : `Run Analysis (${COSTS.ANALYSIS.COMPETITORS} Credits)`}
           </button>
         </motion.div>
       </motion.div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import { useVerifyEmail } from "@/api/queries/authQueries"
+import useVerificationStore from "@store/useVerificationStore"
 
 const VerifiedEmail = () => {
   const [searchParams] = useSearchParams()
@@ -31,27 +32,29 @@ const VerifiedEmail = () => {
   useEffect(() => {
     if (!token || hasVerified.current || isPending) return
 
-    hasVerified.current = true // Set BEFORE call to block any re-renders during flight
-    verifyEmail(
-      { token },
-      {
-        onError: err => {
-          console.error("Verification error:", err)
-        },
-      }
-    )
+    hasVerified.current = true
+    verifyEmail({ token }, { onError: err => console.error("Verification error:", err) })
   }, [token, isPending, verifyEmail])
 
-  // Early return for missing token
+  // Clear verification state on successful verification
+  useEffect(() => {
+    if (isSuccess && data?.success) {
+      useVerificationStore.getState().clearVerificationState()
+    }
+  }, [isSuccess, data])
+
   if (!token) {
     return (
       <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg bg-white shadow-2xl rounded-3xl p-12 text-center">
+        <div className="w-full max-w-lg bg-white shadow-2xl rounded-3xl p-12 text-center text-slate-800">
           <AlertCircle className="size-16 text-rose-600 mx-auto mb-6" />
           <h1 className="text-3xl font-black mb-4">Invalid Link</h1>
           <p className="text-gray-500 mb-8">No verification token found in the URL.</p>
-          <button onClick={() => navigate("/")} className="btn btn-ghost w-full rounded-2xl">
-            <ArrowLeft className="size-5 mr-2" /> Back to Home
+          <button
+            onClick={() => navigate("/")}
+            className="btn bg-slate-900 hover:bg-slate-800 text-white w-full rounded-2xl h-14 font-bold border-none transition-all active:scale-[0.98]"
+          >
+            <ArrowLeft className="size-5 mr-2 inline" /> Back to Home
           </button>
         </div>
       </div>
@@ -60,7 +63,7 @@ const VerifiedEmail = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-lg bg-white shadow rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500 text-slate-800">
         <div className="p-8 sm:p-12">
           {/* ⏳ LOADING STATE */}
           {isPending && (
@@ -89,7 +92,7 @@ const VerifiedEmail = () => {
               </p>
               <button
                 onClick={() => navigate("/dashboard")}
-                className="btn btn-primary btn-lg w-full rounded-2xl font-black text-xl bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 hover:scale-[1.02] transition-transform normal-case h-16"
+                className="group w-full h-14 bg-[#3B4BB8] border-none hover:bg-[#3B4BB8]/90 text-white rounded-2xl font-bold flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 Go to Dashboard
               </button>

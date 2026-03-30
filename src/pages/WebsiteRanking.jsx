@@ -26,6 +26,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
+import { COSTS } from "@/data/blogData"
 
 const Card = ({ children, className = "" }) => (
   <div
@@ -150,8 +151,8 @@ const WebsiteRanking = () => {
   }
 
   // Cost calculation based on backend logic
-  const getOrchestratorCost = () => 8 + promptCount
-  const getManualRankingsCost = () => generatedPrompts.length
+  const getOrchestratorCost = () => COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE + promptCount * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
+  const getManualRankingsCost = () => generatedPrompts.length * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
 
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {
@@ -623,7 +624,7 @@ const WebsiteRanking = () => {
                         </span>
                         <div className="h-3 w-px bg-primary/20 mx-1" />
                         <span className="text-[10px] text-primary/60 font-bold uppercase tracking-wider">
-                          8 Base + {promptCount} Keywords
+                          {COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE} Base + {promptCount} Keywords
                         </span>
                       </div>
                     </div>
@@ -690,7 +691,7 @@ const WebsiteRanking = () => {
                           Step 1: Website Reconnaissance
                         </h3>
                          <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                          Cost: 3 Credits
+                          Cost: {COSTS.WEBSITE_RANKING.ANALYSER} Credits
                         </div>
                       </div>
 
@@ -730,7 +731,7 @@ const WebsiteRanking = () => {
                           <Zap className="text-amber-500" /> Step 2: Generate Keywords
                         </h3>
                         <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                          Suggestion: 2 Credits
+                          Suggestion: {COSTS.WEBSITE_RANKING.PROMPT_CREATOR} Credits
                         </div>
                       </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl space-y-6">
@@ -847,7 +848,7 @@ const WebsiteRanking = () => {
                               Final Step: Growth Strategy
                             </h3>
                             <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                              Cost: 3 Credits
+                              Cost: {COSTS.WEBSITE_RANKING.ADVANCED_ANALYSIS} Credits
                             </div>
                           </div>
                           <p className="text-sm text-slate-400">

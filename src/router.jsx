@@ -126,7 +126,7 @@ const router = createBrowserRouter([
           { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
           { path: "keyword-research", element: r(KeywordResearch) },
           { path: "onboarding", element: r(Onboarding) },
-          { path: "email-verify/:email", element: r(EmailVerification) },
+          { path: "email-verify", element: r(EmailVerification) },
           { path: "verify-email", element: <VerifiedEmail /> },
         ],
       },

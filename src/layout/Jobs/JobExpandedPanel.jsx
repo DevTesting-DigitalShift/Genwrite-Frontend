@@ -24,6 +24,7 @@ import {
   Sparkles,
   Cpu,
   Settings2,
+  Clock,
 } from "lucide-react"
 
 import { brandsQuery } from "@api/Brand/Brand.query"
@@ -138,22 +139,87 @@ const KV = ({ label, value, valueClass = "text-slate-700" }) => (
   </div>
 )
 
+const formatDate = (date) => {
+  if (!date) return "Never";
+  const d = new Date(date);
+  const day = d.getDate().toString().padStart(2, '0');
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+  if (type === "weekly" && daysOfWeek?.length) {
+    const sortedDays = [...daysOfWeek].sort((a, b) => a - b)
+    return (
+      <div className="flex flex-wrap gap-1 justify-end">
+        {sortedDays.map(d => (
+          <span
+            key={d}
+            className="px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-bold"
+          >
+            {DAY_NAMES[d]}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  if (type === "monthly" && daysOfMonth?.length) {
+    // If all 31 days are selected, just say "Every Day"
+    if (daysOfMonth.length >= 28) {
+      const isComplete = [1, 2, 3, 4, 5, 10, 15, 20, 25, 28].every(d => daysOfMonth.includes(d))
+      if (isComplete && daysOfMonth.length >= 30) {
+        return <span className="text-indigo-600 font-bold">Every Day</span>
+      }
+    }
+
+    const sorted = [...new Set(daysOfMonth)].map(Number).sort((a, b) => a - b)
+    const ranges = []
+    let start = sorted[0]
+    let end = start
+
+    for (let i = 1; i <= sorted.length; i++) {
+      if (i < sorted.length && sorted[i] === end + 1) {
+        end = sorted[i]
+      } else {
+        ranges.push(start === end ? `${start}` : `${start}–${end}`)
+        if (i < sorted.length) {
+          start = sorted[i]
+          end = start
+        }
+      }
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
+        {ranges.map((range, i) => (
+          <span
+            key={i}
+            className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-bold"
+          >
+            {range}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  return <span className="text-slate-400">—</span>
+}
+
 const JobExpandedPanel = ({ job }) => {
   const { data: brands = [] } = brandsQuery.useList()
   const blogs = job.blogs || {}
   const options = job.options || {}
   const schedule = job.schedule || {}
 
-  const sectionStyle = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+  const sectionStyle = "bg-white p-5 space-y-4"
   const gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
 
-  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-  const scheduleDays =
-    schedule.type === "weekly" && schedule.daysOfWeek?.length
-      ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
-      : schedule.type === "monthly" && schedule.daysOfMonth?.length
-        ? schedule.daysOfMonth.join(", ")
-        : null
 
   const imageSrcLabel =
     { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[blogs.imageSource] ||
@@ -164,7 +230,7 @@ const JobExpandedPanel = ({ job }) => {
   const hasKeywords = (blogs.keywords || []).length > 0
 
   // Lookup brand name
-  const brandName = blogs.brandId 
+  const brandName = blogs.brandId
     ? brands.find(b => b._id === blogs.brandId)?.nameOfVoice || `ID: ...${blogs.brandId.slice(-6)}`
     : "Default Global Voice"
 
@@ -180,7 +246,9 @@ const JobExpandedPanel = ({ job }) => {
                   <TagIcon size={10} className="text-indigo-500" />
                   Automation Strategy / Topics
                 </SectionLabel>
-                <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
+                <div className="line-clamp-2">
+                  <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
+                </div>
               </div>
             )}
             {hasKeywords && (
@@ -197,25 +265,38 @@ const JobExpandedPanel = ({ job }) => {
       )}
 
       {/* ── Main Data Grid ── */}
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
         {/* Card 1: Content Engine */}
         <div className={sectionStyle}>
-          <SectionLabel><Cpu size={10} /> Content Specification</SectionLabel>
+          <SectionLabel>
+            <Cpu size={10} /> Content Specification
+          </SectionLabel>
           <div className="space-y-2.5">
             <div className="pb-2">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-bold uppercase tracking-tighter">Selected Templates</p>
+              <p className="text-[10px] text-slate-400 mb-1.5 font-bold uppercase tracking-tighter">
+                Selected Templates
+              </p>
               <TagList items={blogs.templates} color="amber" />
             </div>
             <div className="grid grid-cols-1 gap-2 pt-1">
-              <KV label="AI Engine" value={blogs.aiModel?.toUpperCase() || "GEMINI"} valueClass="text-indigo-600" />
+              <KV
+                label="AI Engine"
+                value={blogs.aiModel?.toUpperCase() || "GEMINI"}
+                valueClass="text-indigo-600"
+              />
               <KV label="Writing Tone" value={blogs.tone} />
               <KV label="Language" value={blogs.languageToWrite || "English"} />
-              <KV label="Target Length" value={blogs.userDefinedLength ? `${blogs.userDefinedLength} words` : "Auto"} />
+              <KV
+                label="Target Length"
+                value={blogs.userDefinedLength ? `${blogs.userDefinedLength} words` : "Auto"}
+              />
               <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2">
                 <Pill on={blogs.costCutter} label="Cost Cutter" />
                 <Pill on={blogs.addCTA} label="Add CTA" />
-                <Pill on={blogs.easyToUnderstand || options.easyToUnderstand} label="Simple Language" />
+                <Pill
+                  on={blogs.easyToUnderstand || options.easyToUnderstand}
+                  label="Simple Language"
+                />
               </div>
             </div>
           </div>
@@ -223,80 +304,129 @@ const JobExpandedPanel = ({ job }) => {
 
         {/* Card 2: Strategic Automation */}
         <div className={sectionStyle}>
-          <SectionLabel><Sparkles size={10} /> Intelligence & Structure</SectionLabel>
+          <SectionLabel>
+            <Sparkles size={10} /> Intelligence & Structure
+          </SectionLabel>
           <div className="grid grid-cols-1 gap-2">
-             <Pill on={options.includeFaqs} label="FAQ Generation" />
-             <Pill on={options.includeTableOfContents} label="Table of Contents" />
-             <Pill on={options.performKeywordResearch} label="Keyword Research" />
-             <Pill on={options.includeCompetitorResearch} label="Competitor Analysis" />
-             <Pill on={options.extendedThinking || blogs.extendedThinking} label="Extended Thinking" />
-             <Pill on={options.deepResearch || blogs.deepResearch} label="Deep Research" />
-             <Pill on={options.humanisation || blogs.humanisation} label="Humanisation" />
+            <Pill on={options.includeFaqs} label="FAQ Generation" />
+            <Pill on={options.includeTableOfContents} label="Table of Contents" />
+            <Pill on={options.performKeywordResearch} label="Keyword Research" />
+            <Pill on={options.includeCompetitorResearch} label="Competitor Analysis" />
+            <Pill on={options.deepResearch || blogs.deepResearch} label="Deep Research" />
+            <Pill on={options.humanisation || blogs.humanisation} label="Humanisation" />
+            <div className="pt-2 border-t border-slate-100">
+              <Pill on={options.embedYouTubeVideos} label="YouTube Embeds" />
+            </div>
           </div>
         </div>
 
         {/* Card 3: Media & Connectivity */}
         <div className={sectionStyle}>
-          <SectionLabel><ImageIcon size={10} /> Imagery & Rich Media</SectionLabel>
+          <SectionLabel>
+            <ImageIcon size={10} /> Imagery & Rich Media
+          </SectionLabel>
           <div className="space-y-3">
-             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5">
-                <KV label="Source" value={imageSrcLabel} valueClass="font-bold text-slate-900" />
-                <KV label="Quantity" value={blogs.numberOfImages > 0 ? `${blogs.numberOfImages} per post` : "Auto"} />
-             </div>
-             <div className="flex flex-wrap gap-2">
-                <Pill on={blogs.isCheckedGeneratedImages} label="AI Gen Images" />
-                <Pill on={blogs.isCheckedCustomImages} label="Custom Media" />
-                <Pill on={options.embedYouTubeVideos} label="YouTube Embeds" />
-             </div>
-             {(blogs.references || []).length > 0 && (
-                <div className="pt-2 border-t border-slate-100">
-                   <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Reference Links</p>
-                   <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
-                      {blogs.references.map((url, i) => (
-                        <a key={url+i} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-1.5 bg-white border border-slate-100 rounded-lg text-[10px] text-blue-600 hover:bg-blue-50 transition-colors">
-                           <Link2 size={10} /> <span className="truncate">{url}</span>
-                        </a>
-                      ))}
-                   </div>
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-center">
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Source Selection</p>
+              <p className="text-sm font-black text-slate-900">{imageSrcLabel}</p>
+              <p className="text-[9px] text-slate-400">
+                {blogs.numberOfImages > 0 ? `${blogs.numberOfImages} images per post` : "Automatic selection"}
+              </p>
+            </div>
+
+            {(blogs.references || []).length > 0 && (
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[9px] font-black text-slate-400 uppercase mb-2">
+                  Reference Links
+                </p>
+                <div className="space-y-1.5">
+                  {blogs.references.map((url, i) => (
+                    <a
+                      key={url + i}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 p-1.5 bg-white border border-slate-100 rounded-lg text-[10px] text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      <Link2 size={10} /> <span className="truncate">{url}</span>
+                    </a>
+                  ))}
                 </div>
-             )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Card 4: Logistics & Branding */}
         <div className={sectionStyle}>
-          <SectionLabel><Settings2 size={10} /> Logistics & Posting</SectionLabel>
+          <SectionLabel>
+            <Settings2 size={10} /> Logistics & Posting
+          </SectionLabel>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <KV label="Schedule" value={schedule.type || "Manual"} valueClass="text-indigo-600 font-bold" />
-              {scheduleDays && <KV label="Frequency" value={scheduleDays} />}
-              <KV label="Last Pipeline Run" value={job.lastRun ? new Date(job.lastRun).toLocaleDateString() : "Never"} />
+              <KV
+                label="Schedule"
+                value={schedule.type || "Manual"}
+                valueClass="text-indigo-600 font-bold"
+              />
+              <div className="flex justify-between items-start gap-3 text-[11px]">
+                <span className="text-slate-400 shrink-0">Frequency</span>
+                <FrequencyDisplay
+                  type={schedule.type}
+                  daysOfWeek={schedule.daysOfWeek}
+                  daysOfMonth={schedule.daysOfMonth}
+                />
+              </div>
+              <KV
+                label="Last Pipeline Run"
+                value={formatDate(job.lastRun)}
+              />
             </div>
-            
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-               <div className={`p-2.5 rounded-xl border flex flex-col gap-1 ${blogs.useBrandVoice ? "bg-purple-50 border-purple-100" : "bg-slate-50 border-slate-100"}`}>
-                  <div className="flex items-center gap-2">
-                    <Shield size={12} className={blogs.useBrandVoice ? "text-purple-600" : "text-slate-400"} />
-                    <span className={`text-[10px] font-bold ${blogs.useBrandVoice ? "text-purple-700" : "text-slate-500"}`}>Brand Identity</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 pl-5">{brandName}</span>
-               </div>
 
-               <div className={`p-2.5 rounded-xl border flex flex-col gap-1 ${options.wordpressPosting ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100"}`}>
-                  <div className="flex items-center gap-2">
-                    <Globe size={12} className={options.wordpressPosting ? "text-emerald-600" : "text-slate-400"} />
-                    <span className={`text-[10px] font-bold ${options.wordpressPosting ? "text-emerald-700" : "text-slate-500"}`}>Auto Posting</span>
-                  </div>
-                  <div className="pl-5 flex items-center justify-between">
-                     <span className="text-[10px] text-slate-500 uppercase font-black">{blogs.postingType || "DRAFT"}</span>
-                     <Pill on={options.wordpressPosting} label="Live" />
-                  </div>
-               </div>
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <div
+                className={`p-2.5 rounded-xl border flex flex-col gap-1 ${blogs.useBrandVoice ? "bg-purple-50 border-purple-100" : "bg-slate-50 border-slate-100"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Shield
+                    size={12}
+                    className={blogs.useBrandVoice ? "text-purple-600" : "text-slate-400"}
+                  />
+                  <span
+                    className={`text-[10px] font-bold ${blogs.useBrandVoice ? "text-purple-700" : "text-slate-500"}`}
+                  >
+                    Brand Identity
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 pl-5">{brandName}</span>
+              </div>
+
+              <div
+                className={`p-2.5 rounded-xl border flex flex-col gap-1 ${options.wordpressPosting ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Globe
+                    size={12}
+                    className={options.wordpressPosting ? "text-emerald-600" : "text-slate-400"}
+                  />
+                  <span
+                    className={`text-[10px] font-bold ${options.wordpressPosting ? "text-emerald-700" : "text-slate-500"}`}
+                  >
+                    Auto Posting
+                  </span>
+                </div>
+                <div className="pl-5 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 uppercase font-black">
+                    {blogs.postingType || "DRAFT"}
+                  </span>
+                  <Pill on={options.wordpressPosting} label="Live" />
+                </div>
+              </div>
             </div>
 
             <div className="pt-2 flex flex-wrap gap-2">
-               <Pill on={options.addOutBoundLinks} label="Outbound" />
-               <Pill on={options.includeInterlinks} label="Interlinks" />
+              <Pill on={options.addOutBoundLinks} label="Outbound" />
+              <Pill on={options.includeInterlinks} label="Interlinks" />
             </div>
           </div>
         </div>

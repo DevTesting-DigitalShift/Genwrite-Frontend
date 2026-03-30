@@ -5,6 +5,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useAuthStore from "@store/useAuthStore"
 import { useRetryBlogMutation } from "@api/queries/blogQueries"
 import { toast } from "sonner"
+import { COSTS } from "@/data/blogData"
 
 import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
 // import ChatBox from "../generateBlog/ChatBox"
@@ -39,7 +40,7 @@ const SmallBottomBox = ({ id }) => {
     } else {
       handlePopup({
         title: "Regenerate Blog",
-        description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
+        description: `Are you sure you want to retry generating this blog?\nIt will be of ${COSTS.BLOG.REGENERATE} credits`,
         confirmText: "Regenerate",
         onConfirm: handleRetry,
       })
