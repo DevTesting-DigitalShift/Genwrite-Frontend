@@ -90,15 +90,15 @@ const KeywordResearch = () => {
     }
   }, [keywords, clearKeywordAnalysis])
 
-  const addKeyword = () => {
-    const input = newKeyword.trim()
+  const addKeyword = forcedValue => {
+    const input = typeof forcedValue === "string" ? forcedValue.trim() : newKeyword.trim()
     if (!input) return
 
     const existing = keywords.map(k => k.toLowerCase())
     const seen = new Set()
 
     const newKeywords = input
-      .split(",")
+      .split(/[,\t\n\r]+/)
       .map(k => k.trim())
       .filter(
         k =>
@@ -111,6 +111,14 @@ const KeywordResearch = () => {
     if (newKeywords.length > 0) {
       setKeywords([...keywords, ...newKeywords])
       setNewKeyword("")
+    }
+  }
+
+  const handlePasteKeywords = e => {
+    const pasteData = e.clipboardData.getData("text")
+    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+      e.preventDefault()
+      addKeyword(pasteData)
     }
   }
 
@@ -463,6 +471,7 @@ const KeywordResearch = () => {
                 value={newKeyword}
                 onChange={e => setNewKeyword(e.target.value)}
                 onKeyDown={handleKeyPress}
+                onPaste={handlePasteKeywords}
                 className="w-full px-4 py-3 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-sm placeholder-gray-400"
               />
             </div>

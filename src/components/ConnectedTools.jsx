@@ -95,7 +95,7 @@ const ALL_TOOLS = {
   },
   builder: {
     id: "builder",
-    title: "Website AI Ranking",
+    title: "Website Grading",
     description: "Create stunning websites and landing pages in seconds.",
     path: "/competitive-analysis",
     icon: Globe,

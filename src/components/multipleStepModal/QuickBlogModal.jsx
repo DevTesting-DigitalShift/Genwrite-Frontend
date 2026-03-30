@@ -220,36 +220,53 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Add keywords to the form data
-  const handleAddKeyword = type => {
+  const handleAddKeyword = (type, forcedValue = null) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    const inputValue = formData[inputKey].trim()
+    const inputValue = forcedValue !== null ? forcedValue.trim() : formData[inputKey].trim()
 
     if (!inputValue) {
-      setErrors(prev => ({ ...prev, [type]: "Please enter a keyword." }))
+      if (forcedValue === null) setErrors(prev => ({ ...prev, [type]: "Please enter a keyword." }))
       return
     }
 
     const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
     const newKeywords = inputValue
-      .split(",")
+      .split(/[,\t\n\r]+/)
       .map(k => k.trim())
       .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors(prev => ({
-        ...prev,
-        [type]: "Please enter valid, non-duplicate keywords separated by commas.",
-      }))
+      if (forcedValue === null) {
+        setErrors(prev => ({
+          ...prev,
+          [type]: "Please enter valid, non-duplicate keywords.",
+        }))
+      }
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
       setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
+      // Still add whatever fits
+      const availableSlots = 3 - formData[type].length
+      if (availableSlots > 0) {
+        const toAdd = newKeywords.slice(0, availableSlots)
+        setFormData(prev => ({ ...prev, [type]: [...prev[type], ...toAdd], [inputKey]: "" }))
+      }
       return
     }
 
     setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: "" }))
+  }
+
+  // Handle Clipboard Paste for Keywords
+  const handlePasteKeywords = (e, type) => {
+    const pasteData = e.clipboardData.getData("text")
+    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+      e.preventDefault()
+      handleAddKeyword(type, pasteData)
+    }
   }
 
   // Remove a keyword
@@ -498,10 +515,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         value={formData.focusKeywordInput}
                         onChange={e => handleKeywordInputChange(e, "focusKeywords")}
                         onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                        onPaste={e => handlePasteKeywords(e, "focusKeywords")}
                         className={`flex-1 px-3 py-2 border ${
                           errors.focusKeywords ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
-                        placeholder="Enter focus keywords, separated by commas"
+                        placeholder="Enter keywords (comma, tab, or newline separated)"
                         aria-label="Focus keywords"
                       />
                       <button
@@ -543,10 +561,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         value={formData.keywordInput}
                         onChange={e => handleKeywordInputChange(e, "keywords")}
                         onKeyDown={e => handleKeyPress(e, "keywords")}
+                        onPaste={e => handlePasteKeywords(e, "keywords")}
                         className={`flex-1 px-3 py-2 border ${
                           errors.keywords ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
-                        placeholder="Enter secondary keywords, separated by commas"
+                        placeholder="Enter keywords (comma, tab, or newline separated)"
                         aria-label="Secondary keywords"
                       />
                       <button

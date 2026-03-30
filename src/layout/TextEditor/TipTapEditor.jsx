@@ -1443,10 +1443,33 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                 {!imageUrl && !isGenerateMode && (
                   <div className="flex gap-2 w-full mt-2">
                     <button
-                      className="btn btn-sm btn-outline w-full flex items-center justify-center gap-1"
+                      className="btn btn-sm btn-outline flex-1 flex items-center justify-center gap-1"
                       onClick={() => setIsGenerateMode(true)}
                     >
-                      <Sparkles className="w-4 h-4 text-blue-600" /> Generate Image
+                      <Sparkles className="w-4 h-4 text-blue-600" /> Generate AI
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline flex-1 flex items-center justify-center gap-1"
+                      onClick={() => document.getElementById("edit-modal-upload").click()}
+                    >
+                      <ImageIcon className="w-4 h-4 text-emerald-600" /> Upload Local
+                      <input
+                        id="edit-modal-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = ev => {
+                              setImageUrl(ev.target.result)
+                              toast.success("Local image uploaded!")
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
                     </button>
                   </div>
                 )}

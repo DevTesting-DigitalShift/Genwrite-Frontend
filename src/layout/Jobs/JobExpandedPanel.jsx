@@ -40,7 +40,7 @@ const Pill = ({ on, label }) => (
     className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
       on
         ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-        : "bg-slate-100 text-slate-600 border-slate-200 opacity-90"
+        : "bg-slate-200 text-slate-500 border-slate-300"
     }`}
   >
     {on ? <CheckCircle2 size={10} /> : <XCircle size={10} />}

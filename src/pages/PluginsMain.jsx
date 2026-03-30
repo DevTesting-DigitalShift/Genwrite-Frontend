@@ -744,6 +744,21 @@ const PluginsMain = () => {
           </div>
         )}
 
+        {plugin.id === 112 && (
+          <div className="mt-6 space-y-4">
+            <div className="pt-2">
+              <a
+                href="/plugins/ServerEndpointDoc.pdf"
+                download="ServerEndpointDoc.pdf"
+                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed border-emerald-500 text-emerald-600 font-bold hover:bg-emerald-50 transition-all active:scale-[0.98]"
+              >
+                <Download size={18} />
+                Download API Schema Guide (PDF)
+              </a>
+            </div>
+          </div>
+        )}
+
         {!(plugin.id === 112 || plugin.id === 115) && (
           <div className="pt-6 border-t border-gray-100">
             <a

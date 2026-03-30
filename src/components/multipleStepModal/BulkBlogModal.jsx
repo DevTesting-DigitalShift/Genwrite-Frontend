@@ -390,16 +390,28 @@ const BulkBlogModal = ({ closeFnc }) => {
     setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
   }
 
-  const handleAddTopic = () => {
-    const inputValue = formData.topicInput.trim()
+  const handlePasteItems = (e, type) => {
+    const pasteData = e.clipboardData.getData("text")
+    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+      e.preventDefault()
+      if (type === "topics") {
+        handleAddTopic(pasteData)
+      } else {
+        handleAddKeyword(pasteData)
+      }
+    }
+  }
+
+  const handleAddTopic = forcedValue => {
+    const inputValue = typeof forcedValue === "string" ? forcedValue.trim() : formData.topicInput.trim()
     if (inputValue === "") {
-      setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
+      if (typeof forcedValue !== "string") setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
       return false
     }
 
     const existing = formData.topics.map(t => t.toLowerCase().trim())
     const newTopics = inputValue
-      .split(",")
+      .split(/[,\t\n\r]+/)
       .map(t => t.trim())
       .filter(t => t !== "" && !existing.includes(t.toLowerCase()))
 
@@ -422,16 +434,16 @@ const BulkBlogModal = ({ closeFnc }) => {
     setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
   }
 
-  const handleAddKeyword = () => {
-    const inputValue = formData.keywordInput.trim()
+  const handleAddKeyword = forcedValue => {
+    const inputValue = typeof forcedValue === "string" ? forcedValue.trim() : formData.keywordInput.trim()
     if (inputValue === "") {
-      setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
+      if (typeof forcedValue !== "string") setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
       return false
     }
 
     const existing = formData.keywords.map(k => k.toLowerCase().trim())
     const newKeywords = inputValue
-      .split(",")
+      .split(/[,\t\n\r]+/)
       .map(k => k.trim())
       .filter(k => k !== "" && !existing.includes(k.toLowerCase()))
 
@@ -772,10 +784,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                     value={formData.topicInput}
                     onChange={handleTopicInputChange}
                     onKeyDown={handleTopicKeyPress}
+                    onPaste={e => handlePasteItems(e, "topics")}
                     className={`w-full px-3 py-2 border outline-0 rounded-md text-sm bg-gray-50 ${
                       errors.topics ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="e.g., digital marketing trends, AI in business"
+                    placeholder="Enter topics (comma, tab, or newline separated)"
                   />
                   <button
                     onClick={handleAddTopic}
@@ -870,11 +883,12 @@ const BulkBlogModal = ({ closeFnc }) => {
                         type="text"
                         value={formData.keywordInput}
                         onChange={handleKeywordInputChange}
-                        onKeyDown={handleTopicKeyPress}
-                        className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 ${
+                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddKeyword())}
+                        onPaste={e => handlePasteItems(e, "keywords")}
+                        className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                           errors.keywords ? "border-red-500" : "border-gray-300"
-                        } focus:ring-2 focus:ring-blue-500`}
-                        placeholder="e.g., digital marketing trends, AI in business"
+                        }`}
+                        placeholder="Enter keywords (comma, tab, or newline separated)"
                       />
                       <button
                         onClick={handleAddKeyword}

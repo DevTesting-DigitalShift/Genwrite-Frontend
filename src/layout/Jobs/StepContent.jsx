@@ -91,7 +91,7 @@ const StepContent = ({
         : (formData?.keywords || []).map(k => k.toLowerCase().trim())
     const seen = new Set()
     const newItems = trimmedInput
-      .split(",")
+      .split(/[,\t\n\r]+/)
       .map(item => item.trim())
       .filter(item => {
         const lower = item.toLowerCase()
@@ -382,10 +382,17 @@ const StepContent = ({
                     e.key === "Enter" && handleAddItems(formData.topicInput, "topics")
                   }
                   onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
+                  onPaste={e => {
+                    const pasteData = e.clipboardData.getData("text")
+                    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+                      e.preventDefault()
+                      handleAddItems(pasteData, "topics")
+                    }
+                  }}
                   className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                     errors.topics ? "input-error" : ""
                   }`}
-                  placeholder="Add a topic..."
+                  placeholder="Enter topics (comma, tab, or newline separated)"
                   aria-label="Add topic"
                 />
                 <motion.button
@@ -493,10 +500,17 @@ const StepContent = ({
                     onKeyDown={e =>
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
+                    onPaste={e => {
+                      const pasteData = e.clipboardData.getData("text")
+                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+                        e.preventDefault()
+                        handleAddItems(pasteData, "keywords")
+                      }
+                    }}
                     className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                       errors.keywords ? "input-error" : "border-gray-300"
                     }`}
-                    placeholder="e.g., digital marketing trends, AI in business"
+                    placeholder="Enter keywords (comma, tab, or newline separated)"
                   />
                   <button
                     onClick={() => handleAddItems(formData.keywordInput, "keywords")}

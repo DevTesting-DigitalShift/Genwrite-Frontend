@@ -156,6 +156,30 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     }
   }, [selectedKeywords, pendingImport, setPendingImport])
 
+  const handleAddKeywordItems = (inputValue: string, type: "keywords" | "focusKeywords") => {
+    const trimmedInput = inputValue.trim()
+    if (!trimmedInput) return
+
+    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
+    const newItems = trimmedInput
+      .split(/[,\t\n\r]+/)
+      .map(k => k.trim())
+      .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
+
+    if (newItems.length === 0) return
+
+    if (type === "focusKeywords" && formData.focusKeywords.length + newItems.length > 3) {
+      toast.error("Maximum 3 focus keywords allowed. Adding only the first available.")
+      const available = 3 - formData.focusKeywords.length
+      if (available > 0) {
+        updateFormData({ focusKeywords: [...formData.focusKeywords, ...newItems.slice(0, available)] })
+      }
+      return
+    }
+
+    updateFormData({ [type]: [...formData[type], ...newItems] })
+  }
+
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
     const features = []
@@ -495,24 +519,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
-                        const val = (e.target as HTMLInputElement).value.trim()
-                        if (val) {
-                          if (formData.focusKeywords.includes(val)) {
-                            toast.error("This focus keyword is already added.")
-                            return
-                          }
-                          if (formData.focusKeywords.length >= 3) {
-                            toast.error("Maximum 3 focus keywords allowed.")
-                            return
-                          }
-                          handleInputChange({
-                            target: {
-                              name: "focusKeywords",
-                              value: [...formData.focusKeywords, val],
-                            },
-                          })
-                          ;(e.target as HTMLInputElement).value = ""
-                        }
+                        const val = (e.target as HTMLInputElement).value
+                        handleAddKeywordItems(val, "focusKeywords")
+                        ;(e.target as HTMLInputElement).value = ""
+                      }
+                    }}
+                    onPaste={e => {
+                      const pasteData = e.clipboardData.getData("text")
+                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+                        e.preventDefault()
+                        handleAddKeywordItems(pasteData, "focusKeywords")
                       }
                     }}
                   />
@@ -559,17 +575,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
-                        const val = (e.target as HTMLInputElement).value.trim()
-                        if (val) {
-                          if (formData.keywords.includes(val)) {
-                            toast.error("This keyword is already added.")
-                            return
-                          }
-                          handleInputChange({
-                            target: { name: "keywords", value: [...formData.keywords, val] },
-                          })
-                          ;(e.target as HTMLInputElement).value = ""
-                        }
+                        const val = (e.target as HTMLInputElement).value
+                        handleAddKeywordItems(val, "keywords")
+                        ;(e.target as HTMLInputElement).value = ""
+                      }
+                    }}
+                    onPaste={e => {
+                      const pasteData = e.clipboardData.getData("text")
+                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+                        e.preventDefault()
+                        handleAddKeywordItems(pasteData, "keywords")
                       }
                     }}
                   />

@@ -208,7 +208,31 @@ const ImageModal = ({
                   </div>
 
                   {/* Actions Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                    <button
+                      className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-emerald-300 text-emerald-600 bg-emerald-50"
+                      onClick={() => document.getElementById("local-image-upload").click()}
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="text-xs font-normal">Upload</span>
+                      <input
+                        id="local-image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = e => {
+                              setUrl(e.target.result)
+                              toast.success("Image uploaded from local!")
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                    </button>
                     <button
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-purple-300 text-purple-600 bg-purple-50"
                       onClick={() => setView(VIEWS.GALLERY)}
