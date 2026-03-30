@@ -37,13 +37,13 @@ const SectionLabel = ({ children }) => (
 
 const Pill = ({ on, label }) => (
   <span
-    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
       on
         ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-        : "bg-slate-50 text-slate-400 border-slate-200 line-through opacity-60"
+        : "bg-slate-100 text-slate-600 border-slate-200 opacity-90"
     }`}
   >
-    {on ? <CheckCircle2 size={9} /> : <XCircle size={9} />}
+    {on ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
     {label}
   </span>
 )
@@ -80,7 +80,7 @@ const TagList = ({ items, color }) => {
   )
 }
 
-const ExpandableTagList = ({ items, color, limit = 10 }) => {
+const ExpandableTagList = ({ items, color, limit = 20 }) => {
   const [expanded, setExpanded] = useState(false)
   if (!items?.length) return <span className="text-slate-300 text-[11px] italic">No data</span>
 
@@ -88,11 +88,11 @@ const ExpandableTagList = ({ items, color, limit = 10 }) => {
   const hasMore = items.length > limit
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div
         className={`flex flex-wrap gap-2 items-center transition-all duration-300 ${
           expanded
-            ? "max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200"
+            ? "max-h-[500px] overflow-y-auto pr-3 custom-scroll"
             : ""
         }`}
       >
@@ -101,8 +101,8 @@ const ExpandableTagList = ({ items, color, limit = 10 }) => {
             key={i}
             className={`px-3 py-1 rounded-xl text-[11px] font-bold border transition-all shadow-xs ${
               color === "indigo"
-                ? "bg-indigo-50 text-indigo-600 border-indigo-100"
-                : "bg-sky-50 text-sky-600 border-sky-100"
+                ? "bg-indigo-50 text-indigo-600 border-indigo-100/50 hover:border-indigo-300"
+                : "bg-sky-50 text-sky-600 border-sky-100/50 hover:border-sky-300"
             }`}
           >
             {item}
@@ -115,7 +115,7 @@ const ExpandableTagList = ({ items, color, limit = 10 }) => {
             e.stopPropagation()
             setExpanded(!expanded)
           }}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-white text-slate-500 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-xs"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-black bg-white text-indigo-600 border border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm"
         >
           {expanded ? (
             <>
@@ -123,7 +123,7 @@ const ExpandableTagList = ({ items, color, limit = 10 }) => {
             </>
           ) : (
             <>
-              +{items.length - limit} more <ChevronDown size={12} />
+              Show all {items.length} items <ChevronDown size={12} />
             </>
           )}
         </button>
@@ -208,7 +208,7 @@ const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
     )
   }
 
-  return <span className="text-slate-400">—</span>
+  return null
 }
 
 const JobExpandedPanel = ({ job }) => {
@@ -217,7 +217,7 @@ const JobExpandedPanel = ({ job }) => {
   const options = job.options || {}
   const schedule = job.schedule || {}
 
-  const sectionStyle = "bg-white p-5 space-y-4"
+  const sectionStyle = "bg-white p-5 space-y-4 h-full border-r border-slate-100 last:border-r-0 flex flex-col"
   const gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
 
 
@@ -235,19 +235,19 @@ const JobExpandedPanel = ({ job }) => {
     : "Default Global Voice"
 
   return (
-    <div className="mx-4 mb-8 mt-4 rounded-[x28px] border border-slate-200 bg-slate-50/30 overflow-hidden shadow-inner">
+    <div className="mx-4 mb-8 mt-4 rounded-[28px] border border-slate-200 bg-slate-50/30 overflow-hidden shadow-inner">
       {/* ── Top Strategy Bar ── */}
       {(hasTopics || hasKeywords) && (
         <div className="p-6 border-b border-slate-200">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="flex flex-col gap-6">
             {hasTopics && (
               <div className="space-y-3">
                 <SectionLabel>
                   <TagIcon size={10} className="text-indigo-500" />
                   Automation Strategy / Topics
                 </SectionLabel>
-                <div className="line-clamp-2">
-                  <ExpandableTagList items={blogs.topics} color="indigo" limit={6} />
+                <div className="w-full">
+                  <ExpandableTagList items={blogs.topics} color="indigo" limit={30} />
                 </div>
               </div>
             )}
@@ -257,7 +257,9 @@ const JobExpandedPanel = ({ job }) => {
                   <Hash size={10} className="text-sky-500" />
                   Target Keywords
                 </SectionLabel>
-                <ExpandableTagList items={blogs.keywords} color="sky" limit={6} />
+                <div className="w-full">
+                  <ExpandableTagList items={blogs.keywords} color="sky" limit={30} />
+                </div>
               </div>
             )}
           </div>
@@ -290,9 +292,8 @@ const JobExpandedPanel = ({ job }) => {
                 label="Target Length"
                 value={blogs.userDefinedLength ? `${blogs.userDefinedLength} words` : "Auto"}
               />
-              <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2">
+              <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-2 mt-auto">
                 <Pill on={blogs.costCutter} label="Cost Cutter" />
-                <Pill on={blogs.addCTA} label="Add CTA" />
                 <Pill
                   on={blogs.easyToUnderstand || options.easyToUnderstand}
                   label="Simple Language"
@@ -309,14 +310,11 @@ const JobExpandedPanel = ({ job }) => {
           </SectionLabel>
           <div className="grid grid-cols-1 gap-2">
             <Pill on={options.includeFaqs} label="FAQ Generation" />
-            <Pill on={options.includeTableOfContents} label="Table of Contents" />
             <Pill on={options.performKeywordResearch} label="Keyword Research" />
             <Pill on={options.includeCompetitorResearch} label="Competitor Analysis" />
             <Pill on={options.deepResearch || blogs.deepResearch} label="Deep Research" />
             <Pill on={options.humanisation || blogs.humanisation} label="Humanisation" />
-            <div className="pt-2 border-t border-slate-100">
-              <Pill on={options.embedYouTubeVideos} label="YouTube Embeds" />
-            </div>
+            <Pill on={options.embedYouTubeVideos} label="YouTube Embeds" />
           </div>
         </div>
 
@@ -369,16 +367,24 @@ const JobExpandedPanel = ({ job }) => {
                 value={schedule.type || "Manual"}
                 valueClass="text-indigo-600 font-bold"
               />
-              <div className="flex justify-between items-start gap-3 text-[11px]">
-                <span className="text-slate-400 shrink-0">Frequency</span>
-                <FrequencyDisplay
-                  type={schedule.type}
-                  daysOfWeek={schedule.daysOfWeek}
-                  daysOfMonth={schedule.daysOfMonth}
-                />
-              </div>
               <KV
-                label="Last Pipeline Run"
+                label="Batch Size"
+                value={`${blogs.numberOfBlogs || 1} blog(s) per run`}
+              />
+              {/* Only show frequency row if it's weekly/monthly with valid selected days */}
+              {(((schedule.type === "weekly" && schedule.daysOfWeek?.length > 0) || 
+                 (schedule.type === "monthly" && schedule.daysOfMonth?.length > 0))) && (
+                <div className="flex justify-between items-start gap-3 text-[11px]">
+                  <span className="text-slate-400 shrink-0">Frequency</span>
+                  <FrequencyDisplay
+                    type={schedule.type}
+                    daysOfWeek={schedule.daysOfWeek}
+                    daysOfMonth={schedule.daysOfMonth}
+                  />
+                </div>
+              )}
+              <KV
+                label="Last Run"
                 value={formatDate(job.lastRun)}
               />
             </div>
@@ -398,7 +404,10 @@ const JobExpandedPanel = ({ job }) => {
                     Brand Identity
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 pl-5">{brandName}</span>
+                <div className="flex items-center justify-between pl-5">
+                  <span className="text-[10px] text-slate-500">{brandName}</span>
+                  <Pill on={blogs.addCTA} label="CTA" />
+                </div>
               </div>
 
               <div
@@ -415,11 +424,14 @@ const JobExpandedPanel = ({ job }) => {
                     Auto Posting
                   </span>
                 </div>
-                <div className="pl-5 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-500 uppercase font-black">
-                    {blogs.postingType || "DRAFT"}
-                  </span>
-                  <Pill on={options.wordpressPosting} label="Live" />
+                <div className="pl-5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 uppercase font-black">
+                      {blogs.postingType || "DRAFT"}
+                    </span>
+                    {/* <Pill on={options.wordpressPosting} label="Live" /> */}
+                    <Pill on={options.includeTableOfContents} label="Table of Contents" />
+                  </div>
                 </div>
               </div>
             </div>
