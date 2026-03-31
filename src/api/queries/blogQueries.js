@@ -15,6 +15,7 @@ import {
   getBlogs,
   getBlogPrompt,
   getBlogStatsById,
+  toggleBlogVisibility,
 } from "@api/blogApi"
 import { toast } from "sonner"
 
@@ -131,8 +132,23 @@ export const useUpdateBlogMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.message || "Failed to update blog")
+    },
+  })
+}
+
+export const useToggleBlogVisibilityMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isPublic }) => toggleBlogVisibility(id, isPublic),
+    onSuccess: (data, variables) => {
+      toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
+      queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update visibility")
     },
   })
 }

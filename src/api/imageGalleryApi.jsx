@@ -96,3 +96,15 @@ export const generateAltText = async data => {
   const response = await axiosInstance.post(`/user/images/alt-text`, data)
   return response.data
 }
+
+/**
+ * Upload a local image
+ * POST /api/v1/user/images/upload
+ * @param {FormData} formData - { image: File }
+ */
+export const uploadImage = async formData => {
+  const response = await axiosInstance.post(`/user/images/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return response.data
+}

@@ -76,6 +76,7 @@ const router = createBrowserRouter([
           { path: "forgot-password", element: r(ForgotPassword) },
           { path: "reset-password", element: r(ResetPassword) },
           { path: "privacy-policy", element: r(PrivacyPolicy) },
+          { path: "privacy-policy", element: r(PrivacyPolicy) },
           { path: "terms-and-conditions", element: r(TermsAndConditions) },
           {
             path: "payment",

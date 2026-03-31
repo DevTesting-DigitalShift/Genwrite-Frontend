@@ -85,6 +85,17 @@ const PrivateRoutesLayout = () => {
     return token ? <Outlet /> : <Navigate to="/login" replace />
   }
 
+  const isPublicPath =
+    location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
+
+  if (isPublicPath && !token) {
+    return (
+      <main className="p-4">
+        <Outlet />
+      </main>
+    )
+  }
+
   return token ? (
     <>
       <div className="flex flex-col min-h-screen">

@@ -298,3 +298,21 @@ export const exportBlogAsPdf = async id => {
   const result = await exportBlog(id, { type: "pdf", withImages: false })
   return result.data
 }
+
+export const toggleBlogVisibility = async (id, isPublic) => {
+  try {
+    const response = await axiosInstance.patch(`/blogs/${id}/visibility`, { isPublic })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to toggle blog visibility")
+  }
+}
+
+export const getBlogPublicly = async id => {
+  try {
+    const response = await axiosInstance.get(`/public/blog/${id}`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Public blog not found")
+  }
+}

@@ -19,12 +19,21 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getBlogById, createSimpleBlog, updateBlog } from "@api/blogApi"
+import { getBlogById, createSimpleBlog, updateBlog, getBlogPublicly, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
+import { Share2, Globe, Lock } from "lucide-react"
 
 const MainEditorPage = () => {
   const { id } = useParams()
   const queryClient = useQueryClient()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const token = localStorage.getItem("token")
+
+  // Detect if we are in public mode: 
+  // 1. Not logged in (no token)
+  // 2. Accessing a public /blog/ path
+  const isPublicMode = !token && location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
 
   // Zustand Stores
   const { user } = useAuthStore()
@@ -32,8 +41,8 @@ const MainEditorPage = () => {
 
   // TanStack Query for fetching blog
   const { data: fetchedBlog, isLoading: isBlogFetching, isError, error } = useQuery({
-    queryKey: ["blog", id],
-    queryFn: () => getBlogById(id),
+    queryKey: ["blog", id, isPublicMode],
+    queryFn: () => (isPublicMode ? getBlogPublicly(id) : getBlogById(id)),
     enabled: !!id,
     retry: false,
   })
@@ -59,9 +68,7 @@ const MainEditorPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 
-  const navigate = useNavigate()
-  const location = useLocation()
-  const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
+  const pathDetect = location.pathname === `/blog-editor/${blog?._id}` || isPublicMode
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
@@ -117,9 +124,15 @@ const MainEditorPage = () => {
           : "Blog Not Available: The requested blog doesn't exist or has been deleted."
 
       toast.error(message)
-      navigate("/blogs", { replace: true })
+
+      // If a guest tries to access a non-existent or private blog, send them to login
+      if (isPublicMode || !token) {
+        navigate("/login", { replace: true })
+      } else {
+        navigate("/blogs", { replace: true })
+      }
     }
-  }, [isError, error, navigate])
+  }, [isError, error, navigate, isPublicMode, token])
 
   useEffect(() => {
     if (!id) {
@@ -602,59 +615,111 @@ const MainEditorPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                  <button
-                    onClick={() => handleSave({ metadata })}
-                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
-                      isSaving ||
-                      blog?.isArchived ||
-                      !editorTitle.trim() ||
-                      !editorContent.trim() ||
-                      getWordCount(editorTitle) > 60
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
-                    }`}
-                    disabled={
-                      isSaving ||
-                      blog?.isArchived ||
-                      !editorTitle.trim() ||
-                      !editorContent.trim() ||
-                      getWordCount(editorTitle) > 60
-                    }
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 sm:w-5 h-4 sm:h-5" />
-                        Save Blog
-                      </>
-                    )}
-                  </button>
+                  {!isPublicMode && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleBlogVisibility(blog._id, !blog.isPublic)
+                          queryClient.invalidateQueries({ queryKey: ["blog", id] })
+                          toast.success(`Blog is now ${!blog.isPublic ? "Public" : "Private"}`)
+                        } catch (err) {
+                          toast.error("Failed to update visibility")
+                        }
+                      }}
+                      className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    >
+                      {blog?.isPublic ? (
+                        <>
+                          <Globe className="w-4 h-4 text-green-600" />
+                          Public
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4 text-gray-400" />
+                          Private
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {blog?.isPublic && (
+                    <button
+                      onClick={() => {
+                        const publicPort = 5174
+                        const url = `http://localhost:${publicPort}/blog/${blog._id}`
+                        navigator.clipboard.writeText(url)
+                        toast.success("Public link copied to clipboard!")
+                      }}
+                      className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </button>
+                  )}
+
+                  {!isPublicMode && (
+                    <button
+                      onClick={() => handleSave({ metadata })}
+                      className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
+                        isSaving ||
+                        blog?.isArchived ||
+                        !editorTitle.trim() ||
+                        !editorContent.trim() ||
+                        getWordCount(editorTitle) > 60
+                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
+                      }`}
+                      disabled={
+                        isSaving ||
+                        blog?.isArchived ||
+                        !editorTitle.trim() ||
+                        !editorContent.trim() ||
+                        getWordCount(editorTitle) > 60
+                      }
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 sm:w-5 h-4 sm:h-5" />
+                          Save Blog
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
               {pathDetect && (
                 <div className="mt-4">
                   <div className="flex gap-2 flex-col sm:flex-row">
-                    <input
-                      type="text"
-                      value={editorTitle}
-                      onChange={handleTitleChange}
-                      placeholder="Enter your blog title..."
-                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
-                        getWordCount(editorTitle) > 60 ? "text-red-600" : ""
-                      }`}
-                      aria-label="Blog title"
-                    />
-                  </div>
-                  <div className="mt-2 text-xs sm:text-sm text-gray-500">
-                    {getWordCount(editorTitle)}/60 words (optimal for SEO)
-                    {getWordCount(editorTitle) > 60 && (
-                      <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+                    {isPublicMode ? (
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 w-full">
+                        {editorTitle}
+                      </h1>
+                    ) : (
+                      <input
+                        type="text"
+                        value={editorTitle}
+                        onChange={handleTitleChange}
+                        placeholder="Enter your blog title..."
+                        className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
+                          getWordCount(editorTitle) > 60 ? "text-red-600" : ""
+                        }`}
+                        aria-label="Blog title"
+                      />
                     )}
                   </div>
+                  {!isPublicMode && (
+                    <div className="mt-2 text-xs sm:text-sm text-gray-500">
+                      {getWordCount(editorTitle)}/60 words (optimal for SEO)
+                      {getWordCount(editorTitle) > 60 && (
+                        <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </header>
@@ -664,58 +729,61 @@ const MainEditorPage = () => {
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
               ) : (
-                <TipTapEditor
-                  blog={blog}
-                  content={editorContent}
-                  setContent={setEditorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
-                  title={editorTitle}
-                  setTitle={setEditorTitle}
-                  handleSubmit={handleSave}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
-                  isSavingKeyword={isSaving}
-                  humanizedContent={humanizedContent}
-                  showDiff={isHumanizeModalOpen}
-                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                  handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  wordpressMetadata={metadata}
-                  onReplaceReady={handleReplaceReady}
-                />
+                  <TipTapEditor
+                    blog={blog}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    handleSubmit={handleSave}
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    isSavingKeyword={isSaving}
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    wordpressMetadata={metadata}
+                    onReplaceReady={handleReplaceReady}
+                    isPublicMode={isPublicMode}
+                  />
               )}
             </div>
           </div>
-          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
-            <TextEditorSidebar
-              activeEditorVersion={1} // Hardcoded to TipTap
-              blog={blog}
-              keywords={keywords}
-              setKeywords={setKeywords}
-              onPost={handlePostToWordPress}
-              handleReplace={handleReplace}
-              proofreadingResults={proofreadingResults}
-              setProofreadingResults={setProofreadingResults}
-              handleSave={handleOptimizeSave}
-              handleSubmit={handleSave}
-              posted={isPosted}
-              isPosting={isPosting}
-              formData={formData}
-              title={editorTitle}
-              setEditorContent={setEditorContent}
-              editorContent={editorContent}
-              humanizePrompt={humanizePrompt}
-              setHumanizePrompt={setHumanizePrompt}
-              setIsHumanizing={setIsHumanizing}
-              isHumanizing={isHumanizing}
-              setHumanizedContent={setHumanizedContent}
-              setIsHumanizeModalOpen={setIsHumanizeModalOpen}
-              unsavedChanges={unsavedChanges}
-              wordpressMetadata={metadata}
-            />
-          </div>
+          {!isPublicMode && (
+            <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
+              <TextEditorSidebar
+                activeEditorVersion={1} // Hardcoded to TipTap
+                blog={blog}
+                keywords={keywords}
+                setKeywords={setKeywords}
+                onPost={handlePostToWordPress}
+                handleReplace={handleReplace}
+                proofreadingResults={proofreadingResults}
+                setProofreadingResults={setProofreadingResults}
+                handleSave={handleOptimizeSave}
+                handleSubmit={handleSave}
+                posted={isPosted}
+                isPosting={isPosting}
+                formData={formData}
+                title={editorTitle}
+                setEditorContent={setEditorContent}
+                editorContent={editorContent}
+                humanizePrompt={humanizePrompt}
+                setHumanizePrompt={setHumanizePrompt}
+                setIsHumanizing={setIsHumanizing}
+                isHumanizing={isHumanizing}
+                setHumanizedContent={setHumanizedContent}
+                setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+                unsavedChanges={unsavedChanges}
+                wordpressMetadata={metadata}
+              />
+            </div>
+          )}
 
           <AnimatePresence>
             {isSidebarOpen && (

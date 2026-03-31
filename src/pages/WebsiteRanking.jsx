@@ -12,7 +12,13 @@ import {
   ShieldCheck,
   TrendingUp,
   CheckCircle,
+  Plus,
+  Minus,
+  Trash2,
+  Edit2,
+  ChevronRight,
 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import useToolsStore from "@store/useToolsStore"
 import {
   useWebsiteAnalysisMutation,
@@ -109,11 +115,72 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
   )
 }
 
+const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
+  const [direction, setDirection] = useState(1) // 1 for up, -1 for down
+
+  const handleUpdate = newValue => {
+    if (newValue > value) setDirection(1)
+    else if (newValue < value) setDirection(-1)
+    onChange(newValue)
+  }
+
+  const variants = {
+    initial: d => ({ y: d > 0 ? 15 : -15, opacity: 0 }),
+    animate: { y: 0, opacity: 1 },
+    exit: d => ({ y: d > 0 ? -15 : 15, opacity: 0 }),
+  }
+
+  return (
+    <div className="space-y-2">
+      {label && (
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+          {label}
+        </label>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => handleUpdate(Math.max(min, value - 1))}
+          className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+        <div className="relative flex-1 group h-10 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center gap-2">
+          <div className="relative h-6 w-8 overflow-hidden">
+            <AnimatePresence mode="popLayout" custom={direction}>
+              <motion.div
+                key={value}
+                custom={direction}
+                variants={variants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="absolute inset-0 flex items-center justify-center font-bold text-gray-800 text-sm"
+              >
+                {value}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <span className="text-[10px] font-bold text-primary/40 uppercase">QTY</span>
+        </div>
+        <button
+          onClick={() => handleUpdate(Math.min(max, value + 1))}
+          className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const WebsiteRanking = () => {
   const location = useLocation()
   const [url, setUrl] = useState(location.state?.transferValue || "")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
+  const [selectedExpertise, setSelectedExpertise] = useState([])
+  const [manualTopic, setManualTopic] = useState("")
 
   // Individual tool states (for Manual Mode)
   const [manualStep, setManualStep] = useState(0)
@@ -151,8 +218,11 @@ const WebsiteRanking = () => {
   }
 
   // Cost calculation based on backend logic
-  const getOrchestratorCost = () => COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE + promptCount * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
-  const getManualRankingsCost = () => generatedPrompts.length * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
+  const getOrchestratorCost = () =>
+    COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE +
+    promptCount * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
+  const getManualRankingsCost = () =>
+    generatedPrompts.length * COSTS.WEBSITE_RANKING.RANK_CHECKER_PER_PROMPT
 
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {
@@ -172,27 +242,59 @@ const WebsiteRanking = () => {
     try {
       const res = await analyseWebsite({ url })
       setAnalysisResult(res)
+      setSelectedExpertise(res.expertiseAreas || [])
       setManualStep(1)
-      toast.success("Website analyzed!")
+      toast.success("Analysis complete!")
     } catch (err) {
       toast.error(err?.toast || "Analysis failed")
     }
   }
 
+  const addManualTopic = () => {
+    if (!manualTopic.trim()) return
+    if (selectedExpertise.includes(manualTopic.trim())) {
+      return toast.error("Topic already exists")
+    }
+    if (selectedExpertise.length >= 10) {
+      return toast.warning("Maximum 10 topics allowed")
+    }
+    setSelectedExpertise(prev => [...prev, manualTopic.trim()])
+    setManualTopic("")
+  }
+
+  const toggleExpertise = area => {
+    setSelectedExpertise(prev => {
+      if (prev.includes(area)) {
+        return prev.filter(a => a !== area)
+      }
+      if (prev.length >= 10) {
+        toast.warning("Maximum 10 topics allowed")
+        return prev
+      }
+      return [...prev, area]
+    })
+  }
+
   const handleCreatePrompts = async () => {
-    if (!analysisResult?.expertiseAreas) return toast.error("No expertise areas found")
+    if (!selectedExpertise.length) return toast.error("Please select at least one topic")
     try {
       const res = await createWebsitePrompts({
-        expertiseAreas: analysisResult.expertiseAreas,
+        expertiseAreas: selectedExpertise,
         region,
         count: promptCount,
       })
       setGeneratedPrompts(res)
       setManualStep(2)
-      toast.success("Prompts created!")
+      toast.success("Keywords generated!")
     } catch (err) {
-      toast.error(err?.toast || "Prompt creation failed")
+      toast.error(err?.toast || "Keyword generation failed")
     }
+  }
+
+  const handleKeywordEdit = (index, value) => {
+    const updated = [...generatedPrompts]
+    updated[index] = value
+    setGeneratedPrompts(updated)
   }
 
   const handleCheckRankings = async () => {
@@ -225,9 +327,12 @@ const WebsiteRanking = () => {
     // Helper to safely access nested report data
     // In Orchestrator: data = { url, analysis, rankings, advancedReport: { markdownReport, recommendations } }
     // In Manual: constructed similarly below
-    const { url, analysis, rankings, advancedReport } = data
-    const markdownContent = advancedReport?.markdownReport || advancedReport || ""
-    const recommendations = advancedReport?.recommendations || []
+    const { url, analysis, rankings, advancedReport, recommendations: topLevelRecs } = data
+    // Handle both Orchestrator (string) and Manual (object) structures
+    const markdownContent =
+      typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
+
+    const recommendations = topLevelRecs || advancedReport?.strategicRecommendations || []
 
     return (
       <div className="space-y-8 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -303,7 +408,7 @@ const WebsiteRanking = () => {
               <div className="p-2 bg-amber-100 rounded-lg">
                 <Zap className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="font-semibold text-amber-900">Keywords</h3>
+              <h3 className="font-semibold text-amber-900">Prompts</h3>
             </div>
             <p className="text-3xl font-bold text-amber-600">{rankings?.results?.length || 0}</p>
             <p className="text-xs text-amber-700 mt-1">Analyzed</p>
@@ -488,7 +593,7 @@ const WebsiteRanking = () => {
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
               <List className="w-5 h-5 text-primary" />
-              Detailed Keyword Rankings
+              Detailed Search Audit Results
             </h2>
           </div>
           <div className="p-0">
@@ -581,51 +686,52 @@ const WebsiteRanking = () => {
               ),
               children: (
                 <Card className="rounded-xl shadow-none border border-gray-200 p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-700">Target Website URL</label>
-                      <input
-                        placeholder="https://example.com"
-                        value={url}
-                        onChange={e => setUrl(e.target.value)}
-                        className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all placeholder-gray-400"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Region</label>
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                          Target Website URL
+                        </label>
                         <input
+                          placeholder="https://example.com"
+                          value={url}
+                          onChange={e => setUrl(e.target.value)}
+                          className="w-full p-3.5 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder-gray-400 font-medium"
+                        />
+                      </div>
+                      <div className="w-full md:w-48 space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                          Region
+                        </label>
+                        <input
+                          placeholder="e.g. USA"
                           value={region}
                           onChange={e => setRegion(e.target.value)}
-                          className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Keywords to Check</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={10}
-                          value={promptCount}
-                          onChange={e => setPromptCount(Number(e.target.value))}
-                          className="w-full mt-2 p-3 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-primary transition-all"
+                          className="w-full p-3.5 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-medium"
                         />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3 px-6 py-2 bg-primary/5 border border-primary/20 rounded-md">
-                      <Zap className="w-4 h-4 text-primary" />
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-gray-700">Total Cost:</span>
-                        <span className="text-sm font-bold text-primary">
-                          {getOrchestratorCost()} Credits
-                        </span>
-                        <div className="h-3 w-px bg-primary/20 mx-1" />
-                        <span className="text-[10px] text-primary/60 font-bold uppercase tracking-wider">
-                          {COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE} Base + {promptCount} Keywords
-                        </span>
+                    <div className="flex flex-col sm:flex-row justify-between items-end gap-5 mb-8">
+                      <div className="w-full md:w-64">
+                        <NumberStepper
+                          label="Keyword Count"
+                          value={promptCount}
+                          onChange={setPromptCount}
+                          max={25}
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 px-6 h-[42px] bg-primary/5 border border-primary/20 rounded-xl shrink-0">
+                        <Zap className="w-4 h-4 text-primary" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-700">Total Cost:</span>
+                          <span className="text-sm font-bold text-primary">
+                            {getOrchestratorCost()} Credits
+                          </span>
+                          <div className="h-3 w-px bg-primary/20 mx-2" />
+                          <span className="text-[10px] text-primary/60 font-bold uppercase tracking-wider">
+                            {COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE} Base + {promptCount} Keywords
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -669,10 +775,10 @@ const WebsiteRanking = () => {
                     <Steps
                       current={manualStep}
                       items={[
-                        { title: "Analyse", icon: <Search className="w-5 h-5" /> },
-                        { title: "Keywords", icon: <Zap className="w-5 h-5" /> },
-                        { title: "Rankings", icon: <BarChart2 className="w-5 h-5" /> },
-                        { title: "Report", icon: <FileText className="w-5 h-5" /> },
+                        { title: "Target Identification", icon: <Search className="w-5 h-5" /> },
+                        { title: "Prompt Engine", icon: <Zap className="w-5 h-5" /> },
+                        { title: "Search Rankings", icon: <BarChart2 className="w-5 h-5" /> },
+                        { title: "Strategic Report", icon: <FileText className="w-5 h-5" /> },
                       ]}
                     />
                     <button
@@ -690,34 +796,30 @@ const WebsiteRanking = () => {
                         <h3 className="text-lg font-semibold text-slate-800">
                           Step 1: Website Reconnaissance
                         </h3>
-                         <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                        <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Cost: {COSTS.WEBSITE_RANKING.ANALYSER} Credits
                         </div>
                       </div>
 
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 mt-4">
                         <input
                           type="text"
                           placeholder="https://example.com"
                           value={url}
                           onChange={e => setUrl(e.target.value)}
-                          className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-primary focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
+                          className="flex-1 p-4 border border-gray-200 bg-gray-50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
                         />
 
                         <button
                           onClick={handleAnalyse}
                           disabled={!url || isAnalysing}
-                          className={`btn px-6 rounded-md transition-all duration-200 ${
+                          className={`btn h-[58px] min-h-0 px-8 rounded-xl transition-all duration-200 font-bold ${
                             isAnalysing
                               ? "btn-disabled"
                               : "bg-primary hover:bg-[#3B4BB8] text-white"
                           }`}
                         >
-                          {isAnalysing ? (
-                            <span className="loading loading-spinner loading-sm"></span>
-                          ) : (
-                            "Analyse"
-                          )}
+                          {isAnalysing ? <RefreshCw className="w-5 h-5 animate-spin" /> : "Analyse"}
                         </button>
                       </div>
                     </div>
@@ -728,47 +830,101 @@ const WebsiteRanking = () => {
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2">
-                          <Zap className="text-amber-500" /> Step 2: Generate Keywords
+                          <Zap className="text-amber-500" /> Step 2: Generate Search Prompts
                         </h3>
                         <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Suggestion: {COSTS.WEBSITE_RANKING.PROMPT_CREATOR} Credits
                         </div>
                       </div>
-                      <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
-                              Website Name
-                            </p>
-                            <p className="font-bold text-gray-800">{analysisResult?.name}</p>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                            <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
-                              Region & Language
-                            </p>
-                            <div className="flex gap-2">
-                              <Tag color="blue">{analysisResult?.region}</Tag>
-                              <Tag color="cyan">{analysisResult?.language}</Tag>
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
+                            Website Name
+                          </p>
+                          <p className="font-bold text-gray-800">{analysisResult?.name}</p>
                         </div>
                         <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
                           <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
-                            Description
+                            Region & Language
                           </p>
-                          <p className=" text-sm leading-relaxed">{analysisResult?.description}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-3 px-1">
-                            Identified Expertise
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {analysisResult?.expertiseAreas?.map((area, idx) => (
-                              <Tag key={idx} color="purple">
-                                {area}
-                              </Tag>
-                            ))}
+                          <div className="flex gap-2">
+                            {analysisResult?.region && (
+                              <Tag color="blue">{analysisResult.region}</Tag>
+                            )}
+                            {analysisResult?.language && (
+                              <Tag color="cyan">{analysisResult.language}</Tag>
+                            )}
                           </div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                          <NumberStepper
+                            label="Search Prompt Count"
+                            value={promptCount}
+                            onChange={setPromptCount}
+                            max={25}
+                          />
+                        </div>
+                      </div>
+                      <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
+                        <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
+                          Site Description
+                        </p>
+                        <p className=" text-sm leading-relaxed text-gray-600">
+                          {analysisResult?.description}
+                        </p>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                            Core Topics to Target ({selectedExpertise.length}/10)
+                          </p>
+                          <span className="text-[10px] text-primary font-bold">MIN 1 REQUIRED</span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <input
+                            value={manualTopic}
+                            onChange={e => setManualTopic(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && addManualTopic()}
+                            placeholder="Add a custom topic..."
+                            className="flex-1 p-2.5 border border-gray-200 bg-white rounded-xl text-sm outline-none focus:border-primary transition-all"
+                          />
+                          <button
+                            onClick={addManualTopic}
+                            className="p-2.5 bg-primary text-white rounded-xl hover:bg-[#3B4BB8] transition-all"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {selectedExpertise.map((area, idx) => (
+                            <motion.button
+                              layout
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              key={`selected-${idx}`}
+                              onClick={() => toggleExpertise(area)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white border border-primary flex items-center gap-2 hover:bg-[#3B4BB8] transition-all"
+                            >
+                              {area}
+                              <Plus className="w-3 h-3 rotate-45" />
+                            </motion.button>
+                          ))}
+                          {analysisResult?.expertiseAreas
+                            ?.filter(area => !selectedExpertise.includes(area))
+                            .map((area, idx) => (
+                              <motion.button
+                                layout
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                key={`suggestion-${idx}`}
+                                onClick={() => toggleExpertise(area)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-50 text-gray-400 border border-gray-200 hover:border-gray-300 hover:text-gray-600 transition-all"
+                              >
+                                {area}
+                              </motion.button>
+                            ))}
                         </div>
                       </div>
                       <div className="flex gap-3">
@@ -795,7 +951,7 @@ const WebsiteRanking = () => {
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2">
-                          <BarChart2 className="text-indigo-600" /> Step 3: Check Rankings
+                          <BarChart2 className="text-indigo-600" /> Step 3: Check Search Rankings
                         </h3>
                         <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Cost: {getManualRankingsCost()} Credits
@@ -803,18 +959,24 @@ const WebsiteRanking = () => {
                       </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
                         <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-4">
-                          Generated Keywords
+                          Edit Your Search Prompts
                         </p>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {generatedPrompts.map((p, i) => (
                             <li
                               key={i}
-                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 font-bold  text-sm"
+                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary"
                             >
-                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                              <div className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center text-[10px] font-bold border border-gray-100">
                                 {i + 1}
                               </div>
-                              {p}
+                              <input
+                                value={p}
+                                onChange={e => handleKeywordEdit(i, e.target.value)}
+                                className="flex-1 bg-transparent border-0 outline-none text-sm font-bold text-gray-700"
+                                placeholder="Enter keyword..."
+                              />
+                              <Edit2 className="w-4 h-4 text-gray-300" />
                             </li>
                           ))}
                         </ul>

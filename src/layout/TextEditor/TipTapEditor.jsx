@@ -89,7 +89,14 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedChanges }) => {
+const TipTapEditor = ({
+  blog,
+  content,
+  setContent,
+  unsavedChanges,
+  setUnsavedChanges,
+  isPublicMode = false,
+}) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -292,7 +299,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const normalEditor = useEditor(
     {
-      editable: !blog?.isArchived,
+      editable: !blog?.isArchived && !isPublicMode,
       extensions: [
         StarterKit.configure({
           heading: false,
@@ -442,6 +449,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     },
     [selectedFont, htmlToMarkdown, setContent, setUnsavedChanges, normalizeContent]
   )
+  // Re-sync editable state when blog or public mode changes
+  useEffect(() => {
+    if (normalEditor) {
+      normalEditor.setEditable(!blog?.isArchived && !isPublicMode)
+    }
+  }, [normalEditor, blog?.isArchived, isPublicMode])
 
   const handleLinkLeave = useCallback(() => {
     hideTimeout.current = setTimeout(() => {
@@ -1268,11 +1281,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       transition={{ duration: 0.4 }}
     >
       {/* Toolbar - Fixed at top */}
-      <div className="sticky top-0 z-20 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
+      {!isPublicMode && (
+        <div className="sticky top-0 z-20 bg-white shadow-sm shrink-0">{renderToolbar()}</div>
+      )}
 
       {/* Editor Content - Scrollable */}
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
-        {normalEditor && (
+        {normalEditor && !isPublicMode && (
           <AIBubbleMenu
             editor={normalEditor}
             blogId={blog?._id}
@@ -1397,7 +1412,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       {/* Unified Image Edit Modal - DaisyUI */}
       {editModalOpen && (
         <dialog open className="modal modal-open z-10000">
-          <div className="modal-box w-11/12 max-w-2xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="modal-box w-11/12 max-w-3xl overflow-x-hidden">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg flex items-center gap-2">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import { generateImage, generateAltText, enhanceImage } from "@api/imageGalleryApi"
+import { generateImage, generateAltText, enhanceImage, uploadImage } from "@api/imageGalleryApi"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { COSTS } from "@/data/blogData"
@@ -220,15 +220,53 @@ const ImageModal = ({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={e => {
+                        onChange={async e => {
                           const file = e.target.files?.[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onload = e => {
-                              setUrl(e.target.result)
-                              toast.success("Image uploaded from local!")
+                          if (!file) return
+
+                          // Validation
+                          const validTypes = ["image/jpeg", "image/jpg", "image/png"]
+                          if (!validTypes.includes(file.mimetype || file.type)) {
+                            toast.error("Invalid file type. Only JPG, JPEG, and PNG are allowed.")
+                            return
+                          }
+
+                          const maxSize = 3 * 1024 * 1024 // 3MB
+                          if (file.size > maxSize) {
+                            toast.error("File size is too large. Max limit is 3MB.")
+                            return
+                          }
+
+                          const toastId = toast.loading("Uploading image...")
+                          try {
+                            const formData = new FormData()
+                            formData.append("image", file)
+
+                            const response = await uploadImage(formData)
+                            if (response && response.url) {
+                              setUrl(response.url)
+                              toast.success("Image uploaded successfully!", { id: toastId })
+
+                              // Auto-generate Alt Text
+                              try {
+                                const altRes = await generateAltText({ imageUrl: response.url })
+                                const generatedAlt = altRes.altText || altRes.data?.altText
+                                if (generatedAlt) {
+                                  setAlt(generatedAlt)
+                                  toast.success("Alt text generated automatically!")
+                                }
+                              } catch (altErr) {
+                                console.error("Alt generation failed:", altErr)
+                                // Don't show toast error here as the image upload itself was successful
+                              }
                             }
-                            reader.readAsDataURL(file)
+                          } catch (err) {
+                            console.error("Upload error:", err)
+                            toast.error(err.response?.data?.message || "Failed to upload image", {
+                              id: toastId,
+                            })
+                          } finally {
+                            e.target.value = ""
                           }
                         }}
                       />
