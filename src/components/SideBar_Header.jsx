@@ -51,6 +51,13 @@ const SideBar_Header = () => {
   const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
 
   const handleNavClick = (path, e) => {
+    // Show intro video for first-time users before allowing navigation
+    if (user && !user.lastLogin) {
+      setShowWhatsNew(true)
+      if (e) e.preventDefault()
+      return false
+    }
+
     if (needsUpgrade) {
       if (ALLOWED_ROUTES.some(r => path.startsWith(r))) {
         navigate(path)

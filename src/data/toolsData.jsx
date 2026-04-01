@@ -94,7 +94,7 @@ export const tools = [
   },
   {
     id: "website-builder",
-    title: "Website Grading",
+    title: "AU Website Ranker",
     description: "Analyze and improve your website’s SEO",
     icon: <Globe className="w-6 h-6" />,
     type: "navigation",

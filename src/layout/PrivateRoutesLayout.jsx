@@ -8,6 +8,9 @@ import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
 import { useProAction } from "@/hooks/useProAction"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { toast } from "sonner"
+import { Sparkles } from "lucide-react"
+import UpgradeModal from "@components/UpgradeModal"
 
 // Routes that needsUpgrade users are allowed to visit freely
 const ALLOWED_ROUTES = [
@@ -30,6 +33,14 @@ const PrivateRoutesLayout = () => {
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
+  const isPublicPath =
+    location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
+
+  // For guest users on public links, bypass auth checks immediately
+  if (!token && isPublicPath) {
+    return <Outlet />
+  }
+
   // Load authenticated user on mount
   useEffect(() => {
     const init = async () => {
@@ -37,7 +48,9 @@ const PrivateRoutesLayout = () => {
         await loadAuthenticatedUser()
       } catch {
         localStorage.removeItem("token")
-        navigate("/login")
+        if (!isPublicPath) {
+          navigate("/login")
+        }
       }
     }
 
@@ -50,6 +63,9 @@ const PrivateRoutesLayout = () => {
     }
   }, [])
 
+  const isAllowed =
+    ALLOWED_ROUTES.some(path => location.pathname.startsWith(path)) || isPublicPath
+
   // Onboarding redirect check
   useEffect(() => {
     if (!user || !user._id) return
@@ -59,19 +75,6 @@ const PrivateRoutesLayout = () => {
       navigate("/onboarding", { replace: true })
     }
   }, [user, navigate])
-
-  // Intercept ALL navigation for users who haven't picked a plan yet
-  useEffect(() => {
-    if (!needsUpgrade) return
-    if (!user) return
-
-    const currentPath = location.pathname
-    const isAllowed = ALLOWED_ROUTES.some(r => currentPath.startsWith(r))
-    if (isAllowed) return
-
-    // Push them to /pricing
-    navigate("/pricing", { replace: true })
-  }, [location.pathname, needsUpgrade, user])
 
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {
@@ -83,17 +86,6 @@ const PrivateRoutesLayout = () => {
 
   if (isBareRoute) {
     return token ? <Outlet /> : <Navigate to="/login" replace />
-  }
-
-  const isPublicPath =
-    location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
-
-  if (isPublicPath && !token) {
-    return (
-      <main className="p-4">
-        <Outlet />
-      </main>
-    )
   }
 
   return token ? (
@@ -117,6 +109,8 @@ const PrivateRoutesLayout = () => {
       </div>
 
       <PaymentPendingModal user={user} />
+      {/* If user needs upgrade and hits a restricted route, show the lock modal instead of silent redirect */}
+      {needsUpgrade && !isAllowed && <UpgradeModal featureName="Full Dashboard Access" />}
     </>
   ) : (
     <Navigate to="/login" replace />

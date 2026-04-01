@@ -211,6 +211,7 @@ const TextEditorSidebar = ({
   unsavedChanges,
   activeEditorVersion, // NEW PROP
   setEditorContent,
+  isPublicMode = false,
 }) => {
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -1638,17 +1639,17 @@ const TextEditorSidebar = ({
           </p>
           <button
             onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive}
+            disabled={isAnalyzingCompetitive || isPublicMode}
             className={`
               w-full py-3 px-4 rounded-md text-xs font-bold transition-all
               ${
-                isAnalyzingCompetitive
+                isAnalyzingCompetitive || isPublicMode
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
               }
             `}
           >
-            {isAnalyzingCompetitive ? "Analyzing Content..." : "Run Analysis (10 Credits)"}
+            {isPublicMode ? "Analysis Locked" : isAnalyzingCompetitive ? "Analyzing Content..." : "Run Analysis (10 Credits)"}
           </button>
         </div>
       </div>
@@ -1795,14 +1796,14 @@ const TextEditorSidebar = ({
             </span>
             <button
               onClick={handleMetadataGen}
-              disabled={blog?.isArchived}
+              disabled={blog?.isArchived || isPublicMode}
               className={`text-xs font-medium flex items-center gap-1 ${
-                blog?.isArchived
+                blog?.isArchived || isPublicMode
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-blue-600 hover:text-blue-700 hover:underline"
               }`}
             >
-              <Sparkles className="w-3 h-3" /> Generate
+              <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
             </button>
           </div>
           <div className="space-y-3">
@@ -1811,26 +1812,28 @@ const TextEditorSidebar = ({
               value={metadata.title}
               onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
-              className="input input-bordered input-sm w-full"
+              disabled={isPublicMode}
+              className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
             />
             <textarea
               value={metadata.description}
               onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              className="textarea textarea-bordered w-full text-sm resize-none"
+              disabled={isPublicMode}
+              className="textarea textarea-bordered w-full text-sm resize-none disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>
           <button
             onClick={handleMetadataSave}
-            disabled={blog?.isArchived}
+            disabled={blog?.isArchived || isPublicMode}
             className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
-              blog?.isArchived
+              blog?.isArchived || isPublicMode
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
             }`}
           >
-            Save Metadata
+            {isPublicMode ? "Metadata Locked" : "Save Metadata"}
           </button>
         </div>
 
@@ -2112,14 +2115,14 @@ const TextEditorSidebar = ({
             {!hasPublishedLinks && (
               <button
                 onClick={() => {
-                  if (blog?.isArchived) {
-                    toast.error("This blog is archived. Please restore it to perform this action.")
+                  if (blog?.isArchived || isPublicMode) {
+                    toast.error(isPublicMode ? "Read-only mode" : "This blog is archived. Please restore it to perform this action.")
                     return
                   }
                   setIsEditingSlug(!isEditingSlug)
                 }}
                 className={`text-xs font-semibold ${
-                  blog?.isArchived
+                  blog?.isArchived || isPublicMode
                     ? "text-gray-400 cursor-not-allowed"
                     : "text-blue-600 hover:text-blue-700"
                 }`}
@@ -2589,11 +2592,12 @@ const TextEditorSidebar = ({
             disabled={
               isProcessingSection ||
               blog?.isArchived ||
+              isPublicMode ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
             className={`btn btn-primary w-full shadow-lg transition-all border-none rounded-xl ${
-              blog?.isArchived
+              blog?.isArchived || isPublicMode
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "hover:shadow-xl hover:scale-[1.02] bg-linear-to-r from-indigo-600 to-blue-600"
             } ${isProcessingSection ? "opacity-100! text-white" : ""}`}
@@ -2603,7 +2607,7 @@ const TextEditorSidebar = ({
             ) : (
               <Sparkles className="w-4 h-4 mr-2" />
             )}
-            {isProcessingSection ? "Processing..." : "Run AI Task"}
+            {isPublicMode ? "AI Tools Locked" : isProcessingSection ? "Processing..." : "Run AI Task"}
           </button>
           <p className="text-[10px] text-center text-gray-400 mt-2">
             This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
@@ -2865,9 +2869,9 @@ const TextEditorSidebar = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
         <button
           onClick={handlePostClick}
-          disabled={isPosting || blog?.isArchived}
+          disabled={isPosting || blog?.isArchived || isPublicMode}
           className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
-            isPosting || blog?.isArchived
+            isPosting || blog?.isArchived || isPublicMode
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
               : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
           }`}
@@ -2880,7 +2884,7 @@ const TextEditorSidebar = ({
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>Publish Now</span>
+              <span>{isPublicMode ? "Publishing Locked" : "Publish Now"}</span>
             </>
           )}
         </button>
@@ -2921,10 +2925,10 @@ const TextEditorSidebar = ({
           </div>
           <div className="w-8 h-px bg-gray-300 mx-auto my-2" />
         </div>
-        <div className="flex flex-col gap-3">
-          {NAV_ITEMS.map(item => {
-            const Icon = item.icon
+        <div className="flex flex-col items-center gap-4 py-6">
+          {NAV_ITEMS.filter(item => !isPublicMode || !["regenerate", "aitools", "posting"].includes(item.id)).map(item => {
             const isActive = activePanel === item.id
+            const Icon = item.icon
             return (
               <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                 <button
@@ -2993,7 +2997,7 @@ const TextEditorSidebar = ({
             </div>
           </div>
           <div className="flex flex-col gap-3 mt-5">
-            {NAV_ITEMS.map(item => {
+            {NAV_ITEMS.filter(item => !isPublicMode || !["regenerate", "aitools", "posting"].includes(item.id)).map(item => {
               const Icon = item.icon
               const isActive = activePanel === item.id
               return (
@@ -3007,6 +3011,10 @@ const TextEditorSidebar = ({
                         return
                       }
                       if (item.id === "regenerate") {
+                        if (isPublicMode) {
+                          toast.error("Regeneration is unavailable in read-only mode.")
+                          return
+                        }
                         // Open the regenerate modal
                         setIsRegenerateModalOpen(true)
                       } else {

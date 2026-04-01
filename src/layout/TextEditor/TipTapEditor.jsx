@@ -701,7 +701,7 @@ const TipTapEditor = ({
 
   const handleImageClick = useCallback(
     event => {
-      if (blog?.isArchived) return
+      if (blog?.isArchived || isPublicMode) return
       if (event.target.tagName === "IMG") {
         const { src, alt } = event.target
         setImageUrl(src)
@@ -713,7 +713,7 @@ const TipTapEditor = ({
         setIsGenerateMode(false)
       }
     },
-    [blog?.isArchived]
+    [blog?.isArchived, isPublicMode]
   )
 
   const handleAddTable = useCallback(() => {
@@ -855,9 +855,9 @@ const TipTapEditor = ({
 
   useEffect(() => {
     if (normalEditor && !normalEditor.isDestroyed) {
-      normalEditor.setEditable(!blog?.isArchived)
+      normalEditor.setEditable(!blog?.isArchived && !isPublicMode)
     }
-  }, [normalEditor, blog?.isArchived])
+  }, [normalEditor, blog?.isArchived, isPublicMode])
 
   useEffect(() => {
     if (normalEditor?.view?.dom) {

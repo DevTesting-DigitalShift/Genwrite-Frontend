@@ -50,11 +50,16 @@ axiosInstance.interceptors.response.use(
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
-      // Use sonner toast
-      toast.error("Session expired. Please login again.")
+      // Detect public blog path to prevent forced redirect
+      const isPublicPath =
+        window.location.pathname.startsWith("/blog/") &&
+        !window.location.pathname.startsWith("/blog-editor")
 
-      // Redirect to login handled below
-      if (window.location.pathname !== "/login") {
+      if (!isPublicPath && window.location.pathname !== "/login") {
+        // Use sonner toast
+        toast.error("Session expired. Please login again.")
+
+        // Redirect to login handled below
         setTimeout(() => {
           window.location.href = "/login"
         }, 1500)

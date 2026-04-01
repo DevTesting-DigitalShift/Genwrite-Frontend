@@ -17,6 +17,7 @@ import {
   Trash2,
   Edit2,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import useToolsStore from "@store/useToolsStore"
@@ -36,24 +37,24 @@ import { COSTS } from "@/data/blogData"
 
 const Card = ({ children, className = "" }) => (
   <div
-    className={`bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden ${className}`}
+    className={`bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden ${className}`}
   >
-    <div className="p-6">{children}</div>
+    <div className="p-6 md:p-8">{children}</div>
   </div>
 )
 
 const Tag = ({ children, color, className = "" }) => {
   const colorMap = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    cyan: "bg-cyan-50 text-cyan-600 border-cyan-100",
-    orange: "bg-orange-50 text-orange-600 border-orange-100",
-    purple: "bg-purple-50 text-purple-600 border-purple-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    blue: "bg-blue-50/50 text-blue-600 border-blue-100/50",
+    cyan: "bg-cyan-50/50 text-cyan-600 border-cyan-100/50",
+    orange: "bg-orange-50/50 text-orange-600 border-orange-100/50",
+    purple: "bg-purple-50/50 text-purple-600 border-purple-100/50",
+    emerald: "bg-emerald-50/50 text-emerald-600 border-emerald-100/50",
   }
-  const colorClass = colorMap[color] || "bg-gray-50 text-gray-600 border-gray-100"
+  const colorClass = colorMap[color] || "bg-gray-50/50 text-gray-600 border-gray-100/50"
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border ${colorClass} ${className}`}
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${colorClass} ${className}`}
     >
       {children}
     </span>
@@ -81,7 +82,7 @@ const Steps = ({ current, items = [] }) => {
               {isCompleted ? <CheckCircle className="w-5 h-5" /> : item.icon}
             </div>
             <span
-              className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? "text-primary" : isCompleted ? "text-emerald-600" : "text-gray-400"}`}
+              className={`text-xs font-medium ${isActive ? "text-primary" : isCompleted ? "text-emerald-600" : "text-gray-400"}`}
             >
               {item.title}
             </span>
@@ -95,15 +96,15 @@ const Steps = ({ current, items = [] }) => {
 const CustomTabs = ({ items, activeKey, onChange }) => {
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 p-1 bg-gray-100/50 rounded-xl w-fit border border-gray-200">
+      <div className="flex gap-1 p-1 bg-gray-100/40 rounded-2xl w-fit border border-gray-200/50 backdrop-blur-sm">
         {items.map(item => (
           <button
             key={item.key}
             onClick={() => onChange(item.key)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+            className={`flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
               activeKey === item.key
-                ? "bg-white text-primary shadow-sm"
-                : "text-gray-500 hover: bg-white/50"
+                ? "bg-white text-gray-900 shadow-sm ring-1 ring-black/5"
+                : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
             }`}
           >
             {item.label}
@@ -131,20 +132,20 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {label && (
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+        <label className="text-sm font-medium text-gray-500 ml-1">
           {label}
         </label>
       )}
       <div className="flex items-center gap-3">
         <button
           onClick={() => handleUpdate(Math.max(min, value - 1))}
-          className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
+          className="w-10 h-10 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
         >
           <Minus className="w-4 h-4" />
         </button>
-        <div className="relative flex-1 group h-10 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center gap-2">
+        <div className="relative flex-1 group h-10 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center gap-2">
           <div className="relative h-6 w-8 overflow-hidden">
             <AnimatePresence mode="popLayout" custom={direction}>
               <motion.div
@@ -161,11 +162,11 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
               </motion.div>
             </AnimatePresence>
           </div>
-          <span className="text-[10px] font-bold text-primary/40 uppercase">QTY</span>
+          <span className="text-[10px] font-bold text-primary/40">Qty</span>
         </div>
         <button
           onClick={() => handleUpdate(Math.min(max, value + 1))}
-          className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
+          className="w-10 h-10 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -203,11 +204,85 @@ const WebsiteRanking = () => {
   const { mutateAsync: websiteRankingOrchestrator, isPending: isOrchestratorLoading } =
     useWebsiteOrchestratorMutation()
 
+  const isLoading =
+    isOrchestratorLoading ||
+    isAnalysing ||
+    isCreatingPrompts ||
+    isCheckingRankings ||
+    isAnalyzingAdvanced
+
+  const getLoadingMessage = () => {
+    if (isOrchestratorLoading)
+      return "Deploying AI scouts to crawl target infrastructure and analyze SEO signals..."
+    if (isAnalysing) return "Conducting initial site reconnaissance and extracting core metadata..."
+    if (isCreatingPrompts)
+      return "Synthesizing high-intent search queries based on your core topics..."
+    if (isCheckingRankings) return "Querying search indexes and mapping market share distribution..."
+    if (isAnalyzingAdvanced) return "Drafting strategic roadmap and executive recommendations..."
+    return "Processing infrastructure data..."
+  }
+
+  const getLoadingScenario = () => {
+    return isCreatingPrompts || isAnalyzingAdvanced ? "writing" : "analysis"
+  }
+
   useEffect(() => {
     return () => {
       resetWebsiteRanking()
     }
   }, [resetWebsiteRanking])
+
+  const handleExportMD = data => {
+    if (!data) return
+    const { url: auditUrl, analysis, rankings, advancedReport, strategicRecommendations } = data
+    const markdownContent =
+      typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
+
+    // Construct the full document
+    let fullMD = `# SEO Audit Report: ${auditUrl}\n\n`
+    fullMD += `## Executive Summary\n`
+    fullMD += `- **URL**: ${auditUrl}\n`
+    fullMD += `- **Region**: ${analysis?.region || "USA"}\n`
+    fullMD += `- **Global Rank**: ${rankings?.ourCompanyStats?.globalRank || "N/A"}\n`
+    fullMD += `- **Visibility Score**: ${
+      rankings?.ourCompanyStats?.stats?.coverageRatio
+        ? Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100) + "%"
+        : "0%"
+    }\n\n`
+
+    fullMD += `## Strategic Analysis\n${markdownContent}\n\n`
+
+    const recs = strategicRecommendations || data.recommendations || []
+    if (recs.length > 0) {
+      fullMD += `## Strategic Recommendations\n`
+      recs.forEach((r, i) => {
+        fullMD += `${i + 1}. ${r}\n`
+      })
+      fullMD += `\n`
+    }
+
+    if (rankings?.results?.length) {
+      fullMD += `## Keyword Rankings\n`
+      fullMD += `| Keyword | Rank | Top Competitors |\n`
+      fullMD += `|---------|------|----------------|\n`
+      rankings.results.forEach(r => {
+        const rank = r.rank && r.rank > 0 ? `#${r.rank}` : "Not listed"
+        const comps = r.topCompanies?.slice(0, 3).join(", ") || ""
+        fullMD += `| ${r.prompt} | ${rank} | ${comps} |\n`
+      })
+    }
+
+    const blob = new Blob([fullMD], { type: "text/markdown" })
+    const reportUrl = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = reportUrl
+    const fileName = `seo-audit-${auditUrl.replace(/https?:\/\//, "").replace(/[^a-z0-9]/gi, "-")}.md`
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success(`Report exported as ${fileName}`)
+  }
 
   const handleResetManual = () => {
     setManualStep(0)
@@ -325,10 +400,7 @@ const WebsiteRanking = () => {
     if (!data) return null
 
     // Helper to safely access nested report data
-    // In Orchestrator: data = { url, analysis, rankings, advancedReport: { markdownReport, recommendations } }
-    // In Manual: constructed similarly below
     const { url, analysis, rankings, advancedReport, recommendations: topLevelRecs } = data
-    // Handle both Orchestrator (string) and Manual (object) structures
     const markdownContent =
       typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
 
@@ -336,6 +408,24 @@ const WebsiteRanking = () => {
 
     return (
       <div className="space-y-8 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-8 bg-primary rounded-full" />
+            <div>
+              <h2 className="text-xl font-black text-gray-900 tracking-tight">Audit Report</h2>
+              <p className="text-xs text-gray-400 font-medium">
+                Generated by AI Engine
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleExportMD(data)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-[#3B4BB8] transition-all active:scale-95 shadow-lg shadow-primary/10"
+          >
+            <FileText className="w-4 h-4" />
+            Export as MD
+          </button>
+        </div>
         {/* 1. High-Level Executive Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="bg-primary/5 border-primary/20 shadow-none col-span-1 md:col-span-2">
@@ -351,12 +441,12 @@ const WebsiteRanking = () => {
                   {url}
                 </p>
                 <div className="flex gap-2 mt-2">
-                  <Tag color="blue" className="text-[10px] uppercase font-bold tracking-wider m-0">
+                  <Tag color="blue" className="text-xs font-semibold m-0">
                     {analysis?.region || "USA"}
                   </Tag>
                   <Tag
                     color="cyan"
-                    className="text-[10px] ui-monospace font-bold tracking-wider m-0"
+                    className="text-xs ui-monospace font-semibold m-0"
                   >
                     {analysis?.language || "English"}
                   </Tag>
@@ -371,97 +461,114 @@ const WebsiteRanking = () => {
             </div>
           </Card>
 
-          <Card className="bg-emerald-50 border-emerald-100 shadow-none">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
+          <Card className="bg-emerald-50/30 border-emerald-100 shadow-sm col-span-1 md:col-span-1">
+            <div className="flex flex-col justify-between h-full">
+              <div className="p-3 bg-white w-fit rounded-xl border border-emerald-100/50 shadow-sm mb-4">
+                <TrendingUp className="w-6 h-6 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-emerald-900">Global Rank</h3>
+              <div>
+                <span className="text-xs font-bold text-emerald-600">
+                  Global Rank
+                </span>
+                <p className="text-3xl font-black text-gray-900 mt-1">
+                  {rankings?.ourCompanyStats?.globalRank
+                    ? `#${rankings.ourCompanyStats.globalRank}`
+                    : "0"}
+                </p>
+                <p className="text-[10px] text-emerald-700/60 font-bold mt-2">
+                  Niche Competitiveness
+                </p>
+              </div>
             </div>
-            <p className="text-3xl font-bold text-emerald-600">
-              {rankings?.ourCompanyStats?.globalRank
-                ? `#${rankings.ourCompanyStats.globalRank}`
-                : "0"}
-            </p>
-            <p className="text-xs text-emerald-700 mt-1">Among competitors</p>
           </Card>
 
-          <Card className="bg-primary/5 border-primary/20 shadow-none">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <ShieldCheck className="w-5 h-5 text-primary" />
+          <Card className="bg-white border-gray-100 shadow-sm col-span-1 md:col-span-1">
+            <div className="flex flex-col justify-between h-full">
+              <div className="p-3 bg-gray-50 w-fit rounded-xl border border-gray-100 shadow-sm mb-4">
+                <ShieldCheck className="w-6 h-6 text-gray-900" />
               </div>
-              <h3 className="font-semibold text-primary/90">Visibility Score</h3>
+              <div>
+                <span className="text-xs font-bold text-gray-400">
+                  Visibility Index
+                </span>
+                <p className="text-3xl font-black text-gray-900 mt-1">
+                  {rankings?.ourCompanyStats?.stats?.coverageRatio
+                    ? `${Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100)}%`
+                    : "0%"}
+                </p>
+                <p className="text-[10px] text-gray-400 font-bold mt-2">Search Presence</p>
+              </div>
             </div>
-            <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold text-primary">
-                {rankings?.ourCompanyStats?.stats?.coverageRatio
-                  ? `${Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100)}%`
-                  : "0%"}
-              </p>
-            </div>
-            <p className="text-xs text-primary/60 mt-1">Keyword Coverage</p>
           </Card>
 
-          <Card className="bg-amber-50 border-amber-100 shadow-none">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Zap className="w-5 h-5 text-amber-600" />
+          <Card className="bg-white border-gray-100 shadow-sm col-span-1 md:col-span-1">
+            <div className="flex flex-col justify-between h-full">
+              <div className="p-3 bg-gray-50 w-fit rounded-xl border border-gray-100 shadow-sm mb-4">
+                <Zap className="w-6 h-6 text-gray-900" />
               </div>
-              <h3 className="font-semibold text-amber-900">Prompts</h3>
+              <div>
+                <span className="text-xs font-bold text-gray-400">
+                  Data Points
+                </span>
+                <p className="text-3xl font-black text-gray-900 mt-1">
+                  {rankings?.results?.length || 0}
+                </p>
+                <p className="text-[10px] text-gray-400 font-bold mt-2">Keywords Analyzed</p>
+              </div>
             </div>
-            <p className="text-3xl font-bold text-amber-600">{rankings?.results?.length || 0}</p>
-            <p className="text-xs text-amber-700 mt-1">Analyzed</p>
           </Card>
         </div>
 
         {/* 2. Top Competitors Leaderboard */}
         {rankings?.top10?.length > 0 && (
-          <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-                <Rocket className="w-5 h-5 text-amber-500" />
-                Top Competitors Leaderboard
-              </h2>
-              <Tag color="orange">Top 10</Tag>
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                  Market Competitors
+                </h2>
+                <p className="text-xs text-gray-400 font-medium mt-1">
+                  Benchmarked against top 10 players
+                </p>
+              </div>
             </div>
             <div className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-500 font-medium uppercase text-xs">
+                  <thead className="bg-[#FAFBFD] text-gray-400 font-semibold text-[11px]">
                     <tr>
-                      <th className="px-6 py-3">Rank</th>
-                      <th className="px-6 py-3">Domain</th>
-                      <th className="px-6 py-3 text-center">Visibility Score</th>
-                      <th className="px-6 py-3 text-center">Details</th>
+                      <th className="px-8 py-5">Rank</th>
+                      <th className="px-8 py-5">Domain Authority</th>
+                      <th className="px-8 py-5 text-center">Market Share</th>
+                      <th className="px-8 py-5 text-right pr-12">Performance</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-50">
                     {rankings.top10.slice(0, 5).map((comp, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4">
+                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
+                        <td className="px-8 py-5">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-none ${
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-black transition-transform group-hover:scale-110 ${
                               idx === 0
-                                ? "bg-amber-400"
-                                : idx === 1
-                                  ? "bg-gray-400"
-                                  : idx === 2
-                                    ? "bg-orange-400"
-                                    : "bg-primary/10 text-primary border border-primary/20"
+                                ? "bg-gray-900 text-white shadow-xl shadow-black/10"
+                                : "bg-gray-50 text-gray-400 border border-gray-100"
                             }`}
                           >
                             {idx + 1}
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-semibold ">{comp.domain}</td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {Math.round((comp.totalScore || 0) * 10)}/100
-                          </div>
+                        <td className="px-8 py-5">
+                          <span className="font-bold text-gray-900 text-base">{comp.domain}</span>
                         </td>
-                        <td className="px-6 py-4 text-center text-gray-400 text-xs">
-                          Ranked on {comp.ranks?.length || 0} keywords
+                        <td className="px-8 py-5 text-center">
+                          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-black bg-primary text-white shadow-lg shadow-primary/5">
+                            {Math.round((comp.totalScore || 0) * 10)}%
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right pr-12">
+                          <span className="text-xs font-semibold text-gray-400">
+                            {comp.ranks?.length || 0} Key Rankings
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -475,7 +582,6 @@ const WebsiteRanking = () => {
         {/* 3. Detailed Strategic Report & Recommendations */}
         {(markdownContent || recommendations.length > 0) && (
           <div className="grid grid-cols-1 gap-8">
-            {/* Main Report Column */}
             {markdownContent && (
               <div className="space-y-8">
                 <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
@@ -490,48 +596,69 @@ const WebsiteRanking = () => {
                       remarkPlugins={[remarkGfm]}
                       components={{
                         h1: ({ node, ...props }) => (
-                          <h1 className="text-2xl font-bold mt-6 mb-4 text-gray-900" {...props} />
+                          <h1
+                            className="text-3xl font-black mt-10 mb-6 text-gray-900 tracking-tight"
+                            {...props}
+                          />
                         ),
                         h2: ({ node, ...props }) => (
                           <h2
-                            className="text-xl font-bold mt-8 mb-4 text-gray-800 border-b border-gray-100 pb-2"
+                            className="text-2xl font-black mt-12 mb-6 text-gray-900 border-b border-gray-100 pb-3 tracking-tight"
                             {...props}
                           />
                         ),
                         h3: ({ node, ...props }) => (
-                          <h3 className="text-lg font-bold mt-6 mb-3 text-gray-700" {...props} />
+                          <h3
+                            className="text-xl font-black mt-8 mb-4 text-gray-800 tracking-tight"
+                            {...props}
+                          />
                         ),
                         p: ({ node, ...props }) => (
-                          <p className="mb-4  leading-relaxed text-[15px]" {...props} />
+                          <p
+                            className="mb-6 leading-relaxed text-[15px] text-gray-600 font-medium"
+                            {...props}
+                          />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul className="list-disc pl-5 mb-4  space-y-2" {...props} />
+                          <ul
+                            className="list-disc pl-6 mb-6 space-y-3 text-gray-600 font-medium"
+                            {...props}
+                          />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol className="list-decimal pl-5 mb-4  space-y-2" {...props} />
+                          <ol
+                            className="list-decimal pl-6 mb-6 space-y-3 text-gray-600 font-medium"
+                            {...props}
+                          />
                         ),
-                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                        li: ({ node, ...props }) => <li className="pl-2" {...props} />,
                         strong: ({ node, ...props }) => (
-                          <strong className="font-bold text-primary" {...props} />
+                          <strong className="font-extrabold text-gray-900" {...props} />
                         ),
                         a: ({ node, ...props }) => (
-                          <a className="text-primary hover:underline font-bold" {...props} />
+                          <a
+                            className="text-gray-900 underline underline-offset-4 decoration-2 decoration-black/10 hover:decoration-black transition-all font-bold"
+                            {...props}
+                          />
                         ),
                         blockquote: ({ node, ...props }) => (
                           <blockquote
-                            className="border-l-4 border-primary/20 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r-lg"
+                            className="border-l-[6px] border-gray-900 pl-6 italic my-10 text-gray-700 bg-gray-50/50 py-6 pr-6 rounded-r-2xl font-medium text-lg leading-relaxed shadow-sm"
                             {...props}
                           />
                         ),
                         code: ({ node, inline, ...props }) =>
                           inline ? (
                             <code
-                              className="bg-gray-100 text-pink-600 px-1 py-0.5 rounded text-sm font-mono"
+                              className="bg-gray-100 text-gray-900 px-1.5 py-0.5 rounded-md text-[13px] font-black"
                               {...props}
                             />
                           ) : (
-                            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4">
-                              <code {...props} />
+                            <pre className="bg-gray-950 text-white p-6 rounded-2xl overflow-x-auto mb-8 shadow-xl shadow-black/10">
+                              <code
+                                {...props}
+                                className="font-medium text-[13px] leading-relaxed"
+                              />
                             </pre>
                           ),
                       }}
@@ -543,9 +670,7 @@ const WebsiteRanking = () => {
               </div>
             )}
 
-            {/* Sidebar: Recommendations & Stats */}
             <div className="space-y-6">
-              {/* Quick Actions / Recommendations List */}
               {recommendations.length > 0 && (
                 <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden sticky top-4">
                   <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100">
@@ -571,7 +696,6 @@ const WebsiteRanking = () => {
                 </div>
               )}
 
-              {/* Target Keywords Summary */}
               <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100">
                   <h3 className="font-bold ">Analyzed Keywords</h3>
@@ -605,41 +729,50 @@ const WebsiteRanking = () => {
   }
 
   const renderOrchestratorResult = () => {
-    // Orchestrator result usually contains the full needed structure
     return <FullReportView data={orchestrator.result} />
   }
 
   const StrategyResultsTable = ({ results }) => {
-    if (!results?.length) return <p>No ranking data available.</p>
+    if (!results?.length)
+      return <p className="p-8 text-center text-gray-400 font-bold">No ranking data available.</p>
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left text-gray-600">
-          <thead className="text-xs  uppercase bg-gray-50">
+        <table className="min-w-full text-sm text-left">
+          <thead className="text-[11px] bg-[#FAFBFD] text-gray-400 font-semibold border-b border-gray-50">
             <tr>
-              <th className="px-6 py-3">Keyword Idea</th>
-              <th className="px-6 py-3">Your Rank</th>
-              <th className="px-6 py-3">Top Competitors</th>
+              <th className="px-8 py-5">Qualified Keyword</th>
+              <th className="px-8 py-5">Organic Rank</th>
+              <th className="px-8 py-5">Top Performers</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-50">
             {results.map((r, i) => (
-              <tr key={i} className="bg-white border-b border-gray-300 hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{r.prompt}</td>
-                <td className="px-6 py-4">
+              <tr key={i} className="bg-white hover:bg-gray-50/40 transition-colors group">
+                <td className="px-8 py-5">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-900 text-base">{r.prompt}</span>
+                    <span className="text-xs text-gray-400 font-medium mt-1">
+                      Niche Target
+                    </span>
+                  </div>
+                </td>
+                <td className="px-8 py-5">
                   {r.rank && r.rank > 0 ? (
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded font-bold">
+                    <span className="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-black shadow-lg shadow-primary/5">
                       #{r.rank}
                     </span>
                   ) : (
-                    <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">Not listed</span>
+                    <span className="text-gray-400 font-semibold text-xs tracking-tight">
+                      Unlisted
+                    </span>
                   )}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
+                <td className="px-8 py-5 text-right pr-12">
+                  <div className="flex flex-wrap gap-2">
                     {r.topCompanies?.slice(0, 3).map((c, idx) => (
                       <span
                         key={idx}
-                        className="bg-primary/5 text-primary text-xs px-2 py-0.5 rounded-md border border-primary/10 font-bold"
+                        className="bg-gray-50 text-gray-600 text-xs px-3 py-1 rounded-lg border border-gray-100 font-semibold"
                       >
                         {c}
                       </span>
@@ -655,21 +788,55 @@ const WebsiteRanking = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="space-y-6 mt-6 md:mt-0">
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-primary/5 text-primary rounded-lg flex items-center justify-center shrink-0">
-              <Globe className="w-5 h-5" strokeWidth={2.5} />
+    <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: "radial-gradient(#000 1px, transparent 0)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-9999 bg-white/80 backdrop-blur-md flex items-center justify-center p-6"
+            >
+              <div className="w-full max-w-2xl bg-white p-12 rounded-3xl shadow-2xl border border-gray-100 text-center">
+                <ProgressLoadingScreen
+                  message={getLoadingMessage()}
+                  scenario={getLoadingScenario()}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-none p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0 border border-primary/10">
+                <Globe className="w-5 h-5" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AU Website Ranker</h1>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Analyze performance, SEO health, and growth opportunities with AI.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Website Grading & SEO Strategy
-              </h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                AI-powered analysis to check your website's health, rankings, and growth strategies.
-              </p>
-            </div>
+            <button
+              onClick={handleResetManual}
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
+              title="Reset Analysis"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
           </div>
         </div>
 
@@ -685,51 +852,61 @@ const WebsiteRanking = () => {
                 </span>
               ),
               children: (
-                <Card className="rounded-xl shadow-none border border-gray-200 p-0">
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1 space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                <Card className="rounded-3xl shadow-sm border border-gray-100">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="md:col-span-3 space-y-4">
+                        <label className="text-sm font-medium text-gray-500 ml-1">
                           Target Website URL
                         </label>
-                        <input
-                          placeholder="https://example.com"
-                          value={url}
-                          onChange={e => setUrl(e.target.value)}
-                          className="w-full p-3.5 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder-gray-400 font-medium"
-                        />
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
+                            <Globe size={18} />
+                          </div>
+                          <input
+                            placeholder="https://yourwebsite.com"
+                            value={url}
+                            onChange={e => setUrl(e.target.value)}
+                            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-md outline-none focus:border-gray-900 focus:ring-4 focus:ring-black/2 transition-all placeholder-gray-400 font-medium text-gray-900"
+                          />
+                        </div>
                       </div>
-                      <div className="w-full md:w-48 space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                      <div className="space-y-4">
+                        <label className="text-sm font-medium text-gray-500 ml-1">
                           Region
                         </label>
-                        <input
-                          placeholder="e.g. USA"
-                          value={region}
-                          onChange={e => setRegion(e.target.value)}
-                          className="w-full p-3.5 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-medium"
-                        />
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
+                            <Zap size={18} />
+                          </div>
+                          <input
+                            placeholder="USA, UK, IN..."
+                            value={region}
+                            onChange={e => setRegion(e.target.value)}
+                            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-md outline-none focus:border-gray-900 focus:ring-4 focus:ring-black/2 transition-all placeholder-gray-400 font-medium text-gray-900"
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-end gap-5 mb-8">
-                      <div className="w-full md:w-64">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="w-full md:w-80">
                         <NumberStepper
-                          label="Keyword Count"
+                          label="Target Keywords"
                           value={promptCount}
                           onChange={setPromptCount}
                           max={25}
                         />
                       </div>
-                      <div className="flex items-center gap-3 px-6 h-[42px] bg-primary/5 border border-primary/20 rounded-xl shrink-0">
-                        <Zap className="w-4 h-4 text-primary" />
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-gray-700">Total Cost:</span>
-                          <span className="text-sm font-bold text-primary">
-                            {getOrchestratorCost()} Credits
+                      <div className="flex items-center gap-4 px-6 py-4 bg-white border border-gray-100 rounded-2xl shadow-xs">
+                        <div className="p-2.5 bg-gray-50 rounded-xl">
+                          <Zap size={20} className="text-gray-900" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-gray-400">
+                            Audit Investment
                           </span>
-                          <div className="h-3 w-px bg-primary/20 mx-2" />
-                          <span className="text-[10px] text-primary/60 font-bold uppercase tracking-wider">
-                            {COSTS.WEBSITE_RANKING.ORCHESTRATOR_BASE} Base + {promptCount} Keywords
+                          <span className="text-xl font-black text-gray-900">
+                            {getOrchestratorCost()} Credits
                           </span>
                         </div>
                       </div>
@@ -739,26 +916,17 @@ const WebsiteRanking = () => {
                   <button
                     onClick={handleOrchestrator}
                     disabled={isOrchestratorLoading}
-                    className="w-full rounded-md text-white flex items-center justify-center bg-primary hover:bg-[#3B4BB8] gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-3 transition-all"
+                    className="w-full bg-primary hover:bg-[#3B4BB8] text-white px-8 py-5 rounded-md font-black text-lg transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-primary/10 mt-8"
                   >
                     {isOrchestratorLoading ? (
-                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <RefreshCw className="w-6 h-6 animate-spin" />
                     ) : (
-                      <Rocket className="w-5 h-5" />
+                      <Rocket className="w-6 h-6" />
                     )}
-                    Start Full Audit
+                    Run Intelligence Audit
                   </button>
 
-                  {isOrchestratorLoading && (
-                    <div className="mt-8">
-                      <ProgressLoadingScreen
-                        message="Conducting comprehensive website audit..."
-                        scenario="analysis"
-                      />
-                    </div>
-                  )}
-
-                  {!isOrchestratorLoading && renderOrchestratorResult()}
+                  {!isOrchestratorLoading && orchestrator.result && renderOrchestratorResult()}
                 </Card>
               ),
             },
@@ -775,28 +943,21 @@ const WebsiteRanking = () => {
                     <Steps
                       current={manualStep}
                       items={[
-                        { title: "Target Identification", icon: <Search className="w-5 h-5" /> },
-                        { title: "Prompt Engine", icon: <Zap className="w-5 h-5" /> },
-                        { title: "Search Rankings", icon: <BarChart2 className="w-5 h-5" /> },
-                        { title: "Strategic Report", icon: <FileText className="w-5 h-5" /> },
+                        { title: "Identify Site", icon: <Search className="w-5 h-5" /> },
+                        { title: "Keywords", icon: <Zap className="w-5 h-5" /> },
+                        { title: "Check Rankings", icon: <BarChart2 className="w-5 h-5" /> },
+                        { title: "View Strategy", icon: <FileText className="w-5 h-5" /> },
                       ]}
                     />
-                    <button
-                      onClick={handleResetManual}
-                      className="text-[10px] font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors uppercase tracking-widest mt-[-40px]"
-                    >
-                      <RefreshCw className="w-3 h-3" /> Reset
-                    </button>
                   </div>
 
-                  {/* Step 0: Analyse */}
                   {manualStep === 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-lg font-semibold text-slate-800">
-                          Step 1: Website Reconnaissance
+                          Step 1: Analyze Website
                         </h3>
-                        <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                        <div className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-md text-xs font-semibold">
                           Cost: {COSTS.WEBSITE_RANKING.ANALYSER} Credits
                         </div>
                       </div>
@@ -807,13 +968,13 @@ const WebsiteRanking = () => {
                           placeholder="https://example.com"
                           value={url}
                           onChange={e => setUrl(e.target.value)}
-                          className="flex-1 p-4 border border-gray-200 bg-gray-50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
+                          className="flex-1 p-4 border border-gray-200 bg-gray-50 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
                         />
 
                         <button
                           onClick={handleAnalyse}
                           disabled={!url || isAnalysing}
-                          className={`btn h-[58px] min-h-0 px-8 rounded-xl transition-all duration-200 font-bold ${
+                          className={`btn h-[58px] min-h-0 px-8 rounded-md transition-all duration-200 font-black text-md ${
                             isAnalysing
                               ? "btn-disabled"
                               : "bg-primary hover:bg-[#3B4BB8] text-white"
@@ -825,26 +986,25 @@ const WebsiteRanking = () => {
                     </div>
                   )}
 
-                  {/* Step 1: Prompts */}
                   {manualStep === 1 && (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2">
-                          <Zap className="text-amber-500" /> Step 2: Generate Search Prompts
+                          <Zap className="text-amber-500" /> Step 2: Extract Keywords
                         </h3>
-                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-xs font-semibold">
                           Suggestion: {COSTS.WEBSITE_RANKING.PROMPT_CREATOR} Credits
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
+                          <p className="text-xs font-medium text-gray-400 mb-1">
                             Website Name
                           </p>
                           <p className="font-bold text-gray-800">{analysisResult?.name}</p>
                         </div>
                         <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
+                          <p className="text-xs font-medium text-gray-400 mb-1">
                             Region & Language
                           </p>
                           <div className="flex gap-2">
@@ -866,7 +1026,7 @@ const WebsiteRanking = () => {
                         </div>
                       </div>
                       <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                        <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">
+                        <p className="text-xs font-medium text-gray-400 mb-1">
                           Site Description
                         </p>
                         <p className=" text-sm leading-relaxed text-gray-600">
@@ -875,10 +1035,10 @@ const WebsiteRanking = () => {
                       </div>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between px-1">
-                          <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                          <p className="text-xs font-medium text-gray-400">
                             Core Topics to Target ({selectedExpertise.length}/10)
                           </p>
-                          <span className="text-[10px] text-primary font-bold">MIN 1 REQUIRED</span>
+                          <span className="text-[10px] text-primary font-bold">Minimum 1 required</span>
                         </div>
 
                         <div className="flex gap-2">
@@ -887,11 +1047,11 @@ const WebsiteRanking = () => {
                             onChange={e => setManualTopic(e.target.value)}
                             onKeyDown={e => e.key === "Enter" && addManualTopic()}
                             placeholder="Add a custom topic..."
-                            className="flex-1 p-2.5 border border-gray-200 bg-white rounded-xl text-sm outline-none focus:border-primary transition-all"
+                            className="flex-1 p-2.5 border border-gray-200 bg-white rounded-md text-sm outline-none focus:border-primary transition-all"
                           />
                           <button
                             onClick={addManualTopic}
-                            className="p-2.5 bg-primary text-white rounded-xl hover:bg-[#3B4BB8] transition-all"
+                            className="p-2.5 bg-primary text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                           >
                             <Plus className="w-5 h-5" />
                           </button>
@@ -930,7 +1090,7 @@ const WebsiteRanking = () => {
                       <div className="flex gap-3">
                         <button
                           onClick={() => setManualStep(0)}
-                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-bold transition-all"
+                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md font-bold transition-all"
                         >
                           Back
                         </button>
@@ -940,32 +1100,31 @@ const WebsiteRanking = () => {
                           className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {isCreatingPrompts && <RefreshCw className="w-5 h-5 animate-spin" />}
-                          Generate Search Prompts
+                          Suggest Keywords
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 2: Rankings */}
                   {manualStep === 2 && (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2">
                           <BarChart2 className="text-indigo-600" /> Step 3: Check Search Rankings
                         </h3>
-                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                        <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-xs font-semibold">
                           Cost: {getManualRankingsCost()} Credits
                         </div>
                       </div>
                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
-                        <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-4">
+                        <p className="text-xs font-medium text-gray-400 mb-4">
                           Edit Your Search Prompts
                         </p>
                         <ul className="space-y-3">
                           {generatedPrompts.map((p, i) => (
                             <li
                               key={i}
-                              className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary"
+                              className="bg-white p-3 rounded-md border border-gray-100 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary"
                             >
                               <div className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center text-[10px] font-bold border border-gray-100">
                                 {i + 1}
@@ -984,7 +1143,7 @@ const WebsiteRanking = () => {
                       <div className="flex gap-3">
                         <button
                           onClick={() => setManualStep(1)}
-                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-bold transition-all"
+                          className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md font-bold transition-all"
                         >
                           Back
                         </button>
@@ -994,81 +1153,79 @@ const WebsiteRanking = () => {
                           className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {isCheckingRankings && <RefreshCw className="w-5 h-5 animate-spin" />}
-                          Check Search Rankings
+                          Check All Rankings
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 3: Advanced Analysis */}
                   {manualStep === 3 && (
                     <div className="space-y-6">
-                      <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-lg font-semibold text-slate-800">
-                              Final Step: Growth Strategy
-                            </h3>
-                            <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                              Cost: {COSTS.WEBSITE_RANKING.ADVANCED_ANALYSIS} Credits
+                      {!advancedComp.result && (
+                        <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-lg font-semibold text-slate-800">
+                                Final Step: Download Report
+                              </h3>
+                              <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-xs font-semibold">
+                                Cost: {COSTS.WEBSITE_RANKING.ADVANCED_ANALYSIS} Credits
+                              </div>
                             </div>
+                            <p className="text-sm text-slate-400">
+                              Generate a comprehensive strategic roadmap based on aggregated insights.
+                            </p>
                           </div>
-                          <p className="text-sm text-slate-400">
-                            Generate a comprehensive strategic roadmap based on aggregated insights.
-                          </p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => setManualStep(2)}
+                              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-bold transition-all"
+                            >
+                              Back
+                            </button>
+                            <button
+                              onClick={handleAdvancedAnalysis}
+                              disabled={isAnalyzingAdvanced}
+                              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-bold transition-all ${
+                                isAnalyzingAdvanced
+                                  ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                                  : "bg-primary text-white hover:bg-[#3B4BB8]"
+                              }`}
+                            >
+                              {isAnalyzingAdvanced ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                              Generate Report
+                            </button>
+                          </div>
                         </div>
+                      )}
 
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => setManualStep(2)}
-                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-semibold transition-all"
-                          >
-                            Back
-                          </button>
-                          <button
-                            onClick={handleAdvancedAnalysis}
-                            disabled={isAnalyzingAdvanced}
-                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold transition-all ${
-                              isAnalyzingAdvanced
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                                : "bg-primary text-white hover:bg-[#3B4BB8]"
-                            }`}
-                          >
-                            {isAnalyzingAdvanced ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <FileText className="w-4 h-4" />
-                            )}
-                            Build Strategy
-                          </button>
-                        </div>
-                      </div>
-
-                      {rankingsResult && (
+                      {advancedComp.result ? (
                         <FullReportView
-                          data={{ url, analysis: analysisResult, rankings: rankingsResult }}
+                          data={{
+                            url,
+                            analysis: analysisResult,
+                            rankings: rankingsResult,
+                            advancedReport: advancedComp.result,
+                          }}
                         />
+                      ) : (
+                        rankingsResult && (
+                          <FullReportView
+                            data={{ url, analysis: analysisResult, rankings: rankingsResult }}
+                          />
+                        )
                       )}
                     </div>
-                  )}
-
-                  {/* Final Result Display for Manual Mode */}
-                  {manualStep === 3 && advancedComp.result && (
-                    <FullReportView
-                      data={{
-                        url,
-                        analysis: analysisResult,
-                        rankings: rankingsResult,
-                        advancedReport: advancedComp.result,
-                      }}
-                    />
                   )}
                 </Card>
               ),
             },
           ]}
         />
-        {/* Connected Tools Suggestion - Only show after audit/run */}
         {(orchestrator.result || advancedComp.result) && (
           <div className="mt-8">
             <ConnectedTools currentToolId="ranking" transferValue={url} />

@@ -33,7 +33,7 @@ const MainEditorPage = () => {
   // Detect if we are in public mode: 
   // 1. Not logged in (no token)
   // 2. Accessing a public /blog/ path
-  const isPublicMode = !token && location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
+  const isPublicMode = location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
 
   // Zustand Stores
   const { user } = useAuthStore()
@@ -603,10 +603,10 @@ const MainEditorPage = () => {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {id ? "Edit Blog" : "Create New Blog"}
+                      {isPublicMode ? "View Blog" : id ? "Edit Blog" : "Create New Blog"}
                     </h2>
                     <p className="text-gray-500 text-sm mt-0.5">
-                      Write and optimize your content
+                      {isPublicMode ? "Read-only access" : "Write and optimize your content"}
                     </p>
                   </div>
                   <button onClick={toggleSidebar} className="md:hidden ml-auto">
@@ -754,36 +754,35 @@ const MainEditorPage = () => {
               )}
             </div>
           </div>
-          {!isPublicMode && (
-            <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
-              <TextEditorSidebar
-                activeEditorVersion={1} // Hardcoded to TipTap
-                blog={blog}
-                keywords={keywords}
-                setKeywords={setKeywords}
-                onPost={handlePostToWordPress}
-                handleReplace={handleReplace}
-                proofreadingResults={proofreadingResults}
-                setProofreadingResults={setProofreadingResults}
-                handleSave={handleOptimizeSave}
-                handleSubmit={handleSave}
-                posted={isPosted}
-                isPosting={isPosting}
-                formData={formData}
-                title={editorTitle}
-                setEditorContent={setEditorContent}
-                editorContent={editorContent}
-                humanizePrompt={humanizePrompt}
-                setHumanizePrompt={setHumanizePrompt}
-                setIsHumanizing={setIsHumanizing}
-                isHumanizing={isHumanizing}
-                setHumanizedContent={setHumanizedContent}
-                setIsHumanizeModalOpen={setIsHumanizeModalOpen}
-                unsavedChanges={unsavedChanges}
-                wordpressMetadata={metadata}
-              />
-            </div>
-          )}
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
+            <TextEditorSidebar
+              activeEditorVersion={1} // Hardcoded to TipTap
+              blog={blog}
+              keywords={keywords}
+              setKeywords={setKeywords}
+              onPost={handlePostToWordPress}
+              handleReplace={handleReplace}
+              proofreadingResults={proofreadingResults}
+              setProofreadingResults={setProofreadingResults}
+              handleSave={handleOptimizeSave}
+              handleSubmit={handleSave}
+              posted={isPosted}
+              isPosting={isPosting}
+              formData={formData}
+              title={editorTitle}
+              setEditorContent={setEditorContent}
+              editorContent={editorContent}
+              humanizePrompt={humanizePrompt}
+              setHumanizePrompt={setHumanizePrompt}
+              setIsHumanizing={setIsHumanizing}
+              isHumanizing={isHumanizing}
+              setHumanizedContent={setHumanizedContent}
+              setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+              unsavedChanges={unsavedChanges}
+              wordpressMetadata={metadata}
+              isPublicMode={isPublicMode}
+            />
+          </div>
 
           <AnimatePresence>
             {isSidebarOpen && (
@@ -820,6 +819,7 @@ const MainEditorPage = () => {
                   setIsSidebarOpen={setIsSidebarOpen}
                   unsavedChanges={unsavedChanges}
                   wordpressMetadata={metadata}
+                  isPublicMode={isPublicMode}
                 />
               </motion.div>
             )}
