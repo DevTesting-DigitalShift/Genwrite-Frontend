@@ -14,7 +14,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
-import { IMAGE_SOURCE, TONES } from "@/data/blogData"
+import { IMAGE_SOURCE, TONES, VALID_IMAGE_CONFIG } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import AdvancedOptions from "@components/AdvancedOptions"
 import { queryClient } from "@utils/queryClient"
@@ -392,7 +392,10 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const handlePasteItems = (e, type) => {
     const pasteData = e.clipboardData.getData("text")
-    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
+    if (
+      pasteData &&
+      (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))
+    ) {
       e.preventDefault()
       if (type === "topics") {
         handleAddTopic(pasteData)
@@ -403,9 +406,11 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const handleAddTopic = forcedValue => {
-    const inputValue = typeof forcedValue === "string" ? forcedValue.trim() : formData.topicInput.trim()
+    const inputValue =
+      typeof forcedValue === "string" ? forcedValue.trim() : formData.topicInput.trim()
     if (inputValue === "") {
-      if (typeof forcedValue !== "string") setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
+      if (typeof forcedValue !== "string")
+        setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
       return false
     }
 
@@ -435,9 +440,11 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const handleAddKeyword = forcedValue => {
-    const inputValue = typeof forcedValue === "string" ? forcedValue.trim() : formData.keywordInput.trim()
+    const inputValue =
+      typeof forcedValue === "string" ? forcedValue.trim() : formData.keywordInput.trim()
     if (inputValue === "") {
-      if (typeof forcedValue !== "string") setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
+      if (typeof forcedValue !== "string")
+        setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
       return false
     }
 
@@ -684,9 +691,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const validateImages = files => {
-    const maxImages = 15
-    const maxSize = 5 * 1024 * 1024 // 5 MB
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+    const { types: allowedTypes, max_size: maxSize, max_files: maxImages } = VALID_IMAGE_CONFIG
 
     if (!files || files.length === 0) {
       setErrors(prev => ({
@@ -883,7 +888,9 @@ const BulkBlogModal = ({ closeFnc }) => {
                         type="text"
                         value={formData.keywordInput}
                         onChange={handleKeywordInputChange}
-                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddKeyword())}
+                        onKeyDown={e =>
+                          e.key === "Enter" && (e.preventDefault(), handleAddKeyword())
+                        }
                         onPaste={e => handlePasteItems(e, "keywords")}
                         className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                           errors.keywords ? "border-red-500" : "border-gray-300"

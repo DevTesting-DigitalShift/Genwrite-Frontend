@@ -33,8 +33,7 @@ const PrivateRoutesLayout = () => {
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
-  const isPublicPath =
-    location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
+  const isPublicPath = location.pathname.startsWith("/blog/")
 
   // For guest users on public links, bypass auth checks immediately
   if (!token && isPublicPath) {
@@ -63,8 +62,7 @@ const PrivateRoutesLayout = () => {
     }
   }, [])
 
-  const isAllowed =
-    ALLOWED_ROUTES.some(path => location.pathname.startsWith(path)) || isPublicPath
+  const isAllowed = ALLOWED_ROUTES.some(path => location.pathname.startsWith(path)) || isPublicPath
 
   // Onboarding redirect check
   useEffect(() => {

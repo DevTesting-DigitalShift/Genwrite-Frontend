@@ -74,12 +74,15 @@ export const IMAGE_OPTIONS = [
   },
 ]
 
+export const VALID_IMAGE_CONFIG = {
+  types: ["image/png", "image/jpeg", "image/webp"],
+  max_size: 1 * 1024 * 1024, // 1 MB in bytes
+  max_files: 15,
+}
+
 // Credit Costs for AI Operations (Synced with Backend)
 export const COSTS = Object.freeze({
-  ANALYSIS: {
-    COMPETITORS: 10,
-    KEYWORDS: 5,
-  },
+  ANALYSIS: { COMPETITORS: 10, KEYWORDS: 5 },
   BLOG: {
     PROOFREAD: 5,
     REWRITE: 3,
@@ -91,23 +94,9 @@ export const COSTS = Object.freeze({
     SINGLE: 10,
     REGENERATE: 15,
   },
-  SECTION_TASK: {
-    PROOFREAD: 10,
-    REWRITE: 10,
-    ANALYSIS: 10,
-    PROMPT: 10,
-  },
-  TOOLS: {
-    DETECTOR: 2,
-    KEYWORD_SCRAPER: 5,
-    YOUTUBE_SUMMARIZER: 5,
-    PDF_CHAT: 1,
-  },
-  IMAGE: {
-    GENERATE: 2,
-    ALT_TEXT: 2,
-    ENHANCE: 5,
-  },
+  SECTION_TASK: { PROOFREAD: 10, REWRITE: 10, ANALYSIS: 10, PROMPT: 10 },
+  TOOLS: { DETECTOR: 2, KEYWORD_SCRAPER: 5, YOUTUBE_SUMMARIZER: 5, PDF_CHAT: 1 },
+  IMAGE: { GENERATE: 2, ALT_TEXT: 2, ENHANCE: 5 },
   WEBSITE_RANKING: {
     ANALYSER: 3,
     PROMPT_CREATOR: 2,
@@ -119,12 +108,7 @@ export const COSTS = Object.freeze({
 })
 
 // Cost Multipliers based on AI model
-export const MODEL_MULTIPLIER = {
-  OPENAI: 3,
-  CHATGPT: 3,
-  CLAUDE: 5,
-  GEMINI: 1,
-}
+export const MODEL_MULTIPLIER = { OPENAI: 3, CHATGPT: 3, CLAUDE: 5, GEMINI: 1 }
 
 /**
  * Converts backend (Gemini-based) credits to model-specific credits

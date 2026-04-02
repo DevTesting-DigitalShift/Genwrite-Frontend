@@ -281,7 +281,7 @@ const BlogsPage = () => {
 
   const handleBlogClick = useCallback(
     blog => {
-      navigate(`/blog/${blog._id}`)
+      navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )
@@ -367,11 +367,7 @@ const BlogsPage = () => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map(page => ({
-          ...page,
-          data: [],
-          totalItems: 0,
-        })),
+        pages: oldData.pages.map(page => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("All articles are restored. Check My Projects", {
@@ -393,11 +389,7 @@ const BlogsPage = () => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map(page => ({
-          ...page,
-          data: [],
-          totalItems: 0,
-        })),
+        pages: oldData.pages.map(page => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("Trash emptied. Permanent deletion complete.")

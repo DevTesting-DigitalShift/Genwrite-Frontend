@@ -180,7 +180,7 @@ const MyProjects = () => {
 
   const handleBlogClick = useCallback(
     blog => {
-      navigate(`/blog/${blog._id}`)
+      navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )

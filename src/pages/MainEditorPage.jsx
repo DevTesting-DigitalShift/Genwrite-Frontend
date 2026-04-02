@@ -19,7 +19,13 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getBlogById, createSimpleBlog, updateBlog, getBlogPublicly, toggleBlogVisibility } from "@api/blogApi"
+import {
+  getBlogById,
+  createSimpleBlog,
+  updateBlog,
+  getBlogPublicly,
+  toggleBlogVisibility,
+} from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
 
@@ -30,17 +36,22 @@ const MainEditorPage = () => {
   const navigate = useNavigate()
   const token = localStorage.getItem("token")
 
-  // Detect if we are in public mode: 
+  // Detect if we are in public mode:
   // 1. Not logged in (no token)
   // 2. Accessing a public /blog/ path
-  const isPublicMode = location.pathname.startsWith("/blog/") && !location.pathname.startsWith("/blog-editor")
+  const isPublicMode = location.pathname.startsWith("/blog/")
 
   // Zustand Stores
   const { user } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
 
   // TanStack Query for fetching blog
-  const { data: fetchedBlog, isLoading: isBlogFetching, isError, error } = useQuery({
+  const {
+    data: fetchedBlog,
+    isLoading: isBlogFetching,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["blog", id, isPublicMode],
     queryFn: () => (isPublicMode ? getBlogPublicly(id) : getBlogById(id)),
     enabled: !!id,
@@ -729,28 +740,28 @@ const MainEditorPage = () => {
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
               ) : (
-                  <TipTapEditor
-                    blog={blog}
-                    content={editorContent}
-                    setContent={setEditorContent}
-                    unsavedChanges={unsavedChanges}
-                    setUnsavedChanges={setUnsavedChanges}
-                    title={editorTitle}
-                    setTitle={setEditorTitle}
-                    handleSubmit={handleSave}
-                    keywords={keywords}
-                    setKeywords={setKeywords}
-                    proofreadingResults={proofreadingResults}
-                    handleReplace={handleReplace}
-                    isSavingKeyword={isSaving}
-                    humanizedContent={humanizedContent}
-                    showDiff={isHumanizeModalOpen}
-                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                    handleAcceptOriginalContent={handleAcceptOriginalContent}
-                    wordpressMetadata={metadata}
-                    onReplaceReady={handleReplaceReady}
-                    isPublicMode={isPublicMode}
-                  />
+                <TipTapEditor
+                  blog={blog}
+                  content={editorContent}
+                  setContent={setEditorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
+                  title={editorTitle}
+                  setTitle={setEditorTitle}
+                  handleSubmit={handleSave}
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  isSavingKeyword={isSaving}
+                  humanizedContent={humanizedContent}
+                  showDiff={isHumanizeModalOpen}
+                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                  handleAcceptOriginalContent={handleAcceptOriginalContent}
+                  wordpressMetadata={metadata}
+                  onReplaceReady={handleReplaceReady}
+                  isPublicMode={isPublicMode}
+                />
               )}
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
+import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 
 interface UploadFile {
   uid: string
@@ -26,8 +27,8 @@ interface BlogImageUploadProps {
   onChange?: (files: UploadFile[]) => void
 }
 
-const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"]
-const MAX_SIZE_MB = 1
+const { types: ACCEPTED_TYPES, max_size: MAX_SIZE } = VALID_IMAGE_CONFIG
+
 const ITEMS_PER_PAGE_MOBILE = 6
 const ITEMS_PER_PAGE_DESKTOP = 9
 
@@ -87,7 +88,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
         return
       }
 
-      if (file.size / 1024 / 1024 > MAX_SIZE_MB) {
+      if (file.size > MAX_SIZE) {
         toast.error(`${file.name} exceeds 1MB limit.`)
         return
       }
@@ -168,7 +169,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
     <div className="flex flex-col gap-3">
       <div className="flex justify-between items-center w-full flex-col sm:flex-row gap-2">
         <label htmlFor={id} className="font-medium text-sm sm:text-base">
-          {label} (Max {maxCount}, each {MAX_SIZE_MB}MB)
+          {label} (Max {maxCount}, each {MAX_SIZE / 1024 / 1024}MB)
         </label>
 
         <div className="flex gap-2 w-full sm:w-auto">

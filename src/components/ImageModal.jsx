@@ -5,7 +5,7 @@ import useAuthStore from "@store/useAuthStore"
 import { generateImage, generateAltText, enhanceImage, uploadImage } from "@api/imageGalleryApi"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import { COSTS } from "@/data/blogData"
+import { COSTS, VALID_IMAGE_CONFIG } from "@/data/blogData"
 
 // View Constants
 const VIEWS = {
@@ -225,15 +225,18 @@ const ImageModal = ({
                           if (!file) return
 
                           // Validation
-                          const validTypes = ["image/jpeg", "image/jpg", "image/png"]
+                          const { types: validTypes, max_size: maxSize } = VALID_IMAGE_CONFIG
                           if (!validTypes.includes(file.mimetype || file.type)) {
-                            toast.error("Invalid file type. Only JPG, JPEG, and PNG are allowed.")
+                            toast.error(
+                              "Invalid file type. Only JPG, JPEG, WEBP, and PNG are allowed."
+                            )
                             return
                           }
 
-                          const maxSize = 3 * 1024 * 1024 // 3MB
                           if (file.size > maxSize) {
-                            toast.error("File size is too large. Max limit is 3MB.")
+                            toast.error(
+                              `File size is too large. Max limit is ${maxSize / 1024 / 1024}MB.`
+                            )
                             return
                           }
 
