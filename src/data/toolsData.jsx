@@ -94,8 +94,8 @@ export const tools = [
   },
   {
     id: "website-builder",
-    title: "AU Website Ranker",
-    description: "Analyze and improve your website’s SEO",
+    title: "AEO Website Ranker",
+    description: "Analyze and optimize your website for AI Answer Engines (Perplexity, Gemini, ChatGPT)",
     icon: <Globe className="w-6 h-6" />,
     type: "navigation",
     path: "/website-ranking", // Mapping to Website Ranking for now as closest match
