@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react"
 import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
+import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -23,7 +23,6 @@ import {
   getBlogById,
   createSimpleBlog,
   updateBlog,
-  getBlogPublicly,
   toggleBlogVisibility,
 } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
@@ -36,11 +35,6 @@ const MainEditorPage = () => {
   const navigate = useNavigate()
   const token = localStorage.getItem("token")
 
-  // Detect if we are in public mode:
-  // 1. Not logged in (no token)
-  // 2. Accessing a public /blog/ path
-  const isPublicMode = location.pathname.startsWith("/blog/")
-
   // Zustand Stores
   const { user } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
@@ -52,8 +46,8 @@ const MainEditorPage = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ["blog", id, isPublicMode],
-    queryFn: () => (isPublicMode ? getBlogPublicly(id) : getBlogById(id)),
+    queryKey: ["blog", id],
+    queryFn: () => getBlogById(id),
     enabled: !!id,
     retry: false,
   })
@@ -79,7 +73,7 @@ const MainEditorPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 
-  const pathDetect = location.pathname === `/blog-editor/${blog?._id}` || isPublicMode
+  const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
@@ -135,15 +129,9 @@ const MainEditorPage = () => {
           : "Blog Not Available: The requested blog doesn't exist or has been deleted."
 
       toast.error(message)
-
-      // If a guest tries to access a non-existent or private blog, send them to login
-      if (isPublicMode || !token) {
-        navigate("/login", { replace: true })
-      } else {
-        navigate("/blogs", { replace: true })
-      }
+      navigate("/blogs", { replace: true })
     }
-  }, [isError, error, navigate, isPublicMode, token])
+  }, [isError, error, navigate])
 
   useEffect(() => {
     if (!id) {
@@ -461,6 +449,7 @@ const MainEditorPage = () => {
     )
   }
 
+
   return (
     <>
       <Helmet>
@@ -614,10 +603,10 @@ const MainEditorPage = () => {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {isPublicMode ? "View Blog" : id ? "Edit Blog" : "Create New Blog"}
+                      {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
                     <p className="text-gray-500 text-sm mt-0.5">
-                      {isPublicMode ? "Read-only access" : "Write and optimize your content"}
+                      Write and optimize your content
                     </p>
                   </div>
                   <button onClick={toggleSidebar} className="md:hidden ml-auto">
@@ -626,32 +615,30 @@ const MainEditorPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                  {!isPublicMode && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await toggleBlogVisibility(blog._id, !blog.isPublic)
-                          queryClient.invalidateQueries({ queryKey: ["blog", id] })
-                          toast.success(`Blog is now ${!blog.isPublic ? "Public" : "Private"}`)
-                        } catch (err) {
-                          toast.error("Failed to update visibility")
-                        }
-                      }}
-                      className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                    >
-                      {blog?.isPublic ? (
-                        <>
-                          <Globe className="w-4 h-4 text-green-600" />
-                          Public
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4 text-gray-400" />
-                          Private
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      try {
+                        await toggleBlogVisibility(blog._id, !blog.isPublic)
+                        queryClient.invalidateQueries({ queryKey: ["blog", id] })
+                        toast.success(`Blog is now ${!blog.isPublic ? "Public" : "Private"}`)
+                      } catch (err) {
+                        toast.error("Failed to update visibility")
+                      }
+                    }}
+                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    {blog?.isPublic ? (
+                      <>
+                        <Globe className="w-4 h-4 text-green-600" />
+                        Public
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-gray-400" />
+                        Private
+                      </>
+                    )}
+                  </button>
 
                   {blog?.isPublic && (
                     <button
@@ -668,18 +655,17 @@ const MainEditorPage = () => {
                     </button>
                   )}
 
-                  {!isPublicMode && (
-                    <button
-                      onClick={() => handleSave({ metadata })}
-                      className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
-                        isSaving ||
-                        blog?.isArchived ||
-                        !editorTitle.trim() ||
-                        !editorContent.trim() ||
-                        getWordCount(editorTitle) > 60
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                          : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
-                      }`}
+                  <button
+                    onClick={() => handleSave({ metadata })}
+                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
+                      isSaving ||
+                      blog?.isArchived ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
+                    }`}
                       disabled={
                         isSaving ||
                         blog?.isArchived ||
@@ -700,37 +686,28 @@ const MainEditorPage = () => {
                         </>
                       )}
                     </button>
-                  )}
-                </div>
+                  </div>
               </div>
               {pathDetect && (
                 <div className="mt-4">
                   <div className="flex gap-2 flex-col sm:flex-row">
-                    {isPublicMode ? (
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 w-full">
-                        {editorTitle}
-                      </h1>
-                    ) : (
-                      <input
-                        type="text"
-                        value={editorTitle}
-                        onChange={handleTitleChange}
-                        placeholder="Enter your blog title..."
-                        className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
-                          getWordCount(editorTitle) > 60 ? "text-red-600" : ""
-                        }`}
-                        aria-label="Blog title"
-                      />
+                    <input
+                      type="text"
+                      value={editorTitle}
+                      onChange={handleTitleChange}
+                      placeholder="Enter your blog title..."
+                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
+                        getWordCount(editorTitle) > 60 ? "text-red-600" : ""
+                      }`}
+                      aria-label="Blog title"
+                    />
+                  </div>
+                  <div className="mt-2 text-xs sm:text-sm text-gray-500">
+                    {getWordCount(editorTitle)}/60 words (optimal for SEO)
+                    {getWordCount(editorTitle) > 60 && (
+                      <span className="text-red-600 ml-2">Title exceeds 60 words</span>
                     )}
                   </div>
-                  {!isPublicMode && (
-                    <div className="mt-2 text-xs sm:text-sm text-gray-500">
-                      {getWordCount(editorTitle)}/60 words (optimal for SEO)
-                      {getWordCount(editorTitle) > 60 && (
-                        <span className="text-red-600 ml-2">Title exceeds 60 words</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </header>
@@ -760,7 +737,6 @@ const MainEditorPage = () => {
                   handleAcceptOriginalContent={handleAcceptOriginalContent}
                   wordpressMetadata={metadata}
                   onReplaceReady={handleReplaceReady}
-                  isPublicMode={isPublicMode}
                 />
               )}
             </div>
@@ -791,7 +767,6 @@ const MainEditorPage = () => {
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
               unsavedChanges={unsavedChanges}
               wordpressMetadata={metadata}
-              isPublicMode={isPublicMode}
             />
           </div>
 
@@ -830,7 +805,6 @@ const MainEditorPage = () => {
                   setIsSidebarOpen={setIsSidebarOpen}
                   unsavedChanges={unsavedChanges}
                   wordpressMetadata={metadata}
-                  isPublicMode={isPublicMode}
                 />
               </motion.div>
             )}

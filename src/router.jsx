@@ -10,6 +10,7 @@ const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
+const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorBoundary />,
     children: [
+      { path: "blog/:id", element: r(PublicBlogReader) },
       {
         path: "/",
         element: withLayoutSuspense(PublicRoutesLayout),
@@ -96,7 +98,6 @@ const router = createBrowserRouter([
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: "dashboard", element: r(Dashboard) },
           { path: "editor", element: r(ToolBox) },
-          { path: "blog/:id", element: r(ToolBox) },
           { path: "blogs", element: r(BlogsPage) },
           { path: "integrations", element: r(PluginsMain) },
           { path: "jobs", element: r(jobs) },
@@ -112,7 +113,6 @@ const router = createBrowserRouter([
           { path: "outline", element: r(OutlineEditor) },
           { path: "blog-editor", element: r(ToolBox) },
           { path: "editor/:id", element: r(ToolBox) },
-          { path: "blog/:id", element: r(ToolBox) },
           { path: "cancel-subscription", element: r(CancellationPage) },
           { path: "analytics", element: r(AnalyticsPage) },
           { path: "generate-metadata", element: r(GenerateMetaData) },

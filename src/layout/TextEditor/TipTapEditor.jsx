@@ -434,16 +434,22 @@ const TipTapEditor = ({
       onUpdate: ({ editor }) => {
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
-        setContent(markdown)
+        if (typeof setContent === "function") {
+          setContent(markdown)
+        }
 
         const normCurrent = normalizeContent(markdown)
         const normSaved = normalizeContent(lastSavedContentRef.current ?? "")
 
         // Avoid setting true on initial load if contents are effectively same
         if (normCurrent !== normSaved) {
-          setUnsavedChanges(true)
+          if (typeof setUnsavedChanges === "function") {
+            setUnsavedChanges(true)
+          }
         } else {
-          setUnsavedChanges(false)
+          if (typeof setUnsavedChanges === "function") {
+            setUnsavedChanges(false)
+          }
         }
       },
     },

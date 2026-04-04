@@ -2926,7 +2926,9 @@ const TextEditorSidebar = ({
           <div className="w-8 h-px bg-gray-300 mx-auto my-2" />
         </div>
         <div className="flex flex-col items-center gap-4 py-6">
-          {NAV_ITEMS.filter(item => !isPublicMode || !["regenerate", "aitools", "posting"].includes(item.id)).map(item => {
+          {NAV_ITEMS.filter(
+            item => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+          ).map(item => {
             const isActive = activePanel === item.id
             const Icon = item.icon
             return (
@@ -2997,7 +2999,9 @@ const TextEditorSidebar = ({
             </div>
           </div>
           <div className="flex flex-col gap-3 mt-5">
-            {NAV_ITEMS.filter(item => !isPublicMode || !["regenerate", "aitools", "posting"].includes(item.id)).map(item => {
+            {NAV_ITEMS.filter(
+              item => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+            ).map(item => {
               const Icon = item.icon
               const isActive = activePanel === item.id
               return (

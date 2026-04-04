@@ -6,6 +6,7 @@ import {
   Clock,
   CreditCard,
   DollarSign,
+  IndianRupee,
   Calendar,
   RefreshCw,
   Search,
@@ -128,6 +129,9 @@ const Transactions = () => {
   }
 
   const totalCreditsValue = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+  const isIndian = user?.countryCode === "IN"
+  const currencySymbol = isIndian ? "₹" : "$"
+  const CurrencyIcon = isIndian ? IndianRupee : DollarSign
 
   return (
     <div className="min-h-screen p-6">
@@ -161,7 +165,9 @@ const Transactions = () => {
                 {user?.subscription?.scheduledPlanChange?.newPlan && (
                   <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-100 shadow-sm animate-pulse-slow">
                     <Clock size={14} className="animate-spin-slow" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider">Change Scheduled</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider">
+                      Change Scheduled
+                    </span>
                   </div>
                 )}
               </div>
@@ -173,7 +179,9 @@ const Transactions = () => {
                     <Calendar size={20} />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-amber-900">Upcoming Subscription Update</h4>
+                    <h4 className="text-sm font-bold text-amber-900">
+                      Upcoming Subscription Update
+                    </h4>
                     <p className="text-sm text-amber-800/80 leading-relaxed font-medium">
                       Your account is scheduled to switch to the{" "}
                       <span className="text-amber-900 font-extrabold capitalize">
@@ -183,17 +191,24 @@ const Transactions = () => {
                       {user.subscription.scheduledPlanChange.newBillingPeriod && (
                         <>
                           {" "}
-                          (<span className="capitalize">{user.subscription.scheduledPlanChange.newBillingPeriod}</span>)
+                          (
+                          <span className="capitalize">
+                            {user.subscription.scheduledPlanChange.newBillingPeriod}
+                          </span>
+                          )
                         </>
                       )}{" "}
                       starting on{" "}
                       <span className="text-amber-900 font-extrabold">
-                        {new Date(user.subscription.scheduledPlanChange.effectiveDate).toLocaleDateString("en-GB", {
+                        {new Date(
+                          user.subscription.scheduledPlanChange.effectiveDate
+                        ).toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
                         })}
-                      </span>.
+                      </span>
+                      .
                     </p>
                   </div>
                 </div>
@@ -287,7 +302,7 @@ const Transactions = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
-                    <DollarSign size={20} />
+                    <CurrencyIcon size={20} />
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">
@@ -302,7 +317,7 @@ const Transactions = () => {
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-full shadow-lg shadow-[#4C5BD6]/20 hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-14 transition-all duration-300"
+                  className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-lg hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-12 transition-all duration-300"
                 >
                   <TrendingUp size={18} />
                   <span>Upgrade Plan</span>
@@ -310,7 +325,7 @@ const Transactions = () => {
                 {user?.subscription?.plan && user.subscription.plan !== "free" && (
                   <button
                     onClick={handleManageSubscription}
-                    className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-full shadow-lg shadow-[#4C5BD6]/20 hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-14 transition-all duration-300"
+                    className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-lg hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-12 transition-all duration-300"
                   >
                     <CreditCard size={18} />
                     <span>Billing & Payments</span>
@@ -319,12 +334,11 @@ const Transactions = () => {
                 <button
                   disabled={showTrialMessage}
                   onClick={() => navigate("/cancel-subscription")}
-                  className="flex-1 px-6 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-xl h-14 font-bold transition-all duration-200 disabled:opacity-50 flex items-center justify-center"
+                  className="flex-1 px-6 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-lg h-12 font-bold transition-all duration-200 disabled:opacity-50 flex items-center justify-center"
                 >
                   Cancel Subscription
                 </button>
               </div>
-
             </div>
           </motion.div>
         </div>
@@ -416,7 +430,7 @@ const Transactions = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm font-bold text-slate-900">
-                            ${((t.amount || 0) / 100).toFixed(2)}
+                            {currencySymbol}{((t.amount || 0) / 100).toFixed(2)}
                           </span>
                         </TableCell>
                         <TableCell>
