@@ -28,6 +28,7 @@ import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 import { createPortalSession } from "@api/otherApi"
 import { toast } from "sonner"
+import { getCurrencySymbol } from "@/data/transactionData"
 
 const Transactions = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
@@ -430,7 +431,7 @@ const Transactions = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm font-bold text-slate-900">
-                            {currencySymbol}{((t.amount || 0) / 100).toFixed(2)}
+                            {getCurrencySymbol(t?.currency)} {((t.amount || 0) / 100).toFixed(2)}
                           </span>
                         </TableCell>
                         <TableCell>

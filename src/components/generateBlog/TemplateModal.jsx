@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import useAuthStore from "@store/useAuthStore"
 import { getGeneratedTitles } from "@api/blogApi"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const TemplateModal = ({
   closeFnc,
@@ -79,35 +80,46 @@ const TemplateModal = ({
     setErrors(prev => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = type => {
+  const handleAddKeyword = (type, forcedValue = null) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    const inputValue = formData[inputKey].trim()
+    const seen = new Set()
+    const rawItems = Array.isArray(forcedValue)
+      ? forcedValue
+      : formData[inputKey].split(/[,\t\n\r;]+/)
+    const items = rawItems
+      .map(k => k.trim())
+      .filter(k => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
-    if (!inputValue) {
+    if (items.length === 0) {
       setErrors(prev => ({ ...prev, [type]: true }))
       toast.error("Please enter a keyword.")
       return
     }
 
     const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newKeywords = inputValue
-      .split(",")
-      .map(k => k.trim())
-      .filter(k => k && !existingSet.has(k.toLowerCase()))
+    const filteredKeywords = items.filter(k => !existingSet.has(k.toLowerCase()))
 
-    if (newKeywords.length === 0) {
+    if (filteredKeywords.length === 0) {
       setErrors(prev => ({ ...prev, [type]: true }))
       toast.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
 
-    if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+    if (type === "focusKeywords" && formData[type].length + filteredKeywords.length > 3) {
+      const availableSlots = 3 - formData[type].length
+      if (availableSlots > 0) {
+        setFormData(prev => ({
+          ...prev,
+          [type]: [...prev[type], ...filteredKeywords.slice(0, availableSlots)],
+          [inputKey]: "",
+        }))
+      }
+      setErrors(prev => ({ ...prev, [type]: false }))
       toast.error("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...filteredKeywords], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: false }))
   }
 
@@ -122,6 +134,15 @@ const TemplateModal = ({
       e.preventDefault()
       handleAddKeyword(type)
     }
+  }
+
+  const handlePasteKeywords = (event, type) => {
+    extractKeywordsFromClipboard(event, {
+      type,
+      cb: items => {
+        handleAddKeyword(type, items)
+      },
+    })
   }
 
   const handleGenerateTitles = async () => {
@@ -233,6 +254,7 @@ const TemplateModal = ({
                     value={formData.focusKeywordInput}
                     onChange={e => handleKeywordInputChange(e, "focusKeywords")}
                     onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                    onPaste={e => handlePasteKeywords(e, "focusKeywords")}
                     placeholder="Enter focus keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.focusKeywords ? "input-error" : ""
@@ -280,6 +302,7 @@ const TemplateModal = ({
                     value={formData.keywordInput}
                     onChange={e => handleKeywordInputChange(e, "keywords")}
                     onKeyDown={e => handleKeyPress(e, "keywords")}
+                    onPaste={e => handlePasteKeywords(e, "keywords")}
                     placeholder="Enter secondary keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.keywords ? "input-error" : ""

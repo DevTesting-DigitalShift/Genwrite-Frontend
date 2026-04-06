@@ -22,6 +22,7 @@ import { validateBulkBlogData } from "@/types/forms.schemas"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const BulkBlogModal = ({ closeFnc }) => {
   const { user } = useAuthStore()
@@ -391,39 +392,42 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const handlePasteItems = (e, type) => {
-    const pasteData = e.clipboardData.getData("text")
-    if (
-      pasteData &&
-      (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))
-    ) {
-      e.preventDefault()
-      if (type === "topics") {
-        handleAddTopic(pasteData)
-      } else {
-        handleAddKeyword(pasteData)
-      }
-    }
+    extractKeywordsFromClipboard(e, {
+      type,
+      cb: (items) => {
+        if (type === "topics") {
+          handleAddTopic(items)
+        } else {
+          handleAddKeyword(items)
+        }
+      },
+    })
   }
 
-  const handleAddTopic = forcedValue => {
-    const inputValue =
-      typeof forcedValue === "string" ? forcedValue.trim() : formData.topicInput.trim()
-    if (inputValue === "") {
-      if (typeof forcedValue !== "string")
+  const handleAddTopic = inputValueOrItems => {
+    const seen = new Set()
+    const rawItems = Array.isArray(inputValueOrItems)
+      ? inputValueOrItems
+      : (typeof inputValueOrItems === "string" ? inputValueOrItems : formData.topicInput).split(
+          /[,\t\n\r;]+/
+        )
+    const items = rawItems
+      .map(t => t.trim())
+      .filter(t => t !== "" && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()))
+
+    if (items.length === 0) {
+      if (typeof inputValueOrItems !== "string" && !Array.isArray(inputValueOrItems))
         setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
       return false
     }
 
     const existing = formData.topics.map(t => t.toLowerCase().trim())
-    const newTopics = inputValue
-      .split(/[,\t\n\r]+/)
-      .map(t => t.trim())
-      .filter(t => t !== "" && !existing.includes(t.toLowerCase()))
+    const newTopics = items.filter(t => !existing.includes(t.toLowerCase()))
 
     if (newTopics.length === 0) {
       setErrors(prev => ({
         ...prev,
-        topics: "Please enter valid, non-duplicate topics separated by commas.",
+        topics: "Please enter valid, non-duplicate topics.",
       }))
       setFormData(prev => ({ ...prev, topicInput: "" }))
       return false
@@ -439,25 +443,30 @@ const BulkBlogModal = ({ closeFnc }) => {
     setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
   }
 
-  const handleAddKeyword = forcedValue => {
-    const inputValue =
-      typeof forcedValue === "string" ? forcedValue.trim() : formData.keywordInput.trim()
-    if (inputValue === "") {
-      if (typeof forcedValue !== "string")
+  const handleAddKeyword = inputValueOrItems => {
+    const seen = new Set()
+    const rawItems = Array.isArray(inputValueOrItems)
+      ? inputValueOrItems
+      : (typeof inputValueOrItems === "string" ? inputValueOrItems : formData.keywordInput).split(
+          /[,\t\n\r;]+/
+        )
+    const items = rawItems
+      .map(k => k.trim())
+      .filter(k => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+
+    if (items.length === 0) {
+      if (typeof inputValueOrItems !== "string" && !Array.isArray(inputValueOrItems))
         setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
       return false
     }
 
     const existing = formData.keywords.map(k => k.toLowerCase().trim())
-    const newKeywords = inputValue
-      .split(/[,\t\n\r]+/)
-      .map(k => k.trim())
-      .filter(k => k !== "" && !existing.includes(k.toLowerCase()))
+    const newKeywords = items.filter(k => !existing.includes(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
       setErrors(prev => ({
         ...prev,
-        keywords: "Please enter valid, non-duplicate keywords separated by commas.",
+        keywords: "Please enter valid, non-duplicate keywords.",
       }))
       setFormData(prev => ({ ...prev, keywordInput: "" }))
       return false

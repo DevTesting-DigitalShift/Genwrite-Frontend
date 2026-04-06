@@ -17,6 +17,7 @@ import { Switch } from "@components/ui/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
@@ -222,18 +223,21 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   // Add keywords to the form data
   const handleAddKeyword = (type, forcedValue = null) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    const inputValue = forcedValue !== null ? forcedValue.trim() : formData[inputKey].trim()
+    const seen = new Set()
+    const rawItems = Array.isArray(forcedValue)
+      ? forcedValue
+      : (forcedValue !== null ? forcedValue : formData[inputKey]).split(/[,\t\n\r;]+/)
+    const items = rawItems
+      .map(k => k.trim())
+      .filter(k => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
-    if (!inputValue) {
+    if (items.length === 0) {
       if (forcedValue === null) setErrors(prev => ({ ...prev, [type]: "Please enter a keyword." }))
       return
     }
 
     const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newKeywords = inputValue
-      .split(/[,\t\n\r]+/)
-      .map(k => k.trim())
-      .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
+    const newKeywords = items.filter(k => !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
       if (forcedValue === null) {
@@ -246,13 +250,15 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
-      // Still add whatever fits
       const availableSlots = 3 - formData[type].length
       if (availableSlots > 0) {
         const toAdd = newKeywords.slice(0, availableSlots)
         setFormData(prev => ({ ...prev, [type]: [...prev[type], ...toAdd], [inputKey]: "" }))
+        setErrors(prev => ({ ...prev, [type]: "" }))
+      } else {
+        setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
       }
+      toast.warning("You can only add up to 3 focus keywords.")
       return
     }
 
@@ -262,11 +268,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle Clipboard Paste for Keywords
   const handlePasteKeywords = (e, type) => {
-    const pasteData = e.clipboardData.getData("text")
-    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-      e.preventDefault()
-      handleAddKeyword(type, pasteData)
-    }
+    extractKeywordsFromClipboard(e, {
+      type,
+      cb: (items, fieldType) => handleAddKeyword(fieldType, items),
+    })
   }
 
   // Remove a keyword

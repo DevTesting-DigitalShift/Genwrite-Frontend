@@ -50,15 +50,22 @@ import ExcelJS from "exceljs"
 import clsx from "clsx"
 import dayjs from "dayjs"
 import ConnectedTools from "@components/ConnectedTools"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
+const KEYWORD_LIMIT = 20
 
 const KeywordResearch = () => {
   const location = useLocation()
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState(() => {
     const initial = location.state?.transferValue || ""
-    return initial ? initial.split(",").map(k => k.trim()) : []
+    if (!initial) return []
+
+    return [...new Set(initial.split(/[,\t\n\r;]+/).map(k => k.trim()).filter(Boolean))].slice(
+      0,
+      KEYWORD_LIMIT
+    )
   })
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
@@ -90,6 +97,33 @@ const KeywordResearch = () => {
     }
   }, [keywords, clearKeywordAnalysis])
 
+  useEffect(() => {
+    const initial = location.state?.transferValue || ""
+    if (!initial) return
+
+    const parsedKeywords = [...new Set(initial.split(/[,\t\n\r;]+/).map(k => k.trim()).filter(Boolean))]
+    if (parsedKeywords.length > KEYWORD_LIMIT) {
+      toast.warning(`Only the first ${KEYWORD_LIMIT} keywords will be used.`)
+    }
+  }, [location.state?.transferValue])
+
+  const mergeKeywordsWithLimit = incomingKeywords => {
+    const seen = new Set()
+    const mergedKeywords = [...keywords, ...incomingKeywords].filter(keyword => {
+      const normalizedKeyword = keyword.toLowerCase()
+      if (!keyword || seen.has(normalizedKeyword)) return false
+      seen.add(normalizedKeyword)
+      return true
+    })
+
+    if (mergedKeywords.length > KEYWORD_LIMIT) {
+      toast.warning(`Only the first ${KEYWORD_LIMIT} keywords will be used.`)
+      return mergedKeywords.slice(0, KEYWORD_LIMIT)
+    }
+
+    return mergedKeywords
+  }
+
   const addKeyword = forcedValue => {
     const input = typeof forcedValue === "string" ? forcedValue.trim() : newKeyword.trim()
     if (!input) return
@@ -98,7 +132,7 @@ const KeywordResearch = () => {
     const seen = new Set()
 
     const newKeywords = input
-      .split(/[,\t\n\r]+/)
+      .split(/[,\t\n\r;]+/)
       .map(k => k.trim())
       .filter(
         k =>
@@ -109,17 +143,19 @@ const KeywordResearch = () => {
       )
 
     if (newKeywords.length > 0) {
-      setKeywords([...keywords, ...newKeywords])
+      setKeywords(mergeKeywordsWithLimit(newKeywords))
       setNewKeyword("")
     }
   }
 
   const handlePasteKeywords = e => {
-    const pasteData = e.clipboardData.getData("text")
-    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-      e.preventDefault()
-      addKeyword(pasteData)
-    }
+    extractKeywordsFromClipboard(e, {
+      type: "keywords",
+      cb: items => {
+        setKeywords(mergeKeywordsWithLimit(items))
+        setNewKeyword("")
+      },
+    })
   }
 
   const removeKeyword = index => {

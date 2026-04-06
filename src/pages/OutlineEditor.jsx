@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
@@ -119,25 +120,28 @@ const OutlineEditor = () => {
     setErrors(prev => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = type => {
+  const handleAddKeyword = (type, forcedValue = null) => {
     const inputKey =
       type === "keywords"
         ? "keywordInput"
         : type === "focusKeywords"
           ? "focusKeywordInput"
           : "resourceInput"
-    const inputValue = formData[inputKey].trim()
+    const seen = new Set()
+    const rawItems = Array.isArray(forcedValue)
+      ? forcedValue
+      : formData[inputKey].split(/[,\t\n\r;]+/)
+    const items = rawItems
+      .map(k => k.trim())
+      .filter(k => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
-    if (!inputValue) {
+    if (items.length === 0) {
       setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
     const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newItems = inputValue
-      .split(",")
-      .map(k => k.trim())
-      .filter(k => k && !existingSet.has(k.toLowerCase()))
+    const newItems = items.filter(k => !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) {
       setErrors(prev => ({ ...prev, [type]: true }))
@@ -148,7 +152,15 @@ const OutlineEditor = () => {
       type === "focusKeywords" &&
       formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS
     ) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      const availableSlots = BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS - formData[type].length
+      if (availableSlots > 0) {
+        setFormData(prev => ({
+          ...prev,
+          [type]: [...prev[type], ...newItems.slice(0, availableSlots)],
+          [inputKey]: "",
+        }))
+      }
+      setErrors(prev => ({ ...prev, [type]: false }))
       return
     }
 
@@ -190,6 +202,15 @@ const OutlineEditor = () => {
       e.preventDefault()
       handleAddKeyword(type)
     }
+  }
+
+  const handlePasteKeywords = (event, type) => {
+    extractKeywordsFromClipboard(event, {
+      type,
+      cb: items => {
+        handleAddKeyword(type, items)
+      },
+    })
   }
 
   const handleBrandSelect = brandId => {
@@ -364,6 +385,7 @@ const OutlineEditor = () => {
                           value={formData.focusKeywordInput}
                           onChange={e => handleKeywordInputChange(e, "focusKeywords")}
                           onKeyDown={e => handleKeyPress(e, "focusKeywords")}
+                          onPaste={e => handlePasteKeywords(e, "focusKeywords")}
                           placeholder="Type and press Enter..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
@@ -408,6 +430,7 @@ const OutlineEditor = () => {
                           value={formData.keywordInput}
                           onChange={e => handleKeywordInputChange(e, "keywords")}
                           onKeyDown={e => handleKeyPress(e, "keywords")}
+                          onPaste={e => handlePasteKeywords(e, "keywords")}
                           placeholder="Add secondary keywords..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
@@ -566,6 +589,7 @@ const OutlineEditor = () => {
                           value={formData.resourceInput}
                           onChange={e => handleKeywordInputChange(e, "resources")}
                           onKeyDown={e => handleKeyPress(e, "resources")}
+                          onPaste={e => handlePasteKeywords(e, "resources")}
                           placeholder="Add URLs to context or sources..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />

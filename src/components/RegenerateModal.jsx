@@ -10,6 +10,7 @@ import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector
 import { computeCost } from "@/data/pricingConfig"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const RegenerateModal = ({
   isOpen,
@@ -72,6 +73,34 @@ const RegenerateModal = ({
     }
     if (newKws.length > 0) updateRegenField(field, [...regenForm[field], ...newKws])
     type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
+  }
+
+  const handlePasteKeywords = (event, type) => {
+    extractKeywordsFromClipboard(event, {
+      type,
+      cb: items => {
+        const field = type === "focus" ? "focusKeywords" : "keywords"
+        const existing = new Set(regenForm[field].map(keyword => keyword.toLowerCase()))
+        const newKeywords = items
+          .map(keyword => keyword.trim().toLowerCase())
+          .filter(keyword => keyword && !existing.has(keyword))
+
+        if (newKeywords.length === 0) return
+
+        if (type === "focus" && regenForm.focusKeywords.length + newKeywords.length > 3) {
+          const availableSlots = 3 - regenForm.focusKeywords.length
+          if (availableSlots > 0) {
+            updateRegenField(field, [...regenForm[field], ...newKeywords.slice(0, availableSlots)])
+          }
+          toast.warning("Max 3 focus keywords")
+          setFocusKeywordInput("")
+          return
+        }
+
+        updateRegenField(field, [...regenForm[field], ...newKeywords])
+        type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
+      },
+    })
   }
 
   const removeRegenKeyword = (type, index) => {
@@ -181,6 +210,7 @@ const RegenerateModal = ({
                       className="input outline-0 w-full"
                       value={focusKeywordInput}
                       onChange={e => setFocusKeywordInput(e.target.value)}
+                      onPaste={e => handlePasteKeywords(e, "focus")}
                       onKeyDown={e =>
                         e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
                       }
@@ -219,6 +249,7 @@ const RegenerateModal = ({
                       className="input outline-0 w-full"
                       value={keywordInput}
                       onChange={e => setKeywordInput(e.target.value)}
+                      onPaste={e => handlePasteKeywords(e, "secondary")}
                       onKeyDown={e =>
                         e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
                       }

@@ -20,6 +20,7 @@ import ImageSourceSelector from "@components/ImageSourceSelector"
 import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import AdvancedOptions from "@components/AdvancedOptions"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const StepContent = ({
   currentStep,
@@ -82,16 +83,24 @@ const StepContent = ({
   }
 
   const handleAddItems = (input, type) => {
-    const trimmedInput = input.trim()
-    if (!trimmedInput) return
+    const items = Array.isArray(input)
+      ? input
+      : typeof input === "string"
+        ? input
+            .split(/[,\t\n\r]+/)
+            .map(item => item.trim())
+            .filter(item => item !== "")
+        : []
+
+    if (items.length === 0) return
 
     const existing =
       type === "topics"
         ? (newJob.blogs?.topics || []).map(t => t.toLowerCase().trim())
         : (formData?.keywords || []).map(k => k.toLowerCase().trim())
+
     const seen = new Set()
-    const newItems = trimmedInput
-      .split(/[,\t\n\r]+/)
+    const newItems = items
       .map(item => item.trim())
       .filter(item => {
         const lower = item.toLowerCase()
@@ -383,11 +392,10 @@ const StepContent = ({
                   }
                   onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
                   onPaste={e => {
-                    const pasteData = e.clipboardData.getData("text")
-                    if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-                      e.preventDefault()
-                      handleAddItems(pasteData, "topics")
-                    }
+                    extractKeywordsFromClipboard(e, {
+                      type: "topics",
+                      cb: handleAddItems,
+                    })
                   }}
                   className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                     errors.topics ? "input-error" : ""
@@ -501,11 +509,10 @@ const StepContent = ({
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
                     onPaste={e => {
-                      const pasteData = e.clipboardData.getData("text")
-                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-                        e.preventDefault()
-                        handleAddItems(pasteData, "keywords")
-                      }
+                      extractKeywordsFromClipboard(e, {
+                        type: "keywords",
+                        cb: handleAddItems,
+                      })
                     }}
                     className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                       errors.keywords ? "input-error" : "border-gray-300"

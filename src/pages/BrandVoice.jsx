@@ -11,6 +11,7 @@ import UpgradeModal from "@components/UpgradeModal"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
 import { toast } from "sonner"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -169,6 +170,34 @@ const BrandVoice = () => {
       }
     },
     [inputValue, formData.keywords]
+  )
+
+  const handlePasteKeywords = useCallback(
+    event => {
+      extractKeywordsFromClipboard(event, {
+        type: "keywords",
+        cb: items => {
+          const existing = new Set(formData.keywords.map(keyword => keyword.trim().toLowerCase()))
+          const seen = new Set()
+          const newKeywords = items.filter(keyword => {
+            const normalizedKeyword = keyword.toLowerCase()
+            if (!keyword || existing.has(normalizedKeyword) || seen.has(normalizedKeyword)) {
+              return false
+            }
+            seen.add(normalizedKeyword)
+            return true
+          })
+
+          if (newKeywords.length === 0) return
+
+          setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+          setInputValue("")
+          setErrors(prev => ({ ...prev, keywords: undefined }))
+          setIsFormReset(false)
+        },
+      })
+    },
+    [formData.keywords]
   )
 
   const removeKeyword = useCallback(keyword => {
@@ -504,6 +533,7 @@ const BrandVoice = () => {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePasteKeywords}
                   className="grow bg-transparent border-none text-black outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
                   aria-describedby={errors.keywords ? "keywords-error" : undefined}

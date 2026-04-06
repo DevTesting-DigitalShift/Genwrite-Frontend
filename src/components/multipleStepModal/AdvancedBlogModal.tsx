@@ -24,6 +24,7 @@ import { Switch } from "@components/ui/switch"
 import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
 import useIntegrationStore from "@store/useIntegrationStore"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 interface AdvancedBlogModalProps {
   onSubmit: (data: unknown) => void
@@ -156,13 +157,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     }
   }, [selectedKeywords, pendingImport, setPendingImport])
 
-  const handleAddKeywordItems = (inputValue: string, type: "keywords" | "focusKeywords") => {
-    const trimmedInput = inputValue.trim()
-    if (!trimmedInput) return
+  const handleAddKeywordItems = (
+    inputValue: string | string[],
+    type: "keywords" | "focusKeywords"
+  ) => {
+    const seen = new Set<string>()
+    const rawItems = Array.isArray(inputValue) ? inputValue : inputValue.split(/[,\t\n\r;]+/)
+    const items = rawItems
+      .map(k => k.trim())
+      .filter(k => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+    if (items.length === 0) return
 
     const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newItems = trimmedInput
-      .split(/[,\t\n\r]+/)
+    const newItems = items
       .map(k => k.trim())
       .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
 
@@ -172,7 +179,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       toast.error("Maximum 3 focus keywords allowed. Adding only the first available.")
       const available = 3 - formData.focusKeywords.length
       if (available > 0) {
-        updateFormData({ focusKeywords: [...formData.focusKeywords, ...newItems.slice(0, available)] })
+        updateFormData({
+          focusKeywords: [...formData.focusKeywords, ...newItems.slice(0, available)],
+        })
       }
       return
     }
@@ -513,23 +522,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-              errors.focusKeywords ? "border-red-500" : "border-slate-300"
-            }`}
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.focusKeywords ? "border-red-500" : "border-slate-300"
+                      }`}
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value
                         handleAddKeywordItems(val, "focusKeywords")
-                        ;(e.target as HTMLInputElement).value = ""
+                          ; (e.target as HTMLInputElement).value = ""
                       }
                     }}
                     onPaste={e => {
-                      const pasteData = e.clipboardData.getData("text")
-                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-                        e.preventDefault()
-                        handleAddKeywordItems(pasteData, "focusKeywords")
-                      }
+                      extractKeywordsFromClipboard(e, {
+                        type: "focusKeywords",
+                        cb: handleAddKeywordItems,
+                      })
                     }}
                   />
                   {errors.focusKeywords && (
@@ -569,23 +576,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-              errors.keywords ? "border-red-500" : "border-slate-300"
-            }`}
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.keywords ? "border-red-500" : "border-slate-300"
+                      }`}
                     onKeyDown={e => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value
                         handleAddKeywordItems(val, "keywords")
-                        ;(e.target as HTMLInputElement).value = ""
+                          ; (e.target as HTMLInputElement).value = ""
                       }
                     }}
                     onPaste={e => {
-                      const pasteData = e.clipboardData.getData("text")
-                      if (pasteData && (pasteData.includes("\n") || pasteData.includes("\t") || pasteData.includes(","))) {
-                        e.preventDefault()
-                        handleAddKeywordItems(pasteData, "keywords")
-                      }
+                      extractKeywordsFromClipboard(e, {
+                        type: "keywords",
+                        cb: handleAddKeywordItems,
+                      })
                     }}
                   />
                   {errors.keywords && (
@@ -629,9 +634,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       value={formData.title}
                       onChange={handleInputChange}
                       className={`flex-1 mt-2 p-2 rounded-md border bg-white text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-                errors.title ? "border-red-500" : "border-slate-300"
-              }`}
+              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.title ? "border-red-500" : "border-slate-300"
+                        }`}
                     />
                     <button
                       onClick={handleGenerateTitles}
@@ -651,11 +655,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           key={i}
                           onClick={() => handleInputChange({ target: { name: "title", value: t } })}
                           className={`px-3 py-1 text-xs rounded-md border transition
-                  ${
-                    formData.title === t
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white border-slate-300 hover:bg-slate-100"
-                  }`}
+                  ${formData.title === t
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white border-slate-300 hover:bg-slate-100"
+                            }`}
                         >
                           {t}
                         </button>
@@ -690,9 +693,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   onChange={e =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
-                  className={`select select-bordered w-full rounded-lg mt-3 ${
-                    errors.tone ? "border-red-500" : ""
-                  }`}
+                  className={`select select-bordered w-full rounded-lg mt-3 ${errors.tone ? "border-red-500" : ""
+                    }`}
                 >
                   {TONES.map(t => (
                     <option key={t} value={t}>
@@ -790,10 +792,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <div className="space-y-3 mt-2">
                     <div
                       className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
-                        ${
-                          errors.blogImages
-                            ? "border-red-400 bg-red-50"
-                            : "border-slate-300 bg-slate-50 hover:border-[#4C5BD6] hover:bg-blue-50/30"
+                        ${errors.blogImages
+                          ? "border-red-400 bg-red-50"
+                          : "border-slate-300 bg-slate-50 hover:border-[#4C5BD6] hover:bg-blue-50/30"
                         }
                       `}
                       onClick={() => {
@@ -980,7 +981,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           value: [...formData.referenceLinks, val],
                         },
                       })
-                      ;(e.target as HTMLInputElement).value = ""
+                        ; (e.target as HTMLInputElement).value = ""
                     }
                   }
                 }}

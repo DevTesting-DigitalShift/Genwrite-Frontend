@@ -14,6 +14,7 @@ import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
 import { toast } from "sonner"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const Onboarding = () => {
   const navigate = useNavigate()
@@ -109,6 +110,21 @@ const Onboarding = () => {
       setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
       setKeywordInput("")
     }
+  }
+
+  const handlePasteKeywords = e => {
+    extractKeywordsFromClipboard(e, {
+      type: "keywords",
+      cb: items => {
+        const existingKeywords = new Set(formData.keywords.map(keyword => keyword.toLowerCase()))
+        const newKeywords = items.filter(keyword => !existingKeywords.has(keyword.toLowerCase()))
+
+        if (newKeywords.length === 0) return
+
+        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+        setKeywordInput("")
+      },
+    })
   }
 
   const removeKeyword = keyword => {
@@ -337,6 +353,7 @@ const Onboarding = () => {
                       value={keywordInput}
                       onChange={e => setKeywordInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && addKeyword()}
+                      onPaste={handlePasteKeywords}
                       className="input outline-0 flex-1 rounded-lg"
                     />
                     <button
