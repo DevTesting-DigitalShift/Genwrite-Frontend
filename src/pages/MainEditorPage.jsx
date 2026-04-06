@@ -75,7 +75,7 @@ const MainEditorPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 
-  const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
+  const pathDetect = location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
@@ -622,9 +622,12 @@ const MainEditorPage = () => {
                   <button
                     onClick={async () => {
                       try {
-                        await toggleBlogVisibility(blog._id, !blog.isPublic)
-                        queryClient.invalidateQueries({ queryKey: ["blog", id] })
-                        toast.success(`Blog is now ${!blog.isPublic ? "Public" : "Private"}`)
+                        const newVisibility = !blog.isPublic
+                        const response = await toggleBlogVisibility(blog._id, newVisibility)
+                        // Update both TanStack Query and Zustand store for immediate UI feedback
+                        queryClient.setQueryData(["blog", id], prev => ({ ...prev, isPublic: newVisibility }))
+                        setSelectedBlog({ ...blog, isPublic: newVisibility })
+                        toast.success(`Blog is now ${newVisibility ? "Public" : "Private"}`)
                       } catch (err) {
                         toast.error("Failed to update visibility")
                       }
@@ -695,12 +698,16 @@ const MainEditorPage = () => {
               {pathDetect && (
                 <div className="mt-4">
                   <div className="flex gap-2 flex-col sm:flex-row">
-                    <input
-                      type="text"
+                    <textarea
                       value={editorTitle}
                       onChange={handleTitleChange}
+                      onInput={e => {
+                        e.target.style.height = "auto"
+                        e.target.style.height = e.target.scrollHeight + "px"
+                      }}
                       placeholder="Enter your blog title..."
-                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
+                      rows={1}
+                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full overflow-hidden leading-tight bg-transparent ${
                         getWordCount(editorTitle) > 60 ? "text-red-600" : ""
                       }`}
                       aria-label="Blog title"

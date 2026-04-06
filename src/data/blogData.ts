@@ -82,12 +82,12 @@ export const VALID_IMAGE_CONFIG = {
 
 // Credit Costs for AI Operations (Synced with Backend)
 export const COSTS = Object.freeze({
-  ANALYSIS: { COMPETITORS: 10, KEYWORDS: 5 },
+  ANALYSIS: { COMPETITORS: 10, KEYWORDS: 10 },
   BLOG: {
     PROOFREAD: 5,
     REWRITE: 3,
     METADATA: 5,
-    HUMANISED_CONTENT: 5,
+    HUMANISED_CONTENT: 20,
     OUTLINE: 10,
     PROMPT_CONTENT: 5,
     QUICK: 10,
@@ -108,7 +108,7 @@ export const COSTS = Object.freeze({
 })
 
 // Cost Multipliers based on AI model
-export const MODEL_MULTIPLIER = { OPENAI: 3, CHATGPT: 3, CLAUDE: 5, GEMINI: 1 }
+export const MODEL_MULTIPLIER = { OPENAI: 1.25, CHATGPT: 1.25, CLAUDE: 1.5, GEMINI: 1 }
 
 /**
  * Converts backend (Gemini-based) credits to model-specific credits

@@ -67,7 +67,6 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorBoundary />,
     children: [
-      { path: "blog/:id", element: r(PublicBlogReader) },
       {
         path: "/",
         element: withLayoutSuspense(PublicRoutesLayout),
@@ -108,10 +107,12 @@ const router = createBrowserRouter([
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },
+          { path: "blog/:id", element: r(PublicBlogReader) },
           { path: "blog-performance", element: r(SearchConsole) },
           { path: "humanize-content", element: r(HumanizeContent) },
           { path: "outline", element: r(OutlineEditor) },
           { path: "blog-editor", element: r(ToolBox) },
+          { path: "blog-editor/:id", element: r(ToolBox) },
           { path: "editor/:id", element: r(ToolBox) },
           { path: "cancel-subscription", element: r(CancellationPage) },
           { path: "analytics", element: r(AnalyticsPage) },

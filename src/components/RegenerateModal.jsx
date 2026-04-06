@@ -30,33 +30,16 @@ const RegenerateModal = ({
 
   // Calculate regenerate cost using pricing config
   const calculateRegenCost = useCallback(() => {
-    const features = []
-
-    // Add features based on selections
-    if (regenForm.isCheckedBrand) features.push("brandVoice")
-    if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
-    if (regenForm.options.performKeywordResearch) features.push("keywordResearch")
-    if (regenForm.options.includeFaqs) features.push("faqGeneration")
-    if (regenForm.options.includeInterlinks) features.push("internalLinking")
-    if (regenForm.isCheckedQuick) features.push("quickSummary")
-    if (regenForm.options.automaticPosting) features.push("automaticPosting")
-
-    let cost = computeCost({
+    return computeCost({
       wordCount: regenForm.userDefinedLength || 1000,
-      features,
+      options: regenForm.options,
       aiModel: regenForm.aiModel || "gemini",
       includeImages: regenForm.isCheckedGeneratedImages,
       imageSource: regenForm.imageSource,
       numberOfImages: regenForm.numberOfImages || 3,
       isCheckedBrand: regenForm.isCheckedBrand,
+      costCutter: regenForm.costCutter,
     })
-
-    // Apply Cost Cutter discount (25% off)
-    if (regenForm.costCutter) {
-      cost = Math.round(cost * 0.5)
-    }
-
-    return cost
   }, [regenForm])
 
   const addRegenKeyword = type => {

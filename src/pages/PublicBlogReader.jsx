@@ -143,45 +143,47 @@ const PublicBlogReader = () => {
         <title>{editorTitle || "Blog"} | GenWrite</title>
       </Helmet>
 
-      {/* Premium Reader NavBar */}
-      <nav className="fixed top-0 w-full z-100 bg-white/70 backdrop-blur-xl border-b border-slate-100 h-16 sm:h-20 flex items-center justify-between px-4 md:px-12 transition-all">
-        <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer group">
-          <img src="/Images/genwriteIcon.webp" alt="GenWrite" className="w-8 h-8 object-contain" />
-          <span className="font-black text-xl sm:text-2xl tracking-tighter text-slate-900">
-            Gen<span className="text-blue-600">Write</span>
-          </span>
-        </div>
+      {/* Premium Reader NavBar - Visible only for guest users (who don't have the standard app header) */}
+      {!user?._id && (
+        <nav className="fixed top-0 w-full z-100 bg-white/70 backdrop-blur-xl border-b border-slate-100 h-16 sm:h-20 flex items-center justify-between px-4 md:px-12 transition-all">
+          <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer group">
+            <img src="/Images/genwriteIcon.webp" alt="GenWrite" className="w-8 h-8 object-contain" />
+            <span className="font-black text-xl sm:text-2xl tracking-tighter text-slate-900">
+              Gen<span className="text-blue-600">Write</span>
+            </span>
+          </div>
 
-        <div className="flex items-center gap-3 sm:gap-6">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href)
-              toast.success("Link copied to clipboard!")
-            }}
-            className="p-2.5 hover:bg-slate-100 rounded-md transition-colors group border border-transparent hover:border-slate-200"
-            title="Share Link"
-          >
-            <Share2 className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
-          </button>
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-          <button
-            onClick={() => navigate("/signup")}
-            className="px-5 sm:px-7 py-2.5 bg-slate-900 text-white font-bold rounded-md text-sm hover:bg-slate-800 transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-95"
-          >
-            Get Started
-          </button>
-        </div>
-      </nav>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href)
+                toast.success("Link copied to clipboard!")
+              }}
+              className="p-2.5 hover:bg-slate-100 rounded-md transition-colors group border border-transparent hover:border-slate-200"
+              title="Share Link"
+            >
+              <Share2 className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
+            </button>
+            <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+            <button
+              onClick={() => navigate("/signup")}
+              className="px-5 sm:px-7 py-2.5 bg-slate-900 text-white font-bold rounded-md text-sm hover:bg-slate-800 transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-95"
+            >
+              Get Started
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* Article & Sidebar Container */}
-      <div className="max-w-7xl mx-auto px-4 pt-32 pb-20">
+      <div className={`max-w-7xl mx-auto px-4 pb-20 ${user?._id ? "pt-10" : "pt-32"}`}>
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Main Content Column */}
           <main className="flex-1 min-w-0">
             <article className="max-w-3xl">
               {/* Minimalist Reader Header */}
               <header className="mb-12 space-y-6">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight text-pretty">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight text-pretty break-words">
                   {editorTitle}
                 </h1>
               </header>
@@ -385,44 +387,46 @@ const PublicBlogReader = () => {
           </aside>
         </div>
 
-        {/* Premium CTA Footer */}
-        <footer className="mt-32">
-          <div className="relative">
-            <div className="relative bg-white rounded-md p-8 md:p-14 border border-slate-200 text-center space-y-8 overflow-hidden">
-              <div className="w-20 h-20 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2 border border-blue-100">
-                <Sparkles size={40} strokeWidth={2.5} />
-              </div>
-              <div className="space-y-3">
-                <h3 className="text-3xl md:text-4xl font-black text-slate-900">
-                  Craft Stories That Matter
-                </h3>
-                <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed">
-                  This article was built with{" "}
-                  <span className="text-indigo-600 font-bold">GenWrite</span> – the world’s most
-                  advanced AI writing orchestration platform.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-md hover:bg-blue-700 active:scale-95 transition-all border border-blue-700"
-                >
-                  Start Writing Free
-                </button>
-                <button
-                  onClick={() => navigate("/")}
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-slate-600 font-bold border border-slate-200 rounded-md hover:bg-slate-50 transition-all"
-                >
-                  Learn More
-                </button>
+        {/* Premium CTA Footer - Only for guests */}
+        {!user?._id && (
+          <footer className="mt-32">
+            <div className="relative">
+              <div className="relative bg-white rounded-md p-8 md:p-14 border border-slate-200 text-center space-y-8 overflow-hidden">
+                <div className="w-20 h-20 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2 border border-blue-100">
+                  <Sparkles size={40} strokeWidth={2.5} />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-3xl md:text-4xl font-black text-slate-900">
+                    Craft Stories That Matter
+                  </h3>
+                  <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed">
+                    This article was built with{" "}
+                    <span className="text-indigo-600 font-bold">GenWrite</span> – the world’s most
+                    advanced AI writing orchestration platform.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={() => navigate("/signup")}
+                    className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-md hover:bg-blue-700 active:scale-95 transition-all border border-blue-700"
+                  >
+                    Start Writing Free
+                  </button>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="w-full sm:w-auto px-8 py-4 bg-white text-slate-600 font-bold border border-slate-200 rounded-md hover:bg-slate-50 transition-all"
+                  >
+                    Learn More
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-20 text-center text-slate-400 text-sm font-medium pb-20 uppercase tracking-widest">
-            &copy; {new Date().getFullYear()} GenWrite AI. All rights reserved.
-          </div>
-        </footer>
+            <div className="mt-20 text-center text-slate-400 text-sm font-medium pb-20 uppercase tracking-widest">
+              &copy; {new Date().getFullYear()} GenWrite AI. All rights reserved.
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   )
