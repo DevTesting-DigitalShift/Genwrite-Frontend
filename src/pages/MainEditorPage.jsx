@@ -38,6 +38,7 @@ const MainEditorPage = () => {
   // Zustand Stores
   const { user } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
+  const cachedBlog = queryClient.getQueryData(["blog", id]) || (blog?._id === id ? blog : null)
 
   // TanStack Query for fetching blog
   const {
@@ -48,7 +49,8 @@ const MainEditorPage = () => {
   } = useQuery({
     queryKey: ["blog", id],
     queryFn: () => getBlogById(id),
-    enabled: !!id,
+    enabled: !!id && !cachedBlog,
+    initialData: cachedBlog || undefined,
     retry: false,
   })
 
@@ -147,7 +149,7 @@ const MainEditorPage = () => {
   }, [id, clearBlogUI])
 
   useEffect(() => {
-    if (blog && id) {
+    if (blog && id && blog._id === id) {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
       setEditorContent(blog.content ?? "")
@@ -164,6 +166,8 @@ const MainEditorPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  const hasMatchingBlog = !id || blog?._id === id
 
   // Store the section-aware replace function from TextEditor
   const sectionReplaceRef = useRef(null)
@@ -441,7 +445,7 @@ const MainEditorPage = () => {
     toast.info("Retained original content.")
   }, [setIsHumanizeModalOpen])
 
-  if (isBlogFetching || isPosting || blog?.status === "pending") {
+  if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
     return (
       <div className="fixed inset-0 z-999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
         <LoadingScreen />
