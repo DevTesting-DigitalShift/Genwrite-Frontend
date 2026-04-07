@@ -12,6 +12,8 @@ import useBlogStore from "@store/useBlogStore"
 import useAuthStore from "@store/useAuthStore"
 import "../layout/TextEditor/editor.css"
 
+import { getWordCount, getEstimatedReadTime } from "@/utils/wordUtils"
+
 const PublicBlogReader = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -32,23 +34,26 @@ const PublicBlogReader = () => {
     retry: false,
   })
 
-  const getAuthorId = blogData => {
-    if (!blogData) return null
+  const getAuthor = blogData => {
+    if (!blogData) return { name: "GenWrite Author", avatar: null }
 
-    return (
-      blogData?.author?._id ||
-      blogData?.author?.id ||
-      blogData?.author ||
-      blogData?.user?._id ||
-      blogData?.user?.id ||
-      blogData?.createdBy?._id ||
-      blogData?.createdBy?.id ||
-      blogData?.userId ||
-      blogData?.authorId ||
-      blogData?.ownerId ||
-      null
-    )
+    // Priority: author object > user object > createdBy object
+    const source = blogData.author || blogData.user || blogData.createdBy || {}
+
+    return {
+      name: source.name || source.displayName || blogData.authorName || "GenWrite Author",
+      avatar: source.avatar || source.photoURL || source.image || blogData.authorAvatar || null,
+      id:
+        source._id ||
+        source.id ||
+        blogData.authorId ||
+        blogData.userId ||
+        blogData.createdBy?._id ||
+        null,
+    }
   }
+
+  const authorData = getAuthor(blog)
 
   useEffect(() => {
     let isMounted = true
@@ -84,7 +89,7 @@ const PublicBlogReader = () => {
     if (fetchedBlog) {
       setSelectedBlog(fetchedBlog)
 
-      const authorId = getAuthorId(fetchedBlog)
+      const authorId = authorData.id
       if (hasResolvedViewer && user?._id && authorId && user._id === authorId) {
         queryClient.setQueryData(["blog", id], fetchedBlog)
         navigate(`/editor/${id}`, { replace: true })
@@ -109,13 +114,13 @@ const PublicBlogReader = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  const getWordCount = text => {
-    if (!text) return 0
-    const strippedText = text.replace(/<[^>]*>/g, " ")
-    return strippedText
-      .trim()
-      .split(/\s+/)
-      .filter(word => word.length > 0).length
+  const formatDate = dateString => {
+    if (!dateString) return ""
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
   }
 
   const hasMatchingBlog = blog?._id === id
@@ -141,6 +146,16 @@ const PublicBlogReader = () => {
     <div className="min-h-screen bg-slate-50/30 selection:bg-indigo-100 selection:text-indigo-900">
       <Helmet>
         <title>{editorTitle || "Blog"} | GenWrite</title>
+        <meta
+          name="description"
+          content={blog?.seoMetadata?.description || blog?.summary || ""}
+        />
+        <meta property="og:title" content={`${editorTitle} | GenWrite`} />
+        <meta
+          property="og:description"
+          content={blog?.seoMetadata?.description || blog?.summary || ""}
+        />
+        <meta property="og:type" content="article" />
       </Helmet>
 
       {/* Premium Reader NavBar - Visible only for guest users (who don't have the standard app header) */}
@@ -183,9 +198,71 @@ const PublicBlogReader = () => {
             <article className="max-w-3xl">
               {/* Minimalist Reader Header */}
               <header className="mb-12 space-y-6">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight text-pretty break-words">
-                  {editorTitle}
-                </h1>
+                <div className="space-y-4">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.05] tracking-tight text-pretty wrap-break-words">
+                    {editorTitle}
+                  </h1>
+                  {blog?.summary && (
+                    <p className="text-base sm:text-lg text-slate-500 font-medium leading-relaxed max-w-3xl italic">
+                      {blog.summary}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-6 py-8 border-y border-slate-100">
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-100 shrink-0 bg-slate-50 shadow-xs ring-2 ring-white">
+                      {authorData?.avatar ? (
+                        <img
+                          src={authorData.avatar}
+                          alt={authorData.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+                          <FileText size={20} />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-slate-900 tracking-tight leading-none mb-1.5">
+                        {authorData?.name}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
+                        Article Author
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="hidden sm:block h-8 w-px bg-slate-100 mx-2" />
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                        Published
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {formatDate(blog?.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                        Read Time
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {getEstimatedReadTime(editorContent)} min
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                        Word Count
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {getWordCount(editorContent).toLocaleString()} words
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </header>
 
               {/* High-Quality Prose Body */}
@@ -201,9 +278,10 @@ const PublicBlogReader = () => {
                 </div>
               </div>
 
+
               {/* Tags / Keywords Section */}
               {keywords.length > 0 && (
-                <div className="mt-20 flex flex-wrap gap-2">
+                <div className="mt-12 flex flex-wrap gap-2">
                   {keywords.map((kw, i) => (
                     <span
                       key={i}
@@ -238,11 +316,8 @@ const PublicBlogReader = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                    Search Preview
+                    Slug
                   </span>
-                  <button className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest transition-colors cursor-pointer">
-                    Edit Slug
-                  </button>
                 </div>
                 <div className="p-5 bg-slate-50/50 rounded-md border border-slate-100 group transition-all">
                   <div className="flex items-center gap-2 mb-2">
@@ -411,12 +486,6 @@ const PublicBlogReader = () => {
                     className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-md hover:bg-blue-700 active:scale-95 transition-all border border-blue-700"
                   >
                     Start Writing Free
-                  </button>
-                  <button
-                    onClick={() => navigate("/")}
-                    className="w-full sm:w-auto px-8 py-4 bg-white text-slate-600 font-bold border border-slate-200 rounded-md hover:bg-slate-50 transition-all"
-                  >
-                    Learn More
                   </button>
                 </div>
               </div>

@@ -6,6 +6,8 @@ import type { OverviewPanelProps } from "../types"
 import { ScoreCard } from "../FeatureComponents"
 import { COSTS } from "@/data/blogData"
 
+import { getWordCount } from "@/utils/wordUtils"
+
 /**
  * Overview Panel - Dashboard with stats, scores, and quick actions
  */
@@ -21,45 +23,6 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
 }) => {
   const { panel, item, stagger } = useAnimations()
   const { isMobile } = useViewport()
-
-  /**
-   * Calculate word count from editor content
-   * Removes HTML tags and counts actual words
-   */
-  const getWordCount = (text: string): number => {
-    if (!text) return 0
-
-    // Plain text case (heuristic check for HTML tags)
-    if (!/<[a-z][\s\S]*>/i.test(text)) {
-      return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
-    }
-
-    try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(text, "text/html")
-
-      // Remove non-visible / non-content elements
-      const elementsToRemove = doc.querySelectorAll(
-        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-      )
-      elementsToRemove.forEach(el => el.remove())
-
-      // If article exists, use it; otherwise use body
-      const content = doc.querySelector("article") || doc.body
-      const strippedText = content.textContent || ""
-
-      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
-    } catch (e) {
-      console.error("Error parsing HTML for word count:", e)
-      // Fallback to simple regex strip
-      return text
-        .replace(/<[^>]*>/g, " ")
-        .trim()
-        .replace(/\s+/g, " ")
-        .split(" ")
-        .filter(Boolean).length
-    }
-  }
 
   const wordCount = getWordCount(editorContent)
 

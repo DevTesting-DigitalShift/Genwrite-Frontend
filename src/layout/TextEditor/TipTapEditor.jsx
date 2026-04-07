@@ -1292,7 +1292,7 @@ const TipTapEditor = ({
       )}
 
       {/* Editor Content - Scrollable */}
-      <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
+      <div className="flex-1 overflow-auto custom-scroll bg-white">
         {normalEditor && !isPublicMode && (
           <AIBubbleMenu
             editor={normalEditor}
