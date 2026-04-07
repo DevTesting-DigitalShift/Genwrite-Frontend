@@ -234,9 +234,15 @@ const WebsiteRanking = () => {
 
   const handleExportMD = data => {
     if (!data) return
-    const { url: auditUrl, analysis, rankings, advancedReport, strategicRecommendations } = data
-    const markdownContent =
+    const { url: auditUrl, analysis, rankings, advancedReport, recommendations: topLevelRecs } = data
+    let markdownContent =
       typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
+
+    // Preprocess markdown to ensure headers are on new lines and handle escaped newlines
+    markdownContent = markdownContent
+      .replace(/\\n/g, "\n")
+      .replace(/([^\n])\n?(#{1,6}\s)/g, "$1\n\n$2")
+      .trim()
 
     // Construct the full document
     let fullMD = `# AEO Audit Report: ${auditUrl}\n\n`
@@ -401,8 +407,14 @@ const WebsiteRanking = () => {
 
     // Helper to safely access nested report data
     const { url, analysis, rankings, advancedReport, recommendations: topLevelRecs } = data
-    const markdownContent =
+    let markdownContent =
       typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
+
+    // Preprocess markdown to ensure headers are on new lines and handle escaped newlines
+    markdownContent = markdownContent
+      .replace(/\\n/g, "\n")
+      .replace(/([^\n])\n?(#{1,6}\s)/g, "$1\n\n$2")
+      .trim()
 
     const recommendations = topLevelRecs || advancedReport?.strategicRecommendations || []
 
@@ -584,14 +596,24 @@ const WebsiteRanking = () => {
           <div className="grid grid-cols-1 gap-8">
             {markdownContent && (
               <div className="space-y-8">
-                <div className="bg-white rounded-xl shadow-none border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
-                      <FileText className="w-5 h-5 text-primary" />
-                      AEO Strategy & Roadmap
-                    </h2>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="bg-gray-50/50 px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">
+                          AEO Strategy & Roadmap
+                        </h2>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                          Strategic AI Intelligence
+                        </p>
+                      </div>
+                    </div>
+                    <Tag color="purple" className="font-bold">Premium Audit</Tag>
                   </div>
-                  <div className="p-8">
+                  <div className="p-8 md:p-12">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{

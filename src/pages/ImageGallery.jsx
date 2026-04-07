@@ -780,7 +780,7 @@ const ImageGallery = () => {
                                 <Type className="w-4 h-4 lg:w-5 lg:h-5" />
                               )}
                             </div>
-                            <span className="text-[10px] lg:text-xs">SEO Metadata</span>
+                            <span className="text-[10px] lg:text-xs">ALT Text</span>
                           </button>
 
                           <button

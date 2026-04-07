@@ -72,14 +72,71 @@ const CompetitiveAnalysis = () => {
 
   const analysis = analysisResult?.[formData?.selectedProject?._id]
 
+  const { data: allBlogsData } = useAllBlogsQuery()
+  const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
+
+  // --- 1. Utilities ---
+  const cleanMarkdown = text => {
+    if (!text) return ""
+    return text
+      .replace(/#{1,3}\s/g, "")
+      .replace(/[\*_~`]/g, "")
+      .replace(/\n+/g, "\n")
+      .trim()
+  }
+
+  const parseSummary = text => {
+    if (!text) return []
+    return cleanMarkdown(text)
+      .split("\n")
+      .filter(line => line.trim() !== "")
+      .map((line, index) => (
+        <p key={index} className="mb-2 text-sm leading-relaxed">
+          <span
+            dangerouslySetInnerHTML={{
+              __html: line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
+            }}
+          />
+        </p>
+      ))
+  }
+
+  // --- 2. Derived State & Memos ---
+  const mergedCompetitors = useMemo(() => {
+    const blogCompetitors = formData?.generatedMetadata?.competitors || []
+    const analysisCompetitors = analysisResults?.competitors || []
+    const uniqueCompetitors = []
+    const seenUrls = new Set()
+
+    ;[...blogCompetitors, ...analysisCompetitors].forEach(competitor => {
+      const url = competitor.url || competitor.link
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url)
+        uniqueCompetitors.push(competitor)
+      }
+    })
+
+    return uniqueCompetitors
+  }, [formData?.generatedMetadata?.competitors, analysisResults?.competitors])
+
+  const mergedKeywords = useMemo(() => {
+    return [...new Set([...formData.keywords, ...formData.focusKeywords])]
+  }, [formData.keywords, formData.focusKeywords])
+
+  const hasAnalysisResults = !!analysisResults
+  const hasCompetitors = mergedCompetitors.length > 0
+  const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
+  const hasLinks =
+    formData.generatedMetadata?.outboundLinks?.length > 0 ||
+    formData.generatedMetadata?.internalLinks?.length > 0
+  const hasAnyData = hasCompetitors || hasAnalysisResults || hasInitialAnalysis || hasLinks
+
+  // --- 3. Effects ---
   useEffect(() => {
     if (!analysisLoading && analysis) {
       setAnalysisResults(analysis)
     }
   }, [analysis, analysisLoading])
-
-  const { data: allBlogsData } = useAllBlogsQuery()
-  const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
 
   useEffect(() => {
     if (id) {
@@ -108,9 +165,9 @@ const CompetitiveAnalysis = () => {
   }, [id])
 
   useEffect(() => {
-    const hasCompetitors = mergedCompetitors.length > 0
-    const hasAnalysisResults = !!analysisResults
-    const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
+    const hasAudit =
+      formData.generatedMetadata?.outboundLinks?.length > 0 ||
+      formData.generatedMetadata?.internalLinks?.length > 0
 
     if (hasAnalysisResults) {
       setActiveTab("results")
@@ -118,9 +175,18 @@ const CompetitiveAnalysis = () => {
       setActiveTab("initial-analysis")
     } else if (hasCompetitors) {
       setActiveTab("competitors")
+    } else if (hasAudit) {
+      setActiveTab("links")
     }
-  }, [analysisResults, formData?.generatedMetadata])
+  }, [
+    analysisResults,
+    formData?.generatedMetadata,
+    hasAnalysisResults,
+    hasInitialAnalysis,
+    hasCompetitors,
+  ])
 
+  // --- 4. Handlers ---
   const handleProjectSelect = value => {
     const foundProject = blogs?.find(p => p._id === value)
     if (foundProject) {
@@ -198,58 +264,6 @@ const CompetitiveAnalysis = () => {
     toast.info("Content reset")
   }
 
-  const cleanMarkdown = text => {
-    if (!text) return ""
-    return text
-      .replace(/#{1,3}\s/g, "")
-      .replace(/[\*_~`]/g, "")
-      .replace(/\n+/g, "\n")
-      .trim()
-  }
-
-  const parseSummary = text => {
-    if (!text) return []
-    return cleanMarkdown(text)
-      .split("\n")
-      .filter(line => line.trim() !== "")
-      .map((line, index) => (
-        <p key={index} className="mb-2 text-sm leading-relaxed">
-          <span
-            dangerouslySetInnerHTML={{
-              __html: line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
-            }}
-          />
-        </p>
-      ))
-  }
-
-  const mergedCompetitors = useMemo(() => {
-    const blogCompetitors = formData?.generatedMetadata?.competitors || []
-    const analysisCompetitors = analysisResults?.competitors || []
-    const uniqueCompetitors = []
-    const seenUrls = new Set()
-
-    ;[...blogCompetitors, ...analysisCompetitors].forEach(competitor => {
-      const url = competitor.url || competitor.link
-      if (url && !seenUrls.has(url)) {
-        seenUrls.add(url)
-        uniqueCompetitors.push(competitor)
-      }
-    })
-
-    return uniqueCompetitors
-  }, [formData?.generatedMetadata?.competitors, analysisResults?.competitors])
-
-  const mergedKeywords = useMemo(() => {
-    return [...new Set([...formData.keywords, ...formData.focusKeywords])]
-  }, [formData.keywords, formData.focusKeywords])
-
-  const hasCompetitors = mergedCompetitors.length > 0
-  const hasAnalysisResults = !!analysisResults
-  const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
-  const hasLinks =
-    formData.generatedMetadata?.outboundLinks?.length > 0 ||
-    formData.generatedMetadata?.internalLinks?.length > 0
 
   const CircularProgress = ({ score }) => {
     const radius = 45
@@ -461,7 +475,9 @@ const CompetitiveAnalysis = () => {
         <div className="bg-white rounded-xl border border-gray-200 shadow-none p-6">
           <div className="flex items-center gap-3 mb-4">
             <Search className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-900 uppercase tracking-tight">Choose Project</h2>
+            <h2 className="text-lg font-bold text-gray-900 uppercase tracking-tight">
+              Choose Project
+            </h2>
           </div>
           <Select onValueChange={handleProjectSelect} value={id || ""}>
             <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl focus:ring-blue-500/20">
@@ -559,168 +575,172 @@ const CompetitiveAnalysis = () => {
             </div>
 
             {/* Main Analysis Section */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-none">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full items-center">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 bg-slate-50 p-1 rounded-xl h-auto mb-8">
-                  {hasAnalysisResults && (
-                    <TabsTrigger
-                      value="results"
-                      className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none"
-                    >
-                      Fresh Analysis
-                    </TabsTrigger>
-                  )}
-                  {hasInitialAnalysis && (
-                    <TabsTrigger
-                      value="initial-analysis"
-                      className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                    >
-                      Build Score
-                    </TabsTrigger>
-                  )}
-                  {hasCompetitors && (
-                    <TabsTrigger
-                      value="competitors"
-                      className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                    >
-                      Competitors
-                    </TabsTrigger>
-                  )}
-                  {hasLinks && (
-                    <TabsTrigger
-                      value="links"
-                      className="py-3 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                    >
-                      Audit
-                    </TabsTrigger>
-                  )}
-                </TabsList>
+            {hasAnyData && (
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-none">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <div className="flex justify-center mb-8">
+                    <TabsList className="flex w-fit bg-slate-50 p-1 rounded-xl h-auto">
+                      {hasAnalysisResults && (
+                        <TabsTrigger
+                          value="results"
+                          className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none"
+                        >
+                          Fresh Analysis
+                        </TabsTrigger>
+                      )}
+                      {hasInitialAnalysis && (
+                        <TabsTrigger
+                          value="initial-analysis"
+                          className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                        >
+                          Build Score
+                        </TabsTrigger>
+                      )}
+                      {hasCompetitors && (
+                        <TabsTrigger
+                          value="competitors"
+                          className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                        >
+                          Competitors
+                        </TabsTrigger>
+                      )}
+                      {hasLinks && (
+                        <TabsTrigger
+                          value="links"
+                          className="py-3 px-6 text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                        >
+                          Audit
+                        </TabsTrigger>
+                      )}
+                    </TabsList>
+                  </div>
 
-                <AnimatePresence mode="wait">
-                  <TabsContent value="results" className="mt-0 focus-visible:ring-0">
-                    {analysisResults ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <Card className="flex flex-col items-center justify-center p-6 bg-linear-to-b from-blue-50/30 to-white border-blue-50 shadow-none">
-                            <CircularProgress score={analysisResults.insights?.blogScore || 0} />
-                            <h4 className="mt-4 font-bold text-slate-800">SEO Health</h4>
-                            <p className="text-sm text-slate-400 text-center mt-1 font-medium">
-                              Compared to web average
-                            </p>
-                          </Card>
+                  <AnimatePresence mode="wait">
+                    <TabsContent value="results" className="mt-0 focus-visible:ring-0">
+                      {analysisResults ? (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-6"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <Card className="flex flex-col items-center justify-center p-6 bg-linear-to-b from-blue-50/30 to-white border-blue-50 shadow-none">
+                              <CircularProgress score={analysisResults.insights?.blogScore || 0} />
+                              <h4 className="mt-4 font-bold text-slate-800">SEO Health</h4>
+                              <p className="text-sm text-slate-400 text-center mt-1 font-medium">
+                                Compared to web average
+                              </p>
+                            </Card>
 
-                          <Card className="md:col-span-2 p-6 border-slate-100 bg-slate-50/30 shadow-none">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                              <Activity className="w-5 h-5 text-blue-600" />
-                              Strategic Recommendations
+                            <Card className="md:col-span-2 p-6 border-slate-100 bg-slate-50/30 shadow-none">
+                              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-blue-600" />
+                                Strategic Recommendations
+                              </h3>
+                              <div className="space-y-3">
+                                {(Array.isArray(analysisResults.insights?.suggestions)
+                                  ? analysisResults.insights.suggestions
+                                  : analysisResults.insights?.suggestions?.split?.(/(?:\d+\.\s)/)
+                                )
+                                  ?.filter(Boolean)
+                                  .map((s, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
+                                    >
+                                      <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 shadow-none">
+                                        {idx + 1}
+                                      </span>
+                                      <span
+                                        dangerouslySetInnerHTML={{
+                                          __html: cleanMarkdown(s).replace(
+                                            /\*\*(.*?)\*\*/g,
+                                            "<strong>$1</strong>"
+                                          ),
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                              </div>
+                            </Card>
+                          </div>
+                          <div className="pt-4">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">
+                              Metric Breakdown
                             </h3>
-                            <div className="space-y-3">
-                              {(Array.isArray(analysisResults.insights?.suggestions)
-                                ? analysisResults.insights.suggestions
-                                : analysisResults.insights?.suggestions?.split?.(/(?:\d+\.\s)/)
+                            {renderAnalysisBreakdown(analysisResults.insights)}
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                          <p className="text-slate-500 font-medium">
+                            Click the button below to start your deep analysis.
+                          </p>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="initial-analysis" className="mt-0">
+                      {hasInitialAnalysis && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="space-y-6"
+                        >
+                          <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 text-amber-900 shadow-sm">
+                            <div className="flex items-center gap-2 font-bold mb-4 text-base">
+                              <Info className="w-5 h-5" />
+                              Pre-Generation Insights
+                            </div>
+                            <ul className="space-y-3">
+                              {(Array.isArray(
+                                formData.generatedMetadata.competitorsAnalysis?.suggestions
+                              )
+                                ? formData.generatedMetadata.competitorsAnalysis.suggestions
+                                : formData.generatedMetadata.competitorsAnalysis.suggestions?.split?.(
+                                    /(?:\d+\.\s)/
+                                  )
                               )
                                 ?.filter(Boolean)
                                 .map((s, idx) => (
-                                  <div
+                                  <li
                                     key={idx}
-                                    className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
-                                  >
-                                    <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 shadow-none">
-                                      {idx + 1}
-                                    </span>
-                                    <span
-                                      dangerouslySetInnerHTML={{
-                                        __html: cleanMarkdown(s).replace(
-                                          /\*\*(.*?)\*\*/g,
-                                          "<strong>$1</strong>"
-                                        ),
-                                      }}
-                                    />
-                                  </div>
+                                    className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"
+                                    dangerouslySetInnerHTML={{
+                                      __html: cleanMarkdown(s).replace(
+                                        /\*\*(.*?)\*\*/g,
+                                        "<strong>$1</strong>"
+                                      ),
+                                    }}
+                                  />
                                 ))}
-                            </div>
-                          </Card>
-                        </div>
-                        <div className="pt-4">
-                          <h3 className="text-lg font-bold text-slate-800 mb-4">
-                            Metric Breakdown
-                          </h3>
-                          {renderAnalysisBreakdown(analysisResults.insights)}
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                        <p className="text-slate-500 font-medium">
-                          Click the button below to start your deep analysis.
-                        </p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="initial-analysis" className="mt-0">
-                    {hasInitialAnalysis && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="space-y-6"
-                      >
-                        <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 text-amber-900 shadow-sm">
-                          <div className="flex items-center gap-2 font-bold mb-4 text-base">
-                            <Info className="w-5 h-5" />
-                            Pre-Generation Insights
+                            </ul>
                           </div>
-                          <ul className="space-y-3">
-                            {(Array.isArray(
-                              formData.generatedMetadata.competitorsAnalysis?.suggestions
-                            )
-                              ? formData.generatedMetadata.competitorsAnalysis.suggestions
-                              : formData.generatedMetadata.competitorsAnalysis.suggestions?.split?.(
-                                  /(?:\d+\.\s)/
-                                )
-                            )
-                              ?.filter(Boolean)
-                              .map((s, idx) => (
-                                <li
-                                  key={idx}
-                                  className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"
-                                  dangerouslySetInnerHTML={{
-                                    __html: cleanMarkdown(s).replace(
-                                      /\*\*(.*?)\*\*/g,
-                                      "<strong>$1</strong>"
-                                    ),
-                                  }}
-                                />
-                              ))}
-                          </ul>
-                        </div>
-                        {renderAnalysisBreakdown(formData.generatedMetadata.competitorsAnalysis)}
-                      </motion.div>
-                    )}
-                  </TabsContent>
+                          {renderAnalysisBreakdown(formData.generatedMetadata.competitorsAnalysis)}
+                        </motion.div>
+                      )}
+                    </TabsContent>
 
-                  <TabsContent value="competitors" className="mt-0">
-                    {renderCompetitorsList(mergedCompetitors)}
-                  </TabsContent>
+                    <TabsContent value="competitors" className="mt-0">
+                      {renderCompetitorsList(mergedCompetitors)}
+                    </TabsContent>
 
-                  <TabsContent value="links" className="mt-0 space-y-8">
-                    {renderLinksSection(
-                      formData.generatedMetadata?.outboundLinks || [],
-                      "Outbound Authority",
-                      <ExternalLink className="w-5 h-5 text-indigo-500" />
-                    )}
-                    {renderLinksSection(
-                      formData.generatedMetadata?.internalLinks || [],
-                      "Internal Architecture",
-                      <LinkIcon className="w-5 h-5 text-emerald-500" />
-                    )}
-                  </TabsContent>
-                </AnimatePresence>
-              </Tabs>
-            </div>
+                    <TabsContent value="links" className="mt-0 space-y-8">
+                      {renderLinksSection(
+                        formData.generatedMetadata?.outboundLinks || [],
+                        "Outbound Authority",
+                        <ExternalLink className="w-5 h-5 text-indigo-500" />
+                      )}
+                      {renderLinksSection(
+                        formData.generatedMetadata?.internalLinks || [],
+                        "Internal Architecture",
+                        <LinkIcon className="w-5 h-5 text-emerald-500" />
+                      )}
+                    </TabsContent>
+                  </AnimatePresence>
+                </Tabs>
+              </div>
+            )}
 
             {/* Final Action Bar */}
             <div className="flex justify-center pt-6 pb-12">

@@ -202,6 +202,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     if (formData.options.humanisation) features.push("humanisation")
     if (formData.options.extendedThinking) features.push("extendedThinking")
     if (formData.options.deepResearch) features.push("deepResearch")
+    if (formData.wordpressPostStatus) features.push("automaticPosting")
 
     let cost = computeCost({
       wordCount: formData.userDefinedLength,

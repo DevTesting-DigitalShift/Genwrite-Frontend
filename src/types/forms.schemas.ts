@@ -468,6 +468,8 @@ export const advancedBlogFinalDataSchema = z
 
     costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
 
+    wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
+    
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })
   .transform(({ templateIds: _, ...cleanData }) => cleanData)
