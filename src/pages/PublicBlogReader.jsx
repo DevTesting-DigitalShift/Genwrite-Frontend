@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet"
 import { useQuery } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { FileText, Share2, Sparkles, TrendingUp } from "lucide-react"
+import { FileText, Share2, Sparkles, TrendingUp, ChevronRight } from "lucide-react"
 import { getBlogPublicly } from "@api/blogApi"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import LoadingScreen from "@components/ui/LoadingScreen"
@@ -85,6 +85,8 @@ const PublicBlogReader = () => {
     }
   }, [loadAuthenticatedUser, token, user?._id])
 
+  const hasMatchingBlog = blog?._id === id
+
   useEffect(() => {
     if (fetchedBlog) {
       setSelectedBlog(fetchedBlog)
@@ -123,8 +125,6 @@ const PublicBlogReader = () => {
     })
   }
 
-  const hasMatchingBlog = blog?._id === id
-
   if (
     isBlogFetching ||
     (token && !hasResolvedViewer) ||
@@ -141,6 +141,7 @@ const PublicBlogReader = () => {
   const editorContent = blog?.content || ""
   const editorTitle = blog?.title || ""
   const keywords = blog?.keywords || []
+  const focusKeywords = blog?.focusKeywords || []
 
   return (
     <div className="min-h-screen bg-slate-50/30 selection:bg-indigo-100 selection:text-indigo-900">
@@ -266,8 +267,12 @@ const PublicBlogReader = () => {
               </header>
 
               {/* High-Quality Prose Body */}
-              <div className="prose-wrapper">
-                <div className="prose prose-lg sm:prose-xl prose-slate max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-blue-600 prose-img:rounded-md prose-img:shadow-none prose-blockquote:border-l-blue-600 prose-blockquote:bg-blue-50/30 prose-blockquote:py-2 prose-blockquote:px-8 prose-blockquote:rounded-md">
+              <div className={!user?._id ? "relative mb-30" : ""}>
+                <div
+                  className={`prose prose-lg sm:prose-xl prose-slate max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-blue-600 prose-img:rounded-md prose-img:shadow-none prose-blockquote:border-l-blue-600 prose-blockquote:bg-blue-50/30 prose-blockquote:py-2 prose-blockquote:px-8 prose-blockquote:rounded-md ${
+                    !user?._id ? "select-none pointer-events-none" : ""
+                  }`}
+                >
                   <TipTapEditor
                     blog={blog}
                     content={editorContent}
@@ -276,20 +281,73 @@ const PublicBlogReader = () => {
                     isPublicMode={true}
                   />
                 </div>
+
+                {!user?._id && (
+                  <div className="relative">
+                    {/* The Blur Transition Area */}
+
+                    <div className="space-y-6 blur-[10px] opacity-20 select-none pointer-events-none pt-4">
+                      <div className="h-4 bg-slate-300 rounded-full w-full" />
+                      <div className="h-4 bg-slate-300 rounded-full w-[94%]" />
+                      <div className="h-4 bg-slate-300 rounded-full w-[98%]" />
+                      <div className="h-4 bg-slate-300 rounded-full w-[91%]" />
+                      <div className="h-8 bg-slate-400 rounded-lg w-[40%] mt-8 mb-4" />
+                      <div className="h-4 bg-slate-300 rounded-full w-full" />
+                      <div className="h-4 bg-slate-300 rounded-full w-[96%]" />
+                    </div>
+
+                    {/* Centered Sign-Up Card */}
+                    <div className="absolute inset-0 z-20 flex items-start justify-center">
+                      <div className="bg-white/95 backdrop-blur-3xl border border-slate-200 p-8 md:p-10 rounded-[2.5rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] text-center max-w-lg mx-4 group transition-all duration-500 hover:shadow-[0_48px_96px_-12px_rgba(0,0,0,0.2)]">
+                        <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">
+                          Continue Reading Full Blog
+                        </h3>
+                        <p className="text-slate-500 mb-10 leading-relaxed text-base">
+                          This article preview is limited. Join GenWrite now to unlock the complete
+                          article, detailed SEO insights, and high-resolution images.
+                        </p>
+                        <button
+                          onClick={() => navigate("/signup")}
+                          className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-black transition-all shadow-xl shadow-slate-200 hover:shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3 group/btn text-lg"
+                        >
+                          Sign Up to Read Full Blog
+                          <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-1.5 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
 
               {/* Tags / Keywords Section */}
-              {keywords.length > 0 && (
-                <div className="mt-12 flex flex-wrap gap-2">
-                  {keywords.map((kw, i) => (
-                    <span
-                      key={i}
-                      className="px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 text-sm font-bold rounded-md hover:bg-slate-200 transition-colors cursor-default"
-                    >
-                      #{kw}
+              {(focusKeywords.length > 0 || keywords.length > 0) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-px bg-slate-200" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      Article Context
                     </span>
-                  ))}
+                    <div className="flex-1 h-px bg-slate-200" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {focusKeywords.map((kw, i) => (
+                      <span
+                        key={`focus-${i}`}
+                        className="px-4 py-2 bg-blue-600 text-white border border-blue-700 text-sm font-black rounded-md shadow-sm cursor-default"
+                      >
+                        #{kw}
+                      </span>
+                    ))}
+                    {keywords.map((kw, i) => (
+                      <span
+                        key={`keyword-${i}`}
+                        className="px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 text-sm font-bold rounded-md hover:bg-slate-200 transition-colors cursor-default"
+                      >
+                        #{kw}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </article>
@@ -419,82 +477,57 @@ const PublicBlogReader = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-blue-600 rounded" />
                   <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                    Growth Keywords
+                    Primary focus
                   </span>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {(keywords?.length > 0
-                    ? keywords
-                    : [
-                        "digital music platforms",
-                        "music distribution case study",
-                        "online music platforms",
-                        "streaming platform success",
-                        "artist growth study",
-                        "music platform strategy",
-                        "user engagement in music",
-                      ]
-                  ).map((kw, i) => (
+                  {(focusKeywords.length > 0 ? focusKeywords : keywords.slice(0, 3)).map((kw, i) => (
                     <div
                       key={i}
-                      className="group relative flex items-center gap-3 p-3 bg-blue-50/50 border border-blue-100/50 rounded-md hover:bg-blue-600 transition-all duration-300"
+                      className="group relative flex items-center gap-3 p-3 bg-blue-600 text-white border border-blue-700 rounded-md shadow-lg shadow-blue-100/50"
                     >
-                      <div className="w-1.5 h-1.5 bg-blue-600 group-hover:bg-white transition-colors rounded" />
-                      <span className="text-[11px] font-black text-blue-900 group-hover:text-white transition-colors uppercase tracking-tight">
+                      <div className="w-1.5 h-1.5 bg-white rounded animate-pulse" />
+                      <span className="text-[11px] font-black uppercase tracking-tight">
                         {kw}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-            {/* Branding Footer */}
-            <div className="text-center space-y-4 opacity-50 hover:opacity-100 transition-opacity mt-12 pb-10">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Generated via GenWrite Intelligence
-              </p>
-              <div className="flex justify-center gap-4">
-                <div className="w-1 h-1 bg-slate-300 rounded" />
-                <div className="w-1 h-1 bg-slate-300 rounded" />
-                <div className="w-1 h-1 bg-slate-300 rounded" />
-              </div>
+
+              {/* Growth Keywords */}
+              {keywords.length > 0 && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-slate-400 rounded" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      Secondary Keywords
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {keywords.map((kw, i) => (
+                      <div
+                        key={i}
+                        className="group relative flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md hover:border-blue-200 transition-all duration-300"
+                      >
+                        <div className="w-1.5 h-1.5 bg-slate-300 group-hover:bg-blue-600 transition-colors rounded" />
+                        <span className="text-[11px] font-bold text-slate-600 group-hover:text-blue-900 transition-colors tracking-tight">
+                          {kw}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>
 
-        {/* Premium CTA Footer - Only for guests */}
+        {/* Minimal Copyright Footer */}
         {!user?._id && (
-          <footer className="mt-32">
-            <div className="relative">
-              <div className="relative bg-white rounded-md p-8 md:p-14 border border-slate-200 text-center space-y-8 overflow-hidden">
-                <div className="w-20 h-20 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2 border border-blue-100">
-                  <Sparkles size={40} strokeWidth={2.5} />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-3xl md:text-4xl font-black text-slate-900">
-                    Craft Stories That Matter
-                  </h3>
-                  <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed">
-                    This article was built with{" "}
-                    <span className="text-indigo-600 font-bold">GenWrite</span> – the world’s most
-                    advanced AI writing orchestration platform.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <button
-                    onClick={() => navigate("/signup")}
-                    className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-md hover:bg-blue-700 active:scale-95 transition-all border border-blue-700"
-                  >
-                    Start Writing Free
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-20 text-center text-slate-400 text-sm font-medium pb-20 uppercase tracking-widest">
-              &copy; {new Date().getFullYear()} GenWrite AI. All rights reserved.
-            </div>
-          </footer>
+          <div className="mt-20 text-center text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] pb-20">
+            &copy; {new Date().getFullYear()} GenWrite Intelligence. All rights reserved.
+          </div>
         )}
       </div>
     </div>

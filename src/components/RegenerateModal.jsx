@@ -2,6 +2,7 @@ import { useState, useCallback } from "react"
 import { toast } from "sonner"
 import { RefreshCw, Plus, X, Zap } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
 import { TONES } from "@/data/blogData"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -30,8 +31,9 @@ const RegenerateModal = ({
 
   // Calculate regenerate cost using pricing config
   const calculateRegenCost = useCallback(() => {
+    const roundedLength = Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)
     return computeCost({
-      wordCount: regenForm.userDefinedLength || 1000,
+      wordCount: roundedLength,
       options: regenForm.options,
       aiModel: regenForm.aiModel || "gemini",
       includeImages: regenForm.isCheckedGeneratedImages,
@@ -278,23 +280,32 @@ const RegenerateModal = ({
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Word Count</label>
-                  <select
-                    className="select select-bordered w-full"
-                    value={regenForm.userDefinedLength}
-                    onChange={e => updateRegenField("userDefinedLength", parseInt(e.target.value))}
-                  >
-                    <option value={500}>500 words</option>
-                    <option value={1000}>1,000 words</option>
-                    <option value={1500}>1,500 words</option>
-                    <option value={2000}>2,000 words</option>
-                    <option value={2500}>2,500 words</option>
-                    <option value={3000}>3,000 words</option>
-                    <option value={3500}>3,500 words</option>
-                    <option value={4000}>4,000 words</option>
-                    <option value={4500}>4,500 words</option>
-                    <option value={5000}>5,000 words</option>
-                  </select>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-semibold">Word Count</label>
+                    <span className="text-xs font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
+                      {Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)} words
+                    </span>
+                  </div>
+                  <div className="px-2 py-4">
+                    <Slider
+                      value={[
+                        Math.max(
+                          500,
+                          Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
+                        ),
+                      ]}
+                      min={500}
+                      max={5000}
+                      step={500}
+                      onValueChange={([val]) => updateRegenField("userDefinedLength", val)}
+                      className="cursor-pointer"
+                    />
+                    <div className="flex justify-between mt-2 text-[10px] text-gray-400 font-medium">
+                      <span>500</span>
+                      <span>2500</span>
+                      <span>5000</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

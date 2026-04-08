@@ -795,8 +795,9 @@ const TextEditorSidebar = ({
     if (regenForm.options.automaticPosting) features.push("automaticPosting")
     // Note: addOutBoundLinks does not add extra credits
 
+    const roundedLength = Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)
     return computeCost({
-      wordCount: regenForm.userDefinedLength || 1000,
+      wordCount: roundedLength,
       features,
       aiModel: regenForm.aiModel || "gemini",
       includeImages: regenForm.isCheckedGeneratedImages,
@@ -840,7 +841,7 @@ const TextEditorSidebar = ({
         createNew: true,
         topic: regenForm.topic,
         tone: regenForm.tone,
-        userDefinedLength: regenForm.userDefinedLength,
+        userDefinedLength: Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500),
         aiModel: regenForm.aiModel,
         costCutter: regenForm.costCutter,
         isCheckedQuick: regenForm.isCheckedQuick,
@@ -1583,11 +1584,18 @@ const TextEditorSidebar = ({
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-            <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-              {getWordCount(editorContent)}
+            <div className="flex flex-col items-center">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
+                {getWordCount(editorContent)}
+              </div>
+              {blog?.userDefinedLength && (
+                <div className="text-[9px] font-bold text-gray-400 -mt-1">
+                  Target: {blog.userDefinedLength}
+                </div>
+              )}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Word Count
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+              Current Words
             </div>
           </div>
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
