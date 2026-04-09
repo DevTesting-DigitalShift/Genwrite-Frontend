@@ -7,7 +7,7 @@ export const connectSocket = token => {
     console.log("🔌 Socket already connected, reusing existing connection")
     return socket
   }
-  const url = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
+  const url = import.meta.env.VITE_BACKEND_URL
 
   console.log("🚀 Connecting to socket server:", url)
 

@@ -80,7 +80,7 @@ const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
       setLoading(true)
       try {
         const response = await axiosInstance.get(
-          `http://localhost:8000/api/v1/integrations/category?type=${platform.toUpperCase()}`
+          `/integrations/category?type=${platform.toUpperCase()}`
         )
         if (Array.isArray(response.data)) {
           setCategories(response.data)

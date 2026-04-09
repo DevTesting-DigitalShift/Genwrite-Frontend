@@ -19,12 +19,7 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  getBlogById,
-  createSimpleBlog,
-  updateBlog,
-  toggleBlogVisibility,
-} from "@api/blogApi"
+import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
 
@@ -75,7 +70,8 @@ const MainEditorPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 
-  const pathDetect = location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
+  const pathDetect =
+    location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
@@ -453,7 +449,6 @@ const MainEditorPage = () => {
     )
   }
 
-
   return (
     <>
       <Helmet>
@@ -609,9 +604,7 @@ const MainEditorPage = () => {
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
-                    <p className="text-gray-500 text-sm mt-0.5">
-                      Write and optimize your content
-                    </p>
+                    <p className="text-gray-500 text-sm mt-0.5">Write and optimize your content</p>
                   </div>
                   <button onClick={toggleSidebar} className="md:hidden ml-auto">
                     {!isSidebarOpen && <PanelRightOpen />}
@@ -625,7 +618,10 @@ const MainEditorPage = () => {
                         const newVisibility = !blog.isPublic
                         const response = await toggleBlogVisibility(blog._id, newVisibility)
                         // Update both TanStack Query and Zustand store for immediate UI feedback
-                        queryClient.setQueryData(["blog", id], prev => ({ ...prev, isPublic: newVisibility }))
+                        queryClient.setQueryData(["blog", id], prev => ({
+                          ...prev,
+                          isPublic: newVisibility,
+                        }))
                         setSelectedBlog({ ...blog, isPublic: newVisibility })
                         toast.success(`Blog is now ${newVisibility ? "Public" : "Private"}`)
                       } catch (err) {
@@ -650,8 +646,7 @@ const MainEditorPage = () => {
                   {blog?.isPublic && (
                     <button
                       onClick={() => {
-                        const publicPort = 5174
-                        const url = `http://localhost:${publicPort}/blog/${blog._id}`
+                        const url = `${import.meta.env.VITE_FRONTEND_URL}/blog/${blog._id}`
                         navigator.clipboard.writeText(url)
                         toast.success("Public link copied to clipboard!")
                       }}
@@ -673,27 +668,27 @@ const MainEditorPage = () => {
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
                     }`}
-                      disabled={
-                        isSaving ||
-                        blog?.isArchived ||
-                        !editorTitle.trim() ||
-                        !editorContent.trim() ||
-                        getWordCount(editorTitle) > 60
-                      }
-                    >
-                      {isSaving ? (
-                        <>
-                          <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 sm:w-5 h-4 sm:h-5" />
-                          Save Blog
-                        </>
-                      )}
-                    </button>
-                  </div>
+                    disabled={
+                      isSaving ||
+                      blog?.isArchived ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                    }
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 sm:w-5 h-4 sm:h-5" />
+                        Save Blog
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               {pathDetect && (
                 <div className="mt-4">
