@@ -93,6 +93,7 @@ export interface QuickBlogFinalData {
   embedYouTubeVideos: boolean
   type: "quick" | "yt"
   otherLinks: string[]
+  createBrandedImages: boolean
 }
 
 export interface BulkBlogFormData {
@@ -123,6 +124,7 @@ export interface BulkBlogFormData {
   postingType: PostingType
   brandId: string | null
   addCTA: boolean
+  createBrandedImages: boolean
   isDragging: boolean
   costCutter: boolean
   easyToUnderstand: boolean
@@ -156,6 +158,7 @@ export interface BulkBlogFinalData {
   postingType: PostingType
   brandId: string | null
   addCTA: boolean
+  createBrandedImages: boolean
   costCutter: boolean
   easyToUnderstand: boolean
   embedYouTubeVideos: boolean
@@ -181,6 +184,7 @@ export interface JobBlogConfig {
   useBrandVoice: boolean
   isCheckedGeneratedImages: boolean
   addCTA: boolean
+  createBrandedImages: boolean
   numberOfImages: number
   blogImages: File[]
   postingType: PostingType
@@ -249,6 +253,7 @@ export interface AdvancedBlogOptions {
   includeCompetitorResearch: boolean
   addOutBoundLinks: boolean
   addCTA: boolean
+  createBrandedImages: boolean
   embedYouTubeVideos: boolean
   easyToUnderstand: boolean
 }
@@ -303,4 +308,42 @@ export interface AdvancedBlogFinalData {
   languageToWrite: LanguageType
   costCutter: boolean
   options: AdvancedBlogOptions
+}
+
+export interface RegenerateBlogOptions {
+  includeFaqs: boolean
+  includeInterlinks: boolean
+  includeCompetitorResearch: boolean
+  addOutBoundLinks: boolean
+  addCTA: boolean
+  automaticPosting: boolean
+  includeTableOfContents: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
+  createBrandedImages: boolean
+  extendedThinking: boolean
+  deepResearch: boolean
+  humanisation: boolean
+  performKeywordResearch: boolean
+}
+
+export interface RegenerateBlogData {
+  createNew: boolean
+  topic?: string
+  title?: string
+  focusKeywords?: string[]
+  keywords?: string[]
+  tone?: string
+  userDefinedLength?: number
+  aiModel?: AiModelType
+  isCheckedGeneratedImages?: boolean
+  imageSource?: ImageSourceType
+  numberOfImages: number
+  isCheckedBrand?: boolean
+  brandId?: string
+  addCTA?: boolean
+  costCutter: boolean
+  isCheckedQuick: boolean
+  postingDefaultType?: PostingType
+  options: RegenerateBlogOptions
 }

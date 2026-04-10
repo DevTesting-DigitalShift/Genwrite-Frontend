@@ -77,6 +77,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       extendedThinking: false as boolean,
       deepResearch: false as boolean,
       humanisation: false as boolean,
+      createBrandedImages: false as boolean,
     },
   }
 
@@ -1072,14 +1073,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 isCheckedBrand: formData.isCheckedBrand,
                 brandId: formData.brandId,
                 addCTA: formData.options.addCTA,
+                createBrandedImages: formData.options.createBrandedImages,
               }}
+              imageSource={formData.imageSource}
               labelClass="text-sm font-semibold"
               onChange={val => {
                 const opts = formData.options
                 updateFormData({
                   isCheckedBrand: val.isCheckedBrand,
                   brandId: val.brandId,
-                  options: { ...opts, addCTA: val.addCTA },
+                  options: {
+                    ...opts,
+                    addCTA: val.addCTA,
+                    createBrandedImages: val.createBrandedImages,
+                  },
                 })
               }}
             />

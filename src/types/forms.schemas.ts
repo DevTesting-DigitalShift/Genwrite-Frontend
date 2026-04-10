@@ -123,6 +123,8 @@ export const quickBlogFinalDataSchema = z.object({
   deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
 
   humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+
+  createBrandedImages: z.boolean().default(false).describe("Create AI images with brand voice characteristics"),
 })
 
 export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSchema>
@@ -233,6 +235,8 @@ export const bulkBlogFinalDataSchema = z.object({
     .boolean()
     .default(false)
     .describe("Embed YouTube videos in the blog content"),
+
+  createBrandedImages: z.boolean().default(false).describe("Create AI images with brand voice characteristics"),
 })
 
 export type BulkBlogFinalDataSchemaType = z.infer<typeof bulkBlogFinalDataSchema>
@@ -320,6 +324,8 @@ export const jobBlogConfigSchema = z.object({
     .boolean()
     .default(false)
     .describe("Embed YouTube videos in the blog content"),
+
+  createBrandedImages: z.boolean().default(false).describe("Create AI images with brand voice characteristics"),
 })
 
 export const jobOptionsSchema = z.object({
@@ -351,6 +357,7 @@ export const jobOptionsSchema = z.object({
   extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
   deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
   humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+  createBrandedImages: z.boolean().default(false).describe("Create AI images with brand voice characteristics"),
 })
 
 export const jobFinalDataSchema = z
@@ -402,6 +409,10 @@ export const advancedBlogOptionsSchema = z.object({
   extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
   deepResearch: z.boolean().default(false).describe("Extensive multi-source investigative research"),
   humanisation: z.boolean().default(false).describe("Natural linguistic patterns to bypass AI filters"),
+  createBrandedImages: z
+    .boolean()
+    .default(false)
+    .describe("Create AI images with brand voice characteristics"),
 })
 
 export const advancedBlogFinalDataSchema = z
@@ -552,6 +563,7 @@ export const regenerateBlogOptionsSchema = z.object({
     .boolean()
     .default(false)
     .describe("Auto-generate title and keywords based on topic"),
+  createBrandedImages: z.boolean().default(false).describe("Create AI images with brand voice characteristics"),
 })
 
 export const regenerateBlogSchema = z

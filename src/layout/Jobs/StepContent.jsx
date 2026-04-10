@@ -392,10 +392,7 @@ const StepContent = ({
                   }
                   onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
                   onPaste={e => {
-                    extractKeywordsFromClipboard(e, {
-                      type: "topics",
-                      cb: handleAddItems,
-                    })
+                    extractKeywordsFromClipboard(e, { type: "topics", cb: handleAddItems })
                   }}
                   className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                     errors.topics ? "input-error" : ""
@@ -509,10 +506,7 @@ const StepContent = ({
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
                     onPaste={e => {
-                      extractKeywordsFromClipboard(e, {
-                        type: "keywords",
-                        cb: handleAddItems,
-                      })
+                      extractKeywordsFromClipboard(e, { type: "keywords", cb: handleAddItems })
                     }}
                     className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
                       errors.keywords ? "input-error" : "border-gray-300"
@@ -994,75 +988,30 @@ const StepContent = ({
               ]}
             />
 
-            {/* Group 3: Brand Voice Selector (Select Input Mode) */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-sm font-semibold ">Write with Brand Voice</span>
-                  <p className="text-xs text-gray-500 font-normal">
-                    Apply your brand's unique tone and style.
-                  </p>
-                </div>
-                <Switch
-                  size="large"
-                  checked={newJob.blogs.useBrandVoice}
-                  onCheckedChange={checked => {
-                    if (checked && brands.length === 0) {
-                      toast.error("No brand voices available. Create one to enable this option.")
-                      return
-                    }
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        useBrandVoice: checked,
-                        brandId: checked ? prev.blogs.brandId || (brands[0]?._id ?? null) : null,
-                      },
-                    }))
-                  }}
-                />
-              </div>
-
-              {newJob.blogs.useBrandVoice && brands.length > 0 && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold ">Select Brand Voice</label>
-                    <select
-                      className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3`}
-                      value={newJob.blogs.brandId || ""}
-                      onChange={e => {
-                        setNewJob(prev => ({
-                          ...prev,
-                          blogs: { ...prev.blogs, brandId: e.target.value },
-                        }))
-                      }}
-                    >
-                      {brands.map(brand => (
-                        <option key={brand._id} value={brand._id}>
-                          {brand.nameOfVoice}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-semibold ">Add CTA at the End</span>
-                      <p className="text-xs text-gray-500">
-                        Include a call-to-action to engage audience
-                      </p>
-                    </div>
-                    <Switch
-                      size="large"
-                      checked={newJob.blogs.addCTA}
-                      onCheckedChange={checked =>
-                        setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, addCTA: checked } }))
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Group 3: Brand Voice Selector */}
+            <BrandVoiceSelector
+              label="Write with Brand Voice"
+              labelClass="text-sm font-semibold"
+              value={{
+                isCheckedBrand: newJob.blogs.useBrandVoice,
+                brandId: newJob.blogs.brandId,
+                addCTA: newJob.blogs.addCTA,
+                createBrandedImages: newJob.blogs.createBrandedImages,
+              }}
+              imageSource={newJob.blogs.imageSource}
+              onChange={val => {
+                setNewJob(prev => ({
+                  ...prev,
+                  blogs: {
+                    ...prev.blogs,
+                    useBrandVoice: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    addCTA: val.addCTA,
+                    createBrandedImages: val.createBrandedImages,
+                  },
+                }))
+              }}
+            />
 
             {/* Group 4: Automatic Posting & Integration grouping (MUST BE LAST) */}
             <div className="flex flex-col gap-4 mt-6">

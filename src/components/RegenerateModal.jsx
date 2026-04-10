@@ -362,11 +362,14 @@ const RegenerateModal = ({
                   isCheckedBrand: regenForm.isCheckedBrand,
                   brandId: regenForm.brandId,
                   addCTA: regenForm.options.addCTA,
+                  createBrandedImages: regenForm.options.createBrandedImages,
                 }}
+                imageSource={regenForm.imageSource}
                 onChange={val => {
                   updateRegenField("isCheckedBrand", val.isCheckedBrand)
                   updateRegenField("brandId", val.brandId)
                   updateRegenField("options.addCTA", val.addCTA)
+                  updateRegenField("options.createBrandedImages", val.createBrandedImages)
                 }}
               />
 

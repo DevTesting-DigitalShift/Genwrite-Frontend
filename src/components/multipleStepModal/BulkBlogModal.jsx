@@ -74,6 +74,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     humanisation: false,
     wordpressPostStatus: false,
     includeTableOfContents: false,
+    createBrandedImages: false,
   }
 
   const initialErrorsState = {
@@ -394,7 +395,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   const handlePasteItems = (e, type) => {
     extractKeywordsFromClipboard(e, {
       type,
-      cb: (items) => {
+      cb: items => {
         if (type === "topics") {
           handleAddTopic(items)
         } else {
@@ -425,10 +426,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     const newTopics = items.filter(t => !existing.includes(t.toLowerCase()))
 
     if (newTopics.length === 0) {
-      setErrors(prev => ({
-        ...prev,
-        topics: "Please enter valid, non-duplicate topics.",
-      }))
+      setErrors(prev => ({ ...prev, topics: "Please enter valid, non-duplicate topics." }))
       setFormData(prev => ({ ...prev, topicInput: "" }))
       return false
     }
@@ -464,10 +462,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     const newKeywords = items.filter(k => !existing.includes(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors(prev => ({
-        ...prev,
-        keywords: "Please enter valid, non-duplicate keywords.",
-      }))
+      setErrors(prev => ({ ...prev, keywords: "Please enter valid, non-duplicate keywords." }))
       setFormData(prev => ({ ...prev, keywordInput: "" }))
       return false
     }
@@ -1176,13 +1171,16 @@ const BulkBlogModal = ({ closeFnc }) => {
                   isCheckedBrand: formData.isCheckedBrand,
                   brandId: formData.brandId,
                   addCTA: formData.addCTA,
+                  createBrandedImages: formData.createBrandedImages,
                 }}
+                imageSource={formData.imageSource}
                 onChange={val => {
                   setFormData(prev => ({
                     ...prev,
                     isCheckedBrand: val.isCheckedBrand,
                     brandId: val.brandId,
                     addCTA: val.addCTA,
+                    createBrandedImages: val.createBrandedImages,
                   }))
                 }}
               />

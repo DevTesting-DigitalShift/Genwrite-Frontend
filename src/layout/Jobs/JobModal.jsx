@@ -34,6 +34,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       postingType: null,
       languageToWrite: "English",
       costCutter: true,
+      createBrandedImages: false,
     },
     options: {
       wordpressPosting: false,
