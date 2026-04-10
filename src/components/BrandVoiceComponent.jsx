@@ -38,19 +38,20 @@ const BrandVoicesComponent = ({
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3 overflow-hidden">
           {logoUrl ? (
-            <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 bg-white flex-shrink-0">
-              <img src={logoUrl} alt={brandName} className="w-full h-full object-contain" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 bg-white shrink-0">
+              <img
+                key={logoUrl}
+                src={logoUrl}
+                alt={brandName}
+                className="w-full h-full object-contain"
+              />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
               {brandName.charAt(0).toUpperCase()}
             </div>
           )}
-          <h3
-            className={`font-medium text-sm ${
-              isSelected ? "text-indigo-700" : ""
-            } truncate`}
-          >
+          <h3 className={`font-medium text-sm ${isSelected ? "text-indigo-700" : ""} truncate`}>
             {brandName}
           </h3>
         </div>

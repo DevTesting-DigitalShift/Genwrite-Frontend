@@ -101,8 +101,12 @@ export const generateAltText = async data => {
  * Upload a local image
  * POST /api/v1/user/images/upload
  * @param {FormData} formData - { image: File }
+ * @param {string} overwriteUrl - Optional URL to overwrite on re-upload (same URL, file replaced)
  */
-export const uploadImage = async formData => {
+export const uploadImage = async (formData, overwriteUrl = null) => {
+  if (overwriteUrl) {
+    formData.append("overwriteUrl", overwriteUrl)
+  }
   const response = await axiosInstance.post(`/user/images/upload`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   })

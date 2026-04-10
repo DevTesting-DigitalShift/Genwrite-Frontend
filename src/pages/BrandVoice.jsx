@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { BrandAPI } from "@api/Brand/Brand.api"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
+import { uploadImage } from "@api/imageGalleryApi"
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -67,6 +68,7 @@ const BrandVoice = () => {
         keywords: siteInfo.data.keywords || prev.keywords,
         postLink: siteInfo.data.postLink || prev.postLink,
         sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
+        logoUrl: siteInfo.data.logoUrl || prev.logoUrl,
         persona: siteInfo.data.persona || prev.persona,
       }))
       setErrors(prev => ({
@@ -264,13 +266,14 @@ const BrandVoice = () => {
     }
 
     const formDataUpload = new FormData()
-    formDataUpload.append("logo", file)
+    formDataUpload.append("image", file)
 
     try {
       setIsUploading(true)
-      const res = await BrandAPI.uploadLogo(formDataUpload)
+      const res = await uploadImage(formDataUpload, formData.logoUrl.split("?")[0] || null)
       if (res?.url) {
-        setFormData(prev => ({ ...prev, logoUrl: res.url }))
+        const bustedUrl = `${res.url}?t=${Date.now()}`
+        setFormData(prev => ({ ...prev, logoUrl: bustedUrl }))
         toast.success("Logo uploaded successfully.")
       }
     } catch (err) {
@@ -291,7 +294,7 @@ const BrandVoice = () => {
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       persona: formData.persona.trim(),
-      logoUrl: formData.logoUrl.trim(),
+      logoUrl: formData.logoUrl.split("?")[0].trim(),
     }
 
     const isDuplicate = brands.some(
@@ -598,6 +601,7 @@ const BrandVoice = () => {
                 {formData.logoUrl && (
                   <div className="flex-end size-12 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
                     <img
+                      key={formData.logoUrl}
                       src={formData.logoUrl}
                       alt="Logo Preview"
                       className="max-w-full max-h-full object-contain"
@@ -800,7 +804,7 @@ const BrandVoice = () => {
             </button>
           </motion.div>
         </div>
-        <div className="space-y-3 overflow-y-auto max-h-screen sm:max-h-[calc(100vh-250px)]">
+        <div className="space-y-3 overflow-y-auto max-h-full">
           {isLoading ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />

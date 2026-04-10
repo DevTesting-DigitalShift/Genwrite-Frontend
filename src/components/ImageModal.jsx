@@ -195,6 +195,7 @@ const ImageModal = ({
                   <div className="relative group min-h-[200px] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden border border-dashed border-gray-300">
                     {url ? (
                       <img
+                        key={url}
                         src={url}
                         alt="Preview"
                         className="w-full h-full max-h-[300px] object-contain"
@@ -245,9 +246,10 @@ const ImageModal = ({
                             const formData = new FormData()
                             formData.append("image", file)
 
-                            const response = await uploadImage(formData)
+                            const response = await uploadImage(formData, url || null)
                             if (response && response.url) {
-                              setUrl(response.url)
+                              const bustedUrl = `${response.url}?t=${Date.now()}`
+                              setUrl(bustedUrl)
                               toast.success("Image uploaded successfully!", { id: toastId })
 
                               // Auto-generate Alt Text
@@ -440,6 +442,7 @@ const ImageModal = ({
                 <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
                   <div className="flex justify-center mb-4">
                     <img
+                      key={url}
                       src={url}
                       alt="Source"
                       className="h-full max-h-[200px] object-contain rounded border bg-white"

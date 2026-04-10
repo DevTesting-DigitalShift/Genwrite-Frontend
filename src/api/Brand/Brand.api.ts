@@ -31,11 +31,4 @@ export const BrandAPI = {
     const res = await axiosInstance.get("/brand/site-info", { params: { url } })
     return res.data
   },
-  
-  uploadLogo: async (formData: FormData): Promise<any> => {
-    const res = await axiosInstance.post("/brand/uploadLogo", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    return res.data
-  },
 }
