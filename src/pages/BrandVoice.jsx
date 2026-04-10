@@ -12,6 +12,8 @@ import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+import { BrandAPI } from "@api/Brand/Brand.api"
+import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -27,6 +29,7 @@ const BrandVoice = () => {
     sitemapUrl: "",
     persona: "",
     selectedVoice: null,
+    logoUrl: "",
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
@@ -87,6 +90,7 @@ const BrandVoice = () => {
       describeBrand: "",
       sitemapUrl: "",
       persona: "",
+      logoUrl: "",
       selectedVoice: brands && brands.length > 0 ? brands[0] : null,
       _id: undefined,
     })
@@ -240,6 +244,43 @@ const BrandVoice = () => {
     event.target.value = null
   }, [])
 
+  const handleLogoUpload = useCallback(async event => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Check file type and size using global config
+    const { types: acceptedTypes, max_size: maxSize } = VALID_IMAGE_CONFIG
+
+    if (!acceptedTypes.includes(file.type)) {
+      toast.error(
+        `Invalid image type. Please upload: ${acceptedTypes.map(t => t.split("/")[1].toUpperCase()).join(", ")}`
+      )
+      return
+    }
+
+    if (file.size > maxSize) {
+      toast.error(`Image exceeds ${maxSize / (1024 * 1024)}MB limit.`)
+      return
+    }
+
+    const formDataUpload = new FormData()
+    formDataUpload.append("logo", file)
+
+    try {
+      setIsUploading(true)
+      const res = await BrandAPI.uploadLogo(formDataUpload)
+      if (res?.url) {
+        setFormData(prev => ({ ...prev, logoUrl: res.url }))
+        toast.success("Logo uploaded successfully.")
+      }
+    } catch (err) {
+      console.error("Logo upload failed:", err)
+      toast.error("Failed to upload logo.")
+    } finally {
+      setIsUploading(false)
+    }
+  }, [])
+
   const handleSave = useCallback(async () => {
     if (!validateForm()) return
     setIsUploading(true)
@@ -250,6 +291,7 @@ const BrandVoice = () => {
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       persona: formData.persona.trim(),
+      logoUrl: formData.logoUrl.trim(),
     }
 
     const isDuplicate = brands.some(
@@ -286,6 +328,7 @@ const BrandVoice = () => {
       describeBrand: brand.describeBrand || "",
       sitemapUrl: brand.sitemap || "",
       persona: brand.persona || "",
+      logoUrl: brand.logoUrl || "",
       selectedVoice: brand,
       _id: brand._id,
     })
@@ -508,6 +551,64 @@ const BrandVoice = () => {
           </div>
 
           <div>
+            <label htmlFor="logoUrl" className="text-sm font-medium flex gap-2 mb-1">
+              Brand Logo (Optional)
+              <div
+                className="tooltip tooltip-right"
+                data-tip="Add a logo URL or upload an image for your brand voice"
+              >
+                <span className="cursor-pointer">
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
+                </span>
+              </div>
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <motion.input
+                  id="logoUrl"
+                  type="url"
+                  name="logoUrl"
+                  value={formData.logoUrl}
+                  onChange={handleInputChange}
+                  placeholder="Paste Logo URL (e.g., https://example.com/logo.png)"
+                  className="p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full"
+                  whileFocus={{ scale: 1.01 }}
+                />
+                {formData.logoUrl && (
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                    onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="max-w-1/3 h flex gap-2">
+                <label className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all cursor-pointer text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 ">
+                  <Upload className="w-4 h-4" />
+                  {isUploading ? "Uploading..." : "Upload Logo"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                    accept="image/*"
+                    disabled={isUploading}
+                  />
+                </label>
+                {formData.logoUrl && (
+                  <div className="flex-end size-12 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={formData.logoUrl}
+                      alt="Logo Preview"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
             <label htmlFor="keywords" className="text-sm font-medium  flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
               <div
@@ -711,6 +812,7 @@ const BrandVoice = () => {
                 id={item._id}
                 brandName={item.nameOfVoice}
                 brandVoice={item.describeBrand}
+                logoUrl={item.logoUrl}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
                 onEdit={e => {
