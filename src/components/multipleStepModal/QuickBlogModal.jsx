@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { debugPayload } from "@utils/debugPayload"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -185,6 +186,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       try {
         // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
         const validatedData = validateQuickBlogData(finalData)
+        if (debugPayload(type === "yt" ? "YouTubeBlog" : "QuickBlog", validatedData)) return
 
         // Dispatch and await the result
         const { createNewQuickBlog } = useBlogStore.getState()

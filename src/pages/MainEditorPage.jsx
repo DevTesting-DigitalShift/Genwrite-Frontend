@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { Sparkles as SparklesIcon } from "lucide-react"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
+import { debugPayload } from "@utils/debugPayload"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
@@ -397,6 +398,8 @@ const MainEditorPage = () => {
       setErrors(prev => ({ ...prev, ...newErrors }))
       return
     }
+
+    if (debugPayload("ManualBlog", blogData)) return
 
     try {
       const res = await createSimpleBlog(blogData)

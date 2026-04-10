@@ -33,6 +33,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
+import { debugPayload } from "@utils/debugPayload"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
@@ -893,6 +894,7 @@ const TextEditorSidebar = ({
 
       // Validate and transform the payload
       const validatedPayload = validateRegenerateBlogData(payload)
+      if (debugPayload("RegenerateBlog", validatedPayload)) return
 
       // Call retry API with blog data - backend will update and regenerate
       await retryBlogById(blog._id, validatedPayload)
@@ -2324,6 +2326,7 @@ const TextEditorSidebar = ({
               },
               { key: "includeFaqs", label: "Include FAQs", value: blog?.options?.includeFaqs },
               { key: "addCTA", label: "Add CTA", value: blog?.options?.addCTA || blog?.addCTA },
+              { key: "createBrandedImages", label: "Create Branded Images", value: blog?.options?.createBrandedImages || blog?.createBrandedImages },
               {
                 key: "automaticPosting",
                 label: "Automatic Posting",

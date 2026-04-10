@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { debugPayload } from "@utils/debugPayload"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
@@ -308,6 +309,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       tone: formData.tone || undefined, // Send undefined if empty to let Zod catch it as required
     }
     const validatedData = validateBulkBlogData(finalData)
+    if (debugPayload("BulkBlog", validatedData)) return
 
     const loadingId = showLoading(
       `Creating ${formData.numberOfBlogs} blog${formData.numberOfBlogs > 1 ? "s" : ""}...`

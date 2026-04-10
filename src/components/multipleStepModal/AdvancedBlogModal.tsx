@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { debugPayload } from "@utils/debugPayload"
 import { setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
@@ -357,6 +358,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       }
       // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
       const validatedData = validateAdvancedBlogData(data)
+      if (debugPayload("AdvancedBlog", validatedData)) return
 
       const loadingId = showLoading("Creating your blog...")
 

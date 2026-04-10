@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { debugPayload } from "@utils/debugPayload"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
@@ -226,6 +227,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     }
 
     const validatedPayload = validateJobData(jobPayload)
+    if (debugPayload("Job (Create)", validatedPayload)) return
     createJobMutate(validatedPayload, {
       onSuccess: () => {
         resetModal()
@@ -259,6 +261,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     }
 
     const validatedPayload = validateJobData(jobPayload)
+    if (debugPayload("Job (Update)", validatedPayload)) return
     updateJobMutate(
       { jobId, jobPayload: validatedPayload },
       {
