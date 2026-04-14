@@ -169,7 +169,7 @@ export const bulkBlogFinalDataSchema = z.object({
 
   imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Source of images for blogs"),
 
-  useBrandVoice: z.boolean().default(false).describe("Whether to use a custom brand voice"),
+  isCheckedBrand: z.boolean().default(false).describe("Whether to use a custom brand voice"),
 
   useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
 
@@ -213,7 +213,7 @@ export const bulkBlogFinalDataSchema = z.object({
 
   postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
 
-  brandId: z.string().nullable().optional().describe("Brand voice ID when useBrandVoice is true"),
+  brandId: z.string().nullable().optional().describe("Brand voice ID when isCheckedBrand is true"),
 
   addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
 
