@@ -14,6 +14,7 @@ import { brandsQuery } from "@api/Brand/Brand.query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
+import FieldLabel from "@components/ui/FieldLabel"
 import { Slider } from "@components/ui/slider"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
@@ -354,7 +355,7 @@ const StepContent = ({
       )
     case 2:
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 pt-4">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold  mb-2">Job Name</label>
@@ -374,15 +375,9 @@ const StepContent = ({
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
+              <FieldLabel tip="The main subject/topic for each blog in this job. Add one per blog you want to generate. Supports bulk CSV upload.">
                 Topics
-                <div
-                  className="tooltip"
-                  data-tip="Upload a .csv file in the format: `Topics` as header"
-                >
-                  <Info size={16} className="text-blue-500 cursor-pointer" />
-                </div>
-              </label>
+              </FieldLabel>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
@@ -471,12 +466,9 @@ const StepContent = ({
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold ">
+              <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords for your topics. Disable to enter your own keywords.">
                 Perform Keyword Research?
-                <p className="text-xs text-gray-500">
-                  Allow AI to find relevant keywords for the topics.
-                </p>
-              </span>
+              </FieldLabel>
               <label className="relative inline-flex items-center cursor-pointer">
                 <Switch
                   checked={formData.performKeywordResearch}
@@ -488,15 +480,9 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
+                <FieldLabel tip="Secondary keywords to weave throughout all blog articles in this job. Supports CSV upload for bulk entry.">
                   Keywords
-                  <div
-                    className="tooltip"
-                    data-tip="Upload a .csv file in the format: `Keywords` as header"
-                  >
-                    <Info size={16} className="text-blue-500 cursor-pointer" />
-                  </div>
-                </label>
+                </FieldLabel>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -793,17 +779,6 @@ const StepContent = ({
             </div>
           )}
 
-          <AiModelSelector
-            value={formData.aiModel}
-            onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
-            showCostCutter={true}
-            costCutterValue={newJob.blogs.costCutter || false}
-            onCostCutterChange={checked => {
-              setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
-            }}
-            error={errors.aiModel}
-          />
-
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-semibold  mb-2">Schedule Type</label>
@@ -958,12 +933,40 @@ const StepContent = ({
               )}
             </div>
           </div>
+
+          {/* Advanced Options Toggle */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-5">
+            <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
+              Advanced Options
+            </FieldLabel>
+            <Switch
+              checked={newJob.blogs.enableAdvanced}
+              onCheckedChange={checked =>
+                setNewJob(prev => ({
+                  ...prev,
+                  blogs: { ...prev.blogs, enableAdvanced: checked },
+                }))
+              }
+            />
+          </div>
         </motion.div>
       )
     case 4:
       return (
         <div>
           <div className="mt-0 space-y-4">
+            {/* AI Model Selector */}
+            <AiModelSelector
+              value={formData.aiModel}
+              onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+              showCostCutter={true}
+              costCutterValue={newJob.blogs.costCutter || false}
+              onCostCutterChange={checked => {
+                setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
+              }}
+              error={errors.aiModel}
+            />
+
             {/* Advanced Tool Settings */}
             <AdvancedOptions
               formData={newJob}

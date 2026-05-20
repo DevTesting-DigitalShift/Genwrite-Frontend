@@ -26,6 +26,29 @@ export const createQuickBlog = async (blogData, type) => {
   }
 }
 
+export const createTopicOnlyBlog = async ({ topic }) => {
+  try {
+    const response = await axiosInstance.post("/blogs/topic", { topic })
+    return response.data.blog || response.data
+  } catch (error) {
+    console.error("createTopicOnlyBlog error", error.response?.data || error)
+
+    // Handle 402 Insufficient Credits error
+    if (error.response?.status === 402) {
+      const neededCredits = error.response?.data?.neededCredits
+      const errorMsg = neededCredits
+        ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
+        : error.response?.data?.message || "Insufficient credits to create blog"
+      const err = new Error(errorMsg)
+      err.status = 402
+      err.neededCredits = neededCredits
+      throw err
+    }
+
+    throw new Error(error.response?.data?.message || "Failed to create blog")
+  }
+}
+
 export const createBlog = async blogData => {
   try {
     const formData = new FormData()

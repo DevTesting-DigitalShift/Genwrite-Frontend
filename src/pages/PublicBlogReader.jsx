@@ -147,10 +147,7 @@ const PublicBlogReader = () => {
     <div className="min-h-screen bg-slate-50/30 selection:bg-indigo-100 selection:text-indigo-900">
       <Helmet>
         <title>{editorTitle || "Blog"} | GenWrite</title>
-        <meta
-          name="description"
-          content={blog?.seoMetadata?.description || blog?.summary || ""}
-        />
+        <meta name="description" content={blog?.seoMetadata?.description || blog?.summary || ""} />
         <meta property="og:title" content={`${editorTitle} | GenWrite`} />
         <meta
           property="og:description"
@@ -162,8 +159,15 @@ const PublicBlogReader = () => {
       {/* Premium Reader NavBar - Visible only for guest users (who don't have the standard app header) */}
       {!user?._id && (
         <nav className="fixed top-0 w-full z-100 bg-white/70 backdrop-blur-xl border-b border-slate-100 h-16 sm:h-20 flex items-center justify-between px-4 md:px-12 transition-all">
-          <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer group">
-            <img src="/Images/genwriteIcon.webp" alt="GenWrite" className="w-8 h-8 object-contain" />
+          <div
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <img
+              src="/Images/genwriteIcon.webp"
+              alt="GenWrite"
+              className="w-8 h-8 object-contain"
+            />
             <span className="font-black text-xl sm:text-2xl tracking-tighter text-slate-900">
               Gen<span className="text-blue-600">Write</span>
             </span>
@@ -318,7 +322,6 @@ const PublicBlogReader = () => {
                   </div>
                 )}
               </div>
-
 
               {/* Tags / Keywords Section */}
               {(focusKeywords.length > 0 || keywords.length > 0) && (
@@ -481,17 +484,19 @@ const PublicBlogReader = () => {
                   </span>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {(focusKeywords.length > 0 ? focusKeywords : keywords.slice(0, 3)).map((kw, i) => (
-                    <div
-                      key={i}
-                      className="group relative flex items-center gap-3 p-3 bg-blue-600 text-white border border-blue-700 rounded-md shadow-lg shadow-blue-100/50"
-                    >
-                      <div className="w-1.5 h-1.5 bg-white rounded animate-pulse" />
-                      <span className="text-[11px] font-black uppercase tracking-tight">
-                        {kw}
-                      </span>
-                    </div>
-                  ))}
+                  {(focusKeywords.length > 0 ? focusKeywords : keywords.slice(0, 3)).map(
+                    (kw, i) => (
+                      <div
+                        key={i}
+                        className="group relative flex items-center gap-3 p-3 bg-blue-600 text-white border border-blue-700 rounded-md shadow-lg shadow-blue-100/50"
+                      >
+                        <div className="w-1.5 h-1.5 bg-white rounded animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-tight">
+                          {kw}
+                        </span>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 

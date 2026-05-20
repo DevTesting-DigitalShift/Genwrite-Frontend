@@ -2,7 +2,7 @@ import { packages } from "@/data/templates"
 import { Switch } from "@components/ui/switch"
 import { toast } from "sonner"
 import clsx from "clsx"
-import { Crown, Search } from "lucide-react"
+import { AlertCircle, Crown, Search } from "lucide-react"
 import { FC, useEffect, useState, useMemo } from "react"
 
 interface TemplateSelectionProps {
@@ -46,6 +46,12 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   const [templates, setTemplates] = useState<BlogTemplate[]>(initialTemplates)
   const [showSelected, setShowSelected] = useState<boolean>(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  // Clear local error when search term changes
+  useEffect(() => {
+    setLocalError(null)
+  }, [searchTerm])
 
   // Memoize preSelectedIds to stabilize the reference
   const stabilizedPreSelectedIds = useMemo<number[]>(() => {
@@ -112,12 +118,15 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       let indices = [...selectedIds]
       const findIndex = indices.indexOf(id)
       if (findIndex === -1) {
+        if (indices.length >= numberOfSelection) {
+          setLocalError(`You can select a maximum of ${numberOfSelection} templates.`)
+          return
+        }
         indices.push(id)
+        setLocalError(null)
       } else {
         indices = indices.slice(0, findIndex).concat(indices.slice(findIndex + 1))
-      }
-      if (indices.length > numberOfSelection) {
-        indices = indices.slice(indices.length - numberOfSelection)
+        setLocalError(null)
       }
       setSelectedIds(indices)
     }
@@ -155,10 +164,13 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
             />
           </div>
         </div>
-        {error && (
-          <p className="text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1 px-1">
-            {error}
-          </p>
+        {(localError || error) && (
+          <div className="flex items-center gap-3 p-3.5 px-4 mt-2 bg-red-50/90 border border-red-200/80 rounded-xl text-red-800 text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 backdrop-blur-sm">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <div className="flex-1">
+              {localError || error}
+            </div>
+          </div>
         )}
       </div>
 

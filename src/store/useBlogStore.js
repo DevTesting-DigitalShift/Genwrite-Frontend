@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { toast } from "sonner"
-import { createBlog, createBlogMultiple, createQuickBlog } from "@api/blogApi"
+import { createBlog, createBlogMultiple, createQuickBlog, createTopicOnlyBlog } from "@api/blogApi"
 
 const useBlogStore = create(
   devtools(
@@ -60,6 +60,20 @@ const useBlogStore = create(
             navigate("/blogs")
             toast.success("Blog creation has started!")
           }
+        } catch (error) {
+          throw error
+        }
+      },
+
+      createTopicBlog: async ({ topic, navigate, queryClient }) => {
+        try {
+          const newBlog = await createTopicOnlyBlog({ topic })
+          queryClient.invalidateQueries(["blogs"])
+          if (newBlog) {
+            navigate("/blogs")
+            toast.success("Blog creation has started!")
+          }
+          return newBlog
         } catch (error) {
           throw error
         }

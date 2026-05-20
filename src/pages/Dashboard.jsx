@@ -5,6 +5,8 @@ import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
+import useBlogStore from "@store/useBlogStore"
+import { toast } from "sonner"
 import GoThrough from "../components/dashboardModals/GoThrough"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
@@ -25,6 +27,10 @@ import {
   ChevronRight,
   Clock,
   Coins,
+  ArrowRight,
+  Search,
+  Zap,
+  Loader2,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import dayjs from "dayjs"
@@ -49,6 +55,37 @@ const Dashboard = () => {
   const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
+
+  const [topic, setTopic] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const { createTopicBlog } = useBlogStore()
+
+  const handleTopicSubmit = async (e) => {
+    e.preventDefault()
+    if (!topic.trim()) {
+      toast.error("Please enter a blog topic.")
+      return
+    }
+    if (topic.trim().length < 3) {
+      toast.error("Topic must be at least 3 characters.")
+      return
+    }
+    if (topic.trim().length > 300) {
+      toast.error("Topic cannot exceed 300 characters.")
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      await createTopicBlog({ topic: topic.trim(), navigate, queryClient })
+      setTopic("")
+    } catch (error) {
+      console.error("Failed to generate blog:", error)
+      toast.error(error.message || "An error occurred while generating the blog.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   // Fetch blog status for analytics cards
   const { data: blogStatus } = useQuery({
@@ -235,6 +272,64 @@ const Dashboard = () => {
             <span className="text-primary">{user?.name?.split(" ")[0] || "there"}</span>
           </h1>
           <p className="text-gray-500 mt-2 text-base font-medium">Your creative command center</p>
+        </motion.div>
+
+        {/* Instant Topic-only Blog Generator Card */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50/80 via-violet-50/50 to-white dark:from-slate-900/60 dark:via-indigo-950/15 dark:to-slate-900/40 border border-indigo-100/70 dark:border-indigo-950/80 p-6 md:p-8 shadow-xs transition-all duration-300 hover:shadow-sm"
+        >
+          {/* Decorative glowing gradient elements */}
+          <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-48 h-48 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" />
+                Instant Blog Writer
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                Enter your topic below to generate a fully structured, SEO-optimized blog post in seconds.
+              </p>
+            </div>
+
+            <form onSubmit={handleTopicSubmit} className="w-full">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full justify-between">
+                <div className="relative flex-1 w-full">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    disabled={isGenerating}
+                    placeholder="Enter blog topic (e.g., '10 Best SEO Practices for 2026')..."
+                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl text-sm focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10 dark:focus:ring-indigo-400/10 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 font-medium transition-all shadow-xs"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isGenerating}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-98 transition-all flex items-center justify-center gap-2 min-w-[140px] disabled:opacity-50 disabled:pointer-events-none cursor-pointer sm:shrink-0"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      Generate Blog
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </motion.div>
 
         {/* Analytics Cards */}

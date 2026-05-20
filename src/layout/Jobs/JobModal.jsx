@@ -36,6 +36,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
       languageToWrite: "English",
       costCutter: true,
       createBrandedImages: false,
+      enableAdvanced: false,
     },
     options: {
       wordpressPosting: false,
@@ -103,7 +104,13 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         postingType: selectedJob.blogs?.postingType || initialJob.blogs.postingType,
         templates: selectedJob.blogs?.templates || initialJob.blogs.templates,
       }))
-      setNewJob(selectedJob)
+      setNewJob({
+        ...selectedJob,
+        blogs: {
+          ...selectedJob.blogs,
+          enableAdvanced: selectedJob.blogs?.enableAdvanced ?? false,
+        },
+      })
     } else {
       setNewJob(initialJob)
     }
@@ -176,8 +183,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         newErrors.imageSource = "Please select an image source."
       }
     }
-    if (step === 4 || step === "all") {
-      if (newJob.options.wordpressPosting && !formData.postingType) {
+    if ((step === 4 && newJob.blogs.enableAdvanced) || step === "all") {
+      if (newJob.blogs.enableAdvanced && newJob.options.wordpressPosting && !formData.postingType) {
         newErrors.postingType = "Please select a posting platform."
       }
     }
@@ -292,6 +299,13 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             ✕
           </button>
         </div>
+        {/* Sleek Minimal Progress Bar */}
+        <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
+          <div 
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+            style={{ width: `${(currentStep / (newJob.blogs.enableAdvanced ? 4 : 3)) * 100}%` }}
+          />
+        </div>
 
         <div ref={scrollableRef} className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-4">
           <StepContent
@@ -326,7 +340,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
               Previous
             </button>
           )}
-          {currentStep < 3 && (
+          {currentStep < (newJob.blogs.enableAdvanced ? 4 : 3) ? (
             <button
               key="next"
               onClick={() => {
@@ -337,20 +351,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             >
               Next
             </button>
-          )}
-          {currentStep === 3 && (
-            <button
-              key="next-step-4"
-              onClick={() => {
-                if (validateSteps(currentStep)) setCurrentStep(4)
-              }}
-              className="btn min-h-auto h-auto font-bold text-base px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
-              aria-label="Next step"
-            >
-              Next
-            </button>
-          )}
-          {currentStep === 4 && (
+          ) : (
             <button
               key="submit"
               onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}

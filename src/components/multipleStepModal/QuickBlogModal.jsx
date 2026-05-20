@@ -14,7 +14,9 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { IMAGE_SOURCE, LANGUAGES, IMAGE_OPTIONS } from "@/data/blogData"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import AdvancedOptions from "@components/AdvancedOptions"
+import AiModelSelector from "@components/AiModelSelector"
 import { Switch } from "@components/ui/switch"
+import FieldLabel from "@components/ui/FieldLabel"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
@@ -44,6 +46,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     easyToUnderstand: false,
     embedYouTubeVideos: false,
     humanisation: false,
+    aiModel: "gemini",
+    enableAdvanced: false,
   }
 
   const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
@@ -72,7 +76,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     let cost = computeCost({
       wordCount: 1500,
       features,
-      aiModel: "gemini",
+      aiModel: formData.aiModel || "gemini",
       includeImages: formData.addImages,
       imageSource: formData.imageSource,
       numberOfImages: formData.numberOfImages,
@@ -89,6 +93,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     formData.addImages,
     formData.imageSource,
     formData.costCutter,
+    formData.aiModel,
   ])
 
   // Handle navigation to the next step
@@ -100,6 +105,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       }
       setErrors(prev => ({ ...prev, template: "" }))
       setCurrentStep(1)
+    } else if (currentStep === 1 && formData.enableAdvanced) {
+      setCurrentStep(2)
     }
   }
 
@@ -428,6 +435,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
+        {/* Sleek Minimal Progress Bar */}
+        <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
+          <div 
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+            style={{ width: `${((currentStep + 1) / (formData.enableAdvanced ? 3 : 2)) * 100}%` }}
+          />
+        </div>
         <div className="p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
             <div
@@ -444,11 +458,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             </div>
           )}
           {currentStep === 1 && (
-            <div className="space-y-4 p-3 pt-0">
+            <div className="space-y-5 p-3 pt-4">
               <div>
-                <label className="block text-sm font-semibold  mb-2">
-                  Topic <span className="text-red-500">*</span>
-                </label>
+                <FieldLabel tip="The core subject or concept you want the blog post to write about." required>
+                  Topic
+                </FieldLabel>
                 <input
                   type="text"
                   name="topic"
@@ -463,7 +477,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
               </div>
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold ">Use Topic name as Blog Title</label>
+                <FieldLabel tip="Ensures the generated blog uses your exact topic string as its main H1 title.">
+                  Use Topic name as Blog Title
+                </FieldLabel>
                 <Switch
                   checked={formData.exactTitle}
                   onCheckedChange={checked =>
@@ -494,7 +510,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
 
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold ">Perform Keyword Research</label>
+                <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords for this topic.">
+                  Perform Keyword Research
+                </FieldLabel>
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={checked =>
@@ -513,9 +531,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {!formData.performKeywordResearch && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold  mb-2">
-                      Focus Keywords (Max 3) <span className="text-red-500">*</span>
-                    </label>
+                    <FieldLabel tip="The #1 keyword you want this article to rank for in search engines. Appears most often in the blog." required>
+                      Focus Keywords (Max 3)
+                    </FieldLabel>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -559,9 +577,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold  mb-2">
-                      Keywords <span className="text-red-500">*</span>
-                    </label>
+                    <FieldLabel tip="Secondary helper keywords woven throughout the article for broader SEO coverage." required>
+                      Keywords
+                    </FieldLabel>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -645,12 +663,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   />
                 )}
 
-                {/* Advanced Tool Settings */}
-                <AdvancedOptions
-                  formData={formData}
-                  updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
-                  showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
-                />
+                {/* Advanced Options Toggle */}
+                <div className="flex items-center justify-between mb-4">
+                  <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
+                    Advanced Options
+                  </FieldLabel>
+                  <Switch
+                    checked={formData.enableAdvanced}
+                    onCheckedChange={checked =>
+                      setFormData(prev => ({ ...prev, enableAdvanced: checked }))
+                    }
+                    size="large"
+                  />
+                </div>
               </div>
 
               {/* Reference Links Section */}
@@ -759,13 +784,31 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </div>
             </div>
           )}
+          {currentStep === 2 && formData.enableAdvanced && (
+            <div className="space-y-6 p-4 pt-4">
+              <AiModelSelector
+                value={formData.aiModel}
+                onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+                showCostCutter={true}
+                costCutterValue={formData.costCutter}
+                onCostCutterChange={checked =>
+                  setFormData(prev => ({ ...prev, costCutter: checked }))
+                }
+              />
+              <AdvancedOptions
+                formData={formData}
+                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
+              />
+            </div>
+          )}
         </div>
 
         <div className="p-4 border-t border-gray-300 bg-gray-50">
           {currentStep === 0 ? (
             <div className="flex justify-end">
               <button
-                onClick={currentStep === 3 ? handleSubmit : handleNext}
+                onClick={handleNext}
                 className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
               >
                 Next
@@ -785,17 +828,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {/* Buttons */}
               <div className="flex gap-3 w-full justify-end">
                 <button
-                  onClick={() => setCurrentStep(0)}
+                  onClick={() => setCurrentStep(prev => prev - 1)}
                   className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Previous
                 </button>
 
                 <button
-                  onClick={handleSubmit}
+                  onClick={currentStep === (formData.enableAdvanced ? 2 : 1) ? handleSubmit : handleNext}
                   className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
                 >
-                  Submit
+                  {currentStep === (formData.enableAdvanced ? 2 : 1) ? "Submit" : "Next"}
                 </button>
               </div>
             </div>
