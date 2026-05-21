@@ -22,18 +22,36 @@ const TASK_LABELS: Record<string, string> = {
   outsource: "Content Research",
   context: "Context Analysis",
   outline: "Outline Generation",
+  "deep-research": "Deep Research",
   content: "AI Content Generation",
+  humanisation: "Humanising Content",
   "images-alt_texts": "Image Alt Texts",
   "seo-metadata": "SEO Metadata",
   "slug-generation": "Slug Generation",
   "final-merge": "Final Assembly",
-  "wordpress-post": "Blog Posting",
+  posting: "Auto Posting",
 }
 
 // Tasks whose failure is non-critical (blog content is still usable)
-const NON_CRITICAL_TASKS = new Set(["images-alt_texts", "wordpress-post"])
+const NON_CRITICAL_TASKS = new Set(["images-alt_texts", "posting"])
 
-// Canonical pipeline steps for visual progress (7 core steps)
+// Full ordered pipeline — must match backend AIBlogServiceV2 step order
+const ALL_PIPELINE_STEPS = [
+  "keyword-research",
+  "outsource",
+  "context",
+  "outline",
+  "deep-research",
+  "content",
+  "humanisation",
+  "images-alt_texts",
+  "seo-metadata",
+  "slug-generation",
+  "final-merge",
+  "posting",
+]
+
+// Canonical pipeline steps for visual progress (7 core steps shown in progress bar)
 const PIPELINE_STEPS = [
   "keyword-research",
   "outsource",
@@ -89,10 +107,17 @@ function getFailedTasks(taskStatus?: TaskStatus): string[] {
 
 function getCurrentTask(taskStatus?: TaskStatus): string | null {
   if (!taskStatus) return null
-  const entry = Object.entries(taskStatus).find(
-    ([k, v]) => k !== "error" && (v === "pending" || v === "in-progress")
-  )
-  return entry ? entry[0] : null
+  // Backend only saves "done"/"failed" to DB, never "in-progress" per step.
+  // So find the next step after the last completed one.
+  let lastDoneIndex = -1
+  for (let i = ALL_PIPELINE_STEPS.length - 1; i >= 0; i--) {
+    if (taskStatus[ALL_PIPELINE_STEPS[i]] === "done") {
+      lastDoneIndex = i
+      break
+    }
+  }
+  const next = lastDoneIndex + 1
+  return next < ALL_PIPELINE_STEPS.length ? ALL_PIPELINE_STEPS[next] : null
 }
 
 // Is the failure only caused by non-critical steps? (posting / image alt)
@@ -127,6 +152,7 @@ const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: Task
   // --- PENDING / IN-PROGRESS ---
   if (isRunning) {
     const hasFailedSteps = failedTasks.length > 0
+    const badgeLabel = status === "in-progress" ? "In Progress" : "Queued"
 
     return (
       <div className="relative group/badge cursor-default">
@@ -135,11 +161,13 @@ const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: Task
             ${
               hasFailedSteps
                 ? "bg-orange-50 border-orange-200/70 text-orange-600"
-                : "bg-amber-50 border-amber-200/60 text-amber-600"
+                : status === "in-progress"
+                  ? "bg-indigo-50 border-indigo-200/60 text-indigo-600"
+                  : "bg-amber-50 border-amber-200/60 text-amber-600"
             }`}
         >
           <Loader2 size={12} className="animate-spin" />
-          <span>Pending</span>
+          <span>{badgeLabel}</span>
           {hasFailedSteps && <AlertTriangle size={10} className="text-rose-500 ml-0.5" />}
         </div>
 
@@ -448,7 +476,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
                     className={`h-full rounded-full transition-all duration-700 ease-out relative ${
                       blog.status === "failed"
                         ? "bg-rose-400"
-                        : "bg-gradient-to-r from-amber-400 via-indigo-500 to-violet-600"
+                        : "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500"
                     }`}
                     style={{ width: `${percentage}%` }}
                   >

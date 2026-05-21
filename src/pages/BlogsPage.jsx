@@ -162,7 +162,15 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    // No polling — socket events (blog:statusChanged) handle live updates
+    // Poll every 8s when any blog is actively generating — covers taskStatus step-by-step updates
+    // since backend has no per-step socket event
+    refetchInterval: query => {
+      const pages = query.state.data?.pages ?? []
+      const hasActive = pages.some(page =>
+        page.data?.some(b => b.status === "pending" || b.status === "in-progress")
+      )
+      return hasActive ? 8000 : false
+    },
   })
 
   const {
@@ -267,17 +275,12 @@ const BlogsPage = () => {
       })
     }
 
-    // Real-time progress: update taskStatus in cache directly — no API call
-    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
-      patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
-    }
-
     const handleStatusChange = ({ blogId, newStatus } = {}) => {
       if (newStatus === "complete" || newStatus === "failed") {
-        // Final state — fetch fresh blog data from API (title, excerpt, etc. may have changed)
+        // Final state — fetch fresh blog data from API (title, excerpt, taskStatus, etc. may have changed)
         queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
       } else if (blogId && newStatus) {
-        // In-progress transition — patch status in cache, skip API round-trip
+        // Transitional state (e.g. pending → in-progress) — patch status immediately, skip API round-trip
         patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
       }
     }
@@ -292,18 +295,15 @@ const BlogsPage = () => {
       }
     }
 
-    socket.on("blog:progressUpdated", handleProgressUpdated)
+    // blog:updated covers archive, restore, manual edits from backend
     socket.on("blog:statusChanged", handleStatusChange)
-    socket.on("blog:archived", handleBlogMutation)
-    socket.on("blog:restored", handleBlogMutation)
+    socket.on("blog:updated", handleBlogMutation)
     socket.on("blog:deleted", handleBlogMutation)
     socket.on("blog:created", handleBlogCreated)
 
     return () => {
-      socket.off("blog:progressUpdated", handleProgressUpdated)
       socket.off("blog:statusChanged", handleStatusChange)
-      socket.off("blog:archived", handleBlogMutation)
-      socket.off("blog:restored", handleBlogMutation)
+      socket.off("blog:updated", handleBlogMutation)
       socket.off("blog:deleted", handleBlogMutation)
       socket.off("blog:created", handleBlogCreated)
     }

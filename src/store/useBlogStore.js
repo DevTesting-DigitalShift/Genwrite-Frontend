@@ -29,7 +29,7 @@ const useBlogStore = create(
       createNewBlog: async ({ blogData, user, navigate, queryClient }) => {
         try {
           const newBlog = await createBlog(blogData)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlog) {
             navigate("/blogs")
             toast.success("Blog creation has started!")
@@ -42,7 +42,7 @@ const useBlogStore = create(
       createMultiBlog: async ({ blogData, user, navigate, queryClient }) => {
         try {
           const newBlogs = await createBlogMultiple(blogData)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlogs) {
             navigate("/blogs")
             toast.success("Blogs created successfully!")
@@ -55,7 +55,7 @@ const useBlogStore = create(
       createNewQuickBlog: async ({ blogData, user, navigate, type, queryClient }) => {
         try {
           const newBlog = await createQuickBlog(blogData, type)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlog) {
             navigate("/blogs")
             toast.success("Blog creation has started!")
@@ -68,7 +68,7 @@ const useBlogStore = create(
       createTopicBlog: async ({ topic, navigate, queryClient }) => {
         try {
           const newBlog = await createTopicOnlyBlog({ topic })
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlog) {
             navigate("/blogs")
             toast.success("Blog creation has started!")
