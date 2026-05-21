@@ -1033,19 +1033,24 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 }
               />
             </div>
+
+            {formData.enableAdvanced && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <AiModelSelector
+                  value={formData.aiModel}
+                  onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
+                  showCostCutter={true}
+                  costCutterValue={formData.costCutter}
+                  onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
+                />
+              </div>
+            )}
           </div>
         )
       }
       case 3:
         return (
           <div className="space-y-6 p-4 pt-4">
-            <AiModelSelector
-              value={formData.aiModel}
-              onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
-              showCostCutter={true}
-              costCutterValue={formData.costCutter}
-              onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
-            />
             {/* 1-4. AdvancedOptions Group A */}
             <AdvancedOptions
               formData={formData}

@@ -154,6 +154,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     if (step === 1 || step === "all") {
       if (newJob.blogs.templates.length === 0) {
         newErrors.templates = "Please select at least one template."
+      } else if (newJob.blogs.templates.length > 7) {
+        newErrors.templates = "You can select a maximum of 7 templates."
       }
     }
     if (step === 2 || step === "all") {

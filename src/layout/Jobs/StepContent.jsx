@@ -935,19 +935,35 @@ const StepContent = ({
           </div>
 
           {/* Advanced Options Toggle */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-5">
-            <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
-              Advanced Options
-            </FieldLabel>
-            <Switch
-              checked={newJob.blogs.enableAdvanced}
-              onCheckedChange={checked =>
-                setNewJob(prev => ({
-                  ...prev,
-                  blogs: { ...prev.blogs, enableAdvanced: checked },
-                }))
-              }
-            />
+          <div className="flex flex-col gap-4 pt-4 border-t border-slate-100 mt-5">
+            <div className="flex items-center justify-between">
+              <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
+                Advanced Options
+              </FieldLabel>
+              <Switch
+                checked={newJob.blogs.enableAdvanced}
+                onCheckedChange={checked =>
+                  setNewJob(prev => ({
+                    ...prev,
+                    blogs: { ...prev.blogs, enableAdvanced: checked },
+                  }))
+                }
+              />
+            </div>
+            {newJob.blogs.enableAdvanced && (
+              <div className="mt-2 border-t border-dashed border-slate-100 pt-4">
+                <AiModelSelector
+                  value={formData.aiModel}
+                  onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+                  showCostCutter={true}
+                  costCutterValue={newJob.blogs.costCutter || false}
+                  onCostCutterChange={checked => {
+                    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
+                  }}
+                  error={errors.aiModel}
+                />
+              </div>
+            )}
           </div>
         </motion.div>
       )
@@ -955,18 +971,6 @@ const StepContent = ({
       return (
         <div>
           <div className="mt-0 space-y-4">
-            {/* AI Model Selector */}
-            <AiModelSelector
-              value={formData.aiModel}
-              onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
-              showCostCutter={true}
-              costCutterValue={newJob.blogs.costCutter || false}
-              onCostCutterChange={checked => {
-                setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, costCutter: checked } }))
-              }}
-              error={errors.aiModel}
-            />
-
             {/* Advanced Tool Settings */}
             <AdvancedOptions
               formData={newJob}

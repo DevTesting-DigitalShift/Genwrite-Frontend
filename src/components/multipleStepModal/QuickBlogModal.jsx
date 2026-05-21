@@ -676,6 +676,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     size="large"
                   />
                 </div>
+
+                {formData.enableAdvanced && (
+                  <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <AiModelSelector
+                      value={formData.aiModel}
+                      onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+                      showCostCutter={true}
+                      costCutterValue={formData.costCutter}
+                      onCostCutterChange={checked =>
+                        setFormData(prev => ({ ...prev, costCutter: checked }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Reference Links Section */}
@@ -783,21 +797,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </div>
               </div>
             </div>
-          )}
+            )}
           {currentStep === 2 && formData.enableAdvanced && (
             <div className="space-y-6 p-4 pt-4">
-              <AiModelSelector
-                value={formData.aiModel}
-                onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
-                showCostCutter={true}
-                costCutterValue={formData.costCutter}
-                onCostCutterChange={checked =>
-                  setFormData(prev => ({ ...prev, costCutter: checked }))
-                }
-              />
               <AdvancedOptions
                 formData={formData}
                 updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                isNestedOptions={false}
                 showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
               />
             </div>
