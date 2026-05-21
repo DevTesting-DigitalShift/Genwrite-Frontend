@@ -251,11 +251,39 @@ const BlogsPage = () => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleStatusChange = _ => {
-      queryClient.invalidateQueries({
-        queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
-        refetchType: "active",
+    const activeQueryKey = isTrashcan ? ["trashedBlogs"] : ["blogs"]
+
+    const patchBlogInCache = (blogId, patcher) => {
+      if (!blogId) return
+      queryClient.setQueriesData({ queryKey: activeQueryKey }, oldData => {
+        if (!oldData?.pages) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            data: page.data.map(blog => (blog._id === blogId ? patcher(blog) : blog)),
+          })),
+        }
       })
+    }
+
+    // Real-time progress: update taskStatus in cache directly — no API call
+    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
+      patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+    }
+
+    const handleStatusChange = ({ blogId, newStatus } = {}) => {
+      if (newStatus === "complete" || newStatus === "failed") {
+        // Final state — fetch fresh blog data from API (title, excerpt, etc. may have changed)
+        queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
+      } else if (blogId && newStatus) {
+        // In-progress transition — patch status in cache, skip API round-trip
+        patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
+      }
+    }
+
+    const handleBlogMutation = _ => {
+      queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
     }
 
     const handleBlogCreated = _ => {
@@ -264,17 +292,19 @@ const BlogsPage = () => {
       }
     }
 
+    socket.on("blog:progressUpdated", handleProgressUpdated)
     socket.on("blog:statusChanged", handleStatusChange)
-    socket.on("blog:archived", handleStatusChange)
-    socket.on("blog:restored", handleStatusChange)
-    socket.on("blog:deleted", handleStatusChange)
+    socket.on("blog:archived", handleBlogMutation)
+    socket.on("blog:restored", handleBlogMutation)
+    socket.on("blog:deleted", handleBlogMutation)
     socket.on("blog:created", handleBlogCreated)
 
     return () => {
+      socket.off("blog:progressUpdated", handleProgressUpdated)
       socket.off("blog:statusChanged", handleStatusChange)
-      socket.off("blog:archived", handleStatusChange)
-      socket.off("blog:restored", handleStatusChange)
-      socket.off("blog:deleted", handleStatusChange)
+      socket.off("blog:archived", handleBlogMutation)
+      socket.off("blog:restored", handleBlogMutation)
+      socket.off("blog:deleted", handleBlogMutation)
       socket.off("blog:created", handleBlogCreated)
     }
   }, [user, queryClient, isTrashcan])

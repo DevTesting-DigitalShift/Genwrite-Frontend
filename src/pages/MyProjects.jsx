@@ -21,7 +21,6 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
-import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
 import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
@@ -160,20 +159,40 @@ const MyProjects = () => {
       return
     }
 
-    const handleStatusChange = data => {
-      queryClient
-        .refetchQueries({ queryKey: ["blogs"], type: "active" })
-        .then(() => {
-          console.debug("Blogs refetched successfully after socket event")
-        })
-        .catch(err => {
-          console.error("Failed to refetch blogs:", err)
-        })
+    const patchBlogInCache = (blogId, patcher) => {
+      if (!blogId) return
+      queryClient.setQueriesData({ queryKey: ["blogs"] }, oldData => {
+        if (!oldData?.pages) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            data: page.data.map(blog => (blog._id === blogId ? patcher(blog) : blog)),
+          })),
+        }
+      })
     }
 
+    // Real-time progress: update taskStatus in cache directly — no API call
+    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
+      patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+    }
+
+    const handleStatusChange = ({ blogId, newStatus } = {}) => {
+      if (newStatus === "complete" || newStatus === "failed") {
+        // Final state — fetch fresh blog data from API
+        queryClient.refetchQueries({ queryKey: ["blogs"], type: "active" })
+      } else if (blogId && newStatus) {
+        // In-progress transition — patch status in cache only
+        patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
+      }
+    }
+
+    socket.on("blog:progressUpdated", handleProgressUpdated)
     socket.on("blog:statusChanged", handleStatusChange)
 
     return () => {
+      socket.off("blog:progressUpdated", handleProgressUpdated)
       socket.off("blog:statusChanged", handleStatusChange)
     }
   }, [user, userId, queryClient])
