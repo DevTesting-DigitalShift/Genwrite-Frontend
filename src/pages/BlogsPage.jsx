@@ -162,7 +162,15 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    // No polling — socket events (blog:statusChanged) handle live updates
+    // Poll every 8s when any blog is actively generating — covers taskStatus step-by-step updates
+    // since backend has no per-step socket event
+    refetchInterval: query => {
+      const pages = query.state.data?.pages ?? []
+      const hasActive = pages.some(page =>
+        page.data?.some(b => b.status === "pending" || b.status === "in-progress")
+      )
+      return hasActive ? 8000 : false
+    },
   })
 
   const {
@@ -251,11 +259,34 @@ const BlogsPage = () => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleStatusChange = _ => {
-      queryClient.invalidateQueries({
-        queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
-        refetchType: "active",
+    const activeQueryKey = isTrashcan ? ["trashedBlogs"] : ["blogs"]
+
+    const patchBlogInCache = (blogId, patcher) => {
+      if (!blogId) return
+      queryClient.setQueriesData({ queryKey: activeQueryKey }, oldData => {
+        if (!oldData?.pages) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            data: page.data.map(blog => (blog._id === blogId ? patcher(blog) : blog)),
+          })),
+        }
       })
+    }
+
+    const handleStatusChange = ({ blogId, newStatus } = {}) => {
+      if (newStatus === "complete" || newStatus === "failed") {
+        // Final state — fetch fresh blog data from API (title, excerpt, taskStatus, etc. may have changed)
+        queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
+      } else if (blogId && newStatus) {
+        // Transitional state (e.g. pending → in-progress) — patch status immediately, skip API round-trip
+        patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
+      }
+    }
+
+    const handleBlogMutation = _ => {
+      queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
     }
 
     const handleBlogCreated = _ => {
@@ -264,17 +295,16 @@ const BlogsPage = () => {
       }
     }
 
+    // blog:updated covers archive, restore, manual edits from backend
     socket.on("blog:statusChanged", handleStatusChange)
-    socket.on("blog:archived", handleStatusChange)
-    socket.on("blog:restored", handleStatusChange)
-    socket.on("blog:deleted", handleStatusChange)
+    socket.on("blog:updated", handleBlogMutation)
+    socket.on("blog:deleted", handleBlogMutation)
     socket.on("blog:created", handleBlogCreated)
 
     return () => {
       socket.off("blog:statusChanged", handleStatusChange)
-      socket.off("blog:archived", handleStatusChange)
-      socket.off("blog:restored", handleStatusChange)
-      socket.off("blog:deleted", handleStatusChange)
+      socket.off("blog:updated", handleBlogMutation)
+      socket.off("blog:deleted", handleBlogMutation)
       socket.off("blog:created", handleBlogCreated)
     }
   }, [user, queryClient, isTrashcan])

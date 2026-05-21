@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import { toast } from "sonner"
-import { createBlog, createBlogMultiple, createQuickBlog } from "@api/blogApi"
+import { createBlog, createBlogMultiple, createQuickBlog, createTopicOnlyBlog } from "@api/blogApi"
 
 const useBlogStore = create(
   devtools(
@@ -29,7 +29,7 @@ const useBlogStore = create(
       createNewBlog: async ({ blogData, user, navigate, queryClient }) => {
         try {
           const newBlog = await createBlog(blogData)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlog) {
             navigate("/blogs")
             toast.success("Blog creation has started!")
@@ -42,7 +42,7 @@ const useBlogStore = create(
       createMultiBlog: async ({ blogData, user, navigate, queryClient }) => {
         try {
           const newBlogs = await createBlogMultiple(blogData)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlogs) {
             navigate("/blogs")
             toast.success("Blogs created successfully!")
@@ -55,11 +55,25 @@ const useBlogStore = create(
       createNewQuickBlog: async ({ blogData, user, navigate, type, queryClient }) => {
         try {
           const newBlog = await createQuickBlog(blogData, type)
-          queryClient.invalidateQueries(["blogs"])
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
           if (newBlog) {
             navigate("/blogs")
             toast.success("Blog creation has started!")
           }
+        } catch (error) {
+          throw error
+        }
+      },
+
+      createTopicBlog: async ({ topic, navigate, queryClient }) => {
+        try {
+          const newBlog = await createTopicOnlyBlog({ topic })
+          queryClient.invalidateQueries({ queryKey: ["blogs"] })
+          if (newBlog) {
+            navigate("/blogs")
+            toast.success("Blog creation has started!")
+          }
+          return newBlog
         } catch (error) {
           throw error
         }

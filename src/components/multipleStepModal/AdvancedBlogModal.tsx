@@ -24,6 +24,7 @@ import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
+import FieldLabel from "@components/ui/FieldLabel"
 import useIntegrationStore from "@store/useIntegrationStore"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
@@ -34,13 +35,6 @@ interface AdvancedBlogModalProps {
 
 // Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
-  const STEP_TITLES = [
-    "Step 1  : Template Selection",
-    "Step 2: Basic Information",
-    "Step 3: Customization",
-    "Step 4: Blog Options",
-  ]
-
   const initialData = {
     templateIds: [] as number[],
     template: "" as string,
@@ -64,6 +58,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     costCutter: true as boolean,
     wordpressPostStatus: false as boolean,
     postingType: null as string | null,
+    enableAdvanced: false as boolean,
     options: {
       exactTitle: false as boolean,
       performKeywordResearch: false as boolean,
@@ -106,6 +101,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
   const [errors, setErrors] = useState<FormError>({})
+
+  const STEP_TITLES = formData.enableAdvanced
+    ? [
+        "Step 1  : Template Selection",
+        "Step 2: Basic Information",
+        "Step 3: Customization",
+        "Step 4: Advanced Settings",
+      ]
+    : [
+        "Step 1  : Template Selection",
+        "Step 2: Basic Information",
+        "Step 3: Customization",
+      ]
 
   // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
@@ -462,12 +470,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         )
       case 1:
         return (
-          <div className="space-y-3 p-4 pt-0">
+          <div className="space-y-5 p-4 pt-4">
             {/* Topic */}
             <div>
-              <label className="text-sm font-semibold ">
-                Topic <span className="text-red-500">*</span>
-              </label>
+              <FieldLabel tip="The core subject or concept you want the blog post to write about." required>
+                Topic
+              </FieldLabel>
               <input
                 name="topic"
                 placeholder="e.g., Tech Blog"
@@ -505,7 +513,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Auto Generate Toggle */}
             <div className="flex items-center justify-between mt-4">
-              <label className="text-sm font-semibold ">Auto Generate Title & Keywords</label>
+              <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords and generate optimized blog titles for you.">
+                Auto Generate Title & Keywords
+              </FieldLabel>
               <Switch
                 checked={formData.options.performKeywordResearch}
                 onCheckedChange={(checked: boolean) =>
@@ -520,9 +530,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <>
                 {/* Focus Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold ">
-                    Focus Keywords (max 3) <span className="text-red-500">*</span>
-                  </label>
+                  <FieldLabel tip="The #1 keyword you want this article to rank for in search engines. Used most prominently throughout the blog." required>
+                    Focus Keywords (max 3)
+                  </FieldLabel>
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
@@ -574,9 +584,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Keywords */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold ">
-                    Keywords <span className="text-red-500">*</span>
-                  </label>
+                  <FieldLabel tip="Secondary supporting keywords woven throughout the article for broader SEO coverage." required>
+                    Keywords
+                  </FieldLabel>
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
@@ -628,9 +638,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold ">
-                    Blog Title <span className="text-red-500">*</span>
-                  </label>
+                  <FieldLabel tip="The headline / main H1 title of your blog. Can be typed manually or auto-generated with AI." required>
+                    Blog Title
+                  </FieldLabel>
                   <div className="flex gap-2">
                     <input
                       name="title"
@@ -673,7 +683,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Exact Title Toggle */}
                 <div className="flex items-center justify-between my-4">
-                  <label className="text-sm font-semibold ">Use Exact Title for Blog</label>
+                  <FieldLabel tip="Ensures the AI uses your exact title string without any variations or paraphrasing.">
+                    Use Exact Title for Blog
+                  </FieldLabel>
                   <Switch
                     checked={formData.options.exactTitle}
                     onCheckedChange={(checked: boolean) =>
@@ -752,15 +764,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
       case 2: {
         return (
-          <div className="space-y-3 p-4 pt-0">
-            <AiModelSelector
-              value={formData.aiModel}
-              onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
-              showCostCutter={true}
-              costCutterValue={formData.costCutter}
-              onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
-            />
-
+          <div className="space-y-5 p-4 pt-4">
             {/* Feature Toggles */}
             <div className="space-y-4 pt-3">
               <div className="flex items-center justify-between">
@@ -1016,12 +1020,37 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 ))}
               </div>
             </div>
+
+            {/* Advanced Options Toggle */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
+                Advanced Options
+              </FieldLabel>
+              <Switch
+                checked={formData.enableAdvanced}
+                onCheckedChange={(checked: boolean) =>
+                  handleInputChange({ target: { name: "enableAdvanced", value: checked } })
+                }
+              />
+            </div>
+
+            {formData.enableAdvanced && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <AiModelSelector
+                  value={formData.aiModel}
+                  onChange={(modelId: string) => updateFormData({ aiModel: modelId })}
+                  showCostCutter={true}
+                  costCutterValue={formData.costCutter}
+                  onCostCutterChange={(checked: boolean) => updateFormData({ costCutter: checked })}
+                />
+              </div>
+            )}
           </div>
         )
       }
       case 3:
         return (
-          <div className="space-y-6 p-4 pt-0">
+          <div className="space-y-6 p-4 pt-4">
             {/* 1-4. AdvancedOptions Group A */}
             <AdvancedOptions
               formData={formData}
@@ -1194,6 +1223,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <X className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
           </button>
         </div>
+        {/* Sleek Minimal Progress Bar */}
+        <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
+          <div 
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+            style={{ width: `${((currentStep + 1) / STEP_TITLES.length) * 100}%` }}
+          />
+        </div>
 
         <div
           className="p-4 pt-0 max-h-[70vh] overflow-y-auto custom-scroll space-y-4"
@@ -1205,7 +1241,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         <div className="p-4 border-t border-gray-300 bg-gray-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Cost Section */}
-            {(currentStep === 2 || currentStep === 3) && (
+            {(currentStep === 2 || (currentStep === 3 && formData.enableAdvanced)) && (
               <div className="flex items-center w-full gap-2 text-sm">
                 <span className="text-gray-600 font-semibold">Estimated Cost:</span>
                 <span className="font-bold text-[#4C5BD6]">{estimatedCost}</span>
@@ -1227,10 +1263,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               )}
 
               <button
-                onClick={currentStep === 3 ? handleSubmit : handleNext}
+                onClick={currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext}
                 className="w-full sm:w-auto px-8 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-colors"
               >
-                {currentStep === 3 ? "Generate Blog" : "Next"}
+                {currentStep === (formData.enableAdvanced ? 3 : 2) ? "Generate Blog" : "Next"}
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
+import FieldLabel from "@components/ui/FieldLabel"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { packages } from "@/data/templates"
@@ -76,6 +77,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     wordpressPostStatus: false,
     includeTableOfContents: false,
     createBrandedImages: false,
+    enableAdvanced: false,
   }
 
   const initialErrorsState = {
@@ -107,6 +109,8 @@ const BulkBlogModal = ({ closeFnc }) => {
       }
     }
   }, [integrations])
+
+
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -165,6 +169,11 @@ const BulkBlogModal = ({ closeFnc }) => {
         setErrors(prev => ({ ...prev, templates: "Please select at least one template." }))
         return
       }
+      if (formData.templates.length > 3) {
+        setErrors(prev => ({ ...prev, templates: "Maximum of 3 templates can be selected." }))
+        toast.error("Maximum of 3 templates can be selected.")
+        return
+      }
       setErrors(prev => ({ ...prev, templates: "" }))
     }
     if (currentStep === 1) {
@@ -172,22 +181,32 @@ const BulkBlogModal = ({ closeFnc }) => {
         topics:
           formData.topics.length === 0 && formData.topicInput.trim() === ""
             ? "Please add at least one topic."
-            : "",
+            : formData.topics.length !== formData.numberOfBlogs
+              ? `Please add exactly ${formData.numberOfBlogs} topics (currently ${formData.topics.length} added).`
+              : "",
         keywords:
           !formData.performKeywordResearch &&
           formData.keywords.length === 0 &&
           formData.keywordInput.trim() === ""
             ? "Please add at least one keyword."
             : "",
+        numberOfBlogs:
+          formData.numberOfBlogs < 1
+            ? "Number of blogs must be at least 1."
+            : formData.numberOfBlogs > BLOG_CONFIG.BULK.MAX_BLOGS
+              ? `Number of blogs cannot exceed ${BLOG_CONFIG.BULK.MAX_BLOGS}.`
+              : "",
       }
       setErrors(prev => ({ ...prev, ...newErrors }))
       if (Object.values(newErrors).some(error => error)) {
+        if (newErrors.topics) {
+          toast.error(newErrors.topics)
+        }
         return
       }
     }
     if (currentStep === 2) {
       const newErrors = {
-        aiModel: !formData.aiModel ? "Please select an AI model." : "",
         numberOfImages:
           formData.isCheckedGeneratedImages &&
           (formData.numberOfImages === "" ||
@@ -223,11 +242,18 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const handleSubmit = async () => {
     const newErrors = {
-      templates: formData.templates.length === 0 ? "Please select at least one template." : "",
+      templates:
+        formData.templates.length === 0
+          ? "Please select at least one template."
+          : formData.templates.length > 3
+            ? "Maximum of 3 templates can be selected."
+            : "",
       topics:
         formData.topics.length === 0 && formData.topicInput.trim() === ""
           ? "Please add at least one topic."
-          : "",
+          : formData.topics.length !== formData.numberOfBlogs
+            ? `Please add exactly ${formData.numberOfBlogs} topics (currently ${formData.topics.length} added).`
+            : "",
       keywords:
         !formData.performKeywordResearch &&
         formData.keywords.length === 0 &&
@@ -236,9 +262,11 @@ const BulkBlogModal = ({ closeFnc }) => {
           : "",
       aiModel: !formData.aiModel ? "Please select an AI model." : "",
       numberOfBlogs:
-        formData.numberOfBlogs < 1 || formData.numberOfBlogs > BLOG_CONFIG.BULK.MAX_BLOGS
-          ? `Number of blogs must be between 1 and ${BLOG_CONFIG.BULK.MAX_BLOGS}.`
-          : "",
+        formData.numberOfBlogs < 1
+          ? "Number of blogs must be at least 1."
+          : formData.numberOfBlogs > BLOG_CONFIG.BULK.MAX_BLOGS
+            ? `Number of blogs cannot exceed ${BLOG_CONFIG.BULK.MAX_BLOGS}.`
+            : "",
       numberOfImages:
         formData.numberOfImages === "" ||
         formData.numberOfImages < 0 ||
@@ -260,11 +288,15 @@ const BulkBlogModal = ({ closeFnc }) => {
       // Find the step where the first error occurs
       const errorStep = newErrors.templates
         ? 0
-        : newErrors.topics || newErrors.keywords
+        : newErrors.topics || newErrors.keywords || newErrors.numberOfBlogs
           ? 1
-          : newErrors.aiModel || newErrors.numberOfImages || newErrors.blogImages
+          : newErrors.numberOfImages || newErrors.blogImages
             ? 2
-            : 3
+            : formData.enableAdvanced && newErrors.aiModel
+              ? 3
+              : formData.enableAdvanced
+                ? 3
+                : 2
       setCurrentStep(errorStep)
       return
     }
@@ -373,7 +405,20 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
 
     setFormData(prev => ({ ...prev, [name]: val }))
-    setErrors(prev => ({ ...prev, [name]: "" }))
+
+    if (name === "numberOfBlogs") {
+      const minBlogs = Math.max(1, formData.topics.length)
+      if (val === "" || val < minBlogs) {
+        setErrors(prev => ({
+          ...prev,
+          numberOfBlogs: `Number of blogs must be at least ${minBlogs} (number of topics provided).`
+        }))
+      } else {
+        setErrors(prev => ({ ...prev, numberOfBlogs: "" }))
+      }
+    } else {
+      setErrors(prev => ({ ...prev, [name]: "" }))
+    }
   }
 
   const handleCheckboxChange = e => {
@@ -431,6 +476,23 @@ const BulkBlogModal = ({ closeFnc }) => {
       setErrors(prev => ({ ...prev, topics: "Please enter valid, non-duplicate topics." }))
       setFormData(prev => ({ ...prev, topicInput: "" }))
       return false
+    }
+
+    const limit = formData.numberOfBlogs || 0
+    if (formData.topics.length + newTopics.length > limit) {
+      const allowedCount = limit - formData.topics.length
+      if (allowedCount <= 0) {
+        setErrors(prev => ({ ...prev, topics: `Cannot add more than ${limit} topics.` }))
+        toast.error(`Cannot add more than ${limit} topics. Please increase the number of blogs first if you want more topics.`)
+        setFormData(prev => ({ ...prev, topicInput: "" }))
+        return false
+      } else {
+        const slicedNewTopics = newTopics.slice(0, allowedCount)
+        setFormData(prev => ({ ...prev, topics: [...prev.topics, ...slicedNewTopics], topicInput: "" }))
+        setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
+        toast.warning(`Only ${allowedCount} topic(s) were added because the limit of ${limit} blogs is reached.`)
+        return true
+      }
     }
 
     setFormData(prev => ({ ...prev, topics: [...prev.topics, ...newTopics], topicInput: "" }))
@@ -582,6 +644,24 @@ const BulkBlogModal = ({ closeFnc }) => {
             "No new topics found in the CSV. All provided items are either duplicates or already exist.",
         }))
         return
+      }
+
+      const limit = formData.numberOfBlogs || 0
+      if (formData.topics.length + uniqueNewItems.length > limit) {
+        const allowedCount = limit - formData.topics.length
+        if (allowedCount <= 0) {
+          setErrors(prev => ({ ...prev, topicsCSV: `Cannot add more than ${limit} topics. CSV upload ignored.` }))
+          toast.error(`CSV ignored. Adding these topics would exceed your limit of ${limit} blogs.`)
+          return
+        } else {
+          const slicedNewTopics = uniqueNewItems.slice(0, allowedCount)
+          setFormData(prev => ({ ...prev, topics: [...prev.topics, ...slicedNewTopics] }))
+          setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
+          setRecentlyUploadedTopicsCount(slicedNewTopics.length)
+          setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
+          toast.warning(`Only ${allowedCount} topic(s) from CSV were added to match your limit of ${limit} blogs.`)
+          return
+        }
       }
 
       setFormData(prev => ({ ...prev, topics: [...prev.topics, ...uniqueNewItems] }))
@@ -745,7 +825,14 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const steps = ["Templates", "Basic Info", "Settings", "Bulk Options"]
+  const steps = formData.enableAdvanced
+    ? ["Templates", "Basic Info", "Settings", "Bulk Options"]
+    : ["Templates", "Basic Info", "Settings"]
+
+  const isNextDisabled =
+    currentStep === 1 &&
+    (formData.numberOfBlogs === "" ||
+      formData.numberOfBlogs < 1)
 
   return (
     <dialog className="modal modal-open">
@@ -755,6 +842,13 @@ const BulkBlogModal = ({ closeFnc }) => {
           <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
             <X className="w-5 h-5" />
           </button>
+        </div>
+        {/* Sleek Minimal Progress Bar */}
+        <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
+          <div 
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+          />
         </div>
         <div className="p-6 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
@@ -773,19 +867,41 @@ const BulkBlogModal = ({ closeFnc }) => {
             </div>
           )}
           {currentStep === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-6 pt-2">
+              {/* Number of Blogs */}
               <div>
-                <label className="text-sm font-semibold mb-1 flex items-center gap-1">
-                  Topics <span className="text-red-500">*</span>
-                  <div
-                    className="tooltip"
-                    data-tip="Upload a .csv file in the format: `Topics` as header"
-                  >
-                    <div className="cursor-pointer">
-                      <Info size={16} className="text-blue-500" />
-                    </div>
-                  </div>
+                <label className="block text-sm font-semibold">
+                  Number of Blogs <span className="text-red-500">*</span>
                 </label>
+                <p className="text-xs text-slate-500 font-medium mb-3">
+                  How many blogs to generate based on the topics provided.
+                </p>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  name="numberOfBlogs"
+                  min="1"
+                  max={BLOG_CONFIG.BULK.MAX_BLOGS}
+                  value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
+                  onChange={handleInputChange}
+                  onWheel={e => e.currentTarget.blur()}
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
+                    errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+                  placeholder="e.g., 5"
+                />
+                {errors.numberOfBlogs && (
+                  <p className="text-red-500 text-xs mt-1 font-bold italic">
+                    {errors.numberOfBlogs}
+                  </p>
+                )}
+              </div>
+
+              {/* Topics */}
+              <div>
+                <FieldLabel tip="The main subject/topic for each blog. Add one per blog you want to generate. Supports bulk CSV upload." required>
+                  Topics ({formData.topics.length}/{formData.numberOfBlogs || 0} added)
+                </FieldLabel>
                 <p className="text-xs text-slate-500 font-medium mb-2">
                   Enter the main topics for your blogs.
                 </p>
@@ -860,13 +976,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   )}
                 </div>
               </div>
+
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold ">
+                <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords for your topics. Disable to enter your own keywords.">
                   Perform Keyword Research?
-                  <p className="text-xs text-slate-500 font-medium">
-                    Allow AI to find relevant keywords for the topics.
-                  </p>
-                </span>
+                </FieldLabel>
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={checked =>
@@ -878,17 +992,9 @@ const BulkBlogModal = ({ closeFnc }) => {
               {!formData.performKeywordResearch && (
                 <div className="space-y-6">
                   <div>
-                    <label className="text-sm font-semibold  mb-1 flex items-center gap-1">
-                      Keywords <span className="text-red-500">*</span>
-                      <div
-                        className="tooltip"
-                        data-tip="Upload a .csv file in the format: `Keywords` as header"
-                      >
-                        <div className="cursor-pointer">
-                          <Info size={16} className="text-blue-500" />
-                        </div>
-                      </div>
-                    </label>
+                    <FieldLabel tip="Secondary keywords to weave throughout all blog articles. Supports CSV upload for bulk entry." required>
+                      Keywords
+                    </FieldLabel>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1034,7 +1140,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             </div>
           )}
           {currentStep === 2 && (
-            <div className="space-y-8 p-4 pt-0">
+            <div className="space-y-8 p-4 pt-4">
               <div className="space-y-4">
                 <div className="flex justify-between items-center mb-4">
                   <div>
@@ -1084,53 +1190,40 @@ const BulkBlogModal = ({ closeFnc }) => {
                 )}
               </div>
 
-              <AiModelSelector
-                value={formData.aiModel}
-                onChange={modelId => {
-                  setFormData(prev => ({ ...prev, aiModel: modelId }))
-                  setErrors(prev => ({ ...prev, aiModel: "" }))
-                }}
-                showCostCutter={true}
-                costCutterValue={formData.costCutter}
-                onCostCutterChange={checked => {
-                  setFormData(prev => ({ ...prev, costCutter: checked }))
-                }}
-                error={errors.aiModel}
+            {/* Advanced Options Toggle */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-5">
+              <FieldLabel tip="Enable this to customize AI model selection and extra advanced options in the next step.">
+                Advanced Options
+              </FieldLabel>
+              <Switch
+                checked={formData.enableAdvanced}
+                onCheckedChange={checked =>
+                  setFormData(prev => ({ ...prev, enableAdvanced: checked }))
+                }
               />
-
-              <div className="pt-4 border-t border-slate-100">
-                <div>
-                  <label className="block text-sm font-semibold">
-                    Number of Blogs <span className="text-red-500">*</span>
-                  </label>
-                  <p className="text-xs text-slate-500 font-medium mb-3">
-                    How many blogs to generate based on the topics provided.
-                  </p>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    name="numberOfBlogs"
-                    min="1"
-                    max={BLOG_CONFIG.BULK.MAX_BLOGS}
-                    value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
-                    onChange={handleInputChange}
-                    onWheel={e => e.currentTarget.blur()}
-                    className={`w-full px-3 py-2 border rounded-md text-sm ${
-                      errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
-                    placeholder="e.g., 5"
-                  />
-                  {errors.numberOfBlogs && (
-                    <p className="text-red-500 text-xs mt-1 font-bold italic">
-                      {errors.numberOfBlogs}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
-          )}
+
+            {formData.enableAdvanced && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <AiModelSelector
+                  value={formData.aiModel}
+                  onChange={modelId => {
+                    setFormData(prev => ({ ...prev, aiModel: modelId }))
+                    setErrors(prev => ({ ...prev, aiModel: "" }))
+                  }}
+                  showCostCutter={true}
+                  costCutterValue={formData.costCutter}
+                  onCostCutterChange={checked => {
+                    setFormData(prev => ({ ...prev, costCutter: checked }))
+                  }}
+                  error={errors.aiModel}
+                />
+              </div>
+            )}
+          </div>
+        )/* end of case 2 */}
           {currentStep === 3 && (
-            <div className="space-y-6 p-4 pt-0">
+            <div className="space-y-6 p-4 pt-4">
               {/* 1-4. AdvancedOptions Group A */}
               <AdvancedOptions
                 formData={formData}
@@ -1262,11 +1355,11 @@ const BulkBlogModal = ({ closeFnc }) => {
         <div className="p-4 border-t border-gray-300 bg-white">
           <div
             className={`flex flex-col sm:flex-row sm:items-center gap-4 ${
-              currentStep === 3 ? "sm:justify-between" : "sm:justify-end"
+              currentStep === (formData.enableAdvanced ? 3 : 2) ? "sm:justify-between" : "sm:justify-end"
             }`}
           >
             {/* Cost Section */}
-            {currentStep === 3 && (
+            {currentStep === (formData.enableAdvanced ? 3 : 2) && (
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-gray-600 font-semibold">Estimated Cost:</span>
 
@@ -1295,10 +1388,15 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
 
               <button
-                onClick={currentStep === 3 ? handleSubmit : handleNext}
-                className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
+                onClick={currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext}
+                disabled={isNextDisabled}
+                className={`w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md transition ${
+                  isNextDisabled
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-[#3B4BB8]"
+                }`}
               >
-                {currentStep === 3 ? "Generate Blogs" : "Next"}
+                {currentStep === (formData.enableAdvanced ? 3 : 2) ? "Generate Blogs" : "Next"}
               </button>
             </div>
           </div>
