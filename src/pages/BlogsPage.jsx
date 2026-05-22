@@ -293,12 +293,17 @@ const BlogsPage = () => {
       }
     }
 
-    // blog:updated covers archive, restore, manual edits from backend
+    const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
+      if (!blogId) return
+      patchBlogInCache(blogId, blog => ({ ...blog, agendaNextRun: retryTime }))
+    }
+
     socket.on("blog:progressUpdated", handleProgressUpdated)
     socket.on("blog:statusChanged", handleStatusChange)
     socket.on("blog:updated", handleBlogMutation)
     socket.on("blog:deleted", handleBlogMutation)
     socket.on("blog:created", handleBlogCreated)
+    socket.on("blog:jobRetry", handleBlogJobRetry)
 
     return () => {
       socket.off("blog:progressUpdated", handleProgressUpdated)
@@ -306,6 +311,7 @@ const BlogsPage = () => {
       socket.off("blog:updated", handleBlogMutation)
       socket.off("blog:deleted", handleBlogMutation)
       socket.off("blog:created", handleBlogCreated)
+      socket.off("blog:jobRetry", handleBlogJobRetry)
     }
   }, [user, queryClient, isTrashcan])
 
