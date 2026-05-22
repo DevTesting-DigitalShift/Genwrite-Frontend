@@ -162,15 +162,7 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    // Poll every 8s when any blog is actively generating — covers taskStatus step-by-step updates
-    // since backend has no per-step socket event
-    refetchInterval: query => {
-      const pages = query.state.data?.pages ?? []
-      const hasActive = pages.some(page =>
-        page.data?.some(b => b.status === "pending" || b.status === "in-progress")
-      )
-      return hasActive ? 8000 : false
-    },
+    refetchInterval: false,
   })
 
   const {
@@ -275,6 +267,12 @@ const BlogsPage = () => {
       })
     }
 
+    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
+      if (blogId && taskStatus) {
+        patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+      }
+    }
+
     const handleStatusChange = ({ blogId, newStatus } = {}) => {
       if (newStatus === "complete" || newStatus === "failed") {
         // Final state — fetch fresh blog data from API (title, excerpt, taskStatus, etc. may have changed)
@@ -296,12 +294,14 @@ const BlogsPage = () => {
     }
 
     // blog:updated covers archive, restore, manual edits from backend
+    socket.on("blog:progressUpdated", handleProgressUpdated)
     socket.on("blog:statusChanged", handleStatusChange)
     socket.on("blog:updated", handleBlogMutation)
     socket.on("blog:deleted", handleBlogMutation)
     socket.on("blog:created", handleBlogCreated)
 
     return () => {
+      socket.off("blog:progressUpdated", handleProgressUpdated)
       socket.off("blog:statusChanged", handleStatusChange)
       socket.off("blog:updated", handleBlogMutation)
       socket.off("blog:deleted", handleBlogMutation)
