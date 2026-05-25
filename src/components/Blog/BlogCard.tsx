@@ -1,4 +1,6 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
+import { getSocket } from "@utils/socket"
+import useAuthStore from "@store/useAuthStore"
 import {
   Sparkles,
   Calendar,
@@ -15,52 +17,11 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import dayjs from "dayjs"
-
-// Human-readable labels for each pipeline step
-const TASK_LABELS: Record<string, string> = {
-  "keyword-research": "Keyword Research",
-  outsource: "Content Research",
-  context: "Context Analysis",
-  outline: "Outline Generation",
-  "deep-research": "Deep Research",
-  content: "AI Content Generation",
-  humanisation: "Humanising Content",
-  "images-alt_texts": "Image Alt Texts",
-  "seo-metadata": "SEO Metadata",
-  "slug-generation": "Slug Generation",
-  "final-merge": "Final Assembly",
-  posting: "Auto Posting",
-}
-
-// Tasks whose failure is non-critical (blog content is still usable)
-const NON_CRITICAL_TASKS = new Set(["images-alt_texts", "posting"])
-
-// Full ordered pipeline — must match backend AIBlogServiceV2 step order
-const ALL_PIPELINE_STEPS = [
-  "keyword-research",
-  "outsource",
-  "context",
-  "outline",
-  "deep-research",
-  "content",
-  "humanisation",
-  "images-alt_texts",
-  "seo-metadata",
-  "slug-generation",
-  "final-merge",
-  "posting",
-]
-
-// Canonical pipeline steps for visual progress (7 core steps shown in progress bar)
-const PIPELINE_STEPS = [
-  "keyword-research",
-  "outsource",
-  "outline",
-  "context",
-  "content",
-  "images-alt_texts",
-  "seo-metadata",
-]
+import {
+  ALL_PIPELINE_STEPS,
+  NON_CRITICAL_TASKS,
+  PIPELINE_STEP_LABELS as TASK_LABELS,
+} from "@/data/blogPipeline"
 
 interface TaskStatus {
   [key: string]: string | undefined
@@ -107,8 +68,11 @@ function getFailedTasks(taskStatus?: TaskStatus): string[] {
 
 function getCurrentTask(taskStatus?: TaskStatus): string | null {
   if (!taskStatus) return null
-  // Backend only saves "done"/"failed" to DB, never "in-progress" per step.
-  // So find the next step after the last completed one.
+  // Socket handler marks the next step as "in-progress" immediately after a step completes,
+  // so check for it first — this is the source of truth for what's actively running.
+  const inProgressStep = ALL_PIPELINE_STEPS.find((s: string) => taskStatus[s] === "in-progress")
+  if (inProgressStep) return inProgressStep
+  // Fallback for initial state (before any step event has arrived): next after last done.
   let lastDoneIndex = -1
   for (let i = ALL_PIPELINE_STEPS.length - 1; i >= 0; i--) {
     if (taskStatus[ALL_PIPELINE_STEPS[i]] === "done") {
@@ -133,7 +97,7 @@ function isPartialFailure(blogStatus: string, failedTasks: string[]): boolean {
 
 const TaskTooltip = ({ children }: { children: React.ReactNode }) => (
   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 pointer-events-none">
-    <div className="bg-slate-900 text-white rounded-xl p-3 shadow-2xl text-[11px] min-w-[180px] max-w-[220px]">
+    <div className="bg-slate-900 text-white rounded-xl p-3 shadow-2xl text-[11px] min-w-45 max-w-55">
       {children}
       {/* caret */}
       <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900" />
@@ -263,7 +227,7 @@ const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: Task
 // ---------- BlogCard ----------
 
 const BlogCard: React.FC<BlogCardProps> = ({
-  blog,
+  blog: initialBlog,
   onBlogClick,
   onManualBlogClick,
   onRetry,
@@ -272,6 +236,42 @@ const BlogCard: React.FC<BlogCardProps> = ({
   hasGSCPermissions = false,
   isTrashcan = false,
 }) => {
+  const { user } = useAuthStore()
+  const [status, setStatus] = useState(initialBlog.status)
+  const [taskStatus, setTaskStatus] = useState(initialBlog.taskStatus)
+
+  // Sync state if prop changes (e.g., after API refetch)
+  useEffect(() => {
+    setStatus(initialBlog.status)
+    setTaskStatus(initialBlog.taskStatus)
+  }, [initialBlog.status, initialBlog.taskStatus])
+
+  // Socket for real-time progress
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) return
+
+    const handleProgressUpdated = ({ blogId, taskStatus: newTaskStatus }: { blogId: string; taskStatus: TaskStatus }) => {
+      if (blogId === initialBlog._id && newTaskStatus) {
+        setTaskStatus(newTaskStatus)
+      }
+    }
+
+    const handleStatusChange = ({ blogId, newStatus }: { blogId: string; newStatus: Blog["status"] }) => {
+      if (blogId === initialBlog._id && newStatus) {
+        setStatus(newStatus)
+      }
+    }
+
+    socket.on("blog:progressUpdated", handleProgressUpdated)
+    socket.on("blog:statusChanged", handleStatusChange)
+
+    return () => {
+      socket.off("blog:progressUpdated", handleProgressUpdated)
+      socket.off("blog:statusChanged", handleStatusChange)
+    }
+  }, [initialBlog._id, user])
+
   const stripMarkdown = (text: string) =>
     text
       ?.replace(/<[^>]*>/g, "")
@@ -279,68 +279,70 @@ const BlogCard: React.FC<BlogCardProps> = ({
       ?.replace(/\s{2,}/g, " ")
       ?.trim()
 
-  const isManualEditor = blog.isManuallyEdited === true
-  const isRunning = blog.status === "pending" || blog.status === "in-progress"
-  const isGemini = /gemini/gi.test(blog.aiModel)
-  const isChatGPT = /gpt|openai/gi.test(blog.aiModel)
-  const isClaude = /claude/gi.test(blog.aiModel)
-  const { focusKeywords, taskStatus } = blog
+  const isManualEditor = initialBlog.isManuallyEdited === true
+  const isRunning = status === "pending" || status === "in-progress"
+  const isGemini = /gemini/gi.test(initialBlog.aiModel)
+  const isChatGPT = /gpt|openai/gi.test(initialBlog.aiModel)
+  const isClaude = /claude/gi.test(initialBlog.aiModel)
+  const { focusKeywords } = initialBlog
 
   // Derive task-level state
   const failedTasks = getFailedTasks(taskStatus)
-  const partial = isPartialFailure(blog.status, failedTasks)
+  const partial = isPartialFailure(status, failedTasks)
   const currentTask = getCurrentTask(taskStatus)
 
-  // Calculate completed steps based on taskStatus
   const completed = taskStatus
-    ? PIPELINE_STEPS.filter(step => taskStatus[step] === "done").length
+    ? ALL_PIPELINE_STEPS.filter((step: string) => taskStatus[step] === "done").length
     : 0
-  const total = 7
-  const percentage = blog.status === "complete" ? 100 : Math.min(Math.round((completed / total) * 100), 100)
+  const skipped = taskStatus
+    ? ALL_PIPELINE_STEPS.filter((step: string) => taskStatus[step] === "skipped").length
+    : 0
+  const total = ALL_PIPELINE_STEPS.length
+  const percentage = status === "complete" ? 100 : Math.min(Math.round(((completed + skipped) / total) * 100), 100)
 
   // Pending blogs: show scheduled time
   const scheduledTime =
-    isRunning && blog.agendaNextRun ? dayjs(blog.agendaNextRun).format("MMM D, h:mm A") : null
+    isRunning && initialBlog.agendaNextRun ? dayjs(initialBlog.agendaNextRun).format("MMM D, h:mm A") : null
 
   // Border color — partial failure gets amber instead of rose
   const borderClass = isManualEditor
     ? "border-slate-300"
-    : blog.status === "failed"
+    : status === "failed"
       ? partial
         ? "border-orange-300"
         : "border-rose-300"
-      : blog.status === "complete"
+      : status === "complete"
         ? "border-emerald-500"
         : "border-amber-400"
 
-  const displayModel = blog.aiModelVer
-    ? blog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+  const displayModel = initialBlog.aiModelVer
+    ? initialBlog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
     : isGemini
       ? "Gemini 2.0 Flash"
-      : blog.aiModel || "AI Generated"
+      : initialBlog.aiModel || "AI Generated"
 
   // Retry — keep confirmation popup
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onRetry(blog._id)
+    onRetry(initialBlog._id)
   }
 
   const handleArchiveClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onArchive?.(blog._id)
+    onArchive?.(initialBlog._id)
   }
 
   const handleRestoreClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onRestore?.(blog._id)
+    onRestore?.(initialBlog._id)
   }
 
   const handleCardClick = () => {
     if (!isRunning) {
       if (isManualEditor) {
-        onManualBlogClick(blog)
+        onManualBlogClick(initialBlog)
       } else {
-        onBlogClick(blog)
+        onBlogClick(initialBlog)
       }
     }
   }
@@ -348,7 +350,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
   return (
     <div className="flex flex-col">
       <div
-        className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-[360px] h-full relative overflow-hidden`}
+        className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-90 h-full relative overflow-hidden`}
         onClick={handleCardClick}
       >
         {/* Header: Model + Action Buttons */}
@@ -370,7 +372,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
 
           {/* Direct action buttons */}
           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-            {blog.status === "failed" && !isTrashcan && (
+            {status === "failed" && !isTrashcan && (
               <button
                 onClick={handleRetryClick}
                 title="Retry generation"
@@ -403,10 +405,10 @@ const BlogCard: React.FC<BlogCardProps> = ({
         {/* Main Content */}
         <div className="min-w-0 mb-6 flex-1">
           <h3 className="text-[17px] font-black text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
-            {blog.title || "Untitled Article"}
+            {initialBlog.title || "Untitled Article"}
           </h3>
           <p className="text-[13px] mt-4 text-slate-500 leading-relaxed line-clamp-3 font-medium">
-            {stripMarkdown(blog.shortContent) ||
+            {stripMarkdown(initialBlog.shortContent) ||
               (isRunning
                 ? "Your AI agent is crafting this article with deep research..."
                 : "No excerpt available for this article.")}
@@ -438,35 +440,31 @@ const BlogCard: React.FC<BlogCardProps> = ({
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                 <Calendar size={12} strokeWidth={2.5} />
-                {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                {new Date(initialBlog.createdAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                 })}
               </div>
 
-              <StatusBadge status={blog.status} taskStatus={taskStatus} />
+              <StatusBadge status={status} taskStatus={taskStatus} />
             </div>
 
             {/* Sleek Progress Bar for running/failed states */}
-            {(isRunning || blog.status === "failed") && (
+            {(isRunning || status === "failed") && (
               <div className="flex flex-col gap-1.5 w-full mt-1.5 animate-fadeIn">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
                   <span className="flex items-center gap-1">
-                    {blog.status === "failed" ? (
+                    {status === "failed" ? (
                       <span className="text-rose-500 flex items-center gap-1 font-black">
                         <AlertCircle size={11} strokeWidth={2.5} />
                         {currentTask ? `${TASK_LABELS[currentTask] ?? currentTask} Failed` : "Failed"}
                       </span>
                     ) : (
-                      <span className="text-indigo-600 animate-pulse flex items-center gap-1 font-black max-w-[170px] truncate">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping shrink-0" />
+                      <span className="text-indigo-600 animate-pulse flex items-center gap-1 font-black max-w-42.5 truncate">
                         {currentTask ? `${TASK_LABELS[currentTask] ?? currentTask}` : "Crafting..."}
                       </span>
                     )}
-                  </span>
-                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-black tracking-wider text-[9px] uppercase">
-                    {completed}/{total} Steps
                   </span>
                 </div>
                 
@@ -474,14 +472,14 @@ const BlogCard: React.FC<BlogCardProps> = ({
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ease-out relative ${
-                      blog.status === "failed"
+                      status === "failed"
                         ? "bg-rose-400"
-                        : "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500"
+                        : "bg-linear-to-r from-yellow-300 via-amber-400 to-orange-500"
                     }`}
                     style={{ width: `${percentage}%` }}
                   >
                     {/* Animated white shine overlay for premium look */}
-                    {blog.status !== "failed" && (
+                    {status !== "failed" && (
                       <div className="absolute inset-0 shimmer-effect w-full h-full opacity-60" />
                     )}
                   </div>
@@ -512,12 +510,12 @@ const BlogCard: React.FC<BlogCardProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="tooltip" data-tip="GSC Clicks">
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50/50 border border-emerald-100 rounded-lg text-xs font-bold text-emerald-600 cursor-help">
-                      <MousePointerClick size={12} /> {blog.gscClicks || 0}
+                      <MousePointerClick size={12} /> {initialBlog.gscClicks || 0}
                     </div>
                   </div>
                   <div className="tooltip" data-tip="GSC Impressions">
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-600 cursor-help">
-                      <Eye size={12} /> {blog.gscImpressions || 0}
+                      <Eye size={12} /> {initialBlog.gscImpressions || 0}
                     </div>
                   </div>
                 </div>

@@ -175,25 +175,40 @@ const MyProjects = () => {
 
     // Real-time progress: update taskStatus in cache directly — no API call
     const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
-      patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+      if (blogId && taskStatus) {
+        patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+      }
     }
 
     const handleStatusChange = ({ blogId, newStatus } = {}) => {
       if (newStatus === "complete" || newStatus === "failed") {
         // Final state — fetch fresh blog data from API
-        queryClient.refetchQueries({ queryKey: ["blogs"], type: "active" })
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       } else if (blogId && newStatus) {
         // In-progress transition — patch status in cache only
         patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
       }
     }
 
+    const handleBlogCreated = _ => {
+      queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
+    }
+
+    const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
+      if (!blogId) return
+      patchBlogInCache(blogId, blog => ({ ...blog, agendaNextRun: retryTime }))
+    }
+
     socket.on("blog:progressUpdated", handleProgressUpdated)
     socket.on("blog:statusChanged", handleStatusChange)
+    socket.on("blog:created", handleBlogCreated)
+    socket.on("blog:jobRetry", handleBlogJobRetry)
 
     return () => {
       socket.off("blog:progressUpdated", handleProgressUpdated)
       socket.off("blog:statusChanged", handleStatusChange)
+      socket.off("blog:created", handleBlogCreated)
+      socket.off("blog:jobRetry", handleBlogJobRetry)
     }
   }, [user, userId, queryClient])
 
