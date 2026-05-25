@@ -70,7 +70,7 @@ function getCurrentTask(taskStatus?: TaskStatus): string | null {
   if (!taskStatus) return null
   // Socket handler marks the next step as "in-progress" immediately after a step completes,
   // so check for it first — this is the source of truth for what's actively running.
-  const inProgressStep = ALL_PIPELINE_STEPS.find(s => taskStatus[s] === "in-progress")
+  const inProgressStep = ALL_PIPELINE_STEPS.find((s: string) => taskStatus[s] === "in-progress")
   if (inProgressStep) return inProgressStep
   // Fallback for initial state (before any step event has arrived): next after last done.
   let lastDoneIndex = -1
@@ -97,7 +97,7 @@ function isPartialFailure(blogStatus: string, failedTasks: string[]): boolean {
 
 const TaskTooltip = ({ children }: { children: React.ReactNode }) => (
   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 pointer-events-none">
-    <div className="bg-slate-900 text-white rounded-xl p-3 shadow-2xl text-[11px] min-w-[180px] max-w-[220px]">
+    <div className="bg-slate-900 text-white rounded-xl p-3 shadow-2xl text-[11px] min-w-45 max-w-55">
       {children}
       {/* caret */}
       <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900" />
@@ -251,13 +251,13 @@ const BlogCard: React.FC<BlogCardProps> = ({
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleProgressUpdated = ({ blogId, taskStatus: newTaskStatus }) => {
+    const handleProgressUpdated = ({ blogId, taskStatus: newTaskStatus }: { blogId: string; taskStatus: TaskStatus }) => {
       if (blogId === initialBlog._id && newTaskStatus) {
         setTaskStatus(newTaskStatus)
       }
     }
 
-    const handleStatusChange = ({ blogId, newStatus }) => {
+    const handleStatusChange = ({ blogId, newStatus }: { blogId: string; newStatus: Blog["status"] }) => {
       if (blogId === initialBlog._id && newStatus) {
         setStatus(newStatus)
       }
@@ -291,12 +291,14 @@ const BlogCard: React.FC<BlogCardProps> = ({
   const partial = isPartialFailure(status, failedTasks)
   const currentTask = getCurrentTask(taskStatus)
 
-  // Count done steps across the full 12-step pipeline for granular progress
   const completed = taskStatus
-    ? ALL_PIPELINE_STEPS.filter(step => taskStatus[step] === "done").length
+    ? ALL_PIPELINE_STEPS.filter((step: string) => taskStatus[step] === "done").length
+    : 0
+  const skipped = taskStatus
+    ? ALL_PIPELINE_STEPS.filter((step: string) => taskStatus[step] === "skipped").length
     : 0
   const total = ALL_PIPELINE_STEPS.length
-  const percentage = status === "complete" ? 100 : Math.min(Math.round((completed / total) * 100), 100)
+  const percentage = status === "complete" ? 100 : Math.min(Math.round(((completed + skipped) / total) * 100), 100)
 
   // Pending blogs: show scheduled time
   const scheduledTime =
@@ -348,7 +350,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
   return (
     <div className="flex flex-col">
       <div
-        className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-[360px] h-full relative overflow-hidden`}
+        className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-90 h-full relative overflow-hidden`}
         onClick={handleCardClick}
       >
         {/* Header: Model + Action Buttons */}
@@ -459,14 +461,10 @@ const BlogCard: React.FC<BlogCardProps> = ({
                         {currentTask ? `${TASK_LABELS[currentTask] ?? currentTask} Failed` : "Failed"}
                       </span>
                     ) : (
-                      <span className="text-indigo-600 animate-pulse flex items-center gap-1 font-black max-w-[170px] truncate">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping shrink-0" />
+                      <span className="text-indigo-600 animate-pulse flex items-center gap-1 font-black max-w-42.5 truncate">
                         {currentTask ? `${TASK_LABELS[currentTask] ?? currentTask}` : "Crafting..."}
                       </span>
                     )}
-                  </span>
-                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-black tracking-wider text-[9px] uppercase">
-                    {completed}/{total} Steps
                   </span>
                 </div>
                 
@@ -476,7 +474,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
                     className={`h-full rounded-full transition-all duration-700 ease-out relative ${
                       status === "failed"
                         ? "bg-rose-400"
-                        : "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500"
+                        : "bg-linear-to-r from-yellow-300 via-amber-400 to-orange-500"
                     }`}
                     style={{ width: `${percentage}%` }}
                   >

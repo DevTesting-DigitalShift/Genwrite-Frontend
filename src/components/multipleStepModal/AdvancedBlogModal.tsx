@@ -438,7 +438,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         return (
           <div className="space-y-4">
             {/* Instruction hint */}
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center justify-between px-1 mt-4">
               <p className="text-sm text-slate-500">
                 Select <span className="font-semibold text-slate-700">exactly 1 template</span> to
                 continue to the next step.
@@ -1224,7 +1224,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           </button>
         </div>
         {/* Sleek Minimal Progress Bar */}
-        <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
+        <div className="w-full bg-slate-100 h-0.75 overflow-hidden">
           <div 
             className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
             style={{ width: `${((currentStep + 1) / STEP_TITLES.length) * 100}%` }}
