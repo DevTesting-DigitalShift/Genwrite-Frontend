@@ -10,7 +10,7 @@ export const pluginsData = pingFn => [
     pluginName: "AI Blogger Sync",
     pluginImage: "./Images/wordpres.webp",
     updatedDate: "29th Jan, 2026",
-    version: "3.3.6",
+    version: "3.4.0",
     description: "A WordPress plugin to upload blogs using AI",
     message:
       "AI Blogger Sync is a powerful WordPress plugin that connects your WordPress website to our genwrite.co domain, enabling you to upload AI-generated blogs effortlessly. It is an excellent tool for bloggers and content creators aiming to save time and effort in content creation. With AI Blogger Sync, you can generate high-quality content with minimal effort and post it to your WordPress website seamlessly.",
@@ -114,11 +114,7 @@ export const pluginsData = pingFn => [
           success: result.success !== false,
         }
       } catch (err) {
-        return {
-          status: "error",
-          message: err.message || "Wix Connection Error",
-          success: false,
-        }
+        return { status: "error", message: err.message || "Wix Connection Error", success: false }
       }
     },
   },
