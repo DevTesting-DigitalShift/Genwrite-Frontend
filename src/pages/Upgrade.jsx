@@ -321,17 +321,10 @@ const Upgrade = () => {
 
   const CONVERSION_RATE = 90 // USD to INR conversion rate
 
-  const countryMapping = { INR: "IN", USD: "US" }
-  const countryToSend = countryMapping[currency] || "US"
-
-  // Auto-set currency based on user's country
-  useEffect(() => {
-    if (user?.countryCode === "IN") {
-      setCurrency("INR")
-    } else {
-      setCurrency("USD")
-    }
-  }, [user?.countryCode])
+  // Country to query is derived directly from the user's own countryCode,
+  // not from the `currency` state — avoids a circular country<->currency mapping
+  // that could leave the wrong symbol showing for non-India users.
+  const countryToSend = user?.countryCode === "IN" ? "IN" : "US"
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -339,8 +332,11 @@ const Upgrade = () => {
         const response = await axiosInstance.get("/user/plans", {
           params: { country: countryToSend },
         })
-        if (response.data && response.data.data) {
-          setApiPlans(response.data.data)
+        const plansData = response.data?.data
+        if (plansData) {
+          setApiPlans(plansData)
+          // Trust the currency the backend actually billed these plans in
+          setCurrency(plansData[0]?.currency || (countryToSend === "IN" ? "INR" : "USD"))
         }
       } catch (error) {
         console.error("Failed to fetch plans", error)

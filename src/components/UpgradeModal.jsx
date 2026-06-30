@@ -1,12 +1,24 @@
-import { useNavigate } from "react-router-dom"
-import { Lock, ArrowLeft } from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom"
+import { Lock, ArrowLeft, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
+import useAuthStore from "@store/useAuthStore"
 
 const UpgradeModal = ({ featureName }) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { logoutUser } = useAuthStore()
+  const isDashboard = location.pathname === "/dashboard"
 
   const handleClose = () => {
     navigate(-1) // Go back on close
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } finally {
+      navigate("/login")
+    }
   }
 
   return (
@@ -45,14 +57,25 @@ const UpgradeModal = ({ featureName }) => {
             >
               Upgrade Now
             </button>
-            <button
-              className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
-              onClick={handleClose}
-              aria-label="Cancel and go back"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Cancel
-            </button>
+            {isDashboard ? (
+              <button
+                className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
+                onClick={handleLogout}
+                aria-label="Logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </button>
+            ) : (
+              <button
+                className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
+                onClick={handleClose}
+                aria-label="Cancel and go back"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       </motion.div>

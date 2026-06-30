@@ -13,6 +13,7 @@ import {
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
+import useVerificationStore from "@store/useVerificationStore"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
@@ -46,7 +47,8 @@ const Onboarding = () => {
     // If user has lastLogin OR has completed onboarding, redirect to dashboard
     if (user.lastLogin || hasCompletedOnboarding) {
       if (user.emailVerified === false) {
-        navigate(`/email-verify/${user.email}`, { replace: true })
+        useVerificationStore.getState().setEmail(user.email)
+        navigate(`/email-verify`, { replace: true })
       } else {
         navigate("/dashboard", { replace: true })
       }
