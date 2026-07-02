@@ -3,11 +3,16 @@ import React from "react"
 const Footer = () => {
   return (
     <footer className="w-full bg-white border-t border-gray-300 py-6 px-4 text-sm  relative">
-      <div className="flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 max-w-7xl mx-auto">
         {/* Copyright */}
-        <p className="text-center sm:text-left mb-2 sm:mb-0">
+        <p className="text-center sm:text-left">
           &copy; {new Date().getFullYear()} <strong>GenWrite</strong>. All rights reserved.
         </p>
+
+        {/* Badge */}
+        <a href="https://dang.ai" target="_blank" rel="dofollow noopener" style={{ display: "inline-block", textDecoration: "none" }}>
+          <img src="https://assets.dang.ai/badges/dang-verified-dark.png" alt="Verified on DANG!" width="260" height="94" style={{ display: "block", width: "260px", maxWidth: "100%", height: "auto", border: "0", outline: "none", textDecoration: "none" }} />
+        </a>
 
         {/* Links */}
         <div className="flex flex-row items-center gap-2 sm:gap-4 text-blue-500">
