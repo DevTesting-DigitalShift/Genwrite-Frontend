@@ -11,7 +11,7 @@ const Footer = () => {
 
         {/* Badge */}
         <a href="https://dang.ai" target="_blank" rel="dofollow noopener" style={{ display: "inline-block", textDecoration: "none" }}>
-          <img src="https://assets.dang.ai/badges/dang-verified-dark.png" alt="Verified on DANG!" width="260" height="94" style={{ display: "block", width: "260px", maxWidth: "100%", height: "auto", border: "0", outline: "none", textDecoration: "none" }} />
+          <img src="https://assets.dang.ai/badges/dang-verified-dark.png" alt="Verified on DANG!" width="160" height="54" style={{ display: "block", width: "100px", maxWidth: "100%", height: "34px", border: "0", outline: "none", textDecoration: "none" }} />
         </a>
 
         {/* Links */}
