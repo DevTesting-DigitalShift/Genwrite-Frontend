@@ -313,6 +313,7 @@ const Upgrade = () => {
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
+  const [showCreditBlockModal, setShowCreditBlockModal] = useState(false)
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
@@ -633,7 +634,9 @@ const Upgrade = () => {
       }
     } catch (error) {
       console.error("Checkout Error:", error)
-      if (error?.status === 409) {
+      if (error?.status === 403 && plan.type === "credit_purchase") {
+        setShowCreditBlockModal(true)
+      } else if (error?.status === 409) {
         toast.error(error?.response?.data?.toast || "User Subscription Conflict Error")
       } else if (error?.status === 404) {
         toast.error("Selected plan configuration unavailable.")
@@ -641,6 +644,20 @@ const Upgrade = () => {
         toast.error("Failed to initiate checkout. Please try again.")
       }
     }
+  }
+
+  const handleBuyAnnualPlan = tier => {
+    const annualPlan = apiPlans.find(p => p.tier === tier && p.frequency === "year")
+    if (!annualPlan) {
+      toast.error("Plan not available. Please try again.")
+      return
+    }
+    setShowCreditBlockModal(false)
+    handleBuy(
+      { ...annualPlan, name: `GenWrite ${tier.charAt(0).toUpperCase() + tier.slice(1)}`, type: "subscription" },
+      annualPlan.credits,
+      "annual"
+    )
   }
 
   const totalCredits = user?.credits?.base + user?.credits?.extra
@@ -793,6 +810,57 @@ const Upgrade = () => {
       )}
 
 
+      {/* Credit Block Modal — shown when free-plan user tries to buy credits */}
+      {showCreditBlockModal && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center"
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowCreditBlockModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-red-50 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Plan</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              You need an active subscription to purchase credit packs. Please choose a plan to get started.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleBuyAnnualPlan("basic")}
+                className="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-teal-600 hover:bg-teal-700 transition-colors text-sm"
+              >
+                Buy Basic Plan
+              </button>
+              <button
+                onClick={() => handleBuyAnnualPlan("pro")}
+                className="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors text-sm"
+              >
+                Buy Pro Plan
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
