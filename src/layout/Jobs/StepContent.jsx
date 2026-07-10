@@ -942,12 +942,44 @@ const StepContent = ({
               </FieldLabel>
               <Switch
                 checked={newJob.blogs.enableAdvanced}
-                onCheckedChange={checked =>
+                onCheckedChange={checked => {
+                  if (checked) {
+                    setNewJob(prev => ({
+                      ...prev,
+                      blogs: { ...prev.blogs, enableAdvanced: true },
+                    }))
+                    return
+                  }
+                  // Turning advanced mode off resets every advanced-section field
+                  // back to its default so stale values don't linger hidden.
                   setNewJob(prev => ({
                     ...prev,
-                    blogs: { ...prev.blogs, enableAdvanced: checked },
+                    blogs: {
+                      ...prev.blogs,
+                      enableAdvanced: false,
+                      useBrandVoice: false,
+                      brandId: null,
+                      addCTA: true,
+                      createBrandedImages: false,
+                      postingType: null,
+                    },
+                    options: {
+                      ...prev.options,
+                      wordpressPosting: false,
+                      includeFaqs: false,
+                      includeCompetitorResearch: false,
+                      includeInterlinks: false,
+                      addOutBoundLinks: false,
+                      easyToUnderstand: false,
+                      embedYouTubeVideos: false,
+                      extendedThinking: false,
+                      deepResearch: false,
+                      humanisation: false,
+                      includeTableOfContents: false,
+                    },
                   }))
-                }
+                  setFormData(prev => ({ ...prev, aiModel: "gemini", postingType: null }))
+                }}
               />
             </div>
             {newJob.blogs.enableAdvanced && (

@@ -22,8 +22,6 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import useToolsStore from "@store/useToolsStore"
-import useAnalysisStore from "@store/useAnalysisStore"
-import useJobStore from "@store/useJobStore"
 import {
   useWebsiteAnalysisMutation,
   useWebsitePromptsMutation,
@@ -31,13 +29,13 @@ import {
   useWebsiteAdvancedAnalysisMutation,
   useWebsiteOrchestratorMutation,
 } from "@api/queries/toolsQueries"
+import { useCreateJobFromRankingMutation } from "@api/queries/jobQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
 import { COSTS } from "@/data/blogData"
-import { mapAeoAuditToJobImport } from "@utils/aeoAuditToJob"
 
 const Card = ({ children, className = "" }) => (
   <div
@@ -182,8 +180,6 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
 const WebsiteRanking = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { setSelectedKeywords, setPendingImport } = useAnalysisStore()
-  const { openJobModal } = useJobStore()
   const [url, setUrl] = useState(location.state?.transferValue || "")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
@@ -210,6 +206,8 @@ const WebsiteRanking = () => {
     useWebsiteAdvancedAnalysisMutation()
   const { mutateAsync: websiteRankingOrchestrator, isPending: isOrchestratorLoading } =
     useWebsiteOrchestratorMutation()
+  const { mutateAsync: createJobFromRanking, isPending: isCreatingJobFromAudit } =
+    useCreateJobFromRankingMutation()
 
   const isLoading =
     isOrchestratorLoading ||
@@ -265,7 +263,7 @@ const WebsiteRanking = () => {
 
     fullMD += `## Strategic Analysis\n${markdownContent}\n\n`
 
-    const recs = strategicRecommendations || data.recommendations || []
+    const recs = data.recommendations || advancedReport?.strategicRecommendations || []
     if (recs.length > 0) {
       fullMD += `## Strategic Recommendations\n`
       recs.forEach((r, i) => {
@@ -297,18 +295,24 @@ const WebsiteRanking = () => {
     toast.success(`Report exported as ${fileName}`)
   }
 
-  const handleCreateJobFromAudit = data => {
+  const handleCreateJobFromAudit = async data => {
     if (!data?.analysis && !data?.rankings) {
       return toast.error("Run an audit first")
     }
-    const importPayload = mapAeoAuditToJobImport(data, promptCount)
-    if (!importPayload.allKeywords.length && !importPayload.focusKeywords.length) {
-      return toast.error("No topics or keywords found in this audit")
+    try {
+      const isOrchestratorFlow = Array.isArray(data.recommendations)
+      const payload = isOrchestratorFlow
+        ? { orchestratorOutput: data }
+        : {
+            analysis: data.analysis,
+            generatedPrompts: generatedPrompts,
+            advancedAnalysis: data.advancedReport,
+          }
+      await createJobFromRanking(payload)
+      navigate("/jobs")
+    } catch (err) {
+      console.error(err)
     }
-    setSelectedKeywords(importPayload)
-    setPendingImport("job")
-    navigate("/jobs")
-    openJobModal()
   }
 
   const handleResetManual = () => {
@@ -454,9 +458,14 @@ const WebsiteRanking = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleCreateJobFromAudit(data)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-primary border border-primary/20 rounded-lg text-sm font-bold hover:bg-primary/5 transition-all active:scale-95"
+              disabled={isCreatingJobFromAudit}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-primary border border-primary/20 rounded-lg text-sm font-bold hover:bg-primary/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Briefcase className="w-4 h-4" />
+              {isCreatingJobFromAudit ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Briefcase className="w-4 h-4" />
+              )}
               Create Job From Audit
             </button>
             <button

@@ -5,6 +5,11 @@ export const createJob = async (payload) => {
   return response.data
 }
 
+export const createJobFromRanking = async (payload) => {
+  const response = await axiosInstance.post("/jobs/create-from-ranking", payload)
+  return response.data
+}
+
 export const getJobs = async () => {
   const response = await axiosInstance.get("/jobs")
   return response.data

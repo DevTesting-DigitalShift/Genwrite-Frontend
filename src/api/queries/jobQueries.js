@@ -1,5 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getJobs, createJob, updateJob, startJob, stopJob, deleteJob } from "@api/jobApi"
+import {
+  getJobs,
+  createJob,
+  createJobFromRanking,
+  updateJob,
+  startJob,
+  stopJob,
+  deleteJob,
+} from "@api/jobApi"
 import { toast } from "sonner"
 import { pushToDataLayer } from "@utils/DataLayer"
 
@@ -21,6 +29,20 @@ export const useCreateJobMutation = () => {
     },
     onError: error => {
       toast.error(error?.response?.data?.message || "Failed to create job")
+    },
+  })
+}
+
+export const useCreateJobFromRankingMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createJobFromRanking,
+    onSuccess: () => {
+      toast.success("Job created from audit!")
+      queryClient.invalidateQueries({ queryKey: ["jobs"] })
+    },
+    onError: error => {
+      toast.error(error?.response?.data?.message || "Failed to create job from audit")
     },
   })
 }

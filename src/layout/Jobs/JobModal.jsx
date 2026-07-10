@@ -73,6 +73,30 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
+  // Older jobs never persisted `enableAdvanced` even though advanced-section
+  // fields were saved, so derive it from those fields when the flag itself is falsy.
+  const hasAdvancedOptionsEnabled = job => {
+    if (!job) return false
+    const { blogs = {}, options = {} } = job
+    return Boolean(
+      options.wordpressPosting ||
+        options.includeFaqs ||
+        options.includeCompetitorResearch ||
+        options.includeInterlinks ||
+        options.addOutBoundLinks ||
+        options.easyToUnderstand ||
+        options.embedYouTubeVideos ||
+        options.extendedThinking ||
+        options.deepResearch ||
+        options.humanisation ||
+        options.includeTableOfContents ||
+        blogs.useBrandVoice ||
+        blogs.brandId ||
+        blogs.createBrandedImages ||
+        (blogs.aiModel && blogs.aiModel !== "gemini")
+    )
+  }
+
   const MAX_BLOGS = 10
   const MAX_IMAGES = 15
 
@@ -108,7 +132,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         ...selectedJob,
         blogs: {
           ...selectedJob.blogs,
-          enableAdvanced: selectedJob.blogs?.enableAdvanced ?? false,
+          enableAdvanced:
+            Boolean(selectedJob.blogs?.enableAdvanced) || hasAdvancedOptionsEnabled(selectedJob),
         },
       })
     } else {
