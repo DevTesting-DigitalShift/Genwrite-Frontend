@@ -268,6 +268,25 @@ input[type="number"] {
   animation: shimmer-slide 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Periodic twinkle for the AEO Website Ranker sidebar icon */
+@keyframes aeo-twinkle {
+  0%,
+  25%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  8% {
+    transform: scale(1.2) rotate(-12deg);
+  }
+  16% {
+    transform: scale(1.15) rotate(10deg);
+  }
+}
+
+.aeo-twinkle {
+  animation: aeo-twinkle 2.8s ease-in-out infinite;
+}
+
 @keyframes shimmer-slide {
   0% {
     transform: translateX(-100%);

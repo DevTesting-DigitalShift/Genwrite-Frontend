@@ -132,6 +132,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
           ...baseJob.blogs,
           topics: [...new Set(mergedTopics)],
           keywords: [...new Set(mergedKeywords)],
+          numberOfBlogs: selectedKeywords?.numberOfBlogs || baseJob.blogs.numberOfBlogs,
         },
       })
 

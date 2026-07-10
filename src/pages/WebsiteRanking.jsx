@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import {
   Search,
   Zap,
@@ -18,9 +18,12 @@ import {
   Edit2,
   ChevronRight,
   ChevronDown,
+  Briefcase,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import useToolsStore from "@store/useToolsStore"
+import useAnalysisStore from "@store/useAnalysisStore"
+import useJobStore from "@store/useJobStore"
 import {
   useWebsiteAnalysisMutation,
   useWebsitePromptsMutation,
@@ -34,6 +37,7 @@ import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
 import { COSTS } from "@/data/blogData"
+import { mapAeoAuditToJobImport } from "@utils/aeoAuditToJob"
 
 const Card = ({ children, className = "" }) => (
   <div
@@ -177,6 +181,9 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
 
 const WebsiteRanking = () => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { setSelectedKeywords, setPendingImport } = useAnalysisStore()
+  const { openJobModal } = useJobStore()
   const [url, setUrl] = useState(location.state?.transferValue || "")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
@@ -288,6 +295,20 @@ const WebsiteRanking = () => {
     link.click()
     document.body.removeChild(link)
     toast.success(`Report exported as ${fileName}`)
+  }
+
+  const handleCreateJobFromAudit = data => {
+    if (!data?.analysis && !data?.rankings) {
+      return toast.error("Run an audit first")
+    }
+    const importPayload = mapAeoAuditToJobImport(data, promptCount)
+    if (!importPayload.allKeywords.length && !importPayload.focusKeywords.length) {
+      return toast.error("No topics or keywords found in this audit")
+    }
+    setSelectedKeywords(importPayload)
+    setPendingImport("job")
+    navigate("/jobs")
+    openJobModal()
   }
 
   const handleResetManual = () => {
@@ -430,13 +451,22 @@ const WebsiteRanking = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => handleExportMD(data)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-[#3B4BB8] transition-all active:scale-95 shadow-lg shadow-primary/10"
-          >
-            <FileText className="w-4 h-4" />
-            Export Audit
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleCreateJobFromAudit(data)}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-primary border border-primary/20 rounded-lg text-sm font-bold hover:bg-primary/5 transition-all active:scale-95"
+            >
+              <Briefcase className="w-4 h-4" />
+              Create Job From Audit
+            </button>
+            <button
+              onClick={() => handleExportMD(data)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-[#3B4BB8] transition-all active:scale-95 shadow-lg shadow-primary/10"
+            >
+              <FileText className="w-4 h-4" />
+              Export Audit
+            </button>
+          </div>
         </div>
         {/* 1. High-Level Executive Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

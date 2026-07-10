@@ -192,6 +192,7 @@ const SideBar_Header = () => {
 
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
     { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
@@ -270,21 +271,28 @@ const SideBar_Header = () => {
                 location.pathname.startsWith(Menu.path) ||
                 (Menu.path === "/blogs" && location.pathname.startsWith("/blog/"))
               const Icon = Menu.icon
+              const isAeo = Menu.path === "/website-ranking"
 
               return (
                 <li key={index}>
                   <NavLink
                     to={Menu.path}
                     onClick={e => handleNavClick(Menu.path, e)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900"
+                    className={`flex items-center gap-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                      sidebarOpen ? "px-3" : "px-3 md:px-0 md:justify-center"
+                    } ${
+                      isAeo
+                        ? isActive
+                          ? "bg-linear-to-r from-violet-100 to-fuchsia-100 text-fuchsia-700 ring-1 ring-inset ring-fuchsia-200"
+                          : "text-fuchsia-600 bg-linear-to-r from-violet-50 to-fuchsia-50 hover:from-violet-100 hover:to-fuchsia-100 ring-1 ring-inset ring-fuchsia-200/70"
+                        : isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900"
                     }`}
                   >
                     <Icon
                       className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
-                        !isActive && "group-hover:scale-110"
+                        isAeo ? "aeo-twinkle" : !isActive && "group-hover:scale-110"
                       }`}
                     />
                     {sidebarOpen && (
