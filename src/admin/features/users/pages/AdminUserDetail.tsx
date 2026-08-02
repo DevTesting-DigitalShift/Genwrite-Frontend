@@ -1103,34 +1103,32 @@ export default function AdminUserDetail() {
         </div>
       </div>
 
-      {transactionAnalytics &&
-        transactionAnalytics.monthlyTrend &&
-        transactionAnalytics.monthlyTrend.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                Transaction Trends
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">Monthly transaction activity</p>
-            </div>
-            <div className="p-6">
-              <BarChart
-                data={transactionAnalytics.monthlyTrend.map((item) => ({
-                  name: new Date(`${item._id}-01`).toLocaleDateString("en-US", {
-                    month: "short",
-                    year: "numeric",
-                  }),
-                  value: item.count,
-                }))}
-                xKey="name"
-                yKey="value"
-                height={280}
-                color="#10B981"
-              />
-            </div>
+      {transactionAnalytics?.monthlyTrend && transactionAnalytics.monthlyTrend.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <div className="p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Transaction Trends
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">Monthly transaction activity</p>
           </div>
-        )}
+          <div className="p-6">
+            <BarChart
+              data={transactionAnalytics.monthlyTrend.map((item) => ({
+                name: new Date(`${item._id}-01`).toLocaleDateString("en-US", {
+                  month: "short",
+                  year: "numeric",
+                }),
+                value: item.count,
+              }))}
+              xKey="name"
+              yKey="value"
+              height={280}
+              color="#10B981"
+            />
+          </div>
+        </div>
+      )}
     </main>
   )
 }
