@@ -10,6 +10,14 @@
       {
         "source": "**/*.@(js|css|png|webp|jpg|jpeg|svg|woff2)",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "source": "/admin/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "private, no-cache, no-store, must-revalidate" },
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive, nosnippet, noimageindex" },
+          { "key": "X-Frame-Options", "value": "DENY" }
+        ]
       }
     ],
     "rewrites": [{ "source": "**", "destination": "/index.html" }]

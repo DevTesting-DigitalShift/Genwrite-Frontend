@@ -1,5 +1,6 @@
 import { ArrowLeft, CheckCircle, Key, Mail, Shield } from "lucide-react"
 import { useState } from "react"
+import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@components/ui/button"
 import { Input } from "@components/ui/input"
@@ -80,6 +81,9 @@ export default function AdminMfaReset() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+      </Helmet>
       <div className="w-full max-w-md">
         <button
           type="button"

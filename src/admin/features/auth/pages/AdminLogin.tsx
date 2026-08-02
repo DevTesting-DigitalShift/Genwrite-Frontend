@@ -1,5 +1,6 @@
 import { Eye, EyeOff } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 import { adminEnableMFA, adminLogin, adminSetupMFA, adminVerify2FA } from "../api/authApi"
 import {
@@ -284,6 +285,9 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+      </Helmet>
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">GenWrite Admin</h1>
