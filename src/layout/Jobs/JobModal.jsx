@@ -75,7 +75,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
 
   // Older jobs never persisted `enableAdvanced` even though advanced-section
   // fields were saved, so derive it from those fields when the flag itself is falsy.
-  const hasAdvancedOptionsEnabled = job => {
+  const hasAdvancedOptionsEnabled = (job) => {
     if (!job) return false
     const { blogs = {}, options = {} } = job
     return Boolean(
@@ -103,7 +103,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   // Clear Job Modules and it's states on close
   useEffect(() => {
     if (!showJobModal) {
-      setNewJob(prev => initialJob)
+      setNewJob((_prev) => initialJob)
       setFormData({
         keywords: [],
         keywordInput: "",
@@ -119,7 +119,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
 
   useEffect(() => {
     if (selectedJob) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
         performKeywordResearch:
@@ -143,9 +143,12 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
 
   useEffect(() => {
     if (pendingImport === "job" && selectedKeywords) {
-      let baseJob = selectedJob ? { ...selectedJob } : initialJob
-      let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
-      let mergedKeywords = [
+      const baseJob = selectedJob ? { ...selectedJob } : initialJob
+      const mergedTopics = [
+        ...(baseJob.blogs.topics || []),
+        ...(selectedKeywords?.allKeywords || []),
+      ]
+      const mergedKeywords = [
         ...(baseJob.blogs.keywords || []),
         ...(selectedKeywords?.focusKeywords || []),
         ...(selectedKeywords?.allKeywords || []),
@@ -161,7 +164,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         },
       })
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         keywords: [
           ...new Set([
@@ -175,7 +178,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     }
   }, [selectedKeywords, selectedJob, pendingImport, setPendingImport])
 
-  const validateSteps = step => {
+  const validateSteps = (step) => {
     const newErrors = {}
     if (step === 1 || step === "all") {
       if (newJob.blogs.templates.length === 0) {
@@ -270,7 +273,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     })
   }
 
-  const handleUpdateJob = async jobId => {
+  const handleUpdateJob = async (jobId) => {
     if (!isUserLoaded) {
       toast.error("User data is still loading. Please try again.")
       return
@@ -329,8 +332,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         </div>
         {/* Sleek Minimal Progress Bar */}
         <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
-          <div 
-            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+          <div
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out"
             style={{ width: `${(currentStep / (newJob.blogs.enableAdvanced ? 4 : 3)) * 100}%` }}
           />
         </div>

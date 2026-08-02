@@ -1,5 +1,5 @@
 // src/api/brand/brand.query.ts
-import { AnyUseQueryOptions } from "@api/QueryBase"
+import type { AnyUseQueryOptions } from "@api/QueryBase"
 import { BaseCRUDQuery } from "@api/BaseCRUDQuery"
 import { BrandAPI } from "./Brand.api"
 import type { Brand, BrandSiteInfo } from "@/types/brand"

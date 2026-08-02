@@ -9,7 +9,6 @@ import {
   deleteJob,
 } from "@api/jobApi"
 import { toast } from "sonner"
-import { pushToDataLayer } from "@utils/DataLayer"
 
 export const useJobsQuery = (enabled = true) => {
   return useQuery({ queryKey: ["jobs"], queryFn: getJobs, enabled })
@@ -19,7 +18,7 @@ export const useCreateJobMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createJob,
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       const { user } = variables // Assuming user is passed in variables or we get it from auth store
       // NOTE: DataLayer push might need user object.
       // If user is not in variables, we might need to handle it in the component or useAuthStore.
@@ -27,7 +26,7 @@ export const useCreateJobMutation = () => {
       toast.success("Job created successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error?.response?.data?.message || "Failed to create job")
     },
   })
@@ -41,7 +40,7 @@ export const useCreateJobFromRankingMutation = () => {
       toast.success("Job created from audit!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error?.response?.data?.message || "Failed to create job from audit")
     },
   })
@@ -55,7 +54,7 @@ export const useUpdateJobMutation = () => {
       toast.success("Job updated successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
-    onError: error => {
+    onError: (_error) => {
       toast.error("Failed to update job")
     },
   })
@@ -90,7 +89,7 @@ export const useDeleteJobMutation = () => {
       toast.success("Job deleted successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to delete job")
     },
   })

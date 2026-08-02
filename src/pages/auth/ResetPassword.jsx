@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Link, useSearchParams, useNavigate, useLocation } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   Lock,
   Eye,
@@ -25,7 +25,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState({})
-  const [token, setToken] = useState("")
+  const [_token, setToken] = useState("")
   const location = useLocation()
   const { resetPassword } = useAuthStore()
 
@@ -38,7 +38,7 @@ const ResetPassword = () => {
     }
   }, [searchParams, navigate])
 
-  const validatePassword = pwd => {
+  const validatePassword = (pwd) => {
     const errors = []
     if (pwd.length < 8) errors.push("At least 8 characters")
     if (!/[A-Z]/.test(pwd)) errors.push("One uppercase letter")
@@ -48,7 +48,7 @@ const ResetPassword = () => {
     return errors
   }
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     const newErrors = {}
@@ -97,7 +97,7 @@ const ResetPassword = () => {
     }
   }
 
-  const getPasswordStrength = pwd => {
+  const getPasswordStrength = (pwd) => {
     const errors = validatePassword(pwd)
     const strength = 5 - errors.length
 
@@ -270,9 +270,9 @@ const ResetPassword = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter new password"
                   value={password}
-                  onChange={e => {
+                  onChange={(e) => {
                     setPassword(e.target.value)
-                    setErrors(prev => ({ ...prev, password: "" }))
+                    setErrors((prev) => ({ ...prev, password: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-xl focus:shadow-primary/5 outline-none transition-all duration-300 ${
                     errors.password
@@ -345,9 +345,9 @@ const ResetPassword = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={confirmPassword}
-                  onChange={e => {
+                  onChange={(e) => {
                     setConfirmPassword(e.target.value)
-                    setErrors(prev => ({ ...prev, confirmPassword: "" }))
+                    setErrors((prev) => ({ ...prev, confirmPassword: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-xl focus:shadow-primary/5 outline-none transition-all duration-300 ${
                     errors.confirmPassword

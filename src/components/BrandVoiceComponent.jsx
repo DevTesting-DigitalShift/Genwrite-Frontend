@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
-import { FaEdit, FaTimes } from "react-icons/fa"
-import { Info, Loader2, Trash, Upload } from "lucide-react"
+import { FaEdit } from "react-icons/fa"
+import { Trash } from "lucide-react"
 
 const BrandVoicesComponent = ({
   id,
@@ -27,7 +27,7 @@ const BrandVoicesComponent = ({
       transition={{ duration: 0.2 }}
       role="button"
       tabIndex={0}
-      onKeyDown={e => {
+      onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
           onSelect()

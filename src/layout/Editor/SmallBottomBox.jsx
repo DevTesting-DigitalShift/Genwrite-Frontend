@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { Menu, RotateCw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -12,7 +12,7 @@ import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
 
 const SmallBottomBox = ({ id }) => {
   const [isModalOpen, setModalOpen] = useState(false)
-  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [_isChatOpen, setIsChatOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -21,7 +21,7 @@ const SmallBottomBox = ({ id }) => {
   const { mutateAsync: retryBlog, isPending: isRetrying } = useRetryBlogMutation()
 
   const closeModal = () => setModalOpen(false)
-  const closeChat = () => setIsChatOpen(false)
+  const _closeChat = () => setIsChatOpen(false)
 
   const handleRetry = async () => {
     try {
@@ -58,10 +58,7 @@ const SmallBottomBox = ({ id }) => {
           >
             {!isRetrying && <Menu size={16} />}
           </div>
-          <ul
-            tabIndex={0}
-            className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-52"
-          >
+          <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-52">
             <li>
               <button
                 onClick={handleRegenerate}

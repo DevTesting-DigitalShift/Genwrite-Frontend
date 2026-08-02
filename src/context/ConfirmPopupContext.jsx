@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from "react"
+import { createContext, useCallback, useContext, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle } from "lucide-react"
 
@@ -8,12 +8,12 @@ export const ConfirmPopupProvider = ({ children }) => {
   const [visible, setVisible] = useState(false)
   const [options, setOptions] = useState({})
 
-  const handlePopup = useCallback(opts => {
+  const handlePopup = useCallback((opts) => {
     setOptions(opts)
     setVisible(true)
   }, [])
 
-  const handleClose = e => {
+  const handleClose = (e) => {
     setVisible(false)
     if (options?.onCancel) {
       options.onCancel(e)
@@ -23,14 +23,10 @@ export const ConfirmPopupProvider = ({ children }) => {
   }
 
   const handleConfirm = async () => {
-    try {
-      if (options?.onConfirm) {
-        await options.onConfirm()
-      }
-      setVisible(false)
-    } catch (err) {
-      throw err
+    if (options?.onConfirm) {
+      await options.onConfirm()
     }
+    setVisible(false)
   }
 
   const {
@@ -58,9 +54,7 @@ export const ConfirmPopupProvider = ({ children }) => {
               className="modal-box"
             >
               <h3 className="font-bold text-lg">{title}</h3>
-              <p className="text-gray-600 text-sm text-justify py-4">
-                {description}
-              </p>
+              <p className="text-gray-600 text-sm text-justify py-4">{description}</p>
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   onClick={() => handleClose({ source: "button" })}

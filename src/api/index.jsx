@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
 
 // Add request interceptor
 axiosInstance.interceptors.request.use(
-  config => {
+  (config) => {
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"]
     }
@@ -20,7 +20,7 @@ axiosInstance.interceptors.request.use(
     }
     return config
   },
-  error => {
+  (error) => {
     return Promise.reject(error)
   }
 )
@@ -30,10 +30,10 @@ let last429Toast = 0
 
 // Add response interceptor
 axiosInstance.interceptors.response.use(
-  response => {
+  (response) => {
     return response
   },
-  error => {
+  (error) => {
     const status = error.response ? error.response.status : null
 
     // 1. Throttled 429 Too Many Requests

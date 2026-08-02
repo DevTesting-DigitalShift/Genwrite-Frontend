@@ -10,7 +10,7 @@ export const pricingConfig = {
   features: {
     brandVoice: { label: "Brand Voice", cost: 10 },
     competitorResearch: { label: "Competitor Research", cost: COSTS.ANALYSIS.COMPETITORS },
-    keywordResearch: { label: "Keyword Research", cost: COSTS.ANALYSIS.KEYWORDS },  
+    keywordResearch: { label: "Keyword Research", cost: COSTS.ANALYSIS.KEYWORDS },
     internalLinking: { label: "Internal Linking", cost: 10 },
     faqGeneration: { label: "FAQ Generation", cost: 10 },
     automaticPosting: { label: "Automatic Posting", cost: 10 },
@@ -19,10 +19,10 @@ export const pricingConfig = {
     deepResearch: { label: "Deep Research", cost: 15 },
     quickSummary: { label: "Quick Summary", cost: 10 },
   },
-  images: { 
-    stock: { featureFee: 10 }, 
+  images: {
+    stock: { featureFee: 10 },
     ai: { featureFee: COSTS.IMAGE.GENERATE * 10 }, // Scaling appropriately
-    upload: { perImageFee: 5 } 
+    upload: { perImageFee: 5 },
   },
   aiModels: {
     gemini: { label: "Gemini", costMultiplier: MODEL_MULTIPLIER.GEMINI },
@@ -69,8 +69,8 @@ export function computeCost({
   totalCost += baseWordCost * multiplier
 
   // 3. Feature Costs
-  const hasFeature = feat => features.includes(feat)
-  const hasOption = opt => !!(options && options[opt])
+  const hasFeature = (feat) => features.includes(feat)
+  const hasOption = (opt) => !!options?.[opt]
 
   if (isCheckedBrand || hasFeature("brandVoice")) {
     totalCost += pricingConfig.features.brandVoice.cost

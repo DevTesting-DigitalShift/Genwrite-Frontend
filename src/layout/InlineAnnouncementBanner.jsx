@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import dayjs from "dayjs"
@@ -74,8 +74,8 @@ const InlineAnnouncementBanner = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 24 * 60 * 60 * 1000, // Garbage collect after 24 hours
     retry: 2,
-    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 30000),
-    onError: error => {
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
+    onError: (error) => {
       console.error("Failed to fetch announcements:", error)
     },
   })

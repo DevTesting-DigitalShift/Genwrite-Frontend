@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import {
   Copy,
@@ -41,7 +41,7 @@ const CompetitorLikeBlog = () => {
     }
   }, [])
 
-  const isValidUrl = str => {
+  const isValidUrl = (str) => {
     try {
       new URL(str)
       return true
@@ -77,18 +77,18 @@ const CompetitorLikeBlog = () => {
       onSuccess: () => {
         toast.success("Content generated successfully!")
       },
-      onError: err => {
+      onError: (err) => {
         toast.error(err?.toast || "Failed to generate content. Please try again.")
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async content => {
+  const handleCopy = async (content) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
     }
@@ -112,7 +112,7 @@ const CompetitorLikeBlog = () => {
       let index = 0
 
       interval = setInterval(() => {
-        setTimer(prev => {
+        setTimer((prev) => {
           // Phase 1: Rapidly jump through specific points
           if (index < specificPoints.length) {
             const nextPoint = specificPoints[index]
@@ -194,7 +194,7 @@ const CompetitorLikeBlog = () => {
             <input
               type="url"
               value={url}
-              onChange={e => setUrl(e.target.value)}
+              onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com/competitor-blog-post"
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
@@ -208,7 +208,7 @@ const CompetitorLikeBlog = () => {
             <input
               type="text"
               value={topic}
-              onChange={e => setTopic(e.target.value)}
+              onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., The Future of AI in Marketing"
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-purple-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />

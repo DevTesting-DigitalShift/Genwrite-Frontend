@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { FiGift } from "react-icons/fi"
 
 // Memoized digit component - ONLY animates when value changes
@@ -71,7 +71,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const now = new Date().getTime()
+      const now = Date.now()
       const start = new Date(startDate).getTime()
       const end = new Date(endDate).getTime()
 

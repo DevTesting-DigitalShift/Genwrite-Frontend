@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 
 const CloseIcon = () => (
   <svg
@@ -33,7 +33,7 @@ const FeatureCarousel = ({ features }) => {
     setCurrentIndex(newIndex)
   }
 
-  const goToSlide = slideIndex => {
+  const goToSlide = (slideIndex) => {
     setCurrentIndex(slideIndex)
   }
 

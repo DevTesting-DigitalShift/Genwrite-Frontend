@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
@@ -39,7 +39,6 @@ import {
   Minus,
   Table as TableIcon,
   Highlighter,
-  X,
   Check,
 } from "lucide-react"
 
@@ -400,8 +399,8 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
                   type="text"
                   placeholder="https://example.com"
                   value={linkUrl}
-                  onChange={e => setLinkUrl(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addLink()}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLink()}
                   className="input input-bordered w-full"
                 />
               </div>
@@ -413,8 +412,8 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
                   type="text"
                   placeholder="Display text"
                   value={linkText}
-                  onChange={e => setLinkText(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addLink()}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLink()}
                   className="input input-bordered w-full"
                 />
               </div>
@@ -454,8 +453,8 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
                   type="text"
                   placeholder="https://example.com/image.jpg"
                   value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addImage()}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addImage()}
                   className="input input-bordered w-full"
                 />
               </div>
@@ -467,8 +466,8 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
                   type="text"
                   placeholder="Image description"
                   value={imageAlt}
-                  onChange={e => setImageAlt(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addImage()}
+                  onChange={(e) => setImageAlt(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addImage()}
                   className="input input-bordered w-full"
                 />
               </div>
@@ -479,7 +478,7 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
                     src={imageUrl}
                     alt={imageAlt || "Preview"}
                     className="max-h-32 mx-auto rounded"
-                    onError={e => (e.target.style.display = "none")}
+                    onError={(e) => (e.target.style.display = "none")}
                   />
                 </div>
               )}

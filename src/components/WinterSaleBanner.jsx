@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Gift, Sparkles } from "lucide-react"
 
@@ -9,7 +9,7 @@ const WinterSaleBanner = () => {
   // Calculate time remaining until Dec 31, 2025 12:00 AM
   const calculateTimeLeft = () => {
     const endDate = new Date("2026-01-01T23:59:59").getTime()
-    const now = new Date().getTime()
+    const now = Date.now()
     const difference = endDate - now
 
     if (difference > 0) {

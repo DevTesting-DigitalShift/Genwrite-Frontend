@@ -1,4 +1,3 @@
-import React from "react"
 import { isRouteErrorResponse, useRouteError } from "react-router-dom"
 import { AlertTriangle } from "lucide-react"
 

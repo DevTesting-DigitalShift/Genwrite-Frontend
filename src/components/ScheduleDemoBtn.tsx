@@ -33,7 +33,7 @@ const ScheduleDemoButton = ({
   const isCalLoaded = useRef(false)
 
   useEffect(() => {
-    void (async function () {
+    void (async () => {
       const cal = await getCalApi({ namespace: "schedule-demo" })
       cal("ui", {
         theme: "light",
@@ -62,7 +62,6 @@ const ScheduleDemoButton = ({
         return "btn-outline border-2 border-indigo-500 text-indigo-600 hover:bg-indigo-50"
       case "ghost":
         return "btn-ghost text-gray-600 hover:bg-gray-100"
-      case "primary":
       default:
         return "btn-primary bg-indigo-600 border-none hover:bg-indigo-700 text-white"
     }

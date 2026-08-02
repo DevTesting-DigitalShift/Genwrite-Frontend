@@ -1,15 +1,6 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  Building2,
-  Globe,
-  Target,
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Loader2,
-  Globe2,
-} from "lucide-react"
+import { Building2, Target, Check } from "lucide-react"
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
@@ -38,7 +29,7 @@ const Onboarding = () => {
 
   // Prevent users who've already completed onboarding from accessing this page
   useEffect(() => {
-    if (!user || !user._id) return
+    if (!user?._id) return
 
     // Use user-specific localStorage key
     const hasCompletedOnboarding =
@@ -78,7 +69,7 @@ const Onboarding = () => {
       const fullUrl = `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`
       const siteInfo = await getSiteInfo(fullUrl)
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         nameOfVoice: siteInfo.nameOfVoice || prev.nameOfVoice,
         describeBrand: siteInfo.describeBrand || prev.describeBrand,
@@ -106,31 +97,31 @@ const Onboarding = () => {
     if (keywordInput.trim()) {
       const newKeywords = keywordInput
         .split(",")
-        .map(k => k.trim())
-        .filter(k => k && !formData.keywords.includes(k))
+        .map((k) => k.trim())
+        .filter((k) => k && !formData.keywords.includes(k))
 
-      setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+      setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
       setKeywordInput("")
     }
   }
 
-  const handlePasteKeywords = e => {
+  const handlePasteKeywords = (e) => {
     extractKeywordsFromClipboard(e, {
       type: "keywords",
-      cb: items => {
-        const existingKeywords = new Set(formData.keywords.map(keyword => keyword.toLowerCase()))
-        const newKeywords = items.filter(keyword => !existingKeywords.has(keyword.toLowerCase()))
+      cb: (items) => {
+        const existingKeywords = new Set(formData.keywords.map((keyword) => keyword.toLowerCase()))
+        const newKeywords = items.filter((keyword) => !existingKeywords.has(keyword.toLowerCase()))
 
         if (newKeywords.length === 0) return
 
-        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
         setKeywordInput("")
       },
     })
   }
 
-  const removeKeyword = keyword => {
-    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== keyword) }))
+  const removeKeyword = (keyword) => {
+    setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== keyword) }))
   }
 
   const handleStep1Continue = () => {
@@ -248,7 +239,9 @@ const Onboarding = () => {
                   <input
                     placeholder="Digital Shift"
                     value={formData.nameOfVoice}
-                    onChange={e => setFormData(prev => ({ ...prev, nameOfVoice: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, nameOfVoice: e.target.value }))
+                    }
                     className="input outline-0 w-full rounded-lg"
                   />
                 </div>
@@ -261,7 +254,7 @@ const Onboarding = () => {
                   <div className="join w-full">
                     <select
                       value={protocol}
-                      onChange={e => setProtocol(e.target.value)}
+                      onChange={(e) => setProtocol(e.target.value)}
                       className="select outline-0 w-30 focus:outline-0 join-item bg-gray-50"
                     >
                       <option value="https://">https://</option>
@@ -270,7 +263,9 @@ const Onboarding = () => {
                     <input
                       placeholder="www.example.com"
                       value={formData.postLink}
-                      onChange={e => setFormData(prev => ({ ...prev, postLink: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, postLink: e.target.value }))
+                      }
                       className="input outline-0 join-item w-full"
                     />
                   </div>
@@ -283,7 +278,7 @@ const Onboarding = () => {
                   <input
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
-                    onChange={e => setFormData(prev => ({ ...prev, sitemap: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, sitemap: e.target.value }))}
                     className="input outline-0 w-full rounded-lg"
                   />
                 </div>
@@ -327,8 +322,8 @@ const Onboarding = () => {
                     rows={4}
                     placeholder="Describe what your company does..."
                     value={formData.describeBrand}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, describeBrand: e.target.value }))
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, describeBrand: e.target.value }))
                     }
                     className="textarea outline-0 w-full rounded-lg text-base"
                   />
@@ -342,7 +337,7 @@ const Onboarding = () => {
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
-                    onChange={e => setFormData(prev => ({ ...prev, persona: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, persona: e.target.value }))}
                     className="textarea outline-0 w-full rounded-lg text-base"
                   />
                 </div>
@@ -353,8 +348,8 @@ const Onboarding = () => {
                     <input
                       placeholder="Add keywords (comma-separated)"
                       value={keywordInput}
-                      onChange={e => setKeywordInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && addKeyword()}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addKeyword()}
                       onPaste={handlePasteKeywords}
                       className="input outline-0 flex-1 rounded-lg"
                     />

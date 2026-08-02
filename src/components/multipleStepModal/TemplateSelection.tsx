@@ -3,7 +3,7 @@ import { Switch } from "@components/ui/switch"
 import { toast } from "sonner"
 import clsx from "clsx"
 import { AlertCircle, Crown, Search } from "lucide-react"
-import { FC, useEffect, useState, useMemo } from "react"
+import { type FC, useEffect, useState, useMemo } from "react"
 
 interface TemplateSelectionProps {
   numberOfSelection?: number
@@ -62,8 +62,8 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
     }
 
     const mapped = preSelectedIds
-      .map(name => {
-        const template = packages.find(t => t.name === name)
+      .map((name) => {
+        const template = packages.find((t) => t.name === name)
         return template ? template.id : null
       })
       .filter((id): id is number => typeof id === "number")
@@ -75,7 +75,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
 
   // Sync selectedIds with stabilizedPreSelectedIds
   useEffect(() => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       if (
         prev.length !== stabilizedPreSelectedIds.length ||
         prev.some((id, index) => id !== stabilizedPreSelectedIds[index])
@@ -88,7 +88,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
 
   // Trigger onClick when selectedIds changes
   useEffect(() => {
-    onClick(selectedIds.map(id => packages[id - 1]))
+    onClick(selectedIds.map((id) => packages[id - 1]))
   }, [selectedIds, onClick])
 
   // Filter templates based on search and showSelected
@@ -96,11 +96,11 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
     let filtered = initialTemplates
 
     if (showSelected) {
-      filtered = selectedIds.map(id => packages[id - 1])
+      filtered = selectedIds.map((id) => packages[id - 1])
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      filtered = filtered.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
     }
 
     setTemplates(filtered)
@@ -143,7 +143,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
               className="grow rounded-lg"
               placeholder="search template by name"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
             <Search className="w-4 h-4 opacity-70" />
           </label>
@@ -167,9 +167,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
         {(localError || error) && (
           <div className="flex items-center gap-3 p-3.5 px-4 mt-2 bg-red-50/90 border border-red-200/80 rounded-xl text-red-800 text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 backdrop-blur-sm">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-            <div className="flex-1">
-              {localError || error}
-            </div>
+            <div className="flex-1">{localError || error}</div>
           </div>
         )}
       </div>
@@ -177,7 +175,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       {/* Templates Grid - Responsive */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 py-2 max-h-[60vh] overflow-y-auto custom-scroll">
         {templates.length ? (
-          templates.map(pkg => {
+          templates.map((pkg) => {
             return (
               <div
                 key={pkg.id}
@@ -188,7 +186,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                     : "border-transparent hover:border-gray-200"
                 )}
                 onClick={() => handlePackageSelect(pkg.id)}
-                onKeyDown={e => e.key === "Enter" && handlePackageSelect(pkg.id)}
+                onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(pkg.id)}
                 role="button"
                 tabIndex={0}
                 aria-label={`Select ${pkg.name} template`}

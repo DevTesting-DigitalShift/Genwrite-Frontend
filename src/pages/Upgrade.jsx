@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
@@ -13,7 +13,6 @@ import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import useVerificationStore from "@store/useVerificationStore"
-
 
 const PricingCard = ({
   plan,
@@ -31,9 +30,9 @@ const PricingCard = ({
   const [customCredits, setCustomCredits] = useState(500)
 
   // USD to INR conversion rate
-  const CREDIT_CONVERSION_RATE = 90
+  const _CREDIT_CONVERSION_RATE = 90
 
-  const handleCustomCreditsChange = e => {
+  const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
@@ -51,7 +50,7 @@ const PricingCard = ({
         ? plan.priceAnnual
         : plan.priceMonthly
 
-  const isWithinBillingCycle = userStatus === "active"
+  const _isWithinBillingCycle = userStatus === "active"
 
   const isDisabled = (() => {
     const sub = userSubscription
@@ -120,12 +119,12 @@ const PricingCard = ({
 
   const styles = getCardStyles()
 
-  let userBillingPeriod = null
-  if (userSubscription && userSubscription.renewalDate && userSubscription.startDate) {
+  let _userBillingPeriod = null
+  if (userSubscription?.renewalDate && userSubscription.startDate) {
     const start = new Date(userSubscription.startDate)
     const renewal = new Date(userSubscription.renewalDate)
     const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
-    userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+    _userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
   }
 
   // ----- NEW: Badge & Rollover Logic -----
@@ -133,10 +132,10 @@ const PricingCard = ({
   const isBasic = plan.tier === "basic"
   const isPro = plan.tier === "pro"
 
-  const showTrialBadge =
+  const _showTrialBadge =
     (currentUserTier === "basic" && isPro) || (currentUserTier === "pro" && isBasic)
 
-  const showRolloverMessage = user?.subscription?.trialOpted === false
+  const _showRolloverMessage = user?.subscription?.trialOpted === false
 
   const handleButtonClick = () => {
     if (isDisabled) return
@@ -150,7 +149,7 @@ const PricingCard = ({
     proceedToBuy(plan)
   }
 
-  const proceedToBuy = planToBuy => {
+  const proceedToBuy = (planToBuy) => {
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, customCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
@@ -312,15 +311,13 @@ const Upgrade = () => {
   const [apiPlans, setApiPlans] = useState([])
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [currency, setCurrency] = useState("USD")
-  const [showComparisonTable, setShowComparisonTable] = useState(true)
+  const [showComparisonTable, _setShowComparisonTable] = useState(true)
   const [showCreditBlockModal, setShowCreditBlockModal] = useState(false)
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
-
-
-  const CONVERSION_RATE = 90 // USD to INR conversion rate
+  const _CONVERSION_RATE = 90 // USD to INR conversion rate
 
   // Country to query is derived directly from the user's own countryCode,
   // not from the `currency` state — avoids a circular country<->currency mapping
@@ -357,7 +354,7 @@ const Upgrade = () => {
     // Helper to find plan in API
     const getApiPlan = (tier, freq) => {
       return apiPlans.find(
-        p =>
+        (p) =>
           p.tier === tier &&
           (p.frequency === freq || (tier === "credits" && p.type === "credit_purchase"))
       )
@@ -526,7 +523,7 @@ const Upgrade = () => {
   const plans = getPlans(billingPeriod, user?.subscription?.plan)
 
   function getGaClientId() {
-    const gaCookie = document.cookie.split("; ").find(row => row.startsWith("_ga="))
+    const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
     if (gaCookie) {
       const parts = gaCookie.split(".")
       if (parts.length > 2) return parts[2] + "." + parts[3]
@@ -603,9 +600,8 @@ const Upgrade = () => {
       // New cases from upgrade endpoint — handle 3DS/SCA natively via Stripe SDK
       if (data?.requiresAction && data?.clientSecret) {
         toast.info(`Authenticating payment of ${data.amountDue} ${data.currency}...`)
-        const { paymentIntent: confirmedIntent, error: actionError } = await stripe.handleNextAction({
-          clientSecret: data.clientSecret,
-        })
+        const { paymentIntent: confirmedIntent, error: actionError } =
+          await stripe.handleNextAction({ clientSecret: data.clientSecret })
         if (actionError) {
           toast.error(actionError.message || "Payment authentication failed. Please try again.")
         } else if (confirmedIntent?.status === "succeeded") {
@@ -646,22 +642,26 @@ const Upgrade = () => {
     }
   }
 
-  const handleBuyAnnualPlan = tier => {
-    const annualPlan = apiPlans.find(p => p.tier === tier && p.frequency === "year")
+  const handleBuyAnnualPlan = (tier) => {
+    const annualPlan = apiPlans.find((p) => p.tier === tier && p.frequency === "year")
     if (!annualPlan) {
       toast.error("Plan not available. Please try again.")
       return
     }
     setShowCreditBlockModal(false)
     handleBuy(
-      { ...annualPlan, name: `GenWrite ${tier.charAt(0).toUpperCase() + tier.slice(1)}`, type: "subscription" },
+      {
+        ...annualPlan,
+        name: `GenWrite ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+        type: "subscription",
+      },
       annualPlan.credits,
       "annual"
     )
   }
 
-  const totalCredits = user?.credits?.base + user?.credits?.extra
-  const showTrialMessage = !user?.subscription?.trialOpted
+  const _totalCredits = user?.credits?.base + user?.credits?.extra
+  const _showTrialMessage = !user?.subscription?.trialOpted
 
   return (
     <div className="pb-10 pt-5 px-3 sm:px-6 lg:px-8 mt-10">
@@ -707,7 +707,7 @@ const Upgrade = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-8">
           <div className="flex justify-center px-4">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
-              {["monthly", "annual"].map(period => (
+              {["monthly", "annual"].map((period) => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
@@ -809,7 +809,6 @@ const Upgrade = () => {
         </div>
       )}
 
-
       {/* Credit Block Modal — shown when free-plan user tries to buy credits */}
       {showCreditBlockModal && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -826,22 +825,44 @@ const Upgrade = () => {
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
               aria-label="Close"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
 
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-red-50 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-red-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Plan</h2>
             <p className="text-gray-500 text-sm mb-6">
-              You need an active subscription to purchase credit packs. Please choose a plan to get started.
+              You need an active subscription to purchase credit packs. Please choose a plan to get
+              started.
             </p>
 
             <div className="flex flex-col gap-3">

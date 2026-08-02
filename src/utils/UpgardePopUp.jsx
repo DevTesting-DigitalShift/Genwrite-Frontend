@@ -1,7 +1,3 @@
-import React from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Zap, X, ShoppingCart } from "lucide-react"
-
 export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false, onCancel }) => {
   // Since we want an imperative API like Modal.info, we'll create a temporary container
   const container = document.createElement("div")
@@ -52,7 +48,7 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
 
   container.innerHTML = modalHtml
 
-  window.closeUpgradePopup = confirm => {
+  window.closeUpgradePopup = (confirm) => {
     if (confirm) {
       navigate?.("/pricing")
     } else {

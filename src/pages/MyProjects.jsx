@@ -1,29 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/ui/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
 import { toast } from "sonner"
-import {
-  ArrowDownUp,
-  Calendar,
-  Filter,
-  Plus,
-  RefreshCcw,
-  RotateCcw,
-  Search,
-  Trash2,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  MoreVertical,
-} from "lucide-react"
+import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import dayjs from "dayjs"
-import Fuse from "fuse.js"
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
+import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
@@ -38,7 +24,6 @@ import {
   ITEMS_PER_PAGE,
   SORT_OPTIONS,
 } from "@/data/blogFilters"
-import { useInView } from "react-intersection-observer"
 
 dayjs.extend(isBetween)
 
@@ -66,9 +51,9 @@ const MyProjects = () => {
   useEffect(() => {
     const field = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
     if (field) {
-      setBlogFilters(prev => ({ ...prev, ...JSON.parse(field) }) || {})
+      setBlogFilters((prev) => ({ ...prev, ...JSON.parse(field) }) || {})
     } else {
-      setBlogFilters(prev => ({ ...prev, start: user?.createdAt }))
+      setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
     }
   }, [user?.createdAt])
 
@@ -96,7 +81,7 @@ const MyProjects = () => {
           totalItems: res?.totalItems ?? 0,
         }
       },
-      getNextPageParam: lastPage => {
+      getNextPageParam: (lastPage) => {
         // allPages.flatMap(...).length === total blogs already loaded
         return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
       },
@@ -104,7 +89,7 @@ const MyProjects = () => {
       staleTime: Infinity,
       gcTime: Infinity,
       refetchOnWindowFocus: false,
-      onError: error => {
+      onError: (error) => {
         console.error("Failed to fetch blogs:", {
           error: error.message,
           status: error.status,
@@ -115,18 +100,18 @@ const MyProjects = () => {
     })
 
   // Flatten all pages
-  const allBlogs = useMemo(() => data?.pages.flatMap(p => p.data) ?? [], [data])
+  const allBlogs = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data])
   // const hasMore = data?.pages[data?.pages.length - 1]?.hasMore ?? false
   const totalItems = data?.pages[0]?.totalItems ?? 0
   const inputRef = useRef(null)
 
-  const [isMenuOpen, setMenuOpen] = useState(false)
-  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
+  const [_isMenuOpen, _setMenuOpen] = useState(false)
+  const [_isFunnelMenuOpen, _setFunnelMenuOpen] = useState(false)
 
   // // Reset filters to default
   const resetFilters = useCallback(() => {
-    setBlogFilters(prev => ({ ...initialBlogFilter, start: user?.createdAt }))
-    if (inputRef?.current && inputRef.current?.input?.value) inputRef.current.input.value = ""
+    setBlogFilters((_prev) => ({ ...initialBlogFilter, start: user?.createdAt }))
+    if (inputRef?.current?.input?.value) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
   }, [user])
 
@@ -143,7 +128,7 @@ const MyProjects = () => {
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
 
-    const isOtherChanged = Object.keys(blogFilters).some(key => {
+    const isOtherChanged = Object.keys(blogFilters).some((key) => {
       if (key === "start" || key === "end") return false
       return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
     })
@@ -161,13 +146,13 @@ const MyProjects = () => {
 
     const patchBlogInCache = (blogId, patcher) => {
       if (!blogId) return
-      queryClient.setQueriesData({ queryKey: ["blogs"] }, oldData => {
+      queryClient.setQueriesData({ queryKey: ["blogs"] }, (oldData) => {
         if (!oldData?.pages) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map(page => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
-            data: page.data.map(blog => (blog._id === blogId ? patcher(blog) : blog)),
+            data: page.data.map((blog) => (blog._id === blogId ? patcher(blog) : blog)),
           })),
         }
       })
@@ -176,7 +161,7 @@ const MyProjects = () => {
     // Real-time progress: update taskStatus in cache directly — no API call
     const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
       if (blogId && taskStatus) {
-        patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, taskStatus }))
       }
     }
 
@@ -186,17 +171,17 @@ const MyProjects = () => {
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       } else if (blogId && newStatus) {
         // In-progress transition — patch status in cache only
-        patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, status: newStatus }))
       }
     }
 
-    const handleBlogCreated = _ => {
+    const handleBlogCreated = (_) => {
       queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
     }
 
     const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
       if (!blogId) return
-      patchBlogInCache(blogId, blog => ({ ...blog, agendaNextRun: retryTime }))
+      patchBlogInCache(blogId, (blog) => ({ ...blog, agendaNextRun: retryTime }))
     }
 
     socket.on("blog:progressUpdated", handleProgressUpdated)
@@ -213,35 +198,35 @@ const MyProjects = () => {
   }, [user, userId, queryClient])
 
   const handleBlogClick = useCallback(
-    blog => {
+    (blog) => {
       navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    blog => {
+    (blog) => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
   )
 
-  const handleRetry = useCallback(async id => {
+  const handleRetry = useCallback(async (id) => {
     try {
       await retryBlogById(id)
       toast.success("Blog will be regenerated shortly")
       refetch()
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to retry blog")
     }
   }, [])
 
-  const handleArchive = useCallback(async id => {
+  const handleArchive = useCallback(async (id) => {
     try {
       await archiveBlogById(id)
       toast.success("Blog archived successfully")
       refetch()
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to archive")
     }
   }, [])
@@ -249,9 +234,9 @@ const MyProjects = () => {
   // Menu options
   const menuOptions = useMemo(
     () =>
-      SORT_OPTIONS.map(opt => ({
+      SORT_OPTIONS.map((opt) => ({
         ...opt,
-        onClick: _ => {
+        onClick: (_) => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
@@ -261,9 +246,9 @@ const MyProjects = () => {
   // Funnel menu options
   const funnelMenuOptions = useMemo(
     () =>
-      BLOG_STATUS_OPTIONS.map(opt => ({
+      BLOG_STATUS_OPTIONS.map((opt) => ({
         ...opt,
-        onClick: _ => {
+        onClick: (_) => {
           updateBlogFilters({ status: opt.value })
         },
       })),
@@ -271,8 +256,8 @@ const MyProjects = () => {
   )
 
   const updateBlogFilters = useCallback(
-    updates => {
-      setBlogFilters(prev => {
+    (updates) => {
+      setBlogFilters((prev) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
         return newValue
@@ -391,7 +376,7 @@ const MyProjects = () => {
         <div className="w-full lg:w-1/3">
           <DebouncedSearchInput
             initialValue={blogFilters.q}
-            onSearch={value => {
+            onSearch={(value) => {
               updateBlogFilters({ q: value })
             }}
             placeholder="Search projects..."
@@ -412,13 +397,10 @@ const MyProjects = () => {
             >
               <ArrowDownUp className="w-4 h-4" />
               <span className="font-bold">
-                Sort: {menuOptions.find(t => t.value === blogFilters.sort).label}
+                Sort: {menuOptions.find((t) => t.value === blogFilters.sort).label}
               </span>
             </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2"
-            >
+            <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {menuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
@@ -445,13 +427,10 @@ const MyProjects = () => {
             >
               <Filter className="w-4 h-4" />
               <span className="font-bold">
-                Filter: {funnelMenuOptions.find(t => t.value === blogFilters.status).label}
+                Filter: {funnelMenuOptions.find((t) => t.value === blogFilters.status).label}
               </span>
             </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2"
-            >
+            <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {funnelMenuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
@@ -485,7 +464,7 @@ const MyProjects = () => {
             value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
             minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
             maxDate={dayjs()}
-            onChange={dates => {
+            onChange={(dates) => {
               updateBlogFilters({
                 ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1].toISOString() } : {}),
               })
@@ -517,7 +496,7 @@ const MyProjects = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 place-items-center p-2">
-              {allBlogs.map(blog => (
+              {allBlogs.map((blog) => (
                 <BlogCard
                   key={blog._id}
                   blog={blog}

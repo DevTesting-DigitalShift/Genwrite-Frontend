@@ -1,15 +1,15 @@
-import React, { useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
 import { useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { RefreshCw, Sparkles, Copy, FileText, CheckCircle2 } from "lucide-react"
+import { RefreshCw, Sparkles, Copy, FileText } from "lucide-react"
 import { toast } from "sonner"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ConnectedTools from "@components/ConnectedTools"
 
 // Helper to detect if input is URL
-const isUrl = text => text.trim().startsWith("http")
+const isUrl = (text) => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
   const location = useLocation()
@@ -25,7 +25,7 @@ const GenerateMetaData = () => {
     if (isUrl(content)) return 100 // Sufficient for URL to pass backend validation
     const text = content.trim()
     if (!text) return 0
-    return text.split(/\s+/).filter(word => word.length > 0).length
+    return text.split(/\s+/).filter((word) => word.length > 0).length
   }, [content])
 
   const handleGenerateMetadata = useCallback(async () => {
@@ -126,7 +126,7 @@ const GenerateMetaData = () => {
             <div className="relative">
               <textarea
                 value={content}
-                onChange={e => setContent(e.target.value)}
+                onChange={(e) => setContent(e.target.value)}
                 placeholder="Paste content or enter URL..."
                 className="w-full min-h-[350px] p-5 text-gray-800 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:border-indigo-600 focus:ring-0 outline-none transition-all resize-none placeholder-gray-400 text-base leading-relaxed font-medium"
               />

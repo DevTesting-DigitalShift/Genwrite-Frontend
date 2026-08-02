@@ -34,7 +34,7 @@ import { useNavigate } from "react-router-dom"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { debugPayload } from "@utils/debugPayload"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
@@ -102,9 +102,9 @@ const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
   // Merge platform categories with popular categories and deduplicate (case-insensitive)
   const displayCategories = useMemo(() => {
     const combined = [...categories]
-    const lowerCategories = categories.map(c => c.toLowerCase())
+    const lowerCategories = categories.map((c) => c.toLowerCase())
 
-    POPULAR_CATEGORIES.forEach(cat => {
+    POPULAR_CATEGORIES.forEach((cat) => {
       if (!lowerCategories.includes(cat.toLowerCase())) {
         combined.push(cat)
       }
@@ -261,12 +261,12 @@ const TextEditorSidebar = ({
 
   // Export with images toggle
   const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
-  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
+  const [_isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
 
   // Content enhancement editable options state
   const [enhancementOptions, setEnhancementOptions] = useState({})
-  const [hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
-  const [isSavingEnhancement, setIsSavingEnhancement] = useState(false)
+  const [_hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
+  const [_isSavingEnhancement, setIsSavingEnhancement] = useState(false)
 
   // Regenerate form data
   const [regenForm, setRegenForm] = useState({
@@ -311,7 +311,7 @@ const TextEditorSidebar = ({
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
   const [availableSections, setAvailableSections] = useState([])
-  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
+  const [_isAnalyzingProofreading, _setIsAnalyzingProofreading] = useState(false)
 
   // Diff Viewer State
   const [showDiff, setShowDiff] = useState(false)
@@ -336,7 +336,7 @@ const TextEditorSidebar = ({
   // Clear section selection when switching tabs to simple cleanup
   useEffect(() => {
     if (activePanel !== "sectionTools" && sectionToolState.sectionId) {
-      setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+      setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
       window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
     }
   }, [activePanel])
@@ -349,7 +349,7 @@ const TextEditorSidebar = ({
     }
 
     try {
-      let sections = []
+      const sections = []
       // ... (rest of parsing logic will remain, just inserting the hook before it)
 
       const parser = new DOMParser()
@@ -364,7 +364,7 @@ const TextEditorSidebar = ({
         const allSections = Array.from(doc.querySelectorAll("section"))
         const excludeSelector =
           "#blog-meta, #blog-cta, #faq-section, .blog-base-meta, .blog-brand-cta, .faq-section, .blog-quick-summary"
-        htmlSections = allSections.filter(el => !el.matches(excludeSelector))
+        htmlSections = allSections.filter((el) => !el.matches(excludeSelector))
       }
 
       if (htmlSections.length > 0) {
@@ -439,11 +439,11 @@ const TextEditorSidebar = ({
 
       if (response.data && (response.data.content || response.data.markdown)) {
         let newFullContent = editorContent
-        let originalSectionContent = ""
+        let _originalSectionContent = ""
         let newSectionContent = response.data.markdown || response.data.content || ""
 
         // Helper to normalize slugs similar to how TipTap/Marked does
-        const getSlug = text =>
+        const getSlug = (text) =>
           text
             .toLowerCase()
             .replace(/[^\w]+/g, "-")
@@ -472,7 +472,7 @@ const TextEditorSidebar = ({
 
         if (sectionEl) {
           // Found explicit HTML section
-          originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
+          _originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
 
           // Special handling for the Meta/Overview section to preserve structure
           if (sectionToolState.sectionId === "blog-meta") {
@@ -502,8 +502,8 @@ const TextEditorSidebar = ({
             } else {
               // If .section-content wrapper is missing, preserve headers and wrap/replace content
               const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
-              const headerHTML = headings.map(h => h.outerHTML).join("")
-              
+              const headerHTML = headings.map((h) => h.outerHTML).join("")
+
               // Only prepend headers if they aren't already in the AI response
               const hasHeaderInResponse = /<h[1-6]/.test(response.data.content)
               sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + response.data.content
@@ -525,7 +525,7 @@ const TextEditorSidebar = ({
           const lines = editorContent.split("\n")
           let startLine = -1
           let endLine = -1
-          let foundHeaderLevel = 0
+          let _foundHeaderLevel = 0
 
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
@@ -539,7 +539,7 @@ const TextEditorSidebar = ({
               if (slug === sectionToolState.sectionId) {
                 // Found our start header
                 startLine = i
-                foundHeaderLevel = level
+                _foundHeaderLevel = level
               } else if (startLine !== -1) {
                 // We are inside the section, and found another header
                 // If this header is same level or higher (smaller number), our section ends here.
@@ -554,7 +554,7 @@ const TextEditorSidebar = ({
             // Found the section
             if (endLine === -1) endLine = lines.length
 
-            originalSectionContent = lines.slice(startLine, endLine).join("\n")
+            _originalSectionContent = lines.slice(startLine, endLine).join("\n")
 
             // Construct new content:
             // 1. Everything before the header (lines 0 to startLine-1)
@@ -590,7 +590,7 @@ const TextEditorSidebar = ({
 
         // Clear instructions if custom
         if (sectionToolState.task === "promptChanges") {
-          setSectionToolState(prev => ({ ...prev, instructions: "" }))
+          setSectionToolState((prev) => ({ ...prev, instructions: "" }))
         }
       } else {
         toast.warning("No content returned from AI")
@@ -604,7 +604,7 @@ const TextEditorSidebar = ({
   }
 
   // UI State for categories to prevent flickering or disappearing on re-renders
-  const [uiCategories, setUiCategories] = useState([])
+  const [_uiCategories, setUiCategories] = useState([])
 
   const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
@@ -632,7 +632,7 @@ const TextEditorSidebar = ({
 
   const hasAnyIntegration =
     integrations?.integrations && Object.keys(integrations.integrations).length > 0
-  const isDisabled = isPosting || !hasAnyIntegration
+  const _isDisabled = isPosting || !hasAnyIntegration
   const isPro = ["free", "basic"].includes(userPlan)
 
   const PLATFORM_LABELS = {
@@ -739,7 +739,7 @@ const TextEditorSidebar = ({
     }
   }, [blog?.options])
 
-  const getWordCount = text => {
+  const getWordCount = (text) => {
     if (!text) return 0
 
     // Plain text case (heuristic check for HTML tags)
@@ -755,7 +755,7 @@ const TextEditorSidebar = ({
       const elementsToRemove = doc.querySelectorAll(
         "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
       )
-      elementsToRemove.forEach(el => el.remove())
+      elementsToRemove.forEach((el) => el.remove())
 
       // If article exists, use it; otherwise use body
       const content = doc.querySelector("article") || doc.body
@@ -776,7 +776,7 @@ const TextEditorSidebar = ({
 
   // Update regen form field
   const updateRegenField = useCallback((field, value) => {
-    setRegenForm(prev => {
+    setRegenForm((prev) => {
       if (field.includes(".")) {
         const [parent, child] = field.split(".")
         return { ...prev, [parent]: { ...prev[parent], [child]: value } }
@@ -798,7 +798,10 @@ const TextEditorSidebar = ({
     if (regenForm.options.automaticPosting) features.push("automaticPosting")
     // Note: addOutBoundLinks does not add extra credits
 
-    const roundedLength = Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)
+    const roundedLength = Math.max(
+      500,
+      Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
+    )
     return computeCost({
       wordCount: roundedLength,
       features,
@@ -811,7 +814,7 @@ const TextEditorSidebar = ({
   }, [regenForm])
 
   // Handlers
-  const handleRegenerate = async () => {
+  const _handleRegenerate = async () => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -844,7 +847,10 @@ const TextEditorSidebar = ({
         createNew: true,
         topic: regenForm.topic,
         tone: regenForm.tone,
-        userDefinedLength: Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500),
+        userDefinedLength: Math.max(
+          500,
+          Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
+        ),
         aiModel: regenForm.aiModel,
         costCutter: regenForm.costCutter,
         isCheckedQuick: regenForm.isCheckedQuick,
@@ -986,13 +992,13 @@ const TextEditorSidebar = ({
   }, [])
 
   // Enhancement option toggle handler
-  const handleEnhancementToggle = useCallback((key, value) => {
-    setEnhancementOptions(prev => ({ ...prev, [key]: value }))
+  const _handleEnhancementToggle = useCallback((key, value) => {
+    setEnhancementOptions((prev) => ({ ...prev, [key]: value }))
     setHasEnhancementChanges(true)
   }, [])
 
   // Save enhancement options
-  const handleSaveEnhancement = useCallback(async () => {
+  const _handleSaveEnhancement = useCallback(async () => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -1009,7 +1015,7 @@ const TextEditorSidebar = ({
     }
   }, [enhancementOptions, handleSubmit])
 
-  const handleCustomPromptBlog = useCallback(async () => {
+  const _handleCustomPromptBlog = useCallback(async () => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -1100,7 +1106,7 @@ const TextEditorSidebar = ({
     }
   }, [blog, editorContent, includeImagesInExport])
 
-  const handleKeywordRewrite = useCallback(() => {
+  const _handleKeywordRewrite = useCallback(() => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -1113,7 +1119,7 @@ const TextEditorSidebar = ({
   }, [handlePopup, handleSave])
 
   // --- Posting Helpers ---
-  const openRepostModal = posting => {
+  const openRepostModal = (posting) => {
     // Use metadata from the posting object as the primary source of truth
     const metadata = posting.metadata || {}
     setRepostSettings({
@@ -1154,9 +1160,9 @@ const TextEditorSidebar = ({
     (platform, url) => {
       setSelectedIntegration({ platform: platform.toLowerCase(), rawPlatform: platform, url })
       setPlatformError(false)
-      setErrors(prev => ({ ...prev, platform: "" }))
+      setErrors((prev) => ({ ...prev, platform: "" }))
 
-      const hasShopifyAlready = posted?.SHOPIFY?.link ? true : false
+      const hasShopifyAlready = !!posted?.SHOPIFY?.link
       if (platform === "SHOPIFY") {
         setIsCategoryLocked(hasShopifyAlready)
       } else {
@@ -1166,25 +1172,25 @@ const TextEditorSidebar = ({
     [posted]
   )
 
-  const handleCategoryAdd = useCallback(category => {
+  const handleCategoryAdd = useCallback((category) => {
     // Remove restriction to allow explicit selection change even if something is selected
     setSelectedCategory(category)
     setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
+    setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
-  const handleCategoryRemove = useCallback(() => {
+  const _handleCategoryRemove = useCallback(() => {
     setSelectedCategory("")
     setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
+    setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
-  const handleCategoryChange = useCallback(value => {
+  const handleCategoryChange = useCallback((value) => {
     // If multiple values selected (mode='tags'), take the last one to allow switching
     const newCategory = value.length > 0 ? value[value.length - 1] : ""
     setSelectedCategory(newCategory)
     setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
+    setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
   // Auto-fetch categories when integration changes
@@ -1202,7 +1208,7 @@ const TextEditorSidebar = ({
 
     // 1. Always sync ToC from Blog Data if not manually changed (optional, but good for defaults)
     // We'll trust the initial state setting mostly, but here we enforce blog defaults if state is empty
-    setIncludeTableOfContents(prev => blog?.options?.includeTableOfContents ?? prev)
+    setIncludeTableOfContents((prev) => blog?.options?.includeTableOfContents ?? prev)
 
     // 2. Sync Category from Blog Data
     if (blog?.category && !selectedCategory) {
@@ -1215,7 +1221,9 @@ const TextEditorSidebar = ({
     // PRIORITY 1: Check blogPostings (New API Source)
     if (blogPostings.length > 0) {
       // Find Shopify posting if exists to lock category
-      const shopifyPosting = blogPostings.find(p => (p.integrationType || p.platform) === "SHOPIFY")
+      const shopifyPosting = blogPostings.find(
+        (p) => (p.integrationType || p.platform) === "SHOPIFY"
+      )
 
       if (shopifyPosting) {
         const meta = shopifyPosting.metadata || {}
@@ -1331,7 +1339,7 @@ const TextEditorSidebar = ({
 
     // Check if this platform has been posted to before (Warning logic)
     // Simplified logic: If the blog has ANY published links, warn about duplicate/new URL
-    const isDuplicatePost = hasPublishedLinks
+    const _isDuplicatePost = hasPublishedLinks
 
     // 3. Execution
     const executePost = async () => {
@@ -1370,11 +1378,11 @@ const TextEditorSidebar = ({
           try {
             await handleSubmit({ metadata })
             executePost()
-          } catch (error) {
+          } catch (_error) {
             toast.error("Failed to save changes")
           }
         },
-        onCancel: e => {
+        onCancel: (e) => {
           // If user clicks "Post Without Saving" (which is typically the cancel button action in this context)
           if (e?.source === "button") {
             executePost()
@@ -1402,20 +1410,20 @@ const TextEditorSidebar = ({
     queryClient,
   ])
 
-  const addKeyword = useCallback(() => {
+  const _addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
       const newKws = newKeyword
         .split(",")
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
-      if (newKws.length > 0) setKeywords(prev => [...prev, ...newKws])
+        .map((k) => k.trim().toLowerCase())
+        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
+      if (newKws.length > 0) setKeywords((prev) => [...prev, ...newKws])
       setNewKeyword("")
     }
   }, [newKeyword, keywords, setKeywords])
 
-  const removeKeyword = useCallback(
-    keyword => {
-      setKeywords(prev => prev.filter(k => k !== keyword))
+  const _removeKeyword = useCallback(
+    (keyword) => {
+      setKeywords((prev) => prev.filter((k) => k !== keyword))
     },
     [setKeywords]
   )
@@ -1429,7 +1437,7 @@ const TextEditorSidebar = ({
     const isBrandPopulated = blog?.brandId && typeof blog.brandId === "object"
     const brand = isBrandPopulated ? blog.brandId : {}
 
-    const nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
+    const _nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
 
     if (!blog?.brandId && !blog?.nameOfVoice) {
       return (
@@ -1661,7 +1669,11 @@ const TextEditorSidebar = ({
               }
             `}
           >
-            {isPublicMode ? "Analysis Locked" : isAnalyzingCompetitive ? "Analyzing Content..." : "Run Analysis (10 Credits)"}
+            {isPublicMode
+              ? "Analysis Locked"
+              : isAnalyzingCompetitive
+                ? "Analyzing Content..."
+                : "Run Analysis (10 Credits)"}
           </button>
         </div>
       </div>
@@ -1822,14 +1834,14 @@ const TextEditorSidebar = ({
             <input
               type="text"
               value={metadata.title}
-              onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
+              onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
               disabled={isPublicMode}
               className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
             />
             <textarea
               value={metadata.description}
-              onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
+              onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
               disabled={isPublicMode}
@@ -1885,7 +1897,7 @@ const TextEditorSidebar = ({
               type="checkbox"
               className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
-              onChange={e => setIncludeImagesInExport(e.target.checked)}
+              onChange={(e) => setIncludeImagesInExport(e.target.checked)}
               disabled={userPlan === "free"}
             />
           </div>
@@ -2128,7 +2140,11 @@ const TextEditorSidebar = ({
               <button
                 onClick={() => {
                   if (blog?.isArchived || isPublicMode) {
-                    toast.error(isPublicMode ? "Read-only mode" : "This blog is archived. Please restore it to perform this action.")
+                    toast.error(
+                      isPublicMode
+                        ? "Read-only mode"
+                        : "This blog is archived. Please restore it to perform this action."
+                    )
                     return
                   }
                   setIsEditingSlug(!isEditingSlug)
@@ -2148,7 +2164,7 @@ const TextEditorSidebar = ({
               <input
                 type="text"
                 value={blogSlug}
-                onChange={e => setBlogSlug(e.target.value)}
+                onChange={(e) => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
                 className="input input-bordered input-sm w-full text-sm font-mono"
               />
@@ -2326,7 +2342,11 @@ const TextEditorSidebar = ({
               },
               { key: "includeFaqs", label: "Include FAQs", value: blog?.options?.includeFaqs },
               { key: "addCTA", label: "Add CTA", value: blog?.options?.addCTA || blog?.addCTA },
-              { key: "createBrandedImages", label: "Create Branded Images", value: blog?.options?.createBrandedImages || blog?.createBrandedImages },
+              {
+                key: "createBrandedImages",
+                label: "Create Branded Images",
+                value: blog?.options?.createBrandedImages || blog?.createBrandedImages,
+              },
               {
                 key: "automaticPosting",
                 label: "Automatic Posting",
@@ -2436,9 +2456,9 @@ const TextEditorSidebar = ({
             </label>
             {sectionToolState.sectionId ? (
               <button
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation()
-                  setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+                  setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
                   window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
                 }}
                 className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-colors"
@@ -2457,7 +2477,7 @@ const TextEditorSidebar = ({
                 No headers found. Add headings to your content to use section tools.
               </div>
             ) : (
-              availableSections.map(section => (
+              availableSections.map((section) => (
                 <div
                   key={section.id}
                   onClick={() => {
@@ -2467,7 +2487,7 @@ const TextEditorSidebar = ({
                       )
                       return
                     }
-                    setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
+                    setSectionToolState((prev) => ({ ...prev, sectionId: section.id }))
                     // Dispatch highlight event
                     window.dispatchEvent(
                       new CustomEvent("highlight-section", { detail: section.id })
@@ -2537,10 +2557,10 @@ const TextEditorSidebar = ({
                 icon: MessageSquare,
                 desc: "Give your own instructions",
               },
-            ].map(task => (
+            ].map((task) => (
               <div
                 key={task.id}
-                onClick={() => setSectionToolState(prev => ({ ...prev, task: task.id }))}
+                onClick={() => setSectionToolState((prev) => ({ ...prev, task: task.id }))}
                 className={`
                             relative p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
                             ${
@@ -2590,8 +2610,8 @@ const TextEditorSidebar = ({
               placeholder="E.g., Make it more professional and add 2 examples..."
               rows={4}
               value={sectionToolState.instructions}
-              onChange={e =>
-                setSectionToolState(prev => ({ ...prev, instructions: e.target.value }))
+              onChange={(e) =>
+                setSectionToolState((prev) => ({ ...prev, instructions: e.target.value }))
               }
               className="textarea textarea-bordered w-full text-sm bg-gray-50 focus:bg-white"
             />
@@ -2620,7 +2640,11 @@ const TextEditorSidebar = ({
             ) : (
               <Sparkles className="w-4 h-4 mr-2" />
             )}
-            {isPublicMode ? "AI Tools Locked" : isProcessingSection ? "Processing..." : "Run AI Task"}
+            {isPublicMode
+              ? "AI Tools Locked"
+              : isProcessingSection
+                ? "Processing..."
+                : "Run AI Task"}
           </button>
           <p className="text-[10px] text-center text-gray-400 mt-2">
             This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
@@ -2703,6 +2727,7 @@ const TextEditorSidebar = ({
                         href={posting.link}
                         target="_blank"
                         className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
+                        rel="noopener"
                       >
                         View Live <ExternalLink className="w-2.5 h-2.5" />
                       </a>
@@ -2787,7 +2812,7 @@ const TextEditorSidebar = ({
                   }`}
                   value={selectedIntegration?.rawPlatform || ""}
                   disabled={blog?.isArchived}
-                  onChange={e => {
+                  onChange={(e) => {
                     const v = e.target.value
                     const d = integrations.integrations[v]
                     handleIntegrationChange(v, d?.url)
@@ -2796,7 +2821,7 @@ const TextEditorSidebar = ({
                   <option value="" disabled>
                     Choose platform...
                   </option>
-                  {Object.entries(integrations.integrations).map(([k, v]) => (
+                  {Object.entries(integrations.integrations).map(([k, _v]) => (
                     <option key={k} value={k}>
                       {PLATFORM_LABELS[k] || k}
                     </option>
@@ -2841,7 +2866,7 @@ const TextEditorSidebar = ({
                 className={`input input-bordered outline-0 w-full ${categoryError ? "input-error" : ""}`}
                 placeholder="Select or type..."
                 value={selectedCategory || ""}
-                onChange={e => handleCategoryChange([e.target.value])}
+                onChange={(e) => handleCategoryChange([e.target.value])}
                 disabled={isCategoryLocked}
               />
 
@@ -2940,8 +2965,8 @@ const TextEditorSidebar = ({
         </div>
         <div className="flex flex-col items-center gap-4 py-6">
           {NAV_ITEMS.filter(
-            item => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
-          ).map(item => {
+            (item) => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+          ).map((item) => {
             const isActive = activePanel === item.id
             const Icon = item.icon
             return (
@@ -3013,8 +3038,9 @@ const TextEditorSidebar = ({
           </div>
           <div className="flex flex-col gap-3 mt-5">
             {NAV_ITEMS.filter(
-              item => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
-            ).map(item => {
+              (item) =>
+                !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+            ).map((item) => {
               const Icon = item.icon
               const isActive = activePanel === item.id
               return (
@@ -3106,9 +3132,9 @@ const TextEditorSidebar = ({
               <select
                 className="select select-bordered outline-0 w-full"
                 value={repostSettings.platform}
-                onChange={e => setRepostSettings({ ...repostSettings, platform: e.target.value })}
+                onChange={(e) => setRepostSettings({ ...repostSettings, platform: e.target.value })}
               >
-                {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
+                {Object.entries(integrations?.integrations || {}).map(([k, _v]) => (
                   <option key={k} value={k}>
                     {PLATFORM_LABELS[k] || k}
                   </option>
@@ -3126,7 +3152,7 @@ const TextEditorSidebar = ({
                 className="input input-bordered w-full"
                 placeholder="Select or type..."
                 value={repostSettings.category || ""}
-                onChange={e => setRepostSettings({ ...repostSettings, category: e.target.value })}
+                onChange={(e) => setRepostSettings({ ...repostSettings, category: e.target.value })}
               />
             </div>
 
@@ -3136,7 +3162,7 @@ const TextEditorSidebar = ({
                 type="checkbox"
                 className="toggle toggle-primary toggle-sm"
                 checked={repostSettings.includeTableOfContents}
-                onChange={e =>
+                onChange={(e) =>
                   setRepostSettings({ ...repostSettings, includeTableOfContents: e.target.checked })
                 }
               />
@@ -3144,7 +3170,7 @@ const TextEditorSidebar = ({
 
             {repostSettings.platform && (
               <PlatformCategories
-                onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
+                onSelect={(cat) => setRepostSettings({ ...repostSettings, category: cat })}
                 currentCategory={repostSettings.category}
                 platform={repostSettings.platform}
               />

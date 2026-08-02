@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import dayjs from "dayjs"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
@@ -16,7 +16,7 @@ export default function DateRangePicker({ value, onChange, minDate, maxDate, cla
 
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleSelect = selectedRange => {
+  const handleSelect = (selectedRange) => {
     setDate(selectedRange)
     if (selectedRange?.from) {
       const start = dayjs(selectedRange.from).startOf("day")
@@ -63,7 +63,7 @@ export default function DateRangePicker({ value, onChange, minDate, maxDate, cla
             selected={date}
             onSelect={handleSelect}
             numberOfMonths={1}
-            disabled={dateToCheck => {
+            disabled={(dateToCheck) => {
               if (minDate && dayjs(dateToCheck).isBefore(minDate, "day")) return true
               if (maxDate && dayjs(dateToCheck).isAfter(maxDate, "day")) return true
               return false

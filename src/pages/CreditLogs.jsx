@@ -1,23 +1,10 @@
-import { motion, AnimatePresence } from "framer-motion"
-import React, { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { Helmet } from "react-helmet"
 import dayjs from "dayjs"
 import useCreditLogStore from "@store/useCreditLogStore"
 import { useCreditLogsQuery } from "@api/queries/creditLogsQueries"
 import { getSocket } from "@utils/socket"
-import {
-  Search,
-  Filter,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Inbox,
-  Loader2,
-  MinusCircle,
-  PlusCircle,
-  ChevronDown,
-  ArrowUpDown,
-} from "lucide-react"
+import { Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import Fuse from "fuse.js"
 import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
@@ -37,7 +24,7 @@ const CreditLogsTable = () => {
   } = useCreditLogStore()
 
   // Calculate date range for backend fetch
-  const getDateRangeParams = range => {
+  const getDateRangeParams = (range) => {
     const now = dayjs()
     switch (range) {
       case "24h":
@@ -66,7 +53,7 @@ const CreditLogsTable = () => {
   const logs = logsData?.data || []
 
   const pageSizeOptions = [10, 20, 50, 100]
-  const purposeOptions = [
+  const _purposeOptions = [
     { label: "Blog Generation", value: "BLOG_GENERATION" },
     { label: "Quick Blog", value: "QUICK_BLOG_GENERATION" },
     { label: "Proofreading", value: "AI_PROOFREADING" },
@@ -96,7 +83,7 @@ const CreditLogsTable = () => {
 
     // Apply purpose filter
     if (purposeFilter.length > 0) {
-      result = result.filter(log => purposeFilter.includes(log.purpose))
+      result = result.filter((log) => purposeFilter.includes(log.purpose))
     }
 
     return result
@@ -150,7 +137,7 @@ const CreditLogsTable = () => {
               type="text"
               placeholder="Search by blog title"
               value={searchText}
-              onChange={e => {
+              onChange={(e) => {
                 setSearchText(e.target.value)
                 setPage(1)
               }}
@@ -161,7 +148,7 @@ const CreditLogsTable = () => {
           <div className="flex gap-3">
             <select
               value={dateRange}
-              onChange={e => {
+              onChange={(e) => {
                 setDateRange(e.target.value)
                 setPage(1)
               }}
@@ -175,13 +162,13 @@ const CreditLogsTable = () => {
 
             <select
               value={pageSize}
-              onChange={e => {
+              onChange={(e) => {
                 setPageSize(Number(e.target.value))
                 setPage(1)
               }}
               className="select select-bordered select-sm h-11 rounded-lg border-slate-200 font-medium text-slate-600 focus:border-blue-500 outline-none w-32"
             >
-              {pageSizeOptions.map(size => (
+              {pageSizeOptions.map((size) => (
                 <option key={size} value={size}>
                   {size} / page
                 </option>
@@ -241,7 +228,7 @@ const CreditLogsTable = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedData.map(log => (
+                  paginatedData.map((log) => (
                     <TableRow
                       key={log._id}
                       className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0"

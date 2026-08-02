@@ -1,17 +1,19 @@
-import React from "react"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { ArrowLeft, HelpCircle, Home } from "lucide-react"
+import { ArrowLeft, Home } from "lucide-react"
 
-const ErrorPage = ({ title = "Page Not Found", message = "Sorry, we couldn’t find the page you’re looking for.", errorCode = "404" }) => {
+const ErrorPage = ({
+  title = "Page Not Found",
+  message = "Sorry, we couldn’t find the page you’re looking for.",
+  errorCode = "404",
+}) => {
   return (
     <div className="min-h-screen relative overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Helmet>
-        <title>{errorCode} - {title} | GenWrite</title>
-        <meta
-          name="description"
-          content={message}
-        />
+        <title>
+          {errorCode} - {title} | GenWrite
+        </title>
+        <meta name="description" content={message} />
       </Helmet>
 
       {/* Animated Background Elements */}
@@ -57,7 +59,9 @@ const ErrorPage = ({ title = "Page Not Found", message = "Sorry, we couldn’t f
             transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
             className="mb-6"
           >
-            <span className="text-6xl sm:text-8xl font-bold text-red-500 drop-shadow-md">{errorCode}</span>
+            <span className="text-6xl sm:text-8xl font-bold text-red-500 drop-shadow-md">
+              {errorCode}
+            </span>
           </motion.div>
 
           {/* Error Message */}

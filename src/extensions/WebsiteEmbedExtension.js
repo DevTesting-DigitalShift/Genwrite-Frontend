@@ -9,12 +9,8 @@ export const WebsiteEmbed = Node.create({
 
   addAttributes() {
     return {
-      href: {
-        default: null,
-      },
-      title: {
-        default: null,
-      },
+      href: { default: null },
+      title: { default: null },
       class: {
         default:
           "website-embed block p-4 border border-gray-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 my-4 hover:border-blue-300 transition-colors",
@@ -23,11 +19,7 @@ export const WebsiteEmbed = Node.create({
   },
 
   parseHTML() {
-    return [
-      {
-        tag: 'div[data-embed-type="website"]',
-      },
-    ]
+    return [{ tag: 'div[data-embed-type="website"]' }]
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -92,7 +84,7 @@ export const WebsiteEmbed = Node.create({
         "p-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 shadow-lg"
       deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`
       deleteBtn.title = "Remove"
-      deleteBtn.onclick = e => {
+      deleteBtn.onclick = (e) => {
         e.preventDefault()
         e.stopPropagation()
         if (typeof getPos === "function") {
@@ -111,7 +103,7 @@ export const WebsiteEmbed = Node.create({
       return {
         dom: container,
         contentDOM: null,
-        update: updatedNode => {
+        update: (updatedNode) => {
           if (updatedNode.type.name !== "websiteEmbed") return false
           linkCard.href = updatedNode.attrs.href
           title.textContent = updatedNode.attrs.title || updatedNode.attrs.href
@@ -125,12 +117,9 @@ export const WebsiteEmbed = Node.create({
   addCommands() {
     return {
       setWebsiteEmbed:
-        options =>
+        (options) =>
         ({ commands }) => {
-          return commands.insertContent({
-            type: this.name,
-            attrs: options,
-          })
+          return commands.insertContent({ type: this.name, attrs: options })
         },
     }
   },

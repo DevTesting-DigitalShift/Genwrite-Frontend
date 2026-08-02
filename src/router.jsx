@@ -63,7 +63,7 @@ const AdminJobs = lazy(() => import("@admin/features/jobs/pages/AdminJobs"))
 const AdminRevenue = lazy(() => import("@admin/features/revenue/pages/AdminRevenue"))
 const AdminTransactions = lazy(() => import("@admin/features/transactions/pages/AdminTransactions"))
 
-const RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
+const _RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
 
 function withLayoutSuspense(Layout, props = {}) {
   return (

@@ -7,7 +7,6 @@ import {
   Search,
   Sparkles,
   Target,
-  TrendingUp,
   Users,
   Zap,
 } from "lucide-react"

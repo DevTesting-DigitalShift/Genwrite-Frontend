@@ -1,14 +1,10 @@
 import {
   PenTool,
   Image as ImageIcon,
-  Share2,
   Globe,
   Youtube,
   Search,
-  FileText,
   Activity,
-  BarChart2,
-  Zap,
   Grid3X3,
   Layers,
   Rocket,
@@ -95,7 +91,8 @@ export const tools = [
   {
     id: "website-builder",
     title: "AEO Website Ranker",
-    description: "Analyze and optimize your website for AI Answer Engines (Perplexity, Gemini, ChatGPT)",
+    description:
+      "Analyze and optimize your website for AI Answer Engines (Perplexity, Gemini, ChatGPT)",
     icon: <Globe className="w-6 h-6" />,
     type: "navigation",
     path: "/website-ranking", // Mapping to Website Ranking for now as closest match

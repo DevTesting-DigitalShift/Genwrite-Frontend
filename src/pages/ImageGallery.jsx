@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
 import {
-  Search,
   Image as ImageIcon,
   X,
   Download,
@@ -9,10 +8,8 @@ import {
   Sparkles,
   Type,
   Bot,
-  Upload,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
   Loader2,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
@@ -26,7 +23,7 @@ import { toast } from "sonner"
 import { AnimatePresence, motion } from "framer-motion"
 
 // Skeleton Loader Component
-const ImageSkeleton = () => {
+const _ImageSkeleton = () => {
   return (
     <div className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse">
       <div className="w-full aspect-3/4 bg-linear-to-br from-gray-200 to-gray-300"></div>
@@ -60,8 +57,8 @@ const ImageGallery = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(40)
-  const [minScore, setMinScore] = useState(0)
-  const [selectedTags, setSelectedTags] = useState([])
+  const [minScore, _setMinScore] = useState(0)
+  const [selectedTags, _setSelectedTags] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
 
   // New Features State
@@ -136,7 +133,7 @@ const ImageGallery = () => {
     loadImages()
   }, [loadImages])
 
-  const checkCredits = required => {
+  const checkCredits = (required) => {
     if (userCredits < required) {
       handlePopup({
         title: "Insufficient Credits",
@@ -157,11 +154,11 @@ const ImageGallery = () => {
     return true
   }
 
-  const countWords = str => {
+  const countWords = (str) => {
     return str
       .trim()
       .split(/\s+/)
-      .filter(n => n !== "").length
+      .filter((n) => n !== "").length
   }
 
   const handleGenerateImage = async () => {
@@ -189,9 +186,9 @@ const ImageGallery = () => {
 
       const newImage = response?.image || response?.data || response
 
-      if (newImage && newImage.url) {
+      if (newImage?.url) {
         setPreviewImage(newImage) // Open the lightbox with new image
-        setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
+        setEnhanceForm((prev) => ({ ...prev, prompt: "" })) // Clear enhance input
       }
 
       loadImages() // Refresh gallery
@@ -223,25 +220,29 @@ const ImageGallery = () => {
 
       toast.success("Image enhanced successfully!")
       setIsEnhanceMode(false) // Close inline enhance mode
-      setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
+      setEnhanceForm((prev) => ({ ...prev, prompt: "" })) // Clear enhance input
 
       // Update preview with new enhanced image immediately
-      if (newImage && newImage.url) {
+      if (newImage?.url) {
         // Force cache bust with timestamp
-        const timestamp = new Date().getTime()
+        const timestamp = Date.now()
         const urlWithCacheBust = newImage.url.includes("?")
           ? `${newImage.url}&t=${timestamp}`
           : `${newImage.url}?t=${timestamp}`
 
         // Merge with previous image to strictly preserve metadata (description, tags)
         // while overwriting URL and ID
-        setPreviewImage(prev => ({ ...prev, ...newImage, url: urlWithCacheBust }))
+        setPreviewImage((prev) => ({ ...prev, ...newImage, url: urlWithCacheBust }))
       } else {
         // Fallback
         console.warn("Unexpected enhance response structure:", response)
-        if (response && response.url) {
-          const timestamp = new Date().getTime()
-          setPreviewImage(prev => ({ ...prev, ...response, url: `${response.url}?t=${timestamp}` }))
+        if (response?.url) {
+          const timestamp = Date.now()
+          setPreviewImage((prev) => ({
+            ...prev,
+            ...response,
+            url: `${response.url}?t=${timestamp}`,
+          }))
         }
       }
 
@@ -276,8 +277,8 @@ const ImageGallery = () => {
    * Check if image is valid for enhancement.
    * Now strictly permissive: if it has an ID and URL, we allow it.
    */
-  const canEnhance = img => {
-    return img && img._id && img.url
+  const canEnhance = (img) => {
+    return img?._id && img.url
   }
 
   const handleCopyLink = async (image, e) => {
@@ -311,7 +312,7 @@ const ImageGallery = () => {
     }
   }
 
-  const handleImageClick = image => {
+  const handleImageClick = (image) => {
     setPreviewImage(image)
     setGeneratedAltText("") // Reset alt text
     // Clear enhance prompt
@@ -375,7 +376,7 @@ const ImageGallery = () => {
                   <select
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.style}
-                    onChange={e => setGenForm({ ...genForm, style: e.target.value })}
+                    onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                   >
                     <option value="photorealistic">Photorealistic</option>
                     <option value="anime">Anime</option>
@@ -391,7 +392,7 @@ const ImageGallery = () => {
                   <select
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.aspectRatio}
-                    onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
+                    onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                   >
                     <option value="1:1">Square (1:1)</option>
                     <option value="16:9">Landscape (16:9)</option>
@@ -407,7 +408,7 @@ const ImageGallery = () => {
                   <select
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.imageSize}
-                    onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
+                    onChange={(e) => setGenForm({ ...genForm, imageSize: e.target.value })}
                   >
                     <option value="1k">Standard (1K)</option>
                     <option value="2k">High Res (2K)</option>
@@ -429,7 +430,7 @@ const ImageGallery = () => {
                       : "border-slate-200 bg-slate-50"
                   }`}
                   value={genForm.prompt}
-                  onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                  onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
                   placeholder="Describe your masterpiece in detail... (Minimum 10 words for best results)"
                 />
                 {showErrors && countWords(genForm.prompt) < 10 && (
@@ -487,7 +488,7 @@ const ImageGallery = () => {
         <div>
           {/* Masonry Grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
-            {images.map((image, index) => (
+            {images.map((image, _index) => (
               <div
                 key={image._id}
                 className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
@@ -517,14 +518,14 @@ const ImageGallery = () => {
                     </p>
                     <div className="flex gap-2 shrink-0">
                       <button
-                        onClick={e => handleCopyLink(image, e)}
+                        onClick={(e) => handleCopyLink(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
                         title="Copy Link"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={e => handleDownload(image, e)}
+                        onClick={(e) => handleDownload(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
                         title="Download"
                       >
@@ -555,7 +556,7 @@ const ImageGallery = () => {
               <div className="join bg-white shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100 p-1">
                 <button
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
                 >
                   <ChevronLeft size={20} />
@@ -586,7 +587,7 @@ const ImageGallery = () => {
 
                 <button
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
                 >
                   <ChevronRight size={20} />
@@ -678,7 +679,7 @@ const ImageGallery = () => {
                           <textarea
                             className="textarea mt-1 w-full h-24 lg:h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-3 lg:p-4 text-sm lg:text-base font-medium"
                             value={enhanceForm.prompt}
-                            onChange={e =>
+                            onChange={(e) =>
                               setEnhanceForm({ ...enhanceForm, prompt: e.target.value })
                             }
                             placeholder="Describe how to refine this image... (e.g. fix lighting, add more detail, change style)"
@@ -693,7 +694,7 @@ const ImageGallery = () => {
                             <select
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.style}
-                              onChange={e =>
+                              onChange={(e) =>
                                 setEnhanceForm({ ...enhanceForm, style: e.target.value })
                               }
                             >
@@ -710,7 +711,7 @@ const ImageGallery = () => {
                             <select
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.imageSize}
-                              onChange={e =>
+                              onChange={(e) =>
                                 setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
                               }
                             >
@@ -726,7 +727,7 @@ const ImageGallery = () => {
                             <select
                               className="select outline-0 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium mt-1"
                               value={enhanceForm.aspectRatio}
-                              onChange={e =>
+                              onChange={(e) =>
                                 setEnhanceForm({ ...enhanceForm, aspectRatio: e.target.value })
                               }
                             >

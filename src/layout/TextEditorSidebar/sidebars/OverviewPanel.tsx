@@ -120,7 +120,9 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
               }
             `}
           >
-            {isAnalyzing ? "Analyzing Content..." : `Run Analysis (${COSTS.ANALYSIS.COMPETITORS} Credits)`}
+            {isAnalyzing
+              ? "Analyzing Content..."
+              : `Run Analysis (${COSTS.ANALYSIS.COMPETITORS} Credits)`}
           </button>
         </motion.div>
       </motion.div>

@@ -108,12 +108,10 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {isLoading ? (
-          <>
-            {Array.from({ length: 8 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reordering
-              <StatCardSkeleton key={i} />
-            ))}
-          </>
+          Array.from({ length: 8 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reordering
+            <StatCardSkeleton key={i} />
+          ))
         ) : stats ? (
           <>
             <StatCard

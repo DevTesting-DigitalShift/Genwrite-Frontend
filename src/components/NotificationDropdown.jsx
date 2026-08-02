@@ -29,7 +29,7 @@ const typeIconMap = {
 }
 
 // Format date using native Date methods
-const formatDate = dateStr => {
+const formatDate = (dateStr) => {
   if (!dateStr) return ""
   const date = new Date(dateStr)
   return date.toLocaleString("en-IN", {
@@ -64,7 +64,7 @@ const NotificationDropdown = ({ notifications }) => {
 
   // Handle click outside to close dropdown
   useEffect(() => {
-    const handleClickOutside = event => {
+    const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false)
       }
@@ -76,13 +76,13 @@ const NotificationDropdown = ({ notifications }) => {
     }
   }, [])
 
-  const unreadCount = localNotifications.filter(n => !n.read).length
+  const unreadCount = localNotifications.filter((n) => !n.read).length
 
   const handleToggle = () => {
     setIsOpen(!isOpen)
 
     if (!isOpen && unreadCount > 0) {
-      setLocalNotifications(prev => prev.map(n => ({ ...n, read: true })))
+      setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       markAllNotificationsAsRead()
     }
   }
@@ -148,9 +148,9 @@ const NotificationDropdown = ({ notifications }) => {
                               ${!item.read ? "bg-white shadow-sm" : "bg-gray-100 group-hover:bg-white group-hover:shadow-xs"} 
                               ${typeConfig.color}`}
                           >
-                            <Icon 
-                              size={18} 
-                              className="transition-all duration-300 group-hover:stroke-[2.5px]" 
+                            <Icon
+                              size={18}
+                              className="transition-all duration-300 group-hover:stroke-[2.5px]"
                             />
                           </div>
 

@@ -1,5 +1,5 @@
-import React, { useEffect } from "react"
-import { MailMinus, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
+import { useEffect } from "react"
+import { MailMinus } from "lucide-react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import useAuthStore from "@store/useAuthStore"
 import { toast } from "sonner"
@@ -33,7 +33,7 @@ const UnsubscribeEmail = () => {
   }, [unsubscribeSuccessMessage, error, navigate])
 
   // Validate email format
-  const isValidEmail = email => {
+  const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return email && emailRegex.test(email)
   }
@@ -49,7 +49,7 @@ const UnsubscribeEmail = () => {
     }
     try {
       await unsubscribeAction(email)
-    } catch (err) {
+    } catch (_err) {
       // Error is handled by useEffect
     }
   }

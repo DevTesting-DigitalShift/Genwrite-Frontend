@@ -2,7 +2,7 @@ import { io } from "socket.io-client"
 
 let socket
 
-export const connectSocket = token => {
+export const connectSocket = (token) => {
   if (socket) {
     console.log("🔌 Socket already connected, reusing existing connection")
     return socket
@@ -11,11 +11,7 @@ export const connectSocket = token => {
 
   console.log("🚀 Connecting to socket server:", url)
 
-  socket = io(url, {
-    path: "/events",
-    auth: { token },
-    transports: ["websocket"],
-  })
+  socket = io(url, { path: "/events", auth: { token }, transports: ["websocket"] })
 
   // Connection event
   socket.on("connect", () => {
@@ -24,22 +20,22 @@ export const connectSocket = token => {
   })
 
   // Disconnection event
-  socket.on("disconnect", reason => {
+  socket.on("disconnect", (reason) => {
     console.log("❌ Socket disconnected. Reason:", reason)
   })
 
   // Connection error
-  socket.on("connect_error", error => {
+  socket.on("connect_error", (error) => {
     console.error("🔴 Socket connection error:", error.message)
   })
 
   // Reconnection attempt
-  socket.on("reconnect_attempt", attemptNumber => {
+  socket.on("reconnect_attempt", (attemptNumber) => {
     console.log(`🔄 Reconnection attempt #${attemptNumber}`)
   })
 
   // Reconnection success
-  socket.on("reconnect", attemptNumber => {
+  socket.on("reconnect", (attemptNumber) => {
     console.log(`✅ Socket reconnected after ${attemptNumber} attempts`)
   })
 

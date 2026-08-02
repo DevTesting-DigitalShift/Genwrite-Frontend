@@ -1,15 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from "react"
-import {
-  Send,
-  Copy,
-  Download,
-  RefreshCw,
-  FileText,
-  Sparkles,
-  ArrowRight,
-  Loader2,
-  GitCompare,
-} from "lucide-react"
+import { useState, useRef, useCallback, useEffect } from "react"
+import { Copy, Download, RefreshCw, FileText, Sparkles, Loader2, GitCompare } from "lucide-react"
 import ReactDiffViewer from "react-diff-viewer-continued"
 import { toast } from "sonner"
 import { useNavigate, useLocation } from "react-router-dom"
@@ -48,7 +38,7 @@ const HumanizeContent = () => {
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
   // Synchronized scrolling function
-  const handleScroll = useCallback(source => {
+  const _handleScroll = useCallback((source) => {
     if (isScrollingSyncRef.current) return
 
     isScrollingSyncRef.current = true
@@ -69,7 +59,7 @@ const HumanizeContent = () => {
     }, 10)
   }, [])
 
-  const showUpgradePopup = () => {
+  const _showUpgradePopup = () => {
     handlePopup({
       title: "Upgrade Required",
       description: "This feature is available on higher-tier plans. Please upgrade to continue.",
@@ -114,7 +104,7 @@ const HumanizeContent = () => {
       onSuccess: () => {
         toast.success("Content processed successfully!")
       },
-      onError: err => {
+      onError: (err) => {
         toast.error("Failed to process content. Please try again.")
         console.error(err)
       },
@@ -125,7 +115,7 @@ const HumanizeContent = () => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success(`${type === "original" ? "Original" : "Processed"} content copied to clipboard`)
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
     }
@@ -202,7 +192,7 @@ const HumanizeContent = () => {
           <div className="space-y-4">
             <textarea
               value={inputContent}
-              onChange={e => setInputContent(e.target.value)}
+              onChange={(e) => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (100–1000 words)..."
               className={`w-full h-60 p-4 border-2 ${
                 wordCount > 1000 ? "border-red-500" : "border-transparent"
@@ -211,7 +201,11 @@ const HumanizeContent = () => {
             <div className="flex justify-end items-center">
               <p
                 className={`text-sm mb-2 ${
-                  wordCount < 100 ? "text-yellow-500" : wordCount > 1000 ? "text-red-600 font-bold" : "text-green-600"
+                  wordCount < 100
+                    ? "text-yellow-500"
+                    : wordCount > 1000
+                      ? "text-red-600 font-bold"
+                      : "text-green-600"
                 }`}
               >
                 Word count: {wordCount}{" "}
@@ -289,17 +283,10 @@ const HumanizeContent = () => {
                           removedGutterColor: "#b91c1c",
                         },
                       },
-                      line: {
-                        padding: "4px 0",
-                        lineHeight: "1.6",
-                        fontSize: "0.875rem",
-                      },
-                      gutter: {
-                        padding: "0 12px",
-                        minWidth: "50px",
-                      },
+                      line: { padding: "4px 0", lineHeight: "1.6", fontSize: "0.875rem" },
+                      gutter: { padding: "0 12px", minWidth: "50px" },
                       contentText: {
-                        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+                        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif",
                       },
                     }}
                   />

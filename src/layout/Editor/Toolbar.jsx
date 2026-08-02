@@ -175,7 +175,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
               <input
                 type="text"
                 value={linkUrl}
-                onChange={e => setLinkUrl(e.target.value)}
+                onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="Enter link URL (e.g., https://example.com)"
                 className="input input-bordered w-full"
               />

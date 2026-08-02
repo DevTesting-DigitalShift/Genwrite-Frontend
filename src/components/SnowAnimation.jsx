@@ -1,4 +1,3 @@
-import React from "react"
 import { motion } from "framer-motion"
 
 const SnowAnimation = ({ density = 50 }) => {
@@ -14,7 +13,7 @@ const SnowAnimation = ({ density = 50 }) => {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
-      {snowflakes.map(flake => (
+      {snowflakes.map((flake) => (
         <motion.div
           key={flake.id}
           className="absolute text-white select-none"
@@ -24,11 +23,7 @@ const SnowAnimation = ({ density = 50 }) => {
             fontSize: flake.fontSize,
             opacity: flake.opacity,
           }}
-          animate={{
-            y: ["0vh", "100vh"],
-            x: [0, Math.random() * 100 - 50],
-            rotate: [0, 360],
-          }}
+          animate={{ y: ["0vh", "100vh"], x: [0, Math.random() * 100 - 50], rotate: [0, 360] }}
           transition={{
             duration: parseFloat(flake.animationDuration),
             delay: parseFloat(flake.animationDelay),

@@ -8,15 +8,12 @@ const useVerificationStore = create(
       timerStartedAt: null, // timestamp in ms
 
       setEmail: (email) => set({ email }),
-      
+
       setTimerStartedAt: (timestamp) => set({ timerStartedAt: timestamp }),
-      
+
       clearVerificationState: () => set({ email: "", timerStartedAt: null }),
     }),
-    {
-      name: "verification-storage",
-      storage: createJSONStorage(() => localStorage),
-    }
+    { name: "verification-storage", storage: createJSONStorage(() => localStorage) }
   )
 )
 

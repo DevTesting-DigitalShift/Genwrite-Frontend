@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Bot, User } from "lucide-react"
 
@@ -38,12 +38,12 @@ const ChatBox = ({ isOpen, onClose }) => {
   const handleQuestionClick = (question, answer) => {
     const userMsg = { id: Date.now(), text: question, sender: "user", timestamp: new Date() }
 
-    setMessages(prev => [...prev, userMsg])
+    setMessages((prev) => [...prev, userMsg])
     setShowQuestions(false)
 
     setTimeout(() => {
       const aiMsg = { id: Date.now() + 1, text: answer, sender: "ai", timestamp: new Date() }
-      setMessages(prev => [...prev, aiMsg])
+      setMessages((prev) => [...prev, aiMsg])
     }, 800)
 
     setTimeout(() => {
@@ -84,7 +84,7 @@ const ChatBox = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-gray-100">
             {messages.length > 0 && (
               <div className="space-y-4 mb-4">
-                {messages.map(msg => (
+                {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 20 }}

@@ -1,8 +1,8 @@
 import { create } from "zustand"
 
-const useHumanizeStore = create(set => ({
+const useHumanizeStore = create((set) => ({
   result: null,
-  setResult: result => set({ result }),
+  setResult: (result) => set({ result }),
   resetHumanizeState: () => set({ result: null }),
 }))
 

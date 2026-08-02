@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { devtools, persist } from "zustand/middleware"
+import { devtools } from "zustand/middleware"
 import {
   login,
   signup,
@@ -21,7 +21,7 @@ import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 
 // Utils
-const saveToken = token => localStorage.setItem("token", token)
+const saveToken = (token) => localStorage.setItem("token", token)
 const removeToken = () => localStorage.removeItem("token")
 const getToken = () => localStorage.getItem("token")
 
@@ -40,9 +40,9 @@ const useAuthStore = create(
       unsubscribeSuccessMessage: null,
 
       // Actions
-      setUser: user => set({ user, isAuthenticated: !!user }),
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-      setToken: token => {
+      setToken: (token) => {
         saveToken(token)
         set({ token, isAuthenticated: true })
       },
@@ -61,14 +61,14 @@ const useAuthStore = create(
       resetUnsubscribe: () => set({ unsubscribeSuccessMessage: null, error: null, loading: false }),
 
       // Socket Actions
-      updateCredits: credits => {
+      updateCredits: (credits) => {
         const user = get().user
         if (user) {
           set({ user: { ...user, credits } })
         }
       },
 
-      addNotification: notification => {
+      addNotification: (notification) => {
         const user = get().user
         if (user) {
           const notifications = user.notifications
@@ -78,7 +78,7 @@ const useAuthStore = create(
         }
       },
 
-      updateUserPartial: updates => {
+      updateUserPartial: (updates) => {
         const user = get().user
         if (user) {
           set({ user: { ...user, ...updates } })
@@ -158,7 +158,7 @@ const useAuthStore = create(
           const { user, authStatus } = response
 
           pushToDataLayer({
-            ...(authStatus == "sign_up"
+            ...(authStatus === "sign_up"
               ? { event: "sign_up_attempt" }
               : { event: "google_auth", event_type: authStatus }),
             event_status: "success",
@@ -217,7 +217,7 @@ const useAuthStore = create(
         // Could also clear other stores here if needed
       },
 
-      forgotPassword: async email => {
+      forgotPassword: async (email) => {
         set({ loading: true, error: null, forgotMessage: null })
         try {
           const data = await forgotPasswordAPI(email)
@@ -265,7 +265,10 @@ const useAuthStore = create(
           const user = get().user
           if (user) {
             set({
-              user: { ...user, notifications: user.notifications.map(n => ({ ...n, read: true })) },
+              user: {
+                ...user,
+                notifications: user.notifications.map((n) => ({ ...n, read: true })),
+              },
             })
           }
           set({ loading: false })
@@ -290,7 +293,7 @@ const useAuthStore = create(
         }
       },
 
-      updateProfile: async payload => {
+      updateProfile: async (payload) => {
         set({ loading: true, error: null })
         try {
           const data = await updateUserProfile(payload)
@@ -305,7 +308,7 @@ const useAuthStore = create(
         }
       },
 
-      unsubscribeAction: async email => {
+      unsubscribeAction: async (email) => {
         set({ loading: true, error: null, unsubscribeSuccessMessage: null })
         try {
           const data = await unsubscribeUser(email)

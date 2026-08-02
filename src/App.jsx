@@ -24,7 +24,7 @@ const AppContent = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    
+
     // Reset stores when navigating to main pages (dashboard, blogs, etc.)
     const mainPages = ["/dashboard", "/blogs", "/profile", "/pricing"]
     if (mainPages.includes(location.pathname)) {

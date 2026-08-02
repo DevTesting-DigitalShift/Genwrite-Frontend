@@ -1,4 +1,3 @@
-import React from "react"
 import { motion } from "framer-motion"
 
 const IceAnimation = ({ density = 40 }) => {
@@ -23,7 +22,7 @@ const IceAnimation = ({ density = 40 }) => {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
-      {iceCrystals.map(ice => (
+      {iceCrystals.map((ice) => (
         <motion.div
           key={ice.id}
           className="absolute select-none"

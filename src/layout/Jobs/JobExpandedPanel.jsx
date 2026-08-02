@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import {
   CheckCircle2,
   XCircle,
@@ -7,24 +7,12 @@ import {
   Globe,
   Tag as TagIcon,
   Hash,
-  Layers,
-  Calendar,
-  FileText,
-  Megaphone,
   Shield,
   Image as ImageIcon,
-  Zap,
-  BookOpen,
-  BarChart2,
   Link2,
-  AlignLeft,
-  Youtube,
-  Brain,
-  Search,
   Sparkles,
   Cpu,
   Settings2,
-  Clock,
 } from "lucide-react"
 
 import { brandsQuery } from "@api/Brand/Brand.query"
@@ -91,9 +79,7 @@ const ExpandableTagList = ({ items, color, limit = 20 }) => {
     <div className="space-y-3">
       <div
         className={`flex flex-wrap gap-2 items-center transition-all duration-300 ${
-          expanded
-            ? "max-h-[500px] overflow-y-auto pr-3 custom-scroll"
-            : ""
+          expanded ? "max-h-[500px] overflow-y-auto pr-3 custom-scroll" : ""
         }`}
       >
         {displayItems.map((item, i) => (
@@ -111,7 +97,7 @@ const ExpandableTagList = ({ items, color, limit = 20 }) => {
       </div>
       {hasMore && (
         <button
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation()
             setExpanded(!expanded)
           }}
@@ -140,14 +126,27 @@ const KV = ({ label, value, valueClass = "text-slate-700" }) => (
 )
 
 const formatDate = (date) => {
-  if (!date) return "Never";
-  const d = new Date(date);
-  const day = d.getDate().toString().padStart(2, '0');
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = months[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-};
+  if (!date) return "Never"
+  const d = new Date(date)
+  const day = d.getDate().toString().padStart(2, "0")
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ]
+  const month = months[d.getMonth()]
+  const year = d.getFullYear()
+  return `${day}-${month}-${year}`
+}
 
 const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -156,7 +155,7 @@ const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
     const sortedDays = [...daysOfWeek].sort((a, b) => a - b)
     return (
       <div className="flex flex-wrap gap-1 justify-end">
-        {sortedDays.map(d => (
+        {sortedDays.map((d) => (
           <span
             key={d}
             className="px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-bold"
@@ -171,7 +170,7 @@ const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
   if (type === "monthly" && daysOfMonth?.length) {
     // If all 31 days are selected, just say "Every Day"
     if (daysOfMonth.length >= 28) {
-      const isComplete = [1, 2, 3, 4, 5, 10, 15, 20, 25, 28].every(d => daysOfMonth.includes(d))
+      const isComplete = [1, 2, 3, 4, 5, 10, 15, 20, 25, 28].every((d) => daysOfMonth.includes(d))
       if (isComplete && daysOfMonth.length >= 30) {
         return <span className="text-indigo-600 font-bold">Every Day</span>
       }
@@ -217,9 +216,9 @@ const JobExpandedPanel = ({ job }) => {
   const options = job.options || {}
   const schedule = job.schedule || {}
 
-  const sectionStyle = "bg-white p-5 space-y-4 h-full border-r border-slate-100 last:border-r-0 flex flex-col"
-  const gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
-
+  const sectionStyle =
+    "bg-white p-5 space-y-4 h-full border-r border-slate-100 last:border-r-0 flex flex-col"
+  const _gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
 
   const imageSrcLabel =
     { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[blogs.imageSource] ||
@@ -231,7 +230,8 @@ const JobExpandedPanel = ({ job }) => {
 
   // Lookup brand name
   const brandName = blogs.brandId
-    ? brands.find(b => b._id === blogs.brandId)?.nameOfVoice || `ID: ...${blogs.brandId.slice(-6)}`
+    ? brands.find((b) => b._id === blogs.brandId)?.nameOfVoice ||
+      `ID: ...${blogs.brandId.slice(-6)}`
     : "Default Global Voice"
 
   return (
@@ -325,10 +325,14 @@ const JobExpandedPanel = ({ job }) => {
           </SectionLabel>
           <div className="space-y-3">
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-center">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Source Selection</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
+                Source Selection
+              </p>
               <p className="text-sm font-black text-slate-900">{imageSrcLabel}</p>
               <p className="text-[9px] text-slate-400">
-                {blogs.numberOfImages > 0 ? `${blogs.numberOfImages} images per post` : "Automatic selection"}
+                {blogs.numberOfImages > 0
+                  ? `${blogs.numberOfImages} images per post`
+                  : "Automatic selection"}
               </p>
             </div>
 
@@ -367,13 +371,10 @@ const JobExpandedPanel = ({ job }) => {
                 value={schedule.type || "Manual"}
                 valueClass="text-indigo-600 font-bold"
               />
-              <KV
-                label="Batch Size"
-                value={`${blogs.numberOfBlogs || 1} blog(s) per run`}
-              />
+              <KV label="Batch Size" value={`${blogs.numberOfBlogs || 1} blog(s) per run`} />
               {/* Only show frequency row if it's weekly/monthly with valid selected days */}
-              {(((schedule.type === "weekly" && schedule.daysOfWeek?.length > 0) || 
-                 (schedule.type === "monthly" && schedule.daysOfMonth?.length > 0))) && (
+              {((schedule.type === "weekly" && schedule.daysOfWeek?.length > 0) ||
+                (schedule.type === "monthly" && schedule.daysOfMonth?.length > 0)) && (
                 <div className="flex justify-between items-start gap-3 text-[11px]">
                   <span className="text-slate-400 shrink-0">Frequency</span>
                   <FrequencyDisplay
@@ -383,10 +384,7 @@ const JobExpandedPanel = ({ job }) => {
                   />
                 </div>
               )}
-              <KV
-                label="Last Run"
-                value={formatDate(job.lastRun)}
-              />
+              <KV label="Last Run" value={formatDate(job.lastRun)} />
             </div>
 
             <div className="pt-3 border-t border-slate-100 space-y-2">

@@ -27,7 +27,6 @@ import {
   ChevronRight,
   Search,
   Info,
-  ArrowLeft,
   Sparkles,
   Download,
   ArrowUp,
@@ -62,10 +61,14 @@ const KeywordResearch = () => {
     const initial = location.state?.transferValue || ""
     if (!initial) return []
 
-    return [...new Set(initial.split(/[,\t\n\r;]+/).map(k => k.trim()).filter(Boolean))].slice(
-      0,
-      KEYWORD_LIMIT
-    )
+    return [
+      ...new Set(
+        initial
+          .split(/[,\t\n\r;]+/)
+          .map((k) => k.trim())
+          .filter(Boolean)
+      ),
+    ].slice(0, KEYWORD_LIMIT)
   })
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
@@ -101,15 +104,22 @@ const KeywordResearch = () => {
     const initial = location.state?.transferValue || ""
     if (!initial) return
 
-    const parsedKeywords = [...new Set(initial.split(/[,\t\n\r;]+/).map(k => k.trim()).filter(Boolean))]
+    const parsedKeywords = [
+      ...new Set(
+        initial
+          .split(/[,\t\n\r;]+/)
+          .map((k) => k.trim())
+          .filter(Boolean)
+      ),
+    ]
     if (parsedKeywords.length > KEYWORD_LIMIT) {
       toast.warning(`Only the first ${KEYWORD_LIMIT} keywords will be used.`)
     }
   }, [location.state?.transferValue])
 
-  const mergeKeywordsWithLimit = incomingKeywords => {
+  const mergeKeywordsWithLimit = (incomingKeywords) => {
     const seen = new Set()
-    const mergedKeywords = [...keywords, ...incomingKeywords].filter(keyword => {
+    const mergedKeywords = [...keywords, ...incomingKeywords].filter((keyword) => {
       const normalizedKeyword = keyword.toLowerCase()
       if (!keyword || seen.has(normalizedKeyword)) return false
       seen.add(normalizedKeyword)
@@ -124,18 +134,18 @@ const KeywordResearch = () => {
     return mergedKeywords
   }
 
-  const addKeyword = forcedValue => {
+  const addKeyword = (forcedValue) => {
     const input = typeof forcedValue === "string" ? forcedValue.trim() : newKeyword.trim()
     if (!input) return
 
-    const existing = keywords.map(k => k.toLowerCase())
+    const existing = keywords.map((k) => k.toLowerCase())
     const seen = new Set()
 
     const newKeywords = input
       .split(/[,\t\n\r;]+/)
-      .map(k => k.trim())
+      .map((k) => k.trim())
       .filter(
-        k =>
+        (k) =>
           k &&
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
@@ -148,17 +158,17 @@ const KeywordResearch = () => {
     }
   }
 
-  const handlePasteKeywords = e => {
+  const handlePasteKeywords = (e) => {
     extractKeywordsFromClipboard(e, {
       type: "keywords",
-      cb: items => {
+      cb: (items) => {
         setKeywords(mergeKeywordsWithLimit(items))
         setNewKeyword("")
       },
     })
   }
 
-  const removeKeyword = index => {
+  const removeKeyword = (index) => {
     const keywordToRemove = keywords[index]
     const updatedKeywords = keywords.filter((_, i) => i !== index)
     setKeywords(updatedKeywords)
@@ -168,7 +178,7 @@ const KeywordResearch = () => {
     }
     if (selectedKeywords?.allKeywords?.includes(keywordToRemove)) {
       const updatedSelectedKeywords = selectedKeywords.allKeywords.filter(
-        kw => kw !== keywordToRemove
+        (kw) => kw !== keywordToRemove
       )
       setSelectedKeywords({
         focusKeywords: updatedSelectedKeywords.slice(0, 3),
@@ -178,7 +188,7 @@ const KeywordResearch = () => {
     }
   }
 
-  const handleKeyPress = e => {
+  const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
@@ -194,7 +204,7 @@ const KeywordResearch = () => {
 
   const getAutoSelectedKeywords = () => {
     const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
-    keywordAnalysisResult?.forEach(kw => {
+    keywordAnalysisResult?.forEach((kw) => {
       if (byCompetition[kw.competition]) {
         byCompetition[kw.competition].push({
           keyword: kw.keyword,
@@ -214,9 +224,9 @@ const KeywordResearch = () => {
       .slice(0, 2)
 
     return [
-      ...sortedLow.map(item => item.keyword),
-      ...sortedMedium.map(item => item.keyword),
-      ...sortedHigh.map(item => item.keyword),
+      ...sortedLow.map((item) => item.keyword),
+      ...sortedMedium.map((item) => item.keyword),
+      ...sortedHigh.map((item) => item.keyword),
     ]
   }
 
@@ -233,7 +243,7 @@ const KeywordResearch = () => {
     const autoKeywords = getAutoSelectedKeywords()
     const finalKeywords = [
       ...(selectedKeywords?.allKeywords || []),
-      ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
+      ...autoKeywords.filter((kw) => !selectedKeywords?.allKeywords?.includes(kw)),
     ].slice(0, 35)
     setSelectedKeywords({
       focusKeywords: finalKeywords.slice(0, 3),
@@ -258,7 +268,7 @@ const KeywordResearch = () => {
       { header: "High Bid", key: "highBid", width: 10 },
     ]
 
-    keywordAnalysisResult.forEach(kw => {
+    keywordAnalysisResult.forEach((kw) => {
       worksheet.addRow(kw)
     })
 
@@ -276,7 +286,7 @@ const KeywordResearch = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  const proceedWithSelectedKeywords = async type => {
+  const proceedWithSelectedKeywords = async (type) => {
     const finalKeywords = selectedKeywords?.allKeywords || []
     setSelectedKeywords({
       focusKeywords: finalKeywords.slice(0, 3),
@@ -303,7 +313,7 @@ const KeywordResearch = () => {
 
   const tableData = useMemo(
     () =>
-      keywordAnalysisResult?.map((kw, idx) => ({
+      keywordAnalysisResult?.map((kw, _idx) => ({
         keyword: kw.keyword,
         avgMonthlySearches: kw.avgMonthlySearches,
         competition: kw.competition,
@@ -326,8 +336,8 @@ const KeywordResearch = () => {
             (currentPage - 1) * REAL_PAGE_SIZE,
             currentPage * REAL_PAGE_SIZE
           )
-          const pageKeywords = pageRows.map(r => r.id)
-          const selectedOnPage = pageKeywords.filter(k => stateSelection[k])
+          const pageKeywords = pageRows.map((r) => r.id)
+          const selectedOnPage = pageKeywords.filter((k) => stateSelection[k])
           const isAllPageSelected =
             pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
           const isSomePageSelected =
@@ -336,11 +346,11 @@ const KeywordResearch = () => {
           return (
             <Checkbox
               checked={isAllPageSelected || (isSomePageSelected && "indeterminate")}
-              onCheckedChange={value => {
+              onCheckedChange={(value) => {
                 if (value) {
                   // Select only current page keywords
                   const nextSelection = { ...stateSelection }
-                  pageKeywords.forEach(k => {
+                  pageKeywords.forEach((k) => {
                     nextSelection[k] = true
                   })
                   table.setRowSelection(nextSelection)
@@ -355,7 +365,7 @@ const KeywordResearch = () => {
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={value => row.toggleSelected(!!value)}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
           />
         ),
       },
@@ -381,14 +391,14 @@ const KeywordResearch = () => {
   const filteredData = useMemo(() => {
     if (!showSelectedOnly) return tableData
     const selectedKeys = selectedKeywords?.allKeywords || []
-    return tableData.filter(row => selectedKeys.includes(row.keyword))
+    return tableData.filter((row) => selectedKeys.includes(row.keyword))
   }, [tableData, showSelectedOnly, selectedKeywords])
 
   // Sync rowSelection state from store when store changes
   useEffect(() => {
     const selection = {}
     const allSelected = selectedKeywords?.allKeywords || []
-    allSelected.forEach(kw => {
+    allSelected.forEach((kw) => {
       selection[kw] = true
     })
     setRowSelection(selection)
@@ -397,12 +407,12 @@ const KeywordResearch = () => {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getRowId: row => row.keyword,
+    getRowId: (row) => row.keyword,
     state: { sorting, rowSelection },
     onSortingChange: setSorting,
-    onRowSelectionChange: updater => {
+    onRowSelectionChange: (updater) => {
       const nextSelection = typeof updater === "function" ? updater(rowSelection) : updater
-      const selectedKeys = Object.keys(nextSelection).filter(k => nextSelection[k])
+      const selectedKeys = Object.keys(nextSelection).filter((k) => nextSelection[k])
 
       if (selectedKeys.length === 0) {
         setSelectedKeywords({ focusKeywords: [], keywords: [], allKeywords: [] })
@@ -413,22 +423,22 @@ const KeywordResearch = () => {
       if (selectedKeys.length > 35) {
         toast.error("Selection limit of 35 keywords reached")
 
-        const currentInView = currentRows.map(r => r.id)
-        const inViewSelected = selectedKeys.filter(k => currentInView.includes(k))
+        const currentInView = currentRows.map((r) => r.id)
+        const inViewSelected = selectedKeys.filter((k) => currentInView.includes(k))
         const remainingSlots = 35 - inViewSelected.length
 
         if (remainingSlots > 0) {
-          const sortedAll = table.getSortedRowModel().rows.map(r => r.id)
-          const lastInViewIdx = Math.max(...currentInView.map(id => sortedAll.indexOf(id)))
+          const sortedAll = table.getSortedRowModel().rows.map((r) => r.id)
+          const lastInViewIdx = Math.max(...currentInView.map((id) => sortedAll.indexOf(id)))
 
           // Keywords after the current view
           const subsequent = sortedAll
             .slice(lastInViewIdx + 1)
-            .filter(k => selectedKeys.includes(k))
+            .filter((k) => selectedKeys.includes(k))
           // Keywords before the current view
           const preceeding = sortedAll
-            .slice(0, Math.min(...currentInView.map(id => sortedAll.indexOf(id))))
-            .filter(k => selectedKeys.includes(k))
+            .slice(0, Math.min(...currentInView.map((id) => sortedAll.indexOf(id))))
+            .filter((k) => selectedKeys.includes(k))
 
           final = [...inViewSelected, ...subsequent, ...preceeding].slice(0, 35)
         } else {
@@ -448,7 +458,7 @@ const KeywordResearch = () => {
     .getSortedRowModel()
     .rows.slice((currentPage - 1) * REAL_PAGE_SIZE, currentPage * REAL_PAGE_SIZE)
 
-  const handlePageChange = page => setCurrentPage(page)
+  const handlePageChange = (page) => setCurrentPage(page)
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -472,10 +482,10 @@ const KeywordResearch = () => {
   }, [])
 
   const hasSelectedKeywords = (selectedKeywords?.allKeywords?.length || 0) > 0
-  const allFilteredKeywords = table.getFilteredRowModel().rows.map(r => r.original)
-  const isAllSelected =
+  const allFilteredKeywords = table.getFilteredRowModel().rows.map((r) => r.original)
+  const _isAllSelected =
     allFilteredKeywords.length > 0 &&
-    allFilteredKeywords.every(row => selectedKeywords?.allKeywords?.includes(row.keyword))
+    allFilteredKeywords.every((row) => selectedKeywords?.allKeywords?.includes(row.keyword))
 
   return (
     <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
@@ -489,9 +499,7 @@ const KeywordResearch = () => {
               <Search className="w-5 h-5" strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Keyword Research
-              </h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Keyword Research</h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Discover high-potential keywords and analyze their performance.
               </p>
@@ -505,7 +513,7 @@ const KeywordResearch = () => {
               <input
                 placeholder="Enter keywords separated by commas..."
                 value={newKeyword}
-                onChange={e => setNewKeyword(e.target.value)}
+                onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyDown={handleKeyPress}
                 onPaste={handlePasteKeywords}
                 className="w-full px-4 py-3 bg-gray-50 border-0 border-b-2 border-transparent rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-sm placeholder-gray-400"
@@ -607,9 +615,9 @@ const KeywordResearch = () => {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-slate-50/80">
-                      {table.getHeaderGroups().map(headerGroup => (
+                      {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id} className="border-slate-200">
-                          {headerGroup.headers.map(header => (
+                          {headerGroup.headers.map((header) => (
                             <TableHead
                               key={header.id}
                               className={clsx(
@@ -638,12 +646,12 @@ const KeywordResearch = () => {
                       ))}
                     </TableHeader>
                     <TableBody>
-                      {currentRows.map(row => (
+                      {currentRows.map((row) => (
                         <TableRow
                           key={row.id}
                           className="group hover:bg-primary/5 border-slate-100 transition-colors"
                         >
-                          {row.getVisibleCells().map(cell => (
+                          {row.getVisibleCells().map((cell) => (
                             <TableCell key={cell.id} className="py-3.5">
                               {cell.column.id === "keyword" ? (
                                 <span className="font-bold text-slate-900 capitalize">
@@ -837,7 +845,7 @@ const KeywordResearch = () => {
               search volume and competitive indices.
             </p>
             <div className="flex flex-wrap gap-2">
-              {getAutoSelectedKeywords().map(kw => (
+              {getAutoSelectedKeywords().map((kw) => (
                 <div
                   key={kw}
                   className="text-xs bg-primary/5 text-primary px-3 py-1.5 rounded-lg border border-primary/10 capitalize font-bold"

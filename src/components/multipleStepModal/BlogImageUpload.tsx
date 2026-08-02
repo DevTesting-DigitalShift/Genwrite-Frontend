@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react"
+import type React from "react"
+import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import {
@@ -82,7 +83,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
 
     const validFiles: UploadFile[] = []
 
-    files.forEach(file => {
+    files.forEach((file) => {
       if (!ACCEPTED_TYPES.includes(file.type)) {
         toast.error(`${file.name} is not a valid image type.`)
         return
@@ -121,7 +122,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
 
   /** Handle image removal */
   const handleRemove = (file: UploadFile) => {
-    const updated = fileList.filter(f => f.uid !== file.uid)
+    const updated = fileList.filter((f) => f.uid !== file.uid)
     setFileList(updated)
     onChange?.(updated)
   }
@@ -135,7 +136,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
     }
 
     // Check if this URL already exists
-    const exists = fileList.some(f => f.url === url)
+    const exists = fileList.some((f) => f.url === url)
     if (exists) {
       toast.error("This image is already added")
       return
@@ -175,7 +176,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
         <div className="flex gap-2 w-full sm:w-auto">
           {/* Gallery Picker Toggle */}
           <button
-            onClick={() => setShowGalleryPicker(prev => !prev)}
+            onClick={() => setShowGalleryPicker((prev) => !prev)}
             className={`btn btn-sm ${showGalleryPicker ? "btn-primary" : "btn-outline"} flex-1 sm:flex-none text-xs sm:text-sm`}
           >
             <ImageIcon size={16} className="mr-2" />
@@ -219,7 +220,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
       {fileList.length > 0 && (
         <div className="flex flex-col gap-3 mt-2">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 border border-violet-200 rounded-lg p-2 min-h-[220px]">
-            {paginatedFiles.map(file => {
+            {paginatedFiles.map((file) => {
               const url = file.thumbUrl || file.url
               return (
                 <div
@@ -251,7 +252,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
                 <button
                   className="join-item btn btn-sm"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
+                  onClick={() => setCurrentPage((p) => p - 1)}
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -261,7 +262,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
                 <button
                   className="join-item btn btn-sm"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
+                  onClick={() => setCurrentPage((p) => p + 1)}
                 >
                   <ChevronRight size={16} />
                 </button>

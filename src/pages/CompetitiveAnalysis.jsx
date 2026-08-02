@@ -6,7 +6,6 @@ import {
   Link as LinkIcon,
   Search,
   Info,
-  Check,
   Globe,
   RefreshCw,
 } from "lucide-react"
@@ -76,20 +75,20 @@ const CompetitiveAnalysis = () => {
   const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
 
   // --- 1. Utilities ---
-  const cleanMarkdown = text => {
+  const cleanMarkdown = (text) => {
     if (!text) return ""
     return text
       .replace(/#{1,3}\s/g, "")
-      .replace(/[\*_~`]/g, "")
+      .replace(/[*_~`]/g, "")
       .replace(/\n+/g, "\n")
       .trim()
   }
 
-  const parseSummary = text => {
+  const parseSummary = (text) => {
     if (!text) return []
     return cleanMarkdown(text)
       .split("\n")
-      .filter(line => line.trim() !== "")
+      .filter((line) => line.trim() !== "")
       .map((line, index) => (
         <p key={index} className="mb-2 text-sm leading-relaxed">
           <span
@@ -108,7 +107,7 @@ const CompetitiveAnalysis = () => {
     const uniqueCompetitors = []
     const seenUrls = new Set()
 
-    ;[...blogCompetitors, ...analysisCompetitors].forEach(competitor => {
+    ;[...blogCompetitors, ...analysisCompetitors].forEach((competitor) => {
       const url = competitor.url || competitor.link
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url)
@@ -142,9 +141,9 @@ const CompetitiveAnalysis = () => {
     if (id) {
       setIsLoading(true)
       getBlogById(id)
-        .then(response => {
+        .then((response) => {
           if (response?._id) {
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               title: response.title,
               content: response.content || "",
@@ -156,7 +155,7 @@ const CompetitiveAnalysis = () => {
             }))
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Failed to fetch blog by ID:", error)
           toast.error("Failed to fetch blog details")
         })
@@ -187,8 +186,8 @@ const CompetitiveAnalysis = () => {
   ])
 
   // --- 4. Handlers ---
-  const handleProjectSelect = value => {
-    const foundProject = blogs?.find(p => p._id === value)
+  const handleProjectSelect = (value) => {
+    const foundProject = blogs?.find((p) => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
       setAnalysisResults(null)
@@ -264,7 +263,6 @@ const CompetitiveAnalysis = () => {
     toast.info("Content reset")
   }
 
-
   const CircularProgress = ({ score }) => {
     const radius = 45
     const circumference = 2 * Math.PI * radius
@@ -300,7 +298,7 @@ const CompetitiveAnalysis = () => {
     )
   }
 
-  const renderCompetitorsList = competitors => (
+  const renderCompetitorsList = (competitors) => (
     <Accordion type="single" collapsible className="w-full space-y-2">
       {competitors.map((competitor, idx) => (
         <AccordionItem
@@ -327,7 +325,7 @@ const CompetitiveAnalysis = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors shrink-0"
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </a>
@@ -378,7 +376,7 @@ const CompetitiveAnalysis = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:underline text-sm flex items-center gap-1 shrink-0"
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     Visit <ExternalLink className="w-3 h-3" />
                   </a>
@@ -399,7 +397,7 @@ const CompetitiveAnalysis = () => {
     )
   }
 
-  const renderAnalysisBreakdown = analysisData => {
+  const renderAnalysisBreakdown = (analysisData) => {
     if (!analysisData?.analysis) return null
     return (
       <Accordion type="single" collapsible className="w-full space-y-2">
@@ -484,7 +482,7 @@ const CompetitiveAnalysis = () => {
               <SelectValue placeholder="Select a blog from your library..." />
             </SelectTrigger>
             <SelectContent className="max-h-[300px] border-gray-200 rounded-xl">
-              {blogs.map(blog => (
+              {blogs.map((blog) => (
                 <SelectItem
                   key={blog._id}
                   value={blog._id}
@@ -557,7 +555,7 @@ const CompetitiveAnalysis = () => {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {mergedKeywords.length > 0 ? (
-                      mergedKeywords.map(kw => (
+                      mergedKeywords.map((kw) => (
                         <Badge
                           key={kw}
                           variant="secondary"

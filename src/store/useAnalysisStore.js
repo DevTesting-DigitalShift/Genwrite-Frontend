@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 const useAnalysisStore = create(
   devtools(
-    set => ({
+    (set) => ({
       keywordAnalysis: [],
       suggestions: [],
       loading: false,
@@ -15,12 +15,12 @@ const useAnalysisStore = create(
       pendingImport: null,
 
       // Actions
-      setPendingImport: type => set({ pendingImport: type }),
-      
-      setAnalysisResult: (blogId, data) =>
-        set(state => ({ analysisResult: { ...state.analysisResult, [blogId]: data } })),
+      setPendingImport: (type) => set({ pendingImport: type }),
 
-      setSelectedKeywords: selectedKeywords => set({ selectedKeywords }),
+      setAnalysisResult: (blogId, data) =>
+        set((state) => ({ analysisResult: { ...state.analysisResult, [blogId]: data } })),
+
+      setSelectedKeywords: (selectedKeywords) => set({ selectedKeywords }),
 
       clearSelectedKeywords: () => set({ selectedKeywords: [], pendingImport: null }),
 
@@ -28,16 +28,16 @@ const useAnalysisStore = create(
 
       clearSuggestions: () => set({ suggestions: [], error: null }),
 
-      setLoading: loading => set({ loading }),
+      setLoading: (loading) => set({ loading }),
 
-      setError: error => set({ error }),
+      setError: (error) => set({ error }),
 
       // Async Actions
       fetchCompetitiveAnalysis: async ({ blogId, title, content, keywords }) => {
         set({ loading: true, error: null })
         try {
           const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
-          set(state => ({
+          set((state) => ({
             analysisResult: { ...state.analysisResult, [blogId]: data },
             loading: false,
           }))
@@ -52,7 +52,7 @@ const useAnalysisStore = create(
         }
       },
 
-      analyzeKeywords: async keywords => {
+      analyzeKeywords: async (keywords) => {
         set({ loading: true, error: null })
         try {
           const result = await analyzeKeywords(keywords)
@@ -66,7 +66,7 @@ const useAnalysisStore = create(
         }
       },
 
-      fetchSuggestions: async query => {
+      fetchSuggestions: async (query) => {
         set({ loading: true, error: null })
         try {
           const suggestions = await fetchGoogleSuggestions(query)

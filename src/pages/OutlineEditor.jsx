@@ -1,7 +1,6 @@
-import Carousel from "@components/multipleStepModal/Carousel"
 import { toast } from "sonner"
-import { Plus, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react"
-import React, { useCallback, useState } from "react"
+import { Plus, Sparkles, X } from "lucide-react"
+import { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
@@ -62,7 +61,7 @@ const OutlineEditor = () => {
   }
 
   const handlePrev = () => {
-    setCurrentStep(prev => prev - 1)
+    setCurrentStep((prev) => prev - 1)
   }
 
   const handleNext = () => {
@@ -71,7 +70,7 @@ const OutlineEditor = () => {
     if (currentStep === 0) {
       if (!selectedTemplate) {
         newErrors.template = true
-        setErrors(prev => ({ ...prev, ...newErrors }))
+        setErrors((prev) => ({ ...prev, ...newErrors }))
         return
       }
     }
@@ -83,30 +82,30 @@ const OutlineEditor = () => {
         focusKeywords: formData.focusKeywords.length === 0,
         keywords: formData.keywords.length === 0,
       }
-      if (Object.values(newErrors).some(error => error)) {
-        setErrors(prev => ({ ...prev, ...newErrors }))
+      if (Object.values(newErrors).some((error) => error)) {
+        setErrors((prev) => ({ ...prev, ...newErrors }))
         return
       }
     }
 
-    setErrors(prev => ({ ...prev, ...newErrors, template: false }))
-    setCurrentStep(prev => prev + 1)
+    setErrors((prev) => ({ ...prev, ...newErrors, template: false }))
+    setCurrentStep((prev) => prev + 1)
   }
 
-  const handlePackageSelect = useCallback(temps => {
+  const handlePackageSelect = useCallback((temps) => {
     setSelectedTemplate(temps)
-    setFormData(prev => ({ ...prev, template: temps?.[0]?.name || "" }))
-    setErrors(prev => ({ ...prev, template: false }))
+    setFormData((prev) => ({ ...prev, template: temps?.[0]?.name || "" }))
+    setErrors((prev) => ({ ...prev, template: false }))
   }, [])
 
   const handleInputChange = (e, key) => {
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
-    setErrors(prev => ({ ...prev, [key]: false }))
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = value => {
-    setFormData(prev => ({ ...prev, tone: value }))
-    setErrors(prev => ({ ...prev, tone: false }))
+  const handleSelectChange = (value) => {
+    setFormData((prev) => ({ ...prev, tone: value }))
+    setErrors((prev) => ({ ...prev, tone: false }))
   }
 
   const handleKeywordInputChange = (e, type) => {
@@ -116,8 +115,8 @@ const OutlineEditor = () => {
         : type === "focusKeywords"
           ? "focusKeywordInput"
           : "resourceInput"
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
-    setErrors(prev => ({ ...prev, [type]: false }))
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
   const handleAddKeyword = (type, forcedValue = null) => {
@@ -132,19 +131,19 @@ const OutlineEditor = () => {
       ? forcedValue
       : formData[inputKey].split(/[,\t\n\r;]+/)
     const items = rawItems
-      .map(k => k.trim())
-      .filter(k => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+      .map((k) => k.trim())
+      .filter((k) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
     if (items.length === 0) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: true }))
       return
     }
 
-    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newItems = items.filter(k => !existingSet.has(k.toLowerCase()))
+    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const newItems = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: true }))
       return
     }
 
@@ -154,13 +153,13 @@ const OutlineEditor = () => {
     ) {
       const availableSlots = BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS - formData[type].length
       if (availableSlots > 0) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           [type]: [...prev[type], ...newItems.slice(0, availableSlots)],
           [inputKey]: "",
         }))
       }
-      setErrors(prev => ({ ...prev, [type]: false }))
+      setErrors((prev) => ({ ...prev, [type]: false }))
       return
     }
 
@@ -168,12 +167,12 @@ const OutlineEditor = () => {
       type === "resources" &&
       formData[type].length + newItems.length > BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS
     ) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: true }))
       return
     }
 
     if (type === "resources") {
-      const invalidUrls = newItems.filter(url => {
+      const invalidUrls = newItems.filter((url) => {
         try {
           new URL(url)
           return false
@@ -182,13 +181,13 @@ const OutlineEditor = () => {
         }
       })
       if (invalidUrls.length > 0) {
-        setErrors(prev => ({ ...prev, [type]: true }))
+        setErrors((prev) => ({ ...prev, [type]: true }))
         return
       }
     }
 
-    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newItems], [inputKey]: "" }))
-    setErrors(prev => ({ ...prev, [type]: false }))
+    setFormData((prev) => ({ ...prev, [type]: [...prev[type], ...newItems], [inputKey]: "" }))
+    setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -207,19 +206,19 @@ const OutlineEditor = () => {
   const handlePasteKeywords = (event, type) => {
     extractKeywordsFromClipboard(event, {
       type,
-      cb: items => {
+      cb: (items) => {
         handleAddKeyword(type, items)
       },
     })
   }
 
-  const handleBrandSelect = brandId => {
-    setFormData(prev => ({ ...prev, brandId: prev.brandId === brandId ? null : brandId }))
+  const handleBrandSelect = (brandId) => {
+    setFormData((prev) => ({ ...prev, brandId: prev.brandId === brandId ? null : brandId }))
   }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    const selectedBrand = brands.find(brand => brand._id === formData.brandId)
+    const selectedBrand = brands.find((brand) => brand._id === formData.brandId)
     const blogData = {
       title: formData.title?.trim(),
       topic: formData.topic?.trim(),
@@ -246,8 +245,8 @@ const OutlineEditor = () => {
       keywords: !blogData.keywords || blogData.keywords.length === 0,
     }
 
-    if (Object.values(newErrors).some(error => error)) {
-      setErrors(prev => ({ ...prev, ...newErrors }))
+    if (Object.values(newErrors).some((error) => error)) {
+      setErrors((prev) => ({ ...prev, ...newErrors }))
       setCurrentStep(1)
       setIsSubmitting(false)
       return
@@ -277,7 +276,7 @@ const OutlineEditor = () => {
     URL.revokeObjectURL(url)
   }
 
-  const handleContentChange = e => {
+  const handleContentChange = (e) => {
     setMarkdownContent(e.target.value)
   }
 
@@ -287,7 +286,7 @@ const OutlineEditor = () => {
 
   const min = BLOG_CONFIG.LENGTH.MIN
   const max = BLOG_CONFIG.LENGTH.MAX
-  const percent = ((formData.userDefinedLength - min) / (max - min)) * 100
+  const _percent = ((formData.userDefinedLength - min) / (max - min)) * 100
 
   return (
     <>
@@ -325,7 +324,7 @@ const OutlineEditor = () => {
                   <div className="space-y-6">
                     <TemplateSelection
                       userSubscriptionPlan={user?.subscription?.plan || "free"}
-                      preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+                      preSelectedIds={selectedTemplate?.map((t) => t?.id || "")}
                       onClick={handlePackageSelect}
                     />
                     {errors.template && (
@@ -347,7 +346,7 @@ const OutlineEditor = () => {
                       <input
                         type="text"
                         value={formData.topic}
-                        onChange={e => handleInputChange(e, "topic")}
+                        onChange={(e) => handleInputChange(e, "topic")}
                         placeholder="e.g. How to use AI for content marketing"
                         className={`input outline-0 w-full rounded-md focus:ring ${errors.topic ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       />
@@ -362,10 +361,10 @@ const OutlineEditor = () => {
                       </label>
                       <select
                         value={formData.tone}
-                        onChange={e => handleSelectChange(e.target.value)}
+                        onChange={(e) => handleSelectChange(e.target.value)}
                         className={`select select-bordered w-full rounded-md focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       >
-                        {TONES.map(t => (
+                        {TONES.map((t) => (
                           <option key={t} value={t}>
                             {t}
                           </option>
@@ -383,9 +382,9 @@ const OutlineEditor = () => {
                         <input
                           type="text"
                           value={formData.focusKeywordInput}
-                          onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                          onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                          onPaste={e => handlePasteKeywords(e, "focusKeywords")}
+                          onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
+                          onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                          onPaste={(e) => handlePasteKeywords(e, "focusKeywords")}
                           placeholder="Type and press Enter..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
@@ -428,9 +427,9 @@ const OutlineEditor = () => {
                         <input
                           type="text"
                           value={formData.keywordInput}
-                          onChange={e => handleKeywordInputChange(e, "keywords")}
-                          onKeyDown={e => handleKeyPress(e, "keywords")}
-                          onPaste={e => handlePasteKeywords(e, "keywords")}
+                          onChange={(e) => handleKeywordInputChange(e, "keywords")}
+                          onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                          onPaste={(e) => handlePasteKeywords(e, "keywords")}
                           placeholder="Add secondary keywords..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
@@ -481,7 +480,7 @@ const OutlineEditor = () => {
                       <input
                         type="text"
                         value={formData.title}
-                        onChange={e => handleInputChange(e, "title")}
+                        onChange={(e) => handleInputChange(e, "title")}
                         placeholder="Project title..."
                         className={`input outline-0 w-full rounded-md focus:ring ${errors.title ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                       />
@@ -502,7 +501,7 @@ const OutlineEditor = () => {
                             max={BLOG_CONFIG.LENGTH.MAX}
                             step={BLOG_CONFIG.LENGTH.STEP}
                             value={[formData.userDefinedLength]}
-                            onValueChange={vals =>
+                            onValueChange={(vals) =>
                               handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
                             }
                             className="w-full"
@@ -536,7 +535,7 @@ const OutlineEditor = () => {
                       <div className="mt-2 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
                         {brands?.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {brands.map(voice => (
+                            {brands.map((voice) => (
                               <label
                                 key={voice._id}
                                 className={`flex items-start gap-3 p-4 rounded-md cursor-pointer transition-all border ${
@@ -544,7 +543,7 @@ const OutlineEditor = () => {
                                     ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
-                                onClick={e => {
+                                onClick={(e) => {
                                   e.preventDefault()
                                   handleBrandSelect(voice._id)
                                 }}
@@ -587,9 +586,9 @@ const OutlineEditor = () => {
                         <input
                           type="text"
                           value={formData.resourceInput}
-                          onChange={e => handleKeywordInputChange(e, "resources")}
-                          onKeyDown={e => handleKeyPress(e, "resources")}
-                          onPaste={e => handlePasteKeywords(e, "resources")}
+                          onChange={(e) => handleKeywordInputChange(e, "resources")}
+                          onKeyDown={(e) => handleKeyPress(e, "resources")}
+                          onPaste={(e) => handlePasteKeywords(e, "resources")}
                           placeholder="Add URLs to context or sources..."
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
@@ -701,24 +700,28 @@ const OutlineEditor = () => {
           <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
             {/* Tabs Header */}
             <div className="bg-slate-50/50 border-b border-gray-200 flex items-center p-1 gap-1">
-               <button
-                 onClick={() => setActiveTab("edit")}
-                 className={clsx(
-                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
-                   activeTab === "edit" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
-                 )}
-               >
-                 Edit Mode
-               </button>
-               <button
-                 onClick={() => setActiveTab("preview")}
-                 className={clsx(
-                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
-                   activeTab === "preview" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
-                 )}
-               >
-                 Preview
-               </button>
+              <button
+                onClick={() => setActiveTab("edit")}
+                className={clsx(
+                  "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
+                  activeTab === "edit"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                )}
+              >
+                Edit Mode
+              </button>
+              <button
+                onClick={() => setActiveTab("preview")}
+                className={clsx(
+                  "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
+                  activeTab === "preview"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
+                )}
+              >
+                Preview
+              </button>
             </div>
 
             {/* Editor/Preview Content */}
@@ -744,7 +747,10 @@ const OutlineEditor = () => {
                 <Sparkles className="text-slate-200 mb-4" size={48} />
                 <p className="text-gray-500 text-sm italic">
                   No content generated yet.{" "}
-                  <button onClick={() => setIsOpen(true)} className="text-primary font-bold hover:underline">
+                  <button
+                    onClick={() => setIsOpen(true)}
+                    className="text-primary font-bold hover:underline"
+                  >
                     Click here to start
                   </button>
                 </p>

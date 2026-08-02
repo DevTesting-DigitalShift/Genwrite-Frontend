@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useState } from "react"
+import { type FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
 import { setValueByPath } from "@utils/ObjectPath"
@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { toast } from "sonner"
-import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
+import type { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
@@ -93,7 +93,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
       if (!formData.postingType) {
-        setFormData(prev => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+        setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
   }, [integrations])
@@ -109,11 +109,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         "Step 3: Customization",
         "Step 4: Advanced Settings",
       ]
-    : [
-        "Step 1  : Template Selection",
-        "Step 2: Basic Information",
-        "Step 3: Customization",
-      ]
+    : ["Step 1  : Template Selection", "Step 2: Basic Information", "Step 3: Customization"]
 
   // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
@@ -158,7 +154,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const { selectedKeywords, pendingImport, setPendingImport } = useAnalysisStore()
   useEffect(() => {
     if (pendingImport === "blog" && selectedKeywords) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
         keywords: selectedKeywords.keywords || prev.keywords,
@@ -174,14 +170,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     const seen = new Set<string>()
     const rawItems = Array.isArray(inputValue) ? inputValue : inputValue.split(/[,\t\n\r;]+/)
     const items = rawItems
-      .map(k => k.trim())
-      .filter(k => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+      .map((k) => k.trim())
+      .filter((k) => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
     if (items.length === 0) return
 
-    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
     const newItems = items
-      .map(k => k.trim())
-      .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
+      .map((k) => k.trim())
+      .filter((k) => k !== "" && !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) return
 
@@ -252,11 +248,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   ])
 
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
-    setFormData(prev => ({ ...prev, ...newData }))
+    setFormData((prev) => ({ ...prev, ...newData }))
   }, [])
 
   const updateErrors = useCallback((error: FormError) => {
-    setErrors(prev => ({ ...prev, ...error }))
+    setErrors((prev) => ({ ...prev, ...error }))
   }, [])
 
   const validateFields = useCallback(() => {
@@ -283,7 +279,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         if (
           formData.isCheckedGeneratedImages &&
           formData.imageSource === IMAGE_SOURCE.UPLOAD &&
-          formData.blogImages.length == 0
+          formData.blogImages.length === 0
         )
           errors.blogImages = "Please upload at least 1 image."
         break
@@ -301,11 +297,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
   const handleNext = useCallback(() => {
     if (validateFields()) {
-      setCurrentStep(prev => prev + 1)
+      setCurrentStep((prev) => prev + 1)
     }
   }, [validateFields])
 
-  const handlePrev = useCallback(() => setCurrentStep(prev => prev - 1), [])
+  const handlePrev = useCallback(() => setCurrentStep((prev) => prev - 1), [])
 
   const handleClose = () => {
     setFormData(initialData)
@@ -387,7 +383,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   }
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
-    updateFormData({ template: templates?.[0]?.name || "", templateIds: templates?.map(t => t.id) })
+    updateFormData({
+      template: templates?.[0]?.name || "",
+      templateIds: templates?.map((t) => t.id),
+    })
     // Clear error as soon as exactly 1 template is selected
     if (templates?.length === 1) {
       updateErrors({ template: "" })
@@ -407,11 +406,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       const keys = name.split(".")
 
       if (keys.length > 1) {
-        setFormData(prev => setValueByPath(prev, keys, value))
+        setFormData((prev) => setValueByPath(prev, keys, value))
       } else {
         // Special handling for image toggle
         if (name === "isCheckedGeneratedImages") {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             isCheckedGeneratedImages: value as boolean,
             imageSource: value
@@ -473,7 +472,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
           <div className="space-y-5 p-4 pt-4">
             {/* Topic */}
             <div>
-              <FieldLabel tip="The core subject or concept you want the blog post to write about." required>
+              <FieldLabel
+                tip="The core subject or concept you want the blog post to write about."
+                required
+              >
                 Topic
               </FieldLabel>
               <input
@@ -498,12 +500,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
               <select
                 value={formData.languageToWrite}
-                onChange={e =>
+                onChange={(e) =>
                   handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
                 }
                 className="select w-full rounded-lg focus:outline-none focus:border-0 mt-3"
               >
-                {LANGUAGES.map(lang => (
+                {LANGUAGES.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
                   </option>
@@ -530,23 +532,27 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <>
                 {/* Focus Keywords */}
                 <div className="space-y-2">
-                  <FieldLabel tip="The #1 keyword you want this article to rank for in search engines. Used most prominently throughout the blog." required>
+                  <FieldLabel
+                    tip="The #1 keyword you want this article to rank for in search engines. Used most prominently throughout the blog."
+                    required
+                  >
                     Focus Keywords (max 3)
                   </FieldLabel>
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.focusKeywords ? "border-red-500" : "border-slate-300"
-                      }`}
-                    onKeyDown={e => {
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.focusKeywords ? "border-red-500" : "border-slate-300"
+            }`}
+                    onKeyDown={(e) => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value
                         handleAddKeywordItems(val, "focusKeywords")
-                          ; (e.target as HTMLInputElement).value = ""
+                        ;(e.target as HTMLInputElement).value = ""
                       }
                     }}
-                    onPaste={e => {
+                    onPaste={(e) => {
                       extractKeywordsFromClipboard(e, {
                         type: "focusKeywords",
                         cb: handleAddKeywordItems,
@@ -584,23 +590,27 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Keywords */}
                 <div className="space-y-2">
-                  <FieldLabel tip="Secondary supporting keywords woven throughout the article for broader SEO coverage." required>
+                  <FieldLabel
+                    tip="Secondary supporting keywords woven throughout the article for broader SEO coverage."
+                    required
+                  >
                     Keywords
                   </FieldLabel>
                   <input
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.keywords ? "border-red-500" : "border-slate-300"
-                      }`}
-                    onKeyDown={e => {
+            focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+              errors.keywords ? "border-red-500" : "border-slate-300"
+            }`}
+                    onKeyDown={(e) => {
                       if (e.key === "," || e.key === "Enter") {
                         e.preventDefault()
                         const val = (e.target as HTMLInputElement).value
                         handleAddKeywordItems(val, "keywords")
-                          ; (e.target as HTMLInputElement).value = ""
+                        ;(e.target as HTMLInputElement).value = ""
                       }
                     }}
-                    onPaste={e => {
+                    onPaste={(e) => {
                       extractKeywordsFromClipboard(e, {
                         type: "keywords",
                         cb: handleAddKeywordItems,
@@ -638,7 +648,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <FieldLabel tip="The headline / main H1 title of your blog. Can be typed manually or auto-generated with AI." required>
+                  <FieldLabel
+                    tip="The headline / main H1 title of your blog. Can be typed manually or auto-generated with AI."
+                    required
+                  >
                     Blog Title
                   </FieldLabel>
                   <div className="flex gap-2">
@@ -648,8 +661,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       value={formData.title}
                       onChange={handleInputChange}
                       className={`flex-1 mt-2 p-2 rounded-md border bg-white text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${errors.title ? "border-red-500" : "border-slate-300"
-                        }`}
+              focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
+                errors.title ? "border-red-500" : "border-slate-300"
+              }`}
                     />
                     <button
                       onClick={handleGenerateTitles}
@@ -669,10 +683,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           key={i}
                           onClick={() => handleInputChange({ target: { name: "title", value: t } })}
                           className={`px-3 py-1 text-xs rounded-md border transition
-                  ${formData.title === t
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "bg-white border-slate-300 hover:bg-slate-100"
-                            }`}
+                  ${
+                    formData.title === t
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white border-slate-300 hover:bg-slate-100"
+                  }`}
                         >
                           {t}
                         </button>
@@ -706,13 +721,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                 <select
                   value={formData.tone}
-                  onChange={e =>
+                  onChange={(e) =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
-                  className={`select select-bordered w-full rounded-lg mt-3 ${errors.tone ? "border-red-500" : ""
-                    }`}
+                  className={`select select-bordered w-full rounded-lg mt-3 ${
+                    errors.tone ? "border-red-500" : ""
+                  }`}
                 >
-                  {TONES.map(t => (
+                  {TONES.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>
@@ -800,9 +816,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                   <div className="space-y-3 mt-2">
                     <div
                       className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
-                        ${errors.blogImages
-                          ? "border-red-400 bg-red-50"
-                          : "border-slate-300 bg-slate-50 hover:border-[#4C5BD6] hover:bg-blue-50/30"
+                        ${
+                          errors.blogImages
+                            ? "border-red-400 bg-red-50"
+                            : "border-slate-300 bg-slate-50 hover:border-[#4C5BD6] hover:bg-blue-50/30"
                         }
                       `}
                       onClick={() => {
@@ -822,7 +839,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                             return
                           }
                           const oversized = files.filter(
-                            f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                            (f) => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
                           )
                           if (oversized.length > 0) {
                             toast.error(
@@ -831,10 +848,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                             return
                           }
                           const readers = files.map(
-                            file =>
-                              new Promise<any>(resolve => {
+                            (file) =>
+                              new Promise<any>((resolve) => {
                                 const reader = new FileReader()
-                                reader.onload = ev =>
+                                reader.onload = (ev) =>
                                   resolve({
                                     originFileObj: file,
                                     name: file.name,
@@ -850,10 +867,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         }
                         input.click()
                       }}
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={async e => {
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={async (e) => {
                         e.preventDefault()
-                        const files = Array.from(e.dataTransfer.files).filter(f =>
+                        const files = Array.from(e.dataTransfer.files).filter((f) =>
                           f.type.startsWith("image/")
                         )
                         if (
@@ -866,7 +883,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           return
                         }
                         const oversized = files.filter(
-                          f => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
+                          (f) => f.size > BLOG_CONFIG.IMAGES.MAX_FILE_SIZE_MB * 1024 * 1024
                         )
                         if (oversized.length > 0) {
                           toast.error(
@@ -875,10 +892,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           return
                         }
                         const readers = files.map(
-                          file =>
-                            new Promise<any>(resolve => {
+                          (file) =>
+                            new Promise<any>((resolve) => {
                               const reader = new FileReader()
-                              reader.onload = ev =>
+                              reader.onload = (ev) =>
                                 resolve({
                                   originFileObj: file,
                                   name: file.name,
@@ -969,7 +986,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               <input
                 placeholder="Add reference links"
                 className="input input-bordered w-full rounded-lg"
-                onKeyDown={e => {
+                onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault()
                     const val = (e.target as HTMLInputElement).value.trim()
@@ -989,7 +1006,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                           value: [...formData.referenceLinks, val],
                         },
                       })
-                        ; (e.target as HTMLInputElement).value = ""
+                      ;(e.target as HTMLInputElement).value = ""
                     }
                   }
                 }}
@@ -1108,7 +1125,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               }}
               imageSource={formData.imageSource}
               labelClass="text-sm font-semibold"
-              onChange={val => {
+              onChange={(val) => {
                 const opts = formData.options
                 updateFormData({
                   isCheckedBrand: val.isCheckedBrand,
@@ -1162,7 +1179,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     </label>
                     <select
                       value={formData.postingType || ""}
-                      onChange={e => updateFormData({ postingType: e.target.value })}
+                      onChange={(e) => updateFormData({ postingType: e.target.value })}
                       className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none"
                     >
                       <option value="" disabled>
@@ -1225,8 +1242,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         </div>
         {/* Sleek Minimal Progress Bar */}
         <div className="w-full bg-slate-100 h-0.75 overflow-hidden">
-          <div 
-            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+          <div
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out"
             style={{ width: `${((currentStep + 1) / STEP_TITLES.length) * 100}%` }}
           />
         </div>
@@ -1263,7 +1280,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               )}
 
               <button
-                onClick={currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext}
+                onClick={
+                  currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext
+                }
                 className="w-full sm:w-auto px-8 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-colors"
               >
                 {currentStep === (formData.enableAdvanced ? 3 : 2) ? "Generate Blog" : "Next"}

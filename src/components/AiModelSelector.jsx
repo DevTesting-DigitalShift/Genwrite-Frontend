@@ -1,4 +1,3 @@
-import React from "react"
 import { Crown } from "lucide-react"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { AI_MODELS } from "@/data/blogData"
@@ -30,7 +29,7 @@ const AiModelSelector = ({
         <div
           className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}
         >
-          {AI_MODELS.map(model => {
+          {AI_MODELS.map((model) => {
             const isRestricted = model.restrictedPlans.includes(userPlan)
             const isActive = value === model.id
 

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
-import { FaEdit, FaTimes } from "react-icons/fa"
+import { FaTimes } from "react-icons/fa"
 import useAuthStore from "@store/useAuthStore"
 import useBrandStore from "@store/useBrandStore"
-import { Info, Loader2, Trash, Upload, RefreshCcw, X } from "lucide-react"
+import { Info, Loader2, Upload, RefreshCcw, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -12,7 +12,6 @@ import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
-import { BrandAPI } from "@api/Brand/Brand.api"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 import { uploadImage } from "@api/imageGalleryApi"
 
@@ -61,7 +60,7 @@ const BrandVoice = () => {
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
         describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
@@ -71,7 +70,7 @@ const BrandVoice = () => {
         logoUrl: siteInfo.data.logoUrl || prev.logoUrl,
         persona: siteInfo.data.persona || prev.persona,
       }))
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         nameOfVoice: undefined,
         describeBrand: undefined,
@@ -141,10 +140,10 @@ const BrandVoice = () => {
   }, [formData])
 
   const handleInputChange = useCallback(
-    e => {
+    (e) => {
       const { name, value } = e.target
-      setFormData(prev => ({ ...prev, [name]: value }))
-      setErrors(prev => ({ ...prev, [name]: undefined }))
+      setFormData((prev) => ({ ...prev, [name]: value }))
+      setErrors((prev) => ({ ...prev, [name]: undefined }))
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
@@ -154,24 +153,24 @@ const BrandVoice = () => {
   )
 
   const handleKeyDown = useCallback(
-    event => {
+    (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
         event.preventDefault()
-        const existing = formData.keywords.map(k => k.toLowerCase())
+        const existing = formData.keywords.map((k) => k.toLowerCase())
         const seen = new Set()
         const newKeywords = inputValue
           .split(",")
-          .map(k => k.trim())
-          .filter(k => {
+          .map((k) => k.trim())
+          .filter((k) => {
             const lower = k.toLowerCase()
             if (!k || existing.includes(lower) || seen.has(lower)) return false
             seen.add(lower)
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
         setInputValue("")
-        setErrors(prev => ({ ...prev, keywords: undefined }))
+        setErrors((prev) => ({ ...prev, keywords: undefined }))
         setIsFormReset(false)
       }
     },
@@ -179,13 +178,13 @@ const BrandVoice = () => {
   )
 
   const handlePasteKeywords = useCallback(
-    event => {
+    (event) => {
       extractKeywordsFromClipboard(event, {
         type: "keywords",
-        cb: items => {
-          const existing = new Set(formData.keywords.map(keyword => keyword.trim().toLowerCase()))
+        cb: (items) => {
+          const existing = new Set(formData.keywords.map((keyword) => keyword.trim().toLowerCase()))
           const seen = new Set()
-          const newKeywords = items.filter(keyword => {
+          const newKeywords = items.filter((keyword) => {
             const normalizedKeyword = keyword.toLowerCase()
             if (!keyword || existing.has(normalizedKeyword) || seen.has(normalizedKeyword)) {
               return false
@@ -196,9 +195,9 @@ const BrandVoice = () => {
 
           if (newKeywords.length === 0) return
 
-          setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+          setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
           setInputValue("")
-          setErrors(prev => ({ ...prev, keywords: undefined }))
+          setErrors((prev) => ({ ...prev, keywords: undefined }))
           setIsFormReset(false)
         },
       })
@@ -206,12 +205,12 @@ const BrandVoice = () => {
     [formData.keywords]
   )
 
-  const removeKeyword = useCallback(keyword => {
-    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== keyword) }))
+  const removeKeyword = useCallback((keyword) => {
+    setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== keyword) }))
     setIsFormReset(false)
   }, [])
 
-  const handleFileChange = useCallback(event => {
+  const handleFileChange = useCallback((event) => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -231,14 +230,14 @@ const BrandVoice = () => {
       return
     }
     const reader = new FileReader()
-    reader.onload = e => {
+    reader.onload = (e) => {
       const text = e.target.result
       const keywords = text
         .split(/,|\n|;/)
-        .map(kw => kw.trim())
-        .filter(kw => kw.length > 0)
-      setFormData(prev => ({ ...prev, keywords: [...new Set([...prev.keywords, ...keywords])] }))
-      setErrors(prev => ({ ...prev, keywords: undefined }))
+        .map((kw) => kw.trim())
+        .filter((kw) => kw.length > 0)
+      setFormData((prev) => ({ ...prev, keywords: [...new Set([...prev.keywords, ...keywords])] }))
+      setErrors((prev) => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
     reader.onerror = () => toast.error("Error reading CSV file.")
@@ -246,7 +245,7 @@ const BrandVoice = () => {
     event.target.value = null
   }, [])
 
-  const handleLogoUpload = useCallback(async event => {
+  const handleLogoUpload = useCallback(async (event) => {
     const file = event.target.files[0]
     if (!file) return
 
@@ -255,7 +254,7 @@ const BrandVoice = () => {
 
     if (!acceptedTypes.includes(file.type)) {
       toast.error(
-        `Invalid image type. Please upload: ${acceptedTypes.map(t => t.split("/")[1].toUpperCase()).join(", ")}`
+        `Invalid image type. Please upload: ${acceptedTypes.map((t) => t.split("/")[1].toUpperCase()).join(", ")}`
       )
       return
     }
@@ -273,7 +272,7 @@ const BrandVoice = () => {
       const res = await uploadImage(formDataUpload, formData.logoUrl.split("?")[0] || null)
       if (res?.url) {
         const bustedUrl = `${res.url}?t=${Date.now()}`
-        setFormData(prev => ({ ...prev, logoUrl: bustedUrl }))
+        setFormData((prev) => ({ ...prev, logoUrl: bustedUrl }))
         toast.success("Logo uploaded successfully.")
       }
     } catch (err) {
@@ -290,7 +289,7 @@ const BrandVoice = () => {
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
-      keywords: formData.keywords.map(k => k.trim()).filter(Boolean),
+      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       persona: formData.persona.trim(),
@@ -298,7 +297,7 @@ const BrandVoice = () => {
     }
 
     const isDuplicate = brands.some(
-      brand =>
+      (brand) =>
         brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
     )
 
@@ -323,7 +322,7 @@ const BrandVoice = () => {
     }
   }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations])
 
-  const handleEdit = useCallback(brand => {
+  const handleEdit = useCallback((brand) => {
     setFormData({
       nameOfVoice: brand.nameOfVoice || "",
       postLink: brand.postLink || "",
@@ -342,7 +341,7 @@ const BrandVoice = () => {
   }, [])
 
   const handleDelete = useCallback(
-    brand => {
+    (brand) => {
       handlePopup({
         title: "Delete Brand Voice?",
         description: (
@@ -372,15 +371,15 @@ const BrandVoice = () => {
     [brandVoiceMutations, formData.selectedVoice, resetForm]
   )
 
-  const handleSelect = useCallback(voice => {
-    setFormData(prev => ({ ...prev, selectedVoice: voice }))
+  const handleSelect = useCallback((voice) => {
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
     setIsFormReset(false)
   }, [])
 
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors(prev => ({ ...prev, postLink: "Post link is required to fetch site info." }))
+      setErrors((prev) => ({ ...prev, postLink: "Post link is required to fetch site info." }))
       return
     }
     if (url === lastScrapedUrl) {
@@ -395,7 +394,7 @@ const BrandVoice = () => {
         })
         .catch(() => toast.error("Failed to fetch site info. Please try a different URL."))
     } catch {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
@@ -415,7 +414,7 @@ const BrandVoice = () => {
     const remainingCount = formData.keywords.length - maxInitialKeywords
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
-        {displayedKeywords.map(keyword => (
+        {displayedKeywords.map((keyword) => (
           <motion.div
             key={keyword}
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 sm:px-3 py-1"
@@ -429,7 +428,7 @@ const BrandVoice = () => {
             </span>
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors w-3 sm:w-4 h-3 sm:h-4"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 removeKeyword(keyword)
               }}
@@ -580,7 +579,7 @@ const BrandVoice = () => {
                 {formData.logoUrl && (
                   <button
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                    onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
+                    onClick={() => setFormData((prev) => ({ ...prev, logoUrl: "" }))}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -636,7 +635,7 @@ const BrandVoice = () => {
                   id="keywords"
                   type="text"
                   value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
+                  onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={handlePasteKeywords}
                   className="grow bg-transparent border-none text-black outline-none text-sm sm:text-base"
@@ -810,7 +809,7 @@ const BrandVoice = () => {
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
             </div>
           ) : brands.length > 0 ? (
-            brands.map(item => (
+            brands.map((item) => (
               <BrandVoicesComponent
                 key={item._id}
                 id={item._id}
@@ -819,11 +818,11 @@ const BrandVoice = () => {
                 logoUrl={item.logoUrl}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
-                onEdit={e => {
+                onEdit={(e) => {
                   e.stopPropagation()
                   handleEdit(item)
                 }}
-                onDelete={e => {
+                onDelete={(e) => {
                   e.stopPropagation()
                   handleDelete(item)
                 }}

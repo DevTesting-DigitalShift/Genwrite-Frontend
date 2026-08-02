@@ -29,7 +29,7 @@ const ImageSourceSelector = ({
   const userPlan = user?.subscription?.plan || "free"
   const isAiLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
 
-  const handleSelect = option => {
+  const handleSelect = (option) => {
     const isRestricted = option.restrictedPlans?.includes(userPlan?.toLowerCase())
 
     if (isRestricted) {
@@ -48,13 +48,13 @@ const ImageSourceSelector = ({
     onChange(option.id)
   }
 
-  const filteredOptions = IMAGE_OPTIONS.filter(opt => {
+  const filteredOptions = IMAGE_OPTIONS.filter((opt) => {
     if (opt.id === IMAGE_SOURCE.NONE && !showNone) return false
     if (opt.id === IMAGE_SOURCE.UPLOAD && !showUpload) return false
     return true
   })
 
-  const getIcon = id => {
+  const getIcon = (id) => {
     switch (id) {
       case IMAGE_SOURCE.NONE:
         return <X className="w-5 h-5" />
@@ -79,7 +79,7 @@ const ImageSourceSelector = ({
       <div
         className={`grid grid-cols-1 md:grid-cols-2 ${filteredOptions.length > 2 ? "lg:grid-cols-3" : ""} gap-4`}
       >
-        {filteredOptions.map(option => {
+        {filteredOptions.map((option) => {
           const isActive = value === option.id
           const isRestricted = option.restrictedPlans?.includes(userPlan?.toLowerCase())
           const isLimitReached = option.id === IMAGE_SOURCE.AI && isAiLimitReached
@@ -165,7 +165,7 @@ const ImageSourceSelector = ({
               max={BLOG_CONFIG.IMAGES.MAX_COUNT || 15}
               step={1}
               value={[Number(numberOfImages) || 0]}
-              onValueChange={vals => onNumberChange(vals[0])}
+              onValueChange={(vals) => onNumberChange(vals[0])}
             />
           </div>
         </div>

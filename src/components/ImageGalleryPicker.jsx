@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
-import { Search, Image as ImageIcon, Check } from "lucide-react"
+import { Image as ImageIcon, Check } from "lucide-react"
 import { getImages, searchImages } from "@api/imageGalleryApi"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import { toast } from "sonner"
 
 // Skeleton Loader Component
-const ImageSkeleton = () => {
+const _ImageSkeleton = () => {
   return (
     <div className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse">
       <div className="w-full aspect-3/4 bg-linear-to-br from-gray-200 to-gray-300"></div>
@@ -67,7 +67,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
         const pagination = response.pagination || {}
 
         if (append) {
-          setImages(prev => [...prev, ...newImages])
+          setImages((prev) => [...prev, ...newImages])
         } else {
           setImages(newImages)
         }
@@ -92,7 +92,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
     fetchImages(1, false)
   }, [searchQuery])
 
-  const handleImageClick = image => {
+  const handleImageClick = (image) => {
     if (onSelect) {
       onSelect(image.url, image.description || "")
     }
@@ -146,7 +146,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
           ) : (
             <>
               <div className="columns-1 md:columns-2 lg:columns-3 gap-3 md:gap-4 space-y-3 md:space-y-4">
-                {images.map(image => (
+                {images.map((image) => (
                   <div
                     key={image._id}
                     className={`break-inside-avoid relative group rounded-lg md:rounded-xl overflow-hidden cursor-pointer bg-gray-100 transition-all ${

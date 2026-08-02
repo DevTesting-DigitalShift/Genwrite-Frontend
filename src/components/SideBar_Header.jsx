@@ -59,7 +59,7 @@ const SideBar_Header = () => {
     }
 
     if (needsUpgrade) {
-      if (ALLOWED_ROUTES.some(r => path.startsWith(r))) {
+      if (ALLOWED_ROUTES.some((r) => path.startsWith(r))) {
         navigate(path)
         return true
       }
@@ -81,7 +81,7 @@ const SideBar_Header = () => {
   }, [loadAuthenticatedUser, navigate])
 
   const handleCreditsUpdate = useCallback(
-    data => {
+    (data) => {
       if (
         data &&
         typeof data === "object" &&
@@ -96,7 +96,7 @@ const SideBar_Header = () => {
   )
 
   const handleNotificationUpdate = useCallback(
-    data => {
+    (data) => {
       if (data && typeof data === "object" && data.message) {
         addNotification(data)
       } else if (data && typeof data === "object" && data.notifications) {
@@ -109,7 +109,7 @@ const SideBar_Header = () => {
   )
 
   const handleUsageUpdate = useCallback(
-    data => {
+    (data) => {
       if (data && typeof data === "object" && data.usage) {
         updateUserPartial({ usage: data.usage })
       } else {
@@ -124,7 +124,7 @@ const SideBar_Header = () => {
   }
 
   useEffect(() => {
-    const handleClickOutside = event => {
+    const handleClickOutside = (event) => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
@@ -277,7 +277,7 @@ const SideBar_Header = () => {
                 <li key={index}>
                   <NavLink
                     to={Menu.path}
-                    onClick={e => handleNavClick(Menu.path, e)}
+                    onClick={(e) => handleNavClick(Menu.path, e)}
                     className={`flex items-center gap-3 py-2.5 rounded-xl transition-all duration-200 group ${
                       sidebarOpen ? "px-3" : "px-3 md:px-0 md:justify-center"
                     } ${
@@ -422,10 +422,7 @@ const SideBar_Header = () => {
                     </div>
                   </div>
 
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content right-0 z-50 menu p-3 shadow-xl bg-white rounded-xl w-64 mt-2 border border-gray-200"
-                  >
+                  <ul className="dropdown-content right-0 z-50 menu p-3 shadow-xl bg-white rounded-xl w-64 mt-2 border border-gray-200">
                     <li className="menu-title px-4 py-2 border-b border-gray-100">
                       <span className="font-semibold text-gray-900 text-lg truncate leading-tight block">
                         {user?.name}
@@ -483,10 +480,7 @@ const SideBar_Header = () => {
                   <div tabIndex={0} role="button" className=" text-sm cursor-pointer">
                     UserName
                   </div>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2"
-                  >
+                  <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2">
                     <li>
                       <button onClick={() => navigate("/login")} className="text-error font-bold">
                         Login

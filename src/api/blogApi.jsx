@@ -1,4 +1,3 @@
-import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
 
 export const createQuickBlog = async (blogData, type) => {
@@ -49,7 +48,7 @@ export const createTopicOnlyBlog = async ({ topic }) => {
   }
 }
 
-export const createBlog = async blogData => {
+export const createBlog = async (blogData) => {
   try {
     const formData = new FormData()
     const { blogImages, ...restData } = blogData
@@ -63,7 +62,7 @@ export const createBlog = async blogData => {
 
     // Append images (binary form)
     if (blogImages?.length > 0) {
-      blogImages.forEach(blogfile => {
+      blogImages.forEach((blogfile) => {
         const file = new File([blogfile.originFileObj], blogfile.name, { type: blogfile.type })
         formData.append("blogImages", file, file.name) // directly append file object
       })
@@ -92,7 +91,7 @@ export const createBlog = async blogData => {
   }
 }
 
-export const createBlogMultiple = async blogData => {
+export const createBlogMultiple = async (blogData) => {
   try {
     const response = await axiosInstance.post("/blogs/xyz", blogData)
     return response.data.insertedBlogs
@@ -124,7 +123,7 @@ export const getAllBlogs = async (params = {}) => {
   }
 }
 
-export const getBlogById = async id => {
+export const getBlogById = async (id) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}`)
     return response.data
@@ -142,7 +141,7 @@ export const updateBlog = async (id, updatedData) => {
   }
 }
 
-export const deleteBlog = async id => {
+export const deleteBlog = async (id) => {
   try {
     const response = await axiosInstance.delete(`/blogs/${id}`)
     return response.data
@@ -160,9 +159,9 @@ export const getBlogsByAuthor = async () => {
   }
 }
 
-export const sendBrand = async formData => {
+export const sendBrand = async (formData) => {
   try {
-    const response = await axiosInstance.post("/brand/addBrand", formData)
+    const _response = await axiosInstance.post("/brand/addBrand", formData)
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
@@ -187,7 +186,7 @@ export const deleteAllBlogs = async () => {
   }
 }
 
-export const restoreBlogById = async id => {
+export const restoreBlogById = async (id) => {
   try {
     const response = await axiosInstance.patch(`/blogs/restore/${id}`)
     return response.data
@@ -205,7 +204,7 @@ export const restoreAllBlogs = async () => {
   }
 }
 
-export const archiveBlogById = async id => {
+export const archiveBlogById = async (id) => {
   try {
     const response = await axiosInstance.patch(`/blogs/archive/${id}`)
     return response.data
@@ -232,17 +231,17 @@ export const proofreadBlogContent = async ({ id }) => {
   }
 }
 
-export const getBlogStatsById = async id => {
+export const getBlogStatsById = async (id) => {
   const response = await axiosInstance.get(`/blogs/${id}/stats`)
   return response.data
 }
 
-export const getGeneratedTitles = async data => {
+export const getGeneratedTitles = async (data) => {
   const response = await axiosInstance.post(`/generate/title`, data)
   return response.data
 }
 
-export const createSimpleBlog = async data => {
+export const createSimpleBlog = async (data) => {
   try {
     const response = await axiosInstance.post("/blogs/new", data)
     return response.data
@@ -283,7 +282,7 @@ export const getBlogPrompt = async (id, prompt) => {
  * @param {string} blogId - The blog ID
  * @returns {Promise<Array>} Array of posting objects
  */
-export const getBlogPostings = async blogId => {
+export const getBlogPostings = async (blogId) => {
   try {
     const response = await axiosInstance.get(`/blogs/postings/${blogId}`)
     return response.data.postings || []
@@ -317,7 +316,7 @@ export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) 
 }
 
 // Legacy function for backward compatibility
-export const exportBlogAsPdf = async id => {
+export const exportBlogAsPdf = async (id) => {
   const result = await exportBlog(id, { type: "pdf", withImages: false })
   return result.data
 }
@@ -331,7 +330,7 @@ export const toggleBlogVisibility = async (id, isPublic) => {
   }
 }
 
-export const getBlogPublicly = async id => {
+export const getBlogPublicly = async (id) => {
   try {
     const response = await axiosInstance.get(`/public/blog/${id}`)
     return response.data

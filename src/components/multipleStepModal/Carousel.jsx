@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"
 
 const Carousel = ({ children }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [length, setLength] = useState(children.length);
-  const itemsPerPage = 4;
-  const totalPages = Math.ceil(React.Children.count(children) / itemsPerPage);
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [_length, setLength] = useState(children.length)
+  const itemsPerPage = 4
+  const totalPages = Math.ceil(React.Children.count(children) / itemsPerPage)
 
   useEffect(() => {
-    setLength(React.Children.count(children));
-  }, [children]);
+    setLength(React.Children.count(children))
+  }, [children])
 
   const next = () => {
     if (currentIndex < totalPages - 1) {
-      setCurrentIndex((prevState) => prevState + 1);
+      setCurrentIndex((prevState) => prevState + 1)
     }
-  };
+  }
 
   const prev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex((prevState) => prevState - 1);
+      setCurrentIndex((prevState) => prevState - 1)
     }
-  };
+  }
 
-  const shouldShowLeftArrow = currentIndex > 0;
-  const shouldShowRightArrow = currentIndex < totalPages - 1;
+  const shouldShowLeftArrow = currentIndex > 0
+  const shouldShowRightArrow = currentIndex < totalPages - 1
 
   return (
     <div className="relative w-full">
@@ -36,16 +36,13 @@ const Carousel = ({ children }) => {
             {React.Children.toArray(children)
               .reduce((acc, child, index) => {
                 if (index % itemsPerPage === 0) {
-                  acc.push([]);
+                  acc.push([])
                 }
-                acc[acc.length - 1].push(child);
-                return acc;
+                acc[acc.length - 1].push(child)
+                return acc
               }, [])
               .map((group, groupIndex) => (
-                <div
-                  key={groupIndex}
-                  className="grid grid-cols-4  gap-6 min-w-full px-2"
-                >
+                <div key={groupIndex} className="grid grid-cols-4  gap-6 min-w-full px-2">
                   {group.map((child, childIndex) => (
                     <div key={childIndex} className="w-full">
                       {child}
@@ -95,7 +92,7 @@ const Carousel = ({ children }) => {
         </button>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default Carousel;
+export default Carousel

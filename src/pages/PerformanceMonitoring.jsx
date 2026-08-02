@@ -29,7 +29,7 @@ const PerformanceMonitoring = () => {
 
   useEffect(() => {
     if (blogDetails && blogDetails._id === id) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         title: blogDetails.title || "",
         content: blogDetails.content || "",
@@ -40,7 +40,7 @@ const PerformanceMonitoring = () => {
     }
   }, [blogDetails, id])
 
-  const handleBlogSelect = e => {
+  const handleBlogSelect = (e) => {
     const value = e.target.value
     if (!value) {
       setId(null)
@@ -48,7 +48,7 @@ const PerformanceMonitoring = () => {
       setStats(null)
       return
     }
-    const blog = allBlogs?.find(b => b._id === value)
+    const blog = allBlogs?.find((b) => b._id === value)
     if (blog) {
       setId(blog._id)
       setFormData({
@@ -161,10 +161,10 @@ const PerformanceMonitoring = () => {
     const keywordDensity = seo?.keywordDensity || {}
 
     const shortTailCount = Object.keys(keywordDensity).filter(
-      keyword => keyword.split(" ").length <= 2
+      (keyword) => keyword.split(" ").length <= 2
     ).length
     const longTailCount = Object.keys(keywordDensity).filter(
-      keyword => keyword.split(" ").length > 2
+      (keyword) => keyword.split(" ").length > 2
     ).length
 
     const dataSource = Object.entries(keywordDensity).map(
@@ -425,7 +425,7 @@ const PerformanceMonitoring = () => {
             <option value="" disabled>
               Select a blog from your projects...
             </option>
-            {allBlogs?.map(blog => (
+            {allBlogs?.map((blog) => (
               <option key={blog._id} value={blog._id}>
                 {blog.title || "Untitled"}
               </option>

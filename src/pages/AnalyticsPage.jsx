@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react"
 import useAuthStore from "@store/useAuthStore"
 import { motion } from "framer-motion"
 import {
@@ -7,7 +6,6 @@ import {
   Archive,
   BadgePercent,
   TrendingUp,
-  MoreHorizontal,
   Image as ImageIcon,
   FilePlus,
   Gauge,
@@ -88,7 +86,7 @@ const AnalyticsPage = () => {
     queryKey: ["blogStatus"],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      let params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
+      const params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
       return getBlogStatus(params)
     },
   })
@@ -180,106 +178,106 @@ const AnalyticsPage = () => {
     },
   }
 
- const charts = [
-  {
-    title: "Blogs by Model",
-    type: "Pie",
-    data: {
-      labels: Object.keys(blogsByModel).length ? Object.keys(blogsByModel) : ["No Data"],
-      datasets: [
-        {
-          data: Object.keys(blogsByModel).length ? Object.values(blogsByModel) : [1],
-          backgroundColor: [
-            "#6366F1", // modern indigo
-            "#EC4899", // vibrant rose
-            "#14B8A6", // teal
-            "#F59E0B", // amber
-            "#8B5CF6", // violet
-          ],
-          hoverOffset: 24,
-          borderColor: "#ffffff",
-          borderWidth: 4,
-        },
-      ],
+  const charts = [
+    {
+      title: "Blogs by Model",
+      type: "Pie",
+      data: {
+        labels: Object.keys(blogsByModel).length ? Object.keys(blogsByModel) : ["No Data"],
+        datasets: [
+          {
+            data: Object.keys(blogsByModel).length ? Object.values(blogsByModel) : [1],
+            backgroundColor: [
+              "#6366F1", // modern indigo
+              "#EC4899", // vibrant rose
+              "#14B8A6", // teal
+              "#F59E0B", // amber
+              "#8B5CF6", // violet
+            ],
+            hoverOffset: 24,
+            borderColor: "#ffffff",
+            borderWidth: 4,
+          },
+        ],
+      },
     },
-  },
-  {
-    title: "Image Sources",
-    type: "Doughnut",
-    data: {
-      labels: Object.keys(imageSources).length ? Object.keys(imageSources) : ["No Data"],
-      datasets: [
-        {
-          data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
-          backgroundColor: [
-            "#0EA5E9", // sky blue
-            "#22C55E", // green
-            "#F97316", // orange
-            "#A855F7", // purple
-            "#E11D48", // ruby
-          ],
-          hoverOffset: 24,
-          borderColor: "#ffffff",
-          borderWidth: 4,
-          cutout: "70%",
-        },
-      ],
+    {
+      title: "Image Sources",
+      type: "Doughnut",
+      data: {
+        labels: Object.keys(imageSources).length ? Object.keys(imageSources) : ["No Data"],
+        datasets: [
+          {
+            data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
+            backgroundColor: [
+              "#0EA5E9", // sky blue
+              "#22C55E", // green
+              "#F97316", // orange
+              "#A855F7", // purple
+              "#E11D48", // ruby
+            ],
+            hoverOffset: 24,
+            borderColor: "#ffffff",
+            borderWidth: 4,
+            cutout: "70%",
+          },
+        ],
+      },
     },
-  },
-  {
-    title: "Blogs By Status",
-    type: "Bar",
-    data: {
-      labels: Object.keys(blogsByStatus).length ? Object.keys(blogsByStatus) : ["No Data"],
-      datasets: [
-        {
-          label: "Nodes",
-          data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
-          backgroundColor: Object.keys(blogsByStatus).length
-            ? Object.keys(blogsByStatus).map(status => {
-                switch (status.toLowerCase()) {
-                  case "pending":
-                    return "#EAB308" // strong yellow
-                  case "complete":
-                    return "#16A34A" // deep green
-                  case "failed":
-                    return "#DC2626" // red
-                  case "in-progress":
-                    return "#2563EB" // blue
-                  default:
-                    return "#64748B" // slate
-                }
-              })
-            : ["#CBD5E1"],
-          borderRadius: 12,
-          maxBarThickness: 40,
-        },
-      ],
+    {
+      title: "Blogs By Status",
+      type: "Bar",
+      data: {
+        labels: Object.keys(blogsByStatus).length ? Object.keys(blogsByStatus) : ["No Data"],
+        datasets: [
+          {
+            label: "Nodes",
+            data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
+            backgroundColor: Object.keys(blogsByStatus).length
+              ? Object.keys(blogsByStatus).map((status) => {
+                  switch (status.toLowerCase()) {
+                    case "pending":
+                      return "#EAB308" // strong yellow
+                    case "complete":
+                      return "#16A34A" // deep green
+                    case "failed":
+                      return "#DC2626" // red
+                    case "in-progress":
+                      return "#2563EB" // blue
+                    default:
+                      return "#64748B" // slate
+                  }
+                })
+              : ["#CBD5E1"],
+            borderRadius: 12,
+            maxBarThickness: 40,
+          },
+        ],
+      },
     },
-  },
-  {
-    title: "Templates Used",
-    type: "Line",
-    data: {
-      labels: Object.keys(templatesUsed).length ? Object.keys(templatesUsed) : ["No Data"],
-      datasets: [
-        {
-          label: "Usage",
-          data: Object.keys(templatesUsed).length ? Object.values(templatesUsed) : [0],
-          borderColor: "#4F46E5",
-          backgroundColor: "rgba(79, 70, 229, 0.18)",
-          tension: 0.5,
-          fill: true,
-          pointBackgroundColor: "#ffffff",
-          pointBorderColor: "#4F46E5",
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-        },
-      ],
+    {
+      title: "Templates Used",
+      type: "Line",
+      data: {
+        labels: Object.keys(templatesUsed).length ? Object.keys(templatesUsed) : ["No Data"],
+        datasets: [
+          {
+            label: "Usage",
+            data: Object.keys(templatesUsed).length ? Object.values(templatesUsed) : [0],
+            borderColor: "#4F46E5",
+            backgroundColor: "rgba(79, 70, 229, 0.18)",
+            tension: 0.5,
+            fill: true,
+            pointBackgroundColor: "#ffffff",
+            pointBorderColor: "#4F46E5",
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+        ],
+      },
     },
-  },
-]
+  ]
 
   const statsData = [
     {
@@ -347,9 +345,7 @@ const AnalyticsPage = () => {
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12 gap-6"
         >
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Blog Analytics
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Blog Analytics</h1>
             <p className="text-base mt-1 text-gray-600">
               Track your blog performance and engagement metrics
             </p>
@@ -380,13 +376,11 @@ const AnalyticsPage = () => {
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Blog Statistics
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Blog Statistics</h2>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {statsData.map((stat, index) => (
+                {statsData.map((stat, _index) => (
                   <StatsCard
                     key={stat.title}
                     title={stat.title}
@@ -408,14 +402,12 @@ const AnalyticsPage = () => {
                   <Gauge className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Usage & Limit
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Usage & Limit</h2>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {usageData.map((stat, index) => (
+                {usageData.map((stat, _index) => (
                   <StatsCard
                     key={stat.title}
                     title={stat.title}
@@ -437,13 +429,11 @@ const AnalyticsPage = () => {
                   <StopCircle className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Analytics Charts
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Analytics Charts</h2>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {charts.map((chart, index) => (
+                {charts.map((chart, _index) => (
                   <ChartCard key={chart.title} title={chart.title}>
                     {chart.type === "Pie" && <Pie data={chart.data} options={chartOptions} />}
                     {chart.type === "Doughnut" && (

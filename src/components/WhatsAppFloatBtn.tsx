@@ -44,7 +44,6 @@ const WhatsAppFloatButton = ({
           icon: "text-3xl sm:text-4xl",
           label: "left-16 sm:left-[4.5rem]",
         }
-      case "medium":
       default:
         return {
           button: "size-11 sm:size-12 md:size-14",

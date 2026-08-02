@@ -3,14 +3,14 @@ import { devtools } from "zustand/middleware"
 
 const useJobStore = create(
   devtools(
-    set => ({
+    (set) => ({
       showJobModal: false,
       selectedJob: null,
 
       // Actions
       openJobModal: (job = null) => set({ showJobModal: true, selectedJob: job }),
       closeJobModal: () => set({ showJobModal: false, selectedJob: null }),
-      setSelectedJob: job => set({ selectedJob: job }),
+      setSelectedJob: (job) => set({ selectedJob: job }),
     }),
     { name: "job-store" }
   )

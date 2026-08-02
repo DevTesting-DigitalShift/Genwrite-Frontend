@@ -11,8 +11,8 @@ export function sendStripeGTMEvent(plan, credits, billingPeriod, userId) {
     value: isCreditPack
       ? credits / 100
       : billingPeriod === "annual"
-      ? plan.annualPrice
-      : plan.priceMonthly, // fallback for credit packs
+        ? plan.annualPrice
+        : plan.priceMonthly, // fallback for credit packs
     billing_period: isCreditPack ? "one_time" : billingPeriod,
     credits: isCreditPack ? credits : billingPeriod === "monthly" ? credits : 12 * credits, // 12x for annual
   })
@@ -25,16 +25,16 @@ export function sendStripeGTMEvent(plan, credits, billingPeriod, userId) {
       value: isCreditPack
         ? credits / 100
         : billingPeriod === "annual"
-        ? plan.annualPrice
-        : plan.priceMonthly,
+          ? plan.annualPrice
+          : plan.priceMonthly,
       items: [
         {
           item_name: plan.name,
           price: isCreditPack
             ? credits / 100
             : billingPeriod === "annual"
-            ? plan.annualPrice
-            : plan.priceMonthly,
+              ? plan.annualPrice
+              : plan.priceMonthly,
 
           billing_period: isCreditPack ? "one_time" : billingPeriod,
           credits: isCreditPack ? credits : billingPeriod === "monthly" ? credits : 12 * credits, // 12x for annual
@@ -46,12 +46,12 @@ export function sendStripeGTMEvent(plan, credits, billingPeriod, userId) {
 
 export function sendCancellationRelatedEvent(user, key) {
   pushToDataLayer({
-    event: key == "cancel" ? "subscription_cancellation" : "credit_discount_opted",
+    event: key === "cancel" ? "subscription_cancellation" : "credit_discount_opted",
     user_id: user._id,
     user_subscription: user.subscription.plan,
     user_subscription_startDate: user.subscription.startDate,
     user_subscription_renewalDate: user.subscription.renewalDate,
-    user_discount: key == "discount" ? 30 : undefined,
+    user_discount: key === "discount" ? 30 : undefined,
     user_action_reason: "user_initiated", // You can customize this based on actual reason
   })
 }

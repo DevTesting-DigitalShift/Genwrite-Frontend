@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import {
   CheckCircle,
   Store,
-  Loader2,
   AlertCircle,
   Eye,
   ExternalLink,
@@ -10,12 +9,11 @@ import {
   RefreshCcw,
   Home,
   LayoutDashboard,
-  ShieldCheck,
   Search,
   ChevronDown,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 
 const ShopifyVerification = () => {
@@ -31,7 +29,7 @@ const ShopifyVerification = () => {
     async function init() {
       try {
         setLoading(true)
-        // @ts-ignore
+        // @ts-expect-error
         if (!window?.shopify?.idToken) {
           setError(
             "Shopify App Bridge not detected. Please access this page from your Shopify Admin."
@@ -84,7 +82,7 @@ const ShopifyVerification = () => {
   }, [])
 
   // Table Data Sorting & Filtering
-  const filteredData = blogData.filter(blog =>
+  const filteredData = blogData.filter((blog) =>
     blog.blogId?.title?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -102,7 +100,7 @@ const ShopifyVerification = () => {
     return 0
   })
 
-  const requestSort = key => {
+  const requestSort = (key) => {
     let direction = "asc"
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc"
@@ -231,7 +229,7 @@ const ShopifyVerification = () => {
                       type="text"
                       placeholder="Search blogs..."
                       value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="input input-bordered w-full pl-12 rounded-2xl bg-white border-gray-100 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 h-14 font-medium"
                     />
                   </div>
@@ -270,7 +268,7 @@ const ShopifyVerification = () => {
                     </thead>
                     <tbody className=" font-medium">
                       {sortedData.length > 0 ? (
-                        sortedData.map(record => (
+                        sortedData.map((record) => (
                           <tr key={record._id} className="hover:bg-purple-50/50 transition-colors">
                             <td className="py-5 pl-8">
                               <span className="font-black text-gray-900">

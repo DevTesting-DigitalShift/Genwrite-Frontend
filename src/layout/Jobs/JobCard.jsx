@@ -1,24 +1,12 @@
-import React, { memo, useState } from "react"
+import { memo, useState } from "react"
 import { motion } from "framer-motion"
-import {
-  CalendarDays,
-  FileText,
-  Cpu,
-  Tag,
-  Hash,
-  Play,
-  Square,
-  PenTool,
-  Trash2,
-  CheckCircle2,
-  Clock,
-} from "lucide-react"
+import { Play, Square, Clock } from "lucide-react"
 import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-const Badge = ({ children, variant = "gray" }) => {
+const _Badge = ({ children, variant = "gray" }) => {
   const variants = {
     gray: "bg-slate-100 text-slate-600 border border-slate-200/60",
     indigo: "bg-indigo-50 text-indigo-700 border border-indigo-100",
@@ -34,31 +22,31 @@ const Badge = ({ children, variant = "gray" }) => {
 }
 
 const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
-  const queryClient = useQueryClient()
+  const _queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
-  const [showAllTopics, setShowAllTopics] = useState(false)
+  const [_showAllTopics, _setShowAllTopics] = useState(false)
 
   const isRunning = job.status === "active"
 
   const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
   const { mutate: deleteMutate } = useDeleteJobMutation()
 
-  const handleToggleStatus = e => {
+  const handleToggleStatus = (e) => {
     e.stopPropagation()
     toggleStatus({ jobId: job._id, currentStatus: job.status })
   }
 
-  const handleDeleteJob = jobId => {
+  const handleDeleteJob = (jobId) => {
     deleteMutate(jobId, {
       onSuccess: () => {
         if (paginatedJobs.length === 1 && setCurrentPage) {
-          setCurrentPage(prev => Math.max(1, prev - 1))
+          setCurrentPage((prev) => Math.max(1, prev - 1))
         }
       },
     })
   }
 
-  const handleEditJob = e => {
+  const handleEditJob = (e) => {
     e.stopPropagation()
     if (job.status === "active") {
       toast.warning("Please pause the job before editing.")
@@ -67,11 +55,11 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
     onEdit(job)
   }
 
-  const formatDate = dateStr => {
+  const formatDate = (dateStr) => {
     if (!dateStr) return "N/A"
     return new Date(dateStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
   }
-  const getTrueOptions = options => {
+  const getTrueOptions = (options) => {
     if (!options) return []
     const mapping = {
       wordpressPosting: "WordPress Posting",

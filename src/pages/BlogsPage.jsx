@@ -1,22 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import BlogCard from "../components/Blog/BlogCard"
 import {
-  ArrowDownUp,
   Calendar,
   Filter,
   Plus,
   RefreshCcw,
   RotateCcw,
-  Search,
   Trash2,
-  ChevronDown,
   Loader2,
   MousePointerClick,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Zap,
   Eye,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -24,7 +17,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import dayjs from "dayjs"
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
@@ -82,14 +75,14 @@ const BlogsPage = () => {
     return item ? JSON.parse(item) : initialBlogFilter
   })
 
-  const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
+  const [_isDetailedFilterOpen, _setDetailedFilterOpen] = useState(false)
 
   const [tempGscClicks, setTempGscClicks] = useState(blogFilters.gscClicks)
   const [tempGscImpressions, setTempGscImpressions] = useState(blogFilters.gscImpressions)
 
   const updateBlogFilters = useCallback(
-    updates => {
-      setBlogFilters(prev => {
+    (updates) => {
+      setBlogFilters((prev) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
           `user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`,
@@ -112,11 +105,11 @@ const BlogsPage = () => {
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters(prev => ({ ...prev, ...parsedFilters }) || {})
+      setBlogFilters((prev) => ({ ...prev, ...parsedFilters }) || {})
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
-      setBlogFilters(prev => ({ ...prev, start: user?.createdAt }))
+      setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
     }
   }, [user?.createdAt, isTrashcan])
 
@@ -155,7 +148,7 @@ const BlogsPage = () => {
         totalItems: res?.totalItems ?? 0,
       }
     },
-    getNextPageParam: lastPage => {
+    getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
     },
     enabled: !!user && !isTrashcan,
@@ -200,7 +193,7 @@ const BlogsPage = () => {
         totalItems: res?.totalItems ?? 0,
       }
     },
-    getNextPageParam: lastPage => {
+    getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
     },
     enabled: !!user && isTrashcan,
@@ -211,7 +204,7 @@ const BlogsPage = () => {
 
   const allBlogs = useMemo(() => {
     const data = isTrashcan ? trashData : activeData
-    return data?.pages.flatMap(p => p.data) ?? []
+    return data?.pages.flatMap((p) => p.data) ?? []
   }, [isTrashcan, trashData, activeData])
 
   const totalItems = (isTrashcan ? trashData : activeData)?.pages[0]?.totalItems ?? 0
@@ -240,7 +233,7 @@ const BlogsPage = () => {
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
-    const isOtherChanged = Object.keys(blogFilters).some(key => {
+    const isOtherChanged = Object.keys(blogFilters).some((key) => {
       if (key === "start" || key === "end") return false
       return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
     })
@@ -255,13 +248,13 @@ const BlogsPage = () => {
 
     const patchBlogInCache = (blogId, patcher) => {
       if (!blogId) return
-      queryClient.setQueriesData({ queryKey: activeQueryKey }, oldData => {
+      queryClient.setQueriesData({ queryKey: activeQueryKey }, (oldData) => {
         if (!oldData?.pages) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map(page => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
-            data: page.data.map(blog => (blog._id === blogId ? patcher(blog) : blog)),
+            data: page.data.map((blog) => (blog._id === blogId ? patcher(blog) : blog)),
           })),
         }
       })
@@ -269,7 +262,7 @@ const BlogsPage = () => {
 
     const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
       if (blogId && taskStatus) {
-        patchBlogInCache(blogId, blog => ({ ...blog, taskStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, taskStatus }))
       }
     }
 
@@ -279,15 +272,15 @@ const BlogsPage = () => {
         queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
       } else if (blogId && newStatus) {
         // Transitional state (e.g. pending → in-progress) — patch status immediately, skip API round-trip
-        patchBlogInCache(blogId, blog => ({ ...blog, status: newStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, status: newStatus }))
       }
     }
 
-    const handleBlogMutation = _ => {
+    const handleBlogMutation = (_) => {
       queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
     }
 
-    const handleBlogCreated = _ => {
+    const handleBlogCreated = (_) => {
       if (!isTrashcan) {
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       }
@@ -295,7 +288,7 @@ const BlogsPage = () => {
 
     const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
       if (!blogId) return
-      patchBlogInCache(blogId, blog => ({ ...blog, agendaNextRun: retryTime }))
+      patchBlogInCache(blogId, (blog) => ({ ...blog, agendaNextRun: retryTime }))
     }
 
     socket.on("blog:progressUpdated", handleProgressUpdated)
@@ -316,26 +309,26 @@ const BlogsPage = () => {
   }, [user, queryClient, isTrashcan])
 
   const handleBlogClick = useCallback(
-    blog => {
+    (blog) => {
       navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    blog => {
+    (blog) => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleRetry = useCallback(
-    async id => {
+    async (id) => {
       try {
         await retryBlogById(id)
         toast.success("Synthesis recalibrated. Retrying...")
         isTrashcan ? queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] }) : refetchActive()
-      } catch (err) {
+      } catch (_err) {
         toast.error("Retry failed")
       }
     },
@@ -343,15 +336,15 @@ const BlogsPage = () => {
   )
 
   const handleArchive = useCallback(
-    async id => {
+    async (id) => {
       // Optimistic UI Update
-      queryClient.setQueryData(["blogs", userId, blogFilters], oldData => {
+      queryClient.setQueryData(["blogs", userId, blogFilters], (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map(page => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
-            data: page.data.filter(blog => blog._id !== id),
+            data: page.data.filter((blog) => blog._id !== id),
             totalItems: Math.max(0, page.totalItems - 1),
           })),
         }
@@ -360,7 +353,7 @@ const BlogsPage = () => {
 
       try {
         await archiveBlogById(id)
-      } catch (err) {
+      } catch (_err) {
         toast.error("Failed to archive")
         refetchActive()
       }
@@ -369,15 +362,15 @@ const BlogsPage = () => {
   )
 
   const handleRestore = useCallback(
-    async id => {
+    async (id) => {
       // Optimistic UI Update
-      queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+      queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map(page => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
-            data: page.data.filter(blog => blog._id !== id),
+            data: page.data.filter((blog) => blog._id !== id),
             totalItems: Math.max(0, page.totalItems - 1),
           })),
         }
@@ -389,7 +382,7 @@ const BlogsPage = () => {
       try {
         await restoreBlogById(id)
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-      } catch (err) {
+      } catch (_err) {
         toast.error("Restoration failed")
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       }
@@ -399,11 +392,11 @@ const BlogsPage = () => {
 
   const handleRestoreAll = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map(page => ({ ...page, data: [], totalItems: 0 })),
+        pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("All articles are restored. Check My Projects", {
@@ -413,7 +406,7 @@ const BlogsPage = () => {
     try {
       await restoreAllBlogs()
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-    } catch (err) {
+    } catch (_err) {
       toast.error("Restoration failed")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
     }
@@ -421,18 +414,18 @@ const BlogsPage = () => {
 
   const handleBulkDelete = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], oldData => {
+    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map(page => ({ ...page, data: [], totalItems: 0 })),
+        pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("Trash emptied. Permanent deletion complete.")
 
     try {
       await deleteAllBlogs()
-    } catch (err) {
+    } catch (_err) {
       toast.error("delete failed")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
     }
@@ -520,7 +513,7 @@ const BlogsPage = () => {
         <div className="relative group flex-1">
           <DebouncedSearchInput
             initialValue={blogFilters.q}
-            onSearch={val => updateBlogFilters({ q: val })}
+            onSearch={(val) => updateBlogFilters({ q: val })}
             placeholder="Search blogs by title or content..."
             className="w-full text-sm placeholder-gray-400 h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-all font-medium"
           />
@@ -530,10 +523,10 @@ const BlogsPage = () => {
           <div className="hidden xl:flex items-center gap-4">
             <select
               value={blogFilters.status}
-              onChange={e => updateBlogFilters({ status: e.target.value })}
+              onChange={(e) => updateBlogFilters({ status: e.target.value })}
               className="select min-w-[180px] focus:none rounded-lg outline-0"
             >
-              {BLOG_STATUS_OPTIONS.map(opt => (
+              {BLOG_STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -542,10 +535,10 @@ const BlogsPage = () => {
 
             <select
               value={blogFilters.sort}
-              onChange={e => updateBlogFilters({ sort: e.target.value })}
+              onChange={(e) => updateBlogFilters({ sort: e.target.value })}
               className="select min-w-[200px] focus:none rounded-lg outline-0"
             >
-              {SORT_OPTIONS.map(opt => (
+              {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -591,10 +584,10 @@ const BlogsPage = () => {
                 <div className="xl:hidden space-y-4">
                   <select
                     value={blogFilters.status}
-                    onChange={e => updateBlogFilters({ status: e.target.value })}
+                    onChange={(e) => updateBlogFilters({ status: e.target.value })}
                     className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold outline-0"
                   >
-                    {BLOG_STATUS_OPTIONS.map(opt => (
+                    {BLOG_STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -602,10 +595,10 @@ const BlogsPage = () => {
                   </select>
                   <select
                     value={blogFilters.sort}
-                    onChange={e => updateBlogFilters({ sort: e.target.value })}
+                    onChange={(e) => updateBlogFilters({ sort: e.target.value })}
                     className="select select-bordered w-full rounded-xl bg-slate-50 border-slate-100 font-bold outline-0"
                   >
-                    {SORT_OPTIONS.map(opt => (
+                    {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -620,8 +613,8 @@ const BlogsPage = () => {
                   <input
                     type="number"
                     value={tempGscClicks || ""}
-                    onChange={e => setTempGscClicks(parseInt(e.target.value) || null)}
-                    onKeyDown={e => e.key === "Enter" && handleApplyDetailedFilters()}
+                    onChange={(e) => setTempGscClicks(parseInt(e.target.value, 10) || null)}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyDetailedFilters()}
                     placeholder="e.g. 50"
                     className="input input-sm h-10 w-full rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all outline-0"
                   />
@@ -634,8 +627,8 @@ const BlogsPage = () => {
                   <input
                     type="number"
                     value={tempGscImpressions || ""}
-                    onChange={e => setTempGscImpressions(parseInt(e.target.value) || null)}
-                    onKeyDown={e => e.key === "Enter" && handleApplyDetailedFilters()}
+                    onChange={(e) => setTempGscImpressions(parseInt(e.target.value, 10) || null)}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyDetailedFilters()}
                     placeholder="e.g. 1000"
                     className="input input-sm h-10 w-full rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-slate-700 placeholder:text-slate-300 transition-all outline-0"
                   />
@@ -649,7 +642,7 @@ const BlogsPage = () => {
                     value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
                     minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
                     maxDate={dayjs()}
-                    onChange={dates => {
+                    onChange={(dates) => {
                       if (dates?.[0]) {
                         updateBlogFilters({
                           start: dates[0].toISOString(),
@@ -736,7 +729,7 @@ const BlogsPage = () => {
         ) : (
           <div>
             <div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {allBlogs.map(blog => (
+              {allBlogs.map((blog) => (
                 <BlogCard
                   key={blog._id}
                   blog={blog}

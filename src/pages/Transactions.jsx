@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
-  User,
   Zap,
   Clock,
   CreditCard,
@@ -9,16 +8,10 @@ import {
   IndianRupee,
   Calendar,
   RefreshCw,
-  Search,
   ChevronDown,
   ChevronUp,
   FileText,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
   TrendingUp,
-  ChevronRight,
-  Filter,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
@@ -35,8 +28,8 @@ const Transactions = () => {
   const { data: transactions = [], isLoading: loading, refetch } = useTransactionsQuery()
   const navigate = useNavigate()
 
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [searchTerm, _setSearchTerm] = useState("")
+  const [statusFilter, _setStatusFilter] = useState("all")
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" })
 
   const showTrialMessage =
@@ -64,7 +57,7 @@ const Transactions = () => {
 
   // Filter & Sort Logic
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    return transactions.filter((t) => {
       const matchesSearch =
         t.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.plan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,7 +85,7 @@ const Transactions = () => {
     })
   }, [filteredTransactions, sortConfig])
 
-  const requestSort = key => {
+  const requestSort = (key) => {
     let direction = "asc"
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc"
@@ -100,7 +93,7 @@ const Transactions = () => {
     setSortConfig({ key, direction })
   }
 
-  const getStatusBadge = status => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case "success":
         return (
@@ -131,7 +124,7 @@ const Transactions = () => {
 
   const totalCreditsValue = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
   const isIndian = user?.countryCode === "IN"
-  const currencySymbol = isIndian ? "₹" : "$"
+  const _currencySymbol = isIndian ? "₹" : "$"
   const CurrencyIcon = isIndian ? IndianRupee : DollarSign
 
   return (

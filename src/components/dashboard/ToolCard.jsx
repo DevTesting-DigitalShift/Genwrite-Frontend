@@ -1,4 +1,3 @@
-import React from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Coins } from "lucide-react"
@@ -7,7 +6,7 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
   const navigate = useNavigate()
 
   const handleClick = (e = {}) => {
-    e.stopPropagation && e.stopPropagation()
+    e.stopPropagation?.()
     if (item.type === "navigation") {
       navigate(item.path)
       return

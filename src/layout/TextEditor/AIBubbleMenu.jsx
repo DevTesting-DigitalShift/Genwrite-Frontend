@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from "react"
+import { useEffect, useState, useRef } from "react"
 import axiosInstance from "@/api"
 import { Sparkles, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
@@ -70,13 +70,13 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
     }
   }, [editor, isArchived])
 
-  const handleAIOperation = async operation => {
+  const handleAIOperation = async (operation) => {
     if (!blogId) {
       toast.error("Blog ID not found")
       return
     }
 
-    let { from, to } = editor.state.selection
+    const { from, to } = editor.state.selection
 
     // Expand selection to encompass full block nodes
     const $from = editor.state.doc.resolve(from)
@@ -106,7 +106,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
     const tempDiv = document.createElement("div")
     const serializer = DOMSerializer.fromSchema(editor.schema)
 
-    selectedFragment.content.forEach(node => {
+    selectedFragment.content.forEach((node) => {
       tempDiv.appendChild(serializer.serializeNode(node))
     })
 
@@ -150,7 +150,9 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
       console.error("AI Operation Error:", error)
       if (error.response?.status === 402) {
         const neededCredits = error.response?.data?.neededCredits
-        toast.error(`Insufficient credits. You need ${neededCredits || ""} credits to perform this operation.`)
+        toast.error(
+          `Insufficient credits. You need ${neededCredits || ""} credits to perform this operation.`
+        )
       } else {
         toast.error(error.response?.data?.message || error.message || `Failed to ${operation}.`)
       }
@@ -188,7 +190,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
           ref={menuRef}
           className="fixed z-9999 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
           style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
-          onMouseDown={e => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
         >
           {isProcessing ? (
             <div className="flex items-center gap-2 px-3 py-2">
@@ -228,7 +230,9 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-xl tracking-tight">Review AI Changes</h3>
+                  <h3 className="font-bold text-gray-900 text-xl tracking-tight">
+                    Review AI Changes
+                  </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                       Processing: {currentOperation}
@@ -269,5 +273,3 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
 }
 
 export { AIBubbleMenu }
-
-

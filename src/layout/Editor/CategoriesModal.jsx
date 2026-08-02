@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Plus, X, AlertCircle } from "lucide-react"
 import useContentStore from "@store/useContentStore"
@@ -32,7 +32,7 @@ const CategoriesModal = ({
   blogData,
   posted,
 }) => {
-  const [customCategory, setCustomCategory] = useState("")
+  const [_customCategory, setCustomCategory] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("")
   const [includeTableOfContents, setIncludeTableOfContents] = useState(
     initialIncludeTableOfContents
@@ -44,7 +44,7 @@ const CategoriesModal = ({
   const [selectedIntegration, setSelectedIntegration] = useState(null)
   const [isCategoryLocked, setIsCategoryLocked] = useState(false)
 
-  const hasShopifyPosted = posted?.SHOPIFY?.link ? true : false
+  const hasShopifyPosted = !!posted?.SHOPIFY?.link
 
   useEffect(() => {
     if (selectedIntegration?.platform) {
@@ -61,7 +61,7 @@ const CategoriesModal = ({
 
     // Clear platform error when platform is selected
     setPlatformError(false)
-    setErrors(prev => ({ ...prev, platform: "" }))
+    setErrors((prev) => ({ ...prev, platform: "" }))
 
     if (platform === "SHOPIFY") {
       if (hasShopifyPosted) {
@@ -75,21 +75,21 @@ const CategoriesModal = ({
   }
 
   // Handle adding a category (custom or predefined)
-  const handleCategoryAdd = useCallback(category => {
+  const handleCategoryAdd = useCallback((category) => {
     setSelectedCategory(category)
     setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
+    setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
   // Handle removing the selected category
   const handleCategoryRemove = useCallback(() => {
     setSelectedCategory("")
     setCategoryError(false)
-    setErrors(prev => ({ ...prev, category: "" }))
+    setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
   // Handle table of contents toggle
-  const handleCheckboxChange = useCallback(e => {
+  const handleCheckboxChange = useCallback((e) => {
     setIncludeTableOfContents(e.target.checked)
   }, [])
 
@@ -184,12 +184,12 @@ const CategoriesModal = ({
     setErrors({ category: "", platform: "" })
   }, [setIsCategoryModalOpen])
 
-  const handleCategoryInputChange = useCallback(e => {
+  const handleCategoryInputChange = useCallback((e) => {
     const value = e.target.value
     setSelectedCategory(value)
     if (value) {
       setCategoryError(false)
-      setErrors(prev => ({ ...prev, category: "" }))
+      setErrors((prev) => ({ ...prev, category: "" }))
     }
   }, [])
 
@@ -310,7 +310,7 @@ const CategoriesModal = ({
                       platformError ? "select-error" : ""
                     }`}
                     value={selectedIntegration?.rawPlatform || ""}
-                    onChange={e => {
+                    onChange={(e) => {
                       const platform = e.target.value
                       const details = integrations.integrations[platform]
                       handleIntegrationChange(platform, details?.url)
@@ -319,7 +319,7 @@ const CategoriesModal = ({
                     <option value="" disabled>
                       Select platform
                     </option>
-                    {Object.entries(integrations.integrations).map(([platform, details]) => (
+                    {Object.entries(integrations.integrations).map(([platform, _details]) => (
                       <option key={platform} value={platform}>
                         {platform}
                       </option>
@@ -363,7 +363,7 @@ const CategoriesModal = ({
                     Auto-Generated Categories
                   </h3>
                   <div className="flex flex-wrap gap-2 p-3 rounded-lg border border-gray-100 bg-gray-50 max-h-40 overflow-y-auto">
-                    {categories.map(category => (
+                    {categories.map((category) => (
                       <button
                         key={category}
                         onClick={() => !isCategoryLocked && handleCategoryAdd(category)}
@@ -404,7 +404,7 @@ const CategoriesModal = ({
                     className={`input input-bordered w-full h-10 text-sm ${categoryError ? "input-error" : ""}`}
                   />
                   <datalist id="popular-categories">
-                    {POPULAR_CATEGORIES.map(category => (
+                    {POPULAR_CATEGORIES.map((category) => (
                       <option key={category} value={category} />
                     ))}
                   </datalist>

@@ -36,7 +36,7 @@ export const LoadingProvider = ({ children }) => {
   const showLoading = useCallback((message = null) => {
     const id = Date.now() + Math.random()
 
-    setLoadingStack(prev => {
+    setLoadingStack((prev) => {
       const newStack = [...prev, { id, message, timestamp: Date.now() }]
       return newStack
     })
@@ -53,13 +53,13 @@ export const LoadingProvider = ({ children }) => {
    * Hide loading - removes from stack by ID or last item
    * @param {number} [id] - Optional loading ID to remove
    */
-  const hideLoading = useCallback(id => {
-    setLoadingStack(prev => {
+  const hideLoading = useCallback((id) => {
+    setLoadingStack((prev) => {
       let newStack
 
       if (id !== undefined && id !== null) {
         // Remove specific ID
-        newStack = prev.filter(item => item.id !== id)
+        newStack = prev.filter((item) => item.id !== id)
 
         if (newStack.length === prev.length) {
           // ID not found, log warning
@@ -97,8 +97,8 @@ export const LoadingProvider = ({ children }) => {
 
     const interval = setInterval(() => {
       const now = Date.now()
-      setLoadingStack(prev => {
-        const filtered = prev.filter(item => now - item.timestamp < MAX_LOADING_TIME)
+      setLoadingStack((prev) => {
+        const filtered = prev.filter((item) => now - item.timestamp < MAX_LOADING_TIME)
 
         if (filtered.length !== prev.length) {
           console.warn(

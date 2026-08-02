@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -23,7 +23,7 @@ const ForgotPassword = () => {
 
   const { forgotPassword } = useAuthStore()
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!email) {
@@ -55,13 +55,13 @@ const ForgotPassword = () => {
     if (timer <= 0) return
 
     const interval = setInterval(() => {
-      setTimer(prev => prev - 1)
+      setTimer((prev) => prev - 1)
     }, 1000)
 
     return () => clearInterval(interval)
   }, [timer])
 
-  const formatTime = seconds => {
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
@@ -241,7 +241,7 @@ const ForgotPassword = () => {
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
-                onChange={e => {
+                onChange={(e) => {
                   setEmail(e.target.value)
                   setError("")
                 }}

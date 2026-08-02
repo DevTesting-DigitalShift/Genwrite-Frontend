@@ -34,7 +34,7 @@ const PublicBlogReader = () => {
     retry: false,
   })
 
-  const getAuthor = blogData => {
+  const getAuthor = (blogData) => {
     if (!blogData) return { name: "GenWrite Author", avatar: null }
 
     // Priority: author object > user object > createdBy object
@@ -116,7 +116,7 @@ const PublicBlogReader = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  const formatDate = dateString => {
+  const formatDate = (dateString) => {
     if (!dateString) return ""
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",

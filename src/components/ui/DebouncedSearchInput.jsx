@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Search } from "lucide-react"
 import useDebounce from "@/hooks/useDebounce"
 import clsx from "clsx"
@@ -34,7 +34,7 @@ const DebouncedSearchInput = ({
   // Use our custom useDebounce hook
   const debouncedSearch = useDebounce(onSearch, debounceTime)
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const newValue = e.target.value
     setValue(newValue)
     debouncedSearch(newValue)

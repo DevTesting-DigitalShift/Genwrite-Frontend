@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   Search,
@@ -14,10 +14,7 @@ import {
   CheckCircle,
   Plus,
   Minus,
-  Trash2,
   Edit2,
-  ChevronRight,
-  ChevronDown,
   Briefcase,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -99,7 +96,7 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
   return (
     <div className="space-y-6">
       <div className="flex gap-1 p-1 bg-gray-100/40 rounded-2xl w-fit border border-gray-200/50 backdrop-blur-sm">
-        {items.map(item => (
+        {items.map((item) => (
           <button
             key={item.key}
             onClick={() => onChange(item.key)}
@@ -113,7 +110,7 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
           </button>
         ))}
       </div>
-      <div>{items.find(item => item.key === activeKey)?.children}</div>
+      <div>{items.find((item) => item.key === activeKey)?.children}</div>
     </div>
   )
 }
@@ -121,25 +118,21 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
 const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
   const [direction, setDirection] = useState(1) // 1 for up, -1 for down
 
-  const handleUpdate = newValue => {
+  const handleUpdate = (newValue) => {
     if (newValue > value) setDirection(1)
     else if (newValue < value) setDirection(-1)
     onChange(newValue)
   }
 
   const variants = {
-    initial: d => ({ y: d > 0 ? 15 : -15, opacity: 0 }),
+    initial: (d) => ({ y: d > 0 ? 15 : -15, opacity: 0 }),
     animate: { y: 0, opacity: 1 },
-    exit: d => ({ y: d > 0 ? -15 : 15, opacity: 0 }),
+    exit: (d) => ({ y: d > 0 ? -15 : 15, opacity: 0 }),
   }
 
   return (
     <div className="space-y-4">
-      {label && (
-        <label className="text-sm font-medium text-gray-500 ml-1">
-          {label}
-        </label>
-      )}
+      {label && <label className="text-sm font-medium text-gray-500 ml-1">{label}</label>}
       <div className="flex items-center gap-3">
         <button
           onClick={() => handleUpdate(Math.max(min, value - 1))}
@@ -219,11 +212,13 @@ const WebsiteRanking = () => {
   const getLoadingMessage = () => {
     if (isOrchestratorLoading)
       return "Deploying AI scouts to crawl target infrastructure and analyze AEO signals..."
-    if (isAnalysing) return "Conducting initial site reconnaissance and extracting core metadata for AEO..."
+    if (isAnalysing)
+      return "Conducting initial site reconnaissance and extracting core metadata for AEO..."
     if (isCreatingPrompts)
       return "Synthesizing high-intent search queries based on LLM training patterns..."
     if (isCheckingRankings) return "Querying AI answer indexes and mapping LLM market share..."
-    if (isAnalyzingAdvanced) return "Drafting AEO strategic roadmap and AI-optimized recommendations..."
+    if (isAnalyzingAdvanced)
+      return "Drafting AEO strategic roadmap and AI-optimized recommendations..."
     return "Optimizing for Answer Engines..."
   }
 
@@ -237,9 +232,15 @@ const WebsiteRanking = () => {
     }
   }, [resetWebsiteRanking])
 
-  const handleExportMD = data => {
+  const handleExportMD = (data) => {
     if (!data) return
-    const { url: auditUrl, analysis, rankings, advancedReport, recommendations: topLevelRecs } = data
+    const {
+      url: auditUrl,
+      analysis,
+      rankings,
+      advancedReport,
+      recommendations: topLevelRecs,
+    } = data
     let markdownContent =
       typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
 
@@ -276,7 +277,7 @@ const WebsiteRanking = () => {
       fullMD += `## Keyword Rankings\n`
       fullMD += `| Keyword | Rank | Top Competitors |\n`
       fullMD += `|---------|------|----------------|\n`
-      rankings.results.forEach(r => {
+      rankings.results.forEach((r) => {
         const rank = r.rank && r.rank > 0 ? `#${r.rank}` : "Not listed"
         const comps = r.topCompanies?.slice(0, 3).join(", ") || ""
         fullMD += `| ${r.prompt} | ${rank} | ${comps} |\n`
@@ -295,7 +296,7 @@ const WebsiteRanking = () => {
     toast.success(`Report exported as ${fileName}`)
   }
 
-  const handleCreateJobFromAudit = async data => {
+  const handleCreateJobFromAudit = async (data) => {
     if (!data?.analysis && !data?.rankings) {
       return toast.error("Run an audit first")
     }
@@ -364,14 +365,14 @@ const WebsiteRanking = () => {
     if (selectedExpertise.length >= 10) {
       return toast.warning("Maximum 10 topics allowed")
     }
-    setSelectedExpertise(prev => [...prev, manualTopic.trim()])
+    setSelectedExpertise((prev) => [...prev, manualTopic.trim()])
     setManualTopic("")
   }
 
-  const toggleExpertise = area => {
-    setSelectedExpertise(prev => {
+  const toggleExpertise = (area) => {
+    setSelectedExpertise((prev) => {
       if (prev.includes(area)) {
-        return prev.filter(a => a !== area)
+        return prev.filter((a) => a !== area)
       }
       if (prev.length >= 10) {
         toast.warning("Maximum 10 topics allowed")
@@ -450,9 +451,7 @@ const WebsiteRanking = () => {
             <div className="w-2 h-8 bg-primary rounded-full" />
             <div>
               <h2 className="text-xl font-black text-gray-900 tracking-tight">AEO Audit Report</h2>
-              <p className="text-xs text-gray-400 font-medium">
-                Optimized for AI Engines
-              </p>
+              <p className="text-xs text-gray-400 font-medium">Optimized for AI Engines</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -495,10 +494,7 @@ const WebsiteRanking = () => {
                   <Tag color="blue" className="text-xs font-semibold m-0">
                     {analysis?.region || "USA"}
                   </Tag>
-                  <Tag
-                    color="cyan"
-                    className="text-xs ui-monospace font-semibold m-0"
-                  >
+                  <Tag color="cyan" className="text-xs ui-monospace font-semibold m-0">
                     {analysis?.language || "English"}
                   </Tag>
                 </div>
@@ -518,9 +514,7 @@ const WebsiteRanking = () => {
                 <TrendingUp className="w-6 h-6 text-emerald-600" />
               </div>
               <div>
-                <span className="text-xs font-bold text-emerald-600">
-                  Global Rank
-                </span>
+                <span className="text-xs font-bold text-emerald-600">Global Rank</span>
                 <p className="text-3xl font-black text-gray-900 mt-1">
                   {rankings?.ourCompanyStats?.globalRank
                     ? `#${rankings.ourCompanyStats.globalRank}`
@@ -539,9 +533,7 @@ const WebsiteRanking = () => {
                 <ShieldCheck className="w-6 h-6 text-gray-900" />
               </div>
               <div>
-                <span className="text-xs font-bold text-gray-400">
-                  Visibility Index
-                </span>
+                <span className="text-xs font-bold text-gray-400">Visibility Index</span>
                 <p className="text-3xl font-black text-gray-900 mt-1">
                   {rankings?.ourCompanyStats?.stats?.coverageRatio
                     ? `${Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100)}%`
@@ -558,9 +550,7 @@ const WebsiteRanking = () => {
                 <Zap className="w-6 h-6 text-gray-900" />
               </div>
               <div>
-                <span className="text-xs font-bold text-gray-400">
-                  Data Points
-                </span>
+                <span className="text-xs font-bold text-gray-400">Data Points</span>
                 <p className="text-3xl font-black text-gray-900 mt-1">
                   {rankings?.results?.length || 0}
                 </p>
@@ -650,7 +640,9 @@ const WebsiteRanking = () => {
                         </p>
                       </div>
                     </div>
-                    <Tag color="purple" className="font-bold">Premium Audit</Tag>
+                    <Tag color="purple" className="font-bold">
+                      Premium Audit
+                    </Tag>
                   </div>
                   <div className="p-8 md:p-12">
                     <ReactMarkdown
@@ -927,15 +919,13 @@ const WebsiteRanking = () => {
                           <input
                             placeholder="https://yourwebsite.com"
                             value={url}
-                            onChange={e => setUrl(e.target.value)}
+                            onChange={(e) => setUrl(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-md outline-none focus:border-gray-900 focus:ring-4 focus:ring-black/2 transition-all placeholder-gray-400 font-medium text-gray-900"
                           />
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <label className="text-sm font-medium text-gray-500 ml-1">
-                          Region
-                        </label>
+                        <label className="text-sm font-medium text-gray-500 ml-1">Region</label>
                         <div className="relative group">
                           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
                             <Zap size={18} />
@@ -943,7 +933,7 @@ const WebsiteRanking = () => {
                           <input
                             placeholder="USA, UK, IN..."
                             value={region}
-                            onChange={e => setRegion(e.target.value)}
+                            onChange={(e) => setRegion(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-md outline-none focus:border-gray-900 focus:ring-4 focus:ring-black/2 transition-all placeholder-gray-400 font-medium text-gray-900"
                           />
                         </div>
@@ -1028,7 +1018,7 @@ const WebsiteRanking = () => {
                           type="text"
                           placeholder="https://example.com"
                           value={url}
-                          onChange={e => setUrl(e.target.value)}
+                          onChange={(e) => setUrl(e.target.value)}
                           className="flex-1 p-4 border border-gray-200 bg-gray-50 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
                         />
 
@@ -1059,9 +1049,7 @@ const WebsiteRanking = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                          <p className="text-xs font-medium text-gray-400 mb-1">
-                            Website Name
-                          </p>
+                          <p className="text-xs font-medium text-gray-400 mb-1">Website Name</p>
                           <p className="font-bold text-gray-800">{analysisResult?.name}</p>
                         </div>
                         <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
@@ -1087,9 +1075,7 @@ const WebsiteRanking = () => {
                         </div>
                       </div>
                       <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-none">
-                        <p className="text-xs font-medium text-gray-400 mb-1">
-                          Site Description
-                        </p>
+                        <p className="text-xs font-medium text-gray-400 mb-1">Site Description</p>
                         <p className=" text-sm leading-relaxed text-gray-600">
                           {analysisResult?.description}
                         </p>
@@ -1099,14 +1085,16 @@ const WebsiteRanking = () => {
                           <p className="text-xs font-medium text-gray-400">
                             Core AEO Topics ({selectedExpertise.length}/10)
                           </p>
-                          <span className="text-[10px] text-primary font-bold">Minimum 1 required</span>
+                          <span className="text-[10px] text-primary font-bold">
+                            Minimum 1 required
+                          </span>
                         </div>
 
                         <div className="flex gap-2">
                           <input
                             value={manualTopic}
-                            onChange={e => setManualTopic(e.target.value)}
-                            onKeyDown={e => e.key === "Enter" && addManualTopic()}
+                            onChange={(e) => setManualTopic(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && addManualTopic()}
                             placeholder="Add a custom topic..."
                             className="flex-1 p-2.5 border border-gray-200 bg-white rounded-md text-sm outline-none focus:border-primary transition-all"
                           />
@@ -1133,7 +1121,7 @@ const WebsiteRanking = () => {
                             </motion.button>
                           ))}
                           {analysisResult?.expertiseAreas
-                            ?.filter(area => !selectedExpertise.includes(area))
+                            ?.filter((area) => !selectedExpertise.includes(area))
                             .map((area, idx) => (
                               <motion.button
                                 layout
@@ -1171,7 +1159,8 @@ const WebsiteRanking = () => {
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2">
-                          <BarChart2 className="text-indigo-600" /> Step 3: Check Answer AI Visibility
+                          <BarChart2 className="text-indigo-600" /> Step 3: Check Answer AI
+                          Visibility
                         </h3>
                         <div className="px-3 py-1 bg-primary/5 text-primary border border-primary/20 rounded-md text-xs font-semibold">
                           Cost: {getManualRankingsCost()} Credits
@@ -1192,7 +1181,7 @@ const WebsiteRanking = () => {
                               </div>
                               <input
                                 value={p}
-                                onChange={e => handleKeywordEdit(i, e.target.value)}
+                                onChange={(e) => handleKeywordEdit(i, e.target.value)}
                                 className="flex-1 bg-transparent border-0 outline-none text-sm font-bold text-gray-700"
                                 placeholder="Enter AEO token..."
                               />
@@ -1234,7 +1223,8 @@ const WebsiteRanking = () => {
                               </div>
                             </div>
                             <p className="text-sm text-slate-400">
-                              Generate a comprehensive strategic roadmap based on aggregated insights.
+                              Generate a comprehensive strategic roadmap based on aggregated
+                              insights.
                             </p>
                           </div>
                           <div className="flex gap-3">

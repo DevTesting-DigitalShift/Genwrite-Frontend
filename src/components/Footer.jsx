@@ -1,5 +1,3 @@
-import React from "react"
-
 const Footer = () => {
   return (
     <footer className="w-full bg-white border-t border-gray-300 py-6 px-4 text-sm  relative">
@@ -10,8 +8,27 @@ const Footer = () => {
         </p>
 
         {/* Badge */}
-        <a href="https://dang.ai" target="_blank" rel="dofollow noopener" style={{ display: "inline-block", textDecoration: "none" }}>
-          <img src="https://assets.dang.ai/badges/dang-verified-dark.png" alt="Verified on DANG!" width="160" height="54" style={{ display: "block", width: "100px", maxWidth: "100%", height: "34px", border: "0", outline: "none", textDecoration: "none" }} />
+        <a
+          href="https://dang.ai"
+          target="_blank"
+          rel="dofollow noopener"
+          style={{ display: "inline-block", textDecoration: "none" }}
+        >
+          <img
+            src="https://assets.dang.ai/badges/dang-verified-dark.png"
+            alt="Verified on DANG!"
+            width="160"
+            height="54"
+            style={{
+              display: "block",
+              width: "100px",
+              maxWidth: "100%",
+              height: "34px",
+              border: "0",
+              outline: "none",
+              textDecoration: "none",
+            }}
+          />
         </a>
 
         {/* Links */}
@@ -20,6 +37,7 @@ const Footer = () => {
             href="/terms-and-conditions"
             target="_blank"
             className="transition hover:text-blue-700 hover:underline"
+            rel="noopener"
           >
             Terms of Service
           </a>
@@ -28,6 +46,7 @@ const Footer = () => {
             href="/privacy-policy"
             target="_blank"
             className="transition hover:text-blue-700 hover:underline"
+            rel="noopener"
           >
             Privacy Policy
           </a>

@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom"
-import { ArrowLeft, Mail, Users, AlertTriangle } from "lucide-react"
+import { Mail, AlertTriangle } from "lucide-react"
 
 const PrivacyPolicy = () => {
   const lastUpdated = "January 15, 2025"
@@ -113,7 +112,7 @@ const PrivacyPolicy = () => {
       <header className="border-b border-gray-200 sticky top-0 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-           <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" class="w-40 h-auto"/>
+            <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" class="w-40 h-auto" />
           </div>
         </div>
       </header>

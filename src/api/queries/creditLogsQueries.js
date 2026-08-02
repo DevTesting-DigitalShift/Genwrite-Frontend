@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { fetchUserCreditLogs } from "@api/creditLogApi"
 
-export const useCreditLogsQuery = queryParams => {
+export const useCreditLogsQuery = (queryParams) => {
   return useQuery({
     queryKey: ["creditLogs", queryParams],
     queryFn: () => fetchUserCreditLogs(queryParams),

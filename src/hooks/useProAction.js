@@ -7,13 +7,13 @@ export const useProAction = () => {
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
-  const userPlan = user?.plan ?? user?.subscription?.plan
+  const _userPlan = user?.plan ?? user?.subscription?.plan
   const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const showTrialMessage =
     user?.subscription?.plan === "free" &&
     user?.subscription?.status === "unpaid" &&
-    totalCredits == 0
+    totalCredits === 0
 
   // New user who hasn't opted into a trial yet, failed payment, or is clearly on a free plan — must go to pricing
   const needsUpgrade =

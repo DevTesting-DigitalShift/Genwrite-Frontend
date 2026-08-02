@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import {
   Copy,
@@ -9,7 +9,6 @@ import {
   Link as LinkIcon,
   FileText,
   ListChecks,
-  Shield,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet"
@@ -39,7 +38,7 @@ const YouTubeSummarization = () => {
     }
   }, [])
 
-  const isValidYoutubeUrl = url => {
+  const isValidYoutubeUrl = (url) => {
     const youtubeRegex =
       /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)[a-zA-Z0-9_-]{11}/
     return youtubeRegex.test(url.trim())
@@ -64,18 +63,18 @@ const YouTubeSummarization = () => {
       onSuccess: () => {
         toast.success("Video summarized successfully!")
       },
-      onError: err => {
+      onError: (err) => {
         toast.error(err?.message || "Failed to summarize video. Please try again.")
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async content => {
+  const handleCopy = async (content) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
     }
@@ -104,7 +103,7 @@ const YouTubeSummarization = () => {
       let index = 0
 
       interval = setInterval(() => {
-        setTimer(prev => {
+        setTimer((prev) => {
           // Phase 1: Rapidly jump through specific points
           if (index < specificPoints.length) {
             const nextPoint = specificPoints[index]
@@ -183,7 +182,7 @@ const YouTubeSummarization = () => {
             <input
               type="url"
               value={inputUrl}
-              onChange={e => setInputUrl(e.target.value)}
+              onChange={(e) => setInputUrl(e.target.value)}
               placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-red-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
@@ -233,7 +232,7 @@ const YouTubeSummarization = () => {
                     src={summaryResult.thumbnail}
                     alt={summaryResult.title}
                     className="w-full h-auto object-cover"
-                    onError={e => {
+                    onError={(e) => {
                       e.target.style.display = "none"
                     }}
                   />

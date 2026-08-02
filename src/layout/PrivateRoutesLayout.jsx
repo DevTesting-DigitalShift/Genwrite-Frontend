@@ -8,8 +8,6 @@ import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
 import { useProAction } from "@/hooks/useProAction"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { toast } from "sonner"
-import { Sparkles } from "lucide-react"
 import UpgradeModal from "@components/UpgradeModal"
 
 // Routes that needsUpgrade users are allowed to visit freely
@@ -62,11 +60,12 @@ const PrivateRoutesLayout = () => {
     }
   }, [])
 
-  const isAllowed = ALLOWED_ROUTES.some(path => location.pathname.startsWith(path)) || isPublicPath
+  const isAllowed =
+    ALLOWED_ROUTES.some((path) => location.pathname.startsWith(path)) || isPublicPath
 
   // Onboarding redirect check
   useEffect(() => {
-    if (!user || !user._id) return
+    if (!user?._id) return
     const hasCompletedOnboarding =
       localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
     if (!user.lastLogin && !hasCompletedOnboarding) {
@@ -80,7 +79,7 @@ const PrivateRoutesLayout = () => {
   }
 
   const bareRoutes = ["/onboarding", "/email-verify", "/verify-email"]
-  const isBareRoute = bareRoutes.some(path => location.pathname.startsWith(path))
+  const isBareRoute = bareRoutes.some((path) => location.pathname.startsWith(path))
 
   if (isBareRoute) {
     return token ? <Outlet /> : <Navigate to="/login" replace />

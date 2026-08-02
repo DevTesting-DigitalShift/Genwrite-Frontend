@@ -1,4 +1,3 @@
-import React from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import {
@@ -6,7 +5,6 @@ import {
   Sparkles,
   Shield,
   UserCheck,
-  FileText,
   Layout,
   Youtube,
   Search,
@@ -138,23 +136,23 @@ const ConnectedTools = ({
   const getSmartSuggestions = () => {
     // 1. Get tools of the same type (excluding current)
     const sameType = Object.values(ALL_TOOLS).filter(
-      t => t.type === currentType && t.id !== currentToolId
+      (t) => t.type === currentType && t.id !== currentToolId
     )
 
     // 2. Get generic tools (excluding current and same type)
     const generics = Object.values(ALL_TOOLS).filter(
-      t =>
+      (t) =>
         t.type === TOOL_TYPES.GENERIC &&
         t.id !== currentToolId &&
-        !sameType.find(st => st.id === t.id)
+        !sameType.find((st) => st.id === t.id)
     )
 
     // 3. Get other tools (fallback)
     const others = Object.values(ALL_TOOLS).filter(
-      t =>
+      (t) =>
         t.id !== currentToolId &&
-        !sameType.find(st => st.id === t.id) &&
-        !generics.find(g => g.id === t.id)
+        !sameType.find((st) => st.id === t.id) &&
+        !generics.find((g) => g.id === t.id)
     )
 
     // Combine them prioritising same type, then generic, then others
@@ -165,8 +163,8 @@ const ConnectedTools = ({
   const toolsToShow =
     suggestions.length > 0
       ? suggestions
-          .map(id => ALL_TOOLS[id])
-          .filter(tool => tool && tool.id !== currentToolId)
+          .map((id) => ALL_TOOLS[id])
+          .filter((tool) => tool && tool.id !== currentToolId)
           .slice(0, 3)
       : getSmartSuggestions()
 
@@ -191,7 +189,8 @@ const ConnectedTools = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             onClick={() => {
-              const finalValue = tool.id === "youtube" || tool.id === "scraping" ? "" : transferValue
+              const finalValue =
+                tool.id === "youtube" || tool.id === "scraping" ? "" : transferValue
               navigate(tool.path, { state: { transferValue: finalValue } })
             }}
             className={`group cursor-pointer bg-white border border-gray-100 ${isCompact ? "p-3.5" : "p-5"} rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden`}

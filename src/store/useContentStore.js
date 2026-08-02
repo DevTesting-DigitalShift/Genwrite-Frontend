@@ -10,7 +10,7 @@ import { toast } from "sonner"
 
 const useContentStore = create(
   devtools(
-    set => ({
+    (set) => ({
       data: null,
       metadata: null,
       categories: [],
@@ -36,7 +36,7 @@ const useContentStore = create(
         }
       },
 
-      createOutline: async payload => {
+      createOutline: async (payload) => {
         set({ loading: true, error: null })
         try {
           const data = await createOutline(payload)
@@ -50,7 +50,7 @@ const useContentStore = create(
         }
       },
 
-      generateMetadata: async payload => {
+      generateMetadata: async (payload) => {
         set({ loading: true, error: null })
         try {
           const data = await generateMetadata(payload)

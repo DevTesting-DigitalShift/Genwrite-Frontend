@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
 import {
-  Mail,
   RotateCcw,
   Loader2,
   Inbox,
   ShieldCheck,
-  CheckCircle2,
   Clock,
   ChevronLeft,
   ArrowRight,
 } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { useResendVerification } from "@/api/queries/authQueries"
 import useVerificationStore from "@store/useVerificationStore"
 import useAuthStore from "@store/useAuthStore"
@@ -84,7 +82,7 @@ export default function EmailVerification() {
     }
   }
 
-  const formatTime = seconds => {
+  const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60)
     const sec = seconds % 60
     return `${min}:${sec.toString().padStart(2, "0")}`
@@ -146,33 +144,40 @@ export default function EmailVerification() {
                   </div>
                   <div>
                     <h3 className="text-slate-900 font-bold text-lg">Check your inbox</h3>
-                    <p className="text-xs text-slate-500 font-medium">Verification link sent to your email.</p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Verification link sent to your email.
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-slate-200/60">
-                   <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-[#3B4BB8] text-xs font-bold">1</span>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                        Check your <span className="text-[#3B4BB8] font-bold">Spam</span> or <span className="text-[#3B4BB8] font-bold">Promotions</span> folder first.
-                      </p>
-                   </div>
-                   <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-[#3B4BB8] text-xs font-bold">2</span>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                        Mark it as <span className="text-emerald-600 font-bold uppercase">"Not Spam"</span> for regular updates.
-                      </p>
-                   </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[#3B4BB8] text-xs font-bold">1</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                      Check your <span className="text-[#3B4BB8] font-bold">Spam</span> or{" "}
+                      <span className="text-[#3B4BB8] font-bold">Promotions</span> folder first.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[#3B4BB8] text-xs font-bold">2</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                      Mark it as{" "}
+                      <span className="text-emerald-600 font-bold uppercase">"Not Spam"</span> for
+                      regular updates.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Expiry Note */}
                 <div className="mt-6 flex items-center justify-center gap-2 py-2.5 bg-blue-50/50 rounded-xl border border-blue-100/50">
                   <Clock className="w-3.5 h-3.5 text-[#3B4BB8]/60" />
-                  <span className="text-[10px] font-bold text-[#3B4BB8]/60 uppercase tracking-widest">Link is valid for the next 1 hour</span>
+                  <span className="text-[10px] font-bold text-[#3B4BB8]/60 uppercase tracking-widest">
+                    Link is valid for the next 1 hour
+                  </span>
                 </div>
               </div>
 

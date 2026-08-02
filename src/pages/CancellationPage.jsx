@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   Heart,
   Gift,
@@ -11,9 +11,6 @@ import {
   Zap,
   AlertTriangle,
   XCircle,
-  ShieldCheck,
-  ChevronRight,
-  BrainCircuit,
   CheckCircle,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"

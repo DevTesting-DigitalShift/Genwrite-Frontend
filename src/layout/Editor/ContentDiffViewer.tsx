@@ -1,4 +1,5 @@
-import React, { useMemo } from "react"
+import type React from "react"
+import { useMemo } from "react"
 
 interface ContentDiffViewerProps {
   oldMarkdown: string
@@ -75,14 +76,11 @@ function diffTokens(oldTokens: string[], newTokens: string[]): DiffOp[] {
 // Wrap non-tag tokens with a highlight span; leave HTML tags unwrapped
 function wrapTokens(tokens: string[], type: "insert" | "delete" | "equal"): string {
   if (type === "equal") return tokens.join("")
-  const cls =
-    type === "insert"
-      ? "diff-word-added"
-      : "diff-word-removed"
+  const cls = type === "insert" ? "diff-word-added" : "diff-word-removed"
   return tokens
     .map((t) => {
       if (t.startsWith("<")) return t // don't wrap HTML tags
-      if (/^\s+$/.test(t)) return t  // don't wrap pure whitespace
+      if (/^\s+$/.test(t)) return t // don't wrap pure whitespace
       return `<span class="${cls}">${t}</span>`
     })
     .join("")
@@ -114,11 +112,7 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
     const newTokens = tokenizeHtml(newMarkdown || "")
     const ops = diffTokens(oldTokens, newTokens)
     const hasDiff = ops.some((op) => op.type !== "equal")
-    return {
-      oldHtml: buildDiffHtml(ops, "old"),
-      newHtml: buildDiffHtml(ops, "new"),
-      hasDiff,
-    }
+    return { oldHtml: buildDiffHtml(ops, "old"), newHtml: buildDiffHtml(ops, "new"), hasDiff }
   }, [oldMarkdown, newMarkdown])
 
   return (
@@ -196,21 +190,17 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                 <span>Original Content</span>
                 <span className="text-[10px] bg-red-100 px-2 py-0.5 rounded font-bold">BEFORE</span>
               </div>
-              <div
-                className="diff-pane flex-1"
-                dangerouslySetInnerHTML={{ __html: oldHtml }}
-              />
+              <div className="diff-pane flex-1" dangerouslySetInnerHTML={{ __html: oldHtml }} />
             </div>
             {/* New Column */}
             <div className="flex flex-col min-w-0">
               <div className="diff-pane-header bg-emerald-50/50 text-emerald-700 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
                 <span>Refined Content</span>
-                <span className="text-[10px] bg-emerald-100 px-2 py-0.5 rounded font-bold">AFTER</span>
+                <span className="text-[10px] bg-emerald-100 px-2 py-0.5 rounded font-bold">
+                  AFTER
+                </span>
               </div>
-              <div
-                className="diff-pane flex-1"
-                dangerouslySetInnerHTML={{ __html: newHtml }}
-              />
+              <div className="diff-pane flex-1" dangerouslySetInnerHTML={{ __html: newHtml }} />
             </div>
           </div>
         )}

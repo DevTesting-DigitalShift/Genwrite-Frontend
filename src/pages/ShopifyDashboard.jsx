@@ -1,4 +1,3 @@
-import React from "react"
 import {
   CheckCircle,
   Store,
@@ -26,7 +25,7 @@ const ShopifyDashboard = () => {
     minute: "2-digit",
   })
 
-  const copyToClipboard = text => {
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text)
     toast.success("Store URL copied to clipboard")
   }

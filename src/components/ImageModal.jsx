@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
@@ -67,7 +67,7 @@ const ImageModal = ({
   }, [open, initialUrl, initialAlt])
 
   // Helper: Check Credits
-  const checkCredits = cost => {
+  const checkCredits = (cost) => {
     const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
     // Also check limits if applicable
     if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
@@ -221,7 +221,7 @@ const ImageModal = ({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={async e => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0]
                           if (!file) return
 
@@ -247,7 +247,7 @@ const ImageModal = ({
                             formData.append("image", file)
 
                             const response = await uploadImage(formData, url || null)
-                            if (response && response.url) {
+                            if (response?.url) {
                               const bustedUrl = `${response.url}?t=${Date.now()}`
                               setUrl(bustedUrl)
                               toast.success("Image uploaded successfully!", { id: toastId })
@@ -294,7 +294,7 @@ const ImageModal = ({
                       disabled={!url || !allowEnhance}
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-indigo-300 text-indigo-600 bg-indigo-50 disabled:bg-gray-100"
                       onClick={() => {
-                        setEnhanceForm(prev => ({ ...prev, prompt: alt || "" }))
+                        setEnhanceForm((prev) => ({ ...prev, prompt: alt || "" }))
                         setView(VIEWS.ENHANCE)
                       }}
                     >
@@ -322,7 +322,7 @@ const ImageModal = ({
                     <label className="block text-sm font-medium  mb-1">Image URL</label>
                     <input
                       value={url}
-                      onChange={e => setUrl(e.target.value)}
+                      onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com/image.jpg"
                       className="input input-bordered w-full"
                     />
@@ -343,7 +343,7 @@ const ImageModal = ({
                     </div>
                     <textarea
                       value={alt}
-                      onChange={e => setAlt(e.target.value)}
+                      onChange={(e) => setAlt(e.target.value)}
                       placeholder="Describe the image for SEO..."
                       rows={4}
                       className="textarea textarea-bordered w-full resize-none"
@@ -386,7 +386,7 @@ const ImageModal = ({
                     <textarea
                       placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
                       value={genForm.prompt}
-                      onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                      onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
                       rows={4}
                       className="textarea textarea-bordered w-full text-base"
                     />
@@ -397,7 +397,7 @@ const ImageModal = ({
                       <label className="block text-sm font-medium  mb-1">Style</label>
                       <select
                         value={genForm.style}
-                        onChange={e => setGenForm({ ...genForm, style: e.target.value })}
+                        onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                         className="select select-bordered w-full"
                       >
                         <option value="photorealistic">Photorealistic</option>
@@ -411,7 +411,7 @@ const ImageModal = ({
                       <label className="block text-sm font-medium  mb-1">Aspect Ratio</label>
                       <select
                         value={genForm.aspectRatio}
-                        onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
+                        onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                         className="select select-bordered w-full"
                       >
                         <option value="1:1">Square (1:1)</option>
@@ -423,7 +423,7 @@ const ImageModal = ({
                       <label className="block text-sm font-medium  mb-1">Quality</label>
                       <select
                         value={genForm.imageSize}
-                        onChange={e => setGenForm({ ...genForm, imageSize: e.target.value })}
+                        onChange={(e) => setGenForm({ ...genForm, imageSize: e.target.value })}
                         className="select select-bordered w-full"
                       >
                         <option value="1k">Standard (1K)</option>
@@ -454,7 +454,7 @@ const ImageModal = ({
                     <textarea
                       placeholder="e.g. Make it higher resolution, fix lighting..."
                       value={enhanceForm.prompt}
-                      onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
+                      onChange={(e) => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
                       rows={3}
                       className="textarea textarea-bordered w-full"
                     />
@@ -464,7 +464,7 @@ const ImageModal = ({
                     <label className="block text-sm font-medium  mb-1">Style</label>
                     <select
                       value={enhanceForm.style}
-                      onChange={e => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
+                      onChange={(e) => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
                       className="select select-bordered w-full"
                     >
                       <option value="photorealistic">Photorealistic</option>
@@ -478,7 +478,9 @@ const ImageModal = ({
                     <label className="block text-sm font-medium  mb-1">Quality</label>
                     <select
                       value={enhanceForm.imageSize}
-                      onChange={e => setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })}
+                      onChange={(e) =>
+                        setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
+                      }
                       className="select select-bordered w-full"
                     >
                       <option value="1k">Standard (1K)</option>

@@ -71,7 +71,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
               <input
                 type="text"
                 value={blogSlug}
-                onChange={e => setBlogSlug(e.target.value)}
+                onChange={(e) => setBlogSlug(e.target.value)}
                 placeholder="blog-slug"
                 className="input input-bordered input-sm w-full text-sm font-mono focus:outline-hidden"
               />

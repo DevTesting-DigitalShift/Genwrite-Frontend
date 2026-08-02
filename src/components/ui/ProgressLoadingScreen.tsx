@@ -76,11 +76,9 @@ const ProgressLoadingScreen = ({
 
     const currentScenario = isYouTube ? "youtube" : scenario
     const scenarioMessages = messages[currentScenario] || messages.default
-    
-    const matched = scenarioMessages
-      .filter(m => prog >= m.threshold)
-      .reverse()[0]
-    
+
+    const matched = scenarioMessages.filter((m) => prog >= m.threshold).reverse()[0]
+
     return matched?.text || ""
   }
 
@@ -119,12 +117,12 @@ const ProgressLoadingScreen = ({
   // Smart Progress Logic
   useEffect(() => {
     if (timer !== undefined) {
-        // If external timer is provided, we can sync with it or just let it be.
-        // For now, if timer is provided and progress is 0, we can use timer if it's 0-100
-        if (timer > 0 && timer <= 100) {
-            setProgress(timer)
-            return
-        }
+      // If external timer is provided, we can sync with it or just let it be.
+      // For now, if timer is provided and progress is 0, we can use timer if it's 0-100
+      if (timer > 0 && timer <= 100) {
+        setProgress(timer)
+        return
+      }
     }
 
     const initialPattern = [1, 2, 3, 15, 20, 25, 30, 40]
@@ -135,7 +133,7 @@ const ProgressLoadingScreen = ({
     const baseDelay = isYouTube ? 2000 : 500
 
     const updateProgress = () => {
-      setProgress(prev => {
+      setProgress((prev) => {
         if (prev >= 98) return 98
         if (currentIndex < initialPattern.length) {
           const nextValue = initialPattern[currentIndex]

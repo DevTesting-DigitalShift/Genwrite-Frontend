@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import { getSocket } from "@utils/socket"
 import useAuthStore from "@store/useAuthStore"
 import {
@@ -89,7 +90,7 @@ function isPartialFailure(blogStatus: string, failedTasks: string[]): boolean {
   return (
     blogStatus === "failed" &&
     failedTasks.length > 0 &&
-    failedTasks.every(t => NON_CRITICAL_TASKS.has(t))
+    failedTasks.every((t) => NON_CRITICAL_TASKS.has(t))
   )
 }
 
@@ -141,7 +142,7 @@ const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: Task
             {hasFailedSteps && (
               <>
                 <p className="text-rose-400 font-bold mb-1.5">Failed steps — retrying:</p>
-                {failedTasks.map(t => (
+                {failedTasks.map((t) => (
                   <p key={t} className="text-slate-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0 mt-px" />
                     {TASK_LABELS[t] ?? t}
@@ -196,7 +197,7 @@ const StatusBadge = ({ status, taskStatus }: { status: string; taskStatus?: Task
             <p className={`font-bold mb-1.5 ${partialFail ? "text-orange-400" : "text-rose-400"}`}>
               {partialFail ? "Non-critical steps failed:" : "Failed steps:"}
             </p>
-            {failedTasks.map(t => (
+            {failedTasks.map((t) => (
               <p key={t} className="text-slate-300 flex items-center gap-1.5">
                 <span
                   className={`w-1.5 h-1.5 rounded-full shrink-0 mt-px ${
@@ -251,13 +252,25 @@ const BlogCard: React.FC<BlogCardProps> = ({
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleProgressUpdated = ({ blogId, taskStatus: newTaskStatus }: { blogId: string; taskStatus: TaskStatus }) => {
+    const handleProgressUpdated = ({
+      blogId,
+      taskStatus: newTaskStatus,
+    }: {
+      blogId: string
+      taskStatus: TaskStatus
+    }) => {
       if (blogId === initialBlog._id && newTaskStatus) {
         setTaskStatus(newTaskStatus)
       }
     }
 
-    const handleStatusChange = ({ blogId, newStatus }: { blogId: string; newStatus: Blog["status"] }) => {
+    const handleStatusChange = ({
+      blogId,
+      newStatus,
+    }: {
+      blogId: string
+      newStatus: Blog["status"]
+    }) => {
       if (blogId === initialBlog._id && newStatus) {
         setStatus(newStatus)
       }
@@ -298,11 +311,14 @@ const BlogCard: React.FC<BlogCardProps> = ({
     ? ALL_PIPELINE_STEPS.filter((step: string) => taskStatus[step] === "skipped").length
     : 0
   const total = ALL_PIPELINE_STEPS.length
-  const percentage = status === "complete" ? 100 : Math.min(Math.round(((completed + skipped) / total) * 100), 100)
+  const percentage =
+    status === "complete" ? 100 : Math.min(Math.round(((completed + skipped) / total) * 100), 100)
 
   // Pending blogs: show scheduled time
   const scheduledTime =
-    isRunning && initialBlog.agendaNextRun ? dayjs(initialBlog.agendaNextRun).format("MMM D, h:mm A") : null
+    isRunning && initialBlog.agendaNextRun
+      ? dayjs(initialBlog.agendaNextRun).format("MMM D, h:mm A")
+      : null
 
   // Border color — partial failure gets amber instead of rose
   const borderClass = isManualEditor
@@ -316,7 +332,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
         : "border-amber-400"
 
   const displayModel = initialBlog.aiModelVer
-    ? initialBlog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    ? initialBlog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : isGemini
       ? "Gemini 2.0 Flash"
       : initialBlog.aiModel || "AI Generated"
@@ -371,7 +387,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
           </div>
 
           {/* Direct action buttons */}
-          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             {status === "failed" && !isTrashcan && (
               <button
                 onClick={handleRetryClick}
@@ -458,7 +474,9 @@ const BlogCard: React.FC<BlogCardProps> = ({
                     {status === "failed" ? (
                       <span className="text-rose-500 flex items-center gap-1 font-black">
                         <AlertCircle size={11} strokeWidth={2.5} />
-                        {currentTask ? `${TASK_LABELS[currentTask] ?? currentTask} Failed` : "Failed"}
+                        {currentTask
+                          ? `${TASK_LABELS[currentTask] ?? currentTask} Failed`
+                          : "Failed"}
                       </span>
                     ) : (
                       <span className="text-indigo-600 animate-pulse flex items-center gap-1 font-black max-w-42.5 truncate">
@@ -467,7 +485,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
                     )}
                   </span>
                 </div>
-                
+
                 {/* The progress bar track */}
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
                   <div
@@ -500,7 +518,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
               <div className="flex items-center gap-1.5 text-orange-500 text-[10px] font-bold">
                 <AlertTriangle size={11} strokeWidth={2.5} />
                 <span>
-                  {failedTasks.map(t => TASK_LABELS[t] ?? t).join(", ")} failed — content intact
+                  {failedTasks.map((t) => TASK_LABELS[t] ?? t).join(", ")} failed — content intact
                 </span>
               </div>
             )}

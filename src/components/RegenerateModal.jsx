@@ -5,7 +5,6 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { TONES } from "@/data/blogData"
 import { IMAGE_SOURCE } from "@/data/blogData"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
@@ -24,14 +23,17 @@ const RegenerateModal = ({
   user,
   integrations,
 }) => {
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
   const [regenerateStep, setRegenerateStep] = useState(1)
   const [keywordInput, setKeywordInput] = useState("")
   const [focusKeywordInput, setFocusKeywordInput] = useState("")
 
   // Calculate regenerate cost using pricing config
   const calculateRegenCost = useCallback(() => {
-    const roundedLength = Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)
+    const roundedLength = Math.max(
+      500,
+      Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
+    )
     return computeCost({
       wordCount: roundedLength,
       options: regenForm.options,
@@ -44,15 +46,15 @@ const RegenerateModal = ({
     })
   }, [regenForm])
 
-  const addRegenKeyword = type => {
+  const addRegenKeyword = (type) => {
     const input = type === "focus" ? focusKeywordInput : keywordInput
     const field = type === "focus" ? "focusKeywords" : "keywords"
     if (!input.trim()) return
-    const existing = regenForm[field].map(k => k.toLowerCase())
+    const existing = regenForm[field].map((k) => k.toLowerCase())
     const newKws = input
       .split(",")
-      .map(k => k.trim().toLowerCase())
-      .filter(k => k && !existing.includes(k))
+      .map((k) => k.trim().toLowerCase())
+      .filter((k) => k && !existing.includes(k))
     if (type === "focus" && regenForm.focusKeywords.length + newKws.length > 3) {
       return toast.warning("Max 3 focus keywords")
     }
@@ -63,12 +65,12 @@ const RegenerateModal = ({
   const handlePasteKeywords = (event, type) => {
     extractKeywordsFromClipboard(event, {
       type,
-      cb: items => {
+      cb: (items) => {
         const field = type === "focus" ? "focusKeywords" : "keywords"
-        const existing = new Set(regenForm[field].map(keyword => keyword.toLowerCase()))
+        const existing = new Set(regenForm[field].map((keyword) => keyword.toLowerCase()))
         const newKeywords = items
-          .map(keyword => keyword.trim().toLowerCase())
-          .filter(keyword => keyword && !existing.has(keyword))
+          .map((keyword) => keyword.trim().toLowerCase())
+          .filter((keyword) => keyword && !existing.has(keyword))
 
         if (newKeywords.length === 0) return
 
@@ -146,7 +148,7 @@ const RegenerateModal = ({
                     type="text"
                     className="input outline-0 w-full"
                     value={regenForm.topic}
-                    onChange={e => updateRegenField("topic", e.target.value)}
+                    onChange={(e) => updateRegenField("topic", e.target.value)}
                     placeholder="Blog topic..."
                   />
                 </div>
@@ -161,7 +163,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.performKeywordResearch}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.performKeywordResearch", checked)
                     }
                     size="large"
@@ -176,7 +178,7 @@ const RegenerateModal = ({
                       type="text"
                       className="input outline-0 w-full"
                       value={regenForm.title}
-                      onChange={e => updateRegenField("title", e.target.value)}
+                      onChange={(e) => updateRegenField("title", e.target.value)}
                       placeholder="Blog title..."
                     />
                   </div>
@@ -194,9 +196,9 @@ const RegenerateModal = ({
                       type="text"
                       className="input outline-0 w-full"
                       value={focusKeywordInput}
-                      onChange={e => setFocusKeywordInput(e.target.value)}
-                      onPaste={e => handlePasteKeywords(e, "focus")}
-                      onKeyDown={e =>
+                      onChange={(e) => setFocusKeywordInput(e.target.value)}
+                      onPaste={(e) => handlePasteKeywords(e, "focus")}
+                      onKeyDown={(e) =>
                         e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
                       }
                       placeholder="Add keyword..."
@@ -233,9 +235,9 @@ const RegenerateModal = ({
                       type="text"
                       className="input outline-0 w-full"
                       value={keywordInput}
-                      onChange={e => setKeywordInput(e.target.value)}
-                      onPaste={e => handlePasteKeywords(e, "secondary")}
-                      onKeyDown={e =>
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onPaste={(e) => handlePasteKeywords(e, "secondary")}
+                      onKeyDown={(e) =>
                         e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
                       }
                       placeholder="Add keywords..."
@@ -270,9 +272,9 @@ const RegenerateModal = ({
                   <select
                     className="select select-bordered w-full"
                     value={regenForm.tone}
-                    onChange={e => updateRegenField("tone", e.target.value)}
+                    onChange={(e) => updateRegenField("tone", e.target.value)}
                   >
-                    {TONES.map(t => (
+                    {TONES.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
@@ -283,7 +285,8 @@ const RegenerateModal = ({
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-semibold">Word Count</label>
                     <span className="text-xs font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
-                      {Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)} words
+                      {Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)}{" "}
+                      words
                     </span>
                   </div>
                   <div className="px-2 py-4">
@@ -311,10 +314,10 @@ const RegenerateModal = ({
 
               <AiModelSelector
                 value={regenForm.aiModel}
-                onChange={modelId => updateRegenField("aiModel", modelId)}
+                onChange={(modelId) => updateRegenField("aiModel", modelId)}
                 showCostCutter={true}
                 costCutterValue={regenForm.costCutter}
-                onCostCutterChange={checked => updateRegenField("costCutter", checked)}
+                onCostCutterChange={(checked) => updateRegenField("costCutter", checked)}
               />
 
               {/* Add Images Toggle */}
@@ -322,7 +325,7 @@ const RegenerateModal = ({
                 <span className="text-sm font-semibold ">Add Images</span>
                 <Switch
                   checked={regenForm.isCheckedGeneratedImages}
-                  onCheckedChange={checked => {
+                  onCheckedChange={(checked) => {
                     updateRegenField("isCheckedGeneratedImages", checked)
                     if (checked) {
                       const newSource =
@@ -342,10 +345,10 @@ const RegenerateModal = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <ImageSourceSelector
                     value={regenForm.imageSource || IMAGE_SOURCE.STOCK}
-                    onChange={newSource => updateRegenField("imageSource", newSource)}
+                    onChange={(newSource) => updateRegenField("imageSource", newSource)}
                     showNone={false}
                     numberOfImages={regenForm.numberOfImages}
-                    onNumberChange={val => updateRegenField("numberOfImages", val)}
+                    onNumberChange={(val) => updateRegenField("numberOfImages", val)}
                   />
                 </div>
               )}
@@ -365,7 +368,7 @@ const RegenerateModal = ({
                   createBrandedImages: regenForm.options.createBrandedImages,
                 }}
                 imageSource={regenForm.imageSource}
-                onChange={val => {
+                onChange={(val) => {
                   updateRegenField("isCheckedBrand", val.isCheckedBrand)
                   updateRegenField("brandId", val.brandId)
                   updateRegenField("options.addCTA", val.addCTA)
@@ -384,7 +387,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.includeFaqs}
-                    onCheckedChange={checked => updateRegenField("options.includeFaqs", checked)}
+                    onCheckedChange={(checked) => updateRegenField("options.includeFaqs", checked)}
                     size="large"
                   />
                 </div>
@@ -398,7 +401,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.includeInterlinks}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.includeInterlinks", checked)
                     }
                     size="large"
@@ -414,7 +417,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.includeCompetitorResearch}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.includeCompetitorResearch", checked)
                     }
                     size="large"
@@ -430,7 +433,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.addOutBoundLinks}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.addOutBoundLinks", checked)
                     }
                     size="large"
@@ -446,7 +449,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.isCheckedQuick}
-                    onCheckedChange={checked => updateRegenField("isCheckedQuick", checked)}
+                    onCheckedChange={(checked) => updateRegenField("isCheckedQuick", checked)}
                     size="large"
                   />
                 </div>
@@ -460,7 +463,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.easyToUnderstand}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.easyToUnderstand", checked)
                     }
                     size="large"
@@ -476,7 +479,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.embedYouTubeVideos}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.embedYouTubeVideos", checked)
                     }
                     size="large"
@@ -492,7 +495,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.extendedThinking}
-                    onCheckedChange={checked =>
+                    onCheckedChange={(checked) =>
                       updateRegenField("options.extendedThinking", checked)
                     }
                     size="large"
@@ -508,7 +511,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.deepResearch}
-                    onCheckedChange={checked => updateRegenField("options.deepResearch", checked)}
+                    onCheckedChange={(checked) => updateRegenField("options.deepResearch", checked)}
                     size="large"
                   />
                 </div>
@@ -522,7 +525,7 @@ const RegenerateModal = ({
                   </div>
                   <Switch
                     checked={regenForm.options.humanisation}
-                    onCheckedChange={checked => updateRegenField("options.humanisation", checked)}
+                    onCheckedChange={(checked) => updateRegenField("options.humanisation", checked)}
                     size="large"
                   />
                 </div>
@@ -538,7 +541,7 @@ const RegenerateModal = ({
                     </div>
                     <Switch
                       checked={regenForm.options.automaticPosting}
-                      onCheckedChange={checked => {
+                      onCheckedChange={(checked) => {
                         const hasIntegrations =
                           Object.keys(integrations?.integrations || {}).length > 0
                         if (checked && !hasIntegrations) {
@@ -570,7 +573,7 @@ const RegenerateModal = ({
                         </div>
                         <Switch
                           checked={regenForm.options.includeTableOfContents}
-                          onCheckedChange={checked =>
+                          onCheckedChange={(checked) =>
                             updateRegenField("options.includeTableOfContents", checked)
                           }
                           size="large"
@@ -584,13 +587,13 @@ const RegenerateModal = ({
                         <select
                           className="select select-bordered outline-0 w-full"
                           value={regenForm.postingDefaultType || ""}
-                          onChange={e => updateRegenField("postingDefaultType", e.target.value)}
+                          onChange={(e) => updateRegenField("postingDefaultType", e.target.value)}
                         >
                           <option value="" disabled>
                             Select Platform
                           </option>
                           {integrations?.integrations &&
-                            Object.keys(integrations.integrations).map(platform => (
+                            Object.keys(integrations.integrations).map((platform) => (
                               <option key={platform} value={platform}>
                                 {platform}
                               </option>

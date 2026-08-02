@@ -4,18 +4,12 @@ import {
   Download,
   Tag,
   Clock,
-  CheckCircle,
   Edit,
   Globe,
   XCircle,
-  Eye,
-  EyeOff,
-  LayoutGrid,
-  Settings,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  ChevronRight,
   PlayCircle,
   Info,
   RefreshCw,
@@ -23,10 +17,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
-import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
-import { FaShopify, FaWix, FaYoutube, FaWordpress } from "react-icons/fa"
 import { toast } from "sonner"
 import clsx from "clsx"
 
@@ -49,7 +41,7 @@ const PluginsMain = () => {
   const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
   const extendedPlugins = useMemo(() => {
-    return plugins.filter(p => p.isVisible)
+    return plugins.filter((p) => p.isVisible)
   }, [plugins])
 
   useEffect(() => {
@@ -60,18 +52,18 @@ const PluginsMain = () => {
     }
   }, [plugins, fetchIntegrations, activeTab])
 
-  const checkPlugin = async plugin => {
+  const checkPlugin = async (plugin) => {
     if (wordpressStatus[plugin.id]?.success) return
 
     try {
       const result = await plugin.onCheck()
-      setWordpressStatus(prev => ({
+      setWordpressStatus((prev) => ({
         ...prev,
         [plugin.id]: { status: result.status, message: result.message, success: result.success },
       }))
     } catch (err) {
       console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-      setWordpressStatus(prev => ({
+      setWordpressStatus((prev) => ({
         ...prev,
         [plugin.id]: {
           status: err.response?.status || "error",
@@ -87,9 +79,9 @@ const PluginsMain = () => {
     }
   }
 
-  const handleTabChange = key => {
+  const handleTabChange = (key) => {
     setActiveTab(key)
-    const plugin = plugins.find(p => p.id.toString() === key)
+    const plugin = plugins.find((p) => p.id.toString() === key)
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
@@ -139,7 +131,7 @@ const PluginsMain = () => {
     // WordPress credentials
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
-    const [hasCredentials, setHasCredentials] = useState(!!wordpressInt)
+    const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     const handleToggleEdit = () => {
@@ -213,7 +205,7 @@ const PluginsMain = () => {
       }
     }, [integrations, hasPinged])
 
-    const handleUrlChange = e => {
+    const handleUrlChange = (e) => {
       const val = e.target.value
       setUrl(val)
       try {
@@ -293,7 +285,7 @@ const PluginsMain = () => {
         const type =
           plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
         const result = await pingIntegration(type)
-        setWordpressStatus(prev => ({
+        setWordpressStatus((prev) => ({
           ...prev,
           [plugin.id]: {
             status: result.status || "success",
@@ -319,7 +311,7 @@ const PluginsMain = () => {
       const installWindowRef = useRef(null)
       const pollTimerRef = useRef(null)
 
-      const validateDomain = val => {
+      const validateDomain = (val) => {
         if (!val) return false
         if (isShopify) {
           try {
@@ -377,7 +369,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const res = await pingIntegration(isShopify ? "SHOPIFY" : "WIX")
-          setWordpressStatus(prev => ({
+          setWordpressStatus((prev) => ({
             ...prev,
             [plugin.id]: { success: res.success, message: res.message },
           }))
@@ -413,7 +405,7 @@ const PluginsMain = () => {
                   <input
                     placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
                     value={domain}
-                    onChange={e => setDomain(e.target.value.trim())}
+                    onChange={(e) => setDomain(e.target.value.trim())}
                     disabled={localLoading}
                     className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
                       domain && !isValidDomain
@@ -497,11 +489,17 @@ const PluginsMain = () => {
               >
                 {isEditing ? (
                   <>
-                    <XCircle size={18} /> <span className="hidden sm:inline-block ml-2 text-sm font-bold">Cancel Changes</span>
+                    <XCircle size={18} />{" "}
+                    <span className="hidden sm:inline-block ml-2 text-sm font-bold">
+                      Cancel Changes
+                    </span>
                   </>
                 ) : (
                   <>
-                    <Edit size={18} /> <span className="hidden sm:inline-block ml-2 text-sm font-bold">Edit Settings</span>
+                    <Edit size={18} />{" "}
+                    <span className="hidden sm:inline-block ml-2 text-sm font-bold">
+                      Edit Settings
+                    </span>
                   </>
                 )}
               </button>
@@ -533,7 +531,7 @@ const PluginsMain = () => {
                   </label>
                   <input
                     value={frontend}
-                    onChange={e => {
+                    onChange={(e) => {
                       const val = e.target.value
                       setFrontend(val)
                       if (plugin.id === 115) {
@@ -557,7 +555,7 @@ const PluginsMain = () => {
                     <input
                       type="text"
                       value={projectId}
-                      onChange={e => setProjectId(e.target.value)}
+                      onChange={(e) => setProjectId(e.target.value)}
                       disabled={!isEditing}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -569,7 +567,7 @@ const PluginsMain = () => {
                       <input
                         type="text"
                         value={dataset}
-                        onChange={e => setDataset(e.target.value)}
+                        onChange={(e) => setDataset(e.target.value)}
                         disabled={!isEditing}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="production"
@@ -581,7 +579,7 @@ const PluginsMain = () => {
                     <label className="text-sm font-medium ">Blog Route</label>
                     <select
                       value={blogRoute}
-                      onChange={e => setBlogRoute(e.target.value)}
+                      onChange={(e) => setBlogRoute(e.target.value)}
                       disabled={!isEditing}
                       className="select select-bordered w-full bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed font-normal"
                     >
@@ -625,13 +623,13 @@ const PluginsMain = () => {
                 <input
                   type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
                   value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                  onChange={e =>
+                  onChange={(e) =>
                     plugin.id === 112 || plugin.id === 115
                       ? setAuthToken(e.target.value)
                       : setWpUsername(e.target.value)
                   }
                   disabled={!isEditing}
-                  onFocus={e => isEditing && (e.target.value = "")}
+                  onFocus={(e) => isEditing && (e.target.value = "")}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
@@ -642,9 +640,9 @@ const PluginsMain = () => {
                   <input
                     type="password"
                     value={wpPassword}
-                    onChange={e => setWpPassword(e.target.value)}
+                    onChange={(e) => setWpPassword(e.target.value)}
                     disabled={!isEditing}
-                    onFocus={e => isEditing && (e.target.value = "")}
+                    onFocus={(e) => isEditing && (e.target.value = "")}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -663,12 +661,15 @@ const PluginsMain = () => {
                   <span className="loading loading-spinner loading-sm"></span>
                 ) : isEditing ? (
                   <>
-                    <ShieldCheck size={18} className="hidden sm:block" /> 
+                    <ShieldCheck size={18} className="hidden sm:block" />
                     <span className="text-center">Save Integration Configuration</span>
                   </>
                 ) : (
                   <>
-                    <RefreshCw size={18} className={clsx(localLoading && "animate-spin", "hidden sm:block")} />
+                    <RefreshCw
+                      size={18}
+                      className={clsx(localLoading && "animate-spin", "hidden sm:block")}
+                    />
                     <span className="text-center">Check Connection Status</span>
                   </>
                 )}
@@ -794,7 +795,7 @@ const PluginsMain = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px]">
           {/* Horizontal Tabs */}
           <div className="flex items-center gap-6 px-6 sm:px-10 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-            {extendedPlugins.map(p => {
+            {extendedPlugins.map((p) => {
               const Icon = p.icon
               const isActive = activeTab === p.id.toString()
               return (
@@ -816,7 +817,7 @@ const PluginsMain = () => {
 
           <div className="p-6 lg:p-10">
             <AnimatePresence mode="wait">
-              {extendedPlugins.find(p => p.id.toString() === activeTab) && (
+              {extendedPlugins.find((p) => p.id.toString() === activeTab) && (
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
@@ -825,7 +826,7 @@ const PluginsMain = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
-                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
+                    plugin={extendedPlugins.find((p) => p.id.toString() === activeTab)}
                   />
                 </motion.div>
               )}
@@ -847,8 +848,12 @@ const PluginHeader = ({ plugin }) => (
       />
     </div>
     <div className="space-y-1">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{plugin.pluginName}</h2>
-      <p className="text-xs sm:text-base text-gray-500 leading-relaxed max-w-2xl">{plugin.description}</p>
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+        {plugin.pluginName}
+      </h2>
+      <p className="text-xs sm:text-base text-gray-500 leading-relaxed max-w-2xl">
+        {plugin.description}
+      </p>
       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 pt-2 text-[10px] sm:text-sm text-gray-500 font-medium">
         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
           <Tag size={12} className="sm:size-4" /> <span>v{plugin.version}</span>

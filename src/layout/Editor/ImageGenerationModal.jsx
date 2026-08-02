@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react"
+import { useRef, useState } from "react"
 
 const ImageGenerationModal = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -10,21 +10,21 @@ const ImageGenerationModal = ({ onClose }) => {
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
-  const handleTagToggle = tag => {
+  const handleTagToggle = (tag) => {
     const isSelected = data.tags.includes(tag)
     if (isSelected) {
-      setData({ ...data, tags: data.tags.filter(t => t !== tag) })
+      setData({ ...data, tags: data.tags.filter((t) => t !== tag) })
     } else {
       setData({ ...data, tags: [...data.tags, tag] })
     }
   }
 
-  const handleKeywordInputKeyDown = e => {
+  const handleKeywordInputKeyDown = (e) => {
     if ((e.key === "Enter" || e.key === ",") && e.target.value.trim()) {
       e.preventDefault()
       const keyword = e.target.value.trim().replace(/,$/, "")
       if (!data.keywords.includes(keyword)) {
-        setData(prev => ({ ...prev, keywords: [...prev.keywords, keyword] }))
+        setData((prev) => ({ ...prev, keywords: [...prev.keywords, keyword] }))
       }
       e.target.value = ""
     }
@@ -33,13 +33,13 @@ const ImageGenerationModal = ({ onClose }) => {
   const handleAddKeywordManually = () => {
     const value = keywordInputRef.current?.value.trim()
     if (value && !data.keywords.includes(value)) {
-      setData(prev => ({ ...prev, keywords: [...prev.keywords, value] }))
+      setData((prev) => ({ ...prev, keywords: [...prev.keywords, value] }))
       keywordInputRef.current.value = ""
     }
   }
 
-  const handleRemoveKeyword = keywordToRemove => {
-    setData({ ...data, keywords: data.keywords.filter(keyword => keyword !== keywordToRemove) })
+  const handleRemoveKeyword = (keywordToRemove) => {
+    setData({ ...data, keywords: data.keywords.filter((keyword) => keyword !== keywordToRemove) })
   }
 
   return (
@@ -77,7 +77,7 @@ const ImageGenerationModal = ({ onClose }) => {
                 placeholder="Enter brief description"
                 rows="3"
                 value={data.brief}
-                onChange={e => setData({ ...data, brief: e.target.value })}
+                onChange={(e) => setData({ ...data, brief: e.target.value })}
               />
 
               {/* Tags */}

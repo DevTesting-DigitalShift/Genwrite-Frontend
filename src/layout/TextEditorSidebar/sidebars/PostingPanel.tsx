@@ -236,7 +236,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                 <select
                   className={`select select-sm w-full bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all ${platformError ? "border-rose-500" : ""}`}
                   value={selectedIntegration?.rawPlatform || ""}
-                  onChange={e => handleIntegrationChange(e.target.value)}
+                  onChange={(e) => handleIntegrationChange(e.target.value)}
                 >
                   <option value="" disabled>
                     Select Distribution Node...
@@ -294,11 +294,11 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                   className={`input input-sm w-full bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all ${categoryError ? "border-rose-500" : ""}`}
                   placeholder="Assign Tag or Create New..."
                   value={selectedCategory}
-                  onChange={e => handleCategoryChange(e.target.value)}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   disabled={isCategoryLocked}
                 />
                 <datalist id="categories-list">
-                  {POPULAR_CATEGORIES.map(c => (
+                  {POPULAR_CATEGORIES.map((c) => (
                     <option key={c} value={c} />
                   ))}
                 </datalist>
@@ -329,7 +329,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                 type="checkbox"
                 className="toggle toggle-sm toggle-primary"
                 checked={includeTableOfContents}
-                onChange={e => setIncludeTableOfContents(e.target.checked)}
+                onChange={(e) => setIncludeTableOfContents(e.target.checked)}
               />
             </div>
           </div>

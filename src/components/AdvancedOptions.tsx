@@ -1,4 +1,4 @@
-import React from "react"
+import type React from "react"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { TONES } from "@/data/blogData"
@@ -78,7 +78,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "easyToUnderstand",
         <Switch
           checked={getFieldValue("easyToUnderstand") || false}
-          onCheckedChange={val => setFieldValue("easyToUnderstand", val)}
+          onCheckedChange={(val) => setFieldValue("easyToUnderstand", val)}
           size="large"
         />,
         "Use simple language and shorter sentences"
@@ -90,7 +90,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "humanisation",
         <Switch
           checked={getFieldValue("humanisation") || false}
-          onCheckedChange={val => setFieldValue("humanisation", val)}
+          onCheckedChange={(val) => setFieldValue("humanisation", val)}
           size="large"
         />,
         "Natural linguistic patterns to bypass AI filters"
@@ -102,7 +102,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "extendedThinking",
         <Switch
           checked={getFieldValue("extendedThinking") || false}
-          onCheckedChange={val => setFieldValue("extendedThinking", val)}
+          onCheckedChange={(val) => setFieldValue("extendedThinking", val)}
           size="large"
         />,
         "Deepen AI reasoning for logical outputs"
@@ -114,7 +114,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "deepResearch",
         <Switch
           checked={getFieldValue("deepResearch") || false}
-          onCheckedChange={val => setFieldValue("deepResearch", val)}
+          onCheckedChange={(val) => setFieldValue("deepResearch", val)}
           size="large"
         />,
         "Extensive multi-source investigative research"
@@ -127,9 +127,9 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         <select
           className="select select-bordered w-[200px] h-10 min-h-0 text-sm"
           value={getFieldValue("tone")}
-          onChange={e => setFieldValue("tone", e.target.value)}
+          onChange={(e) => setFieldValue("tone", e.target.value)}
         >
-          {TONES.map(t => (
+          {TONES.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>
@@ -148,7 +148,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
             max={BLOG_CONFIG.LENGTH.MAX}
             step={BLOG_CONFIG.LENGTH.STEP}
             value={[getFieldValue("userDefinedLength") || BLOG_CONFIG.LENGTH.DEFAULT]}
-            onValueChange={vals => setFieldValue("userDefinedLength", vals[0])}
+            onValueChange={(vals) => setFieldValue("userDefinedLength", vals[0])}
             className="w-full"
           />
           <span className="text-xs text-gray-500 text-right">
@@ -164,7 +164,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "includeFaqs",
         <Switch
           checked={getFieldValue("includeFaqs") || false}
-          onCheckedChange={val => setFieldValue("includeFaqs", val)}
+          onCheckedChange={(val) => setFieldValue("includeFaqs", val)}
           size="large"
         />,
         "Add frequently asked questions section"
@@ -176,7 +176,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "includeInterlinks",
         <Switch
           checked={getFieldValue("includeInterlinks") || false}
-          onCheckedChange={val => setFieldValue("includeInterlinks", val)}
+          onCheckedChange={(val) => setFieldValue("includeInterlinks", val)}
           size="large"
         />,
         "Link between relevant generated content"
@@ -188,7 +188,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "addOutBoundLinks",
         <Switch
           checked={getFieldValue("addOutBoundLinks") || false}
-          onCheckedChange={val => setFieldValue("addOutBoundLinks", val)}
+          onCheckedChange={(val) => setFieldValue("addOutBoundLinks", val)}
           size="large"
         />,
         "Include links to high-authority external sites"
@@ -200,7 +200,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "includeCompetitorResearch",
         <Switch
           checked={getFieldValue("includeCompetitorResearch") || false}
-          onCheckedChange={val => setFieldValue("includeCompetitorResearch", val)}
+          onCheckedChange={(val) => setFieldValue("includeCompetitorResearch", val)}
           size="large"
         />,
         "Analyze top performing similar sub-topics"
@@ -212,7 +212,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
         "embedYouTubeVideos",
         <Switch
           checked={getFieldValue("embedYouTubeVideos") || false}
-          onCheckedChange={val => setFieldValue("embedYouTubeVideos", val)}
+          onCheckedChange={(val) => setFieldValue("embedYouTubeVideos", val)}
           size="large"
         />,
         "Search and embed relevant videos"

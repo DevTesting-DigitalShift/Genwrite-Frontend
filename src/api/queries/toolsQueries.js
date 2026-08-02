@@ -22,10 +22,10 @@ export const useAiDetectionMutation = () => {
     onMutate: () => {
       resetAiDetection()
     },
-    onSuccess: data => {
+    onSuccess: (data) => {
       setAiDetectionResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       setAiDetectionError(error.response?.data || error.message)
     },
   })
@@ -41,10 +41,10 @@ export const useKeywordScrapingMutation = () => {
     onMutate: () => {
       resetKeywordScraping()
     },
-    onSuccess: data => {
+    onSuccess: (data) => {
       setKeywordScrapingResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       setKeywordScrapingError(error.response?.data || error.message)
     },
   })
@@ -59,10 +59,10 @@ export const useYoutubeSummaryMutation = () => {
     onMutate: () => {
       resetYoutubeSummary()
     },
-    onSuccess: data => {
+    onSuccess: (data) => {
       setYoutubeSummaryResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       setYoutubeSummaryError(error.response?.data || error.message)
     },
   })
@@ -74,10 +74,10 @@ export const usePdfChatMutation = () => {
 
   return useMutation({
     mutationFn: pdfChatApi,
-    onSuccess: data => {
+    onSuccess: (data) => {
       setPdfChatResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       setPdfChatError(error.response?.data || error.message)
     },
   })
@@ -93,10 +93,10 @@ export const useCompetitorLikeBlogMutation = () => {
     onMutate: () => {
       resetCompetitorLikeBlog()
     },
-    onSuccess: data => {
+    onSuccess: (data) => {
       setCompetitorLikeBlogResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       setCompetitorLikeBlogError(error.response?.data || error.message)
     },
   })
@@ -108,10 +108,10 @@ const useWebsiteRankingMutation = (mutationFn, key) => {
 
   return useMutation({
     mutationFn,
-    onSuccess: data => {
+    onSuccess: (data) => {
       setWebsiteRankingResult(key, data)
     },
-    onError: error => {
+    onError: (error) => {
       setWebsiteRankingError(key, error.response?.data || error.message)
     },
   })

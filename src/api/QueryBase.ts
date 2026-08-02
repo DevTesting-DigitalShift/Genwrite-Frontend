@@ -3,13 +3,13 @@ import {
   useQuery,
   useMutation,
   useInfiniteQuery,
-  QueryKey,
-  UseQueryResult,
-  UseMutationResult,
-  UseQueryOptions,
-  UseMutationOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
+  type QueryKey,
+  type UseQueryResult,
+  type UseMutationResult,
+  type UseQueryOptions,
+  type UseMutationOptions,
+  type UseInfiniteQueryOptions,
+  type UseInfiniteQueryResult,
 } from "@tanstack/react-query"
 import { queryClient } from "@utils/queryClient"
 
@@ -25,10 +25,7 @@ export type AnyUseQueryOptions<TResult, TError = Error> = Omit<
 export type InfiniteQueryOptions<TResult, TError = Error> = Omit<
   UseInfiniteQueryOptions<TResult, TError, TResult, readonly unknown[], unknown>,
   "queryKey" | "queryFn" | "getNextPageParam" | "initialPageParam"
-> & {
-  queryKey?: readonly unknown[]
-  initialPageParam?: any
-}
+> & { queryKey?: readonly unknown[]; initialPageParam?: any }
 
 export abstract class QueryBase<TEntity, TError = Error> {
   protected queryClient = queryClient
@@ -89,10 +86,7 @@ export abstract class QueryBase<TEntity, TError = Error> {
     mutationFn: (vars: TVars) => Promise<TResult>,
     options?: UseMutationOptions<TResult, TError, TVars>
   ): UseMutationResult<TResult, TError, TVars> =>
-    useMutation<TResult, TError, TVars>({
-      mutationFn,
-      ...options,
-    })
+    useMutation<TResult, TError, TVars>({ mutationFn, ...options })
 
   protected setData = <T>(keySuffix: string, variables: any, updater: (oldData?: T) => T) => {
     this.queryClient.setQueryData([...this.baseKey, keySuffix, variables], updater)

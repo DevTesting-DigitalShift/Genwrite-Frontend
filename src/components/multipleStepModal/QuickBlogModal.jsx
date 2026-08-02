@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
 import useAuthStore from "@store/useAuthStore"
@@ -7,18 +7,15 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
 import { toast } from "sonner"
-import { Plus, X, Crown } from "lucide-react"
-import Carousel from "./Carousel"
-import { packages } from "@/data/templates"
+import { Plus, X } from "lucide-react"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { IMAGE_SOURCE, LANGUAGES, IMAGE_OPTIONS } from "@/data/blogData"
+import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import AdvancedOptions from "@components/AdvancedOptions"
 import AiModelSelector from "@components/AiModelSelector"
 import { Switch } from "@components/ui/switch"
 import FieldLabel from "@components/ui/FieldLabel"
 import { useQueryClient } from "@tanstack/react-query"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
@@ -65,7 +62,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const queryClient = useQueryClient()
 
   // Check if user has a pro subscription
-  const isProUser = user?.subscription?.plan === "pro"
+  const _isProUser = user?.subscription?.plan === "pro"
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -100,10 +97,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const handleNext = () => {
     if (currentStep === 0) {
       if (!formData.template) {
-        setErrors(prev => ({ ...prev, template: "Please select a template." }))
+        setErrors((prev) => ({ ...prev, template: "Please select a template." }))
         return
       }
-      setErrors(prev => ({ ...prev, template: "" }))
+      setErrors((prev) => ({ ...prev, template: "" }))
       setCurrentStep(1)
     } else if (currentStep === 1 && formData.enableAdvanced) {
       setCurrentStep(2)
@@ -118,10 +115,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     closeFnc()
   }
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-    setErrors(prev => ({ ...prev, [name]: "" }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: "" }))
   }
 
   // Handle form submission
@@ -142,13 +139,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
     setErrors(newErrors)
 
-    if (Object.values(newErrors).some(error => error)) {
+    if (Object.values(newErrors).some((error) => error)) {
       toast.error("Please fill all required fields correctly.")
       return
     }
 
     if (otherLinks.length > 3) {
-      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
+      setErrors((prev) => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
       toast.error("You can only add up to 3 links.")
       return
     }
@@ -213,20 +210,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle template selection
-  const handlePackageSelect = useCallback(templates => {
-    setFormData(prev => ({
+  const handlePackageSelect = useCallback((templates) => {
+    setFormData((prev) => ({
       ...prev,
       template: templates?.[0]?.name ?? null,
-      templateIds: templates?.map(t => t.id),
+      templateIds: templates?.map((t) => t.id),
     }))
-    setErrors(prev => ({ ...prev, template: "" }))
+    setErrors((prev) => ({ ...prev, template: "" }))
   }, [])
 
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
-    setErrors(prev => ({ ...prev, [type]: "" }))
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Add keywords to the form data
@@ -237,23 +234,21 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       ? forcedValue
       : (forcedValue !== null ? forcedValue : formData[inputKey]).split(/[,\t\n\r;]+/)
     const items = rawItems
-      .map(k => k.trim())
-      .filter(k => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+      .map((k) => k.trim())
+      .filter((k) => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
     if (items.length === 0) {
-      if (forcedValue === null) setErrors(prev => ({ ...prev, [type]: "Please enter a keyword." }))
+      if (forcedValue === null)
+        setErrors((prev) => ({ ...prev, [type]: "Please enter a keyword." }))
       return
     }
 
-    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const newKeywords = items.filter(k => !existingSet.has(k.toLowerCase()))
+    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const newKeywords = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
       if (forcedValue === null) {
-        setErrors(prev => ({
-          ...prev,
-          [type]: "Please enter valid, non-duplicate keywords.",
-        }))
+        setErrors((prev) => ({ ...prev, [type]: "Please enter valid, non-duplicate keywords." }))
       }
       return
     }
@@ -262,17 +257,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       const availableSlots = 3 - formData[type].length
       if (availableSlots > 0) {
         const toAdd = newKeywords.slice(0, availableSlots)
-        setFormData(prev => ({ ...prev, [type]: [...prev[type], ...toAdd], [inputKey]: "" }))
-        setErrors(prev => ({ ...prev, [type]: "" }))
+        setFormData((prev) => ({ ...prev, [type]: [...prev[type], ...toAdd], [inputKey]: "" }))
+        setErrors((prev) => ({ ...prev, [type]: "" }))
       } else {
-        setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
+        setErrors((prev) => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
       }
       toast.warning("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
-    setErrors(prev => ({ ...prev, [type]: "" }))
+    setFormData((prev) => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Handle Clipboard Paste for Keywords
@@ -288,7 +283,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData({ ...formData, [type]: updatedKeywords })
-    setErrors(prev => ({ ...prev, [type]: "" }))
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Handle Enter key for keywords
@@ -300,7 +295,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Extract YouTube video ID from URL
-  const getVideoId = url => {
+  const getVideoId = (url) => {
     try {
       const parsed = new URL(url)
       const hostname = parsed.hostname.toLowerCase().replace("www.", "")
@@ -333,9 +328,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Validate URL for reference links
-  const validateUrl = url => {
+  const validateUrl = (url) => {
     switch (type) {
-      case "yt":
+      case "yt": {
         const videoId = getVideoId(url)
         const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/
         if (!videoId || !videoIdRegex.test(videoId)) {
@@ -345,10 +340,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           }
         }
         break
+      }
       default:
         try {
           new URL(url)
-        } catch (e) {
+        } catch (_e) {
           return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
         }
     }
@@ -361,7 +357,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     const maxLinks = 3
 
     if (!input) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         otherLinks: `Please enter valid ${type === "yt" ? "youtube" : "reference"} links.`,
       }))
@@ -370,19 +366,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
     const newLinks = input
       .split(",")
-      .map(link => link.trim())
-      .filter(link => link !== "")
+      .map((link) => link.trim())
+      .filter((link) => link !== "")
 
     const validNewLinks = []
 
-    for (let link of newLinks) {
+    for (const link of newLinks) {
       if (otherLinks.includes(link) || validNewLinks.includes(link)) {
         continue
       }
 
       const validation = validateUrl(link)
       if (!validation.valid) {
-        setErrors(prev => ({ ...prev, otherLinks: validation.error }))
+        setErrors((prev) => ({ ...prev, otherLinks: validation.error }))
         toast.error(validation.error)
         return
       }
@@ -391,22 +387,22 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (validNewLinks.length === 0) {
-      setErrors(prev => ({ ...prev, otherLinks: "No valid, unique links found." }))
+      setErrors((prev) => ({ ...prev, otherLinks: "No valid, unique links found." }))
       return
     }
 
     if (otherLinks.length + validNewLinks.length > maxLinks) {
-      setErrors(prev => ({ ...prev, otherLinks: `You can only add up to ${maxLinks} links.` }))
+      setErrors((prev) => ({ ...prev, otherLinks: `You can only add up to ${maxLinks} links.` }))
       return
     }
 
     setOtherLinks([...otherLinks, ...validNewLinks])
-    setFormData(prev => ({ ...prev, otherLinkInput: "" }))
-    setErrors(prev => ({ ...prev, otherLinks: "" }))
+    setFormData((prev) => ({ ...prev, otherLinkInput: "" }))
+    setErrors((prev) => ({ ...prev, otherLinks: "" }))
   }
 
   // Handle Enter key for links
-  const handleKeyDown = e => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddLink()
@@ -414,14 +410,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Remove a reference link
-  const handleRemoveLink = index => {
+  const handleRemoveLink = (index) => {
     const updatedLinks = [...otherLinks]
     updatedLinks.splice(index, 1)
     setOtherLinks(updatedLinks)
-    setErrors(prev => ({ ...prev, otherLinks: "" }))
+    setErrors((prev) => ({ ...prev, otherLinks: "" }))
   }
 
-  const imageSources = [
+  const _imageSources = [
     { id: "stock", label: "Stock Images", value: IMAGE_SOURCE.STOCK },
     { id: "ai", label: "AI-Generated Images", value: IMAGE_SOURCE.AI },
   ]
@@ -437,8 +433,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </div>
         {/* Sleek Minimal Progress Bar */}
         <div className="w-full bg-slate-100 h-[3px] overflow-hidden">
-          <div 
-            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out" 
+          <div
+            className="bg-[#4C5BD6] h-full transition-all duration-300 ease-out"
             style={{ width: `${((currentStep + 1) / (formData.enableAdvanced ? 3 : 2)) * 100}%` }}
           />
         </div>
@@ -460,7 +456,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           {currentStep === 1 && (
             <div className="space-y-5 p-3 pt-4">
               <div>
-                <FieldLabel tip="The core subject or concept you want the blog post to write about." required>
+                <FieldLabel
+                  tip="The core subject or concept you want the blog post to write about."
+                  required
+                >
                   Topic
                 </FieldLabel>
                 <input
@@ -482,8 +481,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </FieldLabel>
                 <Switch
                   checked={formData.exactTitle}
-                  onCheckedChange={checked =>
-                    setFormData(prev => ({ ...prev, exactTitle: checked }))
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, exactTitle: checked }))
                   }
                   size="large"
                 />
@@ -501,7 +500,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   onChange={handleChange}
                   className="select rounded-lg w-full bg-base-100 focus:border-0 outline-0"
                 >
-                  {LANGUAGES.map(lang => (
+                  {LANGUAGES.map((lang) => (
                     <option key={lang.value} value={lang.value}>
                       {lang.label}
                     </option>
@@ -515,8 +514,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </FieldLabel>
                 <Switch
                   checked={formData.performKeywordResearch}
-                  onCheckedChange={checked =>
-                    setFormData(prev => ({
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
                       ...prev,
                       performKeywordResearch: checked,
                       focusKeywords: checked ? [] : prev.focusKeywords,
@@ -531,16 +530,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {!formData.performKeywordResearch && (
                 <>
                   <div>
-                    <FieldLabel tip="The #1 keyword you want this article to rank for in search engines. Appears most often in the blog." required>
+                    <FieldLabel
+                      tip="The #1 keyword you want this article to rank for in search engines. Appears most often in the blog."
+                      required
+                    >
                       Focus Keywords (Max 3)
                     </FieldLabel>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={formData.focusKeywordInput}
-                        onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                        onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                        onPaste={e => handlePasteKeywords(e, "focusKeywords")}
+                        onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
+                        onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                        onPaste={(e) => handlePasteKeywords(e, "focusKeywords")}
                         className={`flex-1 px-3 py-2 border ${
                           errors.focusKeywords ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
@@ -577,16 +579,19 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </div>
                   </div>
                   <div>
-                    <FieldLabel tip="Secondary helper keywords woven throughout the article for broader SEO coverage." required>
+                    <FieldLabel
+                      tip="Secondary helper keywords woven throughout the article for broader SEO coverage."
+                      required
+                    >
                       Keywords
                     </FieldLabel>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={formData.keywordInput}
-                        onChange={e => handleKeywordInputChange(e, "keywords")}
-                        onKeyDown={e => handleKeyPress(e, "keywords")}
-                        onPaste={e => handlePasteKeywords(e, "keywords")}
+                        onChange={(e) => handleKeywordInputChange(e, "keywords")}
+                        onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                        onPaste={(e) => handlePasteKeywords(e, "keywords")}
                         className={`flex-1 px-3 py-2 border ${
                           errors.keywords ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
@@ -637,8 +642,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <div className="flex items-center">
                     <Switch
                       checked={formData.addImages}
-                      onCheckedChange={checked => {
-                        setFormData(prev => ({
+                      onCheckedChange={(checked) => {
+                        setFormData((prev) => ({
                           ...prev,
                           addImages: checked,
                           imageSource: checked
@@ -647,7 +652,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                               : prev.imageSource
                             : "none",
                         }))
-                        setErrors(prev => ({ ...prev, imageSource: "" }))
+                        setErrors((prev) => ({ ...prev, imageSource: "" }))
                       }}
                       size="large"
                     />
@@ -656,9 +661,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 {formData.addImages && (
                   <ImageSourceSelector
                     value={formData.imageSource}
-                    onChange={sourceId => setFormData(prev => ({ ...prev, imageSource: sourceId }))}
+                    onChange={(sourceId) =>
+                      setFormData((prev) => ({ ...prev, imageSource: sourceId }))
+                    }
                     numberOfImages={formData.numberOfImages}
-                    onNumberChange={val => setFormData(prev => ({ ...prev, numberOfImages: val }))}
+                    onNumberChange={(val) =>
+                      setFormData((prev) => ({ ...prev, numberOfImages: val }))
+                    }
                     showUpload={false}
                   />
                 )}
@@ -670,8 +679,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   </FieldLabel>
                   <Switch
                     checked={formData.enableAdvanced}
-                    onCheckedChange={checked =>
-                      setFormData(prev => ({ ...prev, enableAdvanced: checked }))
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, enableAdvanced: checked }))
                     }
                     size="large"
                   />
@@ -681,11 +690,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <AiModelSelector
                       value={formData.aiModel}
-                      onChange={modelId => setFormData(prev => ({ ...prev, aiModel: modelId }))}
+                      onChange={(modelId) => setFormData((prev) => ({ ...prev, aiModel: modelId }))}
                       showCostCutter={true}
                       costCutterValue={formData.costCutter}
-                      onCostCutterChange={checked =>
-                        setFormData(prev => ({ ...prev, costCutter: checked }))
+                      onCostCutterChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, costCutter: checked }))
                       }
                     />
                   </div>
@@ -703,10 +712,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <input
                       type="url"
                       value={formData.otherLinkInput}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
                       }
-                      onKeyDown={e => handleKeyDown(e)}
+                      onKeyDown={(e) => handleKeyDown(e)}
                       className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
@@ -751,8 +760,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   </div>
                   <Switch
                     checked={formData.costCutter}
-                    onCheckedChange={checked =>
-                      setFormData(prev => ({ ...prev, costCutter: checked }))
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, costCutter: checked }))
                     }
                     className="data-[state=checked]:bg-green-500"
                     size="large"
@@ -797,12 +806,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </div>
               </div>
             </div>
-            )}
+          )}
           {currentStep === 2 && formData.enableAdvanced && (
             <div className="space-y-6 p-4 pt-4">
               <AdvancedOptions
                 formData={formData}
-                updateFormData={updates => setFormData(prev => ({ ...prev, ...updates }))}
+                updateFormData={(updates) => setFormData((prev) => ({ ...prev, ...updates }))}
                 isNestedOptions={false}
                 showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
               />
@@ -834,14 +843,16 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {/* Buttons */}
               <div className="flex gap-3 w-full justify-end">
                 <button
-                  onClick={() => setCurrentStep(prev => prev - 1)}
+                  onClick={() => setCurrentStep((prev) => prev - 1)}
                   className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Previous
                 </button>
 
                 <button
-                  onClick={currentStep === (formData.enableAdvanced ? 2 : 1) ? handleSubmit : handleNext}
+                  onClick={
+                    currentStep === (formData.enableAdvanced ? 2 : 1) ? handleSubmit : handleNext
+                  }
                   className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
                 >
                   {currentStep === (formData.enableAdvanced ? 2 : 1) ? "Submit" : "Next"}

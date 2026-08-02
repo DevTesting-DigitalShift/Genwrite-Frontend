@@ -4,7 +4,7 @@ import { getVerifiedSites, getGscAnalytics, connectGsc, getGscAuthUrl } from "@/
 
 const useGscStore = create(
   devtools(
-    set => ({
+    (set) => ({
       verifiedSites: [],
       analyticsData: [],
       gscAuthUrl: null,
@@ -13,8 +13,8 @@ const useGscStore = create(
 
       // Actions
       clearAnalytics: () => set({ analyticsData: [] }),
-      setLoading: loading => set({ loading }),
-      setError: error => set({ error }),
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error }),
 
       // Async Actions
       fetchVerifiedSites: async () => {
@@ -30,7 +30,7 @@ const useGscStore = create(
         }
       },
 
-      fetchGscAnalytics: async params => {
+      fetchGscAnalytics: async (params) => {
         set({ loading: true, error: null })
         try {
           const data = await getGscAnalytics(params)

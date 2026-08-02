@@ -51,7 +51,7 @@ export function useClearSidebarState() {
 
     try {
       const keys = Object.keys(window.sessionStorage)
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith("sidebar-")) {
           window.sessionStorage.removeItem(key)
         }

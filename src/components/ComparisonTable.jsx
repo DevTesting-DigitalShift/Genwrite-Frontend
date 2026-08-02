@@ -67,7 +67,7 @@ const ComparisonTable = ({ plans }) => {
     },
   ]
 
-  const getPlanStyles = tier => {
+  const getPlanStyles = (tier) => {
     switch (tier) {
       case "basic":
         return { text: "text-green-600", icon: "text-green-600" }
@@ -98,7 +98,7 @@ const ComparisonTable = ({ plans }) => {
             <thead>
               <tr className="sticky top-0 z-20 bg-white">
                 <th className="p-2 sm:p-3 md:p-4 text-left text-gray-900 font-semibold text-sm sm:text-base md:text-lg"></th>
-                {plans.map(plan => {
+                {plans.map((plan) => {
                   const styles = getPlanStyles(plan.tier)
                   return (
                     <th
@@ -141,7 +141,7 @@ const ComparisonTable = ({ plans }) => {
                     >
                       {category.name}
                     </td>
-                    {plans.map(plan => (
+                    {plans.map((plan) => (
                       <td key={plan.name} className="bg-white"></td>
                     ))}
                   </tr>
@@ -168,12 +168,12 @@ const ComparisonTable = ({ plans }) => {
                           {feature.name}
                         </td>
 
-                        {plans.map(plan => {
+                        {plans.map((plan) => {
                           const styles = getPlanStyles(plan.tier)
                           return (
                             <td key={plan.name} className="p-2 sm:p-3 md:p-4 text-center">
                               {feature.available.includes(plan.tier) ? (
-                                feature.details && feature.details[plan.tier] ? (
+                                feature.details?.[plan.tier] ? (
                                   <span className={`text-xs sm:text-sm ${styles.text} font-medium`}>
                                     {feature.details[plan.tier]}
                                   </span>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import {
   CreditCard,
   Check,
@@ -10,19 +10,9 @@ import {
   Share2,
   Copy,
   User,
-  Phone,
-  Briefcase,
-  Building2,
   CalendarIcon,
-  Heart,
-  Camera,
   ChevronRight,
-  Info,
-  Type,
-  Layout,
-  Clock,
   Coins,
-  Minus,
   X,
   Crown,
 } from "lucide-react"
@@ -130,7 +120,7 @@ const Profile = () => {
         ])
         setReferralStats(statsRes)
         if (prefsRes.emailPreference)
-          setEmailPreferences(prev => ({ ...prev, ...prefsRes.emailPreference }))
+          setEmailPreferences((prev) => ({ ...prev, ...prefsRes.emailPreference }))
         if (subRes) setSubscriptionDetails(subRes)
       } catch (error) {
         console.error(error)
@@ -163,47 +153,43 @@ const Profile = () => {
       await updateProfileMutate(changes)
       toast.success("Profile synchronized successfully!")
       setInitialProfileData(profileData)
-    } catch (err) {
+    } catch (_err) {
       toast.error("Update failed. Try again.")
     }
   }
 
-  const handleInputChange = e => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target
     if (name === "personalDetails.phone") {
       const numericValue = value.replace(/[^0-9]/g, "").slice(0, 15)
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         personalDetails: { ...prev.personalDetails, phone: numericValue },
       }))
     } else if (name.startsWith("personalDetails.")) {
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         personalDetails: { ...prev.personalDetails, [name.split(".")[1]]: value },
       }))
     }
   }
 
-  const toggleInterest = val => {
-    setProfileData(prev => {
+  const toggleInterest = (val) => {
+    setProfileData((prev) => {
       const current = prev.personalDetails.interests
-      const updated = current.includes(val) ? current.filter(i => i !== val) : [...current, val]
+      const updated = current.includes(val) ? current.filter((i) => i !== val) : [...current, val]
       return { ...prev, personalDetails: { ...prev.personalDetails, interests: updated } }
     })
   }
 
-  const handlePasswordSubmit = async values => {
-    try {
-      const payload = user?.hasPassword
-        ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
-        : { newPassword: values.newPassword }
-      const res = await updatePasswordAPI(payload)
-      if (!res.success) throw new Error(res.message)
-      toast.success("Password updated successfully")
-      loadAuthenticatedUser()
-    } catch (error) {
-      throw error
-    }
+  const handlePasswordSubmit = async (values) => {
+    const payload = user?.hasPassword
+      ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
+      : { newPassword: values.newPassword }
+    const res = await updatePasswordAPI(payload)
+    if (!res.success) throw new Error(res.message)
+    toast.success("Password updated successfully")
+    loadAuthenticatedUser()
   }
 
   const handleGenerateReferral = async () => {
@@ -212,7 +198,7 @@ const Profile = () => {
       setReferralCode(res.referralId)
       toast.success("Referral program enabled!")
       loadAuthenticatedUser()
-    } catch (error) {
+    } catch (_error) {
       toast.error("Referral generation failed")
     }
   }
@@ -230,7 +216,7 @@ const Profile = () => {
     try {
       await updateEmailPreferencesAPI({ emailPreference: newPrefs })
       toast.success("Preferences saved")
-    } catch (error) {
+    } catch (_error) {
       setEmailPreferences(emailPreferences)
       toast.error("Preference update failed")
     }
@@ -384,8 +370,8 @@ const Profile = () => {
             <DatePickerField
               label="Date of Birth"
               value={profileData.personalDetails.dob}
-              onChange={dateStr =>
-                setProfileData(prev => ({
+              onChange={(dateStr) =>
+                setProfileData((prev) => ({
                   ...prev,
                   personalDetails: { ...prev.personalDetails, dob: dateStr },
                 }))
@@ -407,12 +393,12 @@ const Profile = () => {
               <label className="text-sm font-semibold text-slate-600 ml-1">Interests</label>
               <div className="relative">
                 <div className="flex flex-wrap gap-2 p-3 min-h-[56px] mt-1 bg-white border border-slate-200 rounded-lg items-center">
-                  {profileData.personalDetails.interests.map(val => (
+                  {profileData.personalDetails.interests.map((val) => (
                     <div
                       key={val}
                       className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-medium border border-slate-200"
                     >
-                      {INTEREST_OPTIONS.find(o => o.value === val)?.label || val}
+                      {INTEREST_OPTIONS.find((o) => o.value === val)?.label || val}
                       <button onClick={() => toggleInterest(val)} className="hover:text-red-500">
                         <X className="size-3" />
                       </button>
@@ -421,7 +407,7 @@ const Profile = () => {
                   <div className="relative">
                     <select
                       className="select select-sm focus:ring-0 outline-0 select-bordered w-full min-w-[140px] bg-base-100 text-slate-700 font-semibold shadow-sm focus:outline-none"
-                      onChange={e => {
+                      onChange={(e) => {
                         if (e.target.value) toggleInterest(e.target.value)
                         e.target.value = ""
                       }}
@@ -432,8 +418,8 @@ const Profile = () => {
                       </option>
 
                       {INTEREST_OPTIONS.filter(
-                        o => !profileData.personalDetails.interests.includes(o.value)
-                      ).map(o => (
+                        (o) => !profileData.personalDetails.interests.includes(o.value)
+                      ).map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
                         </option>
@@ -549,13 +535,13 @@ const Profile = () => {
                 label="Marketing"
                 desc="Promotions & tips."
                 checked={emailPreferences.promotionalEmails}
-                onChange={c => handleEmailPreferenceChange("promotionalEmails", c)}
+                onChange={(c) => handleEmailPreferenceChange("promotionalEmails", c)}
               />
               <MinimalToggle
                 label="Feature Updates"
                 desc="New tools & protocols."
                 checked={emailPreferences.newFeatureUpdates}
-                onChange={c => handleEmailPreferenceChange("newFeatureUpdates", c)}
+                onChange={(c) => handleEmailPreferenceChange("newFeatureUpdates", c)}
               />
             </div>
           </motion.div>
@@ -568,18 +554,25 @@ const Profile = () => {
             className="bg-white rounded-xl p-5 sm:p-8 shadow-sm border border-slate-200 space-y-6 lg:col-span-2"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-100 pb-6 sm:pb-8">
-               <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
-                   <Crown size={24} />
-                 </div>
-                 <div>
-                   <h3 className="text-lg sm:text-xl font-semibold text-slate-900">Subscription Status</h3>
-                   <p className="text-slate-500 text-xs sm:text-sm">Manage your plan and billing cycle.</p>
-                 </div>
-               </div>
-               <a href="/transactions" className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none w-full sm:w-auto font-semibold h-10">
-                 Manage Billing
-               </a>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                  <Crown size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
+                    Subscription Status
+                  </h3>
+                  <p className="text-slate-500 text-xs sm:text-sm">
+                    Manage your plan and billing cycle.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/transactions"
+                className="btn btn-sm bg-purple-50 hover:bg-purple-100 text-purple-700 border-none w-full sm:w-auto font-semibold h-10"
+              >
+                Manage Billing
+              </a>
             </div>
 
             {subscriptionDetails ? (
@@ -628,12 +621,12 @@ const Profile = () => {
                 )}
               </div>
             ) : (
-               <div className="animate-pulse flex space-x-4">
-                  <div className="flex-1 space-y-4 py-1">
-                     <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                     <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-                  </div>
-               </div>
+              <div className="animate-pulse flex space-x-4">
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                </div>
+              </div>
             )}
           </motion.div>
         </div>
@@ -664,7 +657,7 @@ const DatePickerField = ({ label, value, onChange }) => {
 
   const selected = value ? dayjs(value).toDate() : undefined
 
-  const handleSelect = date => {
+  const handleSelect = (date) => {
     onChange(date ? dayjs(date).format("YYYY-MM-DD") : "")
     setOpen(false)
   }

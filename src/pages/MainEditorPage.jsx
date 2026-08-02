@@ -2,14 +2,13 @@ import { useCallback, useEffect, useState, useRef } from "react"
 import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info, Sparkles } from "lucide-react"
+import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { toast } from "sonner"
 import { Sparkles as SparklesIcon } from "lucide-react"
-import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import { debugPayload } from "@utils/debugPayload"
 import TemplateModal from "@components/generateBlog/TemplateModal"
@@ -19,7 +18,7 @@ import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
@@ -29,7 +28,7 @@ const MainEditorPage = () => {
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
-  const token = localStorage.getItem("token")
+  const _token = localStorage.getItem("token")
 
   // Zustand Stores
   const { user } = useAuthStore()
@@ -51,7 +50,7 @@ const MainEditorPage = () => {
   })
 
   const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
-  const [activeTab, setActiveTab] = useState("Normal")
+  const [activeTab, _setActiveTab] = useState("Normal")
   // isLoading is now derived from isBlogFetching
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
@@ -69,7 +68,7 @@ const MainEditorPage = () => {
   const [isHumanizing, setIsHumanizing] = useState(false)
   const [humanizePrompt, setHumanizePrompt] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
 
   const pathDetect =
     location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
@@ -96,7 +95,7 @@ const MainEditorPage = () => {
   })
 
   useEffect(() => {
-    const handleBeforeUnload = event => {
+    const handleBeforeUnload = (event) => {
       if (unsavedChanges) {
         event.preventDefault()
         event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
@@ -168,7 +167,7 @@ const MainEditorPage = () => {
 
   // Store the section-aware replace function from TextEditor
   const sectionReplaceRef = useRef(null)
-  const handleReplaceReady = useCallback(replaceFn => {
+  const handleReplaceReady = useCallback((replaceFn) => {
     sectionReplaceRef.current = replaceFn
   }, [])
 
@@ -184,14 +183,14 @@ const MainEditorPage = () => {
     } else {
       // Fallback to basic content replace
       const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-      setEditorContent(prev => prev.replace(regex, change))
+      setEditorContent((prev) => prev.replace(regex, change))
     }
 
     // Remove suggestion from list
-    setProofreadingResults(prev => prev.filter(s => s.original !== original))
+    setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }, [])
 
-  const handlePostToWordPress = async postData => {
+  const handlePostToWordPress = async (postData) => {
     setIsPosting(true)
 
     if (!editorTitle) {
@@ -232,7 +231,7 @@ const MainEditorPage = () => {
         : await axiosInstance.post("/integrations/post", requestData)
 
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
-      setIsPosted(prev => ({ ...(prev || {}), [postData.type.platform]: postedData }))
+      setIsPosted((prev) => ({ ...(prev || {}), [postData.type.platform]: postedData }))
       toast.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )
@@ -245,7 +244,7 @@ const MainEditorPage = () => {
     }
   }
 
-  const getWordCount = text => {
+  const getWordCount = (text) => {
     if (!text) return 0
     // Strip HTML tags first
     const strippedText = text.replace(/<[^>]*>/g, " ")
@@ -253,7 +252,7 @@ const MainEditorPage = () => {
     return strippedText
       .trim()
       .split(/\s+/)
-      .filter(word => word.length > 0).length
+      .filter((word) => word.length > 0).length
   }
 
   const handleSave = async (updateData = {}) => {
@@ -352,7 +351,7 @@ const MainEditorPage = () => {
     toast.info("Changes discarded.")
   }
 
-  const tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
+  const _tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
   const handleTemplateModalClose = () => {
     const isEmpty =
@@ -395,7 +394,7 @@ const MainEditorPage = () => {
     if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors(prev => ({ ...prev, ...newErrors }))
+      setErrors((prev) => ({ ...prev, ...newErrors }))
       return
     }
 
@@ -411,7 +410,7 @@ const MainEditorPage = () => {
     }
   }
 
-  const handleTitleChange = e => {
+  const handleTitleChange = (e) => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -419,13 +418,13 @@ const MainEditorPage = () => {
     const newTitle = e.target.value
     if (getWordCount(newTitle) <= 60) {
       setEditorTitle(newTitle)
-      setFormData(prev => ({ ...prev, title: newTitle }))
+      setFormData((prev) => ({ ...prev, title: newTitle }))
     } else {
       toast.error("Title exceeds 60 words.")
     }
   }
 
-  const generatePreviewContent = () => {
+  const _generatePreviewContent = () => {
     if (!editorContent.trim())
       return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
     return `<div class="prose prose-lg"><h1>${
@@ -619,15 +618,15 @@ const MainEditorPage = () => {
                     onClick={async () => {
                       try {
                         const newVisibility = !blog.isPublic
-                        const response = await toggleBlogVisibility(blog._id, newVisibility)
+                        const _response = await toggleBlogVisibility(blog._id, newVisibility)
                         // Update both TanStack Query and Zustand store for immediate UI feedback
-                        queryClient.setQueryData(["blog", id], prev => ({
+                        queryClient.setQueryData(["blog", id], (prev) => ({
                           ...prev,
                           isPublic: newVisibility,
                         }))
                         setSelectedBlog({ ...blog, isPublic: newVisibility })
                         toast.success(`Blog is now ${newVisibility ? "Public" : "Private"}`)
-                      } catch (err) {
+                      } catch (_err) {
                         toast.error("Failed to update visibility")
                       }
                     }}
@@ -699,7 +698,7 @@ const MainEditorPage = () => {
                     <textarea
                       value={editorTitle}
                       onChange={handleTitleChange}
-                      onInput={e => {
+                      onInput={(e) => {
                         e.target.style.height = "auto"
                         e.target.style.height = e.target.scrollHeight + "px"
                       }}

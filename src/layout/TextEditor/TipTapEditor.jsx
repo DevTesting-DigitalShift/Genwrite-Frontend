@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
-import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import TextAlign from "@tiptap/extension-text-align"
@@ -15,7 +14,6 @@ import {
   Heading1,
   Heading2,
   Heading3,
-  Heading4,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -23,33 +21,23 @@ import {
   Image as ImageIcon,
   Undo2,
   Redo2,
-  RotateCcw,
   Trash2,
   Table as TableIcon,
   TableProperties,
-  Columns,
-  Rows,
   Plus,
   Minus,
   Sparkles,
   Check,
   ExternalLink,
-  Loader,
   Youtube,
-  Video,
 } from "lucide-react"
 import { toast } from "sonner"
 import { marked } from "marked"
 import TurndownService from "turndown"
-import { useBlocker, useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { sendRetryLines } from "@api/blogApi"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js"
-import { useQueryClient } from "@tanstack/react-query"
-import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
-import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import { Iframe } from "@/extensions/IframeExtension"
@@ -68,7 +56,6 @@ import { COSTS } from "@/data/blogData"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
 import useAuthStore from "@store/useAuthStore"
-import useBlogStore from "@store/useBlogStore"
 
 const renderer = {
   heading({ text, depth: level }) {
@@ -101,7 +88,7 @@ const TipTapEditor = ({
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
+  const [_showGalleryPicker, setShowGalleryPicker] = useState(false)
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
   const [tableOptionsOpen, setTableOptionsOpen] = useState(false)
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
@@ -143,19 +130,19 @@ const TipTapEditor = ({
   const [ytModalOpen, setYtModalOpen] = useState(false)
   const [ytUrl, setYtUrl] = useState("")
 
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { user } = useAuthStore()
-  const userPlan = user?.subscription?.plan
-  const location = useLocation()
+  const _userPlan = user?.subscription?.plan
+  const _location = useLocation()
 
   // Sync ref with state
   useEffect(() => {
     lastSavedContentRef.current = lastSavedContent
   }, [lastSavedContent])
 
-  const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
-  const safeContent = content ?? blog?.content ?? ""
+  const normalizeContent = useCallback((str) => str.replace(/\s+/g, " ").trim(), [])
+  const _safeContent = content ?? blog?.content ?? ""
 
   // ... (markdownToHtml and htmlToMarkdown unchanged - lines 104-142 in original file logic but we are skipping context for brevity in thought, ensuring we only replace what effectively changes or include surrounding lines if needed for context match)
   // Actually, I need to match the file content. I will target the block where useEditor is defined and the state definitions above it.
@@ -163,7 +150,7 @@ const TipTapEditor = ({
   // Let's rewrite the `useEditor` call and the new Ref setup.
   // I will just perform the specific edits.
 
-  const markdownToHtml = useCallback(markdown => {
+  const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     const trimmed = markdown.trim()
 
@@ -214,7 +201,7 @@ const TipTapEditor = ({
     })
   }, [])
 
-  const htmlToMarkdown = useCallback(html => {
+  const htmlToMarkdown = useCallback((html) => {
     if (!html) return ""
     const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
     turndownService.keep([
@@ -234,7 +221,7 @@ const TipTapEditor = ({
   }, [])
 
   const handleLinkHover = useCallback(
-    event => {
+    (event) => {
       const link = event.target.closest("a")
       if (!link) return
 
@@ -253,14 +240,14 @@ const TipTapEditor = ({
       // Initial position (will be refined by useLayoutEffect)
       setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
 
-      setLinkPreviewUrl(currentUrl => {
+      setLinkPreviewUrl((currentUrl) => {
         if (currentUrl === url) return currentUrl
         return url
       })
       setLinkPreviewElement(link)
 
       if (previewCache.current[url]) {
-        setLinkPreview(prev =>
+        setLinkPreview((prev) =>
           prev === previewCache.current[url] ? prev : previewCache.current[url]
         )
         if (previewCache.current[url].loading) return
@@ -273,20 +260,20 @@ const TipTapEditor = ({
 
       getLinkPreview(url)
         .catch(() => getLinkPreview(url, { proxyUrl: "https://corsproxy.io/?" }))
-        .then(data => {
+        .then((data) => {
           previewCache.current[url] = data
           // Check if we are still looking for THIS url
-          setLinkPreviewUrl(current => {
+          setLinkPreviewUrl((current) => {
             if (current === url) {
               setLinkPreview(data)
             }
             return current
           })
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Link preview error:", err)
           previewCache.current[url] = { error: true, url }
-          setLinkPreviewUrl(current => {
+          setLinkPreviewUrl((current) => {
             if (current === url) {
               setLinkPreview({ error: true, url })
             }
@@ -312,8 +299,8 @@ const TipTapEditor = ({
               ...this.parent?.(),
               id: {
                 default: null,
-                parseHTML: element => element.getAttribute("id"),
-                renderHTML: attributes => {
+                parseHTML: (element) => element.getAttribute("id"),
+                renderHTML: (attributes) => {
                   if (!attributes.id) {
                     return {}
                   }
@@ -339,8 +326,8 @@ const TipTapEditor = ({
             return {
               id: {
                 default: null,
-                parseHTML: element => element.getAttribute("id"),
-                renderHTML: attributes => {
+                parseHTML: (element) => element.getAttribute("id"),
+                renderHTML: (attributes) => {
                   if (!attributes.id) {
                     return {}
                   }
@@ -349,8 +336,8 @@ const TipTapEditor = ({
               },
               class: {
                 default: "blog-section",
-                parseHTML: element => element.getAttribute("class"),
-                renderHTML: attributes => {
+                parseHTML: (element) => element.getAttribute("class"),
+                renderHTML: (attributes) => {
                   return { class: attributes.class }
                 },
               },
@@ -372,15 +359,15 @@ const TipTapEditor = ({
             return {
               class: {
                 default: null,
-                parseHTML: element => element.getAttribute("class"),
-                renderHTML: attributes => {
+                parseHTML: (element) => element.getAttribute("class"),
+                renderHTML: (attributes) => {
                   return { class: attributes.class }
                 },
               },
               id: {
                 default: null,
-                parseHTML: element => element.getAttribute("id"),
-                renderHTML: attributes => {
+                parseHTML: (element) => element.getAttribute("id"),
+                renderHTML: (attributes) => {
                   return { id: attributes.id }
                 },
               },
@@ -421,11 +408,11 @@ const TipTapEditor = ({
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
         },
         handleDOMEvents: {
-          mouseover: (view, event) => {
+          mouseover: (_view, event) => {
             handleLinkHover(event)
             return false
           },
-          mouseout: (view, event) => {
+          mouseout: (_view, _event) => {
             handleLinkLeave()
             return false
           },
@@ -472,7 +459,7 @@ const TipTapEditor = ({
   }, [])
 
   const handleEditLinkAction = useCallback(
-    e => {
+    (e) => {
       e.preventDefault()
       e.stopPropagation()
       if (!normalEditor || !linkPreviewElement) return
@@ -501,7 +488,7 @@ const TipTapEditor = ({
   )
 
   const handleRemoveLinkAction = useCallback(
-    e => {
+    (e) => {
       e.preventDefault()
       e.stopPropagation()
       if (!normalEditor || !linkPreviewElement) return
@@ -574,7 +561,7 @@ const TipTapEditor = ({
   }, [linkPreview, linkPreviewElement])
 
   const safeEditorAction = useCallback(
-    action => {
+    (action) => {
       if (blog?.isArchived) {
         toast.error("This blog is archived. Please restore it to perform this action.")
         return
@@ -604,7 +591,7 @@ const TipTapEditor = ({
     })
   }, [safeEditorAction])
 
-  const handleSelectFromGallery = useCallback((url, alt) => {
+  const _handleSelectFromGallery = useCallback((url, alt) => {
     setImageUrl(url)
     setImageAlt(alt)
     setShowGalleryPicker(false)
@@ -706,7 +693,7 @@ const TipTapEditor = ({
   }
 
   const handleImageClick = useCallback(
-    event => {
+    (event) => {
       if (blog?.isArchived || isPublicMode) return
       if (event.target.tagName === "IMG") {
         const { src, alt } = event.target
@@ -724,7 +711,7 @@ const TipTapEditor = ({
 
   const handleAddTable = useCallback(() => {
     safeEditorAction(() => {
-      setTableDropdownOpen(prev => !prev)
+      setTableDropdownOpen((prev) => !prev)
     })
   }, [safeEditorAction])
 
@@ -779,7 +766,7 @@ const TipTapEditor = ({
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = event => {
+    const handleClickOutside = (event) => {
       if (
         tableDropdownOpen &&
         tableButtonRef.current &&
@@ -832,7 +819,7 @@ const TipTapEditor = ({
 
   useEffect(() => {
     if (!normalEditor) return
-    const update = () => setSelectionTick(t => t + 1)
+    const update = () => setSelectionTick((t) => t + 1)
     normalEditor.on("selectionUpdate", update)
     normalEditor.on("transaction", update)
     return () => {
@@ -875,14 +862,14 @@ const TipTapEditor = ({
 
   // Listen for Highlight Section events from Sidebar
   useEffect(() => {
-    const handleHighlight = event => {
+    const handleHighlight = (event) => {
       const sectionId = event.detail
       if (!normalEditor) return
 
       // Clear previous highlights from all elements
       // We look for elements with our specific highlight class
       const prevHighlights = normalEditor.view.dom.querySelectorAll(".ai-section-highlight")
-      prevHighlights.forEach(el => {
+      prevHighlights.forEach((el) => {
         el.classList.remove(
           "ai-section-highlight",
           "bg-indigo-50",
@@ -923,7 +910,7 @@ const TipTapEditor = ({
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 relative z-50">
       <div className="flex gap-1 shrink-0">
-        {[1, 2, 3].map(level => (
+        {[1, 2, 3].map((level) => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -997,7 +984,7 @@ const TipTapEditor = ({
 
       {/* Alignment */}
       <div className="flex gap-1 shrink-0">
-        {["left", "center", "right"].map(align => (
+        {["left", "center", "right"].map((align) => (
           <div key={align} className="tooltip tooltip-bottom" data-tip={`Align ${align}`}>
             <button
               onClick={() =>
@@ -1143,7 +1130,7 @@ const TipTapEditor = ({
                   normalEditor.isActive("table") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
                 }`}
                 type="button"
-                onClick={() => setTableOptionsOpen(prev => !prev)}
+                onClick={() => setTableOptionsOpen((prev) => !prev)}
               >
                 <TableProperties className="w-4 h-4" />
               </button>
@@ -1256,13 +1243,13 @@ const TipTapEditor = ({
       {/* Font Select */}
       <select
         value={selectedFont}
-        onChange={e => safeEditorAction(() => setSelectedFont(e.target.value))}
+        onChange={(e) => safeEditorAction(() => setSelectedFont(e.target.value))}
         className={`select select-bordered select-sm w-32 shrink-0 ${
           blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
         }`}
         disabled={blog?.isArchived}
       >
-        {FONT_OPTIONS.map(font => (
+        {FONT_OPTIONS.map((font) => (
           <option key={font.value} value={font.value}>
             {font.label}
           </option>
@@ -1359,10 +1346,10 @@ const TipTapEditor = ({
             <input
               type="text"
               value={linkUrl}
-              onChange={e => setLinkUrl(e.target.value)}
+              onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://example.com"
               className="input input-bordered w-full"
-              onKeyDown={e => e.key === "Enter" && handleConfirmLink()}
+              onKeyDown={(e) => e.key === "Enter" && handleConfirmLink()}
             />
             <div className="modal-action">
               <button className="btn btn-ghost" onClick={() => setLinkModalOpen(false)}>
@@ -1392,10 +1379,10 @@ const TipTapEditor = ({
                 <input
                   type="text"
                   value={ytUrl}
-                  onChange={e => setYtUrl(e.target.value)}
+                  onChange={(e) => setYtUrl(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
                   className="input input-bordered w-full"
-                  onKeyDown={e => e.key === "Enter" && handleConfirmYoutube()}
+                  onKeyDown={(e) => e.key === "Enter" && handleConfirmYoutube()}
                 />
               </div>
               <p className="text-xs text-gray-500">
@@ -1441,7 +1428,7 @@ const TipTapEditor = ({
                   alt={imageAlt || "Preview"}
                   className="max-w-full rounded-lg object-contain"
                   style={{ maxHeight: "300px" }}
-                  onError={e => {
+                  onError={(e) => {
                     e.currentTarget.src = "https://via.placeholder.com/300?text=Preview"
                   }}
                 />
@@ -1451,7 +1438,7 @@ const TipTapEditor = ({
                     className="btn btn-sm mt-2 text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 flex items-center gap-2"
                     onClick={() => {
                       setIsEnhanceMode(true)
-                      setEnhanceForm(prev => ({ ...prev, prompt: imageAlt || "" }))
+                      setEnhanceForm((prev) => ({ ...prev, prompt: imageAlt || "" }))
                     }}
                   >
                     <Sparkles className="w-3 h-3" /> Enhance Image
@@ -1479,11 +1466,11 @@ const TipTapEditor = ({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={e => {
+                        onChange={(e) => {
                           const file = e.target.files?.[0]
                           if (file) {
                             const reader = new FileReader()
-                            reader.onload = ev => {
+                            reader.onload = (ev) => {
                               setImageUrl(ev.target.result)
                               toast.success("Local image uploaded!")
                             }
@@ -1502,7 +1489,7 @@ const TipTapEditor = ({
                       <textarea
                         placeholder="Describe image..."
                         value={genForm.prompt}
-                        onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                        onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
                         rows={2}
                         className="textarea textarea-bordered w-full text-sm mt-1"
                       />
@@ -1512,7 +1499,7 @@ const TipTapEditor = ({
                         <label className="text-xs font-medium text-gray-500">Style</label>
                         <select
                           value={genForm.style}
-                          onChange={e => setGenForm({ ...genForm, style: e.target.value })}
+                          onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
                         >
                           <option value="photorealistic">Photorealistic</option>
@@ -1527,7 +1514,7 @@ const TipTapEditor = ({
                         <label className="text-xs font-medium text-gray-500">Ratio</label>
                         <select
                           value={genForm.aspectRatio}
-                          onChange={e => setGenForm({ ...genForm, aspectRatio: e.target.value })}
+                          onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
                         >
                           <option value="1:1">Square (1:1)</option>
@@ -1566,7 +1553,7 @@ const TipTapEditor = ({
                           try {
                             const response = await generateImage(genForm)
                             const newImage = response.image || response.data || response
-                            if (newImage && newImage.url) {
+                            if (newImage?.url) {
                               setImageUrl(newImage.url)
                               setImageAlt(genForm.prompt)
                               toast.success("Image generated! Save to apply.", { id: toastId })
@@ -1601,7 +1588,7 @@ const TipTapEditor = ({
                       <textarea
                         placeholder="Describe changes (e.g. make it high res, fix lighting)"
                         value={enhanceForm.prompt}
-                        onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
+                        onChange={(e) => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
                         rows={4}
                         className="textarea textarea-bordered w-full text-sm mt-1"
                       />
@@ -1611,7 +1598,9 @@ const TipTapEditor = ({
                         <label className="text-sm font-medium ">Style</label>
                         <select
                           value={enhanceForm.style}
-                          onChange={e => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
+                          onChange={(e) =>
+                            setEnhanceForm({ ...enhanceForm, style: e.target.value })
+                          }
                           className="select select-bordered select-sm w-full mt-1"
                         >
                           <option value="photorealistic">Photorealistic</option>
@@ -1625,7 +1614,7 @@ const TipTapEditor = ({
                         <label className="text-sm font-medium ">Quality</label>
                         <select
                           value={enhanceForm.quality || "2k"}
-                          onChange={e =>
+                          onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, quality: e.target.value })
                           }
                           className="select select-bordered select-sm w-full mt-1"
@@ -1639,7 +1628,7 @@ const TipTapEditor = ({
                         <label className="text-sm font-medium ">Aspect Ratio</label>
                         <select
                           value={enhanceForm.dimensions || "1024x1024"}
-                          onChange={e =>
+                          onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, dimensions: e.target.value })
                           }
                           className="select select-bordered select-sm w-full mt-1"
@@ -1684,7 +1673,7 @@ const TipTapEditor = ({
                             formData.append("imageUrl", imageUrl)
                             const response = await enhanceImage(formData)
                             const newImage = response.image || response.data || response
-                            if (newImage && newImage.url) {
+                            if (newImage?.url) {
                               setImageUrl(newImage.url)
                               toast.success("Image enhanced! Save to apply.", { id: toastId })
                               setIsEnhanceMode(false)
@@ -1709,7 +1698,7 @@ const TipTapEditor = ({
                       <input
                         type="text"
                         value={imageUrl}
-                        onChange={e => setImageUrl(e.target.value)}
+                        onChange={(e) => setImageUrl(e.target.value)}
                         placeholder="https://example.com/image.jpg"
                         className="input input-bordered w-full"
                       />
@@ -1759,7 +1748,7 @@ const TipTapEditor = ({
                       </div>
                       <textarea
                         value={imageAlt}
-                        onChange={e => setImageAlt(e.target.value)}
+                        onChange={(e) => setImageAlt(e.target.value)}
                         placeholder="Describe the image for accessibility and SEO"
                         rows={3}
                         className="textarea textarea-bordered w-full"
@@ -1971,7 +1960,7 @@ const TipTapEditor = ({
                           src={linkPreview.images?.[0] || linkPreview.favicons?.[0]}
                           alt="Link preview"
                           className="w-full h-full object-cover"
-                          onError={e => {
+                          onError={(e) => {
                             e.target.style.display = "none"
                           }}
                         />

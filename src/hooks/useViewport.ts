@@ -80,10 +80,7 @@ const useViewport = (customBreakpoints?: Partial<BreakpointConfig>): UseViewport
     if (typeof window === "undefined") {
       return { width: 0, height: 0 }
     }
-    return {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }
+    return { width: window.innerWidth, height: window.innerHeight }
   }, [])
 
   const [dimensions, setDimensions] = useState(getWindowDimensions)

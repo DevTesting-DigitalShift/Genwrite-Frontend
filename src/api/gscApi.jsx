@@ -21,9 +21,7 @@ export const getGscAnalytics = async (params) => {
 
 export const connectGsc = async ({ code, state }) => {
   try {
-    const response = await axiosInstance.get("/gsc/callback", {
-      params: { code, state },
-    })
+    const response = await axiosInstance.get("/gsc/callback", { params: { code, state } })
     return response.data
   } catch (error) {
     throw new Error(error || "Failed to connect GSC")

@@ -10,18 +10,18 @@ import {
 
 const useImageStore = create(
   devtools(
-    (set, get) => ({
+    (set, _get) => ({
       images: [],
       totalImages: 0,
       loading: false,
       error: null,
 
       // Actions
-      setLoading: loading => set({ loading }),
-      setError: error => set({ error }),
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error }),
 
       // Async Actions
-      fetchImages: async params => {
+      fetchImages: async (params) => {
         set({ loading: true, error: null })
         try {
           const response = params.q ? await searchImages(params) : await getImages(params)
@@ -38,31 +38,19 @@ const useImageStore = create(
         }
       },
 
-      generateImage: async genForm => {
-        try {
-          const response = await generateImage(genForm)
-          return response
-        } catch (error) {
-          throw error
-        }
+      generateImage: async (genForm) => {
+        const response = await generateImage(genForm)
+        return response
       },
 
-      enhanceImage: async formData => {
-        try {
-          const response = await enhanceImage(formData)
-          return response
-        } catch (error) {
-          throw error
-        }
+      enhanceImage: async (formData) => {
+        const response = await enhanceImage(formData)
+        return response
       },
 
-      generateAltText: async imageUrl => {
-        try {
-          const response = await generateAltText({ imageUrl })
-          return response
-        } catch (error) {
-          throw error
-        }
+      generateAltText: async (imageUrl) => {
+        const response = await generateAltText({ imageUrl })
+        return response
       },
     }),
     { name: "image-store" }

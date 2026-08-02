@@ -3,7 +3,7 @@ import axiosInstance from "../index"
 
 export const useCreateCheckoutSession = () => {
   return useMutation({
-    mutationFn: async payload => {
+    mutationFn: async (payload) => {
       const response = await axiosInstance.post("/stripe/checkout", payload)
       return response // Returning the whole response for status check
     },
@@ -12,7 +12,7 @@ export const useCreateCheckoutSession = () => {
 
 export const useCreatePortalSession = () => {
   return useMutation({
-    mutationFn: async returnUrl => {
+    mutationFn: async (returnUrl) => {
       const response = await axiosInstance.get("/stripe/portal", { params: { returnUrl } })
       return response.data
     },

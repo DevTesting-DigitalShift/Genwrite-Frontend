@@ -10,7 +10,7 @@ import {
 
 const useIntegrationStore = create(
   devtools(
-    set => ({
+    (set) => ({
       integrations: [],
       categories: [],
       loading: false,
@@ -18,10 +18,10 @@ const useIntegrationStore = create(
       ping: null,
 
       // Actions
-      setIntegrations: integrations => set({ integrations }),
-      setCategories: categories => set({ categories }),
-      setLoading: loading => set({ loading }),
-      setError: error => set({ error }),
+      setIntegrations: (integrations) => set({ integrations }),
+      setCategories: (categories) => set({ categories }),
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error }),
 
       // Async Actions
       fetchIntegrations: async () => {
@@ -48,7 +48,7 @@ const useIntegrationStore = create(
         }
       },
 
-      pingIntegration: async type => {
+      pingIntegration: async (type) => {
         set({ loading: true, error: null })
         try {
           const data = await pingIntegrationAPI(type)
@@ -60,7 +60,7 @@ const useIntegrationStore = create(
         }
       },
 
-      createIntegration: async payload => {
+      createIntegration: async (payload) => {
         set({ loading: true, error: null })
         try {
           const data = await createIntegrationAPI(payload)
@@ -72,7 +72,7 @@ const useIntegrationStore = create(
         }
       },
 
-      updateIntegration: async payload => {
+      updateIntegration: async (payload) => {
         set({ loading: true, error: null })
         try {
           const data = await updateIntegrationAPI(payload)

@@ -1,6 +1,6 @@
 // utils/objectPath.js
 export const getValueByPath = (obj, path) => {
-  return path.split(".").reduce((acc, part) => acc && acc[part], obj)
+  return path.split(".").reduce((acc, part) => acc?.[part], obj)
 }
 
 /**

@@ -12,27 +12,17 @@ export const VideoEmbed = Node.create({
   draggable: true,
 
   addAttributes() {
-    return {
-      src: {
-        default: null,
-      },
-      title: {
-        default: null,
-      },
-    }
+    return { src: { default: null }, title: { default: null } }
   },
 
   parseHTML() {
     return [
       {
         tag: "div.section-iframe-wrapper",
-        getAttrs: node => {
+        getAttrs: (node) => {
           if (typeof node === "string") return false
           const iframe = node.querySelector("iframe")
-          return {
-            src: iframe?.getAttribute("src"),
-            title: iframe?.getAttribute("title"),
-          }
+          return { src: iframe?.getAttribute("src"), title: iframe?.getAttribute("title") }
         },
       },
     ]
@@ -43,14 +33,12 @@ export const VideoEmbed = Node.create({
       "div",
       {
         class: "section-iframe-wrapper",
-        style: "padding:8px; margin:8px; display:flex; align-items:center; justify-content:center; aspectRatio:video !important",
+        style:
+          "padding:8px; margin:8px; display:flex; align-items:center; justify-content:center; aspectRatio:video !important",
       },
       [
         "div",
-        {
-          style:
-            "position:relative; width:100%; aspect-ratio:16/9; padding:8px;",
-        },
+        { style: "position:relative; width:100%; aspect-ratio:16/9; padding:8px;" },
         [
           "iframe",
           mergeAttributes(HTMLAttributes, {

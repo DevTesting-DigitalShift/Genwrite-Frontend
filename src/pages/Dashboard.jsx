@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react"
+import { useState, useEffect, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
@@ -23,13 +23,10 @@ import {
   BadgePercent,
   TrendingUp,
   Sparkles,
-  PenTool,
   ChevronRight,
-  Clock,
   Coins,
   ArrowRight,
   Search,
-  Zap,
   Loader2,
 } from "lucide-react"
 import { motion } from "framer-motion"
@@ -45,7 +42,7 @@ const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogM
 
 const Dashboard = () => {
   const [activeModel, setActiveModel] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
 
   const navigate = useNavigate()
@@ -110,7 +107,7 @@ const Dashboard = () => {
     ? recentBlogsData
     : recentBlogsData?.data || recentBlogsData?.blogs || []
 
-  const recentBlogs = blogsArray.filter(b => b.status === "complete" && !b.isArchived).slice(0, 4)
+  const recentBlogs = blogsArray.filter((b) => b.status === "complete" && !b.isArchived).slice(0, 4)
 
   const stats = blogStatus?.stats || {}
   const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
@@ -155,7 +152,7 @@ const Dashboard = () => {
   }, [navigate])
 
   useEffect(() => {
-    if (!user || !user._id) return
+    if (!user?._id) return
     const isMobile = window.innerWidth < 768
     const hasSeenTour = localStorage.getItem(`hasSeenDashboardTour_${user._id}`) === "true"
     const hasCompletedOnboarding =
@@ -186,7 +183,7 @@ const Dashboard = () => {
     setActiveModel("")
   }
 
-  const openSecondStepJobModal = () => {
+  const _openSecondStepJobModal = () => {
     setActiveModel("")
     navigate("/jobs")
     openJobModal()
@@ -210,20 +207,20 @@ const Dashboard = () => {
   // --- Tool Categorization ---
 
   // 1. Blog Creation Studio (Priority Tools)
-  const creationTools = tools.filter(t =>
+  const creationTools = tools.filter((t) =>
     ["quick-blog", "advanced-blog", "bulk-blog", "youtube-blog"].includes(t.id)
   )
 
   // 2. Content Suite (Rest of Content)
   const contentTools = tools.filter(
-    t =>
+    (t) =>
       ["blog", "youtube", "text", "image", "social"].includes(t.category) &&
-      !creationTools.find(ct => ct.id === t.id)
+      !creationTools.find((ct) => ct.id === t.id)
   )
 
   // 3. Growth & SEO (Research, Analysis, Ranking)
   const growthTools = tools.filter(
-    t => !creationTools.find(ct => ct.id === t.id) && !contentTools.find(ct => ct.id === t.id)
+    (t) => !creationTools.find((ct) => ct.id === t.id) && !contentTools.find((ct) => ct.id === t.id)
   )
 
   const sections = [
@@ -290,7 +287,8 @@ const Dashboard = () => {
                 Instant Blog Writer
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                Enter your topic below to generate a fully structured, SEO-optimized blog post in seconds.
+                Enter your topic below to generate a fully structured, SEO-optimized blog post in
+                seconds.
               </p>
             </div>
 
@@ -423,9 +421,7 @@ const Dashboard = () => {
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Branded</p>
-                  <p className="text-2xl md:text-3xl font-bold text-primary mt-1">
-                    {brandedBlogs}
-                  </p>
+                  <p className="text-2xl md:text-3xl font-bold text-primary mt-1">{brandedBlogs}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
                   <BadgePercent className="w-5 h-5" />
@@ -445,7 +441,7 @@ const Dashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {creationTools.map(tool => (
+            {creationTools.map((tool) => (
               <motion.div
                 key={tool.id}
                 className="group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
@@ -483,7 +479,7 @@ const Dashboard = () => {
 
         {/* --- Other Tool Sections --- */}
         <div className="space-y-12 pb-10">
-          {sections.map(_section => {
+          {sections.map((_section) => {
             const section = _section // alias
             return (
               section.data.length > 0 && (
@@ -497,7 +493,7 @@ const Dashboard = () => {
                     )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {section.data.map(tool => (
+                    {section.data.map((tool) => (
                       <ToolCard
                         key={tool.id}
                         item={tool}
@@ -527,7 +523,7 @@ const Dashboard = () => {
             </div>
 
             <div className="gap-6">
-              {recentBlogs.slice(0, 4).map(blog => (
+              {recentBlogs.slice(0, 4).map((blog) => (
                 <motion.div
                   key={blog._id}
                   onClick={() => navigate(`/blog/${blog._id}`)}

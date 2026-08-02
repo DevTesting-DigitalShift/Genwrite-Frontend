@@ -8,13 +8,13 @@ import { pushToDataLayer } from "@utils/DataLayer"
 
 const SuccessPage = () => {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams, _setSearchParams] = useSearchParams()
 
   const allParamsObject = Object.fromEntries(searchParams.entries())
 
   useEffect(() => {
     // const timer = setTimeout(() => navigate("/dashboard"), 5000)
-    if (allParamsObject?.isTrialOpted == "true") {
+    if (allParamsObject?.isTrialOpted === "true") {
       const { userId, plan, billingPeriod } = allParamsObject
       const trialPlan = plan ? subscriptions?.[plan] : undefined
       const eventData = {
@@ -38,11 +38,7 @@ const SuccessPage = () => {
   // Animation variants for the main content
   const containerVariants = {
     hidden: { opacity: 0, y: 50 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   }
 
   // Animation variants for the icon

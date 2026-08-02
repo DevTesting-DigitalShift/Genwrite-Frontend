@@ -1,4 +1,3 @@
-import React from "react"
 import { motion } from "framer-motion"
 import { AlertTriangle, Lock, ChevronRight, CreditCard } from "lucide-react"
 import { useCreatePortalSession } from "@api/queries/paymentQueries"
@@ -10,7 +9,7 @@ const PaymentPendingModal = ({ user }) => {
 
   const handleResolveIssue = () => {
     createPortalSession(undefined, {
-      onSuccess: data => {
+      onSuccess: (data) => {
         if (data?.url) {
           window.location.href = data.url
         } else {

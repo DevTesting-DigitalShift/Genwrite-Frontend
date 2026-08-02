@@ -94,13 +94,13 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
           <div className="space-y-4">
             <input
               value={metadata.title}
-              onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
+              onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
               placeholder="Meta Signature Title..."
               className="w-full text-sm rounded-xl border-none outline-none ring-1 ring-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all h-10 px-4 font-medium"
             />
             <textarea
               value={metadata.description}
-              onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
+              onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
               placeholder="Abstract Summary for AI crawlers..."
               rows={4}
               className="w-full text-sm resize-none rounded-xl border-none outline-none ring-1 ring-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all p-4 font-medium"
@@ -159,7 +159,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
               type="checkbox"
               className="toggle toggle-sm toggle-primary"
               checked={includeImagesInExport}
-              onChange={e => setIncludeImagesInExport(e.target.checked)}
+              onChange={(e) => setIncludeImagesInExport(e.target.checked)}
               disabled={userPlan === "free"}
             />
           </div>

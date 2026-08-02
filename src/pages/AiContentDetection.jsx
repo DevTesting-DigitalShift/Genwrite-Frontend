@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import {
   Copy,
   RefreshCw,
   FileText,
   Sparkles,
-  Loader2,
   Shield,
   AlertCircle,
   CheckCircle,
@@ -51,18 +50,18 @@ const AiContentDetection = () => {
       onSuccess: () => {
         toast.success("Content analyzed successfully!")
       },
-      onError: err => {
+      onError: (err) => {
         toast.error(err?.toast || "Failed to analyze content. Please try again.")
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async content => {
+  const handleCopy = async (content) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
     }
@@ -74,19 +73,19 @@ const AiContentDetection = () => {
     toast.info("Content reset")
   }
 
-  const getScoreColor = score => {
+  const getScoreColor = (score) => {
     if (score >= 80) return "text-red-600"
     if (score >= 50) return "text-yellow-600"
     return "text-green-600"
   }
 
-  const getScoreBgColor = score => {
+  const getScoreBgColor = (score) => {
     if (score >= 80) return "bg-red-100 border-red-200"
     if (score >= 50) return "bg-yellow-100 border-yellow-200"
     return "bg-green-100 border-green-200"
   }
 
-  const getStyleIcon = styleType => {
+  const getStyleIcon = (styleType) => {
     if (styleType === "ai") return <AlertCircle className="w-5 h-5 text-red-600" />
     if (styleType === "mixed") return <Info className="w-5 h-5 text-yellow-600" />
     return <CheckCircle className="w-5 h-5 text-green-600" />
@@ -141,7 +140,7 @@ const AiContentDetection = () => {
           <div className="space-y-4">
             <textarea
               value={inputContent}
-              onChange={e => setInputContent(e.target.value)}
+              onChange={(e) => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (minimum 20 words)..."
               className="w-full h-60 p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl resize-none focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 font-medium"
             />

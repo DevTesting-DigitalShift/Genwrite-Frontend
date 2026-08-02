@@ -114,7 +114,7 @@ const SearchConsole = () => {
     },
     enabled: !!user?.gsc,
     retry: 1,
-    onError: err => {
+    onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
         toast.error("Your Google Search Console session has expired. Please reconnect.")
@@ -125,7 +125,7 @@ const SearchConsole = () => {
   })
 
   const blogTitles = useMemo(
-    () => [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))],
+    () => [...new Set(blogData.map((item) => item.blogTitle).filter((t) => t !== "Untitled"))],
     [blogData]
   )
 
@@ -140,12 +140,12 @@ const SearchConsole = () => {
     }
   }, [isLoading, isFetching, blogData.length, autoFallbackDone, dateRange])
 
-  const handleTabChange = key => {
+  const handleTabChange = (key) => {
     setActiveTab(key)
     setSearchQuery("")
   }
 
-  const handleDateRangeChange = value => {
+  const handleDateRangeChange = (value) => {
     setDateRange(value)
     setCustomDateRange([null, null])
     setError(null)
@@ -153,8 +153,8 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const handleCustomDateRangeChange = dates => {
-    if (dates && dates[0] && dates[1]) {
+  const handleCustomDateRangeChange = (dates) => {
+    if (dates?.[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
       refetch()
@@ -174,9 +174,9 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const aggregateData = data => {
+  const aggregateData = (data) => {
     const grouped = {}
-    data.forEach(row => {
+    data.forEach((row) => {
       const key = row.country
       if (!grouped[key]) {
         grouped[key] = { ...row }
@@ -200,10 +200,10 @@ const SearchConsole = () => {
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
-      result = result.filter(item => item.url === blogUrlFilter)
+      result = result.filter((item) => item.url === blogUrlFilter)
     }
     if (blogTitleFilter) {
-      result = result.filter(item => item.blogTitle === blogTitleFilter)
+      result = result.filter((item) => item.blogTitle === blogTitleFilter)
     }
     if (activeTab === "country") {
       result = aggregateData(result)
@@ -252,7 +252,7 @@ const SearchConsole = () => {
       { header: "Position", key: "position", width: 10 },
     ]
     worksheet.columns = columns
-    filteredData.forEach(item => {
+    filteredData.forEach((item) => {
       worksheet.addRow({
         ...(isPageTab && !blogTitleFilter ? { blogTitle: item.blogTitle } : {}),
         ...(isPageTab ? { url: item.url } : {}),
@@ -334,7 +334,7 @@ const SearchConsole = () => {
         <title>Search Performance | GenWrite</title>
       </Helmet>
 
-      {!!user?.gsc ? (
+      {user?.gsc ? (
         <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 min-h-screen">
           {/* ── Page Header ─────────────────────────────────── */}
           <div className="flex items-center justify-between mb-4 gap-3">
@@ -394,7 +394,7 @@ const SearchConsole = () => {
                 bg: "from-amber-100/70 to-amber-50/70",
                 sub: "search result rank",
               },
-            ].map(card => (
+            ].map((card) => (
               <div
                 key={card.label}
                 className={`rounded-xl text-center p-3 sm:p-5 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-linear-to-br ${card.bg}`}
@@ -414,7 +414,7 @@ const SearchConsole = () => {
             <div className="flex flex-wrap gap-2 mb-2">
               <select
                 value={dateRange}
-                onChange={e => handleDateRangeChange(e.target.value)}
+                onChange={(e) => handleDateRangeChange(e.target.value)}
                 className={clsx(
                   "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg",
                   dateRange !== "7d" && "border-blue-500"
@@ -449,14 +449,14 @@ const SearchConsole = () => {
 
               <select
                 value={blogTitleFilter || ""}
-                onChange={e => setBlogTitleFilter(e.target.value || null)}
+                onChange={(e) => setBlogTitleFilter(e.target.value || null)}
                 className={clsx(
                   "select select-bordered select-sm h-9 border-gray-300 bg-white text-gray-600 focus:outline-none focus:border-blue-500 rounded-lg flex-1 min-w-[160px]",
                   blogTitleFilter && "border-blue-500"
                 )}
               >
                 <option value="">All Blog Titles</option>
-                {blogTitles.map(title => (
+                {blogTitles.map((title) => (
                   <option key={title} value={title}>
                     {title}
                   </option>
@@ -471,7 +471,7 @@ const SearchConsole = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Fuzzy search title, query, country…"
                   className={`pl-9 pr-4 py-1 h-9 w-full bg-white border ${
                     searchQuery ? "border-blue-500" : "border-gray-300"

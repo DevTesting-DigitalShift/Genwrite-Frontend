@@ -3,9 +3,7 @@ import emailjs from "@emailjs/browser"
 import {
   Mail,
   Clock,
-  Send,
   CheckCircle,
-  Facebook,
   Instagram,
   Twitter,
   Linkedin,
@@ -26,12 +24,12 @@ const ContactUs = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleInputChange = e => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }))
+      setErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
 
@@ -57,7 +55,7 @@ const ContactUs = () => {
     return newErrors
   }
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const newErrors = validateForm()
 
@@ -363,7 +361,7 @@ const ContactUs = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {socialLinks.map(social => {
+                {socialLinks.map((social) => {
                   const Icon = social.icon
                   return (
                     <a

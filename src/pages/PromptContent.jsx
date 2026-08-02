@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
@@ -96,20 +96,20 @@ const PromptContent = () => {
       setTimeout(() => {
         setCopiedField(null)
       }, 2000)
-    } catch (error) {
+    } catch (_error) {
       toast.error(`Failed to copy ${label}.`)
     }
   }
 
   // Helper function to strip HTML tags and get plain text
-  const stripHtml = html => {
+  const stripHtml = (html) => {
     const tmp = document.createElement("div")
     tmp.innerHTML = html
     return tmp.textContent || tmp.innerText || ""
   }
 
   // Helper function to render HTML content safely
-  const renderHtmlContent = htmlContent => {
+  const renderHtmlContent = (htmlContent) => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
@@ -190,7 +190,7 @@ const PromptContent = () => {
             </div>
             <textarea
               value={prompt}
-              onChange={e => setPrompt(e.target.value)}
+              onChange={(e) => setPrompt(e.target.value)}
               placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
               rows={4}
               maxLength={500}
@@ -232,7 +232,7 @@ const PromptContent = () => {
             </div>
             <textarea
               value={content}
-              onChange={e => setContent(e.target.value)}
+              onChange={(e) => setContent(e.target.value)}
               placeholder="Enter your content here (100-1000 words)..."
               rows={12}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${

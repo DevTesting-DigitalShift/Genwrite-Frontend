@@ -11,37 +11,21 @@ export const Iframe = Node.create({
 
   addAttributes() {
     return {
-      src: {
-        default: null,
-      },
-      title: {
-        default: null,
-      },
-      frameborder: {
-        default: "0",
-      },
+      src: { default: null },
+      title: { default: null },
+      frameborder: { default: "0" },
       allow: {
         default:
           "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
       },
-      allowfullscreen: {
-        default: true,
-      },
-      class: {
-        default: "youtube-embed w-full aspect-video rounded-lg my-4",
-      },
-      "data-embed-type": {
-        default: "youtube",
-      },
+      allowfullscreen: { default: true },
+      class: { default: "youtube-embed w-full aspect-video rounded-lg my-4" },
+      "data-embed-type": { default: "youtube" },
     }
   },
 
   parseHTML() {
-    return [
-      {
-        tag: "iframe",
-      },
-    ]
+    return [{ tag: "iframe" }]
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -75,7 +59,7 @@ export const Iframe = Node.create({
       deleteBtn.className =
         "px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-1 shadow-lg"
       deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`
-      deleteBtn.onclick = e => {
+      deleteBtn.onclick = (e) => {
         e.preventDefault()
         e.stopPropagation()
         if (typeof getPos === "function") {
@@ -104,7 +88,7 @@ export const Iframe = Node.create({
       return {
         dom: container,
         contentDOM: null,
-        update: updatedNode => {
+        update: (updatedNode) => {
           if (updatedNode.type.name !== "iframe") return false
           iframe.src = updatedNode.attrs.src
           iframe.title = updatedNode.attrs.title || "Embedded video"
@@ -117,12 +101,9 @@ export const Iframe = Node.create({
   addCommands() {
     return {
       setIframe:
-        options =>
+        (options) =>
         ({ commands }) => {
-          return commands.insertContent({
-            type: this.name,
-            attrs: options,
-          })
+          return commands.insertContent({ type: this.name, attrs: options })
         },
     }
   },

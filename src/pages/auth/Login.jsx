@@ -1,19 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import useAuthStore from "@store/useAuthStore"
 import { Link, useNavigate } from "react-router-dom"
 import { useGoogleLogin } from "@react-oauth/google"
 import { motion, AnimatePresence } from "framer-motion"
 import ReCAPTCHA from "react-google-recaptcha"
-import {
-  FaEnvelope,
-  FaLock,
-  FaUser,
-  FaEye,
-  FaEyeSlash,
-  FaShieldAlt,
-  FaRocket,
-  FaGoogle,
-} from "react-icons/fa"
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaShieldAlt, FaRocket } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
 import {
   Sparkles,
@@ -28,7 +19,6 @@ import {
 import { Helmet } from "react-helmet"
 import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
-import IceAnimation from "@components/IceAnimation"
 import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 
@@ -86,35 +76,35 @@ const Auth = ({ path }) => {
   }, [formData, isSignup, termsAccepted, recaptchaValue])
 
   // Handle input changes with debounced validation
-  const handleInputChange = useCallback(e => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear specific error when user starts typing
-    setErrors(prev => ({ ...prev, [name]: undefined }))
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
   }, [])
 
   // Handle terms checkbox
   const handleTermsChange = useCallback(() => {
-    setTermsAccepted(prev => !prev)
-    setErrors(prev => ({ ...prev, terms: undefined }))
+    setTermsAccepted((prev) => !prev)
+    setErrors((prev) => ({ ...prev, terms: undefined }))
   }, [])
 
-  const onRecaptchaChange = value => {
+  const onRecaptchaChange = (value) => {
     setRecaptchaValue(value)
-    setErrors(prev => ({ ...prev, recaptcha: undefined }))
+    setErrors((prev) => ({ ...prev, recaptcha: undefined }))
   }
 
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
-    onSuccess: async tokenResponse => {
+    onSuccess: async (tokenResponse) => {
       googleLogin({
         access_token: tokenResponse.access_token,
         referralId: formData.referralId,
-      }).then(data => {
+      }).then((data) => {
         toast.success("Google login successful!")
 
-        const user = data.user || data?.data?.user || data
+        const _user = data.user || data?.data?.user || data
 
         if (isSignup) {
           navigate("/onboarding", { replace: true })
@@ -123,7 +113,7 @@ const Auth = ({ path }) => {
         }
       })
     },
-    onError: err => {
+    onError: (err) => {
       console.error("Google OAuth error:", err)
       toast.error(getFriendlyError(err, "google"))
       setRecaptchaValue(null)
@@ -132,7 +122,7 @@ const Auth = ({ path }) => {
   })
 
   const handleSubmit = useCallback(
-    async e => {
+    async (e) => {
       e.preventDefault()
       if (!validateForm()) return
 
@@ -192,10 +182,10 @@ const Auth = ({ path }) => {
     const referralParam = urlParams.get("referal") || urlParams.get("referral")
 
     if (emailParam) {
-      setFormData(prev => ({ ...prev, email: decodeURIComponent(emailParam) }))
+      setFormData((prev) => ({ ...prev, email: decodeURIComponent(emailParam) }))
     }
     if (referralParam) {
-      setFormData(prev => ({ ...prev, referralId: referralParam }))
+      setFormData((prev) => ({ ...prev, referralId: referralParam }))
     }
   }, [])
 

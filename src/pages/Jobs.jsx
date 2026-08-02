@@ -1,63 +1,34 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import {
   Plus,
   RefreshCw,
   Briefcase,
-  Search,
   AlertTriangle,
   Sparkles,
-  Zap,
   LayoutGrid,
   List,
   Pencil,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Tag as TagIcon,
-  Hash,
-  Globe,
-  Cpu,
-  Image,
-  Calendar,
-  Clock,
-  FileText,
-  Layers,
-  Settings2,
-  Bot,
-  Megaphone,
-  BookOpen,
-  Link2,
-  Youtube,
-  BarChart2,
-  AlignLeft,
-  Repeat,
-  CheckCircle2,
-  XCircle,
-  Send,
-  Shield,
 } from "lucide-react"
-import { getJobs, startJob, stopJob, deleteJob } from "@api/jobApi"
 import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
-import useAnalysisStore from "@store/useAnalysisStore"
 
 import {
   useJobsQuery,
   useToggleJobStatusMutation,
   useDeleteJobMutation,
 } from "@api/queries/jobQueries"
-import SkeletonLoader from "@components/ui/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
 import JobExpandedPanel from "@/layout/Jobs/JobExpandedPanel"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getSocket } from "@utils/socket"
 import { toast } from "sonner"
@@ -68,8 +39,8 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
   const [expandedRows, setExpandedRows] = useState(new Set())
 
-  const toggleExpand = id => {
-    setExpandedRows(prev => {
+  const toggleExpand = (id) => {
+    setExpandedRows((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
@@ -92,7 +63,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
         ))}
         {remaining > 0 && (
           <button
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation()
               toggleExpand(jobId)
             }}
@@ -105,7 +76,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     )
   }
 
-  const formatDate = dateStr => {
+  const formatDate = (dateStr) => {
     if (!dateStr) return <span className="text-slate-300 italic text-[11px]">Never</span>
     try {
       const d = new Date(dateStr)
@@ -155,12 +126,12 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
             </tr>
           </thead>
           <tbody>
-            {data.map(job => {
+            {data.map((job) => {
               const isExpanded = expandedRows.has(job._id)
               const schedule = job.schedule || {}
               const scheduleDayStr =
                 schedule.type === "weekly" && schedule.daysOfWeek?.length
-                  ? schedule.daysOfWeek.map(d => DAY_NAMES[d]).join(", ")
+                  ? schedule.daysOfWeek.map((d) => DAY_NAMES[d]).join(", ")
                   : null
 
               return (
@@ -246,7 +217,9 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     </td>
 
                     {/* Topics */}
-                    <td className="px-5 py-4 max-w-[180px]">{renderTags(job.blogs?.topics, job._id, 2)}</td>
+                    <td className="px-5 py-4 max-w-[180px]">
+                      {renderTags(job.blogs?.topics, job._id, 2)}
+                    </td>
 
                     {/* AI / Lang */}
                     <td className="px-5 py-4">
@@ -303,8 +276,8 @@ const Jobs = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
-  const openJobModal = useJobStore(state => state.openJobModal)
-  const [searchQuery, setSearchQuery] = useState("")
+  const openJobModal = useJobStore((state) => state.openJobModal)
+  const [searchQuery, _setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("jobs_view_mode") || "grid"
   })
@@ -316,26 +289,27 @@ const Jobs = () => {
   const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
   const { mutate: deleteMutate, isPending: isDeleting } = useDeleteJobMutation()
 
-  const user = useAuthStore(state => state.user)
-  const updateUserPartial = useAuthStore(state => state.updateUserPartial)
+  const user = useAuthStore((state) => state.user)
+  const updateUserPartial = useAuthStore((state) => state.updateUserPartial)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
-  const totalBlogsGenerated = useMemo(() => {
-    return queryJobs.filter(j => !j.isArchived).reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
+  const _totalBlogsGenerated = useMemo(() => {
+    return queryJobs
+      .filter((j) => !j.isArchived)
+      .reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
   }, [queryJobs])
 
   const usage = user?.usage?.createdJobs || 0
   const usageLimit = user?.usageLimits?.createdJobs || 0
   // const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-
   useEffect(() => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleJobChange = (data, eventType) => {
+    const handleJobChange = (data, _eventType) => {
       if (
         (data?.status === "stop" || data?.status === "stopped") &&
         data?.reason?.toLowerCase().includes("insufficient credits")
@@ -346,16 +320,16 @@ const Jobs = () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     }
 
-    const handleUsageUpdate = data => {
+    const handleUsageUpdate = (data) => {
       if (data?.usage) {
         updateUserPartial({ usage: data.usage })
       }
     }
 
-    socket.on("job:statusChanged", data => handleJobChange(data, "statusChanged"))
-    socket.on("job:updated", data => handleJobChange(data, "updated"))
-    socket.on("job:created", data => handleJobChange(data, "created"))
-    socket.on("job:deleted", data => handleJobChange(data, "deleted"))
+    socket.on("job:statusChanged", (data) => handleJobChange(data, "statusChanged"))
+    socket.on("job:updated", (data) => handleJobChange(data, "updated"))
+    socket.on("job:created", (data) => handleJobChange(data, "created"))
+    socket.on("job:deleted", (data) => handleJobChange(data, "deleted"))
     socket.on("user:usage", handleUsageUpdate)
 
     return () => {
@@ -391,7 +365,7 @@ const Jobs = () => {
   }, [checkJobLimit, openJobModal])
 
   const handleEditJob = useCallback(
-    job => {
+    (job) => {
       openJobModal(job)
     },
     [openJobModal]
@@ -402,12 +376,12 @@ const Jobs = () => {
     toast.success("Jobs list refreshed")
   }
 
-  const activeJobsCount = queryJobs.filter(j => j.status === "active").length
-  const stoppedJobsCount = queryJobs.filter(j => j.status !== "active").length
+  const activeJobsCount = queryJobs.filter((j) => j.status === "active").length
+  const stoppedJobsCount = queryJobs.filter((j) => j.status !== "active").length
 
   const filteredJobs = useMemo(() => {
     return queryJobs.filter(
-      job =>
+      (job) =>
         job.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         job._id?.toString().includes(searchQuery)
     )
@@ -439,7 +413,9 @@ const Jobs = () => {
               <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Content Automation
               </h1>
-              <p className="text-gray-600 mt-2">Manage your automated content generation pipelines</p>
+              <p className="text-gray-600 mt-2">
+                Manage your automated content generation pipelines
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -497,7 +473,9 @@ const Jobs = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Jobs Used */}
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jobs Created</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Jobs Created
+                    </p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-slate-900">{usage}</span>
                       <span className="text-sm font-bold text-slate-400">/ {usageLimit}</span>
@@ -505,14 +483,20 @@ const Jobs = () => {
                   </div>
                   {/* Active */}
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Status</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Active Status
+                    </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-3xl font-black text-emerald-600">{activeJobsCount}</span>
+                      <span className="text-3xl font-black text-emerald-600">
+                        {activeJobsCount}
+                      </span>
                     </div>
                   </div>
                   {/* Paused */}
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paused Jobs</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Paused Jobs
+                    </p>
                     <span className="text-3xl font-black text-slate-400">{stoppedJobsCount}</span>
                   </div>
                 </div>
@@ -520,7 +504,9 @@ const Jobs = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span>Consumption</span>
-                    <span className={usagePercentage > 90 ? "text-rose-500" : "text-blue-600"}>{usagePercentage}%</span>
+                    <span className={usagePercentage > 90 ? "text-rose-500" : "text-blue-600"}>
+                      {usagePercentage}%
+                    </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
                     <motion.div
@@ -557,7 +543,7 @@ const Jobs = () => {
                   </p>
                 </div>
                 {usage >= usageLimit && (
-                  <div 
+                  <div
                     className="mt-4 flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest tooltip tooltip-top [--tooltip-font-size:10px]"
                     data-tip={`Job limit reached: ${usage}/${usageLimit} jobs used on ${userPlan} plan.`}
                   >
@@ -606,7 +592,7 @@ const Jobs = () => {
               </div>
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {paginatedJobs.map(job => (
+                {paginatedJobs.map((job) => (
                   <JobCard
                     key={job._id}
                     job={job}
@@ -621,10 +607,10 @@ const Jobs = () => {
                 data={paginatedJobs}
                 onEdit={handleEditJob}
                 isToggling={isToggling}
-                onToggleStatus={job => {
+                onToggleStatus={(job) => {
                   toggleStatus({ jobId: job._id, currentStatus: job.status })
                 }}
-                onDelete={job => {
+                onDelete={(job) => {
                   handlePopup({
                     title: "Terminate Job",
                     description: `This action will permanently remove the pipeline "${job.name}". Are you sure?`,
@@ -643,7 +629,7 @@ const Jobs = () => {
               <div className="join bg-white shadow-xl shadow-slate-200/40 rounded-2xl border border-slate-100 p-1">
                 <button
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
                 >
                   <ChevronLeft size={20} />
@@ -665,7 +651,7 @@ const Jobs = () => {
 
                 <button
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
                 >
                   <ChevronRight size={20} />

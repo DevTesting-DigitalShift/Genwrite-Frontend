@@ -3,8 +3,6 @@ import {
   getAllBlogs,
   getBlogById,
   createBlog,
-  createQuickBlog,
-  createBlogMultiple,
   updateBlog,
   restoreBlogById,
   deleteAllBlogs,
@@ -13,7 +11,6 @@ import {
   getGeneratedTitles,
   getBlogStatus,
   getBlogs,
-  getBlogPrompt,
   getBlogStatsById,
   toggleBlogVisibility,
 } from "@api/blogApi"
@@ -21,7 +18,7 @@ import { toast } from "sonner"
 
 // ----------------------- Queries -----------------------
 
-export const useBlogsQuery = params => {
+export const useBlogsQuery = (params) => {
   return useQuery({ queryKey: ["blogs", params], queryFn: () => getAllBlogs(params) })
 }
 
@@ -29,11 +26,11 @@ export const useAllBlogsQuery = () => {
   return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
 }
 
-export const useBlogDetailsQuery = id => {
+export const useBlogDetailsQuery = (id) => {
   return useQuery({ queryKey: ["blog", id], queryFn: () => getBlogById(id), enabled: !!id })
 }
 
-export const useBlogStatsQuery = id => {
+export const useBlogStatsQuery = (id) => {
   return useQuery({
     queryKey: ["blogStats", id],
     queryFn: () => getBlogStatsById(id),
@@ -41,11 +38,11 @@ export const useBlogStatsQuery = id => {
   })
 }
 
-export const useBlogStatusQuery = params => {
+export const useBlogStatusQuery = (params) => {
   return useQuery({ queryKey: ["blogStatus", params], queryFn: () => getBlogStatus(params) })
 }
 
-export const useGeneratedTitlesQuery = payload => {
+export const useGeneratedTitlesQuery = (payload) => {
   return useQuery({
     queryKey: ["generatedTitles", payload],
     queryFn: () => getGeneratedTitles(payload),
@@ -74,7 +71,7 @@ export const useRestoreBlogMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.message || "Failed to restore blog")
     },
   })
@@ -84,11 +81,11 @@ export const useDeleteAllBlogsMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteAllBlogs,
-    onSuccess: result => {
+    onSuccess: (result) => {
       toast.success(`${result.deletedCount} blogs deleted`)
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.message || "Failed to delete all blogs")
     },
   })
@@ -103,7 +100,7 @@ export const useArchiveBlogMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.message || "Failed to delete blog")
     },
   })
@@ -113,11 +110,11 @@ export const useRetryBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, payload }) => retryBlogById(id, payload),
-    onSuccess: result => {
+    onSuccess: (result) => {
       toast.success(result?.message || "Blog regenerated successfully")
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
     },
-    onError: error => {
+    onError: (error) => {
       toast.error(error.message || "Failed to retry blog")
     },
   })
@@ -127,7 +124,7 @@ export const useUpdateBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => updateBlog(id, data),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       toast.success("Blog updated successfully")
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
@@ -142,7 +139,7 @@ export const useToggleBlogVisibilityMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, isPublic }) => toggleBlogVisibility(id, isPublic),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })

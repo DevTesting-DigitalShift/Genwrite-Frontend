@@ -26,7 +26,7 @@ export function getFriendlyError(err, context = "general") {
     /name (is required|too short)/i,
   ]
 
-  const isSafeMessage = backendMsg && SAFE_PATTERNS.some(p => p.test(backendMsg))
+  const isSafeMessage = backendMsg && SAFE_PATTERNS.some((p) => p.test(backendMsg))
 
   if (isSafeMessage) {
     return backendMsg

@@ -5,7 +5,7 @@ import { createBlog, createBlogMultiple, createQuickBlog, createTopicOnlyBlog } 
 
 const useBlogStore = create(
   devtools(
-    set => ({
+    (set) => ({
       selectedBlog: null,
       proofreadingSuggestions: [],
       isAnalyzingProofreading: false,
@@ -13,70 +13,54 @@ const useBlogStore = create(
       blogPrompts: {},
 
       // Actions
-      setSelectedBlog: blog => set({ selectedBlog: blog }),
+      setSelectedBlog: (blog) => set({ selectedBlog: blog }),
       clearSelectedBlog: () => set({ selectedBlog: null }),
 
-      setProofreadingSuggestions: suggestions => set({ proofreadingSuggestions: suggestions }),
+      setProofreadingSuggestions: (suggestions) => set({ proofreadingSuggestions: suggestions }),
       clearProofreadingSuggestions: () => set({ proofreadingSuggestions: [] }),
 
-      setIsAnalyzingProofreading: isAnalyzing => set({ isAnalyzingProofreading: isAnalyzing }),
+      setIsAnalyzingProofreading: (isAnalyzing) => set({ isAnalyzingProofreading: isAnalyzing }),
 
-      setGeneratedTitles: titles => set({ generatedTitles: titles }),
+      setGeneratedTitles: (titles) => set({ generatedTitles: titles }),
 
       setBlogPrompt: (id, prompt) =>
-        set(state => ({ blogPrompts: { ...state.blogPrompts, [id]: prompt } })),
+        set((state) => ({ blogPrompts: { ...state.blogPrompts, [id]: prompt } })),
 
       createNewBlog: async ({ blogData, user, navigate, queryClient }) => {
-        try {
-          const newBlog = await createBlog(blogData)
-          queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          if (newBlog) {
-            navigate("/blogs")
-            toast.success("Blog creation has started!")
-          }
-        } catch (error) {
-          throw error
+        const newBlog = await createBlog(blogData)
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        if (newBlog) {
+          navigate("/blogs")
+          toast.success("Blog creation has started!")
         }
       },
 
       createMultiBlog: async ({ blogData, user, navigate, queryClient }) => {
-        try {
-          const newBlogs = await createBlogMultiple(blogData)
-          queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          if (newBlogs) {
-            navigate("/blogs")
-            toast.success("Blogs created successfully!")
-          }
-        } catch (error) {
-          throw error
+        const newBlogs = await createBlogMultiple(blogData)
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        if (newBlogs) {
+          navigate("/blogs")
+          toast.success("Blogs created successfully!")
         }
       },
 
       createNewQuickBlog: async ({ blogData, user, navigate, type, queryClient }) => {
-        try {
-          const newBlog = await createQuickBlog(blogData, type)
-          queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          if (newBlog) {
-            navigate("/blogs")
-            toast.success("Blog creation has started!")
-          }
-        } catch (error) {
-          throw error
+        const newBlog = await createQuickBlog(blogData, type)
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        if (newBlog) {
+          navigate("/blogs")
+          toast.success("Blog creation has started!")
         }
       },
 
       createTopicBlog: async ({ topic, navigate, queryClient }) => {
-        try {
-          const newBlog = await createTopicOnlyBlog({ topic })
-          queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          if (newBlog) {
-            navigate("/blogs")
-            toast.success("Blog creation has started!")
-          }
-          return newBlog
-        } catch (error) {
-          throw error
+        const newBlog = await createTopicOnlyBlog({ topic })
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        if (newBlog) {
+          navigate("/blogs")
+          toast.success("Blog creation has started!")
         }
+        return newBlog
       },
     }),
     { name: "blog-store" }

@@ -1,6 +1,4 @@
-import React from "react"
-import { Link } from "react-router-dom"
-import { ArrowLeft, Mail, Users, AlertTriangle } from "lucide-react"
+import { Mail, AlertTriangle } from "lucide-react"
 
 const TermsAndConditions = () => {
   const lastUpdated = "January 15, 2025"
@@ -130,9 +128,9 @@ const TermsAndConditions = () => {
         {/* Introduction */}
         <section className="mb-8">
           <p className="text-gray-600 leading-relaxed">
-            These Terms and Conditions govern your use of the GenWrite platform and
-            services. Please read them carefully as they contain important information about your
-            rights and obligations.
+            These Terms and Conditions govern your use of the GenWrite platform and services. Please
+            read them carefully as they contain important information about your rights and
+            obligations.
           </p>
           <p className="text-gray-600 mt-2 text-sm">Last Updated: {lastUpdated}</p>
         </section>

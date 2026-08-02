@@ -343,12 +343,10 @@ export default function AdminUsers() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reordering
-                      <TableRowSkeleton key={i} />
-                    ))}
-                  </>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reordering
+                    <TableRowSkeleton key={i} />
+                  ))
                 ) : paginatedUsers.length > 0 ? (
                   paginatedUsers.map((user) => (
                     <TableRow

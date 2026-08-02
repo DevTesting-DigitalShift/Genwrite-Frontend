@@ -5,14 +5,14 @@ export function useProofreadingUI(editor) {
   const bubbleRef = useRef(null)
 
   useEffect(() => {
-    if (!editor || !editor.view) {
+    if (!editor?.view) {
       return
     }
 
     const dom = editor.view.dom
     const handler = (e) => {
       const target = e.target.closest(".proofreading-mark")
-      if (target && target.dataset.suggestion) {
+      if (target?.dataset.suggestion) {
         setActiveSpan(target)
       } else {
         setActiveSpan(null)
@@ -37,7 +37,7 @@ export function useProofreadingUI(editor) {
     const suggestion = activeSpan.dataset.suggestion
     const original = activeSpan.dataset.original
 
-    if (!suggestion || isNaN(from) || isNaN(to)) {
+    if (!suggestion || Number.isNaN(from) || Number.isNaN(to)) {
       console.error("Invalid data attributes:", { from, to, suggestion, original })
       return
     }
@@ -101,10 +101,5 @@ export function useProofreadingUI(editor) {
     }
   }
 
-  return {
-    activeSpan,
-    bubbleRef,
-    applyChange,
-    rejectChange,
-  }
+  return { activeSpan, bubbleRef, applyChange, rejectChange }
 }

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
-import Carousel from "@components/multipleStepModal/Carousel"
-import { packages } from "@/data/templates"
 import { TONES } from "@/data/blogData"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { Slider } from "@/components/ui/slider"
@@ -46,11 +44,11 @@ const TemplateModal = ({
 
   const handleNext = () => {
     if (currentStep === 0 && (!selectedTemplate || selectedTemplate.length === 0)) {
-      setErrors(prev => ({ ...prev, template: true }))
+      setErrors((prev) => ({ ...prev, template: true }))
       toast.error("Please select a template before proceeding.")
       return
     }
-    setErrors(prev => ({ ...prev, template: false }))
+    setErrors((prev) => ({ ...prev, template: false }))
     setCurrentStep(1)
   }
 
@@ -58,26 +56,26 @@ const TemplateModal = ({
 
   const handleClose = () => closeFnc()
 
-  const handlePackageSelect = useCallback(temp => {
+  const handlePackageSelect = useCallback((temp) => {
     setSelectedTemplate(temp)
-    setFormData(prev => ({ ...prev, template: temp?.[0]?.name || "" }))
-    setErrors(prev => ({ ...prev, template: false }))
+    setFormData((prev) => ({ ...prev, template: temp?.[0]?.name || "" }))
+    setErrors((prev) => ({ ...prev, template: false }))
   }, [])
 
   const handleInputChange = (e, key) => {
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
-    setErrors(prev => ({ ...prev, [key]: false }))
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = e => {
-    setFormData(prev => ({ ...prev, tone: e.target.value }))
-    setErrors(prev => ({ ...prev, tone: false }))
+  const handleSelectChange = (e) => {
+    setFormData((prev) => ({ ...prev, tone: e.target.value }))
+    setErrors((prev) => ({ ...prev, tone: false }))
   }
 
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
-    setErrors(prev => ({ ...prev, [type]: false }))
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
   const handleAddKeyword = (type, forcedValue = null) => {
@@ -87,20 +85,20 @@ const TemplateModal = ({
       ? forcedValue
       : formData[inputKey].split(/[,\t\n\r;]+/)
     const items = rawItems
-      .map(k => k.trim())
-      .filter(k => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+      .map((k) => k.trim())
+      .filter((k) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
     if (items.length === 0) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: true }))
       toast.error("Please enter a keyword.")
       return
     }
 
-    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
-    const filteredKeywords = items.filter(k => !existingSet.has(k.toLowerCase()))
+    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const filteredKeywords = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (filteredKeywords.length === 0) {
-      setErrors(prev => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: true }))
       toast.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
@@ -108,19 +106,23 @@ const TemplateModal = ({
     if (type === "focusKeywords" && formData[type].length + filteredKeywords.length > 3) {
       const availableSlots = 3 - formData[type].length
       if (availableSlots > 0) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           [type]: [...prev[type], ...filteredKeywords.slice(0, availableSlots)],
           [inputKey]: "",
         }))
       }
-      setErrors(prev => ({ ...prev, [type]: false }))
+      setErrors((prev) => ({ ...prev, [type]: false }))
       toast.error("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...filteredKeywords], [inputKey]: "" }))
-    setErrors(prev => ({ ...prev, [type]: false }))
+    setFormData((prev) => ({
+      ...prev,
+      [type]: [...prev[type], ...filteredKeywords],
+      [inputKey]: "",
+    }))
+    setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -139,7 +141,7 @@ const TemplateModal = ({
   const handlePasteKeywords = (event, type) => {
     extractKeywordsFromClipboard(event, {
       type,
-      cb: items => {
+      cb: (items) => {
         handleAddKeyword(type, items)
       },
     })
@@ -147,12 +149,12 @@ const TemplateModal = ({
 
   const handleGenerateTitles = async () => {
     if (!formData.topic.trim()) {
-      setErrors(prev => ({ ...prev, topic: true }))
+      setErrors((prev) => ({ ...prev, topic: true }))
       toast.error("Please enter a topic before generating titles.")
       return
     }
     if (formData.focusKeywords.length < 1 && formData.keywords.length < 1) {
-      setErrors(prev => ({ ...prev, focusKeywords: true, keywords: true }))
+      setErrors((prev) => ({ ...prev, focusKeywords: true, keywords: true }))
       toast.error("Please add at least one focus keyword or secondary keyword.")
       return
     }
@@ -200,7 +202,7 @@ const TemplateModal = ({
             <div className="p-3">
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
-                preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+                preSelectedIds={selectedTemplate?.map((t) => t?.id || "")}
                 onClick={handlePackageSelect}
               />
               {errors.template && (
@@ -218,7 +220,7 @@ const TemplateModal = ({
                 <input
                   type="text"
                   value={formData.topic}
-                  onChange={e => handleInputChange(e, "topic")}
+                  onChange={(e) => handleInputChange(e, "topic")}
                   placeholder="Enter blog topic..."
                   className={`input input-bordered w-full ${
                     errors.topic ? "input-error" : ""
@@ -237,7 +239,7 @@ const TemplateModal = ({
                   className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
                   aria-label="Blog tone"
                 >
-                  {TONES.map(t => (
+                  {TONES.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>
@@ -252,9 +254,9 @@ const TemplateModal = ({
                   <input
                     type="text"
                     value={formData.focusKeywordInput}
-                    onChange={e => handleKeywordInputChange(e, "focusKeywords")}
-                    onKeyDown={e => handleKeyPress(e, "focusKeywords")}
-                    onPaste={e => handlePasteKeywords(e, "focusKeywords")}
+                    onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
+                    onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                    onPaste={(e) => handlePasteKeywords(e, "focusKeywords")}
                     placeholder="Enter focus keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.focusKeywords ? "input-error" : ""
@@ -300,9 +302,9 @@ const TemplateModal = ({
                   <input
                     type="text"
                     value={formData.keywordInput}
-                    onChange={e => handleKeywordInputChange(e, "keywords")}
-                    onKeyDown={e => handleKeyPress(e, "keywords")}
-                    onPaste={e => handlePasteKeywords(e, "keywords")}
+                    onChange={(e) => handleKeywordInputChange(e, "keywords")}
+                    onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                    onPaste={(e) => handlePasteKeywords(e, "keywords")}
                     placeholder="Enter secondary keywords, separated by commas"
                     className={`input input-bordered flex-1 ${
                       errors.keywords ? "input-error" : ""
@@ -335,7 +337,7 @@ const TemplateModal = ({
                   ))}
                   {formData.keywords.length > 18 && (
                     <span
-                      onClick={() => setShowAllKeywords(prev => !prev)}
+                      onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
@@ -358,7 +360,7 @@ const TemplateModal = ({
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={e => handleInputChange(e, "title")}
+                    onChange={(e) => handleInputChange(e, "title")}
                     placeholder="Enter blog title..."
                     className={`input input-bordered flex-1 ${
                       errors.title ? "input-error" : ""
@@ -396,8 +398,8 @@ const TemplateModal = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setFormData(prev => ({ ...prev, title: generatedTitle }))
-                              setErrors(prev => ({ ...prev, title: false }))
+                              setFormData((prev) => ({ ...prev, title: generatedTitle }))
+                              setErrors((prev) => ({ ...prev, title: false }))
                             }}
                             className={`px-3 py-1 rounded-lg text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
                               isSelected
@@ -423,7 +425,7 @@ const TemplateModal = ({
                   max={BLOG_CONFIG.LENGTH.MAX}
                   step={BLOG_CONFIG.LENGTH.STEP}
                   value={[formData.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT]}
-                  onValueChange={vals =>
+                  onValueChange={(vals) =>
                     handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
                   }
                   className="w-full"

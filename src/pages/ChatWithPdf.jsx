@@ -1,18 +1,11 @@
-import React, { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FileText,
-  Send,
   Trash2,
   Upload,
-  MessageSquare,
   User,
-  Sparkles,
-  AlertCircle,
-  CheckCircle2,
-  Zap,
-  Shield,
   File as FileIcon,
   Loader2,
   ArrowRight,
@@ -27,7 +20,6 @@ import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
-import ConnectedTools from "@components/ConnectedTools"
 
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
@@ -60,7 +52,7 @@ const ChatWithPdf = () => {
     scrollToBottom()
   }, [messages, loading])
 
-  const processFile = uploadedFile => {
+  const processFile = (uploadedFile) => {
     if (!uploadedFile) return
 
     if (uploadedFile.type !== "application/pdf") {
@@ -88,22 +80,22 @@ const ChatWithPdf = () => {
     ])
   }
 
-  const handleFileChange = e => {
+  const handleFileChange = (e) => {
     const uploadedFile = e.target.files[0]
     processFile(uploadedFile)
   }
 
-  const handleDragOver = e => {
+  const handleDragOver = (e) => {
     e.preventDefault()
     setIsDragging(true)
   }
 
-  const handleDragLeave = e => {
+  const handleDragLeave = (e) => {
     e.preventDefault()
     setIsDragging(false)
   }
 
-  const handleDrop = e => {
+  const handleDrop = (e) => {
     e.preventDefault()
     setIsDragging(false)
     const uploadedFile = e.dataTransfer.files[0]
@@ -132,7 +124,7 @@ const ChatWithPdf = () => {
     }
 
     const userMessage = { id: Date.now(), role: "user", content: input, timestamp: new Date() }
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setInput("")
 
     try {
@@ -145,12 +137,12 @@ const ChatWithPdf = () => {
       } else {
         const conversationHistory = messages
           .slice(-10)
-          .map(msg => ({ role: msg.role, content: msg.content }))
+          .map((msg) => ({ role: msg.role, content: msg.content }))
         payload = { cacheKey, messages: conversationHistory, question: userMessage.content }
       }
 
       const result = await sendMessage(payload)
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
       ])
@@ -159,7 +151,7 @@ const ChatWithPdf = () => {
     }
   }
 
-  const handleKeyPress = e => {
+  const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -295,7 +287,7 @@ const ChatWithPdf = () => {
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 scroll-smooth">
-                  {messages.map((msg, idx) => (
+                  {messages.map((msg, _idx) => (
                     <motion.div
                       key={msg.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -354,11 +346,11 @@ const ChatWithPdf = () => {
                   <div className="relative">
                     <textarea
                       value={input}
-                      onChange={e => setInput(e.target.value)}
+                      onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder="Ask a question about your document..."
                       rows={1}
-                      onInput={e => {
+                      onInput={(e) => {
                         e.target.style.height = "auto"
                         e.target.style.height = e.target.scrollHeight + "px"
                       }}

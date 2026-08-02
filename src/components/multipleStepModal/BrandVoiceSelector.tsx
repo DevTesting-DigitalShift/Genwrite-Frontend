@@ -1,6 +1,6 @@
 import { brandsQuery } from "@api/Brand/Brand.query"
 import type { Brand } from "@/types/brand"
-import React, { FC, useEffect, useState } from "react"
+import { type FC, useEffect, useState } from "react"
 import { toast } from "sonner"
 import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
@@ -40,10 +40,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
 
   // Sync state when value prop changes from parent
   useEffect(() => {
-    setState({
-      ...value,
-      createBrandedImages: value.createBrandedImages ?? false,
-    })
+    setState({ ...value, createBrandedImages: value.createBrandedImages ?? false })
   }, [value])
 
   const handleUpdate = (updates: Partial<typeof state>) => {
@@ -92,7 +89,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           <select
             className="select select-bordered w-full rounded-[10px] text-sm h-10 min-h-0 focus:outline-none"
             value={state.brandId || ""}
-            onChange={e => handleUpdate({ brandId: e.target.value })}
+            onChange={(e) => handleUpdate({ brandId: e.target.value })}
           >
             {brands.map((brand: Brand) => (
               <option key={brand._id} value={brand._id}>

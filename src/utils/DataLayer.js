@@ -7,7 +7,7 @@ export function pushToDataLayer(eventData) {
   window.dataLayer = window.dataLayer || []
   const transformedData = { ...eventData }
   // Collect promises for all _id hashes
-  const hashPromises = Object.keys(transformedData).map(async key => {
+  const hashPromises = Object.keys(transformedData).map(async (key) => {
     if (/_id$/.test(key) && transformedData[key] != null) {
       try {
         const hash = await getHashedId(transformedData[key])
@@ -33,7 +33,7 @@ export function pushToDataLayer(eventData) {
         }
       }
     })
-    .catch(error => {
+    .catch((error) => {
       // Catch any hashing errors
       if (import.meta.env.NODE_ENV === "development") {
         console.warn("[DataLayer] Hashing failed:", error)
@@ -58,7 +58,7 @@ async function getHashedId(id) {
 
   // Convert ArrayBuffer to hex string
   const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("")
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
 
   return hashHex
 }

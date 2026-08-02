@@ -6,11 +6,11 @@ export const useHumanizeMutation = () => {
   const { setResult } = useHumanizeStore()
 
   return useMutation({
-    mutationFn: payload => humanizeContentGenerator(payload),
-    onSuccess: data => {
+    mutationFn: (payload) => humanizeContentGenerator(payload),
+    onSuccess: (data) => {
       setResult(data)
     },
-    onError: error => {
+    onError: (error) => {
       console.error(error)
       // Optionally handle error in store, but usually local state/toast is enough
     },

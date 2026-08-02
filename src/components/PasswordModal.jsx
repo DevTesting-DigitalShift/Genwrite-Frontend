@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { X } from "lucide-react"
@@ -15,7 +15,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const validatePassword = value => {
+  const validatePassword = (value) => {
     if (!value) {
       return "Password is required"
     }
@@ -56,7 +56,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
     }
 
     setErrors(newErrors)
-    return !Object.values(newErrors).some(error => error !== "")
+    return !Object.values(newErrors).some((error) => error !== "")
   }
 
   const handleSubmit = async () => {
@@ -86,12 +86,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
     onClose()
   }
 
-  const handleInputChange = e => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }))
+      setErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
 

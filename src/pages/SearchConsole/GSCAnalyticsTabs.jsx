@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-table"
 import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
-import clsx from "clsx"
 import {
   Pencil,
   ExternalLink,
@@ -79,7 +78,7 @@ export default function GSCAnalyticsTabs({
       base.push(
         columnHelper.accessor("query", {
           header: ({ column }) => <SortableHeader column={column} title="Query" />,
-          cell: info => (
+          cell: (info) => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
               <span className=" line-clamp-1 max-w-[180px] sm:max-w-[260px] text-left block">
                 {info.getValue()}
@@ -95,7 +94,7 @@ export default function GSCAnalyticsTabs({
       base.push(
         columnHelper.accessor("countryName", {
           header: ({ column }) => <SortableHeader column={column} title="Country" />,
-          cell: info => (
+          cell: (info) => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
               <span className=" line-clamp-1 max-w-[160px] text-left block">
                 {info.getValue()} ({info.row.original.country})
@@ -111,7 +110,7 @@ export default function GSCAnalyticsTabs({
       base.push(
         columnHelper.accessor("blogTitle", {
           header: ({ column }) => <SortableHeader column={column} title="Blog Title" />,
-          cell: info => (
+          cell: (info) => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
               <span className="font-medium  line-clamp-1 max-w-[180px] sm:max-w-[280px] text-left block">
                 {info.getValue()}
@@ -126,7 +125,7 @@ export default function GSCAnalyticsTabs({
     base.push(
       columnHelper.accessor("clicks", {
         header: ({ column }) => <SortableHeader column={column} title="Clicks" />,
-        cell: info => (
+        cell: (info) => (
           <span className="text-blue-600 font-semibold">
             {new Intl.NumberFormat().format(info.getValue())}
           </span>
@@ -135,7 +134,7 @@ export default function GSCAnalyticsTabs({
       }),
       columnHelper.accessor("impressions", {
         header: ({ column }) => <SortableHeader column={column} title="Impressions" />,
-        cell: info => (
+        cell: (info) => (
           <span className="text-indigo-600 font-semibold">
             {new Intl.NumberFormat().format(info.getValue())}
           </span>
@@ -144,12 +143,12 @@ export default function GSCAnalyticsTabs({
       }),
       columnHelper.accessor("ctr", {
         header: ({ column }) => <SortableHeader column={column} title="CTR" />,
-        cell: info => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}%</span>,
+        cell: (info) => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}%</span>,
         sortingFn: (rowA, rowB) => parseFloat(rowA.original.ctr) - parseFloat(rowB.original.ctr),
       }),
       columnHelper.accessor("position", {
         header: ({ column }) => <SortableHeader column={column} title="Position" />,
-        cell: info => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}</span>,
+        cell: (info) => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}</span>,
         sortingFn: (rowA, rowB) =>
           parseFloat(rowA.original.position) - parseFloat(rowB.original.position),
       })
@@ -166,10 +165,7 @@ export default function GSCAnalyticsTabs({
                 <div tabIndex={0} role="button" className="btn btn-ghost btn-xs rounded-lg">
                   <MoreHorizontal className="size-4 text-gray-600" />
                 </div>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100"
-                >
+                <ul className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100">
                   <li>
                     <a
                       href={row.original.url}
@@ -186,6 +182,7 @@ export default function GSCAnalyticsTabs({
                       href={`${import.meta.env.VITE_FRONTEND_URL}/blog/${row.original.blogId}`}
                       target="_blank"
                       className="flex items-center gap-2 hover:bg-slate-50 text-slate-700"
+                      rel="noopener"
                     >
                       <Pencil className="size-4" />
                       Edit Blog
@@ -223,13 +220,13 @@ export default function GSCAnalyticsTabs({
       {/* Tabs Header */}
       <div className="bg-[#F8FAFC] border-b border-slate-100 flex items-center px-2 overflow-x-auto">
         <div className="flex gap-4 sm:gap-8 px-2 sm:px-4 min-w-max">
-          {items.map(item => (
+          {items.map((item) => (
             <button
               key={item.key}
               onClick={() => {
                 handleTabChange(item.key)
                 setSorting([])
-                setPagination(p => ({ ...p, pageIndex: 0 }))
+                setPagination((p) => ({ ...p, pageIndex: 0 }))
               }}
               className={`py-4 sm:py-5 text-[13px] sm:text-[15px] font-bold transition-all relative whitespace-nowrap ${
                 activeTab === item.key ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
@@ -277,9 +274,9 @@ export default function GSCAnalyticsTabs({
         ) : (
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map(hg => (
+              {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id} className="border-b border-slate-100 bg-white hover:bg-white">
-                  {hg.headers.map(header => (
+                  {hg.headers.map((header) => (
                     <TableHead
                       key={header.id}
                       className="bg-white text-[10px] sm:text-[11px] uppercase font-bold tracking-widest text-slate-500 py-4 px-3 sm:px-4 h-auto align-middle whitespace-nowrap"
@@ -291,12 +288,12 @@ export default function GSCAnalyticsTabs({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map(row => (
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   className="hover:bg-slate-50/80 transition-all border-b border-slate-50"
                 >
-                  {row.getVisibleCells().map(cell => (
+                  {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
                       className="py-4 sm:py-5 px-3 sm:px-4 text-[13px] sm:text-[14px] font-medium text-slate-700"
@@ -340,7 +337,7 @@ export default function GSCAnalyticsTabs({
             <select
               className="select select-bordered select-xs sm:select-sm border-gray-200 rounded-lg"
               value={pageSize}
-              onChange={e => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
+              onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
             >
               <option value={10}>10 / pg</option>
               <option value={25}>25 / pg</option>

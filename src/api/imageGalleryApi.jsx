@@ -17,7 +17,7 @@ export const getImages = async (params = {}) => {
   queryParams.append("limit", limit)
 
   if (tags && Array.isArray(tags) && tags.length > 0) {
-    tags.forEach(tag => queryParams.append("tags", tag))
+    tags.forEach((tag) => queryParams.append("tags", tag))
   }
 
   if (minScore !== undefined && minScore !== null) {
@@ -33,7 +33,7 @@ export const getImages = async (params = {}) => {
  * @param {string} id - Image ID
  * @returns {Promise} Image data
  */
-export const getImageById = async id => {
+export const getImageById = async (id) => {
   const response = await axiosInstance.get(`/image-gallery/${id}`)
   return response.data
 }
@@ -68,7 +68,7 @@ export const searchImages = async (params = {}) => {
  * POST /api/v1/user/images/generate
  * @param {Object} data - { prompt, style, imageSize, aspectRatio }
  */
-export const generateImage = async data => {
+export const generateImage = async (data) => {
   const response = await axiosInstance.post(`/user/images/generate`, data)
   return response.data
 }
@@ -78,7 +78,7 @@ export const generateImage = async data => {
  * POST /api/v1/user/images/enhance
  * @param {FormData} formData - FormData containing image (optional), prompt, etc.
  */
-export const enhanceImage = async formData => {
+export const enhanceImage = async (formData) => {
   // Content-Type header is usually auto-set by browser for FormData,
   // but explicitly setting it to undefined lets the browser set the boundary correctly.
   const response = await axiosInstance.post(`/user/images/enhance`, formData, {
@@ -92,7 +92,7 @@ export const enhanceImage = async formData => {
  * POST /api/v1/user/images/alt-text
  * @param {Object} data - { imageUrl, context }
  */
-export const generateAltText = async data => {
+export const generateAltText = async (data) => {
   const response = await axiosInstance.post(`/user/images/alt-text`, data)
   return response.data
 }

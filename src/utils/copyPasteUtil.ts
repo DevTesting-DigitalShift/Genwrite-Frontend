@@ -1,4 +1,4 @@
-import { ClipboardEvent } from "react"
+import type { ClipboardEvent } from "react"
 
 /**
  * Handles pasting a batch of values (keywords, focus keywords, topics, etc.) from the clipboard.
@@ -31,8 +31,8 @@ export const extractKeywordsFromClipboard = <T extends string = string>(
   e.preventDefault()
   const newItems = pasteData
     .split(/[\n\t\r,;]+/)
-    .map(item => item.trim())
-    .filter(item => item.length > 0)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
 
   if (newItems.length > 0) {
     cb(newItems, type)

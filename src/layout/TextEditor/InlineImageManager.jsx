@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react"
-import { Reorder } from "framer-motion"
-import { Edit3, Trash2, Image as ImageIcon, Check, X, ChevronUp, ChevronDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Trash2, Image as ImageIcon, Check, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 
-export const parseImagesFromHtml = html => {
+export const parseImagesFromHtml = (html) => {
   if (!html) return []
 
   const parser = new DOMParser()
@@ -65,7 +64,7 @@ export const reorderImagesInHtml = (html, newOrder) => {
 
   // Create a map of old positions to new positions
   const reorderedImages = newOrder
-    .map(item => {
+    .map((item) => {
       const originalImg = imgElements[item.originalIndex]
       return originalImg ? originalImg.cloneNode(true) : null
     })
@@ -193,7 +192,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   alt={altText || "Preview"}
                   className="max-w-full h-auto rounded-lg object-contain"
                   style={{ maxHeight: "200px" }}
-                  onError={e => {
+                  onError={(e) => {
                     e.target.src = image.src // Fallback to original if new URL fails
                   }}
                 />
@@ -210,7 +209,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   type="text"
                   className="input input-bordered w-full"
                   value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
+                  onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -228,7 +227,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                 <textarea
                   className="textarea textarea-bordered w-full"
                   value={altText}
-                  onChange={e => setAltText(e.target.value)}
+                  onChange={(e) => setAltText(e.target.value)}
                   placeholder="Describe the image for accessibility and SEO"
                   rows={3}
                 />
@@ -295,7 +294,7 @@ export const InlineImageManager = ({ sectionContent, onContentChange }) => {
     onContentChange(updatedHtml)
   }
 
-  const handleDeleteImage = imageIndex => {
+  const handleDeleteImage = (imageIndex) => {
     const updatedHtml = deleteImageFromHtml(sectionContent, imageIndex)
     onContentChange(updatedHtml)
   }

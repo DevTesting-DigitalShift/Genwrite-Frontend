@@ -1,7 +1,7 @@
 import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
 import { SiSanity } from "react-icons/si"
 
-export const pluginsData = pingFn => [
+export const pluginsData = (pingFn) => [
   {
     id: 111,
     name: "WordPress",

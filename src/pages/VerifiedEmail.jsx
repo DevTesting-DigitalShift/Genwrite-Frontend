@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import { useVerifyEmail } from "@/api/queries/authQueries"
@@ -33,7 +33,7 @@ const VerifiedEmail = () => {
     if (!token || hasVerified.current || isPending) return
 
     hasVerified.current = true
-    verifyEmail({ token }, { onError: err => console.error("Verification error:", err) })
+    verifyEmail({ token }, { onError: (err) => console.error("Verification error:", err) })
   }, [token, isPending, verifyEmail])
 
   // Clear verification state on successful verification

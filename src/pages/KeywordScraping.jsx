@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } from "lucide-react"
 import { toast } from "sonner"
@@ -31,7 +31,7 @@ const KeywordScraping = () => {
       let index = 0
 
       interval = setInterval(() => {
-        setTimer(prev => {
+        setTimer((prev) => {
           // Phase 1: Rapidly jump through specific points
           if (index < specificPoints.length) {
             const nextPoint = specificPoints[index]
@@ -64,9 +64,9 @@ const KeywordScraping = () => {
     }
   }, [])
 
-  const isValidUrl = url => {
+  const isValidUrl = (url) => {
     const urlRegex =
-      /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/
+      /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/
     return urlRegex.test(url.trim())
   }
 
@@ -87,18 +87,18 @@ const KeywordScraping = () => {
       onSuccess: () => {
         toast.success("Keywords scraped successfully!")
       },
-      onError: err => {
+      onError: (err) => {
         toast.error(err?.message || "Failed to scrape keywords. Please try again.")
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async content => {
+  const handleCopy = async (content) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to copy content")
       toast.error("Failed to copy content")
     }
@@ -169,7 +169,7 @@ const KeywordScraping = () => {
             <input
               type="url"
               value={inputUrl}
-              onChange={e => setInputUrl(e.target.value)}
+              onChange={(e) => setInputUrl(e.target.value)}
               placeholder="Enter website URL (e.g., https://example.com)"
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />

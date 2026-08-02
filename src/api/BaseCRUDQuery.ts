@@ -1,4 +1,4 @@
-import { QueryBase, AnyUseQueryOptions } from "./QueryBase"
+import { QueryBase, type AnyUseQueryOptions } from "./QueryBase"
 
 export abstract class BaseCRUDQuery<
   TEntity extends { _id?: string },
@@ -27,7 +27,7 @@ export abstract class BaseCRUDQuery<
   }) =>
     this.useMutate<TEntity, Partial<TEntity>>(this.api.create, {
       ...options,
-      onSuccess: data => {
+      onSuccess: (data) => {
         this.queryClient.setQueryData<TEntity[]>([...this.baseKey, "list"], (old = []) => [
           ...(old || []),
           data,
@@ -44,9 +44,9 @@ export abstract class BaseCRUDQuery<
       ({ id, data }) => this.api.update(id, data),
       {
         ...options,
-        onSuccess: updated => {
+        onSuccess: (updated) => {
           this.queryClient.setQueryData<TEntity[]>([...this.baseKey, "list"], (old = []) =>
-            old.map(b => (b._id === updated._id ? updated : b))
+            old.map((b) => (b._id === updated._id ? updated : b))
           )
           this.queryClient.setQueryData<TEntity>(
             [...this.baseKey, `detail-${updated._id}`],
@@ -65,7 +65,7 @@ export abstract class BaseCRUDQuery<
       ...options,
       onSuccess: (_, id) => {
         this.queryClient.setQueryData<TEntity[]>([...this.baseKey, "list"], (old = []) =>
-          old.filter(b => b._id !== id)
+          old.filter((b) => b._id !== id)
         )
         this.queryClient.removeQueries({ queryKey: [...this.baseKey, `detail-${id}`] })
         options?.onSuccess?.(id)
