@@ -13,6 +13,7 @@
       "@utils/*": ["utils/*"],
       "@pages/*": ["pages/*"],
       "@store/*": ["store/*"],
+      "@admin/*": ["admin/*"],
       "@/*": ["*"]
     }
   },

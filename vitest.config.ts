@@ -39,6 +39,7 @@ export default defineConfig({
       "@api": resolve(__dirname, "./src/api"),
       "@hooks": resolve(__dirname, "./src/hooks"),
       "@data": resolve(__dirname, "./src/data"),
+      "@admin": resolve(__dirname, "./src/admin"),
     },
   },
 })
