@@ -49,6 +49,20 @@ const PerformanceMonitoring = lazy(() => import("@pages/PerformanceMonitoring"))
 const CompetitiveAnalysis = lazy(() => import("@pages/CompetitiveAnalysis"))
 const KeywordResearch = lazy(() => import("@pages/KeywordResearch"))
 
+const AdminProtectedRoute = lazy(() => import("@admin/auth/AdminProtectedRoute"))
+const AdminShell = lazy(() => import("@admin/layout/AdminShell"))
+const AdminLogin = lazy(() => import("@admin/features/auth/pages/AdminLogin"))
+const AdminMfaReset = lazy(() => import("@admin/features/auth/pages/AdminMfaReset"))
+const AdminDashboard = lazy(() => import("@admin/features/dashboard/pages/AdminDashboard"))
+const AdminUsers = lazy(() => import("@admin/features/users/pages/AdminUsers"))
+const AdminUserDetail = lazy(() => import("@admin/features/users/pages/AdminUserDetail"))
+const AdminBlogs = lazy(() => import("@admin/features/blogs/pages/AdminBlogs"))
+const AdminBrands = lazy(() => import("@admin/features/brands/pages/AdminBrands"))
+const AdminContent = lazy(() => import("@admin/features/content/pages/AdminContent"))
+const AdminJobs = lazy(() => import("@admin/features/jobs/pages/AdminJobs"))
+const AdminRevenue = lazy(() => import("@admin/features/revenue/pages/AdminRevenue"))
+const AdminTransactions = lazy(() => import("@admin/features/transactions/pages/AdminTransactions"))
+
 const RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
 
 function withLayoutSuspense(Layout, props = {}) {
@@ -131,6 +145,33 @@ const router = createBrowserRouter([
           { path: "onboarding", element: r(Onboarding) },
           { path: "email-verify", element: r(EmailVerification) },
           { path: "verify-email", element: <VerifiedEmail /> },
+        ],
+      },
+      {
+        path: "admin",
+        children: [
+          { path: "login", element: r(AdminLogin) },
+          { path: "mfa-reset", element: r(AdminMfaReset) },
+          {
+            element: withLayoutSuspense(AdminProtectedRoute),
+            children: [
+              {
+                element: withLayoutSuspense(AdminShell),
+                children: [
+                  { index: true, element: <Navigate to="dashboard" replace /> },
+                  { path: "dashboard", element: r(AdminDashboard) },
+                  { path: "users", element: r(AdminUsers) },
+                  { path: "users/:userId", element: r(AdminUserDetail) },
+                  { path: "blogs", element: r(AdminBlogs) },
+                  { path: "brands", element: r(AdminBrands) },
+                  { path: "content", element: r(AdminContent) },
+                  { path: "jobs", element: r(AdminJobs) },
+                  { path: "revenue", element: r(AdminRevenue) },
+                  { path: "transactions", element: r(AdminTransactions) },
+                ],
+              },
+            ],
+          },
         ],
       },
     ],
