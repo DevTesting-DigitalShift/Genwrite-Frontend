@@ -345,7 +345,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     try {
       const { createMultiBlog } = useBlogStore.getState()
       // Don't await the promise so the modal closes immediately
-      createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
+      createMultiBlog({ blogData: validatedData, navigate, queryClient })
         .then(() => {
           // Optional: You can show a success message here if needed,
           // but the store action likely handles the main success feedback/navigation

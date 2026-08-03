@@ -369,7 +369,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       try {
         const { createNewBlog } = useBlogStore.getState()
 
-        await createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
+        await createNewBlog({ blogData: validatedData, navigate, queryClient } as any)
 
         // ✅ Only close modal on success
         handleClose()

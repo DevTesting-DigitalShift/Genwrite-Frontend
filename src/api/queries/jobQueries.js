@@ -9,6 +9,7 @@ import {
   deleteJob,
 } from "@api/jobApi"
 import { toast } from "sonner"
+import { pushJobAgentCreationEvent } from "@utils/creationEvents"
 
 export const useJobsQuery = (enabled = true) => {
   return useQuery({ queryKey: ["jobs"], queryFn: getJobs, enabled })
@@ -18,15 +19,13 @@ export const useCreateJobMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createJob,
-    onSuccess: (_data, variables) => {
-      const { user } = variables // Assuming user is passed in variables or we get it from auth store
-      // NOTE: DataLayer push might need user object.
-      // If user is not in variables, we might need to handle it in the component or useAuthStore.
-
+    onSuccess: (data) => {
+      pushJobAgentCreationEvent({ status: "success", job: data })
       toast.success("Job created successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: (error) => {
+      pushJobAgentCreationEvent({ status: "error", error })
       toast.error(error?.response?.data?.message || "Failed to create job")
     },
   })

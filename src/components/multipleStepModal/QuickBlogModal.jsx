@@ -194,7 +194,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
         // Dispatch and await the result
         const { createNewQuickBlog } = useBlogStore.getState()
-        await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
+        await createNewQuickBlog({ blogData: validatedData, navigate, type, queryClient })
 
         // ✅ Only close modal on success
         handleClose()
