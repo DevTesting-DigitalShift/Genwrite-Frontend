@@ -8,39 +8,12 @@
 // ============================================================================
 
 /**
- * Response from initial admin login
+ * Response from admin login
  */
 export interface AdminLoginResponse {
   message: string
-  mfaRequired: boolean
-  mfaEnabled: boolean
-  tempToken?: string
-  accessToken?: string
-  user?: AdminUser
-}
-
-/**
- * Response from 2FA verification
- */
-export interface Admin2FAVerifyResponse {
-  message: string
   accessToken: string
   user: AdminUser
-}
-
-/**
- * Response from MFA setup
- */
-export interface AdminMFASetupResponse {
-  secret: string
-  qrCode: string
-}
-
-/**
- * Response from MFA enable
- */
-export interface AdminMFAEnableResponse {
-  message: string
 }
 
 /**

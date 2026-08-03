@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import { adminLogin, adminVerify2FA } from "../features/auth/api/authApi"
+import { adminLogin, consumeWriteAccess, requestWriteAccess } from "../features/auth/api/authApi"
 import type { AdminUser } from "@admin/types/admin"
 import {
   getAuthToken,
@@ -17,16 +17,14 @@ interface AdminAuthState {
   loading: boolean
   error: string | null
   isAuthenticated: boolean
-  mfaRequired: boolean
-  mfaEnabled: boolean
-  tempToken: string | null
+  // Sessions are read-only by default. This only reflects elevation performed
+  // in the current tab (e.g. after consuming an emailed link) — it is not
+  // fetched from the server on load, so treat "false" as "unknown, assume read-only".
+  isWriteElevated: boolean
 
-  loginAdmin: (
-    email: string,
-    password: string
-  ) => Promise<{ mfaRequired: boolean; mfaEnabled: boolean; tempToken?: string }>
-  verifyAdminOtp: (tempToken: string, otp: string) => Promise<AdminUser>
-  setAdminSession: (token: string, user: AdminUser) => void
+  loginAdmin: (email: string, password: string) => Promise<AdminUser>
+  requestWriteAccess: () => Promise<string>
+  consumeWriteAccess: (token: string) => Promise<string>
   logoutAdmin: () => void
 }
 
@@ -38,30 +36,22 @@ const useAdminAuthStore = create<AdminAuthState>()(
       loading: false,
       error: null,
       isAuthenticated: hasStoredToken(),
-      mfaRequired: false,
-      mfaEnabled: false,
-      tempToken: null,
+      isWriteElevated: false,
 
       loginAdmin: async (email, password) => {
         set({ loading: true, error: null })
         try {
           const data = await adminLogin(email, password)
-
-          // MFA-skip path: credentials valid, session created immediately
-          if (!data.mfaRequired && data.accessToken && data.user) {
-            setAuthToken(data.accessToken)
-            setCurrentUser(data.user)
-            set({ user: data.user, token: data.accessToken, isAuthenticated: true, loading: false })
-            return { mfaRequired: false, mfaEnabled: false }
-          }
-
+          setAuthToken(data.accessToken)
+          setCurrentUser(data.user)
           set({
-            mfaRequired: true,
-            mfaEnabled: data.mfaEnabled,
-            tempToken: data.tempToken ?? null,
+            user: data.user,
+            token: data.accessToken,
+            isAuthenticated: true,
+            isWriteElevated: false,
             loading: false,
           })
-          return { mfaRequired: true, mfaEnabled: data.mfaEnabled, tempToken: data.tempToken }
+          return data.user
         } catch (err) {
           const message = err instanceof Error ? err.message : "Admin login failed"
           set({ loading: false, error: message })
@@ -69,37 +59,26 @@ const useAdminAuthStore = create<AdminAuthState>()(
         }
       },
 
-      verifyAdminOtp: async (tempToken, otp) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await adminVerify2FA(tempToken, otp)
-          setAuthToken(data.accessToken)
-          setCurrentUser(data.user)
-          set({
-            user: data.user,
-            token: data.accessToken,
-            isAuthenticated: true,
-            mfaRequired: false,
-            tempToken: null,
-            loading: false,
-          })
-          return data.user
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "OTP verification failed"
-          set({ loading: false, error: message })
-          throw err
-        }
+      requestWriteAccess: async () => {
+        const data = await requestWriteAccess()
+        return data.message
       },
 
-      setAdminSession: (token, user) => {
-        setAuthToken(token)
-        setCurrentUser(user)
-        set({ user, token, isAuthenticated: true })
+      consumeWriteAccess: async (token) => {
+        const data = await consumeWriteAccess(token)
+        set({ isWriteElevated: true })
+        return data.message
       },
 
       logoutAdmin: () => {
         removeAuthToken()
-        set({ user: null, token: null, isAuthenticated: false, error: null })
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isWriteElevated: false,
+          error: null,
+        })
       },
     }),
     { name: "admin-auth-store" }

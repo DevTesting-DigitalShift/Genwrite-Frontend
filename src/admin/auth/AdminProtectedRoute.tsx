@@ -4,8 +4,8 @@ import { adminRefreshToken } from "../features/auth/api/authApi"
 import { getAuthToken, isAuthenticated, setAuthToken } from "./authToken"
 
 /**
- * Gates all admin routes (except /admin/login and /admin/mfa-reset) behind a
- * valid admin session. Optimistically authorizes if a token already exists
+ * Gates all admin routes (except /admin/login) behind a valid admin
+ * session. Optimistically authorizes if a token already exists
  * (avoids a loading flash on sub-route navigation), then verifies/refreshes
  * once in the background via the httpOnly refresh cookie.
  */

@@ -52,7 +52,7 @@ const KeywordResearch = lazy(() => import("@pages/KeywordResearch"))
 const AdminProtectedRoute = lazy(() => import("@admin/auth/AdminProtectedRoute"))
 const AdminShell = lazy(() => import("@admin/layout/AdminShell"))
 const AdminLogin = lazy(() => import("@admin/features/auth/pages/AdminLogin"))
-const AdminMfaReset = lazy(() => import("@admin/features/auth/pages/AdminMfaReset"))
+const AdminElevate = lazy(() => import("@admin/features/auth/pages/AdminElevate"))
 const AdminDashboard = lazy(() => import("@admin/features/dashboard/pages/AdminDashboard"))
 const AdminUsers = lazy(() => import("@admin/features/users/pages/AdminUsers"))
 const AdminUserDetail = lazy(() => import("@admin/features/users/pages/AdminUserDetail"))
@@ -151,7 +151,6 @@ const router = createBrowserRouter([
         path: "admin",
         children: [
           { path: "login", element: r(AdminLogin) },
-          { path: "mfa-reset", element: r(AdminMfaReset) },
           {
             element: withLayoutSuspense(AdminProtectedRoute),
             children: [
@@ -159,6 +158,7 @@ const router = createBrowserRouter([
                 element: withLayoutSuspense(AdminShell),
                 children: [
                   { index: true, element: <Navigate to="dashboard" replace /> },
+                  { path: "elevate", element: r(AdminElevate) },
                   { path: "dashboard", element: r(AdminDashboard) },
                   { path: "users", element: r(AdminUsers) },
                   { path: "users/:userId", element: r(AdminUserDetail) },

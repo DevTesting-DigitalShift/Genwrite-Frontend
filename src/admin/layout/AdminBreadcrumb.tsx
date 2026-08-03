@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@components/ui/breadcrumb"
+import { WriteAccessBanner } from "@admin/shared/components/WriteAccessBanner"
 import { useSidebarToggle } from "./AdminSidebar"
 
 const routeNames: Record<string, string> = {
@@ -106,6 +107,10 @@ export default function AdminBreadcrumb() {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
+
+      <div className="ml-auto">
+        <WriteAccessBanner />
+      </div>
     </div>
   )
 }

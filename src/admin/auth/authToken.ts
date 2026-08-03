@@ -14,8 +14,6 @@ export const ADMIN_STORAGE_TYPE: StorageType = "local"
 // so an admin session never collides with an end-user session.
 export const AUTH_TOKEN_KEY = "admin_token"
 export const AUTH_USER_KEY = "admin_user"
-export const TEMP_TOKEN_KEY = "admin_temp_token"
-export const TEMP_TOKEN_EXPIRY_KEY = "admin_temp_token_expiry"
 
 export type { AdminUser }
 
@@ -55,39 +53,5 @@ export const setCurrentUser = (user: AdminUser): void => {
  */
 export const logout = (): void => {
   removeAuthToken()
-  removeTempToken()
   window.location.href = "/admin/login"
 }
-
-// ============================================================================
-// MFA/2FA temp-token state (5 minute expiry)
-// ============================================================================
-
-export const getTempToken = (): string | null => {
-  const expiry = getStorage().getItem(TEMP_TOKEN_EXPIRY_KEY)
-  if (expiry && Date.now() > Number.parseInt(expiry, 10)) {
-    removeTempToken()
-    return null
-  }
-  return getStorage().getItem(TEMP_TOKEN_KEY)
-}
-
-export const setTempToken = (token: string): void => {
-  getStorage().setItem(TEMP_TOKEN_KEY, token)
-  const expiryTime = Date.now() + 5 * 60 * 1000
-  getStorage().setItem(TEMP_TOKEN_EXPIRY_KEY, expiryTime.toString())
-}
-
-export const removeTempToken = (): void => {
-  getStorage().removeItem(TEMP_TOKEN_KEY)
-  getStorage().removeItem(TEMP_TOKEN_EXPIRY_KEY)
-}
-
-export const getTempTokenRemainingTime = (): number => {
-  const expiry = getStorage().getItem(TEMP_TOKEN_EXPIRY_KEY)
-  if (!expiry) return 0
-  const remaining = Math.max(0, Number.parseInt(expiry, 10) - Date.now())
-  return Math.floor(remaining / 1000)
-}
-
-export const isTempTokenValid = (): boolean => getTempTokenRemainingTime() > 0
