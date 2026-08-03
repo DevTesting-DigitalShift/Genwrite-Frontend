@@ -105,7 +105,7 @@ const BlogsPage = () => {
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters((prev) => ({ ...prev, ...parsedFilters }) || {})
+      setBlogFilters((prev) => ({ ...prev, ...parsedFilters }))
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {

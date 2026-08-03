@@ -1,6 +1,8 @@
 import {
   BriefcaseBusiness,
   ChartArea,
+  ChevronsLeft,
+  ChevronsRight,
   CreditCard,
   FileText,
   Folder,
@@ -36,6 +38,8 @@ const menuItems = [
   { icon: FileText, label: "Content", href: "/admin/content" },
 ]
 
+const COLLAPSED_STORAGE_KEY = "admin_sidebar_collapsed"
+
 // Shared toggle state so AdminBreadcrumb's hamburger button can open this sidebar.
 let sidebarToggleCallback: (() => void) | null = null
 let sidebarIsOpen = false
@@ -44,8 +48,17 @@ export function useSidebarToggle() {
   return { toggleSidebar: () => sidebarToggleCallback?.(), isOpen: sidebarIsOpen }
 }
 
+function getStoredCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
 export default function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(getStoredCollapsed)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -53,6 +66,18 @@ export default function AdminSidebar() {
     sidebarIsOpen = isOpen
     sidebarToggleCallback = () => setIsOpen(!isOpen)
   }, [isOpen])
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next))
+      } catch {
+        // ignore - collapse state just won't persist
+      }
+      return next
+    })
+  }
 
   const handleLogout = () => {
     logout()
@@ -74,7 +99,9 @@ export default function AdminSidebar() {
       )}
 
       <aside
-        className={`fixed lg:static top-0 left-0 h-full bg-gray-100 w-60 flex flex-col z-40 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:static top-0 left-0 h-full bg-gray-100 w-60 ${
+          isCollapsed ? "lg:w-20" : "lg:w-60"
+        } flex flex-col z-40 transform transition-all duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 shadow-2xl lg:shadow-none`}
       >
@@ -88,18 +115,30 @@ export default function AdminSidebar() {
             <X className="w-4 h-4 text-gray-600" />
           </button>
 
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="hidden lg:flex absolute top-4 right-2 p-1.5 rounded-md hover:bg-white transition-colors items-center justify-center"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronsRight className="w-4 h-4 text-gray-600" />
+            ) : (
+              <ChevronsLeft className="w-4 h-4 text-gray-600" />
+            )}
+          </button>
+
           <div className="flex flex-col items-center justify-center space-y-3">
-            <img
-              src="/Images/logo_genwrite.svg"
-              alt="GenWrite Logo"
-              width={170}
-              height={170}
-              className="object-cover"
-            />
+            {isCollapsed ? (
+              <img src="/Images/genwriteIcon.webp" alt="GenWrite" className="w-8 h-8" />
+            ) : (
+              <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" className="w-32 h-auto" />
+            )}
           </div>
         </div>
 
-        <hr className="border-t border-gray-200 mb-2 w-50 ml-4 shrink-0" />
+        <hr className="border-t border-gray-200 mb-2 w-50 lg:w-auto lg:mx-4 ml-4 shrink-0" />
 
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
           {menuItems.map((item) => {
@@ -115,29 +154,35 @@ export default function AdminSidebar() {
                   navigate(item.href)
                   closeSidebar()
                 }}
-                className={`w-full flex items-center space-x-3 font-semibold px-4 py-3 rounded-xl transition-colors ${
+                title={isCollapsed ? item.label : undefined}
+                className={`w-full flex items-center font-semibold px-4 py-3 rounded-xl transition-colors ${
+                  isCollapsed ? "lg:justify-center lg:px-0" : "space-x-3"
+                } ${
                   isActive
                     ? "bg-white text-gray-800 border border-gray-200 shadow-[0_0_1px_rgba(0,0,0,0.1)]"
                     : "text-gray-700 hover:bg-white hover:shadow-sm"
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm">{item.label}</span>
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className={isCollapsed ? "text-sm lg:hidden" : "text-sm"}>{item.label}</span>
               </button>
             )
           })}
         </nav>
 
         <div className="p-4 shrink-0 mt-auto">
-          <hr className="border-t border-gray-200 mb-4 w-50 ml-1" />
+          <hr className="border-t border-gray-200 mb-4 w-50 lg:w-auto ml-1 lg:ml-0" />
           <Dialog>
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 border-2 border-red-200 text-red-600 bg-red-50 hover:border-red-300 hover:shadow-md font-semibold group"
+                title={isCollapsed ? "Logout" : undefined}
+                className={`w-full flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 border-2 border-red-200 text-red-600 bg-red-50 hover:border-red-300 hover:shadow-md font-semibold group ${
+                  isCollapsed ? "lg:px-0" : "space-x-3"
+                }`}
               >
-                <LogOut className="w-5 h-5" />
-                <span className="text-sm">Logout</span>
+                <LogOut className="w-5 h-5 shrink-0" />
+                <span className={isCollapsed ? "text-sm lg:hidden" : "text-sm"}>Logout</span>
               </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

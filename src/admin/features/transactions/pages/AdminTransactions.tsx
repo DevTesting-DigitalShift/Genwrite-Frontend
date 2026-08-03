@@ -10,7 +10,7 @@ import {
   User,
   XCircle,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Badge } from "@components/ui/badge"
 import { Button } from "@components/ui/button"
 import {
@@ -65,7 +65,7 @@ function getStatusBadge(status: string) {
     case "error":
       return <Badge className="bg-red-100 text-red-700 border border-red-200">Failed</Badge>
     default:
-      return <Badge variant="secondary">{status}</Badge>
+      return <Badge className="bg-gray-100 text-gray-700 border border-gray-200">{status}</Badge>
   }
 }
 
@@ -80,7 +80,7 @@ export default function AdminTransactions() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  const fetchTransactions = async (page: number) => {
+  const fetchTransactions = useCallback(async (page: number) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -97,17 +97,17 @@ export default function AdminTransactions() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchTransactions(currentPage)
-  }, [currentPage])
+  }, [currentPage, fetchTransactions])
 
   useEffect(() => {
     if (currentPage !== 1 && (searchQuery || statusFilter !== "all")) {
       setCurrentPage(1)
     }
-  }, [searchQuery, statusFilter])
+  }, [searchQuery, statusFilter, currentPage])
 
   const filteredTransactions = transactions.filter((txn) => {
     if (searchQuery) {

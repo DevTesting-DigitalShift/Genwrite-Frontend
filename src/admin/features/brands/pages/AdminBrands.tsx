@@ -182,8 +182,11 @@ export default function AdminBrands() {
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <Badge
-                      variant={brand.blogCount > 0 ? "default" : "secondary"}
-                      className="text-sm"
+                      className={`text-sm border ${
+                        brand.blogCount > 0
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
                     >
                       <FileText className="w-3 h-3 mr-1" />
                       {brand.blogCount} {brand.blogCount === 1 ? "blog" : "blogs"}
@@ -224,7 +227,7 @@ export default function AdminBrands() {
                     )}
                   </div>
                 </div>
-                <Badge variant="secondary" className="text-sm">
+                <Badge className="text-sm bg-gray-100 text-gray-700 border border-gray-200">
                   <Building2 className="w-3 h-3 mr-1" />
                   {user.brandCount} {user.brandCount === 1 ? "brand" : "brands"}
                 </Badge>

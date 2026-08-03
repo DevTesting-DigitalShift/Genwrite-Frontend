@@ -51,7 +51,7 @@ const MyProjects = () => {
   useEffect(() => {
     const field = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
     if (field) {
-      setBlogFilters((prev) => ({ ...prev, ...JSON.parse(field) }) || {})
+      setBlogFilters((prev) => ({ ...prev, ...JSON.parse(field) }))
     } else {
       setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
     }

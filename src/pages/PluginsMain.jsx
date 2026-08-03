@@ -629,7 +629,9 @@ const PluginsMain = () => {
                       : setWpUsername(e.target.value)
                   }
                   disabled={!isEditing}
-                  onFocus={(e) => isEditing && (e.target.value = "")}
+                  onFocus={(e) => {
+                    if (isEditing) e.target.value = ""
+                  }}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
@@ -642,7 +644,9 @@ const PluginsMain = () => {
                     value={wpPassword}
                     onChange={(e) => setWpPassword(e.target.value)}
                     disabled={!isEditing}
-                    onFocus={(e) => isEditing && (e.target.value = "")}
+                    onFocus={(e) => {
+                    if (isEditing) e.target.value = ""
+                  }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>

@@ -293,7 +293,7 @@ export default function AdminContent() {
                     {category.category}
                   </span>
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge className="text-xs bg-gray-100 text-gray-700 border border-gray-200">
                       {category.count} blogs
                     </Badge>
                     <div className="w-24 sm:w-32">
@@ -331,7 +331,7 @@ export default function AdminContent() {
                     <span className="text-xs sm:text-sm text-gray-700 capitalize font-medium">
                       {platform.platform}
                     </span>
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
+                    <Badge className="text-xs sm:text-sm bg-gray-100 text-gray-700 border border-gray-200">
                       {platform.count}
                     </Badge>
                   </div>

@@ -889,8 +889,11 @@ export default function AdminUserDetail() {
                       <p className="text-xs text-gray-500">{job.createdBlogsCount} blogs created</p>
                     </div>
                     <Badge
-                      variant={job.status === "active" ? "default" : "secondary"}
-                      className="capitalize"
+                      className={`capitalize border ${
+                        job.status === "active"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
                     >
                       {job.status}
                     </Badge>
@@ -926,7 +929,9 @@ export default function AdminUserDetail() {
                           {brand.describeBrand || "No description"}
                         </p>
                       </div>
-                      <Badge variant="secondary">{brand.blogCount}</Badge>
+                      <Badge className="bg-gray-100 text-gray-700 border border-gray-200">
+                        {brand.blogCount}
+                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -1007,7 +1012,15 @@ export default function AdminUserDetail() {
                       <span className="font-semibold">
                         {txn.currency.toUpperCase()} ${(txn.amount / 100).toFixed(2)}
                       </span>
-                      <Badge variant={txn.status === "succeeded" ? "default" : "destructive"}>
+                      <Badge
+                        className={`capitalize border ${
+                          txn.status === "success" || txn.status === "succeeded"
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : txn.status === "pending"
+                              ? "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              : "bg-red-100 text-red-700 border-red-200"
+                        }`}
+                      >
                         {txn.status}
                       </Badge>
                     </div>

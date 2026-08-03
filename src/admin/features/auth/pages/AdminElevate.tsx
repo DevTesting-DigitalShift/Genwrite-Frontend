@@ -41,8 +41,7 @@ export default function AdminElevate() {
         setStatus("error")
         setMessage(getErrorMessage(err, "This link is invalid or has expired."))
       })
-    // biome-ignore lint/correctness/useExhaustiveDependencies: consume runs once per mount for the token in the URL
-  }, [searchParams])
+  }, [searchParams, consumeWriteAccess])
 
   return (
     <div className="max-w-md mx-auto py-16 text-center">

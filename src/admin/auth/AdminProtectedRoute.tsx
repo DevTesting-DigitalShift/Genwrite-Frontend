@@ -39,7 +39,7 @@ export default function AdminProtectedRoute() {
 
     checkAuth()
     // Runs once on mount; ProtectedRoute stays mounted across sub-route navigation.
-  }, [])
+  }, [navigate])
 
   if (isLoading && !isAuthorized) {
     return <div className="min-h-screen bg-slate-50/50 animate-pulse" />
