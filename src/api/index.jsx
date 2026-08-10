@@ -1,5 +1,6 @@
 import axios from "axios"
 import { toast } from "sonner"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -17,6 +18,11 @@ axiosInstance.interceptors.request.use(
     const token = localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    // Scope reads to a shared workspace, if one is currently active
+    const { activeWorkspace } = useWorkspaceStore.getState()
+    if (activeWorkspace) {
+      config.headers["X-Watch-As"] = activeWorkspace.id
     }
     return config
   },
@@ -45,7 +51,13 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 2. Only delete token for 401 Unauthorized
+    // 2. Read-only workspace write attempt — surface the backend's message as a safety net
+    //    for any write action we didn't proactively gate in the UI.
+    if (status === 403 && error.response?.data?.message?.includes("Read-only access")) {
+      toast.error(error.response.data.message)
+    }
+
+    // 3. Only delete token for 401 Unauthorized
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")

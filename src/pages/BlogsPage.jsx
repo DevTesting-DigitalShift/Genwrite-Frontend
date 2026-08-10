@@ -25,6 +25,7 @@ import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import DateRangePicker from "@components/ui/DateRangePicker"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { useProAction } from "@/hooks/useProAction"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import {
   archiveBlogById,
   getAllBlogs,
@@ -53,6 +54,7 @@ const BlogsPage = () => {
   const queryClient = useQueryClient()
   const userId = user?._id || "guest"
   const { handleProAction } = useProAction()
+  const { guardWrite } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
 
   const initialBlogFilter = useMemo(
@@ -453,7 +455,7 @@ const BlogsPage = () => {
         <div className="flex flex-wrap items-center gap-4">
           {!isTrashcan && (
             <button
-              onClick={() => handleProAction(() => navigate("/blog-editor"))}
+              onClick={() => guardWrite(() => handleProAction(() => navigate("/blog-editor")))}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10"
             >
               <Plus

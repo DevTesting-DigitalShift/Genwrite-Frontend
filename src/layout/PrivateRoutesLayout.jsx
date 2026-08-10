@@ -9,6 +9,7 @@ import PaymentPendingModal from "@components/PaymentPendingModal"
 import { useProAction } from "@/hooks/useProAction"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
+import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 
 // Routes that needsUpgrade users are allowed to visit freely
 const ALLOWED_ROUTES = [
@@ -92,6 +93,7 @@ const PrivateRoutesLayout = () => {
 
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 px-3 md:px-6">
           <main>
+            <WorkspaceAccessBanner />
             <Outlet />
           </main>
         </div>

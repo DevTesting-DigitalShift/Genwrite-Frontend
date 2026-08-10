@@ -18,6 +18,7 @@ import {
   Trash2,
   TrendingUp,
   User,
+  Users,
   UsersRound,
   Zap,
 } from "lucide-react"
@@ -459,6 +460,14 @@ const SideBar_Header = () => {
                         className="text-sm font-medium py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
                       >
                         <Sparkles className="w-4 h-4 text-amber-500" /> Upgrade Plan
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => navigate("/collaboration")}
+                        className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
+                      >
+                        <Users className="w-4 h-4 text-teal-500" /> Collaboration
                       </button>
                     </li>
                     <div className="divider my-1"></div>

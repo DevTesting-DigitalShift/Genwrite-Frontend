@@ -7,6 +7,7 @@ import useAuthStore from "@store/useAuthStore"
 import useVerificationStore from "@store/useVerificationStore"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
 
 const Onboarding = () => {
   const navigate = useNavigate()
@@ -41,7 +42,7 @@ const Onboarding = () => {
         useVerificationStore.getState().setEmail(user.email)
         navigate(`/email-verify`, { replace: true })
       } else {
-        navigate("/dashboard", { replace: true })
+        navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
       }
     }
   }, [user, navigate])
@@ -159,7 +160,7 @@ const Onboarding = () => {
       }
       sessionStorage.setItem("justCompletedOnboarding", "true")
 
-      navigate("/dashboard", { replace: true })
+      navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
     } catch (error) {
       toast.error(error.toast || "Failed to create brand voice")
     } finally {
@@ -172,7 +173,7 @@ const Onboarding = () => {
       localStorage.setItem(`hasCompletedOnboarding_${user._id}`, "true")
     }
     sessionStorage.setItem("justCompletedOnboarding", "true")
-    navigate("/dashboard")
+    navigate(consumePostAuthRedirect() || "/dashboard")
   }
 
   const steps = [

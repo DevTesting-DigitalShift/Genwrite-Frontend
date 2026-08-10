@@ -17,6 +17,8 @@ const BrandVoice = lazy(() => import("@pages/BrandVoice"))
 const jobs = lazy(() => import("@pages/Jobs"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
+const Collaboration = lazy(() => import("@pages/Collaboration"))
+const AcceptInvite = lazy(() => import("@pages/AcceptInvite"))
 const Login = lazy(() => import("@pages/auth/Login"))
 const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword"))
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword"))
@@ -101,6 +103,7 @@ const router = createBrowserRouter([
             ],
           },
           { path: "shopify-verify", element: r(ShopifyVerification) },
+          { path: "accept-invite", element: r(AcceptInvite) },
           { path: "*", element: r(ErrorPage) },
         ],
       },
@@ -117,6 +120,7 @@ const router = createBrowserRouter([
           { path: "trashcan", element: r(BlogsPage) },
           { path: "pricing", element: r(pricing) },
           { path: "profile", element: r(Profile) },
+          { path: "collaboration", element: r(Collaboration) },
           { path: "brand-voice", element: r(BrandVoice) },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },

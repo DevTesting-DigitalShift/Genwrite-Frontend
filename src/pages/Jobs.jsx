@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import {
   useJobsQuery,
@@ -277,6 +278,7 @@ const Jobs = () => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const openJobModal = useJobStore((state) => state.openJobModal)
+  const { guardWrite } = useReadOnlyGuard()
   const [searchQuery, _setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("jobs_view_mode") || "grid"
@@ -360,9 +362,11 @@ const Jobs = () => {
   }, [usage, usageLimit, navigate])
 
   const handleOpenJobModal = useCallback(() => {
-    if (!checkJobLimit()) return
-    openJobModal(null)
-  }, [checkJobLimit, openJobModal])
+    guardWrite(() => {
+      if (!checkJobLimit()) return
+      openJobModal(null)
+    })
+  }, [checkJobLimit, openJobModal, guardWrite])
 
   const handleEditJob = useCallback(
     (job) => {

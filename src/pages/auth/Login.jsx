@@ -21,6 +21,7 @@ import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
+import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
@@ -106,7 +107,10 @@ const Auth = ({ path }) => {
 
         const _user = data.user || data?.data?.user || data
 
-        if (isSignup) {
+        const redirect = !isSignup ? consumePostAuthRedirect() : null
+        if (redirect) {
+          navigate(redirect, { replace: true })
+        } else if (isSignup) {
           navigate("/onboarding", { replace: true })
         } else {
           navigate("/dashboard", { replace: true })
@@ -148,7 +152,10 @@ const Auth = ({ path }) => {
         toast.success(isSignup ? "Signup successful!" : "Login successful!")
 
         // 🔥 Your new redirect rule
-        if (isSignup) {
+        const redirect = !isSignup ? consumePostAuthRedirect() : null
+        if (redirect) {
+          navigate(redirect, { replace: true })
+        } else if (isSignup) {
           navigate("/onboarding", { replace: true }) // New user onboarding flow
         } else {
           navigate("/dashboard", { replace: true }) // Returning user flow

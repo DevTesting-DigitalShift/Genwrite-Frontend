@@ -10,6 +10,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
@@ -49,6 +50,7 @@ const BrandVoice = () => {
   }
 
   const { brand: brandVoiceMutations } = useEntityMutations()
+  const { isReadOnlyWorkspace } = useReadOnlyGuard()
 
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
@@ -284,6 +286,10 @@ const BrandVoice = () => {
   }, [])
 
   const handleSave = useCallback(async () => {
+    if (isReadOnlyWorkspace) {
+      toast.error("This workspace is read-only — exit to your own workspace to make changes.")
+      return
+    }
     if (!validateForm()) return
     setIsUploading(true)
     const payload = {
@@ -320,7 +326,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations])
+  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations, isReadOnlyWorkspace])
 
   const handleEdit = useCallback((brand) => {
     setFormData({
