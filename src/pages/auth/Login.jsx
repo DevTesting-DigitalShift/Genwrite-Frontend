@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import useAuthStore from "@store/useAuthStore"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { switchToAccount } from "@utils/accountSwitch"
 import { useGoogleLogin } from "@react-oauth/google"
 import { motion, AnimatePresence } from "framer-motion"
 import ReCAPTCHA from "react-google-recaptcha"
@@ -35,6 +36,8 @@ const Auth = ({ path }) => {
 
   const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isAddingAccount = searchParams.get("mode") === "add-account"
 
   // Validate form fields
   const validateForm = useCallback(() => {
@@ -105,7 +108,12 @@ const Auth = ({ path }) => {
       }).then((data) => {
         toast.success("Google login successful!")
 
-        const _user = data.user || data?.data?.user || data
+        const user = data.user || data?.data?.user || data
+
+        if (isAddingAccount && user?._id) {
+          switchToAccount(user._id, { navigate })
+          return
+        }
 
         const redirect = !isSignup ? consumePostAuthRedirect() : null
         if (redirect) {
@@ -151,6 +159,11 @@ const Auth = ({ path }) => {
 
         toast.success(isSignup ? "Signup successful!" : "Login successful!")
 
+        if (isAddingAccount && user?._id) {
+          await switchToAccount(user._id, { navigate })
+          return
+        }
+
         // 🔥 Your new redirect rule
         const redirect = !isSignup ? consumePostAuthRedirect() : null
         if (redirect) {
@@ -169,7 +182,7 @@ const Auth = ({ path }) => {
         setLoading(false)
       }
     },
-    [formData, isSignup, loginUser, signupUser, navigate, validateForm, recaptchaValue]
+    [formData, isSignup, isAddingAccount, loginUser, signupUser, navigate, validateForm, recaptchaValue]
   )
 
   // Update isSignup based on path

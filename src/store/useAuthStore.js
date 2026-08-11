@@ -19,11 +19,18 @@ import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
 import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
+import * as sessionStore from "@utils/sessionStore"
+import { switchToNextOrNull } from "@utils/accountSwitch"
 
-// Utils
-const saveToken = (token) => localStorage.setItem("token", token)
-const removeToken = () => localStorage.removeItem("token")
-const getToken = () => localStorage.getItem("token")
+// Utils — delegate to the multi-account session layer instead of a single
+// localStorage["token"]. loginUser/signupUser/googleLogin call sessionStore.upsertSession
+// directly (they already have the user object), so this generic helper only covers the
+// token-only cases (setToken action, loadAuthenticatedUser's silent refresh).
+const getToken = () => sessionStore.getActiveToken()
+const removeToken = () => {
+  const active = sessionStore.getActiveSession()
+  if (active) sessionStore.removeSession(active.userId)
+}
 
 const useAuthStore = create(
   devtools(
@@ -43,7 +50,7 @@ const useAuthStore = create(
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
       setToken: (token) => {
-        saveToken(token)
+        sessionStore.updateActiveSessionToken(token)
         set({ token, isAuthenticated: true })
       },
 
@@ -91,7 +98,7 @@ const useAuthStore = create(
         try {
           const { user, token } = await login({ email, password, captchaToken })
           if (token && user) {
-            saveToken(token)
+            sessionStore.upsertSession({ user, token })
             pushToDataLayer({
               event: "login_attempt",
               event_status: "success",
@@ -121,7 +128,7 @@ const useAuthStore = create(
         try {
           const { user, token } = await signup({ email, password, name, captchaToken, referralId })
           if (token && user) {
-            saveToken(token)
+            sessionStore.upsertSession({ user, token })
             pushToDataLayer({
               event: "sign_up_attempt",
               event_status: "success",
@@ -154,7 +161,7 @@ const useAuthStore = create(
             throw new Error("Invalid Google login response")
           }
 
-          saveToken(response.token)
+          sessionStore.upsertSession({ user: response.user, token: response.token })
           const { user, authStatus } = response
 
           pushToDataLayer({
@@ -193,6 +200,10 @@ const useAuthStore = create(
         try {
           const data = await loadUserAPI()
           if (data?.success && data?.user) {
+            // Patches the placeholder "pending" session left by the legacy-token
+            // migration, and keeps the session list's name/avatar/email fresh for the
+            // account switcher UI.
+            sessionStore.upsertSession({ user: data.user, token })
             set({ user: data.user, token, isAuthenticated: true, loading: false })
             return { user: data.user, token }
           } else {
@@ -212,9 +223,29 @@ const useAuthStore = create(
         } catch (err) {
           console.warn("Logout API failed", err)
         }
-        removeToken()
+        const currentUserId = sessionStore.getActiveSession()?.userId
         set({ user: null, token: null, isAuthenticated: false, error: null })
-        // Could also clear other stores here if needed
+        if (currentUserId) {
+          // Removes this session and, if another logged-in account remains in this
+          // browser, switches to it instead of bouncing to /login.
+          const nextUserId = await switchToNextOrNull(currentUserId)
+          return { switchedToAnotherAccount: !!nextUserId }
+        }
+        return { switchedToAnotherAccount: false }
+      },
+
+      /** Signs out of every logged-in account in this browser. */
+      logoutAllAccounts: async () => {
+        for (const session of sessionStore.getSessions()) {
+          try {
+            sessionStore.setActiveUserId(session.userId)
+            await UserLogout()
+          } catch (err) {
+            console.warn(`Logout API failed for ${session.email}`, err)
+          }
+        }
+        sessionStore.removeAllSessions()
+        set({ user: null, token: null, isAuthenticated: false, error: null })
       },
 
       forgotPassword: async (email) => {

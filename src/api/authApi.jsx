@@ -1,4 +1,11 @@
 import axiosInstance from "."
+import { getActiveToken, getActiveSession, removeSession } from "@utils/sessionStore"
+
+const removeActiveSession = () => {
+  const active = getActiveSession()
+  if (active) removeSession(active.userId)
+}
+
 export const getIP = async () => {
   try {
     const res = await fetch("https://api.ipify.org?format=json")
@@ -42,14 +49,15 @@ export const signup = async (body) => {
   }
 }
 export const UserLogout = async () => {
+  // Session removal from storage is owned by useAuthStore.logoutUser (via
+  // sessionStore), which calls this first — this function only hits the backend.
   const response = await axiosInstance.get(`/auth/logout`)
-  localStorage.removeItem("token") // Clear token on logout
   return response.data
 }
 
 export const loadUser = async (navigate) => {
   // Check if token exists before making API call
-  const token = localStorage.getItem("token")
+  const token = getActiveToken()
   if (!token) {
     navigate("/login")
     throw new Error("No authentication token found")
@@ -65,7 +73,7 @@ export const loadUser = async (navigate) => {
 
     if (status === 401 || status === 403) {
       // Unauthorized or Forbidden: Clear token and redirect to login
-      localStorage.removeItem("token")
+      removeActiveSession()
       navigate("/login")
       throw new Error("Session expired. Please log in again.")
     } else if (isNetworkError) {

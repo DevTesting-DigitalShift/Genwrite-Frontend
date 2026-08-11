@@ -15,6 +15,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
+import { getActiveToken } from "@utils/sessionStore"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
@@ -139,7 +140,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const initUser = async () => {
-      const token = localStorage.getItem("token")
+      const token = getActiveToken()
       if (!token) {
         navigate("/login")
         return

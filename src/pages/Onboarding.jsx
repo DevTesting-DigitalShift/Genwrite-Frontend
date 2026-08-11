@@ -8,6 +8,7 @@ import useVerificationStore from "@store/useVerificationStore"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
+import { getActiveToken } from "@utils/sessionStore"
 
 const Onboarding = () => {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ const Onboarding = () => {
 
   // Load authenticated user on mount
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    const token = getActiveToken()
     if (!token) {
       navigate("/login", { replace: true })
       return

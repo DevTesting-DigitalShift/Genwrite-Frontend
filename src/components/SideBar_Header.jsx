@@ -31,6 +31,7 @@ import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
 import { useProAction } from "@/hooks/useProAction"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import AccountSwitcher from "@components/AccountSwitcher"
 
 const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -207,8 +208,10 @@ const SideBar_Header = () => {
 
   const handleLogout = async () => {
     try {
-      await logoutUser()
-      navigate("/login")
+      const { switchedToAnotherAccount } = await logoutUser()
+      // If another logged-in account was switched to, logoutUser already navigated
+      // there — only redirect to /login when this was the last session.
+      if (!switchedToAnotherAccount) navigate("/login")
     } catch (error) {
       console.error("Logout error:", error)
     }
@@ -471,6 +474,7 @@ const SideBar_Header = () => {
                       </button>
                     </li>
                     <div className="divider my-1"></div>
+                    <AccountSwitcher />
                     <li>
                       <button
                         onClick={handleLogout}

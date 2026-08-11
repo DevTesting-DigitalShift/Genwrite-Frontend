@@ -28,7 +28,6 @@ const MainEditorPage = () => {
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
-  const _token = localStorage.getItem("token")
 
   // Zustand Stores
   const { user } = useAuthStore()

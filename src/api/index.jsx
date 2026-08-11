@@ -1,6 +1,13 @@
 import axios from "axios"
 import { toast } from "sonner"
 import useWorkspaceStore from "@store/useWorkspaceStore"
+import {
+  getActiveToken,
+  getActiveSession,
+  removeSession,
+  hasAnySession,
+  SESSION_EXPIRED_EVENT,
+} from "@utils/sessionStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -15,7 +22,7 @@ axiosInstance.interceptors.request.use(
       delete config.headers["Content-Type"]
     }
     // Add JWT token if available
-    const token = localStorage.getItem("token")
+    const token = getActiveToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -60,21 +67,27 @@ axiosInstance.interceptors.response.use(
     // 3. Only delete token for 401 Unauthorized
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
-      localStorage.removeItem("token")
+      const expiredSession = getActiveSession()
+      if (expiredSession) removeSession(expiredSession.userId)
 
       // Detect public blog path to prevent forced redirect
       const isPublicPath =
         window.location.pathname.startsWith("/blog/") &&
         !window.location.pathname.startsWith("/blog-editor")
 
-      if (!isPublicPath && window.location.pathname !== "/login") {
-        // Use sonner toast
-        toast.error("Session expired. Please login again.")
-
-        // Redirect to login handled below
-        setTimeout(() => {
-          window.location.href = "/login"
-        }, 1500)
+      if (!isPublicPath) {
+        if (hasAnySession()) {
+          // Another account is still logged in — let SessionExpiredModal (mounted at
+          // the app root) offer re-authenticate/switch instead of nuking the page.
+          window.dispatchEvent(
+            new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { email: expiredSession?.email } })
+          )
+        } else if (window.location.pathname !== "/login") {
+          toast.error("Session expired. Please login again.")
+          setTimeout(() => {
+            window.location.href = "/login"
+          }, 1500)
+        }
       }
     }
 

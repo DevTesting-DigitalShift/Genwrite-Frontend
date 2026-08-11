@@ -20,6 +20,9 @@ const useImageStore = create(
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
 
+      // Cleared on account switch — the image gallery is account-specific.
+      reset: () => set({ images: [], totalImages: 0, loading: false, error: null }),
+
       // Async Actions
       fetchImages: async (params) => {
         set({ loading: true, error: null })

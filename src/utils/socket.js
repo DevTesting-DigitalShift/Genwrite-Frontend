@@ -1,13 +1,21 @@
 import { io } from "socket.io-client"
 
 let socket
+let socketToken
 
 export const connectSocket = (token) => {
-  if (socket) {
-    console.log("🔌 Socket already connected, reusing existing connection")
+  if (socket && socketToken === token) {
+    console.log("🔌 Socket already connected for this account, reusing existing connection")
     return socket
   }
+  if (socket) {
+    // A different account's token — the old socket must not keep receiving events
+    // for the account we're switching away from.
+    console.log("🔌 Switching accounts, disconnecting previous socket")
+    disconnectSocket()
+  }
   const url = import.meta.env.VITE_BACKEND_URL
+  socketToken = token
 
   console.log("🚀 Connecting to socket server:", url)
 
@@ -71,4 +79,11 @@ export const getSocket = () => {
     console.warn("⚠️ Socket not initialized! Call connectSocket() first")
   }
   return socket
+}
+
+export const disconnectSocket = () => {
+  if (!socket) return
+  socket.disconnect()
+  socket = null
+  socketToken = null
 }

@@ -1,0 +1,105 @@
+import { useNavigate } from "react-router-dom"
+import { Check, Plus, LogOut } from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
+import * as sessionStore from "@utils/sessionStore"
+import { switchToAccount } from "@utils/accountSwitch"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+
+/**
+ * "Accounts" section rendered inside the header's account dropdown — lists every
+ * logged-in session in this browser, lets you switch, add another, or sign out of
+ * everything at once.
+ */
+const AccountSwitcher = () => {
+  const navigate = useNavigate()
+  const { logoutAllAccounts } = useAuthStore()
+  const { handlePopup } = useConfirmPopup()
+  const sessions = sessionStore.getSessions()
+  const activeSession = sessionStore.getActiveSession()
+
+  const handleSwitch = (userId) => {
+    if (userId === activeSession?.userId) return
+    switchToAccount(userId, { navigate })
+  }
+
+  const handleAddAccount = () => navigate("/login?mode=add-account")
+
+  const handleSignOutAll = () => {
+    handlePopup({
+      title: "Sign out of all accounts?",
+      description: `This signs you out of all ${sessions.length} accounts logged into this browser.`,
+      confirmText: "Sign out of all",
+      confirmProps: { className: "btn-error text-white" },
+      onConfirm: async () => {
+        await logoutAllAccounts()
+        navigate("/login")
+      },
+    })
+  }
+
+  if (sessions.length <= 1) {
+    // Nothing to switch between yet — just offer "Add another account".
+    return (
+      <li>
+        <button
+          onClick={handleAddAccount}
+          className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4 text-teal-500" /> Add another account
+        </button>
+      </li>
+    )
+  }
+
+  return (
+    <>
+      <li className="menu-title px-4 pt-1 pb-1">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+          Accounts
+        </span>
+      </li>
+      {sessions.map((session) => {
+        const isActive = session.userId === activeSession?.userId
+        return (
+          <li key={session.userId}>
+            <button
+              onClick={() => handleSwitch(session.userId)}
+              className={`text-sm font-medium py-2! px-4! rounded-lg flex items-center gap-2 ${
+                isActive ? "bg-primary/10 text-primary" : "hover:bg-gray-50!"
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center overflow-hidden shrink-0 text-xs">
+                {session.avatar ? (
+                  <img src={session.avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (session.name || session.email)?.[0]?.toUpperCase()
+                )}
+              </div>
+              <span className="truncate flex-1 text-left">{session.name || session.email}</span>
+              {isActive && <Check className="w-4 h-4 text-primary shrink-0" />}
+            </button>
+          </li>
+        )
+      })}
+      <li>
+        <button
+          onClick={handleAddAccount}
+          className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4 text-teal-500" /> Add another account
+        </button>
+      </li>
+      <li>
+        <button
+          onClick={handleSignOutAll}
+          className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" /> Sign out of all accounts
+        </button>
+      </li>
+      <div className="divider my-1"></div>
+    </>
+  )
+}
+
+export default AccountSwitcher
