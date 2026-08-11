@@ -1,4 +1,6 @@
 import useAuthStore from "@store/useAuthStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
+import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -76,6 +78,7 @@ const ChartCard = ({ title, children, className = "" }) => (
 
 const AnalyticsPage = () => {
   const { user } = useAuthStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
 
   const {
     data: blogStatus,
@@ -83,10 +86,11 @@ const AnalyticsPage = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["blogStatus"],
+    queryKey: ["blogStatus", activeWorkspace?.id],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      const params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
+      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      const params = { start: new Date(start).toISOString(), end: endDate }
       return getBlogStatus(params)
     },
   })

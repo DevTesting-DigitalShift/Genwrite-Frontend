@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import dayjs from "dayjs"
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
@@ -26,6 +27,7 @@ import DateRangePicker from "@components/ui/DateRangePicker"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { useProAction } from "@/hooks/useProAction"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
+import { getDefaultFilterStart } from "@utils/dateDefaults"
 import {
   archiveBlogById,
   getAllBlogs,
@@ -50,9 +52,14 @@ const BlogsPage = () => {
   const isTrashcan = location.pathname === "/trashcan"
 
   const { user } = useAuthStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userId = user?._id || "guest"
+  // Scope caching/filter-persistence to whichever account's blogs are actually being
+  // viewed, so switching into/out of a shared workspace doesn't reuse the invitee's
+  // own stale filters or React Query cache.
+  const scopeKey = activeWorkspace?.id || userId
   const { handleProAction } = useProAction()
   const { guardWrite } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
@@ -72,7 +79,7 @@ const BlogsPage = () => {
 
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     return item ? JSON.parse(item) : initialBlogFilter
   })
@@ -87,13 +94,13 @@ const BlogsPage = () => {
       setBlogFilters((prev) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
-          `user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`,
+          `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`,
           JSON.stringify(newValue)
         )
         return newValue
       })
     },
-    [userId, isTrashcan]
+    [scopeKey, isTrashcan]
   )
 
   const handleApplyDetailedFilters = useCallback(() => {
@@ -103,7 +110,7 @@ const BlogsPage = () => {
 
   useEffect(() => {
     const field = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
@@ -111,9 +118,13 @@ const BlogsPage = () => {
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
-      setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
+      const isSharedWorkspace = !!activeWorkspace
+      setBlogFilters((prev) => ({
+        ...prev,
+        start: getDefaultFilterStart(user, { isSharedWorkspace }),
+      }))
     }
-  }, [user?.createdAt, isTrashcan])
+  }, [scopeKey, activeWorkspace, user, isTrashcan])
 
   const {
     isLoading: isLoadingActive,
@@ -124,7 +135,7 @@ const BlogsPage = () => {
     isFetchingNextPage: isFetchingNextPageActive,
     refetch: refetchActive,
   } = useInfiniteQuery({
-    queryKey: ["blogs", userId, blogFilters],
+    queryKey: ["blogs", scopeKey, blogFilters],
     initialPageParam: 1,
     queryFn: async ({ pageParam = 1 }) => {
       let params = {
@@ -168,7 +179,7 @@ const BlogsPage = () => {
     fetchNextPage: fetchNextPageTrash,
     isFetchingNextPage: isFetchingNextPageTrash,
   } = useInfiniteQuery({
-    queryKey: ["trashedBlogs", userId, blogFilters],
+    queryKey: ["trashedBlogs", scopeKey, blogFilters],
     initialPageParam: 1,
     queryFn: async ({ pageParam = 1 }) => {
       let params = {
@@ -217,21 +228,26 @@ const BlogsPage = () => {
   const fetchNextPage = isTrashcan ? fetchNextPageTrash : fetchNextPageActive
   const isFetchingNextPage = isTrashcan ? isFetchingNextPageTrash : isFetchingNextPageActive
 
+  const defaultFilterStart = useMemo(
+    () => getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace }),
+    [user, activeWorkspace]
+  )
+
   const resetFilters = useCallback(() => {
-    const freshStart = { ...initialBlogFilter, start: user?.createdAt }
+    const freshStart = { ...initialBlogFilter, start: defaultFilterStart }
     setBlogFilters(freshStart)
     setTempGscClicks(null)
     setTempGscImpressions(null)
-    sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
+    sessionStorage.removeItem(`user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     toast.success("Filters reset to basics")
-  }, [user, isTrashcan, userId, initialBlogFilter])
+  }, [defaultFilterStart, isTrashcan, scopeKey, initialBlogFilter])
 
   const hasActiveDates = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
-    const sameStart = blogFilters.start === user?.createdAt
+    const sameStart = blogFilters.start === defaultFilterStart
     const sameEnd = blogFilters.end === initialBlogFilter.end
     return !sameStart || !sameEnd
-  }, [blogFilters, user?.createdAt, initialBlogFilter])
+  }, [blogFilters, defaultFilterStart, initialBlogFilter])
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -240,7 +256,7 @@ const BlogsPage = () => {
       return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
     })
     return hasActiveDates || isOtherChanged
-  }, [blogFilters, user?.createdAt, hasActiveDates, initialBlogFilter])
+  }, [blogFilters, hasActiveDates, initialBlogFilter])
 
   useEffect(() => {
     const socket = getSocket()
@@ -642,7 +658,9 @@ const BlogsPage = () => {
                   </label>
                   <DateRangePicker
                     value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
-                    minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
+                    minDate={
+                      !activeWorkspace && user?.createdAt ? dayjs(user.createdAt) : undefined
+                    }
                     maxDate={dayjs()}
                     onChange={(dates) => {
                       if (dates?.[0]) {

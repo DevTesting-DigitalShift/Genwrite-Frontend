@@ -1,9 +1,8 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { UserPlus, Eye, Ban } from "lucide-react"
+import { UserPlus, Eye, X } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
-import { Badge } from "@components/ui/badge"
 import { Button } from "@components/ui/button"
 import { Input } from "@components/ui/input"
 import { Label } from "@components/ui/label"
@@ -18,17 +17,28 @@ import {
 
 const MAX_ACTIVE_INVITES = 5
 
-const STATUS_BADGE = {
-  pending: { label: "Pending", variant: "secondary" },
-  accepted: { label: "Accepted", variant: "default" },
-  revoked: { label: "Revoked", variant: "outline" },
+const STATUS_CONFIG = {
+  pending: { label: "Pending", className: "bg-amber-500 text-white" },
+  accepted: { label: "Accepted", className: "bg-green-500 text-white" },
+  revoked: { label: "Revoked", className: "bg-slate-400 text-white" },
+}
+
+const StatusPill = ({ status }) => {
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${config.className}`}
+    >
+      {config.label}
+    </span>
+  )
 }
 
 const InviteForm = () => {
   const [email, setEmail] = useState("")
   const { mutate: createInvite, isPending } = useCreateInviteMutation()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault()
     if (!email.trim()) return
     createInvite({ email: email.trim() }, { onSuccess: () => setEmail("") })
@@ -44,7 +54,7 @@ const InviteForm = () => {
           required
           placeholder="teammate@company.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           className="mt-1"
         />
       </div>
@@ -61,14 +71,17 @@ const InvitesSentTab = () => {
   const { mutate: revokeInvite } = useRevokeInviteMutation()
   const { handlePopup } = useConfirmPopup()
   const invites = data?.invites ?? []
-  const activeCount = invites.filter((i) => i.status !== "revoked").length
+  const activeCount = invites.filter(i => i.status !== "revoked").length
 
-  const confirmRevoke = (invite) => {
+  const confirmRevoke = invite => {
     handlePopup({
       title: "Revoke invite?",
       description: `${invite.inviteeEmail} will lose access to your workspace immediately.`,
       confirmText: "Revoke",
-      confirmProps: { className: "btn-error text-white" },
+      confirmProps: {
+        className:
+          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-red-600 hover:bg-red-600 hover:text-white transition-colors",
+      },
       onConfirm: () => revokeInvite(invite._id),
     })
   }
@@ -99,32 +112,29 @@ const InvitesSentTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invites.map((invite) => {
-                const badge = STATUS_BADGE[invite.status] ?? STATUS_BADGE.pending
-                return (
-                  <TableRow key={invite._id}>
-                    <TableCell className="font-medium">{invite.inviteeEmail}</TableCell>
-                    <TableCell>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-500">
-                      {new Date(invite.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {invite.status !== "revoked" && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => confirmRevoke(invite)}
-                        >
-                          <Ban className="size-3.5" />
-                          Revoke
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+              {invites.map(invite => (
+                <TableRow key={invite._id}>
+                  <TableCell className="font-medium">{invite.inviteeEmail}</TableCell>
+                  <TableCell>
+                    <StatusPill status={invite.status} />
+                  </TableCell>
+                  <TableCell className="text-slate-500">
+                    {new Date(invite.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {invite.status !== "revoked" && (
+                      <button
+                        type="button"
+                        onClick={() => confirmRevoke(invite)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                      >
+                        <X className="size-3.5" />
+                        Revoke
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
@@ -139,7 +149,7 @@ const WorkspacesSharedWithMeTab = () => {
   const navigate = useNavigate()
   const workspaces = data?.watching ?? []
 
-  const handleView = (access) => {
+  const handleView = access => {
     switchToWorkspace({
       id: access.ownerId._id,
       name: access.ownerId.name,
@@ -159,7 +169,7 @@ const WorkspacesSharedWithMeTab = () => {
         </div>
       ) : (
         <ul className="divide-y divide-slate-100">
-          {workspaces.map((access) => (
+          {workspaces.map(access => (
             <li key={access._id} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center overflow-hidden">
@@ -195,8 +205,8 @@ const Collaboration = () => {
     <div className="max-w-4xl mx-auto py-6 sm:py-10">
       <h1 className="text-2xl font-black text-slate-900 mb-1">Collaboration</h1>
       <p className="text-sm text-slate-500 mb-6">
-        Invite teammates for read-only access to your workspace, or switch into a workspace
-        that's been shared with you.
+        Invite teammates for read-only access to your workspace, or switch into a workspace that's
+        been shared with you.
       </p>
 
       <Tabs defaultValue="invites">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import useGscStore from "@store/useGscStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { RefreshCw, Search, Download } from "lucide-react"
 import DateRangePicker from "@components/ui/DateRangePicker"
@@ -31,7 +32,12 @@ const SearchConsole = () => {
 
   const { user } = useAuthStore()
   const { clearAnalytics, fetchGscAnalytics } = useGscStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const queryClient = useQueryClient()
+
+  // While viewing a shared workspace, connection status belongs to the owner being
+  // watched, not the invitee's own account — the invitee's `user.gsc` is irrelevant.
+  const hasGscAccess = !!activeWorkspace || !!user?.gsc
 
   const isFilterApplied = useMemo(
     () => dateRange !== "7d" || blogUrlFilter || blogTitleFilter || searchQuery,
@@ -39,11 +45,11 @@ const SearchConsole = () => {
   )
 
   useEffect(() => {
-    if (!user?.gsc) {
+    if (!hasGscAccess) {
       clearAnalytics()
       queryClient.clear()
     }
-  }, [user, clearAnalytics, queryClient])
+  }, [hasGscAccess, clearAnalytics, queryClient])
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -92,7 +98,7 @@ const SearchConsole = () => {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["gscAnalytics", activeTab, dateRange, customDateRange],
+    queryKey: ["gscAnalytics", activeWorkspace?.id, activeTab, dateRange, customDateRange],
     queryFn: async () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
@@ -112,7 +118,7 @@ const SearchConsole = () => {
         blogId: item.blogId || "-",
       }))
     },
-    enabled: !!user?.gsc,
+    enabled: hasGscAccess,
     retry: 1,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
@@ -334,7 +340,7 @@ const SearchConsole = () => {
         <title>Search Performance | GenWrite</title>
       </Helmet>
 
-      {user?.gsc ? (
+      {hasGscAccess ? (
         <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 min-h-screen">
           {/* ── Page Header ─────────────────────────────────── */}
           <div className="flex items-center justify-between mb-4 gap-3">

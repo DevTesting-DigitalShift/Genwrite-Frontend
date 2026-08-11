@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import useBlogStore from "@store/useBlogStore"
@@ -13,6 +14,7 @@ import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
+import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
@@ -47,6 +49,7 @@ const Dashboard = () => {
 
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { openJobModal } = useJobStore()
   const { clearSelectedKeywords } = useAnalysisStore()
   const { handlePopup } = useConfirmPopup()
@@ -86,10 +89,11 @@ const Dashboard = () => {
 
   // Fetch blog status for analytics cards
   const { data: blogStatus } = useQuery({
-    queryKey: ["blogStatus"],
+    queryKey: ["blogStatus", activeWorkspace?.id],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      const params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
+      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      const params = { start: new Date(start).toISOString(), end: endDate }
       return getBlogStatus(params)
     },
     enabled: !!user,
@@ -97,7 +101,7 @@ const Dashboard = () => {
 
   // Fetch Recent Successful Blogs
   const { data: recentBlogsData } = useQuery({
-    queryKey: ["recentBlogs"],
+    queryKey: ["recentBlogs", activeWorkspace?.id],
     queryFn: () => getAllBlogs({ limit: 20, sort: "createdAt:desc" }), // Fetch more to ensure we find successful ones
     enabled: !!user,
   })
