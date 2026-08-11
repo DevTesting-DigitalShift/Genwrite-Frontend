@@ -41,7 +41,11 @@ export const useRevokeInviteMutation = () => {
 }
 
 export const useWorkspacesSharedWithMeQuery = (enabled = true) => {
-  return useQuery({ queryKey: ["collaboration", "watching"], queryFn: listWorkspacesSharedWithMe, enabled })
+  return useQuery({
+    queryKey: ["collaboration", "watching"],
+    queryFn: listWorkspacesSharedWithMe,
+    enabled,
+  })
 }
 
 export const useAcceptInviteMutation = () => {

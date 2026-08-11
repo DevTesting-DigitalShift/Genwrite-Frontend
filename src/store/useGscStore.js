@@ -18,7 +18,13 @@ const useGscStore = create(
 
       // Cleared on account switch — GSC data is account-specific.
       reset: () =>
-        set({ verifiedSites: [], analyticsData: [], gscAuthUrl: null, loading: false, error: null }),
+        set({
+          verifiedSites: [],
+          analyticsData: [],
+          gscAuthUrl: null,
+          loading: false,
+          error: null,
+        }),
 
       // Async Actions
       fetchVerifiedSites: async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import "./ProgressLoadingScreen.css"
 
 interface ProgressLoadingScreenProps {
@@ -32,59 +32,62 @@ const ProgressLoadingScreen = ({
   const loadingMessage = message || toast || currentDynamicMessage
 
   // Dynamic messages based on scenario and progress
-  const getDynamicMessage = (prog: number) => {
-    const messages = {
-      youtube: [
-        { threshold: 0, text: "Connecting to YouTube API..." },
-        { threshold: 10, text: "Fetching video transcript..." },
-        { threshold: 30, text: "Analyzing video content..." },
-        { threshold: 50, text: "Summarizing key moments..." },
-        { threshold: 75, text: "Generating final summary..." },
-        { threshold: 90, text: "Finishing up..." },
-      ],
-      analysis: [
-        { threshold: 0, text: "Initializing analysis engine..." },
-        { threshold: 15, text: "Crawling content data..." },
-        { threshold: 40, text: "Running linguistic algorithms..." },
-        { threshold: 60, text: "Evaluating SEO performance..." },
-        { threshold: 80, text: "Finalizing competitive insights..." },
-        { threshold: 95, text: "Preparing results display..." },
-      ],
-      generation: [
-        { threshold: 0, text: "Waking up AI models..." },
-        { threshold: 20, text: "Processing your instructions..." },
-        { threshold: 45, text: "Drafting content structure..." },
-        { threshold: 70, text: "Polishing generated text..." },
-        { threshold: 85, text: "Running quality checks..." },
-        { threshold: 95, text: "Almost ready..." },
-      ],
-      scrapping: [
-        { threshold: 0, text: "Bypassing anti-bot measures..." },
-        { threshold: 20, text: "Accessing target platform..." },
-        { threshold: 50, text: "Extracting relevant data points..." },
-        { threshold: 80, text: "Cleaning and formatting data..." },
-        { threshold: 95, text: "Constructing final report..." },
-      ],
-      default: [
-        { threshold: 0, text: "Starting request..." },
-        { threshold: 25, text: "Processing data..." },
-        { threshold: 50, text: "Thinking..." },
-        { threshold: 75, text: "Finalizing..." },
-        { threshold: 95, text: "Just a second..." },
-      ],
-    }
+  const getDynamicMessage = useCallback(
+    (prog: number) => {
+      const messages = {
+        youtube: [
+          { threshold: 0, text: "Connecting to YouTube API..." },
+          { threshold: 10, text: "Fetching video transcript..." },
+          { threshold: 30, text: "Analyzing video content..." },
+          { threshold: 50, text: "Summarizing key moments..." },
+          { threshold: 75, text: "Generating final summary..." },
+          { threshold: 90, text: "Finishing up..." },
+        ],
+        analysis: [
+          { threshold: 0, text: "Initializing analysis engine..." },
+          { threshold: 15, text: "Crawling content data..." },
+          { threshold: 40, text: "Running linguistic algorithms..." },
+          { threshold: 60, text: "Evaluating SEO performance..." },
+          { threshold: 80, text: "Finalizing competitive insights..." },
+          { threshold: 95, text: "Preparing results display..." },
+        ],
+        generation: [
+          { threshold: 0, text: "Waking up AI models..." },
+          { threshold: 20, text: "Processing your instructions..." },
+          { threshold: 45, text: "Drafting content structure..." },
+          { threshold: 70, text: "Polishing generated text..." },
+          { threshold: 85, text: "Running quality checks..." },
+          { threshold: 95, text: "Almost ready..." },
+        ],
+        scrapping: [
+          { threshold: 0, text: "Bypassing anti-bot measures..." },
+          { threshold: 20, text: "Accessing target platform..." },
+          { threshold: 50, text: "Extracting relevant data points..." },
+          { threshold: 80, text: "Cleaning and formatting data..." },
+          { threshold: 95, text: "Constructing final report..." },
+        ],
+        default: [
+          { threshold: 0, text: "Starting request..." },
+          { threshold: 25, text: "Processing data..." },
+          { threshold: 50, text: "Thinking..." },
+          { threshold: 75, text: "Finalizing..." },
+          { threshold: 95, text: "Just a second..." },
+        ],
+      }
 
-    const currentScenario = isYouTube ? "youtube" : scenario
-    const scenarioMessages = messages[currentScenario] || messages.default
+      const currentScenario = isYouTube ? "youtube" : scenario
+      const scenarioMessages = messages[currentScenario] || messages.default
 
-    const matched = scenarioMessages.filter((m) => prog >= m.threshold).reverse()[0]
+      const matched = scenarioMessages.filter((m) => prog >= m.threshold).reverse()[0]
 
-    return matched?.text || ""
-  }
+      return matched?.text || ""
+    },
+    [isYouTube, scenario]
+  )
 
   useEffect(() => {
     setCurrentDynamicMessage(getDynamicMessage(progress))
-  }, [progress, scenario, isYouTube])
+  }, [progress, getDynamicMessage])
 
   // Delay before showing
   useEffect(() => {

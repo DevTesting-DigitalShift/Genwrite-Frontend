@@ -61,6 +61,7 @@ const SmallBottomBox = ({ id }) => {
           <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-52">
             <li>
               <button
+                type="button"
                 onClick={handleRegenerate}
                 disabled={isRetrying}
                 className="flex items-center gap-2"

@@ -20,7 +20,6 @@ const CreditLogsTable = () => {
     setPageSize,
     setSearchText,
     setDateRange,
-    setPurposeFilter,
   } = useCreditLogStore()
 
   // Calculate date range for backend fetch
@@ -281,6 +280,7 @@ const CreditLogsTable = () => {
               </span>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                   className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"
@@ -288,6 +288,7 @@ const CreditLogsTable = () => {
                   <ChevronLeft size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                   className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"

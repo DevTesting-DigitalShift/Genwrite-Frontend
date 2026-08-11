@@ -60,7 +60,7 @@ const TemplateModal = ({
     setSelectedTemplate(temp)
     setFormData((prev) => ({ ...prev, template: temp?.[0]?.name || "" }))
     setErrors((prev) => ({ ...prev, template: false }))
-  }, [])
+  }, [setFormData, setErrors])
 
   const handleInputChange = (e, key) => {
     setFormData((prev) => ({ ...prev, [key]: e.target.value }))
@@ -192,7 +192,7 @@ const TemplateModal = ({
           <h3 className="text-xl font-bold">
             {currentStep === 0 ? "Select Template" : "Create Simple Blog"}
           </h3>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -264,6 +264,7 @@ const TemplateModal = ({
                     aria-label="Focus keywords"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddKeyword("focusKeywords")}
                     className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                     aria-label="Add focus keyword"
@@ -274,11 +275,12 @@ const TemplateModal = ({
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.focusKeywords.map((keyword, index) => (
                     <span
-                      key={index}
+                      key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
+                        type="button"
                         onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove focus keyword ${keyword}`}
@@ -312,6 +314,7 @@ const TemplateModal = ({
                     aria-label="Secondary keywords"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddKeyword("keywords")}
                     className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                     aria-label="Add keyword"
@@ -322,11 +325,12 @@ const TemplateModal = ({
                 <div className="flex flex-wrap gap-2 mt-2">
                   {visibleKeywords.map((keyword, index) => (
                     <span
-                      key={`${keyword}-${index}`}
+                      key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
+                        type="button"
                         onClick={() => handleRemoveKeyword(index, "keywords")}
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove keyword ${keyword}`}
@@ -368,6 +372,7 @@ const TemplateModal = ({
                     aria-label="Blog title"
                   />
                   <button
+                    type="button"
                     onClick={handleGenerateTitles}
                     disabled={isGeneratingTitles}
                     className={`btn btn-primary bg-[#4C5BD6] text-white border-none rounded-md px-6 hover:bg-[#3B4BB8] transition-colors ${
@@ -391,10 +396,10 @@ const TemplateModal = ({
                 </div>
                 {generatedTitles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {generatedTitles.map((generatedTitle, index) => {
+                    {generatedTitles.map((generatedTitle) => {
                       const isSelected = generatedTitle === formData.title
                       return (
-                        <div key={index} className="relative group">
+                        <div key={generatedTitle} className="relative group">
                           <button
                             type="button"
                             onClick={() => {
@@ -442,6 +447,7 @@ const TemplateModal = ({
         <div className="modal-action flex items-center justify-end gap-3">
           {currentStep === 0 ? (
             <button
+              type="button"
               key="next"
               onClick={handleNext}
               className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
@@ -452,6 +458,7 @@ const TemplateModal = ({
           ) : (
             <>
               <button
+                type="button"
                 key="previous"
                 onClick={handlePrev}
                 className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-bold transition-all border border-gray-200"
@@ -460,6 +467,7 @@ const TemplateModal = ({
                 Previous
               </button>
               <button
+                type="button"
                 key="submit"
                 onClick={handleSubmit}
                 className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
@@ -472,7 +480,9 @@ const TemplateModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

@@ -104,7 +104,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
             <LockClosedIcon className="w-5 h-5 text-blue-600" />
             <span>{hasPassword ? "Change Password" : "Set Password"}</span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleCancel}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleCancel}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -222,10 +222,11 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
 
         {/* Footer */}
         <div className="modal-action flex items-center gap-2 mt-6">
-          <button onClick={handleCancel} className="btn btn-ghost hover:bg-gray-100">
+          <button type="button" onClick={handleCancel} className="btn btn-ghost hover:bg-gray-100">
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading}
             className="btn btn-primary text-white disabled:opacity-50"
@@ -236,7 +237,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleCancel}>close</button>
+        <button type="button" onClick={handleCancel}>
+          close
+        </button>
       </form>
     </dialog>
   )

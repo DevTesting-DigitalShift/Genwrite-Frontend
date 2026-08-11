@@ -41,7 +41,6 @@ import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import axiosInstance from "@/api"
 import useAuthStore from "@store/useAuthStore"
-import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { fetchCategories, generateMetadata } from "@api/otherApi"
@@ -140,9 +139,9 @@ const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-wrap gap-2">
-              {displayCategories.map((cat, idx) => (
+              {displayCategories.map((cat) => (
                 <button
-                  key={idx}
+                  key={cat}
                   onClick={() => onSelect(cat)}
                   type="button"
                   className={`
@@ -195,9 +194,6 @@ const TextEditorSidebar = ({
   keywords,
   setKeywords,
   onPost,
-  handleReplace,
-  setProofreadingResults,
-  proofreadingResults,
   handleSave,
   posted,
   isPosting,
@@ -205,7 +201,6 @@ const TextEditorSidebar = ({
   editorContent,
   handleSubmit,
   setIsHumanizing,
-  isHumanizing,
   setHumanizedContent,
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
@@ -339,7 +334,7 @@ const TextEditorSidebar = ({
       setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
       window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
     }
-  }, [activePanel])
+  }, [activePanel, sectionToolState.sectionId])
 
   // Parse sections from content whenever it changes
   useEffect(() => {
@@ -413,7 +408,7 @@ const TextEditorSidebar = ({
     } catch (e) {
       console.error("Failed to parse sections for tools:", e)
     }
-  }, [editorContent])
+  }, [editorContent, sectionToolState.sectionId])
 
   const handleSectionTask = async () => {
     if (blog?.isArchived) {
@@ -614,7 +609,6 @@ const TextEditorSidebar = ({
 
   const { integrations, categories, fetchIntegrations } = useIntegrationStore()
   const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
-  const { setBlogPrompt } = useBlogStore()
 
   // Sync UI categories with Store, preserving data during re-renders
   useEffect(() => {
@@ -626,7 +620,7 @@ const TextEditorSidebar = ({
   // Clear UI categories only when actual platform changes
   useEffect(() => {
     setUiCategories([])
-  }, [selectedIntegration?.platform])
+  }, [])
 
   const result = analysisResult?.[blog?._id]
 
@@ -674,7 +668,7 @@ const TextEditorSidebar = ({
 
   useEffect(() => {
     fetchPostings()
-  }, [fetchPostings, posted]) // Re-fetch when blog changes or when new post is made
+  }, [fetchPostings]) // Re-fetch when blog changes or when new post is made
 
   // Initialize data
   useEffect(() => {
@@ -683,7 +677,7 @@ const TextEditorSidebar = ({
       description: blog?.seoMetadata?.description || "",
     })
     setBlogSlug(blog?.slug || "")
-  }, [blog?._id, blog?.slug])
+  }, [blog?.slug, blog?.seoMetadata?.description, blog?.seoMetadata?.title])
 
   useEffect(() => {
     if (blog) {
@@ -1013,7 +1007,7 @@ const TextEditorSidebar = ({
     } finally {
       setIsSavingEnhancement(false)
     }
-  }, [enhancementOptions, handleSubmit])
+  }, [enhancementOptions, handleSubmit, blog?.isArchived])
 
   const _handleCustomPromptBlog = useCallback(async () => {
     if (blog?.isArchived) {
@@ -1068,7 +1062,7 @@ const TextEditorSidebar = ({
     } catch {
       toast.error("Save failed")
     }
-  }, [handleSubmit, metadata])
+  }, [handleSubmit, metadata, blog?.isArchived])
 
   const handlePdfExport = useCallback(async () => {
     if (!blog?._id) return toast.error("Blog ID missing")
@@ -1077,7 +1071,7 @@ const TextEditorSidebar = ({
     try {
       toast.loading("Exporting PDF...", { id: "pdf-export" })
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "pdf",
         withImages: includeImagesInExport,
       })
@@ -1116,7 +1110,7 @@ const TextEditorSidebar = ({
       description: "Rewrite content with keywords? (3 times max)",
       onConfirm: handleSave,
     })
-  }, [handlePopup, handleSave])
+  }, [handlePopup, handleSave, blog?.isArchived])
 
   // --- Posting Helpers ---
   const openRepostModal = (posting) => {
@@ -1200,7 +1194,7 @@ const TextEditorSidebar = ({
         fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
       }
     }
-  }, [fetchCategories, selectedIntegration?.platform])
+  }, [selectedIntegration?.platform])
 
   // Initialize posting form based on Blog Data & History
   useEffect(() => {
@@ -1292,13 +1286,12 @@ const TextEditorSidebar = ({
       return
     }
   }, [
-    activePanel,
-    posted,
-    blog,
-    integrations,
-    selectedIntegration,
-    setIncludeTableOfContents,
-    blogPostings,
+    activePanel, 
+    posted, 
+    blog, 
+    integrations, 
+    selectedIntegration, 
+    blogPostings, selectedCategory
   ])
 
   const handlePostClick = useCallback(() => {
@@ -1393,21 +1386,19 @@ const TextEditorSidebar = ({
       executePost()
     }
   }, [
-    userPlan,
-    selectedIntegration,
-    selectedCategory,
-    includeTableOfContents,
-    formData,
-    onPost,
-    unsavedChanges,
-    handleSubmit,
-    metadata,
-    handlePopup,
-    navigate,
-    isPosting,
-    blogPostings,
-    fetchPostings,
-    queryClient,
+    userPlan, 
+    selectedIntegration, 
+    selectedCategory, 
+    includeTableOfContents, 
+    formData, 
+    onPost, 
+    unsavedChanges, 
+    handleSubmit, 
+    metadata, 
+    handlePopup, 
+    navigate, 
+    fetchPostings, 
+    queryClient, hasPublishedLinks, blog?.isArchived
   ])
 
   const _addKeyword = useCallback(() => {
@@ -1451,6 +1442,7 @@ const TextEditorSidebar = ({
             across your content.
           </p>
           <button
+            type="button"
             onClick={() => {
               if (blog?.isArchived) {
                 toast.error("This blog is archived. Please restore it to perform this action.")
@@ -1490,6 +1482,7 @@ const TextEditorSidebar = ({
             </div>
             {setIsSidebarOpen && (
               <button
+                type="button"
                 onClick={() => setIsSidebarOpen(false)}
                 className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
               >
@@ -1542,9 +1535,9 @@ const TextEditorSidebar = ({
                   Core Keywords
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {brand.keywords.map((kw, i) => (
+                  {brand.keywords.map((kw) => (
                     <span
-                      key={i}
+                      key={kw}
                       className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
                     >
                       {kw}
@@ -1583,6 +1576,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -1658,6 +1652,7 @@ const TextEditorSidebar = ({
             rankings.
           </p>
           <button
+            type="button"
             onClick={handleAnalyzing}
             disabled={isAnalyzingCompetitive || isPublicMode}
             className={`
@@ -1700,7 +1695,7 @@ const TextEditorSidebar = ({
         { id: "md-export" }
       )
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "markdown",
         withImages: includeImagesInExport,
       })
@@ -1748,7 +1743,7 @@ const TextEditorSidebar = ({
         { id: "html-export" }
       )
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "html",
         withImages: includeImagesInExport,
       })
@@ -1801,6 +1796,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -1819,6 +1815,7 @@ const TextEditorSidebar = ({
               SEO Metadata
             </span>
             <button
+              type="button"
               onClick={handleMetadataGen}
               disabled={blog?.isArchived || isPublicMode}
               className={`text-xs font-medium flex items-center gap-1 ${
@@ -1849,6 +1846,7 @@ const TextEditorSidebar = ({
             />
           </div>
           <button
+            type="button"
             onClick={handleMetadataSave}
             disabled={blog?.isArchived || isPublicMode}
             className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
@@ -1920,6 +1918,7 @@ const TextEditorSidebar = ({
           >
             {/* Markdown */}
             <button
+              type="button"
               onClick={handleExportMarkdown}
               disabled={userPlan === "free"}
               className={`
@@ -1951,6 +1950,7 @@ const TextEditorSidebar = ({
 
             {/* HTML */}
             <button
+              type="button"
               onClick={handleExportHTML}
               disabled={userPlan === "free"}
               className={`
@@ -1982,6 +1982,7 @@ const TextEditorSidebar = ({
 
             {/* PDF */}
             <button
+              type="button"
               onClick={handlePdfExport}
               disabled={userPlan === "free"}
               className={`
@@ -2069,7 +2070,7 @@ const TextEditorSidebar = ({
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
                   {result.insights.suggestions.map((suggestion, idx) => (
                     <motion.div
-                      key={idx}
+                      key={suggestion}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
@@ -2122,6 +2123,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2138,6 +2140,7 @@ const TextEditorSidebar = ({
             <div className="text-xs text-gray-500">Blog Slug</div>
             {!hasPublishedLinks && (
               <button
+                type="button"
                 onClick={() => {
                   if (blog?.isArchived || isPublicMode) {
                     toast.error(
@@ -2169,6 +2172,7 @@ const TextEditorSidebar = ({
                 className="input input-bordered input-sm w-full text-sm font-mono"
               />
               <button
+                type="button"
                 onClick={async () => {
                   if (!blogSlug.trim()) {
                     return toast.error("Slug cannot be empty")
@@ -2238,9 +2242,9 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.tags.map((tag, i) => (
+              {blog.tags.map((tag) => (
                 <span
-                  key={i}
+                  key={tag}
                   className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
                 >
                   <TagIcon className="w-3 h-3 mr-1" />
@@ -2256,8 +2260,8 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.keywords.map((kw, i) => (
-                <span key={i} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+              {blog.keywords.map((kw) => (
+                <span key={kw} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
                   {kw}
                 </span>
               ))}
@@ -2270,9 +2274,9 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.focusKeywords.map((kw, i) => (
+              {blog.focusKeywords.map((kw) => (
                 <span
-                  key={i}
+                  key={kw}
                   className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
                 >
                   {kw}
@@ -2385,9 +2389,9 @@ const TextEditorSidebar = ({
                 label: "Deep Research",
                 value: blog?.deepResearch || blog?.options?.deepResearch || false,
               },
-            ].map((feature, idx) => (
+            ].map((feature) => (
               <div
-                key={idx}
+                key={feature.key}
                 className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
               >
                 <span className="text-sm  font-medium">{feature.label}</span>
@@ -2438,6 +2442,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2456,6 +2461,7 @@ const TextEditorSidebar = ({
             </label>
             {sectionToolState.sectionId ? (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
@@ -2621,6 +2627,7 @@ const TextEditorSidebar = ({
         {/* Action Button */}
         <div className="pt-2">
           <button
+            type="button"
             onClick={handleSectionTask}
             disabled={
               isProcessingSection ||
@@ -2672,6 +2679,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2700,9 +2708,9 @@ const TextEditorSidebar = ({
             </div>
           ) : hasPublishedLinks ? (
             <div className="space-y-3">
-              {blogPostings.map((posting, idx) => (
+              {blogPostings.map((posting) => (
                 <div
-                  key={idx}
+                  key={posting.link || posting.postedOn}
                   className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -2736,6 +2744,7 @@ const TextEditorSidebar = ({
                   <div className="flex items-center gap-2">
                     <div className="tooltip" data-tip="Edit settings and repost">
                       <button
+                        type="button"
                         className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
                         onClick={() => {
                           if (blog?.isArchived) {
@@ -2752,6 +2761,7 @@ const TextEditorSidebar = ({
                       </button>
                     </div>
                     <button
+                      type="button"
                       className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
                       onClick={() => {
                         if (blog?.isArchived) {
@@ -2906,6 +2916,7 @@ const TextEditorSidebar = ({
       {/* Main Post Action */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
         <button
+          type="button"
           onClick={handlePostClick}
           disabled={isPosting || blog?.isArchived || isPublicMode}
           className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
@@ -2955,6 +2966,7 @@ const TextEditorSidebar = ({
         <div className="flex flex-col gap-2">
           <div className="tooltip tooltip-left" data-tip="Expand Sidebar">
             <button
+              type="button"
               onClick={() => setIsCollapsed(false)}
               className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-300 group"
             >
@@ -2972,6 +2984,7 @@ const TextEditorSidebar = ({
             return (
               <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                 <button
+                  type="button"
                   onClick={() => {
                     if (item.id === "regenerate") {
                       setIsRegenerateModalOpen(true)
@@ -3029,6 +3042,7 @@ const TextEditorSidebar = ({
             {/* Mobile close */}
             <div className="md:hidden">
               <button
+                type="button"
                 onClick={() => setIsSidebarOpen(false)}
                 className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
               >
@@ -3046,6 +3060,7 @@ const TextEditorSidebar = ({
               return (
                 <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                   <button
+                    type="button"
                     onClick={() => {
                       if (blog?.isArchived && item.id === "regenerate") {
                         toast.error(
@@ -3105,6 +3120,7 @@ const TextEditorSidebar = ({
           <div className="space-y-2">
             {integrationLinks.map(({ platform, link, label }) => (
               <button
+                type="button"
                 key={platform}
                 onClick={() => window.open(link, "_blank")}
                 className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
@@ -3114,7 +3130,11 @@ const TextEditorSidebar = ({
             ))}
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={() => setChoosePlatformOpen(false)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setChoosePlatformOpen(false)}
+            >
               Close
             </button>
           </div>
@@ -3177,10 +3197,15 @@ const TextEditorSidebar = ({
             )}
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={() => setIsRepostModalOpen(false)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setIsRepostModalOpen(false)}
+            >
               Cancel
             </button>
             <button
+              type="button"
               className={`btn btn-sm btn-primary text-white ${isPosting ? "loading" : ""}`}
               onClick={handleRepostSubmit}
             >
@@ -3242,10 +3267,11 @@ const TextEditorSidebar = ({
             </div>
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={handleRejectMetadata}>
+            <button type="button" className="btn btn-sm" onClick={handleRejectMetadata}>
               Reject
             </button>
             <button
+              type="button"
               onClick={handleAcceptMetadata}
               className="btn btn-sm btn-success text-white bg-linear-to-r from-green-500 to-emerald-600 border-0"
             >
@@ -3280,6 +3306,7 @@ const TextEditorSidebar = ({
               </div>
             </div>
             <button
+              type="button"
               className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
               onClick={() => setShowDiff(false)}
             >

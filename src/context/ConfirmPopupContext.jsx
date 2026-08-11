@@ -53,10 +53,14 @@ export const ConfirmPopupProvider = ({ children }) => {
               transition={{ duration: 0.2 }}
               className="modal-box"
             >
-              <h3 className="font-bold text-lg">{title}</h3>
+              <div className="flex items-center gap-3">
+                {icon}
+                <h3 className="font-bold text-lg">{title}</h3>
+              </div>
               <p className="text-gray-600 text-sm text-justify py-4">{description}</p>
               <div className="flex justify-end gap-2 mt-6">
                 <button
+                  type="button"
                   onClick={() => handleClose({ source: "button" })}
                   className="btn rounded-md"
                   {...cancelProps}
@@ -64,6 +68,7 @@ export const ConfirmPopupProvider = ({ children }) => {
                   {cancelText}
                 </button>
                 <button
+                  type="button"
                   onClick={handleConfirm}
                   className="btn rounded-md"
                   disabled={loading}

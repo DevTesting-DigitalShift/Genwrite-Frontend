@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import DOMPurify from "dompurify"
 import { useLocation } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Tag, Tags, Activity, Info, Loader2, FileText, Sparkles, RefreshCw } from "lucide-react"
@@ -302,8 +303,8 @@ const PerformanceMonitoring = () => {
                   </thead>
                   <tbody>
                     {dataSource.length > 0 ? (
-                      dataSource.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
+                      dataSource.map((row) => (
+                        <tr key={row.keyword} className="hover:bg-gray-50">
                           <td className="py-3 px-4 font-medium text-gray-800">{row.keyword}</td>
                           <td className="py-3 px-4 text-center text-gray-800">{row.count}</td>
                           <td className="py-3 px-4 text-center">
@@ -401,6 +402,7 @@ const PerformanceMonitoring = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleReset}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
             >
@@ -461,7 +463,9 @@ const PerformanceMonitoring = () => {
                   <div className="prose prose-sm max-w-none text-gray-600">
                     <div
                       dangerouslySetInnerHTML={{
-                        __html: formData?.content?.trim() || "No content available",
+                        __html: DOMPurify.sanitize(
+                          formData?.content?.trim() || "No content available"
+                        ),
                       }}
                     />
                   </div>
@@ -473,6 +477,7 @@ const PerformanceMonitoring = () => {
             {!stats ? (
               <div className="flex justify-center py-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
                 <button
+                  type="button"
                   onClick={handleGetInsights}
                   disabled={isStatsLoading}
                   className="px-8 py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md flex items-center gap-2"

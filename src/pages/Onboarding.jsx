@@ -186,7 +186,7 @@ const Onboarding = () => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6 relative">
       <button
-        type="text"
+        type="button"
         onClick={handleSkip}
         disabled={!user?._id}
         className="absolute top-6 right-6 text-gray-500 hover:text-gray-900"
@@ -204,6 +204,7 @@ const Onboarding = () => {
         <div className="flex items-center justify-center gap-2 mb-12">
           {steps.map((_, index) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: progress dot N always represents step N
               key={index}
               className={`h-2 rounded-full transition-all ${
                 index === currentStep
@@ -287,7 +288,7 @@ const Onboarding = () => {
               </div>
 
               <button
-                type="primary"
+                type="button"
                 size="large"
                 block
                 onClick={handleFetchSiteInfo}
@@ -356,6 +357,7 @@ const Onboarding = () => {
                       className="input outline-0 flex-1 rounded-lg"
                     />
                     <button
+                      type="button"
                       onClick={addKeyword}
                       className="btn bg-gray-100 border broder-gray-300 hover:bg-gray-200 rounded-lg text-gray-800"
                     >
@@ -364,13 +366,14 @@ const Onboarding = () => {
                   </div>
                   {formData.keywords.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword, index) => (
+                      {formData.keywords.map((keyword) => (
                         <span
-                          key={index}
+                          key={keyword}
                           className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100  rounded-full text-sm"
                         >
                           {keyword}
                           <button
+                            type="button"
                             onClick={() => removeKeyword(keyword)}
                             className="hover:text-gray-900"
                           >
@@ -385,12 +388,14 @@ const Onboarding = () => {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(0)}
                   className="btn flex-1 border border-gray-200 rounded-lg"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={handleStep1Continue}
                   className="btn flex-1 text-white! bg-gray-900 border-none hover:bg-gray-800 rounded-lg font-medium"
                 >
@@ -457,8 +462,8 @@ const Onboarding = () => {
                       Keywords
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword, index) => (
-                        <span key={index} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
+                      {formData.keywords.map((keyword) => (
+                        <span key={keyword} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
                           {keyword}
                         </span>
                       ))}
@@ -469,12 +474,14 @@ const Onboarding = () => {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(1)}
                   className="btn flex-1 rounded-lg border border-gray-200"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={loading}
                   className="btn flex-1 bg-gray-900 border-none hover:bg-gray-800 text-white rounded-lg font-medium"

@@ -22,7 +22,7 @@ import dayjs from "dayjs"
 
 ChartJS.register(...registerables)
 
-const StatsCard = ({ title, value, icon, iconBg, cardBg, ringColor, progress, limit }) => {
+const StatsCard = ({ title, value, icon, iconBg, cardBg, progress, limit }) => {
   const percent = limit ? Math.min((value / limit) * 100, 100) : 0
   const progressColor =
     value >= limit ? "bg-red-500" : value / limit > 0.8 ? "bg-amber-500" : "bg-emerald-500"
@@ -366,6 +366,7 @@ const AnalyticsPage = () => {
               {error.message || "Failed to establish uplink with data nodes."}
             </p>
             <button
+              type="button"
               onClick={handleRetry}
               className="bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-all active:scale-95 shadow-lg shadow-gray-200 p-4 px-8"
             >
@@ -392,7 +393,6 @@ const AnalyticsPage = () => {
                     icon={stat.icon}
                     iconBg={stat.iconBg}
                     cardBg={stat.cardBg}
-                    ringColor={stat.ringColor}
                     progress={stat.progress}
                     limit={stat.limit}
                   />
@@ -419,7 +419,6 @@ const AnalyticsPage = () => {
                     icon={stat.icon}
                     iconBg={stat.iconBg}
                     cardBg={stat.cardBg}
-                    ringColor={stat.ringColor}
                     progress={stat.progress}
                     limit={stat.limit}
                   />
@@ -464,6 +463,7 @@ const SkeletonLoader = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {[...Array(4)].map((_, index) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
             key={index}
             className="p-8 rounded-[32px] border border-slate-100 bg-white shadow-sm h-48 animate-pulse"
           />
@@ -472,6 +472,7 @@ const SkeletonLoader = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
         {[...Array(2)].map((_, index) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
             key={index}
             className="p-8 rounded-[32px] border border-slate-100 bg-white shadow-sm h-64 animate-pulse"
           />
@@ -480,6 +481,7 @@ const SkeletonLoader = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {[...Array(4)].map((_, index) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
             key={index}
             className="rounded-[40px] p-10 border border-slate-100 bg-white h-[400px] animate-pulse"
           />

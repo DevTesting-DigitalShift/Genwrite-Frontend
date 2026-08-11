@@ -21,6 +21,7 @@ const SkeletonGrid = ({ count = 12 }) => {
     <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
       {Array.from({ length: count }).map((_, index) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
           key={index}
           className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse"
         >
@@ -90,7 +91,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
     setCurrentPage(1)
     setImages([])
     fetchImages(1, false)
-  }, [searchQuery])
+  }, [fetchImages])
 
   const handleImageClick = (image) => {
     if (onSelect) {
@@ -184,6 +185,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
               {hasMore && (
                 <div className="mt-6 flex justify-center">
                   <button
+                    type="button"
                     onClick={handleLoadMore}
                     disabled={loadingMore}
                     className="btn btn-lg px-6 md:px-8 rounded-lg w-full sm:w-auto"

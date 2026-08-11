@@ -55,7 +55,7 @@ const MyProjects = () => {
     } else {
       setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
     }
-  }, [user?.createdAt])
+  }, [user?.createdAt, user?._id])
 
   const { isLoading, isRefetching, data, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
     useInfiniteQuery({
@@ -113,7 +113,7 @@ const MyProjects = () => {
     setBlogFilters((_prev) => ({ ...initialBlogFilter, start: user?.createdAt }))
     if (inputRef?.current?.input?.value) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
-  }, [user])
+  }, [user, initialBlogFilter, userId])
 
   const hasActiveDates = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -123,7 +123,7 @@ const MyProjects = () => {
     const sameEnd = blogFilters.end === initialBlogFilter.end
 
     return !sameStart || !sameEnd
-  }, [blogFilters, user?.createdAt])
+  }, [blogFilters, user?.createdAt, initialBlogFilter.end, initialBlogFilter])
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -134,7 +134,7 @@ const MyProjects = () => {
     })
 
     return hasActiveDates || isOtherChanged
-  }, [blogFilters, user?.createdAt])
+  }, [blogFilters, initialBlogFilter, hasActiveDates])
 
   // Socket for real-time updates
   useEffect(() => {
@@ -195,7 +195,7 @@ const MyProjects = () => {
       socket.off("blog:created", handleBlogCreated)
       socket.off("blog:jobRetry", handleBlogJobRetry)
     }
-  }, [user, userId, queryClient])
+  }, [user, queryClient])
 
   const handleBlogClick = useCallback(
     (blog) => {
@@ -219,7 +219,7 @@ const MyProjects = () => {
     } catch (_err) {
       toast.error("Failed to retry blog")
     }
-  }, [])
+  }, [refetch])
 
   const handleArchive = useCallback(async (id) => {
     try {
@@ -229,7 +229,7 @@ const MyProjects = () => {
     } catch (_err) {
       toast.error("Failed to archive")
     }
-  }, [])
+  }, [refetch])
 
   // Menu options
   const menuOptions = useMemo(
@@ -240,7 +240,7 @@ const MyProjects = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    []
+    [updateBlogFilters]
   )
 
   // Funnel menu options
@@ -252,7 +252,7 @@ const MyProjects = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    []
+    [updateBlogFilters]
   )
 
   const updateBlogFilters = useCallback(
@@ -263,7 +263,7 @@ const MyProjects = () => {
         return newValue
       })
     },
-    [blogFilters, userId]
+    [userId]
   )
 
   // -------------------------------------------------
@@ -358,6 +358,7 @@ const MyProjects = () => {
             New Blog
           </div>
           <button
+            type="button"
             onClick={() =>
               queryClient.invalidateQueries({
                 queryKey: ["blogs", userId, blogFilters],
@@ -404,6 +405,7 @@ const MyProjects = () => {
               {menuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
+                    type="button"
                     onClick={onClick}
                     className="rounded-2xl py-3 px-4 hover:bg-indigo-50 hover:text-indigo-600 transition-all gap-3"
                   >
@@ -434,6 +436,7 @@ const MyProjects = () => {
               {funnelMenuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
+                    type="button"
                     onClick={onClick}
                     className="rounded-2xl py-3 px-4 hover:bg-emerald-50 hover:text-emerald-600 transition-all gap-3"
                   >
@@ -446,6 +449,7 @@ const MyProjects = () => {
           </div>
 
           <button
+            type="button"
             onClick={resetFilters}
             className={`btn btn-ghost h-12 px-6 rounded-2xl border transition-all normal-case font-bold flex items-center gap-2 ${
               hasActiveFilters
@@ -480,7 +484,11 @@ const MyProjects = () => {
         {isLoading || isRefetching ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {[...Array(ITEMS_PER_PAGE)].map((_, index) => (
-              <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
+                key={index}
+                className="bg-white shadow-md rounded-lg p-4 sm:p-6"
+              >
                 <SkeletonLoader />
               </div>
             ))}
@@ -517,6 +525,7 @@ const MyProjects = () => {
                   Showing {allBlogs.length} of {totalItems} projects
                 </div>
                 <button
+                  type="button"
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
                   className="btn btn-primary h-14 px-12 rounded-[24px] font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-2xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"

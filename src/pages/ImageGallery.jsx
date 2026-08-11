@@ -39,6 +39,7 @@ const SkeletonGrid = ({ count = 12 }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, index) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
           key={index}
           className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse"
         >
@@ -109,7 +110,7 @@ const ImageGallery = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, minScore, selectedTags])
+  }, [])
 
   // Fetch images
   const loadImages = useCallback(async () => {
@@ -449,6 +450,7 @@ const ImageGallery = () => {
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
+                    type="button"
                     onClick={() => {
                       setGenForm({
                         prompt: "",
@@ -463,6 +465,7 @@ const ImageGallery = () => {
                     Reset
                   </button>
                   <button
+                    type="button"
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
                     className="btn btn-primary flex-1 md:flex-none px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02]"
@@ -518,6 +521,7 @@ const ImageGallery = () => {
                     </p>
                     <div className="flex gap-2 shrink-0">
                       <button
+                        type="button"
                         onClick={(e) => handleCopyLink(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
                         title="Copy Link"
@@ -525,6 +529,7 @@ const ImageGallery = () => {
                         <Copy className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={(e) => handleDownload(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
                         title="Download"
@@ -555,6 +560,7 @@ const ImageGallery = () => {
             <div className="mt-16 flex justify-center">
               <div className="join bg-white shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100 p-1">
                 <button
+                  type="button"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
@@ -572,6 +578,7 @@ const ImageGallery = () => {
 
                   return (
                     <button
+                      type="button"
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`join-item btn h-12 w-12 rounded-lg text-sm font-black transition-all border-none ${
@@ -586,6 +593,7 @@ const ImageGallery = () => {
                 })}
 
                 <button
+                  type="button"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
@@ -634,6 +642,7 @@ const ImageGallery = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => setPreviewImage(null)}
                     className="absolute top-6 left-6 p-3 bg-black/40 hover:bg-white/20 text-white rounded-2xl transition-all backdrop-blur-md z-20 border border-white/10"
                   >
@@ -642,6 +651,7 @@ const ImageGallery = () => {
 
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 z-20">
                     <button
+                      type="button"
                       onClick={() => handleCopyLink(previewImage)}
                       className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Copy Link"
@@ -650,6 +660,7 @@ const ImageGallery = () => {
                     </button>
                     <div className="w-px h-6 bg-white/10" />
                     <button
+                      type="button"
                       onClick={() => handleDownload(previewImage)}
                       className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Download"
@@ -770,6 +781,7 @@ const ImageGallery = () => {
                         {/* Toolset */}
                         <div className="grid grid-cols-2 gap-3 lg:gap-4">
                           <button
+                            type="button"
                             onClick={handleGenerateAltText}
                             disabled={isGeneratingAlt}
                             className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all font-bold"
@@ -785,6 +797,7 @@ const ImageGallery = () => {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => setIsEnhanceMode(true)}
                             disabled={!canEnhance(previewImage)}
                             className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-purple-50 hover:border-purple-100 hover:text-purple-600 transition-all font-bold"
@@ -827,12 +840,14 @@ const ImageGallery = () => {
                     {isEnhanceMode ? (
                       <div className="flex gap-3 lg:gap-4">
                         <button
+                          type="button"
                           onClick={() => setIsEnhanceMode(false)}
                           className="btn btn-ghost h-10 lg:h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-sm lg:text-base"
                         >
                           Cancel
                         </button>
                         <button
+                          type="button"
                           onClick={handleEnhanceImage}
                           className="btn btn-primary h-10 lg:h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-sm lg:text-base"
                         >
@@ -845,6 +860,7 @@ const ImageGallery = () => {
                       </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => handleDownload(previewImage)}
                         className="btn btn-primary w-full h-12 lg:h-[60px] rounded-lg bg-slate-900 border-none text-white font-medium text-sm lg:text-base hover:bg-black transition-all"
                       >

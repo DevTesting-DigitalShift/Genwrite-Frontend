@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import DOMPurify from "dompurify"
 import {
   Activity,
   ExternalLink,
@@ -89,11 +90,13 @@ const CompetitiveAnalysis = () => {
     return cleanMarkdown(text)
       .split("\n")
       .filter((line) => line.trim() !== "")
-      .map((line, index) => (
-        <p key={index} className="mb-2 text-sm leading-relaxed">
+      .map((line) => (
+        <p key={line} className="mb-2 text-sm leading-relaxed">
           <span
             dangerouslySetInnerHTML={{
-              __html: line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
+              __html: DOMPurify.sanitize(
+                line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+              ),
             }}
           />
         </p>
@@ -178,11 +181,10 @@ const CompetitiveAnalysis = () => {
       setActiveTab("links")
     }
   }, [
-    analysisResults,
-    formData?.generatedMetadata,
-    hasAnalysisResults,
-    hasInitialAnalysis,
-    hasCompetitors,
+    formData?.generatedMetadata, 
+    hasAnalysisResults, 
+    hasInitialAnalysis, 
+    hasCompetitors
   ])
 
   // --- 4. Handlers ---
@@ -270,7 +272,7 @@ const CompetitiveAnalysis = () => {
 
     return (
       <div className="relative flex items-center justify-center w-32 h-32">
-        <svg className="w-full h-full transform -rotate-90">
+        <svg aria-hidden="true" className="w-full h-full transform -rotate-90">
           <circle
             cx="64"
             cy="64"
@@ -302,7 +304,7 @@ const CompetitiveAnalysis = () => {
     <Accordion type="single" collapsible className="w-full space-y-2">
       {competitors.map((competitor, idx) => (
         <AccordionItem
-          key={idx}
+          key={competitor.link || competitor.url || competitor.title}
           value={`item-${idx}`}
           className="border border-gray-200 rounded-lg px-4 overflow-hidden"
         >
@@ -361,7 +363,7 @@ const CompetitiveAnalysis = () => {
           <Accordion type="single" collapsible className="space-y-2">
             {links.map((link, idx) => (
               <AccordionItem
-                key={idx}
+                key={link.link || link.url || link.title}
                 value={`link-${idx}`}
                 className="border border-gray-200 rounded-lg px-4 bg-white shadow-none"
               >
@@ -403,7 +405,7 @@ const CompetitiveAnalysis = () => {
       <Accordion type="single" collapsible className="w-full space-y-2">
         {Object.entries(analysisData.analysis).map(([key, value], idx) => (
           <AccordionItem
-            key={idx}
+            key={key}
             value={`analysis-${idx}`}
             className="border border-gray-200 rounded-lg px-4 bg-white shadow-none overflow-hidden"
           >
@@ -459,6 +461,7 @@ const CompetitiveAnalysis = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleReset}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset content"
@@ -541,7 +544,7 @@ const CompetitiveAnalysis = () => {
                   </h3>
                   <div
                     className="max-h-100 overflow-y-auto pr-2 text-sm text-slate-600 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formData.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
                   />
                 </CardContent>
               </Card>
@@ -643,7 +646,7 @@ const CompetitiveAnalysis = () => {
                                   ?.filter(Boolean)
                                   .map((s, idx) => (
                                     <div
-                                      key={idx}
+                                      key={s}
                                       className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
                                     >
                                       <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 shadow-none">
@@ -651,9 +654,11 @@ const CompetitiveAnalysis = () => {
                                       </span>
                                       <span
                                         dangerouslySetInnerHTML={{
-                                          __html: cleanMarkdown(s).replace(
-                                            /\*\*(.*?)\*\*/g,
-                                            "<strong>$1</strong>"
+                                          __html: DOMPurify.sanitize(
+                                            cleanMarkdown(s).replace(
+                                              /\*\*(.*?)\*\*/g,
+                                              "<strong>$1</strong>"
+                                            )
                                           ),
                                         }}
                                       />
@@ -700,14 +705,16 @@ const CompetitiveAnalysis = () => {
                                   )
                               )
                                 ?.filter(Boolean)
-                                .map((s, idx) => (
+                                .map((s) => (
                                   <li
-                                    key={idx}
+                                    key={s}
                                     className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"
                                     dangerouslySetInnerHTML={{
-                                      __html: cleanMarkdown(s).replace(
-                                        /\*\*(.*?)\*\*/g,
-                                        "<strong>$1</strong>"
+                                      __html: DOMPurify.sanitize(
+                                        cleanMarkdown(s).replace(
+                                          /\*\*(.*?)\*\*/g,
+                                          "<strong>$1</strong>"
+                                        )
                                       ),
                                     }}
                                   />

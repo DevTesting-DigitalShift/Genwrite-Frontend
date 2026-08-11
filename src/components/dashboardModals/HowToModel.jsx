@@ -2,6 +2,7 @@ import { useState } from "react"
 
 const CloseIcon = () => (
   <svg
+    aria-hidden="true"
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
@@ -66,11 +67,13 @@ const FeatureCarousel = ({ features }) => {
 
       {/* Left Arrow */}
       <button
+        type="button"
         onClick={prevSlide}
         className="absolute top-1/2 left-2 -translate-y-1/2 z-10 p-2 bg-white/50 rounded-full hover:bg-white/80 transition"
         aria-label="Previous slide"
       >
         <svg
+          aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           className="h-6 w-6 text-gray-800"
           fill="none"
@@ -83,11 +86,13 @@ const FeatureCarousel = ({ features }) => {
 
       {/* Right Arrow */}
       <button
+        type="button"
         onClick={nextSlide}
         className="absolute top-1/2 right-2 -translate-y-1/2 z-10 p-2 bg-white/50 rounded-full hover:bg-white/80 transition"
         aria-label="Next slide"
       >
         <svg
+          aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           className="h-6 w-6 text-gray-800"
           fill="none"
@@ -102,6 +107,8 @@ const FeatureCarousel = ({ features }) => {
       <div className="absolute bottom-[-30px] left-1/2 -translate-x-1/2 flex space-x-2">
         {features.map((_, slideIndex) => (
           <button
+            type="button"
+            // biome-ignore lint/suspicious/noArrayIndexKey: nav dot N always represents slide N
             key={slideIndex}
             onClick={() => goToSlide(slideIndex)}
             className={`h-3 w-3 rounded-full transition-colors duration-300 ${
@@ -147,6 +154,7 @@ const WhatsNewModal = ({ onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 bg-opacity-60 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-4xl transform rounded-xl bg-gray-100 p-6 pt-12 text-left align-middle shadow-2xl transition-all duration-300 ease-in-out scale-95 animate-scale-in">
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 rounded-full p-2 transition-colors duration-200 hover:bg-gray-200"
           aria-label="Close modal"

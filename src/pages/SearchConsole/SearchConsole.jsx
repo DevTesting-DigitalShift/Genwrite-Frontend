@@ -180,7 +180,7 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const aggregateData = (data) => {
+  const aggregateData = useCallback((data) => {
     const grouped = {}
     data.forEach((row) => {
       const key = row.country
@@ -200,7 +200,7 @@ const SearchConsole = () => {
       }
     })
     return Object.values(grouped)
-  }
+  }, [])
 
   // URL/title pre-filter (Fuse text search happens inside GSCAnalyticsTabs)
   const filteredData = useMemo(() => {
@@ -215,7 +215,7 @@ const SearchConsole = () => {
       result = aggregateData(result)
     }
     return result
-  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, activeTab])
+  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, activeTab, aggregateData])
 
   // Metrics always calculated on full filteredData (before Fuse)
   const metrics = useMemo(() => {
@@ -349,6 +349,7 @@ const SearchConsole = () => {
             </h1>
             <div className="flex gap-2 shrink-0">
               <button
+                type="button"
                 title="Export to Excel"
                 onClick={handleExport}
                 disabled={isLoading}
@@ -358,6 +359,7 @@ const SearchConsole = () => {
                 <span className="hidden sm:inline">Export</span>
               </button>
               <button
+                type="button"
                 title="Refresh data"
                 onClick={() => refetch()}
                 disabled={isLoading}
@@ -485,6 +487,7 @@ const SearchConsole = () => {
                 />
               </div>
               <button
+                type="button"
                 onClick={handleResetFilters}
                 className={`rounded-md h-9 px-3 text-sm font-medium  whitespace-nowrap transition-colors ${
                   isFilterApplied

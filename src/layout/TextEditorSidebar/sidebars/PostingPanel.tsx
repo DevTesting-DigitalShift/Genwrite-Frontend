@@ -150,9 +150,9 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
             </div>
           ) : hasPublishedLinks ? (
             <div className="space-y-4">
-              {blogPostings.map((posting, idx) => (
+              {blogPostings.map((posting) => (
                 <div
-                  key={idx}
+                  key={posting.link || posting.postedOn}
                   className="p-6 bg-white rounded-[24px] border border-slate-100 shadow-sm hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -190,6 +190,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
                     )}
                   </div>
                   <button
+                    type="button"
                     onClick={() => handleRepost(posting)}
                     disabled={isPosting}
                     className="w-full h-10 text-[10px] font-black uppercase tracking-widest rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-30"
@@ -339,6 +340,7 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
       {/* Main Post Action - Fixed Footer */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-20">
         <button
+          type="button"
           onClick={handlePublishClick}
           disabled={isPosting || !hasAnyIntegration}
           className={`

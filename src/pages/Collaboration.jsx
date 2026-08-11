@@ -38,7 +38,7 @@ const InviteForm = () => {
   const [email, setEmail] = useState("")
   const { mutate: createInvite, isPending } = useCreateInviteMutation()
 
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!email.trim()) return
     createInvite({ email: email.trim() }, { onSuccess: () => setEmail("") })
@@ -54,7 +54,7 @@ const InviteForm = () => {
           required
           placeholder="teammate@company.com"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           className="mt-1"
         />
       </div>
@@ -71,9 +71,9 @@ const InvitesSentTab = () => {
   const { mutate: revokeInvite } = useRevokeInviteMutation()
   const { handlePopup } = useConfirmPopup()
   const invites = data?.invites ?? []
-  const activeCount = invites.filter(i => i.status !== "revoked").length
+  const activeCount = invites.filter((i) => i.status !== "revoked").length
 
-  const confirmRevoke = invite => {
+  const confirmRevoke = (invite) => {
     handlePopup({
       title: "Revoke invite?",
       description: `${invite.inviteeEmail} will lose access to your workspace immediately.`,
@@ -112,7 +112,7 @@ const InvitesSentTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invites.map(invite => (
+              {invites.map((invite) => (
                 <TableRow key={invite._id}>
                   <TableCell className="font-medium">{invite.inviteeEmail}</TableCell>
                   <TableCell>
@@ -149,7 +149,7 @@ const WorkspacesSharedWithMeTab = () => {
   const navigate = useNavigate()
   const workspaces = data?.watching ?? []
 
-  const handleView = access => {
+  const handleView = (access) => {
     switchToWorkspace({
       id: access.ownerId._id,
       name: access.ownerId.name,
@@ -169,7 +169,7 @@ const WorkspacesSharedWithMeTab = () => {
         </div>
       ) : (
         <ul className="divide-y divide-slate-100">
-          {workspaces.map(access => (
+          {workspaces.map((access) => (
             <li key={access._id} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center overflow-hidden">

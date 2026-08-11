@@ -12,7 +12,7 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
     <dialog class="modal modal-open bg-slate-900/40 backdrop-blur-sm">
       <div class="modal-box bg-white rounded-[32px] shadow-2xl border border-slate-100 p-0 overflow-hidden max-w-md">
         <div class="bg-linear-to-r from-blue-600 to-indigo-600 p-8 text-white relative">
-          <button class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors" onclick="window.closeUpgradePopup(false)">
+          <button type="button" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors" onclick="window.closeUpgradePopup(false)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -34,10 +34,10 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
           </div>
           
           <div class="flex flex-col gap-3">
-            <button class="btn btn-primary h-14 rounded-2xl font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] transition-transform" onclick="window.closeUpgradePopup(true)">
+            <button type="button" class="btn btn-primary h-14 rounded-2xl font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] transition-transform" onclick="window.closeUpgradePopup(true)">
               Upgrade Now
             </button>
-            <button class="btn btn-ghost h-14 rounded-2xl font-black text-slate-400 hover:bg-slate-50 normal-case" onclick="window.closeUpgradePopup(false)">
+            <button type="button" class="btn btn-ghost h-14 rounded-2xl font-black text-slate-400 hover:bg-slate-50 normal-case" onclick="window.closeUpgradePopup(false)">
               Maybe Later
             </button>
           </div>

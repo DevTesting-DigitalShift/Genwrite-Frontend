@@ -63,7 +63,7 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
 
 const ToolbarDivider = () => <div className="w-px h-5 bg-gray-200 mx-1" />
 
-const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) => {
+const BasicEditor = ({ content, onChange }) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
   const [linkText, setLinkText] = useState("")
@@ -420,17 +420,23 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
             </div>
 
             <div className="modal-action flex justify-end gap-2">
-              <button onClick={() => setLinkModalOpen(false)} className="btn btn-ghost btn-sm">
+              <button
+                type="button"
+                onClick={() => setLinkModalOpen(false)}
+                className="btn btn-ghost btn-sm"
+              >
                 Cancel
               </button>
-              <button onClick={addLink} className="btn btn-primary btn-sm gap-2">
+              <button type="button" onClick={addLink} className="btn btn-primary btn-sm gap-2">
                 <Check className="w-4 h-4" />
                 Add Link
               </button>
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setLinkModalOpen(false)}>close</button>
+            <button type="button" onClick={() => setLinkModalOpen(false)}>
+              close
+            </button>
           </form>
         </div>
       )}
@@ -485,17 +491,23 @@ const BasicEditor = ({ content, onChange, placeholder = "Start writing..." }) =>
             </div>
 
             <div className="modal-action flex justify-end gap-2">
-              <button onClick={() => setImageModalOpen(false)} className="btn btn-ghost btn-sm">
+              <button
+                type="button"
+                onClick={() => setImageModalOpen(false)}
+                className="btn btn-ghost btn-sm"
+              >
                 Cancel
               </button>
-              <button onClick={addImage} className="btn btn-primary btn-sm gap-2">
+              <button type="button" onClick={addImage} className="btn btn-primary btn-sm gap-2">
                 <Check className="w-4 h-4" />
                 Add Image
               </button>
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setImageModalOpen(false)}>close</button>
+            <button type="button" onClick={() => setImageModalOpen(false)}>
+              close
+            </button>
           </form>
         </div>
       )}

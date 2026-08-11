@@ -86,9 +86,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const { showLoading, hideLoading } = useLoading()
   const { integrations, fetchIntegrations } = useIntegrationStore()
 
+  const [currentStep, setCurrentStep] = useState<number>(0)
+  const [formData, setFormData] = useState<typeof initialData>(initialData)
+  const [errors, setErrors] = useState<FormError>({})
+
   useEffect(() => {
     fetchIntegrations()
-  }, [])
+  }, [fetchIntegrations])
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -96,11 +100,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
-  }, [integrations])
-
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [formData, setFormData] = useState<typeof initialData>(initialData)
-  const [errors, setErrors] = useState<FormError>({})
+  }, [integrations, formData.postingType])
 
   const STEP_TITLES = formData.enableAdvanced
     ? [
@@ -228,23 +228,23 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
     return cost
   }, [
-    formData.isCheckedBrand,
-    formData.options.includeCompetitorResearch,
-    formData.options.performKeywordResearch,
-    formData.options.includeInterlinks,
-    formData.options.includeFaqs,
-    formData.options.humanisation,
-    formData.options.extendedThinking,
-    formData.options.deepResearch,
-    formData.isCheckedQuick,
-    formData.options.addOutBoundLinks,
-    formData.userDefinedLength,
-    formData.aiModel,
-    formData.isCheckedGeneratedImages,
-    formData.imageSource,
-    formData.numberOfImages,
-    formData.blogImages.length,
-    formData.costCutter,
+    formData.isCheckedBrand, 
+    formData.options.includeCompetitorResearch, 
+    formData.options.performKeywordResearch, 
+    formData.options.includeInterlinks, 
+    formData.options.includeFaqs, 
+    formData.options.humanisation, 
+    formData.options.extendedThinking, 
+    formData.options.deepResearch, 
+    formData.isCheckedQuick, 
+    formData.options.addOutBoundLinks, 
+    formData.userDefinedLength, 
+    formData.aiModel, 
+    formData.isCheckedGeneratedImages, 
+    formData.imageSource, 
+    formData.numberOfImages, 
+    formData.blogImages.length, 
+    formData.costCutter, formData.wordpressPostStatus
   ])
 
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
@@ -391,7 +391,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     if (templates?.length === 1) {
       updateErrors({ template: "" })
     }
-  }, [])
+  }, [updateFormData, updateErrors])
 
   const handleInputChange = useCallback(
     (
@@ -563,19 +563,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     <p className="text-xs mt-1 text-red-500">{errors.focusKeywords}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.focusKeywords.map((kw, i) => (
+                    {formData.focusKeywords.map((kw) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
                       >
                         {kw}
                         <button
+                          type="button"
                           title="Remove keyword"
                           onClick={() => {
                             handleInputChange({
                               target: {
                                 name: "focusKeywords",
-                                value: formData.focusKeywords.filter((_, idx) => idx !== i),
+                                value: formData.focusKeywords.filter((k) => k !== kw),
                               },
                             })
                           }}
@@ -621,19 +622,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     <p className="text-xs mt-1 text-red-500">{errors.keywords}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.keywords.map((kw, i) => (
+                    {formData.keywords.map((kw) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="px-3 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md flex items-center gap-1"
                       >
                         {kw}
                         <button
+                          type="button"
                           title="Remove keyword"
                           onClick={() => {
                             handleInputChange({
                               target: {
                                 name: "keywords",
-                                value: formData.keywords.filter((_, idx) => idx !== i),
+                                value: formData.keywords.filter((k) => k !== kw),
                               },
                             })
                           }}
@@ -666,6 +668,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               }`}
                     />
                     <button
+                      type="button"
                       onClick={handleGenerateTitles}
                       disabled={isGenerating}
                       className="mt-2 px-6 py-2 rounded-md bg-[#4C5BD6] text-white text-sm font-bold
@@ -678,9 +681,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
                   {generatedTitles.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {generatedTitles.map((t, i) => (
+                      {generatedTitles.map((t) => (
                         <button
-                          key={i}
+                          type="button"
+                          key={t}
                           onClick={() => handleInputChange({ target: { name: "title", value: t } })}
                           className={`px-3 py-1 text-xs rounded-md border transition
                   ${
@@ -913,6 +917,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       <div className="flex flex-col items-center gap-2 text-slate-400 pointer-events-none">
                         <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
                           <svg
+                            aria-hidden="true"
                             className="w-5 h-5"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -947,7 +952,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     {formData.blogImages.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {formData.blogImages.map((img, i) => (
-                          <div key={i} className="relative group aspect-square">
+                          <div key={img.src || img} className="relative group aspect-square">
                             <img
                               src={img.src || img}
                               alt={`Upload ${i + 1}`}
@@ -957,7 +962,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                               type="button"
                               onClick={() =>
                                 updateFormData({
-                                  blogImages: formData.blogImages.filter((_, idx) => idx !== i),
+                                  blogImages: formData.blogImages.filter((im) => im !== img),
                                 })
                               }
                               className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
@@ -1013,19 +1018,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               />
 
               <div className="space-y-2">
-                {formData.referenceLinks.map((link, i) => (
+                {formData.referenceLinks.map((link) => (
                   <div
-                    key={i}
+                    key={link}
                     className="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-md"
                   >
                     <span className="text-sm text-slate-600 truncate">{link}</span>
 
                     <button
+                      type="button"
                       onClick={() =>
                         handleInputChange({
                           target: {
                             name: "referenceLinks",
-                            value: formData.referenceLinks.filter((_, idx) => idx !== i),
+                            value: formData.referenceLinks.filter((l) => l !== link),
                           },
                         })
                       }
@@ -1234,6 +1240,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             </h2>
           </div>
           <button
+            type="button"
             onClick={handleClose}
             className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors group"
           >
@@ -1272,6 +1279,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div className="flex justify-end gap-3 w-full">
               {currentStep > 0 && (
                 <button
+                  type="button"
                   onClick={handlePrev}
                   className="w-full sm:w-auto px-8 py-2 bg-gray-200 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200/90 font-bold transition-colors"
                 >
@@ -1280,6 +1288,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               )}
 
               <button
+                type="button"
                 onClick={
                   currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext
                 }

@@ -59,6 +59,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
             <div className="text-xs text-gray-500">Blog Slug</div>
             {!hasPublishedLinks && (
               <button
+                type="button"
                 onClick={() => setIsEditingSlug(!isEditingSlug)}
                 className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors"
               >
@@ -75,7 +76,11 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
                 placeholder="blog-slug"
                 className="input input-bordered input-sm w-full text-sm font-mono focus:outline-hidden"
               />
-              <button onClick={handleSlugSave} className="btn btn-sm btn-primary w-full text-white">
+              <button
+                type="button"
+                onClick={handleSlugSave}
+                className="btn btn-sm btn-primary w-full text-white"
+              >
                 Save Slug
               </button>
             </div>
@@ -136,9 +141,9 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
           <motion.div variants={item} className="p-3 bg-white border rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.tags.map((tag, i) => (
+              {blog.tags.map((tag) => (
                 <span
-                  key={i}
+                  key={tag}
                   className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
                 >
                   <TagIcon className="w-3 h-3 mr-1" />
@@ -154,8 +159,8 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
           <motion.div variants={item} className="p-3 bg-white border rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.keywords.map((kw, i) => (
-                <span key={i} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+              {blog.keywords.map((kw) => (
+                <span key={kw} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
                   {kw}
                 </span>
               ))}
@@ -168,9 +173,9 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
           <motion.div variants={item} className="p-3 bg-white border rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.focusKeywords.map((kw, i) => (
+              {blog.focusKeywords.map((kw) => (
                 <span
-                  key={i}
+                  key={kw}
                   className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
                 >
                   {kw}

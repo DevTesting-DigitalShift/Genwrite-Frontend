@@ -16,7 +16,6 @@ import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
@@ -30,7 +29,6 @@ const MainEditorPage = () => {
   const navigate = useNavigate()
 
   // Zustand Stores
-  const { user } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
   const cachedBlog = queryClient.getQueryData(["blog", id]) || (blog?._id === id ? blog : null)
 
@@ -435,12 +433,12 @@ const MainEditorPage = () => {
     setEditorContent(humanizedContent)
     setIsHumanizeModalOpen(false)
     toast.success("Humanized content applied successfully!")
-  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen])
+  }, [humanizedContent])
 
   const handleAcceptOriginalContent = useCallback(() => {
     setIsHumanizeModalOpen(false)
     toast.info("Retained original content.")
-  }, [setIsHumanizeModalOpen])
+  }, [])
 
   if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
     return (
@@ -477,12 +475,14 @@ const MainEditorPage = () => {
               </div>
               <div className="flex gap-3 w-full mt-2">
                 <button
+                  type="button"
                   className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
                   onClick={() => blocker.proceed()}
                 >
                   Leave Anyway
                 </button>
                 <button
+                  type="button"
                   className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-[#3B4BB8] text-white font-bold text-sm transition-all shadow-none"
                   onClick={async () => {
                     await handleSave({})
@@ -493,6 +493,7 @@ const MainEditorPage = () => {
                 </button>
               </div>
               <button
+                type="button"
                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 onClick={() => blocker.reset()}
               >
@@ -532,6 +533,7 @@ const MainEditorPage = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleRejectSave}
                   className="p-2 hover:bg-white/10 rounded-xl transition-colors"
                 >
@@ -569,12 +571,14 @@ const MainEditorPage = () => {
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={handleRejectSave}
                   className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
                 >
                   Discard Changes
                 </button>
                 <button
+                  type="button"
                   onClick={handleAcceptSave}
                   className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
                 >
@@ -607,13 +611,14 @@ const MainEditorPage = () => {
                     </h2>
                     <p className="text-gray-500 text-sm mt-0.5">Write and optimize your content</p>
                   </div>
-                  <button onClick={toggleSidebar} className="md:hidden ml-auto">
+                  <button type="button" onClick={toggleSidebar} className="md:hidden ml-auto">
                     {!isSidebarOpen && <PanelRightOpen />}
                   </button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <button
+                    type="button"
                     onClick={async () => {
                       try {
                         const newVisibility = !blog.isPublic
@@ -646,6 +651,7 @@ const MainEditorPage = () => {
 
                   {blog?.isPublic && (
                     <button
+                      type="button"
                       onClick={() => {
                         const url = `${import.meta.env.VITE_FRONTEND_URL}/blog/${blog._id}`
                         navigator.clipboard.writeText(url)
@@ -659,6 +665,7 @@ const MainEditorPage = () => {
                   )}
 
                   <button
+                    type="button"
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||

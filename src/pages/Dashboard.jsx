@@ -1,6 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
@@ -53,7 +52,6 @@ const Dashboard = () => {
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { openJobModal } = useJobStore()
   const { clearSelectedKeywords } = useAnalysisStore()
-  const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
 
@@ -154,7 +152,7 @@ const Dashboard = () => {
       }
     }
     initUser()
-  }, [navigate])
+  }, [navigate, loadAuthenticatedUser])
 
   useEffect(() => {
     if (!user?._id) return
@@ -205,7 +203,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       default:
-        return <></>
+        return null
     }
   }
 
@@ -256,7 +254,6 @@ const Dashboard = () => {
           setRunTour(false)
           if (user?._id) localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
         }}
-        onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />
 
       {activeModel && renderModel()}
@@ -520,6 +517,7 @@ const Dashboard = () => {
                 Recent Creations
               </h2>
               <button
+                type="button"
                 onClick={() => navigate("/all-blogs")}
                 className="text-sm text-primary hover:text-primary/80 font-bold"
               >

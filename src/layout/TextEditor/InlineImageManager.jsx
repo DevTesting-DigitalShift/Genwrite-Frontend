@@ -244,12 +244,17 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
             <div className="modal-action flex justify-between items-center mt-6">
               {/* Left: Destructive action */}
-              <button className="btn btn-error btn-outline btn-sm gap-2" onClick={handleDelete}>
+              <button
+                type="button"
+                className="btn btn-error btn-outline btn-sm gap-2"
+                onClick={handleDelete}
+              >
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   className="btn btn-ghost btn-sm gap-2"
                   onClick={handleMoveUp}
                   disabled={isFirst}
@@ -257,23 +262,34 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   <ChevronUp className="w-4 h-4" /> Move Up
                 </button>
                 <button
+                  type="button"
                   className="btn btn-ghost btn-sm gap-2"
                   onClick={handleMoveDown}
                   disabled={isLast}
                 >
                   <ChevronDown className="w-4 h-4" /> Move Down
                 </button>
-                <button className="btn btn-sm" onClick={() => setEditModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => setEditModalOpen(false)}
+                >
                   Cancel
                 </button>
-                <button className="btn btn-primary btn-sm gap-2" onClick={handleSaveChanges}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-2"
+                  onClick={handleSaveChanges}
+                >
                   <Check className="w-4 h-4" /> Save
                 </button>
               </div>
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setEditModalOpen(false)}>close</button>
+            <button type="button" onClick={() => setEditModalOpen(false)}>
+              close
+            </button>
           </form>
         </div>
       )}

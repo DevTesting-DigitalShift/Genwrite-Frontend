@@ -264,7 +264,7 @@ const Profile = () => {
                     <ShieldCheck className="size-6 text-blue-500 fill-blue-50" />
                   )}
                 </div>
-                <button className="font-semibold text-gray-500">
+                <button type="button" className="font-semibold text-gray-500">
                   {profileData.personalDetails.bio}
                 </button>
               </div>
@@ -316,12 +316,14 @@ const Profile = () => {
             </div>
             <div className="hidden sm:flex flex-row items-center gap-2 w-auto">
               <button
+                type="button"
                 onClick={() => setPasswordModalVisible(true)}
                 className="btn bg-slate-600 hover:bg-slate-700 text-white border-none rounded-lg font-semibold px-6 h-12 gap-2"
               >
                 <Lock size={18} /> Change Password
               </button>
               <button
+                type="button"
                 disabled={!isChanged}
                 onClick={handleSave}
                 className={`btn ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} border-none rounded-lg font-semibold px-8 h-12 gap-2 shadow-sm transition-all`}
@@ -399,7 +401,11 @@ const Profile = () => {
                       className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-medium border border-slate-200"
                     >
                       {INTEREST_OPTIONS.find((o) => o.value === val)?.label || val}
-                      <button onClick={() => toggleInterest(val)} className="hover:text-red-500">
+                      <button
+                        type="button"
+                        onClick={() => toggleInterest(val)}
+                        className="hover:text-red-500"
+                      >
                         <X className="size-3" />
                       </button>
                     </div>
@@ -434,12 +440,14 @@ const Profile = () => {
           {/* Mobile-only Action Buttons */}
           <div className="flex sm:hidden flex-row items-center gap-3 pt-6 mt-2 border-t border-slate-100">
             <button
+              type="button"
               onClick={() => setPasswordModalVisible(true)}
               className="px-2 h-11 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold flex-1 text-[11px] whitespace-nowrap"
             >
               Change Password
             </button>
             <button
+              type="button"
               disabled={!isChanged}
               onClick={handleSave}
               className={`px-2 h-11 ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} rounded-lg font-bold flex-1 text-[11px] shadow-sm whitespace-nowrap`}
@@ -475,6 +483,7 @@ const Profile = () => {
                     {referralCode}
                   </code>
                   <button
+                    type="button"
                     onClick={copyReferralCode}
                     className="btn btn-sm btn-ghost hover:bg-blue-50 text-blue-600 rounded-xl"
                   >
@@ -498,6 +507,7 @@ const Profile = () => {
               </div>
             ) : (
               <button
+                type="button"
                 onClick={handleGenerateReferral}
                 className="w-full h-16 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
               >
@@ -670,6 +680,7 @@ const DatePickerField = ({ label, value, onChange }) => {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
+            type="button"
             className={`w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 font-medium transition-all flex items-center justify-between ${
               !value ? "text-slate-300" : ""
             }`}

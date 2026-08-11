@@ -19,8 +19,6 @@ const RegenerateModal = ({
   isRegenerating,
   regenForm,
   updateRegenField,
-  userPlan,
-  user,
   integrations,
 }) => {
   const _navigate = useNavigate()
@@ -119,7 +117,7 @@ const RegenerateModal = ({
               Regenerate Blog - Step {regenerateStep} of 2
             </span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -198,12 +196,16 @@ const RegenerateModal = ({
                       value={focusKeywordInput}
                       onChange={(e) => setFocusKeywordInput(e.target.value)}
                       onPaste={(e) => handlePasteKeywords(e, "focus")}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
-                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addRegenKeyword("focus")
+                        }
+                      }}
                       placeholder="Add keyword..."
                     />
                     <button
+                      type="button"
                       className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                       onClick={() => addRegenKeyword("focus")}
                     >
@@ -213,11 +215,11 @@ const RegenerateModal = ({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {regenForm.focusKeywords.map((kw, i) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-semibold"
                       >
                         {kw}
-                        <button onClick={() => removeRegenKeyword("focus", i)}>
+                        <button type="button" onClick={() => removeRegenKeyword("focus", i)}>
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </span>
@@ -237,12 +239,16 @@ const RegenerateModal = ({
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       onPaste={(e) => handlePasteKeywords(e, "secondary")}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addRegenKeyword("secondary")
+                        }
+                      }}
                       placeholder="Add keywords..."
                     />
                     <button
+                      type="button"
                       className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                       onClick={() => addRegenKeyword("secondary")}
                     >
@@ -252,11 +258,11 @@ const RegenerateModal = ({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {regenForm.keywords.map((kw, i) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm font-semibold"
                       >
                         {kw}
-                        <button onClick={() => removeRegenKeyword("secondary", i)}>
+                        <button type="button" onClick={() => removeRegenKeyword("secondary", i)}>
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </span>
@@ -622,6 +628,7 @@ const RegenerateModal = ({
           <div className="flex gap-2">
             {regenerateStep === 2 && (
               <button
+                type="button"
                 className="btn rounded-md transition-all"
                 onClick={() => setRegenerateStep(1)}
               >
@@ -630,6 +637,7 @@ const RegenerateModal = ({
             )}
             {regenerateStep === 1 ? (
               <button
+                type="button"
                 className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                 onClick={() => setRegenerateStep(2)}
               >
@@ -637,6 +645,7 @@ const RegenerateModal = ({
               </button>
             ) : (
               <button
+                type="button"
                 className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                 disabled={isRegenerating}
                 onClick={handleSubmit}
@@ -653,7 +662,9 @@ const RegenerateModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

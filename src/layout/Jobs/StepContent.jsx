@@ -49,7 +49,9 @@ const StepContent = ({
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: brands = [] } = brandsQuery.useList()
+  // Prefetches/warms the shared brands query cache so BrandVoiceSelector below
+  // doesn't show a loading flicker when it mounts.
+  brandsQuery.useList()
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -57,7 +59,7 @@ const StepContent = ({
         setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
-  }, [integrations])
+  }, [integrations, formData.postingType, setFormData])
 
   const _wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = BLOG_CONFIG.BULK.MAX_BLOGS
@@ -325,7 +327,7 @@ const StepContent = ({
       templateIds: temps.map((t) => t.id),
     }))
     setErrors((prev) => ({ ...prev, templates: false }))
-  }, [])
+  }, [setNewJob, setErrors])
 
   switch (currentStep) {
     case 1:
@@ -499,6 +501,7 @@ const StepContent = ({
                     placeholder="Enter keywords (comma, tab, or newline separated)"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddItems(formData.keywordInput, "keywords")}
                     className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                   >
@@ -607,6 +610,7 @@ const StepContent = ({
                   placeholder="https://example.com/blog-post"
                 />
                 <button
+                  type="button"
                   onClick={() => {
                     const val = formData.referenceInput?.trim()
                     if (!val) return
@@ -641,11 +645,12 @@ const StepContent = ({
               <div className="flex flex-col gap-2 mt-2">
                 {newJob.blogs?.references?.map((ref, idx) => (
                   <div
-                    key={idx}
+                    key={ref}
                     className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded text-xs text-blue-600 truncate"
                   >
                     <span className="truncate flex-1">{ref}</span>
                     <button
+                      type="button"
                       onClick={() =>
                         setNewJob((prev) => ({
                           ...prev,
@@ -822,7 +827,7 @@ const StepContent = ({
                 >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                     <button
-                      key={i}
+                      key={d}
                       type="button"
                       className={`px-2 py-1 rounded-md transition-all ${
                         newJob.schedule.daysOfWeek?.includes(i)

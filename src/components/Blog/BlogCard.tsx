@@ -390,6 +390,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             {status === "failed" && !isTrashcan && (
               <button
+                type="button"
                 onClick={handleRetryClick}
                 title="Retry generation"
                 className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-95"
@@ -399,6 +400,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
             )}
             {!isTrashcan && onArchive && (
               <button
+                type="button"
                 onClick={handleArchiveClick}
                 title="Move to trash"
                 className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95"
@@ -408,6 +410,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
             )}
             {isTrashcan && onRestore && (
               <button
+                type="button"
                 onClick={handleRestoreClick}
                 title="Restore blog"
                 className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-95"
@@ -435,9 +438,9 @@ const BlogCard: React.FC<BlogCardProps> = ({
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-              {focusKeywords?.slice(0, 5).map((tag: string, i: number) => (
+              {focusKeywords?.slice(0, 5).map((tag: string) => (
                 <span
-                  key={i}
+                  key={tag}
                   className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-slate-50 text-slate-500 border border-slate-200/60 uppercase tracking-tight"
                 >
                   {tag}

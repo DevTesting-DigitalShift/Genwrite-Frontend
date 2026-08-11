@@ -22,7 +22,7 @@ const YouTubeSummarization = () => {
   const location = useLocation()
   const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
   const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
-  const { result: summaryResult, error } = youtubeSummary
+  const { result: summaryResult } = youtubeSummary
   const {
     mutate: summarizeVideo,
     isPending,
@@ -36,7 +36,7 @@ const YouTubeSummarization = () => {
       setInputUrl("")
       resetYoutubeSummary()
     }
-  }, [])
+  }, [resetYoutubeSummary])
 
   const isValidYoutubeUrl = (url) => {
     const youtubeRegex =
@@ -162,6 +162,7 @@ const YouTubeSummarization = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleReset}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
@@ -187,6 +188,7 @@ const YouTubeSummarization = () => {
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-red-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidYoutubeUrl(inputUrl)}
               className={`btn btn-primary h-auto py-3 w-full bg-primary hover:bg-[#3B4BB8] border-none text-white font-bold rounded-md transition-all duration-300 shadow-none normal-case ${
@@ -216,6 +218,7 @@ const YouTubeSummarization = () => {
                 Video Summary
               </h2>
               <button
+                type="button"
                 onClick={handleCopySummary}
                 className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy summary"
@@ -274,7 +277,7 @@ const YouTubeSummarization = () => {
 
                 <ul className="space-y-3">
                   {summaryResult.keyPoints.map((point, idx) => (
-                    <li key={idx} className="flex gap-3 ">
+                    <li key={point} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>

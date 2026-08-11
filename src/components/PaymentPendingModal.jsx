@@ -62,11 +62,13 @@ const PaymentPendingModal = ({ user }) => {
 
               <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
                 <button
+                  type="button"
                   onClick={handleResolveIssue}
-                  className="w-full h-16 bg-purple-300 hover:bg-purple-200 text-purple-900 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-3 group"
+                  disabled={isPending}
+                  className="w-full h-16 bg-purple-300 hover:bg-purple-200 text-purple-900 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-3 group disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <CreditCard className="w-5 h-5 text-purple-900 group-hover:text-white transition-colors" />
-                  <span>Resolve Payment Now</span>
+                  <span>{isPending ? "Redirecting..." : "Resolve Payment Now"}</span>
                   <ChevronRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </button>
               </motion.div>

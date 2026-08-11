@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AlertCircle } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@components/ui/dialog"
 import { Button } from "@components/ui/button"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToAccount } from "@utils/accountSwitch"
@@ -44,8 +50,8 @@ const SessionExpiredModal = () => {
             <DialogTitle>Session expired</DialogTitle>
           </div>
           <DialogDescription>
-            Your session for <span className="font-semibold">{expiredEmail}</span> has expired.
-            Sign back in, or switch to another account you're already logged into.
+            Your session for <span className="font-semibold">{expiredEmail}</span> has expired. Sign
+            back in, or switch to another account you're already logged into.
           </DialogDescription>
         </DialogHeader>
 

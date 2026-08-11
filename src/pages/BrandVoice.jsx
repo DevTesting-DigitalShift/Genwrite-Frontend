@@ -45,20 +45,36 @@ const BrandVoice = () => {
     user?.subscription?.plan === "free" &&
     user?.subscription?.status === "unpaid"
 
-  if (showTrialMessage) {
-    return <UpgradeModal featureName="Brand Voice" />
-  }
-
   const { brand: brandVoiceMutations } = useEntityMutations()
   const { isReadOnlyWorkspace } = useReadOnlyGuard()
 
-  const { data: brands = [], isLoading, error } = brandsQuery.useList()
+  const { data: brands = [], isLoading } = brandsQuery.useList()
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      nameOfVoice: "",
+      postLink: "",
+      keywords: [],
+      describeBrand: "",
+      sitemapUrl: "",
+      persona: "",
+      logoUrl: "",
+      selectedVoice: brands && brands.length > 0 ? brands[0] : null,
+      _id: undefined,
+    })
+    setInputValue("")
+    setErrors({})
+    setLastScrapedUrl("")
+    setIsFormReset(true)
+    setShowAllKeywords(false)
+    resetSiteInfo()
+  }, [brands, resetSiteInfo])
 
   useEffect(() => {
     if (!formData._id) {
       resetForm()
     }
-  }, [])
+  }, [resetForm, formData._id])
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
@@ -84,26 +100,6 @@ const BrandVoice = () => {
       setLastScrapedUrl(formData.postLink)
     }
   }, [siteInfo, formData.postLink, isFormReset])
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      nameOfVoice: "",
-      postLink: "",
-      keywords: [],
-      describeBrand: "",
-      sitemapUrl: "",
-      persona: "",
-      logoUrl: "",
-      selectedVoice: brands && brands.length > 0 ? brands[0] : null,
-      _id: undefined,
-    })
-    setInputValue("")
-    setErrors({})
-    setLastScrapedUrl("")
-    setIsFormReset(true)
-    setShowAllKeywords(false)
-    resetSiteInfo()
-  }, [brands, resetSiteInfo])
 
   const validateForm = useCallback(() => {
     const newErrors = {}
@@ -283,7 +279,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [])
+  }, [formData.logoUrl.split])
 
   const handleSave = useCallback(async () => {
     if (isReadOnlyWorkspace) {
@@ -326,7 +322,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations, isReadOnlyWorkspace])
+  }, [formData, validateForm, resetForm, brands, brandVoiceMutations, isReadOnlyWorkspace])
 
   const handleEdit = useCallback((brand) => {
     setFormData({
@@ -374,7 +370,7 @@ const BrandVoice = () => {
         cancelProps: { danger: false },
       })
     },
-    [brandVoiceMutations, formData.selectedVoice, resetForm]
+    [brandVoiceMutations, formData.selectedVoice, resetForm, handlePopup]
   )
 
   const handleSelect = useCallback((voice) => {
@@ -405,7 +401,7 @@ const BrandVoice = () => {
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
     }
-  }, [formData.postLink, lastScrapedUrl])
+  }, [formData.postLink, lastScrapedUrl, fetchSiteInfo])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])
@@ -454,6 +450,12 @@ const BrandVoice = () => {
       </div>
     )
   }, [formData.keywords, removeKeyword, showAllKeywords])
+
+  // Checked after every hook has run unconditionally (rules-of-hooks) — this can flip
+  // true/false within the same mounted instance as credits/subscription update live.
+  if (showTrialMessage) {
+    return <UpgradeModal featureName="Brand Voice" />
+  }
 
   return (
     <motion.div
@@ -508,6 +510,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <button
+                type="button"
                 className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
                 onClick={handleFetchSiteInfo}
                 disabled={
@@ -584,6 +587,7 @@ const BrandVoice = () => {
                 />
                 {formData.logoUrl && (
                   <button
+                    type="button"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
                     onClick={() => setFormData((prev) => ({ ...prev, logoUrl: "" }))}
                   >
@@ -767,6 +771,7 @@ const BrandVoice = () => {
 
           <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
             <button
+              type="button"
               className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-2 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[11px] sm:text-base flex-1 sm:flex-none"
               onClick={handleSave}
               disabled={isUploading || showTrialMessage}
@@ -784,6 +789,7 @@ const BrandVoice = () => {
             </button>
 
             <button
+              type="button"
               className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-base flex-none sm:flex-none"
               onClick={resetForm}
               disabled={isUploading}
@@ -804,7 +810,12 @@ const BrandVoice = () => {
             Your Brand Voices
           </h2>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={isLoading}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
               <RefreshCcw className="w-4 h-4" />
             </button>
           </motion.div>

@@ -33,6 +33,7 @@ const AcceptInvite = () => {
           <h1 className="text-3xl font-black mb-4">Invalid Link</h1>
           <p className="text-gray-500 mb-8">No invite token found in the URL.</p>
           <button
+            type="button"
             onClick={() => navigate("/")}
             className="btn bg-slate-900 hover:bg-slate-800 text-white w-full rounded-2xl h-14 font-bold border-none transition-all active:scale-[0.98]"
           >
@@ -61,12 +62,14 @@ const AcceptInvite = () => {
               </p>
               <div className="flex flex-col w-full gap-3">
                 <button
+                  type="button"
                   onClick={() => navigate("/login")}
                   className="w-full h-14 bg-[#3B4BB8] border-none hover:bg-[#3B4BB8]/90 text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
                 >
                   Sign in
                 </button>
                 <button
+                  type="button"
                   onClick={() => navigate("/signup")}
                   className="btn btn-ghost btn-lg w-full rounded-2xl font-black text-gray-500 hover:text-gray-700 normal-case"
                 >
@@ -101,6 +104,7 @@ const AcceptInvite = () => {
                 Collaboration.
               </p>
               <button
+                type="button"
                 onClick={() => navigate("/collaboration")}
                 className="group w-full h-14 bg-[#3B4BB8] border-none hover:bg-[#3B4BB8]/90 text-white rounded-2xl font-bold flex items-center justify-center transition-all active:scale-[0.98]"
               >
@@ -121,6 +125,7 @@ const AcceptInvite = () => {
                 {error?.response?.data?.message || "This invite may be invalid or expired."}
               </p>
               <button
+                type="button"
                 onClick={() => navigate("/dashboard")}
                 className="btn btn-ghost btn-lg w-full rounded-2xl font-black text-gray-400 hover:text-gray-600 normal-case"
               >

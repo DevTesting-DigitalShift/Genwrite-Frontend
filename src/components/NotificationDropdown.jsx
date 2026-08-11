@@ -89,7 +89,7 @@ const NotificationDropdown = ({ notifications }) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button className="btn btn-ghost btn-circle m-1" onClick={handleToggle}>
+      <button type="button" className="btn btn-ghost btn-circle m-1" onClick={handleToggle}>
         <div className="indicator">
           <Bell
             className={`w-6 h-6 transition-colors ${unreadCount > 0 ? "text-blue-600 fill-blue-600/10" : "text-gray-600"}`}
@@ -124,7 +124,7 @@ const NotificationDropdown = ({ notifications }) => {
                 </div>
               ) : (
                 <ul className="flex flex-col">
-                  {localNotifications.map((item, idx) => {
+                  {localNotifications.map((item) => {
                     const typeConfig = typeIconMap[item.type] || {
                       icon: Info,
                       color: "text-gray-400",
@@ -133,7 +133,7 @@ const NotificationDropdown = ({ notifications }) => {
 
                     return (
                       <li
-                        key={idx}
+                        key={`${item.createdAt}-${item.message}`}
                         className={`relative group border-b border-gray-50 last:border-none transition-all duration-200 
                           ${!item.read ? "bg-blue-50/40 hover:bg-blue-50/60" : "hover:bg-gray-50/80"}`}
                       >

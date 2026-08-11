@@ -61,6 +61,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
     <>
       <div className="flex flex-wrap gap-2 bg-gray-50 p-3 border-b border-gray-200 shadow-md">
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={editor.isActive("bold") ? activeStyle : buttonStyle}
           aria-label="Toggle bold"
@@ -68,6 +69,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Bold size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={editor.isActive("italic") ? activeStyle : buttonStyle}
           aria-label="Toggle italic"
@@ -75,6 +77,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Italic size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={editor.isActive("underline") ? activeStyle : buttonStyle}
           aria-label="Toggle underline"
@@ -82,6 +85,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Underline size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleStrike().run()}
           className={editor.isActive("strike") ? activeStyle : buttonStyle}
           aria-label="Toggle strikethrough"
@@ -89,6 +93,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Strikethrough size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={editor.isActive("heading", { level: 1 }) ? activeStyle : buttonStyle}
           aria-label="Toggle heading 1"
@@ -96,6 +101,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Heading1 size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={editor.isActive("heading", { level: 2 }) ? activeStyle : buttonStyle}
           aria-label="Toggle heading 2"
@@ -103,6 +109,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Heading2 size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           className={editor.isActive("heading", { level: 3 }) ? activeStyle : buttonStyle}
           aria-label="Toggle heading 3"
@@ -110,6 +117,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <Heading3 size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={editor.isActive("bulletList") ? activeStyle : buttonStyle}
           aria-label="Toggle bullet list"
@@ -117,6 +125,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <List size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={editor.isActive("orderedList") ? activeStyle : buttonStyle}
           aria-label="Toggle ordered list"
@@ -124,6 +133,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <ListOrdered size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           className={editor.isActive({ textAlign: "left" }) ? activeStyle : buttonStyle}
           aria-label="Align left"
@@ -131,6 +141,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <AlignLeft size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           className={editor.isActive({ textAlign: "center" }) ? activeStyle : buttonStyle}
           aria-label="Align center"
@@ -138,6 +149,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <AlignCenter size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           className={editor.isActive({ textAlign: "right" }) ? activeStyle : buttonStyle}
           aria-label="Align right"
@@ -145,6 +157,7 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <AlignRight size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign("justify").run()}
           className={editor.isActive({ textAlign: "justify" }) ? activeStyle : buttonStyle}
           aria-label="Align justify"
@@ -152,13 +165,19 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <AlignJustify size={16} />
         </button>
         <button
+          type="button"
           onClick={handleOpenLinkModal}
           className={editor.isActive("link") ? activeStyle : buttonStyle}
           aria-label="Toggle link"
         >
           <LinkIcon size={16} />
         </button>
-        <button onClick={onOpenImageModal} className={buttonStyle} aria-label="Add image">
+        <button
+          type="button"
+          onClick={onOpenImageModal}
+          className={buttonStyle}
+          aria-label="Add image"
+        >
           <ImageIcon size={16} />
         </button>
       </div>
@@ -181,10 +200,11 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
               />
             </div>
             <div className="modal-action">
-              <button className="btn btn-ghost" onClick={handleLinkModalCancel}>
+              <button type="button" className="btn btn-ghost" onClick={handleLinkModalCancel}>
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn bg-[#1b6fc9] hover:bg-[#1b6fc9]/90 text-white border-none"
                 onClick={handleLinkModalSave}
               >
@@ -193,7 +213,9 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={handleLinkModalCancel}>close</button>
+            <button type="button" onClick={handleLinkModalCancel}>
+              close
+            </button>
           </form>
         </dialog>
       )}

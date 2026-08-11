@@ -7,7 +7,6 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
 import { useProAction } from "@/hooks/useProAction"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
 import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 import SessionExpiredModal from "@components/SessionExpiredModal"
@@ -31,7 +30,6 @@ const PrivateRoutesLayout = () => {
   const location = useLocation()
   const { user, loading, loadAuthenticatedUser } = useAuthStore()
   const { needsUpgrade } = useProAction()
-  const { handlePopup } = useConfirmPopup()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
   const activeUserIdRef = useRef(getActiveSession()?.userId)
@@ -59,11 +57,6 @@ const PrivateRoutesLayout = () => {
     return () => window.removeEventListener("storage", handleStorage)
   }, [])
 
-  // For guest users on public links, bypass auth checks immediately
-  if (!token && isPublicPath) {
-    return <Outlet />
-  }
-
   // Load authenticated user on mount
   useEffect(() => {
     const init = async () => {
@@ -85,7 +78,7 @@ const PrivateRoutesLayout = () => {
     } else {
       setIsSocketConnected(true)
     }
-  }, [])
+  }, [token, navigate, loadAuthenticatedUser, isPublicPath])
 
   const isAllowed =
     ALLOWED_ROUTES.some((path) => location.pathname.startsWith(path)) || isPublicPath
@@ -99,6 +92,14 @@ const PrivateRoutesLayout = () => {
       navigate("/onboarding", { replace: true })
     }
   }, [user, navigate])
+
+  // For guest users on public links, bypass auth checks immediately. Checked after
+  // every hook above has run unconditionally (rules-of-hooks) — isPublicPath can flip
+  // within the same mounted layout instance via client-side navigation (e.g. a public
+  // blog page -> a private route) without this component unmounting.
+  if (!token && isPublicPath) {
+    return <Outlet />
+  }
 
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {

@@ -3,7 +3,6 @@ import { FaEdit } from "react-icons/fa"
 import { Trash } from "lucide-react"
 
 const BrandVoicesComponent = ({
-  id,
   brandName,
   brandVoice,
   logoUrl,

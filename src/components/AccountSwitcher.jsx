@@ -42,6 +42,7 @@ const AccountSwitcher = () => {
     return (
       <li>
         <button
+          type="button"
           onClick={handleAddAccount}
           className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
         >
@@ -63,6 +64,7 @@ const AccountSwitcher = () => {
         return (
           <li key={session.userId}>
             <button
+              type="button"
               onClick={() => handleSwitch(session.userId)}
               className={`text-sm font-medium py-2! px-4! rounded-lg flex items-center gap-2 ${
                 isActive ? "bg-primary/10 text-primary" : "hover:bg-gray-50!"
@@ -83,6 +85,7 @@ const AccountSwitcher = () => {
       })}
       <li>
         <button
+          type="button"
           onClick={handleAddAccount}
           className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
         >
@@ -91,6 +94,7 @@ const AccountSwitcher = () => {
       </li>
       <li>
         <button
+          type="button"
           onClick={handleSignOutAll}
           className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
         >

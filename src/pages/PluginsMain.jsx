@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import {
   Server,
   Download,
@@ -25,18 +25,8 @@ import clsx from "clsx"
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
   const [activeTab, setActiveTab] = useState(null)
-  const {
-    integrations,
-    loading,
-    fetchIntegrations,
-    createIntegration,
-    pingIntegration,
-    updateIntegration: updateExistingIntegration,
-    fetchCategories,
-    categories,
-    ping,
-    loading: postsLoading,
-  } = useIntegrationStore()
+  const { integrations, loading, fetchIntegrations, createIntegration, pingIntegration } =
+    useIntegrationStore()
 
   const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
@@ -44,40 +34,47 @@ const PluginsMain = () => {
     return plugins.filter((p) => p.isVisible)
   }, [plugins])
 
+  const checkPlugin = useCallback(
+    async (plugin) => {
+      if (wordpressStatus[plugin.id]?.success) return
+
+      try {
+        const result = await plugin.onCheck()
+        setWordpressStatus((prev) => ({
+          ...prev,
+          [plugin.id]: { status: result.status, message: result.message, success: result.success },
+        }))
+      } catch (err) {
+        console.error(`Error checking plugin ${plugin.pluginName}:`, err)
+        setWordpressStatus((prev) => ({
+          ...prev,
+          [plugin.id]: {
+            status: err.response?.status || "error",
+            message:
+              err.response?.status === 400
+                ? "No configuration found. Provide details below."
+                : err.response?.status === 502
+                  ? `${plugin.pluginName} connection failed. Check service URL.`
+                  : `${plugin.pluginName} Connection Error`,
+            success: false,
+          },
+        }))
+      }
+    },
+    [wordpressStatus]
+  )
+
+  // Intentionally omits `checkPlugin` — this effect's job is a one-time "pick the
+  // first tab once plugins load" (guarded by `!activeTab`), not to re-run whenever
+  // a plugin's check status changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: guarded by !activeTab, see comment above
   useEffect(() => {
     fetchIntegrations()
     if (extendedPlugins.length > 0 && !activeTab) {
       setActiveTab(extendedPlugins[0].id.toString())
       checkPlugin(extendedPlugins[0])
     }
-  }, [plugins, fetchIntegrations, activeTab])
-
-  const checkPlugin = async (plugin) => {
-    if (wordpressStatus[plugin.id]?.success) return
-
-    try {
-      const result = await plugin.onCheck()
-      setWordpressStatus((prev) => ({
-        ...prev,
-        [plugin.id]: { status: result.status, message: result.message, success: result.success },
-      }))
-    } catch (err) {
-      console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-      setWordpressStatus((prev) => ({
-        ...prev,
-        [plugin.id]: {
-          status: err.response?.status || "error",
-          message:
-            err.response?.status === 400
-              ? "No configuration found. Provide details below."
-              : err.response?.status === 502
-                ? `${plugin.pluginName} connection failed. Check service URL.`
-                : `${plugin.pluginName} Connection Error`,
-          success: false,
-        },
-      }))
-    }
-  }
+  }, [fetchIntegrations, activeTab, extendedPlugins])
 
   const handleTabChange = (key) => {
     setActiveTab(key)
@@ -91,9 +88,9 @@ const PluginsMain = () => {
   }
 
   const PluginTabContent = ({ plugin }) => {
-    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [integrations])
-    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [integrations])
-    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [integrations])
+    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [])
+    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [])
+    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [])
 
     // States for inputs
     const [url, setUrl] = useState(
@@ -133,6 +130,42 @@ const PluginsMain = () => {
     const [wpPassword, setWpPassword] = useState("")
     const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
+
+    // Shopify / Wix domain state — hooks must be called unconditionally even though
+    // this data is only meaningful for plugin.id 113/114 (rules-of-hooks: this
+    // component instance is re-rendered with different plugin.id values across tab
+    // switches, so a conditional hook here previously crashed on switch).
+    const isShopify = plugin.id === 113
+    const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
+    const [domain, setDomain] = useState(savedDomain ?? "")
+    const [isValidDomain, setIsValidDomain] = useState(true)
+    const installWindowRef = useRef(null)
+    const pollTimerRef = useRef(null)
+
+    const validateDomain = useCallback(
+      (val) => {
+        if (!val) return false
+        if (isShopify) {
+          try {
+            const normalized = val.startsWith("http") ? new URL(val).hostname : val
+            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
+          } catch {
+            return false
+          }
+        }
+        try {
+          new URL(val.startsWith("http") ? val : `https://${val}`)
+          return true
+        } catch {
+          return false
+        }
+      },
+      [isShopify]
+    )
+
+    useEffect(() => {
+      setIsValidDomain(validateDomain(domain))
+    }, [domain, validateDomain])
 
     const handleToggleEdit = () => {
       if (isEditing) {
@@ -197,13 +230,38 @@ const PluginsMain = () => {
       }
     }, [wordpressInt, serverInt, sanityInt, plugin.id])
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: loading/pingIntegration kept intentionally to avoid a stale closure
+    const handlePing = useCallback(async () => {
+      if (loading || localLoading) return
+      setLocalLoading(true)
+      try {
+        const type =
+          plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
+        const result = await pingIntegration(type)
+        setWordpressStatus((prev) => ({
+          ...prev,
+          [plugin.id]: {
+            status: result.status || "success",
+            message: result.message,
+            success: result.success,
+          },
+        }))
+        if (result.success) toast.success(result.message)
+        else toast.error(result.message)
+      } catch (err) {
+        toast.error(err.message || "Heath check failed")
+      } finally {
+        setLocalLoading(false)
+      }
+    }, [loading, localLoading, pingIntegration, plugin.id])
+
     useEffect(() => {
       if (integrations && !hasPinged && !sessionStorage.getItem("hasPinged")) {
         handlePing()
         setHasPinged(true)
         sessionStorage.setItem("hasPinged", "true")
       }
-    }, [integrations, hasPinged])
+    }, [hasPinged, handlePing])
 
     const handleUrlChange = (e) => {
       const val = e.target.value
@@ -278,61 +336,8 @@ const PluginsMain = () => {
       }
     }
 
-    const handlePing = async () => {
-      if (loading || localLoading) return
-      setLocalLoading(true)
-      try {
-        const type =
-          plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
-        const result = await pingIntegration(type)
-        setWordpressStatus((prev) => ({
-          ...prev,
-          [plugin.id]: {
-            status: result.status || "success",
-            message: result.message,
-            success: result.success,
-          },
-        }))
-        if (result.success) toast.success(result.message)
-        else toast.error(result.message)
-      } catch (err) {
-        toast.error(err.message || "Heath check failed")
-      } finally {
-        setLocalLoading(false)
-      }
-    }
-
     // Shopify / Wix Logic
     if (plugin.id === 113 || plugin.id === 114) {
-      const isShopify = plugin.id === 113
-      const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
-      const [domain, setDomain] = useState(savedDomain ?? "")
-      const [isValidDomain, setIsValidDomain] = useState(true)
-      const installWindowRef = useRef(null)
-      const pollTimerRef = useRef(null)
-
-      const validateDomain = (val) => {
-        if (!val) return false
-        if (isShopify) {
-          try {
-            const normalized = val.startsWith("http") ? new URL(val).hostname : val
-            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
-          } catch {
-            return false
-          }
-        }
-        try {
-          new URL(val.startsWith("http") ? val : `https://${val}`)
-          return true
-        } catch {
-          return false
-        }
-      }
-
-      useEffect(() => {
-        setIsValidDomain(validateDomain(domain))
-      }, [domain])
-
       const openInstallUrl = async () => {
         if (!domain || !isValidDomain) {
           toast.error(isShopify ? "Invalid *.myshopify.com domain" : "Invalid URL")
@@ -418,6 +423,7 @@ const PluginsMain = () => {
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={openInstallUrl}
                   disabled={!domain || !isValidDomain || localLoading}
                   className="flex-1 py-3 bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg font-semibold shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
@@ -425,6 +431,7 @@ const PluginsMain = () => {
                   <Server className="size-4" /> Install Shopify
                 </button>
                 <button
+                  type="button"
                   onClick={handleInternalPing}
                   disabled={!domain || localLoading}
                   className="flex-1 py-3 bg-white border border-gray-200  hover:bg-gray-50 rounded-lg font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
@@ -477,6 +484,7 @@ const PluginsMain = () => {
                   : "Plugin Settings"}
               </h3>
               <button
+                type="button"
                 onClick={handleToggleEdit}
                 className={clsx(
                   "flex items-center justify-center transition-all border rounded-lg",
@@ -645,8 +653,8 @@ const PluginsMain = () => {
                     onChange={(e) => setWpPassword(e.target.value)}
                     disabled={!isEditing}
                     onFocus={(e) => {
-                    if (isEditing) e.target.value = ""
-                  }}
+                      if (isEditing) e.target.value = ""
+                    }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -654,6 +662,7 @@ const PluginsMain = () => {
             </div>
 
             <button
+              type="button"
               onClick={isEditing ? handleConnect : handlePing}
               className={clsx(
                 "w-full py-3.5 sm:py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98] text-sm sm:text-base px-2",
@@ -804,6 +813,7 @@ const PluginsMain = () => {
               const isActive = activeTab === p.id.toString()
               return (
                 <button
+                  type="button"
                   key={p.id}
                   onClick={() => handleTabChange(p.id.toString())}
                   className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${

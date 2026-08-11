@@ -51,7 +51,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   // Clear local error when search term changes
   useEffect(() => {
     setLocalError(null)
-  }, [searchTerm])
+  }, [])
 
   // Memoize preSelectedIds to stabilize the reference
   const stabilizedPreSelectedIds = useMemo<number[]>(() => {

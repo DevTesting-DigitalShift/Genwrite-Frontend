@@ -12,7 +12,7 @@ const KeywordScraping = () => {
   const location = useLocation()
   const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
   const { keywordScraping, resetKeywordScraping } = useToolsStore()
-  const { result: scrapingResult, error } = keywordScraping
+  const { result: scrapingResult } = keywordScraping
   const {
     mutate: scrapeKeywords,
     isPending,
@@ -62,7 +62,7 @@ const KeywordScraping = () => {
       setInputUrl("")
       resetKeywordScraping()
     }
-  }, [])
+  }, [resetKeywordScraping])
 
   const isValidUrl = (url) => {
     const urlRegex =
@@ -148,6 +148,7 @@ const KeywordScraping = () => {
               </div>
 
               <button
+                type="button"
                 onClick={handleReset}
                 className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300"
                 title="Reset all content"
@@ -174,6 +175,7 @@ const KeywordScraping = () => {
               className="w-full p-4 border-0 border-b-2 border-transparent bg-gray-50 rounded-xl focus:border-blue-600 focus:ring-0 outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
             />
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isLoading || !inputUrl.trim() || !isValidUrl(inputUrl)}
               className={`btn btn-primary border-none flex items-center justify-center gap-2 px-6 h-14 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-bold rounded-md transition-all duration-300 hover:shadow-xl hover:shadow-blue-200/50 ${
@@ -203,6 +205,7 @@ const KeywordScraping = () => {
                 Scraping Results
               </h2>
               <button
+                type="button"
                 onClick={handleCopyKeywords}
                 className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy keywords"
@@ -234,9 +237,9 @@ const KeywordScraping = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {scrapingResult.keywords.map((keyword, idx) => (
+                  {scrapingResult.keywords.map((keyword) => (
                     <div
-                      key={idx}
+                      key={keyword}
                       className="bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all duration-200 flex items-center gap-2"
                     >
                       <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-semibold">

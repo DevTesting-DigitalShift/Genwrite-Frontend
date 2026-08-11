@@ -471,6 +471,7 @@ const BlogsPage = () => {
         <div className="flex flex-wrap items-center gap-4">
           {!isTrashcan && (
             <button
+              type="button"
               onClick={() => guardWrite(() => handleProAction(() => navigate("/blog-editor")))}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10"
             >
@@ -484,6 +485,7 @@ const BlogsPage = () => {
           )}
 
           <button
+            type="button"
             onClick={() =>
               queryClient.invalidateQueries({ queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"] })
             }
@@ -496,6 +498,7 @@ const BlogsPage = () => {
           {isTrashcan && allBlogs.length > 0 && (
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() =>
                   handlePopup({
                     title: "Restore All Articles?",
@@ -509,6 +512,7 @@ const BlogsPage = () => {
                 Restore All
               </button>
               <button
+                type="button"
                 onClick={() =>
                   handlePopup({
                     title: "Empty Trash?",
@@ -567,6 +571,7 @@ const BlogsPage = () => {
           <Popover>
             <PopoverTrigger asChild>
               <button
+                type="button"
                 className={clsx(
                   "btn gap-3 transition-all rounded-lg",
                   hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
@@ -590,6 +595,7 @@ const BlogsPage = () => {
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
                 <h4 className="font-bold text-slate-800 text-sm">Detailed Filters</h4>
                 <button
+                  type="button"
                   onClick={resetFilters}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
                 >
@@ -676,6 +682,7 @@ const BlogsPage = () => {
 
                 <div className="pt-2">
                   <button
+                    type="button"
                     onClick={handleApplyDetailedFilters}
                     className="w-full py-2.5 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all"
                   >
@@ -688,6 +695,7 @@ const BlogsPage = () => {
 
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={resetFilters}
               className="btn btn-ghost rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-500 transition-all shadow-sm"
               title="Clear Matrix Filters"
@@ -704,6 +712,7 @@ const BlogsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(9)].map((_, index) => (
               <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
                 key={index}
                 className="bg-white rounded-[40px] p-8 border border-slate-100 h-[400px] flex flex-col space-y-6"
               >
@@ -740,6 +749,7 @@ const BlogsPage = () => {
               Try adjusting your filters or search terms.
             </p>
             <button
+              type="button"
               onClick={resetFilters}
               className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
             >
@@ -778,6 +788,7 @@ const BlogsPage = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
                     className="btn btn-outline p-6 px-8 border rounded-lg  border-slate-200 disabled:opacity-50"

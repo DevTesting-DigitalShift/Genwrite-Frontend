@@ -18,6 +18,7 @@ const GoThrough = ({ onClose, visible = true }) => {
         className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col"
       >
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 btn btn-ghost btn-sm btn-circle text-gray-400 hover:text-gray-600 hover:bg-gray-100 z-10"
         >

@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react"
 import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import dayjs from "dayjs"
-import useAuthStore from "@store/useAuthStore"
 
 // Configuration for different announcement types
 const announcementConfig = {
@@ -57,7 +56,6 @@ const fetchAnnouncements = async () => {
 // Inline Announcement Banner Component
 const InlineAnnouncementBanner = () => {
   const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false)
-  const { user } = useAuthStore()
 
   // useEffect for announcement banner visibility
   useEffect(() => {
@@ -65,7 +63,7 @@ const InlineAnnouncementBanner = () => {
     if (!hasSeenAnnouncementBanner) {
       setShowAnnouncementBanner(true)
     }
-  }, [user])
+  }, [])
 
   // Fetch announcements using TanStack Query
   const { data, error } = useQuery({
@@ -135,6 +133,7 @@ const InlineAnnouncementBanner = () => {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => {
               setShowAnnouncementBanner(false)
               sessionStorage.setItem("hasSeenAnnouncementBanner", "true")

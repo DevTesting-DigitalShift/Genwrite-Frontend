@@ -68,7 +68,10 @@ const Steps = ({ current, items = [] }) => {
         const isActive = idx === current
         const isCompleted = idx < current
         return (
-          <div key={idx} className="flex flex-col items-center gap-3 relative z-10 bg-white px-4">
+          <div
+            key={item.title}
+            className="flex flex-col items-center gap-3 relative z-10 bg-white px-4"
+          >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                 isActive
@@ -98,6 +101,7 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
       <div className="flex gap-1 p-1 bg-gray-100/40 rounded-2xl w-fit border border-gray-200/50 backdrop-blur-sm">
         {items.map((item) => (
           <button
+            type="button"
             key={item.key}
             onClick={() => onChange(item.key)}
             className={`flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
@@ -135,6 +139,7 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
       {label && <label className="text-sm font-medium text-gray-500 ml-1">{label}</label>}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => handleUpdate(Math.max(min, value - 1))}
           className="w-10 h-10 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
         >
@@ -160,6 +165,7 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
           <span className="text-[10px] font-bold text-primary/40">Qty</span>
         </div>
         <button
+          type="button"
           onClick={() => handleUpdate(Math.min(max, value + 1))}
           className="w-10 h-10 rounded-md border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-all active:scale-95"
         >
@@ -187,7 +193,7 @@ const WebsiteRanking = () => {
   const [rankingsResult, setRankingsResult] = useState(null)
 
   const { websiteRanking, resetWebsiteRanking } = useToolsStore()
-  const { analyser, prompts, rankings, advancedComp, orchestrator } = websiteRanking
+  const { advancedComp, orchestrator } = websiteRanking
 
   // Mutations
   const { mutateAsync: analyseWebsite, isPending: isAnalysing } = useWebsiteAnalysisMutation()
@@ -234,13 +240,7 @@ const WebsiteRanking = () => {
 
   const handleExportMD = (data) => {
     if (!data) return
-    const {
-      url: auditUrl,
-      analysis,
-      rankings,
-      advancedReport,
-      recommendations: topLevelRecs,
-    } = data
+    const { url: auditUrl, analysis, rankings, advancedReport } = data
     let markdownContent =
       typeof advancedReport === "string" ? advancedReport : advancedReport?.markdownReport || ""
 
@@ -456,6 +456,7 @@ const WebsiteRanking = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => handleCreateJobFromAudit(data)}
               disabled={isCreatingJobFromAudit}
               className="flex items-center gap-2 px-4 py-2 bg-white text-primary border border-primary/20 rounded-lg text-sm font-bold hover:bg-primary/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -468,6 +469,7 @@ const WebsiteRanking = () => {
               Create Job From Audit
             </button>
             <button
+              type="button"
               onClick={() => handleExportMD(data)}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-[#3B4BB8] transition-all active:scale-95 shadow-lg shadow-primary/10"
             >
@@ -586,7 +588,7 @@ const WebsiteRanking = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {rankings.top10.slice(0, 5).map((comp, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
+                      <tr key={comp.domain} className="hover:bg-gray-50/30 transition-colors group">
                         <td className="px-8 py-5">
                           <div
                             className={`w-10 h-10 rounded-xl flex items-center justify-center font-black transition-transform group-hover:scale-110 ${
@@ -735,7 +737,7 @@ const WebsiteRanking = () => {
                   <div className="p-6 bg-emerald-50/5">
                     <ul className="space-y-4">
                       {recommendations.map((rec, i) => (
-                        <li key={i} className="flex gap-3 items-start">
+                        <li key={rec} className="flex gap-3 items-start">
                           <div className="mt-1 min-w-[20px]">
                             <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">
                               {i + 1}
@@ -754,8 +756,8 @@ const WebsiteRanking = () => {
                   <h3 className="font-bold ">Analyzed Keywords</h3>
                 </div>
                 <div className="p-4 flex flex-wrap gap-2">
-                  {rankings?.results?.map((r, i) => (
-                    <Tag key={i} className="m-0 bg-gray-50 border-gray-200 text-gray-600">
+                  {rankings?.results?.map((r) => (
+                    <Tag key={r.prompt} className="m-0 bg-gray-50 border-gray-200 text-gray-600">
                       {r.prompt}
                     </Tag>
                   ))}
@@ -799,8 +801,8 @@ const WebsiteRanking = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {results.map((r, i) => (
-              <tr key={i} className="bg-white hover:bg-gray-50/40 transition-colors group">
+            {results.map((r) => (
+              <tr key={r.prompt} className="bg-white hover:bg-gray-50/40 transition-colors group">
                 <td className="px-8 py-5">
                   <div className="flex flex-col">
                     <span className="font-bold text-gray-900 text-base">{r.prompt}</span>
@@ -822,9 +824,9 @@ const WebsiteRanking = () => {
                 </td>
                 <td className="px-8 py-5 text-right pr-12">
                   <div className="flex flex-wrap gap-2">
-                    {r.topCompanies?.slice(0, 3).map((c, idx) => (
+                    {r.topCompanies?.slice(0, 3).map((c) => (
                       <span
-                        key={idx}
+                        key={c}
                         className="bg-gray-50 text-gray-600 text-xs px-3 py-1 rounded-lg border border-gray-100 font-semibold"
                       >
                         {c}
@@ -883,6 +885,7 @@ const WebsiteRanking = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleResetManual}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset Analysis"
@@ -965,6 +968,7 @@ const WebsiteRanking = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={handleOrchestrator}
                     disabled={isOrchestratorLoading}
                     className="w-full bg-primary hover:bg-[#3B4BB8] text-white px-8 py-5 rounded-md font-black text-lg transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-primary/10 mt-8"
@@ -1023,6 +1027,7 @@ const WebsiteRanking = () => {
                         />
 
                         <button
+                          type="button"
                           onClick={handleAnalyse}
                           disabled={!url || isAnalysing}
                           className={`btn h-[58px] min-h-0 px-8 rounded-md transition-all duration-200 font-black text-md ${
@@ -1099,6 +1104,7 @@ const WebsiteRanking = () => {
                             className="flex-1 p-2.5 border border-gray-200 bg-white rounded-md text-sm outline-none focus:border-primary transition-all"
                           />
                           <button
+                            type="button"
                             onClick={addManualTopic}
                             className="p-2.5 bg-primary text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                           >
@@ -1107,12 +1113,12 @@ const WebsiteRanking = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {selectedExpertise.map((area, idx) => (
+                          {selectedExpertise.map((area) => (
                             <motion.button
                               layout
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              key={`selected-${idx}`}
+                              key={area}
                               onClick={() => toggleExpertise(area)}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white border border-primary flex items-center gap-2 hover:bg-[#3B4BB8] transition-all"
                             >
@@ -1122,12 +1128,12 @@ const WebsiteRanking = () => {
                           ))}
                           {analysisResult?.expertiseAreas
                             ?.filter((area) => !selectedExpertise.includes(area))
-                            .map((area, idx) => (
+                            .map((area) => (
                               <motion.button
                                 layout
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                key={`suggestion-${idx}`}
+                                key={area}
                                 onClick={() => toggleExpertise(area)}
                                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-50 text-gray-400 border border-gray-200 hover:border-gray-300 hover:text-gray-600 transition-all"
                               >
@@ -1138,12 +1144,14 @@ const WebsiteRanking = () => {
                       </div>
                       <div className="flex gap-3">
                         <button
+                          type="button"
                           onClick={() => setManualStep(0)}
                           className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md font-bold transition-all"
                         >
                           Back
                         </button>
                         <button
+                          type="button"
                           onClick={handleCreatePrompts}
                           disabled={isCreatingPrompts}
                           className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
@@ -1173,6 +1181,7 @@ const WebsiteRanking = () => {
                         <ul className="space-y-3">
                           {generatedPrompts.map((p, i) => (
                             <li
+                              // biome-ignore lint/suspicious/noArrayIndexKey: positional editable slot, edited in place by index
                               key={i}
                               className="bg-white p-3 rounded-md border border-gray-100 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary"
                             >
@@ -1192,12 +1201,14 @@ const WebsiteRanking = () => {
                       </div>
                       <div className="flex gap-3">
                         <button
+                          type="button"
                           onClick={() => setManualStep(1)}
                           className="px-8 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md font-bold transition-all"
                         >
                           Back
                         </button>
                         <button
+                          type="button"
                           onClick={handleCheckRankings}
                           disabled={isCheckingRankings}
                           className="flex-1 bg-primary hover:bg-[#3B4BB8] text-white py-4 rounded-md font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
@@ -1229,12 +1240,14 @@ const WebsiteRanking = () => {
                           </div>
                           <div className="flex gap-3">
                             <button
+                              type="button"
                               onClick={() => setManualStep(2)}
                               className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-bold transition-all"
                             >
                               Back
                             </button>
                             <button
+                              type="button"
                               onClick={handleAdvancedAnalysis}
                               disabled={isAnalyzingAdvanced}
                               className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-bold transition-all ${

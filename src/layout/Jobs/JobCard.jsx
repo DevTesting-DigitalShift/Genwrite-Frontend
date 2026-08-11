@@ -96,6 +96,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleToggleStatus}
           disabled={isToggling}
           className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all ${
@@ -123,9 +124,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               Topics
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.topics.slice(0, 5).map((topic, i) => (
+              {job.blogs.topics.slice(0, 5).map((topic) => (
                 <span
-                  key={i}
+                  key={topic}
                   className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-100"
                 >
                   {topic}
@@ -146,9 +147,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               Focus Keywords
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.keywords.slice(0, 5).map((kw, i) => (
+              {job.blogs.keywords.slice(0, 5).map((kw) => (
                 <span
-                  key={i}
+                  key={kw}
                   className="px-2 py-1 bg-indigo-50/50 text-indigo-700 text-[11px] font-bold rounded-lg border border-indigo-100/50"
                 >
                   {kw}
@@ -169,9 +170,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               Active Settings
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {activeOptions.map((opt, i) => (
+              {activeOptions.map((opt) => (
                 <span
-                  key={i}
+                  key={opt}
                   className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold border border-slate-200"
                 >
                   {opt}
@@ -231,12 +232,14 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
 
         <div className="grid grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={handleEditJob}
             className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
           >
             Edit Job
           </button>
           <button
+            type="button"
             onClick={() =>
               handlePopup({
                 title: "Delete Job",

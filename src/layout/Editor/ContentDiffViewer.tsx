@@ -1,5 +1,6 @@
 import type React from "react"
 import { useMemo } from "react"
+import DOMPurify from "dompurify"
 
 interface ContentDiffViewerProps {
   oldMarkdown: string
@@ -190,7 +191,10 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                 <span>Original Content</span>
                 <span className="text-[10px] bg-red-100 px-2 py-0.5 rounded font-bold">BEFORE</span>
               </div>
-              <div className="diff-pane flex-1" dangerouslySetInnerHTML={{ __html: oldHtml }} />
+              <div
+                className="diff-pane flex-1"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(oldHtml) }}
+              />
             </div>
             {/* New Column */}
             <div className="flex flex-col min-w-0">
@@ -200,7 +204,10 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                   AFTER
                 </span>
               </div>
-              <div className="diff-pane flex-1" dangerouslySetInnerHTML={{ __html: newHtml }} />
+              <div
+                className="diff-pane flex-1"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newHtml) }}
+              />
             </div>
           </div>
         )}
@@ -209,12 +216,14 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
       {(onAccept || onReject) && (
         <div className="flex items-center justify-end gap-3 mt-8 pt-6 pr-6 border-t border-slate-100 bg-white">
           <button
+            type="button"
             onClick={onReject}
             className="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 rounded transition-all font-bold text-sm"
           >
             {rejectLabel}
           </button>
           <button
+            type="button"
             onClick={onAccept}
             className="px-8 py-2.5 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded font-bold text-sm shadow-none transition-all active:scale-95"
           >

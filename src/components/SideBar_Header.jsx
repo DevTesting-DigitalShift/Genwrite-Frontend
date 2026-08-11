@@ -30,7 +30,6 @@ import WhatsNewModal from "./dashboardModals/HowToModel"
 import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
 import { useProAction } from "@/hooks/useProAction"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import AccountSwitcher from "@components/AccountSwitcher"
 
 const SideBar_Header = () => {
@@ -46,7 +45,6 @@ const SideBar_Header = () => {
     updateUserPartial,
   } = useAuthStore()
   const { needsUpgrade } = useProAction()
-  const { handlePopup } = useConfirmPopup()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -250,6 +248,7 @@ const SideBar_Header = () => {
         {sidebarOpen && (
           <div className="p-3">
             <button
+              type="button"
               onClick={() => navigate("/pricing")}
               className="w-full h-14 bg-primary hover:bg-[#3B4BB8] text-white font-bold rounded-xl transition-all duration-300 shadow-none flex items-center justify-center gap-2 group relative overflow-hidden border border-white/10"
             >
@@ -269,7 +268,7 @@ const SideBar_Header = () => {
         {/* Navigation Menu */}
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
           <ul className="space-y-1">
-            {Menus.map((Menu, index) => {
+            {Menus.map((Menu) => {
               // Special case: highlight /blogs when on /blog/:id (blog editor)
               const isActive =
                 location.pathname.startsWith(Menu.path) ||
@@ -278,7 +277,7 @@ const SideBar_Header = () => {
               const isAeo = Menu.path === "/website-ranking"
 
               return (
-                <li key={index}>
+                <li key={Menu.path}>
                   <NavLink
                     to={Menu.path}
                     onClick={(e) => handleNavClick(Menu.path, e)}
@@ -327,6 +326,7 @@ const SideBar_Header = () => {
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => navigate("/pricing")}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
@@ -336,6 +336,7 @@ const SideBar_Header = () => {
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => setShowWhatsNew(true)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
                 >
@@ -363,7 +364,11 @@ const SideBar_Header = () => {
       <div className="flex-1 md:ml-20">
         <header className="fixed top-0 z-20 px-4 py-3 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg border-gray-200 w-full md:w-[calc(100%-5rem)]">
           <div className="flex items-center gap-2">
-            <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <button
+              type="button"
+              className="md:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
               <FiMenu size={24} className="" />
             </button>
             <a href="/dashboard">
@@ -386,6 +391,7 @@ const SideBar_Header = () => {
               <>
                 <div className="hidden md:flex tooltip tooltip-bottom" data-tip="User Credits">
                   <button
+                    type="button"
                     onClick={() => navigate("/credit-logs")}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
                   >
@@ -401,6 +407,7 @@ const SideBar_Header = () => {
                   data-tip="Introduction Video"
                 >
                   <button
+                    type="button"
                     onClick={() => setShowWhatsNew(true)}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
                     data-tour="help-icon"
@@ -434,6 +441,7 @@ const SideBar_Header = () => {
                     </li>
                     <li>
                       <button
+                        type="button"
                         onClick={() => navigate("/profile")}
                         className="text-sm font-medium py-2! px-4! hover:bg-blue-50! rounded-lg flex items-center gap-2"
                       >
@@ -442,6 +450,7 @@ const SideBar_Header = () => {
                     </li>
                     <li>
                       <button
+                        type="button"
                         onClick={() => navigate("/transactions")}
                         className="text-sm font-medium py-2! px-4! hover:bg-purple-50! rounded-lg flex items-center gap-2"
                       >
@@ -451,6 +460,7 @@ const SideBar_Header = () => {
                     </li>
                     <li>
                       <button
+                        type="button"
                         onClick={() => navigate("/credit-logs")}
                         className="text-sm font-medium py-2! px-4! hover:bg-orange-50! rounded-lg flex items-center gap-2"
                       >
@@ -459,6 +469,7 @@ const SideBar_Header = () => {
                     </li>
                     <li>
                       <button
+                        type="button"
                         onClick={() => navigate("/pricing")}
                         className="text-sm font-medium py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
                       >
@@ -467,6 +478,7 @@ const SideBar_Header = () => {
                     </li>
                     <li>
                       <button
+                        type="button"
                         onClick={() => navigate("/collaboration")}
                         className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
                       >
@@ -477,6 +489,7 @@ const SideBar_Header = () => {
                     <AccountSwitcher />
                     <li>
                       <button
+                        type="button"
                         onClick={handleLogout}
                         className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
                       >
@@ -495,7 +508,11 @@ const SideBar_Header = () => {
                   </div>
                   <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2">
                     <li>
-                      <button onClick={() => navigate("/login")} className="text-error font-bold">
+                      <button
+                        type="button"
+                        onClick={() => navigate("/login")}
+                        className="text-error font-bold"
+                      >
                         Login
                       </button>
                     </li>

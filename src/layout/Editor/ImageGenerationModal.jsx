@@ -48,8 +48,14 @@ const ImageGenerationModal = ({ onClose }) => {
         {/* Header */}
         <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
           <h3 className="text-2xl font-semibold font-montserrat">Generate an Image</h3>
-          <button onClick={onClose} className="text-gray-500 hover: focus:outline-none">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-500 hover: focus:outline-none"
+          >
             <svg
+              aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"
               fill="none"
@@ -84,9 +90,9 @@ const ImageGenerationModal = ({ onClose }) => {
               <div className="mt-6">
                 <h3 className="text-xl font-hind font-medium mb-2">Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {tagsList.map((tag, index) => (
+                  {tagsList.map((tag) => (
                     <span
-                      key={index}
+                      key={tag}
                       onClick={() => handleTagToggle(tag)}
                       className={`cursor-pointer px-4 py-2 border rounded-full text-sm ${
                         data.tags.includes(tag)
@@ -115,6 +121,7 @@ const ImageGenerationModal = ({ onClose }) => {
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
+                      type="button"
                       onClick={handleAddKeywordManually}
                       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
                     >
@@ -124,13 +131,14 @@ const ImageGenerationModal = ({ onClose }) => {
 
                   {/* Chips */}
                   <div className="flex flex-wrap gap-2">
-                    {data.keywords.map((keyword, index) => (
+                    {data.keywords.map((keyword) => (
                       <span
-                        key={index}
+                        key={keyword}
                         className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-2"
                       >
                         {keyword}
                         <button
+                          type="button"
                           onClick={() => handleRemoveKeyword(keyword)}
                           className="text-red-500 text-base leading-none"
                         >
@@ -150,6 +158,7 @@ const ImageGenerationModal = ({ onClose }) => {
               <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 {[1, 2, 3, 4].map((_, i) => (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count placeholder grid, no content
                     key={i}
                     className="relative bg-gray-200 rounded-lg overflow-hidden h-[15rem]"
                   >
@@ -168,18 +177,23 @@ const ImageGenerationModal = ({ onClose }) => {
           {currentStep > 0 && (
             <>
               <button
+                type="button"
                 onClick={handlePrev}
                 className="px-5 py-2 bg-gray-200  rounded-md hover:bg-gray-300 transition"
               >
                 Back
               </button>
-              <button className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              <button
+                type="button"
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
                 Regenerate
               </button>
             </>
           )}
           {currentStep < 1 && (
             <button
+              type="button"
               onClick={handleNext}
               className="ml-auto px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
             >

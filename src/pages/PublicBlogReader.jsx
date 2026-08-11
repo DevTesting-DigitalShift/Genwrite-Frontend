@@ -18,7 +18,7 @@ const PublicBlogReader = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, token, loading: authLoading, loadAuthenticatedUser } = useAuthStore()
+  const { user, token, loadAuthenticatedUser } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog } = useBlogStore()
   const [hasResolvedViewer, setHasResolvedViewer] = useState(!token)
 
@@ -97,7 +97,7 @@ const PublicBlogReader = () => {
         navigate(`/editor/${id}`, { replace: true })
       }
     }
-  }, [fetchedBlog, hasResolvedViewer, id, navigate, queryClient, setSelectedBlog, user?._id])
+  }, [fetchedBlog, hasResolvedViewer, id, navigate, queryClient, setSelectedBlog, user?._id, authorData.id])
 
   useEffect(() => {
     if (isError) {
@@ -175,6 +175,7 @@ const PublicBlogReader = () => {
 
           <div className="flex items-center gap-3 sm:gap-6">
             <button
+              type="button"
               onClick={() => {
                 navigator.clipboard.writeText(window.location.href)
                 toast.success("Link copied to clipboard!")
@@ -186,6 +187,7 @@ const PublicBlogReader = () => {
             </button>
             <div className="h-6 w-px bg-slate-200 hidden sm:block" />
             <button
+              type="button"
               onClick={() => navigate("/signup")}
               className="px-5 sm:px-7 py-2.5 bg-slate-900 text-white font-bold rounded-md text-sm hover:bg-slate-800 transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-95"
             >
@@ -311,6 +313,7 @@ const PublicBlogReader = () => {
                           article, detailed SEO insights, and high-resolution images.
                         </p>
                         <button
+                          type="button"
                           onClick={() => navigate("/signup")}
                           className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-black transition-all shadow-xl shadow-slate-200 hover:shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3 group/btn text-lg"
                         >
@@ -334,17 +337,17 @@ const PublicBlogReader = () => {
                     <div className="flex-1 h-px bg-slate-200" />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {focusKeywords.map((kw, i) => (
+                    {focusKeywords.map((kw) => (
                       <span
-                        key={`focus-${i}`}
+                        key={`focus-${kw}`}
                         className="px-4 py-2 bg-blue-600 text-white border border-blue-700 text-sm font-black rounded-md shadow-sm cursor-default"
                       >
                         #{kw}
                       </span>
                     ))}
-                    {keywords.map((kw, i) => (
+                    {keywords.map((kw) => (
                       <span
-                        key={`keyword-${i}`}
+                        key={`keyword-${kw}`}
                         className="px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 text-sm font-bold rounded-md hover:bg-slate-200 transition-colors cursor-default"
                       >
                         #{kw}
@@ -464,9 +467,9 @@ const PublicBlogReader = () => {
                         "hit song case study",
                         "algorithm trap",
                       ]
-                  ).map((tag, i) => (
+                  ).map((tag) => (
                     <span
-                      key={i}
+                      key={tag}
                       className="px-3.5 py-1.5 bg-white text-slate-600 text-[11px] font-bold border border-slate-100 rounded-md hover:border-blue-200 transition-all cursor-default"
                     >
                       #{tag.replace(/\s+/g, "")}
@@ -485,9 +488,9 @@ const PublicBlogReader = () => {
                 </div>
                 <div className="flex flex-col gap-2">
                   {(focusKeywords.length > 0 ? focusKeywords : keywords.slice(0, 3)).map(
-                    (kw, i) => (
+                    (kw) => (
                       <div
-                        key={i}
+                        key={kw}
                         className="group relative flex items-center gap-3 p-3 bg-blue-600 text-white border border-blue-700 rounded-md shadow-lg shadow-blue-100/50"
                       >
                         <div className="w-1.5 h-1.5 bg-white rounded animate-pulse" />
@@ -510,9 +513,9 @@ const PublicBlogReader = () => {
                     </span>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {keywords.map((kw, i) => (
+                    {keywords.map((kw) => (
                       <div
-                        key={i}
+                        key={kw}
                         className="group relative flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md hover:border-blue-200 transition-all duration-300"
                       >
                         <div className="w-1.5 h-1.5 bg-slate-300 group-hover:bg-blue-600 transition-colors rounded" />

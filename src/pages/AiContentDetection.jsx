@@ -21,7 +21,7 @@ const AiContentDetection = () => {
   const location = useLocation()
   const [inputContent, setInputContent] = useState(location.state?.transferValue || "")
   const { aiDetection, resetAiDetection } = useToolsStore()
-  const { result: detectionResult, error } = aiDetection
+  const { result: detectionResult } = aiDetection
   const { mutate: detectContent, isPending } = useAiDetectionMutation()
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const AiContentDetection = () => {
       setInputContent("")
       resetAiDetection()
     }
-  }, [])
+  }, [resetAiDetection])
 
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
@@ -121,6 +121,7 @@ const AiContentDetection = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleReset}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
@@ -152,6 +153,7 @@ const AiContentDetection = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isPending || !inputContent.trim() || wordCount < 20}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
@@ -175,6 +177,7 @@ const AiContentDetection = () => {
                 Detection Results
               </h2>
               <button
+                type="button"
                 onClick={() => handleCopy(JSON.stringify(detectionResult, null, 2))}
                 className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                 title="Copy results"
@@ -228,7 +231,7 @@ const AiContentDetection = () => {
                 </h3>
                 <ul className="space-y-3">
                   {detectionResult.analysis.map((point, idx) => (
-                    <li key={idx} className="flex gap-3 ">
+                    <li key={point} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}
                       </span>

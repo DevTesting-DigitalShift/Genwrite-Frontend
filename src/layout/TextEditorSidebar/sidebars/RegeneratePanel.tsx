@@ -36,6 +36,7 @@ const RegeneratePanel: React.FC<RegeneratePanelProps> = ({ onRegenerate }) => {
 
       <motion.div variants={item} className="w-full max-w-xs space-y-3">
         <button
+          type="button"
           onClick={onRegenerate}
           className="w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200 transition-all active:scale-[0.98]"
         >

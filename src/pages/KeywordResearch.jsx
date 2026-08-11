@@ -534,9 +534,9 @@ const KeywordResearch = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-wrap gap-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100"
               >
-                {keywords.map((keyword, index) => (
+                {keywords.map((keyword) => (
                   <motion.div
-                    key={index}
+                    key={keyword}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
@@ -544,6 +544,7 @@ const KeywordResearch = () => {
                   >
                     <span className="text-sm font-medium">{keyword}</span>
                     <button
+                      type="button"
                       onClick={() => removeKeyword(index)}
                       className="ml-3 p-1 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
                     >
@@ -756,6 +757,7 @@ const KeywordResearch = () => {
                         return items.map((item, i) =>
                           item === "..." ? (
                             <span
+                              // biome-ignore lint/suspicious/noArrayIndexKey: pagination ellipsis, positional widget
                               key={`dots-${i}`}
                               className="w-8 flex justify-center text-slate-400 font-bold"
                             >

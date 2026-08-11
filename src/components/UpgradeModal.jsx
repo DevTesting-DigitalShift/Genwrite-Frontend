@@ -51,6 +51,7 @@ const UpgradeModal = ({ featureName }) => {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
             <button
+              type="button"
               className="btn btn-primary bg-blue-600 border-none hover:bg-blue-700 text-white flex-1"
               onClick={() => navigate("/pricing")}
               aria-label="Upgrade to a higher plan"
@@ -59,6 +60,7 @@ const UpgradeModal = ({ featureName }) => {
             </button>
             {isDashboard ? (
               <button
+                type="button"
                 className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
                 onClick={handleLogout}
                 aria-label="Logout"
@@ -68,6 +70,7 @@ const UpgradeModal = ({ featureName }) => {
               </button>
             ) : (
               <button
+                type="button"
                 className="btn btn-ghost bg-gray-100 hover:bg-gray-200  flex-1"
                 onClick={handleClose}
                 aria-label="Cancel and go back"

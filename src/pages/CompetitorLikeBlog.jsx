@@ -26,7 +26,7 @@ const CompetitorLikeBlog = () => {
   const [topic, setTopic] = useState("")
 
   const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
-  const { result, error } = competitorLikeBlog
+  const { result } = competitorLikeBlog
   const {
     mutate: generateContent,
     isPending,
@@ -39,7 +39,7 @@ const CompetitorLikeBlog = () => {
     return () => {
       resetCompetitorLikeBlog()
     }
-  }, [])
+  }, [resetCompetitorLikeBlog])
 
   const isValidUrl = (str) => {
     try {
@@ -173,6 +173,7 @@ const CompetitorLikeBlog = () => {
               </div>
 
               <button
+                type="button"
                 onClick={handleReset}
                 className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300"
                 title="Reset all content"
@@ -216,6 +217,7 @@ const CompetitorLikeBlog = () => {
 
           <div className="md:col-span-2">
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isLoading || !url.trim() || !topic.trim()}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg h-12 text-lg ${
@@ -287,6 +289,7 @@ const CompetitorLikeBlog = () => {
                   Generated Content
                 </h2>
                 <button
+                  type="button"
                   onClick={() => handleCopy(result.content)}
                   className="p-2 text-gray-500 hover: hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 text-sm"
                   title="Copy content"

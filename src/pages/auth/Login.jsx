@@ -182,7 +182,16 @@ const Auth = ({ path }) => {
         setLoading(false)
       }
     },
-    [formData, isSignup, isAddingAccount, loginUser, signupUser, navigate, validateForm, recaptchaValue]
+    [
+      formData,
+      isSignup,
+      isAddingAccount,
+      loginUser,
+      signupUser,
+      navigate,
+      validateForm,
+      recaptchaValue,
+    ]
   )
 
   // Update isSignup based on path
@@ -344,8 +353,8 @@ const Auth = ({ path }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    {trialFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                    {trialFeatures.map((feature) => (
+                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -380,8 +389,8 @@ const Auth = ({ path }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    {trialFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                    {trialFeatures.map((feature) => (
+                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -400,9 +409,9 @@ const Auth = ({ path }) => {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="grid grid-cols-2 gap-4"
             >
-              {quickFeatures.map((feature, index) => (
+              {quickFeatures.map((feature) => (
                 <motion.div
-                  key={index}
+                  key={feature.text}
                   whileHover={{ scale: 1.02, y: -4 }}
                   className="bg-white/60 backdrop-blur-md rounded-lg p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
                 >
@@ -474,6 +483,7 @@ const Auth = ({ path }) => {
 
               {/* Google Button */}
               <button
+                type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
                 className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300  font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all"

@@ -23,6 +23,7 @@ const WorkspaceAccessBanner = () => {
         </p>
       </div>
       <button
+        type="button"
         onClick={handleExit}
         className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white border border-amber-300 rounded-md px-3 py-1.5 hover:bg-amber-100 transition-colors"
       >

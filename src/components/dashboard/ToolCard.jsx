@@ -45,6 +45,7 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
         </div>
 
         <button
+          type="button"
           onClick={handleClick}
           className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-none text-center"
         >

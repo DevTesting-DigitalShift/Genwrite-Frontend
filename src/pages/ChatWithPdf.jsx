@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -44,13 +44,13 @@ const ChatWithPdf = () => {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, loading])
+  }, [scrollToBottom])
 
   const processFile = (uploadedFile) => {
     if (!uploadedFile) return
@@ -193,8 +193,7 @@ const ChatWithPdf = () => {
 
           {file && (
             <button
-              danger
-              type="text"
+              type="button"
               className="hover:bg-red-50 text-red-600 rounded-xl font-medium flex items-center gap-2"
               onClick={clearFile}
             >
@@ -362,6 +361,7 @@ const ChatWithPdf = () => {
                     />
 
                     <button
+                      type="button"
                       onClick={handleSendMessage}
                       disabled={!input.trim() || loading}
                       className={`absolute right-3 bottom-3 flex items-center justify-center 

@@ -8,7 +8,7 @@ import TurndownService from "turndown"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
-const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, children }) => {
+const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children }) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showMenu, setShowMenu] = useState(false)
@@ -207,6 +207,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
               )}
               <div className="tooltip tooltip-bottom" data-tip="Rewrite selected text with AI">
                 <button
+                  type="button"
                   onClick={() => handleAIOperation("rewrite")}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
                   disabled={isProcessing}
@@ -245,6 +246,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
                 </div>
               </div>
               <button
+                type="button"
                 className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                 onClick={handleDeclineAIChanges}
               >
@@ -264,7 +266,9 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
             </div>
           </div>
           <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-md">
-            <button onClick={handleDeclineAIChanges}>close</button>
+            <button type="button" onClick={handleDeclineAIChanges}>
+              close
+            </button>
           </form>
         </div>
       )}

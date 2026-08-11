@@ -97,7 +97,7 @@ const LoadingScreen = ({
           <div className="logo-wrapper">
             {/* Animated Pen Icon */}
             <div className="pen-wrapper" aria-hidden="true">
-              <svg className="pen-svg" viewBox="0 0 24 24" fill="none">
+              <svg aria-hidden="true" className="pen-svg" viewBox="0 0 24 24" fill="none">
                 <path
                   className="pen-path"
                   d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"

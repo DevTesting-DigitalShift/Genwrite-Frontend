@@ -51,6 +51,7 @@ const VerifiedEmail = () => {
           <h1 className="text-3xl font-black mb-4">Invalid Link</h1>
           <p className="text-gray-500 mb-8">No verification token found in the URL.</p>
           <button
+            type="button"
             onClick={() => navigate("/")}
             className="btn bg-slate-900 hover:bg-slate-800 text-white w-full rounded-2xl h-14 font-bold border-none transition-all active:scale-[0.98]"
           >
@@ -91,6 +92,7 @@ const VerifiedEmail = () => {
                 Your account is now active. You can start using all features.
               </p>
               <button
+                type="button"
                 onClick={() => navigate("/dashboard")}
                 className="group w-full h-14 bg-[#3B4BB8] border-none hover:bg-[#3B4BB8]/90 text-white rounded-2xl font-bold flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50"
               >
@@ -114,6 +116,7 @@ const VerifiedEmail = () => {
               </p>
               <div className="flex flex-col w-full gap-4">
                 <button
+                  type="button"
                   onClick={() => navigate("/")}
                   className="btn btn-ghost btn-lg w-full rounded-2xl font-black text-gray-400 hover:text-gray-600 normal-case"
                 >

@@ -42,8 +42,10 @@ const Carousel = ({ children }) => {
                 return acc
               }, [])
               .map((group, groupIndex) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed carousel pages of opaque children, never reordered
                 <div key={groupIndex} className="grid grid-cols-4  gap-6 min-w-full px-2">
                   {group.map((child, childIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: opaque children with no natural id, fixed order
                     <div key={childIndex} className="w-full">
                       {child}
                     </div>
@@ -56,11 +58,13 @@ const Carousel = ({ children }) => {
 
       {shouldShowLeftArrow && (
         <button
+          type="button"
           onClick={prev}
           className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg text-gray-600 hover:text-gray-900 transition-all"
           aria-label="Previous templates"
         >
           <svg
+            aria-hidden="true"
             width="24"
             height="24"
             viewBox="0 0 24 24"
@@ -75,11 +79,13 @@ const Carousel = ({ children }) => {
 
       {shouldShowRightArrow && (
         <button
+          type="button"
           onClick={next}
           className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg text-gray-600 hover:text-gray-900 transition-all"
           aria-label="Next templates"
         >
           <svg
+            aria-hidden="true"
             width="24"
             height="24"
             viewBox="0 0 24 24"

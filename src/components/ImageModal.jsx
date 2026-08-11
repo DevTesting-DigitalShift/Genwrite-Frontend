@@ -179,7 +179,7 @@ const ImageModal = ({
                     : title}
             </span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onCancel}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={onCancel}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -211,6 +211,7 @@ const ImageModal = ({
                   {/* Actions Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-emerald-300 text-emerald-600 bg-emerald-50"
                       onClick={() => document.getElementById("local-image-upload").click()}
                     >
@@ -277,6 +278,7 @@ const ImageModal = ({
                       />
                     </button>
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-purple-300 text-purple-600 bg-purple-50"
                       onClick={() => setView(VIEWS.GALLERY)}
                     >
@@ -284,6 +286,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Gallery</span>
                     </button>
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-blue-300 text-blue-600 bg-blue-50"
                       onClick={() => setView(VIEWS.GENERATE)}
                     >
@@ -291,6 +294,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Generate AI</span>
                     </button>
                     <button
+                      type="button"
                       disabled={!url || !allowEnhance}
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-indigo-300 text-indigo-600 bg-indigo-50 disabled:bg-gray-100"
                       onClick={() => {
@@ -302,6 +306,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Enhance</span>
                     </button>
                     <button
+                      type="button"
                       disabled={!url}
                       className="btn btn-outline btn-error h-auto py-2 flex flex-col items-center justify-center gap-1 disabled:bg-gray-100"
                       onClick={() => {
@@ -334,6 +339,7 @@ const ImageModal = ({
                       </label>
                       {url && (
                         <button
+                          type="button"
                           className="btn btn-ghost btn-xs text-xs flex items-center gap-1 text-blue-600"
                           onClick={handleAutoAlt}
                         >
@@ -530,10 +536,11 @@ const ImageModal = ({
           <div className="p-4 border-t border-gray-300 bg-white shrink-0 flex items-center justify-between">
             {view === VIEWS.MAIN && (
               <>
-                <button className="btn btn-ghost" onClick={onCancel}>
+                <button type="button" className="btn btn-ghost" onClick={onCancel}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     onSave(url, alt)
@@ -547,12 +554,14 @@ const ImageModal = ({
             {view === VIEWS.GENERATE && (
               <>
                 <button
+                  type="button"
                   className="btn btn-ghost border border-gray-300"
                   onClick={() => setView(VIEWS.MAIN)}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary bg-linear-to-r from-blue-600 to-indigo-600 border-none"
                   onClick={handleGenerate}
                 >
@@ -564,10 +573,11 @@ const ImageModal = ({
 
             {view === VIEWS.ENHANCE && (
               <>
-                <button className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
+                <button type="button" className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary bg-linear-to-r from-purple-600 to-pink-600 border-none"
                   onClick={handleEnhance}
                 >
@@ -579,10 +589,15 @@ const ImageModal = ({
 
             {view === VIEWS.PREVIEW_GENERATE && (
               <>
-                <button className="btn btn-ghost" onClick={() => setView(VIEWS.GENERATE)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setView(VIEWS.GENERATE)}
+                >
                   Try Again
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     setUrl(generatedImageTemp.url)
@@ -597,7 +612,7 @@ const ImageModal = ({
             )}
 
             {view === VIEWS.GALLERY && (
-              <button className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
                 Back
               </button>
             )}
@@ -605,7 +620,9 @@ const ImageModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onCancel}>close</button>
+        <button type="button" onClick={onCancel}>
+          close
+        </button>
       </form>
     </dialog>
   )

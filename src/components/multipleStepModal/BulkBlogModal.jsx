@@ -97,7 +97,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   useEffect(() => {
     fetchIntegrations()
-  }, [])
+  }, [fetchIntegrations])
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -105,7 +105,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
-  }, [integrations])
+  }, [integrations, formData.postingType])
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -854,7 +854,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       <div className="modal-box w-11/12 max-w-3xl p-0 overflow-hidden bg-white">
         <div className="flex items-center justify-between p-4 px-6">
           <h3 className="text-md font-black text-slate-900 tracking-tight">{`Step ${currentStep + 1}: ${steps[currentStep]}`}</h3>
-          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+          <button type="button" onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -936,6 +936,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     placeholder="Enter topics (comma, tab, or newline separated)"
                   />
                   <button
+                    type="button"
                     onClick={handleAddTopic}
                     className="flex-1 sm:flex-none px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                   >
@@ -1021,9 +1022,12 @@ const BulkBlogModal = ({ closeFnc }) => {
                         type="text"
                         value={formData.keywordInput}
                         onChange={handleKeywordInputChange}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && (e.preventDefault(), handleAddKeyword())
-                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            handleAddKeyword()
+                          }
+                        }}
                         onPaste={(e) => handlePasteItems(e, "keywords")}
                         className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                           errors.keywords ? "border-red-500" : "border-gray-300"
@@ -1031,6 +1035,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         placeholder="Enter keywords (comma, tab, or newline separated)"
                       />
                       <button
+                        type="button"
                         onClick={handleAddKeyword}
                         className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                       >
@@ -1405,6 +1410,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="flex gap-3 sm:justify-end">
               {currentStep > 0 && (
                 <button
+                  type="button"
                   onClick={handlePrev}
                   className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
@@ -1413,6 +1419,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
 
               <button
+                type="button"
                 onClick={
                   currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext
                 }
@@ -1428,7 +1435,9 @@ const BulkBlogModal = ({ closeFnc }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )
