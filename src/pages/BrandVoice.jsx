@@ -280,7 +280,7 @@ const BrandVoice = () => {
 
     try {
       setIsUploading(true)
-      const res = await uploadImage(formDataUpload, formData.logoUrl.split("?")[0] || null)
+      const res = await uploadImage(formDataUpload, formData.logoUrl?.split("?")[0] || null)
       if (res?.url) {
         const bustedUrl = `${res.url}?t=${Date.now()}`
         setFormData((prev) => ({ ...prev, logoUrl: bustedUrl }))
@@ -292,7 +292,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData.logoUrl.split])
+  }, [formData.logoUrl])
 
   const handleSave = useCallback(async () => {
     if (isReadOnlyWorkspace) {
@@ -308,7 +308,7 @@ const BrandVoice = () => {
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       persona: formData.persona.trim(),
-      logoUrl: formData.logoUrl.split("?")[0].trim(),
+      logoUrl: formData.logoUrl?.split("?")[0].trim() || "",
     }
 
     const isDuplicate = brands.some(

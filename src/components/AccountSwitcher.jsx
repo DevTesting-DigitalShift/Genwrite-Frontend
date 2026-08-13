@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom"
-import { Check, Plus } from "lucide-react"
+import { Check, Plus, Info } from "lucide-react"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToAccount } from "@utils/accountSwitch"
 
@@ -13,6 +13,7 @@ const AccountSwitcher = () => {
   const navigate = useNavigate()
   const sessions = sessionStore.getSessions()
   const activeSession = sessionStore.getActiveSession()
+  const atLimit = sessions.length >= sessionStore.MAX_SESSIONS
 
   const handleSwitch = (userId) => {
     if (userId === activeSession?.userId) return
@@ -21,26 +22,41 @@ const AccountSwitcher = () => {
 
   const handleAddAccount = () => navigate("/login?mode=add-account")
 
+  const addAccountItem = atLimit ? (
+    <li>
+      <div
+        title={sessionStore.SESSION_LIMIT_MESSAGE}
+        className="text-sm font-medium py-2 px-4 rounded-lg flex items-start gap-2 text-gray-400 cursor-not-allowed"
+      >
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+        <span className="text-xs leading-snug">
+          Account limit reached ({sessions.length}/{sessionStore.MAX_SESSIONS}). Sign out of one to
+          add another.
+        </span>
+      </div>
+    </li>
+  ) : (
+    <li>
+      <button
+        type="button"
+        onClick={handleAddAccount}
+        className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
+      >
+        <Plus className="w-4 h-4 text-teal-500" /> Add another account
+      </button>
+    </li>
+  )
+
   if (sessions.length <= 1) {
     // Nothing to switch between yet — just offer "Add another account".
-    return (
-      <li>
-        <button
-          type="button"
-          onClick={handleAddAccount}
-          className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4 text-teal-500" /> Add another account
-        </button>
-      </li>
-    )
+    return addAccountItem
   }
 
   return (
     <>
       <li className="menu-title px-4 pt-1 pb-1">
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-          Accounts
+          Accounts ({sessions.length}/{sessionStore.MAX_SESSIONS})
         </span>
       </li>
       {sessions.map((session) => {
@@ -67,15 +83,7 @@ const AccountSwitcher = () => {
           </li>
         )
       })}
-      <li>
-        <button
-          type="button"
-          onClick={handleAddAccount}
-          className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4 text-teal-500" /> Add another account
-        </button>
-      </li>
+      {addAccountItem}
       <div className="divider my-1"></div>
     </>
   )

@@ -14,6 +14,17 @@ export const SESSIONS_CHANGED_EVENT = "gw:sessions-changed"
 export const SESSION_EXPIRED_EVENT = "gw:session-expired"
 const LEGACY_TOKEN_KEY = "token"
 
+/**
+ * How many accounts may be signed in on one browser at once. Every session holds a live
+ * token in localStorage, so this is a blast-radius limit as much as a UI one — and the
+ * account dropdown stops being scannable well before it.
+ */
+export const MAX_SESSIONS = 5
+
+export const SESSION_LIMIT_ERROR_CODE = "SESSION_LIMIT_REACHED"
+
+export const SESSION_LIMIT_MESSAGE = `You can be signed into at most ${MAX_SESSIONS} accounts on this browser. Sign out of one before adding another.`
+
 function readRaw() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -81,9 +92,31 @@ export function hasAnySession() {
 }
 
 /**
+ * True when no further *new* account can be added. Signing back into an account that is
+ * already in the list is always allowed — it replaces a slot rather than taking one.
+ */
+export function isAtSessionLimit() {
+  return getStore().sessions.length >= MAX_SESSIONS
+}
+
+/** @returns {Error & {code?: string}} */
+function sessionLimitError() {
+  const err = new Error(SESSION_LIMIT_MESSAGE)
+  err.code = SESSION_LIMIT_ERROR_CODE
+  return err
+}
+
+export function isSessionLimitError(err) {
+  return err?.code === SESSION_LIMIT_ERROR_CODE
+}
+
+/**
  * Adds a new session or refreshes an existing one (matched by userId), then makes it
  * active. Used on login/signup/googleLogin and on re-authenticating an expired session.
  * @param {{user: {_id: string, email: string, name: string, avatar?: string}, token: string}} params
+ * @throws when adding a brand-new account would exceed MAX_SESSIONS. Callers are expected
+ *   to check isAtSessionLimit() first and never get here; this is the backstop that keeps
+ *   an over-limit token out of storage (check with isSessionLimitError).
  */
 export function upsertSession({ user, token }) {
   const store = getStore()
@@ -109,6 +142,7 @@ export function upsertSession({ user, token }) {
   } else if (pendingIndex !== -1) {
     sessions = store.sessions.map((s, i) => (i === pendingIndex ? snapshot : s))
   } else {
+    if (store.sessions.length >= MAX_SESSIONS) throw sessionLimitError()
     sessions = [...store.sessions, snapshot]
   }
 

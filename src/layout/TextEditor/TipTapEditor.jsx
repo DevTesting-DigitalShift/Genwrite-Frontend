@@ -545,11 +545,17 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
         changed = true
       }
 
-      if (changed) {
+      // Compare against the current values rather than trusting `changed`: a link near
+      // the bottom of the viewport can re-trigger the same flip every pass, and writing
+      // an identical-but-new object each time would spin this effect forever.
+      if (changed && (newTop !== linkPreviewPos.top || newLeft !== linkPreviewPos.left)) {
         setLinkPreviewPos({ top: newTop, left: newLeft })
       }
     }
-  }, [linkPreview, linkPreviewElement, linkPreviewPos.top, linkPreviewPos])
+    // NB: depend on `linkPreviewPos` itself, never `linkPreviewPos.top` — dependency
+    // arrays are evaluated on every render, including the initial one where this state
+    // is still null.
+  }, [linkPreview, linkPreviewElement, linkPreviewPos])
 
   const safeEditorAction = useCallback(
     (action) => {
