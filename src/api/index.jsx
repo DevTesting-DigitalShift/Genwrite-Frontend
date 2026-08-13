@@ -15,11 +15,21 @@ const axiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
+// Endpoints that establish a *new* identity. While adding a second account the previous
+// account is still the active session, so attaching its Bearer token (or its shared
+// workspace scope) to these calls would authenticate the request as the wrong user.
+const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin"]
+
+const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => url.includes(r))
+
 // Add request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"]
+    }
+    if (isUnauthenticatedRoute(config.url)) {
+      return config
     }
     // Add JWT token if available
     const token = getActiveToken()

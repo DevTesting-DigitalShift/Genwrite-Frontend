@@ -14,6 +14,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { getActiveToken } from "@utils/sessionStore"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
@@ -27,6 +28,7 @@ import {
   Sparkles,
   ChevronRight,
   Coins,
+  Lock,
   ArrowRight,
   Search,
   Loader2,
@@ -52,6 +54,7 @@ const Dashboard = () => {
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { openJobModal } = useJobStore()
   const { clearSelectedKeywords } = useAnalysisStore()
+  const { isReadOnlyWorkspace, guardWrite, readOnlyMessage } = useReadOnlyGuard()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
 
@@ -446,10 +449,20 @@ const Dashboard = () => {
             {creationTools.map((tool) => (
               <motion.div
                 key={tool.id}
-                className="group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
-                onClick={() => setActiveModel(tool.modelKey)}
+                aria-disabled={isReadOnlyWorkspace || undefined}
+                title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                className={`group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between min-h-[180px] ${
+                  isReadOnlyWorkspace ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                }`}
+                onClick={() => guardWrite(() => setActiveModel(tool.modelKey))}
               >
-                {tool.credit && (
+                {isReadOnlyWorkspace && (
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-200">
+                    <Lock className="w-3 h-3" />
+                    Read-only
+                  </div>
+                )}
+                {!isReadOnlyWorkspace && tool.credit && (
                   <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
                     <Coins className="w-3 h-3" />
                     {tool.credit}
@@ -499,6 +512,10 @@ const Dashboard = () => {
                       <ToolCard
                         key={tool.id}
                         item={tool}
+                        // Navigation-only tools stay usable — they just view data. Anything
+                        // that opens a creation modal is a write and is locked.
+                        disabled={isReadOnlyWorkspace && tool.type === "modal"}
+                        disabledReason={readOnlyMessage}
                         onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey)}
                       />
                     ))}

@@ -25,6 +25,12 @@ const ACCOUNT_SCOPED_STORES = [
   useImageStore,
 ]
 
+/** Full teardown for "signing out of everything" — no account remains to switch into. */
+export function clearAllAccountState() {
+  disconnectSocket()
+  clearAccountScopedState()
+}
+
 function clearAccountScopedState() {
   queryClient.clear()
   for (const store of ACCOUNT_SCOPED_STORES) {
@@ -40,9 +46,11 @@ function clearAccountScopedState() {
  * profile and reconnecting the socket, then clearing every other account-scoped
  * cache/store so nothing from the previous account leaks into the new one.
  * @param {string} userId
- * @param {{navigate?: (path: string) => void}} [options]
+ * @param {{navigate?: (path: string) => void, redirectTo?: string}} [options] - redirectTo
+ *   overrides the landing route, e.g. a freshly signed-up second account goes to
+ *   /onboarding rather than straight to the dashboard.
  */
-export async function switchToAccount(userId, { navigate } = {}) {
+export async function switchToAccount(userId, { navigate, redirectTo = "/dashboard" } = {}) {
   disconnectSocket()
   clearAccountScopedState()
 
@@ -54,8 +62,8 @@ export async function switchToAccount(userId, { navigate } = {}) {
 
   connectSocket(token)
 
-  if (navigate) navigate("/dashboard")
-  else window.location.href = "/dashboard"
+  if (navigate) navigate(redirectTo, { replace: true })
+  else window.location.href = redirectTo
 }
 
 /**

@@ -20,7 +20,7 @@ import { pushToDataLayer } from "@utils/DataLayer"
 import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
-import { switchToNextOrNull } from "@utils/accountSwitch"
+import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
 
 // Utils — delegate to the multi-account session layer instead of a single
 // localStorage["token"]. loginUser/signupUser/googleLogin call sessionStore.upsertSession
@@ -245,6 +245,10 @@ const useAuthStore = create(
           }
         }
         sessionStore.removeAllSessions()
+        // logoutUser gets this teardown for free via switchToNextOrNull; this path has to
+        // do it itself, or the socket stays connected and the query cache survives into
+        // whoever logs in next.
+        clearAllAccountState()
         set({ user: null, token: null, isAuthenticated: false, error: null })
       },
 

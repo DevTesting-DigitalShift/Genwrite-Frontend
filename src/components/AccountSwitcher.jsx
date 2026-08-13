@@ -1,19 +1,16 @@
 import { useNavigate } from "react-router-dom"
-import { Check, Plus, LogOut } from "lucide-react"
-import useAuthStore from "@store/useAuthStore"
+import { Check, Plus } from "lucide-react"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToAccount } from "@utils/accountSwitch"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 /**
  * "Accounts" section rendered inside the header's account dropdown — lists every
- * logged-in session in this browser, lets you switch, add another, or sign out of
- * everything at once.
+ * logged-in session in this browser, and lets you switch or add another. Signing out
+ * lives in the header's single "Sign Out" entry (SignOutDialog), which covers both the
+ * current-account and all-accounts cases.
  */
 const AccountSwitcher = () => {
   const navigate = useNavigate()
-  const { logoutAllAccounts } = useAuthStore()
-  const { handlePopup } = useConfirmPopup()
   const sessions = sessionStore.getSessions()
   const activeSession = sessionStore.getActiveSession()
 
@@ -23,19 +20,6 @@ const AccountSwitcher = () => {
   }
 
   const handleAddAccount = () => navigate("/login?mode=add-account")
-
-  const handleSignOutAll = () => {
-    handlePopup({
-      title: "Sign out of all accounts?",
-      description: `This signs you out of all ${sessions.length} accounts logged into this browser.`,
-      confirmText: "Sign out of all",
-      confirmProps: { className: "btn-error text-white" },
-      onConfirm: async () => {
-        await logoutAllAccounts()
-        navigate("/login")
-      },
-    })
-  }
 
   if (sessions.length <= 1) {
     // Nothing to switch between yet — just offer "Add another account".
@@ -90,15 +74,6 @@ const AccountSwitcher = () => {
           className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
         >
           <Plus className="w-4 h-4 text-teal-500" /> Add another account
-        </button>
-      </li>
-      <li>
-        <button
-          type="button"
-          onClick={handleSignOutAll}
-          className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
-        >
-          <LogOut className="w-4 h-4" /> Sign out of all accounts
         </button>
       </li>
       <div className="divider my-1"></div>

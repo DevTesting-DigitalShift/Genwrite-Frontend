@@ -31,15 +31,19 @@ import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
 import { useProAction } from "@/hooks/useProAction"
 import AccountSwitcher from "@components/AccountSwitcher"
+import SignOutDialog from "@components/SignOutDialog"
+import * as sessionStore from "@utils/sessionStore"
 
 const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const {
     user,
     loadAuthenticatedUser,
     logoutUser,
+    logoutAllAccounts,
     updateCredits,
     addNotification,
     updateUserPartial,
@@ -204,12 +208,21 @@ const SideBar_Header = () => {
 
   const path = location.pathname
 
-  const handleLogout = async () => {
+  const handleSignOutCurrent = async () => {
     try {
       const { switchedToAnotherAccount } = await logoutUser()
       // If another logged-in account was switched to, logoutUser already navigated
       // there — only redirect to /login when this was the last session.
       if (!switchedToAnotherAccount) navigate("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
+  const handleSignOutAll = async () => {
+    try {
+      await logoutAllAccounts()
+      navigate("/login")
     } catch (error) {
       console.error("Logout error:", error)
     }
@@ -490,7 +503,7 @@ const SideBar_Header = () => {
                     <li>
                       <button
                         type="button"
-                        onClick={handleLogout}
+                        onClick={() => setSignOutOpen(true)}
                         className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
                       >
                         <LogOut className="w-4 h-4" /> Sign Out
@@ -523,6 +536,15 @@ const SideBar_Header = () => {
           </div>
         </header>
       </div>
+
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        sessions={sessionStore.getSessions()}
+        activeEmail={user?.email}
+        onSignOutCurrent={handleSignOutCurrent}
+        onSignOutAll={handleSignOutAll}
+      />
     </div>
   )
 }

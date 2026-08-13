@@ -61,7 +61,7 @@ const BlogsPage = () => {
   // own stale filters or React Query cache.
   const scopeKey = activeWorkspace?.id || userId
   const { handleProAction } = useProAction()
-  const { guardWrite } = useReadOnlyGuard()
+  const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
 
   const initialBlogFilter = useMemo(
@@ -472,8 +472,10 @@ const BlogsPage = () => {
           {!isTrashcan && (
             <button
               type="button"
+              disabled={isReadOnlyWorkspace}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
               onClick={() => guardWrite(() => handleProAction(() => navigate("/blog-editor")))}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
             >
               <Plus
                 size={20}

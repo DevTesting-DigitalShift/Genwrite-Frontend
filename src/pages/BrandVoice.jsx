@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { motion } from "framer-motion"
 import { FaTimes } from "react-icons/fa"
 import useAuthStore from "@store/useAuthStore"
@@ -15,6 +15,12 @@ import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 import { uploadImage } from "@api/imageGalleryApi"
+
+// Stable reference for the "no brands yet" case. An inline `= []` default would build a
+// fresh array on every render, changing `resetForm`'s identity each time, which made the
+// reset effect below re-fire forever ("Maximum update depth exceeded") whenever the
+// brands request failed and `data` stayed undefined.
+const NO_BRANDS = []
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -48,7 +54,7 @@ const BrandVoice = () => {
   const { brand: brandVoiceMutations } = useEntityMutations()
   const { isReadOnlyWorkspace } = useReadOnlyGuard()
 
-  const { data: brands = [], isLoading } = brandsQuery.useList()
+  const { data: brands = NO_BRANDS, isLoading } = brandsQuery.useList()
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -70,11 +76,18 @@ const BrandVoice = () => {
     resetSiteInfo()
   }, [brands, resetSiteInfo])
 
+  // Held in a ref so the effect below keys off the *editing state* only. Depending on
+  // `resetForm` directly re-fired it on every identity change of `brands` — on mount that
+  // was an infinite loop, and after mount a background refetch would silently wipe a
+  // half-filled new-brand form.
+  const resetFormRef = useRef(resetForm)
+  resetFormRef.current = resetForm
+
   useEffect(() => {
     if (!formData._id) {
-      resetForm()
+      resetFormRef.current()
     }
-  }, [resetForm, formData._id])
+  }, [formData._id])
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {

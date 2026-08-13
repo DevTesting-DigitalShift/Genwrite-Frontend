@@ -283,7 +283,7 @@ const Jobs = () => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const openJobModal = useJobStore((state) => state.openJobModal)
-  const { guardWrite } = useReadOnlyGuard()
+  const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [searchQuery, _setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("jobs_view_mode") || "grid"
@@ -534,9 +534,10 @@ const Jobs = () => {
             <button
               type="button"
               onClick={handleOpenJobModal}
-              disabled={usage >= usageLimit}
+              disabled={usage >= usageLimit || isReadOnlyWorkspace}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
               className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
-                usage >= usageLimit
+                usage >= usageLimit || isReadOnlyWorkspace
                   ? "bg-slate-100 cursor-not-allowed grayscale"
                   : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800"
               }`}
@@ -600,7 +601,9 @@ const Jobs = () => {
                 <button
                   type="button"
                   onClick={handleOpenJobModal}
-                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4"
+                  disabled={isReadOnlyWorkspace}
+                  title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Deploy Your First Job
                 </button>

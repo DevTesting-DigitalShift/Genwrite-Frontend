@@ -111,7 +111,10 @@ const Auth = ({ path }) => {
         const user = data.user || data?.data?.user || data
 
         if (isAddingAccount && user?._id) {
-          switchToAccount(user._id, { navigate })
+          switchToAccount(user._id, {
+            navigate,
+            redirectTo: isSignup ? "/onboarding" : "/dashboard",
+          })
           return
         }
 
@@ -160,7 +163,10 @@ const Auth = ({ path }) => {
         toast.success(isSignup ? "Signup successful!" : "Login successful!")
 
         if (isAddingAccount && user?._id) {
-          await switchToAccount(user._id, { navigate })
+          await switchToAccount(user._id, {
+            navigate,
+            redirectTo: isSignup ? "/onboarding" : "/dashboard",
+          })
           return
         }
 
@@ -787,7 +793,7 @@ const Auth = ({ path }) => {
               >
                 {isSignup ? "Already have an account? " : "Don't have an account? "}
                 <Link
-                  to={isSignup ? "/login" : "/signup"}
+                  to={`${isSignup ? "/login" : "/signup"}${isAddingAccount ? "?mode=add-account" : ""}`}
                   className="text-purple-600 font-semibold hover:text-purple-800 transition-colors hover:underline"
                 >
                   {isSignup ? "Sign in here" : "Sign up free"}
