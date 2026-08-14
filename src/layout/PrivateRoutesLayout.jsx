@@ -10,7 +10,7 @@ import { useProAction } from "@/hooks/useProAction"
 import UpgradeModal from "@components/UpgradeModal"
 import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 import SessionExpiredModal from "@components/SessionExpiredModal"
-import { getActiveToken, removeSession, getActiveSession } from "@utils/sessionStore"
+import { getActiveToken, removeSession, getActiveSession, getSessions } from "@utils/sessionStore"
 import { toast } from "sonner"
 
 // Routes that needsUpgrade users are allowed to visit freely
@@ -36,22 +36,24 @@ const PrivateRoutesLayout = () => {
 
   const isPublicPath = location.pathname.startsWith("/blog/")
 
-  // If the active account changes in ANOTHER tab (e.g. switched there), this tab's
-  // in-memory user/token would silently go stale — nudge the user to reload instead
-  // of letting it send requests as the wrong account. The native `storage` event only
-  // fires in other tabs (never the one that made the change), which is exactly the
-  // "cross-tab only" signal we want here.
+  // Each tab pins its own account (sessionStorage), so another tab switching accounts is
+  // none of this tab's business — it keeps running its own. The one cross-tab change that
+  // DOES concern us is this tab's account being signed out elsewhere: its token is gone
+  // from the shared pool, so every further request would 401. Only that case reacts.
   useEffect(() => {
     const handleStorage = (event) => {
       if (event.key !== "gw_sessions") return
-      const nowActive = getActiveSession()?.userId
-      if (nowActive && nowActive !== activeUserIdRef.current) {
-        activeUserIdRef.current = nowActive
-        toast.info("Account changed in another tab.", {
-          action: { label: "Reload", onClick: () => window.location.reload() },
-          duration: 10000,
-        })
-      }
+
+      const myUserId = activeUserIdRef.current
+      if (!myUserId) return
+
+      const stillSignedIn = getSessions().some((s) => s.userId === myUserId)
+      if (stillSignedIn) return
+
+      toast.error("You were signed out of this account in another tab.", {
+        action: { label: "Reload", onClick: () => window.location.reload() },
+        duration: Number.POSITIVE_INFINITY,
+      })
     }
     window.addEventListener("storage", handleStorage)
     return () => window.removeEventListener("storage", handleStorage)

@@ -30,9 +30,10 @@ import WhatsNewModal from "./dashboardModals/HowToModel"
 import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
 import { useProAction } from "@/hooks/useProAction"
-import AccountSwitcher from "@components/AccountSwitcher"
+import HeaderAccountSwitcher from "@components/HeaderAccountSwitcher"
+import WorkspaceBadge from "@components/WorkspaceBadge"
 import SignOutDialog from "@components/SignOutDialog"
-import * as sessionStore from "@utils/sessionStore"
+import { useSessions } from "@/hooks/useSessions"
 
 const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -49,6 +50,7 @@ const SideBar_Header = () => {
     updateUserPartial,
   } = useAuthStore()
   const { needsUpgrade } = useProAction()
+  const { sessions } = useSessions()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -414,6 +416,8 @@ const SideBar_Header = () => {
                     </span>
                   </button>
                 </div>
+                <WorkspaceBadge />
+                <HeaderAccountSwitcher />
                 <NotificationDropdown notifications={user?.notifications} />
                 <div
                   className="hidden md:flex tooltip tooltip-bottom"
@@ -499,7 +503,6 @@ const SideBar_Header = () => {
                       </button>
                     </li>
                     <div className="divider my-1"></div>
-                    <AccountSwitcher />
                     <li>
                       <button
                         type="button"
@@ -540,7 +543,7 @@ const SideBar_Header = () => {
       <SignOutDialog
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
-        sessions={sessionStore.getSessions()}
+        sessions={sessions}
         activeEmail={user?.email}
         onSignOutCurrent={handleSignOutCurrent}
         onSignOutAll={handleSignOutAll}
