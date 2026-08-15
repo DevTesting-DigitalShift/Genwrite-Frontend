@@ -3,7 +3,9 @@ import { getActiveToken, getActiveSession, removeSession } from "@utils/sessionS
 
 const removeActiveSession = () => {
   const active = getActiveSession()
-  if (active) removeSession(active.userId)
+  // Auth failure, not a deliberate sign-out — detach this tab rather than letting it
+  // adopt whichever other account is signed in on this browser.
+  if (active) removeSession(active.userId, { adoptNext: false })
 }
 
 export const getIP = async () => {

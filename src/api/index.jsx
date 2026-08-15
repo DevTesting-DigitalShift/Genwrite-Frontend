@@ -78,7 +78,9 @@ axiosInstance.interceptors.response.use(
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       const expiredSession = getActiveSession()
-      if (expiredSession) removeSession(expiredSession.userId)
+      // adoptNext: false — this tab must not silently start acting as another logged-in
+      // account behind the session-expired modal. The user chooses there.
+      if (expiredSession) removeSession(expiredSession.userId, { adoptNext: false })
 
       // Detect public blog path to prevent forced redirect
       const isPublicPath =

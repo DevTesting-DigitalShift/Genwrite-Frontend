@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import useAuthStore from "@store/useAuthStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/ui/LoadingScreen"
@@ -10,7 +10,13 @@ import { useProAction } from "@/hooks/useProAction"
 import UpgradeModal from "@components/UpgradeModal"
 import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 import SessionExpiredModal from "@components/SessionExpiredModal"
-import { getActiveToken, removeSession, getActiveSession, getSessions } from "@utils/sessionStore"
+import {
+  getActiveToken,
+  removeSession,
+  getActiveSession,
+  getSessions,
+  getActiveUserId,
+} from "@utils/sessionStore"
 import { toast } from "sonner"
 
 // Routes that needsUpgrade users are allowed to visit freely
@@ -32,7 +38,6 @@ const PrivateRoutesLayout = () => {
   const { needsUpgrade } = useProAction()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
-  const activeUserIdRef = useRef(getActiveSession()?.userId)
 
   const isPublicPath = location.pathname.startsWith("/blog/")
 
@@ -44,7 +49,10 @@ const PrivateRoutesLayout = () => {
     const handleStorage = (event) => {
       if (event.key !== "gw_sessions") return
 
-      const myUserId = activeUserIdRef.current
+      // Read live rather than from a ref captured at mount: this tab may have switched
+      // accounts since, and a stale id would fire this warning for the wrong account.
+      // sessionStorage is updated synchronously on switch, so it is always current.
+      const myUserId = getActiveUserId()
       if (!myUserId) return
 
       const stillSignedIn = getSessions().some((s) => s.userId === myUserId)
@@ -66,7 +74,9 @@ const PrivateRoutesLayout = () => {
         await loadAuthenticatedUser()
       } catch {
         const active = getActiveSession()
-        if (active) removeSession(active.userId)
+        // Couldn't authenticate — detach rather than adopt another account, so /login
+        // actually shows the login form instead of bouncing back in as someone else.
+        if (active) removeSession(active.userId, { adoptNext: false })
         if (!isPublicPath) {
           navigate("/login")
         }

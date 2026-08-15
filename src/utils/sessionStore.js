@@ -291,22 +291,44 @@ export function setActiveUserId(userId) {
 
 /**
  * Removes a session from the shared pool. If it was the account THIS tab was acting as,
- * the tab falls to the next remaining session (if any).
- * @returns {string | null} this tab's account id afterwards, or null if none remain
+ * what the tab does next depends on `adoptNext`:
+ *
+ *   adoptNext: true  (deliberate sign-out) — fall through to the next remaining account
+ *                    rather than bouncing the user to /login for no reason.
+ *   adoptNext: false (session expired / auth failure) — detach the tab instead. The user
+ *                    is shown SessionExpiredModal and picks; silently adopting whichever
+ *                    other account happened to be in the list would leave them acting as
+ *                    someone else without ever being told.
+ *
+ * @returns {string | null} this tab's account id afterwards, or null if none/detached
  */
-export function removeSession(userId) {
+export function removeSession(userId, { adoptNext = true } = {}) {
   const store = getStore()
   const wasActiveHere = resolveActiveUserId(store) === userId
   const sessions = store.sessions.filter((s) => s.userId !== userId)
 
-  const nextForThisTab = wasActiveHere ? (sessions[0]?.userId ?? null) : resolveActiveUserId(store)
+  let nextForThisTab
+  if (!wasActiveHere) {
+    nextForThisTab = resolveActiveUserId(store)
+  } else if (adoptNext) {
+    nextForThisTab = sessions[0]?.userId ?? null
+  } else {
+    nextForThisTab = null
+  }
 
   writeRaw({
     version: 2,
     sessions,
-    lastActiveUserId: store.lastActiveUserId === userId ? nextForThisTab : store.lastActiveUserId,
+    lastActiveUserId:
+      store.lastActiveUserId === userId
+        ? (nextForThisTab ?? sessions[0]?.userId ?? null)
+        : store.lastActiveUserId,
   })
-  if (wasActiveHere) writeTabActiveUserId(nextForThisTab)
+
+  if (wasActiveHere) {
+    if (nextForThisTab) writeTabActiveUserId(nextForThisTab)
+    else detachTab()
+  }
 
   return nextForThisTab
 }
