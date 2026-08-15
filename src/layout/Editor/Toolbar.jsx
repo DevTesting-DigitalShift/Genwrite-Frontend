@@ -188,10 +188,11 @@ const Toolbar = ({ editor, onOpenImageModal }) => {
           <div className="modal-box">
             <h3 className="font-bold text-lg mb-4">Add Link</h3>
             <div className="form-control w-full">
-              <label className="label">
+              <label htmlFor="toolbar-link-url" className="label">
                 <span className="label-text">Link URL</span>
               </label>
               <input
+                id="toolbar-link-url"
                 type="text"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}

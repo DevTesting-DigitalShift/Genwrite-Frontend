@@ -200,12 +200,13 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
               {/* Image URL */}
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="inline-image-url" className="label">
                   <span className="label-text font-medium ">
                     Image URL <span className="text-red-500">*</span>
                   </span>
                 </label>
                 <input
+                  id="inline-image-url"
                   type="text"
                   className="input input-bordered w-full"
                   value={imageUrl}
@@ -216,7 +217,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
               {/* Alt Text */}
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="inline-image-alt" className="label">
                   <span className="label-text font-medium ">
                     Alt Text <span className="text-red-500">*</span>
                   </span>
@@ -225,6 +226,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   Describe what's in the image. This helps with SEO and accessibility.
                 </p>
                 <textarea
+                  id="inline-image-alt"
                   className="textarea textarea-bordered w-full"
                   value={altText}
                   onChange={(e) => setAltText(e.target.value)}

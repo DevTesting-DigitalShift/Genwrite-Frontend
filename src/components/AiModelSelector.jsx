@@ -25,7 +25,8 @@ const AiModelSelector = ({
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        {label && <label className="block text-sm font-semibold ">{label}</label>}
+        {/* Captions a grid of model cards, not a single control. */}
+        {label && <span className="block text-sm font-semibold ">{label}</span>}
         <div
           className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}
         >

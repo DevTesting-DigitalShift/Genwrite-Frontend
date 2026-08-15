@@ -339,12 +339,13 @@ const OutlineEditor = () => {
                 {currentStep === 1 && (
                   <div className="space-y-5">
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-topic" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Blog Topic <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <input
+                        id="outline-topic"
                         type="text"
                         value={formData.topic}
                         onChange={(e) => handleInputChange(e, "topic")}
@@ -357,10 +358,11 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-tone" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">Writing Tone</span>
                       </label>
                       <select
+                        id="outline-tone"
                         value={formData.tone}
                         onChange={(e) => handleSelectChange(e.target.value)}
                         className={`select select-bordered w-full rounded-md focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
@@ -374,13 +376,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-focus-keywords" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Focus Keywords (Max 3) <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-focus-keywords"
                           type="text"
                           value={formData.focusKeywordInput}
                           onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
@@ -420,13 +423,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-secondary-keywords" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Secondary Keywords <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-secondary-keywords"
                           type="text"
                           value={formData.keywordInput}
                           onChange={(e) => handleKeywordInputChange(e, "keywords")}
@@ -476,12 +480,13 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-title" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Suggested Title <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <input
+                        id="outline-title"
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange(e, "title")}
@@ -494,9 +499,9 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="w-full">
-                      <label className="block mb-3 text-sm font-semibold text-slate-700">
+                      <span className="block mb-3 text-sm font-semibold text-slate-700">
                         Choose length of Blog <span className="text-red-500">*</span>
-                      </label>
+                      </span>
 
                       <div className="flex items-center gap-6">
                         <div className="relative flex-1">
@@ -524,9 +529,9 @@ const OutlineEditor = () => {
                   <div className="space-y-6">
                     <div className="form-control w-full">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="label text-sm p-0">
+                        <span className="label text-sm p-0">
                           <span className="label-text font-bold text-slate-700">Brand Voice</span>
-                        </label>
+                        </span>
                         {formData.brandId && (
                           <button
                             type="button"
@@ -582,13 +587,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-resources" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Resource Links (Max {BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS})
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-resources"
                           type="text"
                           value={formData.resourceInput}
                           onChange={(e) => handleKeywordInputChange(e, "resources")}

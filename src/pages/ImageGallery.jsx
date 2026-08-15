@@ -371,10 +371,11 @@ const ImageGallery = () => {
             <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-style" className="label">
                     <span className="label-text font-semibold">Style</span>
                   </label>
                   <select
+                    id="gallery-gen-style"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.style}
                     onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
@@ -387,10 +388,11 @@ const ImageGallery = () => {
                   </select>
                 </div>
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-dimension" className="label">
                     <span className="label-text font-semibold">Dimension</span>
                   </label>
                   <select
+                    id="gallery-gen-dimension"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.aspectRatio}
                     onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
@@ -403,10 +405,11 @@ const ImageGallery = () => {
                   </select>
                 </div>
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-quality" className="label">
                     <span className="label-text font-semibold">Quality</span>
                   </label>
                   <select
+                    id="gallery-gen-quality"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.imageSize}
                     onChange={(e) => setGenForm({ ...genForm, imageSize: e.target.value })}
@@ -419,12 +422,13 @@ const ImageGallery = () => {
               </div>
 
               <div className="space-y-2 mb-8">
-                <label className="label">
+                <label htmlFor="gallery-creative-prompt" className="label">
                   <span className="label-text font-semibold">
                     Creative Prompt <span className="text-rose-500 text-lg">*</span>
                   </span>
                 </label>
                 <textarea
+                  id="gallery-creative-prompt"
                   className={`textarea w-full min-h-[160px] rounded-2xl p-6 outline-0 border resize-none ${
                     showErrors && countWords(genForm.prompt) < 10
                       ? "border-rose-200 bg-rose-50"
@@ -684,10 +688,14 @@ const ImageGallery = () => {
                     {isEnhanceMode ? (
                       <div className="space-y-4 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
                         <div className="space-y-3 lg:space-y-4">
-                          <label className="text-xs lg:text-sm font-medium text-slate-400">
+                          <label
+                            htmlFor="gallery-refine-instruction"
+                            className="text-xs lg:text-sm font-medium text-slate-400"
+                          >
                             Refinement Instruction
                           </label>
                           <textarea
+                            id="gallery-refine-instruction"
                             className="textarea mt-1 w-full h-24 lg:h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-3 lg:p-4 text-sm lg:text-base font-medium"
                             value={enhanceForm.prompt}
                             onChange={(e) =>
@@ -699,10 +707,14 @@ const ImageGallery = () => {
 
                         <div className="grid grid-cols-1 gap-3 lg:gap-4">
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-style"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Target Style
                             </label>
                             <select
+                              id="gallery-enhance-style"
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.style}
                               onChange={(e) =>
@@ -716,10 +728,14 @@ const ImageGallery = () => {
                             </select>
                           </div>
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-resolution"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Resolution
                             </label>
                             <select
+                              id="gallery-enhance-resolution"
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.imageSize}
                               onChange={(e) =>
@@ -732,10 +748,14 @@ const ImageGallery = () => {
                             </select>
                           </div>
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-aspect"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Aspect Ratio
                             </label>
                             <select
+                              id="gallery-enhance-aspect"
                               className="select outline-0 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium mt-1"
                               value={enhanceForm.aspectRatio}
                               onChange={(e) =>
@@ -812,10 +832,10 @@ const ImageGallery = () => {
                         {/* Resulting Intelligence */}
                         {generatedAltText && (
                           <div className="space-y-3 lg:space-y-4 animate-in zoom-in-95 duration-500">
-                            <label className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               Optimized Alternative Text
-                            </label>
+                            </span>
                             <div
                               onClick={() => {
                                 navigator.clipboard.writeText(generatedAltText)

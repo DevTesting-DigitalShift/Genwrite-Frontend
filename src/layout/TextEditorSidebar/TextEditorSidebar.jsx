@@ -2456,9 +2456,9 @@ const TextEditorSidebar = ({
         {/* Section List (Cards) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
               Result Sections ({availableSections.length})
-            </label>
+            </span>
             {sectionToolState.sectionId ? (
               <button
                 type="button"
@@ -2539,9 +2539,9 @@ const TextEditorSidebar = ({
         <div
           className={`space-y-3 transition-opacity duration-300 ${!sectionToolState.sectionId ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}`}
         >
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
             Operation
-          </label>
+          </span>
 
           <div className="grid grid-cols-1 gap-2">
             {[
@@ -2609,10 +2609,14 @@ const TextEditorSidebar = ({
             animate={{ opacity: 1, height: "auto" }}
             className="space-y-2"
           >
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            <label
+              htmlFor="section-tool-instructions"
+              className="text-xs font-bold text-gray-500 uppercase tracking-widest block"
+            >
               Your Instructions
             </label>
             <textarea
+              id="section-tool-instructions"
               placeholder="E.g., Make it more professional and add 2 examples..."
               rows={4}
               value={sectionToolState.instructions}
@@ -2814,9 +2818,12 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Platform Select */}
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Select Platform</label>
+              <label htmlFor="posting-platform" className="text-xs font-semibold  mb-1.5 block">
+                Select Platform
+              </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
+                  id="posting-platform"
                   className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
                     blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
                   }`}
@@ -2853,7 +2860,7 @@ const TextEditorSidebar = ({
             </div>
             {/* Category Select */}
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Select Category</label>
+              <span className="text-xs font-semibold  mb-1.5 block">Select Category</span>
 
               {/* Active Category Tag */}
               {/* {selectedCategory && (
@@ -3148,8 +3155,11 @@ const TextEditorSidebar = ({
           <h3 className="font-bold text-lg mb-4">Edit & Repost</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Platform</label>
+              <label htmlFor="repost-platform" className="text-xs font-semibold  mb-1.5 block">
+                Platform
+              </label>
               <select
+                id="repost-platform"
                 className="select select-bordered outline-0 w-full"
                 value={repostSettings.platform}
                 onChange={(e) => setRepostSettings({ ...repostSettings, platform: e.target.value })}
@@ -3166,8 +3176,11 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Category</label>
+              <label htmlFor="repost-category" className="text-xs font-semibold  mb-1.5 block">
+                Category
+              </label>
               <input
+                id="repost-category"
                 type="text"
                 className="input input-bordered w-full"
                 placeholder="Select or type..."
@@ -3227,9 +3240,9 @@ const TextEditorSidebar = ({
             </p>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <span className="block text-xs font-medium text-gray-500 mb-1">
                 Generated Title
-              </label>
+              </span>
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-gray-800">
                   {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
@@ -3238,9 +3251,9 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <span className="block text-xs font-medium text-gray-500 mb-1">
                 Generated Description
-              </label>
+              </span>
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-gray-800">
                   {generatedMetadata?.description ||

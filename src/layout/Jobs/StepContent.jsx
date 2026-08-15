@@ -357,8 +357,11 @@ const StepContent = ({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 pt-4">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold  mb-2">Job Name</label>
+              <label htmlFor="job-name" className="block text-sm font-semibold  mb-2">
+                Job Name
+              </label>
               <input
+                id="job-name"
                 type="text"
                 value={newJob.name}
                 placeholder="Enter job name"
@@ -468,14 +471,14 @@ const StepContent = ({
               <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords for your topics. Disable to enter your own keywords.">
                 Perform Keyword Research?
               </FieldLabel>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <span className="relative inline-flex items-center cursor-pointer">
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={(checked) =>
                     handleCheckboxChange({ target: { name: "performKeywordResearch", checked } })
                   }
                 />
-              </label>
+              </span>
             </div>
             {!formData.performKeywordResearch && (
               <div>
@@ -567,9 +570,9 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
+              <span className="text-sm font-semibold  mb-2 flex gap-2 items-center">
                 References (URLs, max 3)
-              </label>
+              </span>
               <div className="flex gap-2">
                 <input
                   type="url"
@@ -674,6 +677,7 @@ const StepContent = ({
                   Tone of Voice
                 </label>
                 <select
+                  id="tone"
                   className={`select select-bordered w-full h-10 min-h-0 text-sm ${errors.tone ? "select-error" : ""}`}
                   value={newJob.blogs.tone}
                   onChange={(e) => {
@@ -693,6 +697,7 @@ const StepContent = ({
                   Language <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="language"
                   className="select select-bordered w-full h-10 min-h-0 text-sm"
                   value={newJob.blogs.languageToWrite}
                   onChange={(e) => {
@@ -715,9 +720,9 @@ const StepContent = ({
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold  mb-2">
+                <span className="block text-sm font-semibold  mb-2">
                   Approx. Blog Length (Words)
-                </label>
+                </span>
                 <div className="relative">
                   <Slider
                     min={BLOG_CONFIG.LENGTH.MIN}
@@ -746,7 +751,7 @@ const StepContent = ({
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="flex justify-between items-center">
-            <label className="block text-sm font-semibold ">Add Image</label>
+            <span className="block text-sm font-semibold ">Add Image</span>
             <div className="flex items-center">
               <Switch
                 checked={newJob.blogs.isCheckedGeneratedImages}
@@ -787,8 +792,11 @@ const StepContent = ({
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold  mb-2">Schedule Type</label>
+              <label htmlFor="schedule-type" className="block text-sm font-semibold  mb-2">
+                Schedule Type
+              </label>
               <select
+                id="schedule-type"
                 value={newJob.schedule.type}
                 onChange={(e) => {
                   const value = e.target.value
@@ -819,7 +827,7 @@ const StepContent = ({
             </div>
             {newJob.schedule.type === "weekly" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Days of Week</label>
+                <span className="block text-sm font-semibold  mb-2">Select Days of Week</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
@@ -855,7 +863,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "monthly" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Dates of Month</label>
+                <span className="block text-sm font-semibold  mb-2">Select Dates of Month</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
@@ -891,7 +899,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "custom" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Dates</label>
+                <span className="block text-sm font-semibold  mb-2">Select Dates</span>
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
@@ -919,8 +927,11 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold  mb-2">Number of Blogs</label>
+              <label htmlFor="number-of-blogs" className="block text-sm font-semibold  mb-2">
+                Number of Blogs
+              </label>
               <input
+                id="number-of-blogs"
                 type="tel"
                 inputMode="numeric"
                 name="numberOfBlogs"
@@ -1089,9 +1100,9 @@ const StepContent = ({
                     errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
                   }`}
                 >
-                  <label className="block text-sm font-semibold ">
+                  <span className="block text-sm font-semibold ">
                     Select Your Publishing Platform
-                  </label>
+                  </span>
                   <p className="text-xs text-gray-500 font-normal mt-1">
                     Post your blog automatically to connected platforms.
                   </p>

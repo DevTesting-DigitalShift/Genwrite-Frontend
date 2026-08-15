@@ -488,13 +488,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 />
               </div>
               <div className="form-control w-full">
-                <label className="label pb-1">
+                <label htmlFor="quick-language" className="label pb-1">
                   <span className="text-black text-sm font-semibold">
                     Language <span className="text-error">*</span>
                   </span>
                 </label>
 
                 <select
+                  id="quick-language"
                   name="languageToWrite"
                   value={formData.languageToWrite}
                   onChange={handleChange}
@@ -638,7 +639,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 {/* Add Images & Source Selection */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <label className="block text-sm font-semibold">Add Images</label>
+                    <span className="block text-sm font-semibold">Add Images</span>
                     <p className="text-xs text-gray-500">
                       Search and add relevant images to your blog
                     </p>
@@ -707,13 +708,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
               {/* Reference Links Section */}
               <div>
-                <label className="block text-sm font-semibold  mb-2">
+                <label htmlFor="quick-reference-links" className="block text-sm font-semibold  mb-2">
                   {type === "yt" ? "YouTube Video Links " : "Reference Links "} (Max 3 links){" "}
                   {type === "yt" && <span className="text-red-500">*</span>}
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
+                      id="quick-reference-links"
                       type="url"
                       value={formData.otherLinkInput}
                       onChange={(e) =>

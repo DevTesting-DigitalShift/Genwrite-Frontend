@@ -136,7 +136,9 @@ const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
 
   return (
     <div className="space-y-4">
-      {label && <label className="text-sm font-medium text-gray-500 ml-1">{label}</label>}
+      {/* Captions a +/- stepper made of buttons, not a single form control, so it is
+          plain text rather than a <label> that would point at nothing. */}
+      {label && <span className="block text-sm font-medium text-gray-500 ml-1">{label}</span>}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -912,7 +914,10 @@ const WebsiteRanking = () => {
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div className="md:col-span-3 space-y-4">
-                        <label className="text-sm font-medium text-gray-500 ml-1">
+                        <label
+                          htmlFor="ranking-target-url"
+                          className="text-sm font-medium text-gray-500 ml-1"
+                        >
                           Target Website URL
                         </label>
                         <div className="relative group">
@@ -920,6 +925,7 @@ const WebsiteRanking = () => {
                             <Globe size={18} />
                           </div>
                           <input
+                            id="ranking-target-url"
                             placeholder="https://yourwebsite.com"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
@@ -928,12 +934,18 @@ const WebsiteRanking = () => {
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <label className="text-sm font-medium text-gray-500 ml-1">Region</label>
+                        <label
+                          htmlFor="ranking-region"
+                          className="text-sm font-medium text-gray-500 ml-1"
+                        >
+                          Region
+                        </label>
                         <div className="relative group">
                           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
                             <Zap size={18} />
                           </div>
                           <input
+                            id="ranking-region"
                             placeholder="USA, UK, IN..."
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}

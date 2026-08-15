@@ -1389,10 +1389,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="label">
+                <label htmlFor="tiptap-yt-url" className="label">
                   <span className="label-text">YouTube URL</span>
                 </label>
                 <input
+                  id="tiptap-yt-url"
                   type="text"
                   value={ytUrl}
                   onChange={(e) => setYtUrl(e.target.value)}
@@ -1509,8 +1510,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                 {isGenerateMode && (
                   <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-500">Prompt</label>
+                      <label htmlFor="tiptap-gen-prompt" className="text-xs font-medium text-gray-500">
+                        Prompt
+                      </label>
                       <textarea
+                        id="tiptap-gen-prompt"
                         placeholder="Describe image..."
                         value={genForm.prompt}
                         onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
@@ -1520,8 +1524,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs font-medium text-gray-500">Style</label>
+                        <label htmlFor="tiptap-gen-style" className="text-xs font-medium text-gray-500">
+                          Style
+                        </label>
                         <select
+                          id="tiptap-gen-style"
                           value={genForm.style}
                           onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
@@ -1535,8 +1542,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500">Ratio</label>
+                        <label htmlFor="tiptap-gen-ratio" className="text-xs font-medium text-gray-500">
+                          Ratio
+                        </label>
                         <select
+                          id="tiptap-gen-ratio"
                           value={genForm.aspectRatio}
                           onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
@@ -1610,8 +1620,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium ">Instruction</label>
+                      <label htmlFor="tiptap-enhance-instruction" className="text-sm font-medium ">
+                        Instruction
+                      </label>
                       <textarea
+                        id="tiptap-enhance-instruction"
                         placeholder="Describe changes (e.g. make it high res, fix lighting)"
                         value={enhanceForm.prompt}
                         onChange={(e) => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
@@ -1621,8 +1634,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-sm font-medium ">Style</label>
+                        <label htmlFor="tiptap-enhance-style" className="text-sm font-medium ">
+                          Style
+                        </label>
                         <select
+                          id="tiptap-enhance-style"
                           value={enhanceForm.style}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, style: e.target.value })
@@ -1637,8 +1653,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium ">Quality</label>
+                        <label htmlFor="tiptap-enhance-quality" className="text-sm font-medium ">
+                          Quality
+                        </label>
                         <select
+                          id="tiptap-enhance-quality"
                           value={enhanceForm.quality || "2k"}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, quality: e.target.value })
@@ -1651,8 +1670,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium ">Aspect Ratio</label>
+                        <label htmlFor="tiptap-enhance-aspect" className="text-sm font-medium ">
+                          Aspect Ratio
+                        </label>
                         <select
+                          id="tiptap-enhance-aspect"
                           value={enhanceForm.dimensions || "1024x1024"}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, dimensions: e.target.value })
@@ -1720,10 +1742,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                   <>
                     {/* Image URL */}
                     <div>
-                      <label className="block text-sm font-medium  mb-1">
+                      <label htmlFor="tiptap-image-url" className="block text-sm font-medium  mb-1">
                         Image URL <span className="text-red-500">*</span>
                       </label>
                       <input
+                        id="tiptap-image-url"
                         type="text"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
@@ -1736,7 +1759,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                     {/* Alt Text */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium ">
+                        <label htmlFor="tiptap-image-alt" className="block text-sm font-medium ">
                           Alt Text <span className="text-red-500">*</span>
                         </label>
                         {imageUrl && (
@@ -1776,6 +1799,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                         )}
                       </div>
                       <textarea
+                        id="tiptap-image-alt"
                         value={imageAlt}
                         onChange={(e) => setImageAlt(e.target.value)}
                         placeholder="Describe the image for accessibility and SEO"

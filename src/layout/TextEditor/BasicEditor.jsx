@@ -392,10 +392,11 @@ const BasicEditor = ({ content, onChange }) => {
 
             <div className="space-y-4">
               <div>
-                <label className="label">
+                <label htmlFor="basic-link-url" className="label">
                   <span className="label-text font-medium ">URL</span>
                 </label>
                 <input
+                  id="basic-link-url"
                   type="text"
                   placeholder="https://example.com"
                   value={linkUrl}
@@ -405,10 +406,11 @@ const BasicEditor = ({ content, onChange }) => {
                 />
               </div>
               <div>
-                <label className="label">
+                <label htmlFor="basic-link-text" className="label">
                   <span className="label-text font-medium ">Link Text (optional)</span>
                 </label>
                 <input
+                  id="basic-link-text"
                   type="text"
                   placeholder="Display text"
                   value={linkText}
@@ -452,10 +454,11 @@ const BasicEditor = ({ content, onChange }) => {
 
             <div className="space-y-4">
               <div>
-                <label className="label">
+                <label htmlFor="basic-image-url" className="label">
                   <span className="label-text font-medium ">Image URL</span>
                 </label>
                 <input
+                  id="basic-image-url"
                   type="text"
                   placeholder="https://example.com/image.jpg"
                   value={imageUrl}
@@ -465,10 +468,11 @@ const BasicEditor = ({ content, onChange }) => {
                 />
               </div>
               <div>
-                <label className="label">
+                <label htmlFor="basic-image-alt" className="label">
                   <span className="label-text font-medium ">Alt Text (optional)</span>
                 </label>
                 <input
+                  id="basic-image-alt"
                   type="text"
                   placeholder="Image description"
                   value={imageAlt}

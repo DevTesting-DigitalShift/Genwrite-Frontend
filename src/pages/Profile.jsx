@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useId } from "react"
 import { motion } from "framer-motion"
 import {
   CreditCard,
@@ -381,8 +381,11 @@ const Profile = () => {
             />
 
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-slate-600 ml-1">Bio</label>
+              <label htmlFor="profile-bio" className="text-sm font-semibold text-slate-600 ml-1">
+                Bio
+              </label>
               <textarea
+                id="profile-bio"
                 name="personalDetails.bio"
                 value={profileData.personalDetails.bio}
                 onChange={handleInputChange}
@@ -392,7 +395,7 @@ const Profile = () => {
             </div>
 
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-slate-600 ml-1">Interests</label>
+              <span className="block text-sm font-semibold text-slate-600 ml-1">Interests</span>
               <div className="relative">
                 <div className="flex flex-wrap gap-2 p-3 min-h-[56px] mt-1 bg-white border border-slate-200 rounded-lg items-center">
                   {profileData.personalDetails.interests.map((val) => (
@@ -652,15 +655,25 @@ const Profile = () => {
   )
 }
 
-const ProfileInput = ({ label, ...props }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
-    <input
-      {...props}
-      className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
-    />
-  </div>
-)
+const ProfileInput = ({ label, ...props }) => {
+  // Generated so each rendered instance gets a unique, stable label/input pairing —
+  // a hardcoded id would collide across the several fields on this page.
+  const generatedId = useId()
+  const inputId = props.id ?? generatedId
+
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={inputId} className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">
+        {label}
+      </label>
+      <input
+        {...props}
+        id={inputId}
+        className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
+      />
+    </div>
+  )
+}
 
 const DatePickerField = ({ label, value, onChange }) => {
   const [open, setOpen] = useState(false)
@@ -676,11 +689,14 @@ const DatePickerField = ({ label, value, onChange }) => {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
+      {/* A <label> can't caption a popover trigger button, so the button carries its own
+          accessible name via aria-label instead. */}
+      <span className="block text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
+            aria-label={label}
             className={`w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 font-medium transition-all flex items-center justify-between ${
               !value ? "text-slate-300" : ""
             }`}

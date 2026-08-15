@@ -141,8 +141,11 @@ const RegenerateModal = ({
               {/* Topic & Title */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Topic</label>
+                  <label htmlFor="regen-topic" className="text-sm font-semibold  mb-2 block">
+                    Topic
+                  </label>
                   <input
+                    id="regen-topic"
                     type="text"
                     className="input outline-0 w-full"
                     value={regenForm.topic}
@@ -171,8 +174,11 @@ const RegenerateModal = ({
                 {/* Only show Title input if performKeywordResearch is OFF */}
                 {!regenForm.options.performKeywordResearch && (
                   <div>
-                    <label className="text-sm font-semibold  mb-2 block">Title</label>
+                    <label htmlFor="regen-title" className="text-sm font-semibold  mb-2 block">
+                      Title
+                    </label>
                     <input
+                      id="regen-title"
                       type="text"
                       className="input outline-0 w-full"
                       value={regenForm.title}
@@ -186,11 +192,12 @@ const RegenerateModal = ({
               {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">
+                  <label htmlFor="regen-focus-keywords" className="text-sm font-semibold  mb-2 block">
                     Focus Keywords (max 3)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
+                      id="regen-focus-keywords"
                       type="text"
                       className="input outline-0 w-full"
                       value={focusKeywordInput}
@@ -231,9 +238,12 @@ const RegenerateModal = ({
               {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Keywords</label>
+                  <label htmlFor="regen-keywords" className="text-sm font-semibold  mb-2 block">
+                    Keywords
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
+                      id="regen-keywords"
                       type="text"
                       className="input outline-0 w-full"
                       value={keywordInput}
@@ -274,8 +284,11 @@ const RegenerateModal = ({
               {/* Tone & Length */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Tone</label>
+                  <label htmlFor="regen-tone" className="text-sm font-semibold  mb-2 block">
+                    Tone
+                  </label>
                   <select
+                    id="regen-tone"
                     className="select select-bordered w-full"
                     value={regenForm.tone}
                     onChange={(e) => updateRegenField("tone", e.target.value)}
@@ -289,7 +302,7 @@ const RegenerateModal = ({
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-semibold">Word Count</label>
+                    <span className="text-sm font-semibold">Word Count</span>
                     <span className="text-xs font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
                       {Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)}{" "}
                       words
@@ -587,10 +600,14 @@ const RegenerateModal = ({
                       </div>
 
                       <div>
-                        <label className="text-sm font-semibold text-gray-600 block mb-2">
+                        <label
+                          htmlFor="regen-platform"
+                          className="text-sm font-semibold text-gray-600 block mb-2"
+                        >
                           Choose Platform
                         </label>
                         <select
+                          id="regen-platform"
                           className="select select-bordered outline-0 w-full"
                           value={regenForm.postingDefaultType || ""}
                           onChange={(e) => updateRegenField("postingDefaultType", e.target.value)}

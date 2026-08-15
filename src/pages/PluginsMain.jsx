@@ -404,10 +404,13 @@ const PluginsMain = () => {
 
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium ">Store / Domain URL</label>
+                <label htmlFor={`plugin-${plugin.id}-domain`} className="text-sm font-medium ">
+                  Store / Domain URL
+                </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                   <input
+                    id={`plugin-${plugin.id}-domain`}
                     placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
                     value={domain}
                     onChange={(e) => setDomain(e.target.value.trim())}
@@ -516,12 +519,13 @@ const PluginsMain = () => {
             <div className="space-y-5">
               {plugin.id !== 115 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">
+                  <label htmlFor={`plugin-${plugin.id}-url`} className="text-sm font-medium ">
                     {plugin.id === 112 ? "Endpoint URL" : "WordPress URL"}
                   </label>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                     <input
+                      id={`plugin-${plugin.id}-url`}
                       value={url}
                       onChange={handleUrlChange}
                       disabled={!isEditing}
@@ -534,10 +538,11 @@ const PluginsMain = () => {
 
               {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">
+                  <label htmlFor={`plugin-${plugin.id}-frontend`} className="text-sm font-medium ">
                     {plugin.id === 115 ? "Sanity Frontend / URL" : "Frontend URL"}
                   </label>
                   <input
+                    id={`plugin-${plugin.id}-frontend`}
                     value={frontend}
                     onChange={(e) => {
                       const val = e.target.value
@@ -559,8 +564,11 @@ const PluginsMain = () => {
               {plugin.id === 115 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium ">Sanity Project ID</label>
+                    <label htmlFor={`plugin-${plugin.id}-project-id`} className="text-sm font-medium ">
+                      Sanity Project ID
+                    </label>
                     <input
+                      id={`plugin-${plugin.id}-project-id`}
                       type="text"
                       value={projectId}
                       onChange={(e) => setProjectId(e.target.value)}
@@ -571,8 +579,11 @@ const PluginsMain = () => {
 
                   <div className="gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium ">Sanity Data Set</label>
+                      <label htmlFor={`plugin-${plugin.id}-dataset`} className="text-sm font-medium ">
+                        Sanity Data Set
+                      </label>
                       <input
+                        id={`plugin-${plugin.id}-dataset`}
                         type="text"
                         value={dataset}
                         onChange={(e) => setDataset(e.target.value)}
@@ -584,8 +595,11 @@ const PluginsMain = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium ">Blog Route</label>
+                    <label htmlFor={`plugin-${plugin.id}-blog-route`} className="text-sm font-medium ">
+                      Blog Route
+                    </label>
                     <select
+                      id={`plugin-${plugin.id}-blog-route`}
                       value={blogRoute}
                       onChange={(e) => setBlogRoute(e.target.value)}
                       disabled={!isEditing}
@@ -618,7 +632,7 @@ const PluginsMain = () => {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-sm font-medium ">
+                  <label htmlFor={`plugin-${plugin.id}-credential`} className="text-sm font-medium ">
                     {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                   </label>
                   {(plugin.id === 115 || plugin.id === 111) && (
@@ -629,6 +643,7 @@ const PluginsMain = () => {
                   )}
                 </div>
                 <input
+                  id={`plugin-${plugin.id}-credential`}
                   type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
                   value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
                   onChange={(e) =>
@@ -646,8 +661,11 @@ const PluginsMain = () => {
 
               {plugin.id === 111 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">Application Password</label>
+                  <label htmlFor={`plugin-${plugin.id}-app-password`} className="text-sm font-medium ">
+                    Application Password
+                  </label>
                   <input
+                    id={`plugin-${plugin.id}-app-password`}
                     type="password"
                     value={wpPassword}
                     onChange={(e) => setWpPassword(e.target.value)}

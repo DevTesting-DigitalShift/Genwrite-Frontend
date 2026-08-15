@@ -492,13 +492,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Language */}
             <div className="form-control space-y-2">
-              <label>
+              <label htmlFor="advanced-language">
                 <span className="text-sm font-semibold">
                   Language <span className="text-error">*</span>
                 </span>
               </label>
 
               <select
+                id="advanced-language"
                 value={formData.languageToWrite}
                 onChange={(e) =>
                   handleInputChange({ target: { name: "languageToWrite", value: e.target.value } })
@@ -719,11 +720,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Tone */}
               <div className="form-control space-y-2">
-                <label className="pb-0">
+                <label htmlFor="advanced-tone" className="pb-0">
                   <span className="text-sm font-semibold ">Tone of Voice</span>
                 </label>
 
                 <select
+                  id="advanced-tone"
                   value={formData.tone}
                   onChange={(e) =>
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
@@ -742,12 +744,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
               {/* Blog Length */}
               <div className="form-control space-y-3">
-                <label>
+                <span className="block">
                   <span className="text-sm font-semibold ">Blog Length</span>
                   <span className="text-sm ml-2 font-semibold text-primary">
                     {formData.userDefinedLength} words
                   </span>
-                </label>
+                </span>
                 <Slider
                   min={BLOG_CONFIG.LENGTH.MIN}
                   max={BLOG_CONFIG.LENGTH.MAX}
@@ -768,8 +770,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
             {/* Brief */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold ">Add Brief Section</label>
+              <label htmlFor="advanced-brief" className="text-sm font-semibold ">
+                Add Brief Section
+              </label>
               <textarea
+                id="advanced-brief"
                 name="brief"
                 rows={3}
                 value={formData.brief}
@@ -1085,7 +1090,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             {/* 5. Add Quick Summary */}
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <label className="text-sm font-semibold">Add a Quick Summary</label>
+                <span className="text-sm font-semibold">Add a Quick Summary</span>
                 <p className="text-xs text-slate-500">Generate a concise summary for the readers</p>
               </div>
               <div className="flex items-center">
@@ -1149,7 +1154,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <label className="text-sm font-semibold">Automatic Posting</label>
+                  <span className="text-sm font-semibold">Automatic Posting</span>
                   <p className="text-xs text-slate-500">
                     Automatically post to your connected platforms
                   </p>
@@ -1180,10 +1185,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 integrations?.integrations &&
                 Object.keys(integrations.integrations).length > 0 && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <label
+                      htmlFor="advanced-publishing-platform"
+                      className="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                    >
                       Publishing Platform
                     </label>
                     <select
+                      id="advanced-publishing-platform"
                       value={formData.postingType || ""}
                       onChange={(e) => updateFormData({ postingType: e.target.value })}
                       className="select select-bordered w-full rounded-lg text-sm h-10 min-h-0 focus:outline-none"

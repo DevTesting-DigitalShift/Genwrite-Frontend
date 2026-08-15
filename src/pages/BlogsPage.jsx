@@ -633,10 +633,14 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <label
+                    htmlFor="filter-gsc-clicks"
+                    className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5"
+                  >
                     <MousePointerClick size={14} className="text-slate-400" /> MIN. GSC CLICKS
                   </label>
                   <input
+                    id="filter-gsc-clicks"
                     type="number"
                     value={tempGscClicks || ""}
                     onChange={(e) => setTempGscClicks(parseInt(e.target.value, 10) || null)}
@@ -647,10 +651,14 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <label
+                    htmlFor="filter-gsc-impressions"
+                    className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5"
+                  >
                     <Eye size={14} className="text-slate-400" /> MIN. GSC IMPRESSIONS
                   </label>
                   <input
+                    id="filter-gsc-impressions"
                     type="number"
                     value={tempGscImpressions || ""}
                     onChange={(e) => setTempGscImpressions(parseInt(e.target.value, 10) || null)}
@@ -661,9 +669,9 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                     <Calendar size={14} className="text-slate-400" /> DATE RANGE
-                  </label>
+                  </span>
                   <DateRangePicker
                     value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
                     minDate={

@@ -885,13 +885,14 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="space-y-6 pt-2">
               {/* Number of Blogs */}
               <div>
-                <label className="block text-sm font-semibold">
+                <label htmlFor="bulk-number-of-blogs" className="block text-sm font-semibold">
                   Number of Blogs <span className="text-red-500">*</span>
                 </label>
                 <p className="text-xs text-slate-500 font-medium mb-3">
                   How many blogs to generate based on the topics provided.
                 </p>
                 <input
+                  id="bulk-number-of-blogs"
                   type="tel"
                   inputMode="numeric"
                   name="numberOfBlogs"
@@ -1101,10 +1102,11 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="tone" className="block text-sm font-semibold">
+                  <label htmlFor="bulk-tone" className="block text-sm font-semibold">
                     Tone of Voice
                   </label>
                   <select
+                    id="bulk-tone"
                     className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
                       errors.tone ? "select-error" : ""
                     }`}
@@ -1122,10 +1124,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="language" className="block text-sm font-semibold">
+                  <label htmlFor="bulk-language" className="block text-sm font-semibold">
                     Language <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="bulk-language"
                     className="select select-bordered w-full h-10 min-h-0 text-sm mt-3"
                     value={formData.languageToWrite}
                     onChange={(e) => {
@@ -1143,12 +1146,12 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <span className="block text-sm font-semibold mb-2">
                     Approx. Blog Length
                     <span className="text-sm ml-2 font-bold text-blue-600">
                       {formData.userDefinedLength} words
                     </span>
-                  </label>
+                  </span>
                   <div className="relative mt-5">
                     <Slider
                       min={BLOG_CONFIG.LENGTH.MIN}
@@ -1171,7 +1174,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <label className="block text-sm font-semibold">Add Image</label>
+                      <span className="block text-sm font-semibold">Add Image</span>
                       <p className="text-xs text-slate-500 font-medium">
                         Search and add relevant images to your blogs
                       </p>
@@ -1344,8 +1347,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   integrations?.integrations &&
                   Object.keys(integrations.integrations).length > 0 && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <label className="font-semibold text-sm">Publishing Platform</label>
+                      <label htmlFor="bulk-publishing-platform" className="font-semibold text-sm">
+                        Publishing Platform
+                      </label>
                       <select
+                        id="bulk-publishing-platform"
                         value={formData.postingType || ""}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, postingType: e.target.value }))

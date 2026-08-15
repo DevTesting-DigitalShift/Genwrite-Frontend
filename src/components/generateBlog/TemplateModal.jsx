@@ -214,10 +214,11 @@ const TemplateModal = ({
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-topic" className="block text-sm font-medium  mb-1">
                   Topic <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="template-topic"
                   type="text"
                   value={formData.topic}
                   onChange={(e) => handleInputChange(e, "topic")}
@@ -232,8 +233,11 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">Tone</label>
+                <label htmlFor="template-tone" className="block text-sm font-medium  mb-1">
+                  Tone
+                </label>
                 <select
+                  id="template-tone"
                   value={formData.tone}
                   onChange={handleSelectChange}
                   className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
@@ -247,11 +251,12 @@ const TemplateModal = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-focus-keywords" className="block text-sm font-medium  mb-1">
                   Focus Keywords (max 3) <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="template-focus-keywords"
                     type="text"
                     value={formData.focusKeywordInput}
                     onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
@@ -297,11 +302,12 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-keywords" className="block text-sm font-medium  mb-1">
                   Keywords <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="template-keywords"
                     type="text"
                     value={formData.keywordInput}
                     onChange={(e) => handleKeywordInputChange(e, "keywords")}
@@ -357,11 +363,12 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-title" className="block text-sm font-medium  mb-1">
                   Title <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-4">
                   <input
+                    id="template-title"
                     type="text"
                     value={formData.title}
                     onChange={(e) => handleInputChange(e, "title")}
@@ -422,9 +429,9 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <span className="block text-sm font-medium  mb-1">
                   Choose length of Blog <span className="text-red-500">*</span>
-                </label>
+                </span>
                 <Slider
                   min={BLOG_CONFIG.LENGTH.MIN}
                   max={BLOG_CONFIG.LENGTH.MAX}

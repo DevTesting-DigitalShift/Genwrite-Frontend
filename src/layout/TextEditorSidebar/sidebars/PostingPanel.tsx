@@ -230,11 +230,15 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
           <div className="space-y-6">
             {/* Platform Select */}
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
+              <label
+                htmlFor="posting-panel-platform"
+                className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block"
+              >
                 Target Platform
               </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
+                  id="posting-panel-platform"
                   className={`select select-sm w-full bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all ${platformError ? "border-rose-500" : ""}`}
                   value={selectedIntegration?.rawPlatform || ""}
                   onChange={(e) => handleIntegrationChange(e.target.value)}
@@ -269,9 +273,9 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
 
             {/* Category Select */}
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
                 Node Taxonomy (Category)
-              </label>
+              </span>
 
               {/* Active Category Tag */}
               {selectedCategory && (

@@ -122,9 +122,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
           {hasPassword && (
             <div>
-              <label className="block text-sm font-medium  mb-2">Old Password</label>
+              <label htmlFor="old-password" className="block text-sm font-medium  mb-2">
+                Old Password
+              </label>
               <div className="relative">
                 <input
+                  id="old-password"
                   type={showOldPassword ? "text" : "password"}
                   name="oldPassword"
                   value={formData.oldPassword}
@@ -154,9 +157,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           )}
 
           <div>
-            <label className="block text-sm font-medium  mb-2">New Password</label>
+            <label htmlFor="new-password" className="block text-sm font-medium  mb-2">
+              New Password
+            </label>
             <div className="relative">
               <input
+                id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 name="newPassword"
                 value={formData.newPassword}
@@ -189,9 +195,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium  mb-2">Confirm Password</label>
+            <label htmlFor="confirm-password" className="block text-sm font-medium  mb-2">
+              Confirm Password
+            </label>
             <div className="relative">
               <input
+                id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={formData.confirmPassword}

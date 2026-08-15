@@ -299,12 +299,12 @@ const CategoriesModal = ({
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium  mb-1">
+                  <span className="block text-sm font-medium  mb-1">
                     Select Your Publishing Platform
                     <p className="text-xs text-gray-500 mt-0.5">
                       Post your blog automatically to connected platforms only.
                     </p>
-                  </label>
+                  </span>
 
                   <select
                     className={`select select-bordered w-full h-10 min-h-0 text-sm ${
@@ -395,9 +395,12 @@ const CategoriesModal = ({
 
               {/* Category Selection Input */}
               <div>
-                <label className="block text-sm font-medium  mb-1">Select or Add Category</label>
+                <label htmlFor="category-search" className="block text-sm font-medium  mb-1">
+                  Select or Add Category
+                </label>
                 <div className="relative">
                   <input
+                    id="category-search"
                     type="text"
                     list="popular-categories"
                     placeholder="Type to search or add new..."

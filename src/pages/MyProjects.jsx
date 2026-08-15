@@ -35,13 +35,20 @@ const MyProjects = () => {
   const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()
 
-  const initialBlogFilter = {
-    start: DATE_PRESETS[0].range[0].toISOString(),
-    end: DATE_PRESETS[0].range[1].toISOString(),
-    q: "",
-    status: BLOG_STATUS.ALL,
-    sort: SORT_OPTIONS[0].value,
-  }
+  // Memoized because three hooks below take it as a dependency: as a bare object literal
+  // it was a new reference every render, so those memos/callbacks never actually memoized.
+  // DATE_PRESETS is evaluated once at module load, so freezing this at mount changes
+  // nothing about the values.
+  const initialBlogFilter = useMemo(
+    () => ({
+      start: DATE_PRESETS[0].range[0].toISOString(),
+      end: DATE_PRESETS[0].range[1].toISOString(),
+      q: "",
+      status: BLOG_STATUS.ALL,
+      sort: SORT_OPTIONS[0].value,
+    }),
+    []
+  )
   // Initialize filters from sessionStorage or default to "All" preset
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
@@ -123,7 +130,7 @@ const MyProjects = () => {
     const sameEnd = blogFilters.end === initialBlogFilter.end
 
     return !sameStart || !sameEnd
-  }, [blogFilters, user?.createdAt, initialBlogFilter.end, initialBlogFilter])
+  }, [blogFilters, user?.createdAt, initialBlogFilter])
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -231,6 +238,20 @@ const MyProjects = () => {
     }
   }, [refetch])
 
+  // Declared before the memos below: they list it as a dependency, and a dependency array
+  // is evaluated during render — reading it any earlier hits the temporal dead zone and
+  // throws "Cannot access 'updateBlogFilters' before initialization".
+  const updateBlogFilters = useCallback(
+    (updates) => {
+      setBlogFilters((prev) => {
+        const newValue = { ...prev, ...updates }
+        sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
+        return newValue
+      })
+    },
+    [userId]
+  )
+
   // Menu options
   const menuOptions = useMemo(
     () =>
@@ -253,17 +274,6 @@ const MyProjects = () => {
         },
       })),
     [updateBlogFilters]
-  )
-
-  const updateBlogFilters = useCallback(
-    (updates) => {
-      setBlogFilters((prev) => {
-        const newValue = { ...prev, ...updates }
-        sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
-        return newValue
-      })
-    },
-    [userId]
   )
 
   // -------------------------------------------------

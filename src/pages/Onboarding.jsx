@@ -236,10 +236,14 @@ const Onboarding = () => {
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-company"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Company Name
                   </label>
                   <input
+                    id="onboarding-company"
                     placeholder="Digital Shift"
                     value={formData.nameOfVoice}
                     onChange={(e) =>
@@ -250,9 +254,7 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Website URL
-                  </label>
+                  <span className="block text-sm font-medium text-gray-900 mb-2">Website URL</span>
 
                   <div className="join w-full">
                     <select
@@ -275,10 +277,14 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-sitemap"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Sitemap URL <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <input
+                    id="onboarding-sitemap"
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
                     onChange={(e) => setFormData((prev) => ({ ...prev, sitemap: e.target.value }))}
@@ -318,10 +324,14 @@ const Onboarding = () => {
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-description"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Brand Description
                   </label>
                   <textarea
+                    id="onboarding-description"
                     rows={4}
                     placeholder="Describe what your company does..."
                     value={formData.describeBrand}
@@ -333,10 +343,14 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-persona"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Author Persona
                   </label>
                   <textarea
+                    id="onboarding-persona"
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
@@ -346,9 +360,15 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Keywords</label>
+                  <label
+                    htmlFor="onboarding-keywords"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
+                    Keywords
+                  </label>
                   <div className="flex gap-2 mb-3">
                     <input
+                      id="onboarding-keywords"
                       placeholder="Add keywords (comma-separated)"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
