@@ -13,6 +13,8 @@ import {
   getBlogs,
   getBlogStatsById,
   toggleBlogVisibility,
+  analyzeBlogPerformance,
+  applyBlogInsight,
 } from "@api/blogApi"
 import { toast } from "sonner"
 
@@ -146,6 +148,44 @@ export const useToggleBlogVisibilityMutation = () => {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to update visibility")
+    },
+  })
+}
+
+/**
+ * Run the AI performance review for a posted blog. Costs credits, so it is a
+ * mutation rather than a query — never fired automatically on mount.
+ */
+export const useAnalyzeBlogMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => analyzeBlogPerformance(id),
+    onSuccess: () => {
+      // The analysis spends credits, so the header balance is now stale.
+      queryClient.invalidateQueries({ queryKey: ["user"] })
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to analyze blog performance")
+    },
+  })
+}
+
+/**
+ * Apply an insight suggestion. Rewrites blog content server-side, so both the
+ * blog caches and the credit balance need refreshing on success.
+ */
+export const useApplyInsightMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, suggestionId, scope, republish }) =>
+      applyBlogInsight(id, { suggestionId, scope, republish }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      queryClient.invalidateQueries({ queryKey: ["user"] })
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to apply suggestion")
     },
   })
 }

@@ -36,3 +36,43 @@ export const getGscAuthUrl = async () => {
     throw new Error(error || "Failed to get auth URL")
   }
 }
+
+/**
+ * Check a published URL's live indexing status via Search Console URL Inspection.
+ * Pass either a blogId (resolved to its posted link server-side) or an explicit pageUrl.
+ * @param {{ blogId?: string, pageUrl?: string }} params
+ * @returns {Promise<{coverageState?: string, verdict?: string, lastCrawlTime?: string,
+ *   indexingState?: string, pageFetchState?: string, raw?: Object}>}
+ */
+export const inspectIndexing = async ({ blogId, pageUrl } = {}) => {
+  try {
+    const response = await axiosInstance.get("/gsc/indexing/inspect", {
+      params: pageUrl ? { pageUrl } : { blogId },
+    })
+    return response.data
+  } catch (error) {
+    const message =
+      error?.response?.data?.message || error?.message || "Failed to check indexing status"
+    throw new Error(message)
+  }
+}
+
+/**
+ * Ask Google to (re)crawl a published URL via the Indexing API.
+ * Best-effort only — Google decides if and when it actually crawls, and the
+ * daily quota is shared across the whole project, so never call this in a loop.
+ * @param {{ blogId?: string, pageUrl?: string }} payload
+ */
+export const requestIndexing = async ({ blogId, pageUrl } = {}) => {
+  try {
+    const response = await axiosInstance.post(
+      "/gsc/indexing/request",
+      pageUrl ? { pageUrl } : { blogId }
+    )
+    return response.data
+  } catch (error) {
+    const message =
+      error?.response?.data?.message || error?.message || "Failed to request indexing"
+    throw new Error(message)
+  }
+}

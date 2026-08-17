@@ -338,3 +338,41 @@ export const getBlogPublicly = async (id) => {
     throw new Error(error.response?.data?.message || "Public blog not found")
   }
 }
+
+/**
+ * Run an AI performance review of a posted blog using its Search Console data.
+ * Backend requires the blog to already be published somewhere.
+ * @param {string} id - Blog ID
+ * @returns {Promise<Object>} BlogInsight document (metricsSnapshot, overallSummary, suggestions)
+ */
+export const analyzeBlogPerformance = async (id) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/analyze`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to analyze blog performance")
+  }
+}
+
+/**
+ * Apply an insight suggestion — rewrites the target section (or the whole blog)
+ * and returns the updated content.
+ * @param {string} id - Blog ID
+ * @param {Object} payload
+ * @param {string} payload.suggestionId - Suggestion _id from the insight document
+ * @param {"section"|"whole"} [payload.scope="section"] - Rewrite scope
+ * @param {boolean} [payload.republish=false] - Repost to connected platforms after rewrite
+ * @returns {Promise<{content: string, repost: Object|null}>}
+ */
+export const applyBlogInsight = async (id, { suggestionId, scope = "section", republish = false }) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/apply-insight`, {
+      suggestionId,
+      scope,
+      republish,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to apply suggestion")
+  }
+}

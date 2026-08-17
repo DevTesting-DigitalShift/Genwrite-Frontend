@@ -36,6 +36,10 @@ import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { debugPayload } from "@utils/debugPayload"
 import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
+import InsightsPanel from "./sidebars/InsightsPanel"
+import IndexingStatus from "@components/Blog/IndexingStatus"
+import { useAnalyzeBlogMutation, useApplyInsightMutation } from "@api/queries/blogQueries"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
@@ -47,7 +51,7 @@ import { fetchCategories, generateMetadata } from "@api/otherApi"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE, COSTS } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 
 import { marked } from "marked"
@@ -320,6 +324,14 @@ const TextEditorSidebar = ({
   const [showDiff, setShowDiff] = useState(false)
   const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
 
+  // Performance Insights State. There is no GET endpoint for a stored insight, and
+  // re-running the analysis costs credits, so the result is mirrored into the query
+  // cache — leaving the editor and coming back must not silently discard it.
+  const [insight, setInsight] = useState(null)
+  const [applyingSuggestionId, setApplyingSuggestionId] = useState(null)
+  const analyzeBlogMutation = useAnalyzeBlogMutation()
+  const applyInsightMutation = useApplyInsightMutation()
+
   // Sidebar navigation items
   const NAV_ITEMS = [
     { id: "overview", icon: BarChart3, label: "Overview" },
@@ -329,6 +341,7 @@ const TextEditorSidebar = ({
       ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
       : []),
     { id: "posting", icon: Send, label: "Publish" },
+    { id: "insights", icon: Lightbulb, label: "Insights" },
     // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
     ...(availableSections.length > 0 && activeEditorVersion === 1
       ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
@@ -615,6 +628,7 @@ const TextEditorSidebar = ({
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
 
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { integrations, categories, fetchIntegrations } = useIntegrationStore()
   const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
 
@@ -658,6 +672,10 @@ const TextEditorSidebar = ({
   // Use blog postings from API instead of posted object
   const hasPublishedLinks = blogPostings.length > 0
 
+  // While watching a shared workspace, Search Console belongs to the owner being
+  // watched, so the invitee's own `user.gsc` says nothing about access here.
+  const hasGscAccess = !!activeWorkspace || !!user?.gsc
+
   // Fetch blog postings when blog changes
   const fetchPostings = useCallback(async () => {
     if (!blog?._id) return
@@ -677,6 +695,24 @@ const TextEditorSidebar = ({
   useEffect(() => {
     fetchPostings()
   }, [fetchPostings]) // Re-fetch when blog changes or when new post is made
+
+  // Restore a previously generated insight for this blog, so re-opening the editor
+  // shows the analysis the user already paid for instead of an empty state.
+  useEffect(() => {
+    setInsight(blog?._id ? (queryClient.getQueryData(["blogInsight", blog._id]) ?? null) : null)
+  }, [blog?._id, queryClient])
+
+  // Single writer for insight state — keeps the cached copy and local copy in step.
+  const persistInsight = useCallback(
+    (next) => {
+      setInsight((prev) => {
+        const value = typeof next === "function" ? next(prev) : next
+        if (blog?._id) queryClient.setQueryData(["blogInsight", blog._id], value)
+        return value
+      })
+    },
+    [blog?._id, queryClient]
+  )
 
   // Initialize data
   useEffect(() => {
@@ -939,6 +975,124 @@ const TextEditorSidebar = ({
       setLoading(false)
     }
   }, [isPro, navigate, blog, keywords])
+
+  // Guard shared by both insight actions: archived blogs are read-only, and both
+  // calls spend credits, so bail out before the request if the balance is short.
+  const guardCreditedAction = useCallback(
+    (cost) => {
+      if (blog?.isArchived) {
+        toast.error("This blog is archived. Please restore it to perform this action.")
+        return false
+      }
+      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+      if (credits < cost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: `Need ${cost} credits, have ${credits}.`,
+          confirmText: "Buy Credits",
+          onConfirm: () => navigate("/pricing"),
+        })
+        return false
+      }
+      return true
+    },
+    [blog?.isArchived, user, handlePopup, navigate]
+  )
+
+  const handleAnalyzeInsights = useCallback(() => {
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!guardCreditedAction(COSTS.BLOG_INSIGHT.ANALYZE)) return
+
+    handlePopup({
+      title: "Analyze Performance",
+      description: (
+        <>
+          Review this blog's Search Console performance and generate rewrite suggestions?{" "}
+          <span className="font-bold">{COSTS.BLOG_INSIGHT.ANALYZE} credits</span>
+        </>
+      ),
+      onConfirm: async () => {
+        try {
+          const result = await analyzeBlogMutation.mutateAsync(blog._id)
+          persistInsight(result)
+          toast.success(
+            result?.suggestions?.length
+              ? `${result.suggestions.length} suggestions ready`
+              : "Analysis complete"
+          )
+        } catch {
+          // useAnalyzeBlogMutation already surfaces the error toast
+        }
+      },
+    })
+  }, [blog?._id, guardCreditedAction, handlePopup, analyzeBlogMutation, persistInsight])
+
+  const handleApplySuggestion = useCallback(
+    (suggestion, { scope, republish }) => {
+      if (!blog?._id) return toast.error("Blog ID missing")
+      if (!guardCreditedAction(COSTS.BLOG_INSIGHT.APPLY)) return
+
+      handlePopup({
+        title: scope === "whole" ? "Rewrite Whole Blog" : "Rewrite Section",
+        description: (
+          <>
+            {scope === "whole"
+              ? "This rewrites the entire blog and replaces your current content. Remaining section suggestions may no longer match afterwards."
+              : `This rewrites "${suggestion.sectionTitle || "the selected section"}" and replaces its current content.`}{" "}
+            <span className="font-bold">{COSTS.BLOG_INSIGHT.APPLY} credits</span>
+            {republish && " · will be republished to your connected platforms"}
+          </>
+        ),
+        confirmText: "Apply Fix",
+        onConfirm: async () => {
+          setApplyingSuggestionId(suggestion._id)
+          try {
+            const result = await applyInsightMutation.mutateAsync({
+              id: blog._id,
+              suggestionId: suggestion._id,
+              scope,
+              republish,
+            })
+
+            // Backend has already persisted the rewrite, so push it straight into
+            // the editor rather than leaving the user on stale content.
+            if (result?.content && typeof setEditorContent === "function") {
+              setEditorContent(result.content)
+            }
+
+            persistInsight((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    suggestions: prev.suggestions.map((s) =>
+                      s._id === suggestion._id ? { ...s, status: "applied" } : s
+                    ),
+                  }
+                : prev
+            )
+
+            if (republish || result?.repost) await fetchPostings()
+            toast.success(
+              result?.repost ? "Applied and republished!" : "Suggestion applied to your content"
+            )
+          } catch {
+            // useApplyInsightMutation already surfaces the error toast
+          } finally {
+            setApplyingSuggestionId(null)
+          }
+        },
+      })
+    },
+    [
+      blog?._id,
+      guardCreditedAction,
+      handlePopup,
+      applyInsightMutation,
+      setEditorContent,
+      fetchPostings,
+      persistInsight,
+    ]
+  )
 
   const handleMetadataGen = useCallback(() => {
     if (blog?.isArchived) {
@@ -2767,6 +2921,15 @@ const TextEditorSidebar = ({
                         View Live <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     )}
+
+                    {/* Live Search Console index status + best-effort indexing request */}
+                    <IndexingStatus
+                      blogId={blog?._id}
+                      pageUrl={posting.link}
+                      indexing={posting.indexing}
+                      hasGscAccess={hasGscAccess}
+                      canRequest={!isLocked}
+                    />
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="tooltip" data-tip="Edit settings and repost">
@@ -2984,6 +3147,22 @@ const TextEditorSidebar = ({
         return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
+      case "insights":
+        return (
+          <InsightsPanel
+            blog={blog}
+            user={user}
+            userPlan={userPlan}
+            isPro={isPro}
+            insight={insight}
+            isAnalyzing={analyzeBlogMutation.isPending}
+            onAnalyze={handleAnalyzeInsights}
+            onApplySuggestion={handleApplySuggestion}
+            applyingSuggestionId={applyingSuggestionId}
+            hasPublishedLinks={hasPublishedLinks}
+            setIsSidebarOpen={setIsSidebarOpen}
+          />
+        )
       case "sectionTools":
         return renderSectionToolsPanel()
       default:
@@ -3008,7 +3187,8 @@ const TextEditorSidebar = ({
         </div>
         <div className="flex flex-col items-center gap-4 py-6">
           {NAV_ITEMS.filter(
-            (item) => !isLocked || !["regenerate", "sectionTools", "posting"].includes(item.id)
+            (item) =>
+              !isLocked || !["regenerate", "sectionTools", "posting", "insights"].includes(item.id)
           ).map((item) => {
             const isActive = activePanel === item.id
             const Icon = item.icon
@@ -3083,7 +3263,9 @@ const TextEditorSidebar = ({
           </div>
           <div className="flex flex-col gap-3 mt-5">
             {NAV_ITEMS.filter(
-              (item) => !isLocked || !["regenerate", "sectionTools", "posting"].includes(item.id)
+              (item) =>
+                !isLocked ||
+                !["regenerate", "sectionTools", "posting", "insights"].includes(item.id)
             ).map((item) => {
               const Icon = item.icon
               const isActive = activePanel === item.id

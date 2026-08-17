@@ -105,6 +105,7 @@ export const COSTS = Object.freeze({
     ORCHESTRATOR_BASE: 8,
   },
   COMPETITOR_LIKE_BLOG: 10,
+  BLOG_INSIGHT: { ANALYZE: 10, APPLY: 10 },
 })
 
 // Cost Multipliers based on AI model
