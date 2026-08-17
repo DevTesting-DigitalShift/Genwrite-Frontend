@@ -6,8 +6,13 @@ const GoThrough = ({ onClose, visible = true }) => {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+      {/* Click-outside backdrop. A real button so Escape-equivalent activation works from
+          the keyboard; the modal's own close button remains the visible affordance. */}
+      <button
+        type="button"
+        aria-label="Close"
+        tabIndex={-1}
+        className="absolute inset-0 w-full h-full bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 

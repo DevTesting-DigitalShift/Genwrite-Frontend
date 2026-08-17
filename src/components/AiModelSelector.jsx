@@ -35,8 +35,10 @@ const AiModelSelector = ({
             const isActive = value === model.id
 
             return (
-              <div
+              <button
+                type="button"
                 key={model.id}
+                aria-pressed={isActive}
                 onClick={() => {
                   if (isRestricted) {
                     openUpgradePopup({ featureName: model.label, navigate })
@@ -54,11 +56,11 @@ const AiModelSelector = ({
                   ${isRestricted ? "opacity-60 grayscale-[0.3]" : "opacity-100"}
                 `}
               >
-                <div
+                <span
                   className={`p-1.5 rounded-lg transition-colors ${isActive ? "bg-white shadow-xs" : "bg-gray-50"}`}
                 >
                   <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                </div>
+                </span>
                 <span
                   className={`text-sm font-bold tracking-tight ${isActive ? "text-[#4C5BD6]" : ""}`}
                 >
@@ -66,16 +68,16 @@ const AiModelSelector = ({
                 </span>
 
                 {isRestricted && (
-                  <div className="absolute top-2 right-2">
-                    <div
+                  <span className="absolute top-2 right-2">
+                    <span
                       className="tooltip tooltip-left"
                       data-tip={`Upgrade to unlock ${model.label}`}
                     >
                       <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-50" />
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>

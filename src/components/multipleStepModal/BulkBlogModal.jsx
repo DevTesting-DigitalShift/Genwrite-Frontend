@@ -979,7 +979,8 @@ const BulkBlogModal = ({ closeFnc }) => {
                     )
                   })}
                   {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllTopics((prev) => !prev)}
                       className="cursor-pointer text-xs font-semibold text-blue-600 self-center flex items-center gap-1"
                     >
@@ -992,7 +993,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                             ` (+${recentlyUploadedTopicsCount} uploaded)`}
                         </>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1080,7 +1081,8 @@ const BulkBlogModal = ({ closeFnc }) => {
                         )
                       })}
                       {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
-                        <span
+                        <button
+                          type="button"
                           onClick={() => setShowAllKeywords((prev) => !prev)}
                           className="cursor-pointer text-xs font-semibold text-blue-600 self-center flex items-center gap-1"
                         >
@@ -1094,7 +1096,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                                 ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                             </>
                           )}
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>

@@ -89,10 +89,14 @@ const NotificationDropdown = ({ notifications }) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button type="button" className="btn btn-ghost btn-circle m-1" onClick={handleToggle}>
+      <button
+        type="button"
+        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+        onClick={handleToggle}
+      >
         <div className="indicator">
           <Bell
-            className={`w-6 h-6 transition-colors ${unreadCount > 0 ? "text-blue-600 fill-blue-600/10" : "text-gray-600"}`}
+            className={`w-5 h-5 transition-colors ${unreadCount > 0 ? "text-blue-600 fill-blue-600/10" : "text-gray-600"}`}
           />
           {unreadCount > 0 && (
             <span className="badge badge-sm badge-primary rounded-full! indicator-item border-white shadow-sm bg-blue-600">

@@ -449,7 +449,8 @@ const StepContent = ({
                   )
                 })}
                 {(newJob.blogs?.topics?.length > 18 || recentlyUploadedTopicsCount) && (
-                  <span
+                  <button
+                    type="button"
                     onClick={() => setShowAllTopics((prev) => !prev)}
                     className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
@@ -463,7 +464,7 @@ const StepContent = ({
                           ` (+${recentlyUploadedTopicsCount} uploaded)`}
                       </>
                     )}
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -550,7 +551,8 @@ const StepContent = ({
                     )
                   })}
                   {((formData?.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
@@ -564,7 +566,7 @@ const StepContent = ({
                             ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>

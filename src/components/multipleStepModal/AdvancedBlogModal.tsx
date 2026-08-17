@@ -823,7 +823,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 {/* Custom Image Upload Zone */}
                 {formData.imageSource === IMAGE_SOURCE.UPLOAD && (
                   <div className="space-y-3 mt-2">
+                    {/* Must stay a div: it is a drag-and-drop target holding block content,
+                        neither of which a <button> supports. role + tabIndex + onKeyDown
+                        give it the same keyboard behaviour. */}
+                    {/* biome-ignore lint/a11y/useSemanticElements: see comment above */}
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Upload images"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          ;(e.currentTarget as HTMLElement).click()
+                        }
+                      }}
                       className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
                         ${
                           errors.blogImages

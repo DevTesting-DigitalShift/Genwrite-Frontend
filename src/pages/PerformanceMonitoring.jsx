@@ -462,6 +462,7 @@ const PerformanceMonitoring = () => {
                 ) : (
                   <div className="prose prose-sm max-w-none text-gray-600">
                     <div
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                       dangerouslySetInnerHTML={{
                         __html: DOMPurify.sanitize(
                           formData?.content?.trim() || "No content available"

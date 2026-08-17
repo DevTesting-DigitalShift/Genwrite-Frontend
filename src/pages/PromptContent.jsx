@@ -111,6 +111,7 @@ const PromptContent = () => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
         style={{ lineHeight: "1.6", color: "#374151" }}
       />

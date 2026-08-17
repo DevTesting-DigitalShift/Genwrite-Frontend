@@ -159,8 +159,10 @@ const PublicBlogReader = () => {
       {/* Premium Reader NavBar - Visible only for guest users (who don't have the standard app header) */}
       {!user?._id && (
         <nav className="fixed top-0 w-full z-100 bg-white/70 backdrop-blur-xl border-b border-slate-100 h-16 sm:h-20 flex items-center justify-between px-4 md:px-12 transition-all">
-          <div
+          <button
+            type="button"
             onClick={() => navigate("/")}
+            aria-label="GenWrite home"
             className="flex items-center gap-2 cursor-pointer group"
           >
             <img
@@ -171,7 +173,7 @@ const PublicBlogReader = () => {
             <span className="font-black text-xl sm:text-2xl tracking-tighter text-slate-900">
               Gen<span className="text-blue-600">Write</span>
             </span>
-          </div>
+          </button>
 
           <div className="flex items-center gap-3 sm:gap-6">
             <button

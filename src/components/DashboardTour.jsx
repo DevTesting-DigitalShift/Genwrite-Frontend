@@ -243,7 +243,9 @@ const DashboardTour = ({ run, onComplete }) => {
 
           {/* Clickable area for highlighted element */}
           {targetRect && waitingForUserAction && (
-            <div
+            <button
+              type="button"
+              aria-label="Continue tour"
               className="fixed z-[10001] cursor-pointer"
               style={{
                 top: `${targetRect.top - 8}px`,

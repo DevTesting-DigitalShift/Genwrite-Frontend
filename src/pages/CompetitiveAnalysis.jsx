@@ -93,6 +93,7 @@ const CompetitiveAnalysis = () => {
       .map((line) => (
         <p key={line} className="mb-2 text-sm leading-relaxed">
           <span
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(
                 line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
@@ -544,6 +545,7 @@ const CompetitiveAnalysis = () => {
                   </h3>
                   <div
                     className="max-h-100 overflow-y-auto pr-2 text-sm text-slate-600 prose prose-sm max-w-none"
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
                   />
                 </CardContent>
@@ -653,6 +655,7 @@ const CompetitiveAnalysis = () => {
                                         {idx + 1}
                                       </span>
                                       <span
+                                        // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                                         dangerouslySetInnerHTML={{
                                           __html: DOMPurify.sanitize(
                                             cleanMarkdown(s).replace(
@@ -709,6 +712,7 @@ const CompetitiveAnalysis = () => {
                                   <li
                                     key={s}
                                     className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"
+                                    // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                                     dangerouslySetInnerHTML={{
                                       __html: DOMPurify.sanitize(
                                         cleanMarkdown(s).replace(

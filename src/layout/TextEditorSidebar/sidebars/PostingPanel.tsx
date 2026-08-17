@@ -255,12 +255,13 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
               ) : (
                 <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-[10px] text-amber-900 font-bold leading-relaxed">
                   No distribution nodes connected.{" "}
-                  <span
+                  <button
+                    type="button"
                     className="underline cursor-pointer hover:text-amber-600"
                     onClick={() => navigate("/plugins")}
                   >
                     Establish connection
-                  </span>
+                  </button>
                   .
                 </div>
               )}

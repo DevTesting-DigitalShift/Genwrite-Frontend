@@ -193,6 +193,7 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
               </div>
               <div
                 className="diff-pane flex-1"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(oldHtml) }}
               />
             </div>
@@ -206,6 +207,7 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
               </div>
               <div
                 className="diff-pane flex-1"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newHtml) }}
               />
             </div>

@@ -52,7 +52,7 @@ const BrandVoice = () => {
     user?.subscription?.status === "unpaid"
 
   const { brand: brandVoiceMutations } = useEntityMutations()
-  const { isReadOnlyWorkspace } = useReadOnlyGuard()
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
   const { data: brands = NO_BRANDS, isLoading } = brandsQuery.useList()
 
@@ -494,6 +494,16 @@ const BrandVoice = () => {
           Define your brand's unique tone and style to ensure consistent content creation.
         </p>
 
+        {isReadOnlyWorkspace && (
+          <div className="mb-4 sm:mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {readOnlyMessage}
+          </div>
+        )}
+
+        {/* `display: contents` keeps the fieldset out of the layout while its disabled
+            attribute still cascades to every input inside it — one guard instead of
+            threading `disabled` through a dozen fields. */}
+        <fieldset disabled={isReadOnlyWorkspace} className="contents">
         <div className="space-y-4 sm:space-y-6">
           <div>
             <label htmlFor="postLink" className="text-sm font-medium  flex gap-2 mb-1">
@@ -787,7 +797,8 @@ const BrandVoice = () => {
               type="button"
               className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-2 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[11px] sm:text-base flex-1 sm:flex-none"
               onClick={handleSave}
-              disabled={isUploading || showTrialMessage}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+              disabled={isUploading || showTrialMessage || isReadOnlyWorkspace}
             >
               {isUploading ? (
                 <span className="flex items-center justify-center gap-1 sm:gap-2">
@@ -811,6 +822,7 @@ const BrandVoice = () => {
             </button>
           </div>
         </div>
+        </fieldset>
       </motion.div>
 
       <motion.div
@@ -848,6 +860,7 @@ const BrandVoice = () => {
                 logoUrl={item.logoUrl}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
+                readOnly={isReadOnlyWorkspace}
                 onEdit={(e) => {
                   e.stopPropagation()
                   handleEdit(item)

@@ -346,7 +346,8 @@ const TemplateModal = ({
                     </span>
                   ))}
                   {formData.keywords.length > 18 && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
@@ -355,7 +356,7 @@ const TemplateModal = ({
                       ) : (
                         <>+{formData.keywords.length - 18} more</>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
                 {errors.keywords && formData.keywords.length === 0 && (

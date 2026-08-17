@@ -51,13 +51,13 @@ const SmallBottomBox = ({ id }) => {
     <>
       <div className="mt-1 ml-auto flex items-end">
         <div className="dropdown dropdown-end">
-          <div
-            tabIndex={0}
-            role="button"
+          <button
+            type="button"
+            aria-label="More actions"
             className={`btn btn-sm btn-ghost border border-gray-300 hover:bg-gray-100 ${isRetrying ? "loading" : ""}`}
           >
             {!isRetrying && <Menu size={16} />}
-          </div>
+          </button>
           <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-52">
             <li>
               <button

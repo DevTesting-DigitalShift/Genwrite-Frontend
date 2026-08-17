@@ -122,8 +122,9 @@ const LoadingScreen = ({
               </div>
             </div>
 
-            {/* Logo Text */}
-            <h1 className="logo-text" aria-hidden="true">
+            {/* Logo Text — decorative per-letter animation, hidden from assistive tech,
+                so it carries no heading semantics. */}
+            <div className="logo-text" aria-hidden="true">
               <span className="letter" style={{ animationDelay: "0s" }}>
                 g
               </span>
@@ -151,7 +152,7 @@ const LoadingScreen = ({
               <span className="logo-dot" style={{ animationDelay: "0.8s" }}>
                 .
               </span>
-            </h1>
+            </div>
           </div>
         </div>
 

@@ -149,8 +149,10 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
   return (
     <>
       <div className="relative group mb-4">
-        <div
-          className="cursor-pointer relative"
+        <button
+          type="button"
+          aria-label={`Edit image ${imageIndex + 1} of ${totalImages}`}
+          className="cursor-pointer relative block w-full"
           onClick={() => {
             setAltText(image.alt || "")
             setImageUrl(image.src || "")
@@ -163,16 +165,16 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
             className="w-full h-auto object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
           />
           {/* Overlay hint on hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+          <span className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
             <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium  shadow">
               Click to edit image
             </span>
-          </div>
+          </span>
           {/* Image index badge */}
-          <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+          <span className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
             Image {imageIndex + 1} of {totalImages}
-          </div>
-        </div>
+          </span>
+        </button>
       </div>
 
       {/* Edit Image Modal */}

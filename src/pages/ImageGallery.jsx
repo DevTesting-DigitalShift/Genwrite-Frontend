@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Fragment } from "react"
 import {
   Image as ImageIcon,
   X,
@@ -496,10 +496,25 @@ const ImageGallery = () => {
           {/* Masonry Grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {images.map((image, _index) => (
+              // Fragment only exists so the suppression below can sit in JSX-child
+              // position, which is the only place Biome honours it.
+              <Fragment key={image._id}>
+              {/* The card holds its own action buttons (copy, enhance, delete) and a
+                  <button> may not nest interactive content, so role + tabIndex + onKeyDown
+                  stand in for it and give equivalent keyboard access. */}
+              {/* biome-ignore lint/a11y/useSemanticElements: see comment above */}
               <div
-                key={image._id}
+                role="button"
+                tabIndex={0}
+                aria-label={image.description || "Open image"}
                 className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
                 onClick={() => handleImageClick(image)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleImageClick(image)
+                  }
+                }}
               >
                 <img
                   src={image.url}
@@ -544,6 +559,7 @@ const ImageGallery = () => {
                   </div>
                 </div>
               </div>
+              </Fragment>
             ))}
           </div>
 
@@ -836,19 +852,21 @@ const ImageGallery = () => {
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               Optimized Alternative Text
                             </span>
-                            <div
+                            <button
+                              type="button"
+                              aria-label="Copy alternative text"
                               onClick={() => {
                                 navigator.clipboard.writeText(generatedAltText)
                                 toast.success("Copied to clipboard!")
                               }}
-                              className="p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
+                              className="w-full text-left p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
                             >
                               <Copy
                                 size={14}
                                 className="absolute top-3 right-3 lg:top-4 lg:right-4 text-emerald-300 opacity-0 group-hover:opacity-100 transition-all"
                               />
                               {generatedAltText}
-                            </div>
+                            </button>
                           </div>
                         )}
                       </div>

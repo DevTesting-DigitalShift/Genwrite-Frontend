@@ -38,6 +38,7 @@ const PAGE_SIZE = 12
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [expandedRows, setExpandedRows] = useState(new Set())
 
   const toggleExpand = (id) => {
@@ -190,8 +191,9 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                       <button
                         type="button"
                         onClick={() => onToggleStatus(job)}
-                        disabled={isToggling}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                        disabled={isToggling || isReadOnlyWorkspace}
+                        title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border disabled:opacity-60 disabled:cursor-not-allowed ${
                           job.status === "active"
                             ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
                             : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
@@ -240,22 +242,28 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* Actions */}
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onEdit(job)}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(job)}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {/* Hidden outright in a read-only workspace — the pipeline
+                            belongs to the owner, not the viewer */}
+                        {!isReadOnlyWorkspace && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onEdit(job)}
+                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDelete(job)}
+                              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

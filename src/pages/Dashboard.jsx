@@ -64,6 +64,10 @@ const Dashboard = () => {
 
   const handleTopicSubmit = async (e) => {
     e.preventDefault()
+    if (isReadOnlyWorkspace) {
+      toast.error(readOnlyMessage)
+      return
+    }
     if (!topic.trim()) {
       toast.error("Please enter a blog topic.")
       return
@@ -307,15 +311,21 @@ const Dashboard = () => {
                     type="text"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    disabled={isGenerating}
-                    placeholder="Enter blog topic (e.g., '10 Best SEO Practices for 2026')..."
+                    disabled={isGenerating || isReadOnlyWorkspace}
+                    title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                    placeholder={
+                      isReadOnlyWorkspace
+                        ? "Blog creation is unavailable in a read-only workspace"
+                        : "Enter blog topic (e.g., '10 Best SEO Practices for 2026')..."
+                    }
                     className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl text-sm focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10 dark:focus:ring-indigo-400/10 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 font-medium transition-all shadow-xs"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isGenerating}
+                  disabled={isGenerating || isReadOnlyWorkspace}
+                  title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-98 transition-all flex items-center justify-center gap-2 min-w-[140px] disabled:opacity-50 disabled:pointer-events-none cursor-pointer sm:shrink-0"
                 >
                   {isGenerating ? (
@@ -512,9 +522,10 @@ const Dashboard = () => {
                       <ToolCard
                         key={tool.id}
                         item={tool}
-                        // Navigation-only tools stay usable — they just view data. Anything
-                        // that opens a creation modal is a write and is locked.
-                        disabled={isReadOnlyWorkspace && tool.type === "modal"}
+                        // Every tool is locked, not just the creation modals: the
+                        // navigation-only ones land on pages that generate content and
+                        // spend the owner's credits, so they're no safer to open.
+                        disabled={isReadOnlyWorkspace}
                         disabledReason={readOnlyMessage}
                         onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey)}
                       />

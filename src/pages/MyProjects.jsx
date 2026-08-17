@@ -356,7 +356,8 @@ const MyProjects = () => {
           </motion.p>
         </div>
         <div className="flex gap-3">
-          <div
+          <button
+            type="button"
             onClick={() => {
               handleProAction(() => {
                 navigate("/blog-editor")
@@ -366,7 +367,7 @@ const MyProjects = () => {
           >
             <Plus className="w-5 h-5" />
             New Blog
-          </div>
+          </button>
           <button
             type="button"
             onClick={() =>
@@ -397,9 +398,8 @@ const MyProjects = () => {
 
         <div className="flex flex-wrap items-center justify-center gap-3 flex-1">
           <div className="dropdown dropdown-bottom dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
+            <button
+              type="button"
               className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.sort !== SORT_OPTIONS[0].value
                   ? "border-blue-300 bg-blue-50/50 text-blue-600 ring-4 ring-blue-500/10"
@@ -410,7 +410,7 @@ const MyProjects = () => {
               <span className="font-bold">
                 Sort: {menuOptions.find((t) => t.value === blogFilters.sort).label}
               </span>
-            </div>
+            </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {menuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
@@ -428,9 +428,8 @@ const MyProjects = () => {
           </div>
 
           <div className="dropdown dropdown-bottom dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
+            <button
+              type="button"
               className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.status !== BLOG_STATUS.ALL
                   ? "border-emerald-300 bg-emerald-50/50 text-emerald-600 ring-4 ring-emerald-500/10"
@@ -441,7 +440,7 @@ const MyProjects = () => {
               <span className="font-bold">
                 Filter: {funnelMenuOptions.find((t) => t.value === blogFilters.status).label}
               </span>
-            </div>
+            </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {funnelMenuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>

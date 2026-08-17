@@ -353,7 +353,13 @@ const BlogCard: React.FC<BlogCardProps> = ({
     onRestore?.(initialBlog._id)
   }
 
-  const handleCardClick = () => {
+  const handleCardClick = (e?: { target?: unknown }) => {
+    // Ignore activations that originated in the action-button cluster. Previously that
+    // cluster stopped mouse propagation, but keyboard activation of those buttons still
+    // bubbled up and opened the blog as well.
+    const target = e?.target as HTMLElement | undefined
+    if (target?.closest?.("[data-card-actions]")) return
+
     if (!isRunning) {
       if (isManualEditor) {
         onManualBlogClick(initialBlog)
@@ -365,9 +371,20 @@ const BlogCard: React.FC<BlogCardProps> = ({
 
   return (
     <div className="flex flex-col">
+      {/* biome-ignore lint/a11y/useSemanticElements: this card contains its own action
+          buttons, and a <button> may not legally nest interactive content. role="button"
+          plus tabIndex and a key handler give the same keyboard behaviour. */}
       <div
+        role="button"
+        tabIndex={0}
         className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-90 h-full relative overflow-hidden`}
         onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            handleCardClick(e)
+          }
+        }}
       >
         {/* Header: Model + Action Buttons */}
         <div className="flex justify-between items-start mb-5">
@@ -387,7 +404,9 @@ const BlogCard: React.FC<BlogCardProps> = ({
           </div>
 
           {/* Direct action buttons */}
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {/* handleCardClick skips anything inside this marker, so no propagation guard
+              is needed — and unlike stopPropagation it also covers keyboard activation. */}
+          <div className="flex items-center gap-1" data-card-actions>
             {status === "failed" && !isTrashcan && (
               <button
                 type="button"

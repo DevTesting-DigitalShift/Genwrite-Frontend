@@ -236,23 +236,28 @@ const ChatWithPdf = () => {
                           accept=".pdf"
                           className="hidden"
                         />
-                        <div
+                        <button
+                          type="button"
                           onClick={() => fileInputRef.current?.click()}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
-                          className={`border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
+                          className={`w-full border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
                             isDragging
                               ? "bg-indigo-50 border-indigo-500 shadow-inner scale-[1.01]"
                               : "bg-slate-50/50 border-slate-200 group-hover:bg-indigo-50/30 group-hover:border-indigo-400"
                           }`}
                         >
-                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
+                          <span className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
                             <Upload className="w-6 h-6" />
-                          </div>
-                          <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
-                          <p className="text-slate-400 text-sm">or drag and drop here</p>
-                        </div>
+                          </span>
+                          <span className="block text-indigo-600 font-medium mb-2">
+                            Click to browse
+                          </span>
+                          <span className="block text-slate-400 text-sm">
+                            or drag and drop here
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -8,21 +8,17 @@ import {
   Crown,
   FileText,
   HelpCircle,
-  History,
   LayoutDashboard,
-  LogOut,
   Megaphone,
   Menu,
   Plug,
   Sparkles,
   Trash2,
   TrendingUp,
-  User,
-  Users,
   UsersRound,
   Zap,
 } from "lucide-react"
-import { RiCashFill, RiCoinsFill } from "react-icons/ri"
+import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { getSocket } from "@utils/socket"
@@ -30,8 +26,7 @@ import WhatsNewModal from "./dashboardModals/HowToModel"
 import ScheduleDemoButton from "@components/ScheduleDemoBtn"
 import useViewport from "@/hooks/useViewport"
 import { useProAction } from "@/hooks/useProAction"
-import HeaderAccountSwitcher from "@components/HeaderAccountSwitcher"
-import WorkspaceBadge from "@components/WorkspaceBadge"
+import HeaderAccountMenu from "@components/HeaderAccountMenu"
 import SignOutDialog from "@components/SignOutDialog"
 import { useSessions } from "@/hooks/useSessions"
 
@@ -236,7 +231,11 @@ const SideBar_Header = () => {
     >
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
-      <div
+      {/* <aside> rather than <div>: it is a complementary landmark, which is both the
+          correct semantics for a sidebar and what lets it carry the hover handlers.
+          onFocus/onBlur mirror the hover behaviour so keyboard users tabbing into the
+          nav get the expanded sidebar too, not just mouse users. */}
+      <aside
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-full z-30 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
           sidebarOpen ? "w-64" : "hidden md:w-20 md:flex"
@@ -244,6 +243,12 @@ const SideBar_Header = () => {
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => {
           if (window.innerWidth >= 768) setSidebarOpen(false)
+        }}
+        onFocus={() => setSidebarOpen(true)}
+        onBlur={(e) => {
+          if (window.innerWidth >= 768 && !e.currentTarget.contains(e.relatedTarget)) {
+            setSidebarOpen(false)
+          }
         }}
       >
         {/* Logo Header */}
@@ -373,7 +378,7 @@ const SideBar_Header = () => {
             {sidebarOpen && <span className="text-sm font-medium">Contact Us</span>}
           </NavLink>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 md:ml-20">
@@ -390,13 +395,13 @@ const SideBar_Header = () => {
               <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
             </a>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2">
             {/* Schedule Demo - Hidden on mobile, shown on tablet/desktop */}
             <ScheduleDemoButton
               calLink="genwrite/30min"
               buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
               variant="linear"
-              size="large"
+              size="middle"
               tooltipText="Schedule a free consultation"
               showIcon={isDesktop}
               hideOnMobile={true}
@@ -404,124 +409,46 @@ const SideBar_Header = () => {
             {user?.subscription?.plan !== "enterprise" && <GoProButton />}
             {isUserLoaded ? (
               <>
-                <div className="hidden md:flex tooltip tooltip-bottom" data-tip="User Credits">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/credit-logs")}
-                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition text-black"
-                  >
-                    <RiCoinsFill size={24} color="orange" />
-                    <span className="font-semibold text-base">
-                      {user?.credits?.base + user?.credits?.extra || 0}
-                    </span>
-                  </button>
-                </div>
-                <WorkspaceBadge />
-                <HeaderAccountSwitcher />
-                <NotificationDropdown notifications={user?.notifications} />
-                <div
-                  className="hidden md:flex tooltip tooltip-bottom"
-                  data-tip="Introduction Video"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setShowWhatsNew(true)}
-                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
-                    data-tour="help-icon"
-                  >
-                    <HelpCircle className="transition-all duration-300 w-7 h-7 " />
-                  </button>
-                </div>
-                <div className="dropdown dropdown-end relative">
-                  <div tabIndex={0} role="button" className="avatar cursor-pointer ml-5 mr-5">
-                    <div className="w-12 h-12 rounded-full bg-primary text-white font-bold flex items-center justify-center overflow-hidden shadow-none border-2 border-primary/20">
-                      {user?.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt="avatar"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xl">
-                          {user?.name?.[0]?.toUpperCase() || <User size={20} />}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ul className="dropdown-content right-0 z-50 menu p-3 shadow-xl bg-white rounded-xl w-64 mt-2 border border-gray-200">
-                    <li className="menu-title px-4 py-2 border-b border-gray-100">
-                      <span className="font-semibold text-gray-900 text-lg truncate leading-tight block">
-                        {user?.name}
+                {/* Utility cluster: one size, one shape, no labels competing for attention */}
+                <div className="flex items-center gap-1 md:pl-2 md:border-l md:border-gray-200">
+                  <div className="hidden md:flex tooltip tooltip-bottom" data-tip="Credits">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/credit-logs")}
+                      className="flex h-10 items-center gap-1.5 rounded-full px-2.5 hover:bg-gray-100 transition-colors text-gray-800"
+                    >
+                      <RiCoinsFill size={18} color="orange" />
+                      <span className="font-semibold text-sm">
+                        {user?.credits?.base + user?.credits?.extra || 0}
                       </span>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/profile")}
-                        className="text-sm font-medium py-2! px-4! hover:bg-blue-50! rounded-lg flex items-center gap-2"
-                      >
-                        <User className="w-4 h-4 text-blue-500" /> Profile
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/transactions")}
-                        className="text-sm font-medium py-2! px-4! hover:bg-purple-50! rounded-lg flex items-center gap-2"
-                      >
-                        <RiCashFill className="w-4 h-4 text-purple-500" /> Subscription &
-                        Transactions
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/credit-logs")}
-                        className="text-sm font-medium py-2! px-4! hover:bg-orange-50! rounded-lg flex items-center gap-2"
-                      >
-                        <History className="w-4 h-4 text-orange-500" /> Credit History
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/pricing")}
-                        className="text-sm font-medium py-2! px-4! hover:bg-amber-50! rounded-lg flex items-center gap-2"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-500" /> Upgrade Plan
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/collaboration")}
-                        className="text-sm font-medium py-2! px-4! hover:bg-teal-50! rounded-lg flex items-center gap-2"
-                      >
-                        <Users className="w-4 h-4 text-teal-500" /> Collaboration
-                      </button>
-                    </li>
-                    <div className="divider my-1"></div>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => setSignOutOpen(true)}
-                        className="text-sm font-medium text-red-600 py-2! px-4! hover:bg-red-50! rounded-lg flex items-center gap-2"
-                      >
-                        <LogOut className="w-4 h-4" /> Sign Out
-                      </button>
-                    </li>
-                  </ul>
+                    </button>
+                  </div>
+                  <NotificationDropdown notifications={user?.notifications} />
+                  <div
+                    className="hidden md:flex tooltip tooltip-bottom"
+                    data-tip="Introduction Video"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowWhatsNew(true)}
+                      className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+                      data-tour="help-icon"
+                    >
+                      <HelpCircle className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* One identity control: account, workspace, and account-scoped links */}
+                <HeaderAccountMenu onSignOut={() => setSignOutOpen(true)} />
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <RxAvatar size={30} />
                 <div className="dropdown dropdown-end">
-                  <div tabIndex={0} role="button" className=" text-sm cursor-pointer">
+                  <button type="button" className=" text-sm cursor-pointer">
                     UserName
-                  </div>
+                  </button>
                   <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2">
                     <li>
                       <button

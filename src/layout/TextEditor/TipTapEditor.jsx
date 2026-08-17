@@ -1101,15 +1101,18 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
               <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(10, 1fr)" }}>
                 {Array.from({ length: 10 }, (_, rowIndex) =>
                   Array.from({ length: 10 }, (_, colIndex) => (
-                    <div
+                    <button
+                      type="button"
                       // biome-ignore lint/suspicious/noArrayIndexKey: fixed 10x10 grid picker, cell N,M is always position N,M
                       key={`${rowIndex}-${colIndex}`}
+                      aria-label={`Insert ${rowIndex + 1} by ${colIndex + 1} table`}
                       className={`w-5 h-5 border border-gray-300 cursor-pointer text-black ${
                         rowIndex < hoveredCell.row && colIndex < hoveredCell.col
                           ? "bg-blue-500 border-blue-600"
                           : "bg-white hover:bg-blue-100"
                       }`}
                       onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
+                      onFocus={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
                       onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
                     />
                   ))
@@ -1376,7 +1379,12 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setLinkModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setLinkModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1419,7 +1427,12 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setYtModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setYtModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1851,7 +1864,12 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
               </div>
             )}
           </div>
-          <div className="modal-backdrop" onClick={() => setEditModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setEditModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1961,6 +1979,10 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
         createPortal(
           <div
             ref={previewRef}
+            // Hover-only link preview: the mouse handlers keep it open while the pointer
+            // is over it, they are not an activation affordance. role="tooltip" states
+            // that, and is what the rule wants instead of a bare interactive <div>.
+            role="tooltip"
             className="fixed z-10000 pointer-events-none"
             style={{ top: `${linkPreviewPos.top}px`, left: `${linkPreviewPos.left}px` }}
             onMouseEnter={() => {

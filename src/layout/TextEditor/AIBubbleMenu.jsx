@@ -188,6 +188,10 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children })
       {showMenu && !aiResultModalOpen && (
         <div
           ref={menuRef}
+          // A toolbar of buttons. The mousedown handler only stops the editor selection
+          // being lost on click — it is not an activation affordance of its own.
+          role="toolbar"
+          aria-label="AI text actions"
           className="fixed z-9999 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
           style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
           onMouseDown={(e) => e.preventDefault()}

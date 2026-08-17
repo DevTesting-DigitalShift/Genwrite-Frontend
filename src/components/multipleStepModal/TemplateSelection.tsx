@@ -177,22 +177,24 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
         {templates.length ? (
           templates.map((pkg) => {
             return (
-              <div
+              // A real <button> rather than role="button": it gets Space/Enter activation
+              // and focus handling for free. Inner nodes are spans because <button> only
+              // admits phrasing content — divs/headings inside it are invalid HTML.
+              <button
+                type="button"
                 key={pkg.id}
                 className={clsx(
-                  "relative cursor-pointer transition-all rounded-lg duration-200 border-2",
+                  "relative block w-full text-left cursor-pointer transition-all rounded-lg duration-200 border-2",
                   selectedIds.includes(pkg.id)
                     ? "border-blue-500"
                     : "border-transparent hover:border-gray-200"
                 )}
                 onClick={() => handlePackageSelect(pkg.id)}
-                onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(pkg.id)}
-                role="button"
-                tabIndex={0}
+                aria-pressed={selectedIds.includes(pkg.id)}
                 aria-label={`Select ${pkg.name} template`}
               >
-                <div className="bg-white rounded-md overflow-hidden shadow-sm h-full border border-gray-300">
-                  <div className="relative">
+                <span className="block bg-white rounded-md overflow-hidden shadow-sm h-full border border-gray-300">
+                  <span className="block relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
                       alt={pkg.name}
@@ -200,17 +202,21 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                       className="w-full h-full object-cover"
                     />
                     {pkg.paid && (
-                      <div className="absolute top-2 right-2 bg-white/80 rounded-full p-1 backdrop-blur-sm">
+                      <span className="absolute top-2 right-2 bg-white/80 rounded-full p-1 backdrop-blur-sm">
                         <Crown size={16} className="text-purple-600" aria-label="Pro feature" />
-                      </div>
+                      </span>
                     )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                    <p className="text-xs text-gray-500 line-clamp-2">{pkg.description}</p>
-                  </div>
-                </div>
-              </div>
+                  </span>
+                  <span className="block p-3">
+                    <span className="block font-medium text-gray-900 text-base mb-1">
+                      {pkg.name}
+                    </span>
+                    <span className="block text-xs text-gray-500 line-clamp-2">
+                      {pkg.description}
+                    </span>
+                  </span>
+                </span>
+              </button>
             )
           })
         ) : (

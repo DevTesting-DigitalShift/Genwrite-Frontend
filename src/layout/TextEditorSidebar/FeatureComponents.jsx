@@ -204,13 +204,14 @@ const AnalysisInsights = ({ insights }) => {
                     )}
                   </p>
                 </div>
-                <p
-                  className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
+                <button
+                  type="button"
+                  className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none text-left"
                   onClick={() => toggleExpanded(index)}
                 >
                   {displayText}
                   {shouldTruncate && <span className="text-blue-500 ml-1">(more)</span>}
-                </p>
+                </button>
               </div>
             </div>
           </motion.div>

@@ -21,12 +21,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 const MainEditorPage = () => {
   const { id } = useParams()
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
+  // Watching someone else's workspace: the blog is theirs, so this page is a reader.
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
   // Zustand Stores
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
@@ -408,6 +411,7 @@ const MainEditorPage = () => {
   }
 
   const handleTitleChange = (e) => {
+    if (isReadOnlyWorkspace) return
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -457,8 +461,10 @@ const MainEditorPage = () => {
       {/* Unsaved Changes Confirmation Modal */}
       {blocker.state === "blocked" && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          <button
+            type="button"
+            aria-label="Cancel"
+            className="absolute inset-0 w-full h-full bg-slate-900/60 backdrop-blur-sm"
             onClick={() => blocker.reset()}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm mx-4">
@@ -619,6 +625,7 @@ const MainEditorPage = () => {
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <button
                     type="button"
+                    disabled={isReadOnlyWorkspace}
                     onClick={async () => {
                       try {
                         const newVisibility = !blog.isPublic
@@ -634,7 +641,7 @@ const MainEditorPage = () => {
                         toast.error("Failed to update visibility")
                       }
                     }}
-                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                   >
                     {blog?.isPublic ? (
                       <>
@@ -667,9 +674,11 @@ const MainEditorPage = () => {
                   <button
                     type="button"
                     onClick={() => handleSave({ metadata })}
+                    title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
                       blog?.isArchived ||
+                      isReadOnlyWorkspace ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -679,6 +688,7 @@ const MainEditorPage = () => {
                     disabled={
                       isSaving ||
                       blog?.isArchived ||
+                      isReadOnlyWorkspace ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -709,6 +719,7 @@ const MainEditorPage = () => {
                         e.target.style.height = e.target.scrollHeight + "px"
                       }}
                       placeholder="Enter your blog title..."
+                      readOnly={isReadOnlyWorkspace}
                       rows={1}
                       className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full overflow-hidden leading-tight bg-transparent ${
                         getWordCount(editorTitle) > 60 ? "text-red-600" : ""
@@ -751,6 +762,9 @@ const MainEditorPage = () => {
                   handleAcceptOriginalContent={handleAcceptOriginalContent}
                   wordpressMetadata={metadata}
                   onReplaceReady={handleReplaceReady}
+                  // Same viewer treatment the public reader gets: content is selectable
+                  // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                  isPublicMode={isReadOnlyWorkspace}
                 />
               )}
             </div>

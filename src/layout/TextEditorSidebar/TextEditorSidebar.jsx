@@ -45,6 +45,7 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { fetchCategories, generateMetadata } from "@api/otherApi"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
@@ -209,6 +210,13 @@ const TextEditorSidebar = ({
   setEditorContent,
   isPublicMode = false,
 }) => {
+  // Two flavours of view-only. `isPublicMode` (the public blog reader) keeps controls
+  // visible but locked, because the reader may still sign in and get them. A read-only
+  // *workspace* removes them outright: a collaborator watching someone else's workspace
+  // can do nothing to unlock a write from here, so a disabled button is just noise.
+  const { isReadOnlyWorkspace } = useReadOnlyGuard()
+  const isLocked = isPublicMode || isReadOnlyWorkspace
+
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
@@ -1641,21 +1649,23 @@ const TextEditorSidebar = ({
           <ScoreCard title="SEO Potential" score={seoScore} icon={TrendingUp} />
         </div>
 
-        {/* Optimization Card */}
-        <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
-            <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
-          </div>
-          <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
-            Run our advanced competitive analysis to uncover keyword opportunities and improve
-            rankings.
-          </p>
-          <button
-            type="button"
-            onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive || isPublicMode}
-            className={`
+        {/* Optimization Card — spends the owner's credits, so it's gone entirely for
+            read-only collaborators rather than shown disabled. */}
+        {!isReadOnlyWorkspace && (
+          <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+              <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
+              Run our advanced competitive analysis to uncover keyword opportunities and improve
+              rankings.
+            </p>
+            <button
+              type="button"
+              onClick={handleAnalyzing}
+              disabled={isAnalyzingCompetitive || isPublicMode}
+              className={`
               w-full py-3 px-4 rounded-md text-xs font-bold transition-all
               ${
                 isAnalyzingCompetitive || isPublicMode
@@ -1663,14 +1673,15 @@ const TextEditorSidebar = ({
                   : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
               }
             `}
-          >
-            {isPublicMode
-              ? "Analysis Locked"
-              : isAnalyzingCompetitive
-                ? "Analyzing Content..."
-                : "Run Analysis (10 Credits)"}
-          </button>
-        </div>
+            >
+              {isPublicMode
+                ? "Analysis Locked"
+                : isAnalyzingCompetitive
+                  ? "Analyzing Content..."
+                  : "Run Analysis (10 Credits)"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1814,18 +1825,20 @@ const TextEditorSidebar = ({
               <Sparkles className="w-4 h-4 text-blue-600" />
               SEO Metadata
             </span>
-            <button
-              type="button"
-              onClick={handleMetadataGen}
-              disabled={blog?.isArchived || isPublicMode}
-              className={`text-xs font-medium flex items-center gap-1 ${
-                blog?.isArchived || isPublicMode
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:text-blue-700 hover:underline"
-              }`}
-            >
-              <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
-            </button>
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={handleMetadataGen}
+                disabled={blog?.isArchived || isPublicMode}
+                className={`text-xs font-medium flex items-center gap-1 ${
+                  blog?.isArchived || isPublicMode
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700 hover:underline"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
+              </button>
+            )}
           </div>
           <div className="space-y-3">
             <input
@@ -1833,7 +1846,7 @@ const TextEditorSidebar = ({
               value={metadata.title}
               onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
-              disabled={isPublicMode}
+              disabled={isLocked}
               className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
             />
             <textarea
@@ -1841,22 +1854,25 @@ const TextEditorSidebar = ({
               onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              disabled={isPublicMode}
+              disabled={isLocked}
               className="textarea textarea-bordered w-full text-sm resize-none disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>
-          <button
-            type="button"
-            onClick={handleMetadataSave}
-            disabled={blog?.isArchived || isPublicMode}
-            className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
-              blog?.isArchived || isPublicMode
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
-            }`}
-          >
-            {isPublicMode ? "Metadata Locked" : "Save Metadata"}
-          </button>
+          {/* Nothing to save when the fields above can't be edited */}
+          {!isReadOnlyWorkspace && (
+            <button
+              type="button"
+              onClick={handleMetadataSave}
+              disabled={blog?.isArchived || isPublicMode}
+              className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
+                blog?.isArchived || isPublicMode
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+              }`}
+            >
+              {isPublicMode ? "Metadata Locked" : "Save Metadata"}
+            </button>
+          )}
         </div>
 
         {/* Export Section */}
@@ -1980,12 +1996,13 @@ const TextEditorSidebar = ({
               <span>HTML</span>
             </button>
 
-            {/* PDF */}
-            <button
-              type="button"
-              onClick={handlePdfExport}
-              disabled={userPlan === "free"}
-              className={`
+            {/* PDF — withheld from read-only collaborators */}
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={handlePdfExport}
+                disabled={userPlan === "free"}
+                className={`
       group flex flex-col items-center justify-center gap-2
       py-4 px-3
       rounded-xl text-sm font-semibold
@@ -2002,15 +2019,16 @@ const TextEditorSidebar = ({
           `
       }
     `}
-            >
-              <Download
-                className={`
+              >
+                <Download
+                  className={`
         w-6 h-6
         ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
       `}
-              />
-              <span>PDF</span>
-            </button>
+                />
+                <span>PDF</span>
+              </button>
+            )}
           </div>
 
           {userPlan === "free" && (
@@ -2138,7 +2156,7 @@ const TextEditorSidebar = ({
         <div className="p-3 bg-white border border-gray-300 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-gray-500">Blog Slug</div>
-            {!hasPublishedLinks && (
+            {!hasPublishedLinks && !isReadOnlyWorkspace && (
               <button
                 type="button"
                 onClick={() => {
@@ -2484,8 +2502,10 @@ const TextEditorSidebar = ({
               </div>
             ) : (
               availableSections.map((section) => (
-                <div
+                <button
+                  type="button"
                   key={section.id}
+                  aria-pressed={sectionToolState.sectionId === section.id}
                   onClick={() => {
                     if (blog?.isArchived) {
                       toast.error(
@@ -2500,7 +2520,7 @@ const TextEditorSidebar = ({
                     )
                   }}
                   className={`
-                            group relative p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
+                            group relative block w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
                             ${
                               sectionToolState.sectionId === section.id
                                 ? "bg-primary/10 border-primary/40 shadow-none ring-1 ring-primary/20"
@@ -2510,26 +2530,27 @@ const TextEditorSidebar = ({
                             }
                         `}
                 >
-                  <h4
-                    className={`text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
+                  {/* spans, not h4/p — <button> admits only phrasing content */}
+                  <span
+                    className={`block text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
                   >
                     {section.title}
-                  </h4>
-                  <p
-                    className={`text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
+                  </span>
+                  <span
+                    className={`block text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
                   >
                     {section.preview || "No content preview available..."}
-                  </p>
+                  </span>
 
                   {sectionToolState.sectionId === section.id && (
-                    <div className="absolute top-3 right-3">
+                    <span className="absolute top-3 right-3">
                       <span className="flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                       </span>
-                    </div>
+                    </span>
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -2564,11 +2585,13 @@ const TextEditorSidebar = ({
                 desc: "Give your own instructions",
               },
             ].map((task) => (
-              <div
+              <button
+                type="button"
                 key={task.id}
+                aria-pressed={sectionToolState.task === task.id}
                 onClick={() => setSectionToolState((prev) => ({ ...prev, task: task.id }))}
                 className={`
-                            relative p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
+                            relative w-full text-left p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
                             ${
                               sectionToolState.task === task.id
                                 ? "bg-blue-50 border-blue-200 shadow-sm"
@@ -2576,28 +2599,28 @@ const TextEditorSidebar = ({
                             }
                         `}
               >
-                <div
+                <span
                   className={`
                             p-2 rounded-full
                             ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
                         `}
                 >
                   <task.icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <div
-                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
+                </span>
+                <span>
+                  <span
+                    className={`block text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
                   >
                     {task.label}
-                  </div>
-                  <div className="text-[10px] text-gray-400">{task.desc}</div>
-                </div>
+                  </span>
+                  <span className="block text-[10px] text-gray-400">{task.desc}</span>
+                </span>
                 {sectionToolState.task === task.id && (
-                  <div className="absolute top-3 right-3 text-blue-500">
+                  <span className="absolute top-3 right-3 text-blue-500">
                     <CheckCircle className="w-4 h-4 fill-blue-100" />
-                  </div>
+                  </span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -2636,7 +2659,7 @@ const TextEditorSidebar = ({
             disabled={
               isProcessingSection ||
               blog?.isArchived ||
-              isPublicMode ||
+              isLocked ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
@@ -2847,12 +2870,13 @@ const TextEditorSidebar = ({
               ) : (
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
                   No platforms connected.{" "}
-                  <span
+                  <button
+                    type="button"
                     className="font-bold cursor-pointer underline"
                     onClick={() => navigate("/plugins")}
                   >
                     Connect now
-                  </span>
+                  </button>
                   .
                 </div>
               )}
@@ -2925,9 +2949,9 @@ const TextEditorSidebar = ({
         <button
           type="button"
           onClick={handlePostClick}
-          disabled={isPosting || blog?.isArchived || isPublicMode}
+          disabled={isPosting || blog?.isArchived || isLocked}
           className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
-            isPosting || blog?.isArchived || isPublicMode
+            isPosting || blog?.isArchived || isLocked
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
               : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
           }`}
@@ -2984,7 +3008,7 @@ const TextEditorSidebar = ({
         </div>
         <div className="flex flex-col items-center gap-4 py-6">
           {NAV_ITEMS.filter(
-            (item) => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+            (item) => !isLocked || !["regenerate", "sectionTools", "posting"].includes(item.id)
           ).map((item) => {
             const isActive = activePanel === item.id
             const Icon = item.icon
@@ -3059,8 +3083,7 @@ const TextEditorSidebar = ({
           </div>
           <div className="flex flex-col gap-3 mt-5">
             {NAV_ITEMS.filter(
-              (item) =>
-                !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+              (item) => !isLocked || !["regenerate", "sectionTools", "posting"].includes(item.id)
             ).map((item) => {
               const Icon = item.icon
               const isActive = activePanel === item.id
@@ -3076,7 +3099,7 @@ const TextEditorSidebar = ({
                         return
                       }
                       if (item.id === "regenerate") {
-                        if (isPublicMode) {
+                        if (isLocked) {
                           toast.error("Regeneration is unavailable in read-only mode.")
                           return
                         }
@@ -3146,7 +3169,12 @@ const TextEditorSidebar = ({
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setChoosePlatformOpen(false)}></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={() => setChoosePlatformOpen(false)}
+        />
       </div>
 
       {/* Edit & Repost Modal */}
@@ -3226,7 +3254,12 @@ const TextEditorSidebar = ({
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setIsRepostModalOpen(false)}></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={() => setIsRepostModalOpen(false)}
+        />
       </div>
 
       {/* Generated Metadata Accept/Reject Modal */}
@@ -3292,7 +3325,12 @@ const TextEditorSidebar = ({
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={handleRejectMetadata}></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={handleRejectMetadata}
+        />
       </div>
 
       {/* Diff Viewer Modal */}
@@ -3344,10 +3382,12 @@ const TextEditorSidebar = ({
             />
           </div>
         </div>
-        <div
+        <button
+          type="button"
+          aria-label="Close"
           className="modal-backdrop bg-slate-900/60 backdrop-blur-md"
           onClick={() => setShowDiff(false)}
-        ></div>
+        />
       </div>
 
       {/* Regenerate Modal */}

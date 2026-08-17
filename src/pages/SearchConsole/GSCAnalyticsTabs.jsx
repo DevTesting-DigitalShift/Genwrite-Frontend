@@ -163,9 +163,13 @@ export default function GSCAnalyticsTabs({
           cell: ({ row }) => (
             <div className="flex justify-end">
               <div className="dropdown dropdown-left dropdown-end">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-xs rounded-lg">
+                <button
+                  type="button"
+                  aria-label="Row actions"
+                  className="btn btn-ghost btn-xs rounded-lg"
+                >
                   <MoreHorizontal className="size-4 text-gray-600" />
-                </div>
+                </button>
                 <ul className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100">
                   <li>
                     <a

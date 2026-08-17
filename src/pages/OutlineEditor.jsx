@@ -299,7 +299,12 @@ const OutlineEditor = () => {
       <div className="px-6">
         {isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div onClick={handleClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={handleClose}
+              className="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm"
+            />
             <div className="relative gap-2 w-full max-w-4xl bg-white rounded-md flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
@@ -546,6 +551,9 @@ const OutlineEditor = () => {
                         {brands?.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                             {brands.map((voice) => (
+                              // Selection is driven by the radio's own onChange rather than a
+                              // click handler on the label, so keyboard users get the native
+                              // radio-group behaviour (arrow keys, Space).
                               <label
                                 key={voice._id}
                                 className={`flex items-start gap-3 p-4 rounded-md cursor-pointer transition-all border ${
@@ -553,16 +561,13 @@ const OutlineEditor = () => {
                                     ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  handleBrandSelect(voice._id)
-                                }}
                               >
                                 <input
                                   type="radio"
+                                  name="outline-brand-voice"
                                   className="radio radio-primary radio-xs"
                                   checked={formData.brandId === voice._id}
-                                  readOnly
+                                  onChange={() => handleBrandSelect(voice._id)}
                                 />
                                 <div>
                                   <div className="font-bold text-slate-700 text-sm">
