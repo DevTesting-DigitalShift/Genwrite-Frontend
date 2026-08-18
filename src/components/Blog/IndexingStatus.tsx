@@ -45,6 +45,14 @@ const formatRelative = (value?: string | null): string | null => {
   return months === 1 ? "a month ago" : `${months} months ago`
 }
 
+/** "Jan 12, 2026" style label — the actual date, since "2 months ago" alone is too vague. */
+const formatAbsolute = (value?: string | null): string | null => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+}
+
 /**
  * Maps Search Console's inspection verdict to how we present it. `coverageState`
  * carries Google's own wording, which is more useful to the user than anything
@@ -129,6 +137,7 @@ const IndexingStatus: React.FC<IndexingStatusProps> = ({
   const status = resolveStatus(result)
   const StatusIcon = status.icon
   const lastCrawled = formatRelative(result?.lastCrawlTime)
+  const lastCrawledDate = formatAbsolute(result?.lastCrawlTime)
   const lastRequested = formatRelative(indexing?.lastRequestedAt)
   const requestCount = indexing?.requestCount || 0
   const isRequesting = requestIndexingMutation.isPending
@@ -173,8 +182,11 @@ const IndexingStatus: React.FC<IndexingStatusProps> = ({
         </div>
       )}
 
-      {lastCrawled && (
-        <p className="text-[10px] text-gray-400">Last crawled by Google {lastCrawled}</p>
+      {lastCrawledDate && (
+        <p className="text-[10px] text-gray-400">
+          Last crawled by Google on {lastCrawledDate}
+          {lastCrawled ? ` (${lastCrawled})` : ""}
+        </p>
       )}
 
       {canRequest && (

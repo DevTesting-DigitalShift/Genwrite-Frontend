@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { useNavigate } from "react-router-dom"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
@@ -38,7 +39,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import InsightsPanel from "./sidebars/InsightsPanel"
 import IndexingStatus from "@components/Blog/IndexingStatus"
-import { useAnalyzeBlogMutation, useApplyInsightMutation } from "@api/queries/blogQueries"
+import {
+  useAnalyzeBlogMutation,
+  useApplyInsightMutation,
+  useConfirmInsightMutation,
+  useBlogInsightQuery,
+} from "@api/queries/blogQueries"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
@@ -324,13 +330,19 @@ const TextEditorSidebar = ({
   const [showDiff, setShowDiff] = useState(false)
   const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
 
-  // Performance Insights State. There is no GET endpoint for a stored insight, and
-  // re-running the analysis costs credits, so the result is mirrored into the query
-  // cache — leaving the editor and coming back must not silently discard it.
+  // Performance Insights State. Re-running the analysis costs credits, so the
+  // last generated insight is fetched once via useBlogInsightQuery and then
+  // mirrored into local state — leaving the editor and coming back (or a full
+  // reload) restores it instead of silently discarding it.
   const [insight, setInsight] = useState(null)
   const [applyingSuggestionId, setApplyingSuggestionId] = useState(null)
+  // Set while the diff modal is open for a suggestion preview, so its Accept
+  // button knows which suggestion/republish choice to commit on confirm.
+  const [pendingSuggestion, setPendingSuggestion] = useState(null)
   const analyzeBlogMutation = useAnalyzeBlogMutation()
   const applyInsightMutation = useApplyInsightMutation()
+  const confirmInsightMutation = useConfirmInsightMutation()
+  const { data: fetchedInsight } = useBlogInsightQuery(blog?._id)
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -627,6 +639,7 @@ const TextEditorSidebar = ({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
 
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { integrations, categories, fetchIntegrations } = useIntegrationStore()
@@ -697,10 +710,11 @@ const TextEditorSidebar = ({
   }, [fetchPostings]) // Re-fetch when blog changes or when new post is made
 
   // Restore a previously generated insight for this blog, so re-opening the editor
-  // shows the analysis the user already paid for instead of an empty state.
+  // (or a full page reload) shows the analysis the user already paid for instead
+  // of an empty state.
   useEffect(() => {
-    setInsight(blog?._id ? (queryClient.getQueryData(["blogInsight", blog._id]) ?? null) : null)
-  }, [blog?._id, queryClient])
+    setInsight(blog?._id ? (fetchedInsight ?? null) : null)
+  }, [blog?._id, fetchedInsight])
 
   // Single writer for insight state — keeps the cached copy and local copy in step.
   const persistInsight = useCallback(
@@ -999,100 +1013,134 @@ const TextEditorSidebar = ({
     [blog?.isArchived, user, handlePopup, navigate]
   )
 
-  const handleAnalyzeInsights = useCallback(() => {
+  const handleAnalyzeInsights = useCallback(async () => {
     if (!blog?._id) return toast.error("Blog ID missing")
     if (!guardCreditedAction(COSTS.BLOG_INSIGHT.ANALYZE)) return
 
-    handlePopup({
-      title: "Analyze Performance",
-      description: (
-        <>
-          Review this blog's Search Console performance and generate rewrite suggestions?{" "}
-          <span className="font-bold">{COSTS.BLOG_INSIGHT.ANALYZE} credits</span>
-        </>
-      ),
-      onConfirm: async () => {
-        try {
-          const result = await analyzeBlogMutation.mutateAsync(blog._id)
-          persistInsight(result)
-          toast.success(
-            result?.suggestions?.length
-              ? `${result.suggestions.length} suggestions ready`
-              : "Analysis complete"
-          )
-        } catch {
-          // useAnalyzeBlogMutation already surfaces the error toast
-        }
-      },
-    })
-  }, [blog?._id, guardCreditedAction, handlePopup, analyzeBlogMutation, persistInsight])
+    const loadingId = showLoading("Analyzing performance and generating suggestions...")
+    try {
+      const result = await analyzeBlogMutation.mutateAsync(blog._id)
+      persistInsight(result)
+      toast.success(
+        result?.suggestions?.length
+          ? `${result.suggestions.length} suggestions ready`
+          : "Analysis complete"
+      )
+    } catch {
+      // useAnalyzeBlogMutation already surfaces the error toast
+    } finally {
+      hideLoading(loadingId)
+    }
+  }, [blog?._id, guardCreditedAction, analyzeBlogMutation, persistInsight, showLoading, hideLoading])
 
   const handleApplySuggestion = useCallback(
-    (suggestion, { scope, republish }) => {
+    async (suggestion, { scope, republish }) => {
       if (!blog?._id) return toast.error("Blog ID missing")
       if (!guardCreditedAction(COSTS.BLOG_INSIGHT.APPLY)) return
 
-      handlePopup({
-        title: scope === "whole" ? "Rewrite Whole Blog" : "Rewrite Section",
-        description: (
-          <>
-            {scope === "whole"
-              ? "This rewrites the entire blog and replaces your current content. Remaining section suggestions may no longer match afterwards."
-              : `This rewrites "${suggestion.sectionTitle || "the selected section"}" and replaces its current content.`}{" "}
-            <span className="font-bold">{COSTS.BLOG_INSIGHT.APPLY} credits</span>
-            {republish && " · will be republished to your connected platforms"}
-          </>
-        ),
-        confirmText: "Apply Fix",
-        onConfirm: async () => {
-          setApplyingSuggestionId(suggestion._id)
-          try {
-            const result = await applyInsightMutation.mutateAsync({
-              id: blog._id,
-              suggestionId: suggestion._id,
-              scope,
-              republish,
-            })
+      setApplyingSuggestionId(suggestion._id)
+      const loadingId = showLoading(
+        scope === "whole" ? "Rewriting whole blog..." : "Rewriting section..."
+      )
+      try {
+        // Generates the rewrite only — nothing is persisted yet. The blog's
+        // saved content and the suggestion's status stay untouched until the
+        // user reviews the diff below and accepts it (handleConfirmSuggestion).
+        const result = await applyInsightMutation.mutateAsync({
+          id: blog._id,
+          suggestionId: suggestion._id,
+          scope,
+        })
 
-            // Backend has already persisted the rewrite, so push it straight into
-            // the editor rather than leaving the user on stale content.
-            if (result?.content && typeof setEditorContent === "function") {
-              setEditorContent(result.content)
+        if (result?.content) {
+          if (scope === "section" && suggestion.sectionId) {
+            const parser = new DOMParser()
+            const oldDoc = parser.parseFromString(editorContent, "text/html")
+            const oldSectionEl = oldDoc.getElementById(suggestion.sectionId)
+            const newDoc = parser.parseFromString(result.content, "text/html")
+            const newSectionEl = newDoc.getElementById(suggestion.sectionId)
+
+            if (oldSectionEl && newSectionEl) {
+              setDiffData({
+                old: oldSectionEl.outerHTML,
+                new: newSectionEl.outerHTML,
+                full: result.content,
+              })
+            } else {
+              setDiffData({ old: editorContent, new: result.content, full: result.content })
             }
-
-            persistInsight((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    suggestions: prev.suggestions.map((s) =>
-                      s._id === suggestion._id ? { ...s, status: "applied" } : s
-                    ),
-                  }
-                : prev
-            )
-
-            if (republish || result?.repost) await fetchPostings()
-            toast.success(
-              result?.repost ? "Applied and republished!" : "Suggestion applied to your content"
-            )
-          } catch {
-            // useApplyInsightMutation already surfaces the error toast
-          } finally {
-            setApplyingSuggestionId(null)
+          } else {
+            setDiffData({ old: editorContent, new: result.content, full: result.content })
           }
-        },
-      })
+          setPendingSuggestion({ id: suggestion._id, republish })
+          setShowDiff(true)
+        }
+      } catch {
+        // useApplyInsightMutation already surfaces the error toast
+      } finally {
+        setApplyingSuggestionId(null)
+        hideLoading(loadingId)
+      }
     },
     [
       blog?._id,
       guardCreditedAction,
-      handlePopup,
       applyInsightMutation,
-      setEditorContent,
-      fetchPostings,
-      persistInsight,
+      editorContent,
+      showLoading,
+      hideLoading,
     ]
   )
+
+  const handleConfirmSuggestion = useCallback(async () => {
+    if (!pendingSuggestion || !blog?._id) return
+
+    const loadingId = showLoading("Applying changes...")
+    try {
+      const result = await confirmInsightMutation.mutateAsync({
+        id: blog._id,
+        suggestionId: pendingSuggestion.id,
+        content: diffData.full,
+        republish: pendingSuggestion.republish,
+      })
+
+      if (typeof setEditorContent === "function") {
+        setEditorContent(result?.content ?? diffData.full)
+      }
+
+      persistInsight((prev) =>
+        prev
+          ? {
+              ...prev,
+              suggestions: prev.suggestions.map((s) =>
+                s._id === pendingSuggestion.id ? { ...s, status: "applied" } : s
+              ),
+            }
+          : prev
+      )
+
+      if (pendingSuggestion.republish || result?.repost) await fetchPostings()
+      toast.success(
+        result?.repost ? "Applied and republished!" : "Suggestion applied to your content"
+      )
+      setShowDiff(false)
+      setPendingSuggestion(null)
+    } catch {
+      // useConfirmInsightMutation already surfaces the error toast
+    } finally {
+      hideLoading(loadingId)
+    }
+  }, [
+    pendingSuggestion,
+    blog?._id,
+    diffData.full,
+    confirmInsightMutation,
+    setEditorContent,
+    persistInsight,
+    fetchPostings,
+    showLoading,
+    hideLoading,
+  ])
 
   const handleMetadataGen = useCallback(() => {
     if (blog?.isArchived) {
@@ -2907,7 +2955,7 @@ const TextEditorSidebar = ({
                   <div className="space-y-1 mb-2">
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium  text-right truncate max-w-[120px]">
+                      <span className="text-[12px] font-medium  text-right truncate max-w-30">
                         {posting.metadata?.category || posting.category || blog.category}
                       </span>
                     </div>
@@ -3525,11 +3573,13 @@ const TextEditorSidebar = ({
               </div>
               <div>
                 <h3 className="font-black text-gray-900 text-xl tracking-tight">
-                  Review Section Changes
+                  {pendingSuggestion ? "Review Insight Rewrite" : "Review Section Changes"}
                 </h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                    Task: {sectionToolState?.task || "Refinement"}
+                    {pendingSuggestion
+                      ? "Nothing is saved until you accept"
+                      : `Task: ${sectionToolState?.task || "Refinement"}`}
                   </span>
                   <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                   <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
@@ -3541,7 +3591,10 @@ const TextEditorSidebar = ({
             <button
               type="button"
               className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-              onClick={() => setShowDiff(false)}
+              onClick={() => {
+                setShowDiff(false)
+                setPendingSuggestion(null)
+              }}
             >
               <X className="w-5 h-5" />
             </button>
@@ -3552,14 +3605,21 @@ const TextEditorSidebar = ({
               oldMarkdown={diffData.old}
               newMarkdown={diffData.new}
               onAccept={() => {
+                if (pendingSuggestion) {
+                  handleConfirmSuggestion()
+                  return
+                }
                 if (typeof setEditorContent === "function") {
                   setEditorContent(diffData.full)
                 }
                 setShowDiff(false)
                 toast.success("Changes applied successfully!")
               }}
-              onReject={() => setShowDiff(false)}
-              acceptLabel="Accept & Apply to Section"
+              onReject={() => {
+                setShowDiff(false)
+                setPendingSuggestion(null)
+              }}
+              acceptLabel={pendingSuggestion ? "Accept & Apply" : "Accept & Apply to Section"}
               rejectLabel="Discard Changes"
             />
           </div>
@@ -3568,7 +3628,10 @@ const TextEditorSidebar = ({
           type="button"
           aria-label="Close"
           className="modal-backdrop bg-slate-900/60 backdrop-blur-md"
-          onClick={() => setShowDiff(false)}
+          onClick={() => {
+            setShowDiff(false)
+            setPendingSuggestion(null)
+          }}
         />
       </div>
 
