@@ -1,15 +1,24 @@
 import type React from "react"
-import { useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DOMPurify from "dompurify"
+import { Check, Undo2 } from "lucide-react"
 
 interface ContentDiffViewerProps {
   oldMarkdown: string
   newMarkdown: string
-  onAccept?: React.MouseEventHandler<HTMLButtonElement>
-  onReject?: React.MouseEventHandler<HTMLButtonElement>
+  onAccept?: () => void
+  onReject?: () => void
   acceptLabel?: string
   rejectLabel?: string
 }
+
+/**
+ * How long the split-pane resolve animation runs before the decision is
+ * committed upstream. Kept in sync with the CSS transitions below.
+ */
+const RESOLVE_MS = 720
+
+type Phase = "idle" | "accept" | "reject"
 
 // Tokenize HTML into a mix of tags and word-level text tokens
 function tokenizeHtml(html: string): string[] {
@@ -116,6 +125,63 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
     return { oldHtml: buildDiffHtml(ops, "old"), newHtml: buildDiffHtml(ops, "new"), hasDiff }
   }, [oldMarkdown, newMarkdown])
 
+  // Which side won, plus the frozen column width that keeps text from reflowing
+  // mid-flight. `released` hands the surviving column back to a fluid width
+  // once the animation has landed.
+  const [phase, setPhase] = useState<Phase>("idle")
+  const [frozenWidth, setFrozenWidth] = useState<number | null>(null)
+  const [released, setReleased] = useState(false)
+  const columnRef = useRef<HTMLDivElement>(null)
+  const timersRef = useRef<number[]>([])
+
+  const clearTimers = useCallback(() => {
+    for (const t of timersRef.current) window.clearTimeout(t)
+    timersRef.current = []
+  }, [])
+
+  useEffect(() => clearTimers, [clearTimers])
+
+  // A fresh pair of versions means a fresh decision.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the compared content is exactly what should reset the decision
+  useEffect(() => {
+    clearTimers()
+    setPhase("idle")
+    setFrozenWidth(null)
+    setReleased(false)
+  }, [oldMarkdown, newMarkdown, clearTimers])
+
+  const resolve = useCallback(
+    (next: Exclude<Phase, "idle">) => {
+      if (phase !== "idle") return
+      const commit = next === "accept" ? onAccept : onReject
+
+      const prefersReduced =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+
+      // Nothing to animate between — commit straight away.
+      if (!hasDiff || prefersReduced) {
+        commit?.()
+        return
+      }
+
+      setFrozenWidth(columnRef.current?.getBoundingClientRect().width ?? null)
+      setPhase(next)
+      timersRef.current.push(
+        window.setTimeout(() => {
+          commit?.()
+          setReleased(true)
+        }, RESOLVE_MS)
+      )
+    },
+    [phase, hasDiff, onAccept, onReject]
+  )
+
+  const isResolving = phase !== "idle"
+  const acceptWon = phase === "accept"
+  const rejectWon = phase === "reject"
+  const paneWidth = released ? "100%" : frozenWidth ? `${frozenWidth}px` : undefined
+
   return (
     <div className="flex flex-col h-full w-full">
       <style>{`
@@ -137,14 +203,70 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
           font-weight: 500;
           border-radius: 2px;
           padding: 0 1px;
+          transition: background-color 520ms ease, color 520ms ease;
         }
         .diff-word-removed {
           background-color: #fee2e2;
           color: #991b1b;
           text-decoration: line-through;
+          text-decoration-color: #991b1b;
           border-radius: 2px;
           padding: 0 1px;
+          transition: background-color 520ms ease, color 520ms ease, text-decoration-color 380ms ease;
         }
+        /* The surviving side stops reading as a diff and starts reading as content */
+        .diff-pane.is-settled .diff-word-added,
+        .diff-pane.is-settled .diff-word-removed {
+          background-color: transparent;
+          color: #334155;
+          font-weight: inherit;
+          text-decoration-color: transparent;
+        }
+
+        /* Resolve animation: the winning column grows from half to full width
+           while the losing column collapses into it. */
+        .diff-split {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          transition: grid-template-columns ${RESOLVE_MS}ms cubic-bezier(0.65, 0, 0.25, 1);
+        }
+        .diff-split.is-accept { grid-template-columns: 0fr 1fr; }
+        .diff-split.is-reject { grid-template-columns: 1fr 0fr; }
+        .diff-col {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .diff-split.is-resolving .diff-col { overflow: hidden; }
+        .diff-col-inner {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          width: 100%;
+          min-height: 100%;
+          transition: opacity 360ms ease, transform 560ms cubic-bezier(0.65, 0, 0.25, 1),
+            filter 360ms ease, width 240ms ease;
+        }
+        /* While resolving, each column's content is pinned to its own outer edge
+           at a frozen width, so the surviving text never reflows — the space
+           simply opens up beside it as the track grows. */
+        .diff-split.is-resolving .diff-col-new .diff-col-inner { margin-left: auto; }
+        .diff-split.is-accept .diff-col-old .diff-col-inner {
+          opacity: 0;
+          transform: translateX(-28px) scale(0.97);
+          filter: blur(2px);
+        }
+        .diff-split.is-reject .diff-col-new .diff-col-inner {
+          opacity: 0;
+          transform: translateX(28px) scale(0.97);
+          filter: blur(2px);
+        }
+        .diff-col-divider {
+          border-right: 1px solid #f1f5f9;
+          transition: border-color 240ms ease;
+        }
+        .diff-split.is-resolving .diff-col-divider { border-color: transparent; }
+
         /* Heading prominence fix */
         .diff-pane h1, .diff-pane .heading-1 {
           font-size: 1.85em !important;
@@ -175,6 +297,19 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
           text-transform: uppercase;
           padding: 12px 28px;
           border-bottom: 1px solid #f1f5f9;
+          transition: background-color 420ms ease, color 420ms ease;
+        }
+        .diff-resolve-note {
+          animation: diff-resolve-note-in 320ms ease both;
+        }
+        @keyframes diff-resolve-note-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .diff-split, .diff-col-inner, .diff-word-added, .diff-word-removed,
+          .diff-pane-header, .diff-col-divider { transition: none !important; }
+          .diff-resolve-note { animation: none; }
         }
       `}</style>
 
@@ -184,53 +319,90 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
             No changes detected between these versions.
           </div>
         ) : (
-          <div className="grid grid-cols-2 divide-x divide-slate-100 flex-1 overflow-y-auto custom-scroll">
+          <div
+            className={`diff-split flex-1 overflow-y-auto custom-scroll ${
+              isResolving ? "is-resolving" : ""
+            } ${acceptWon ? "is-accept" : ""} ${rejectWon ? "is-reject" : ""}`}
+          >
             {/* Old Column */}
-            <div className="flex flex-col min-w-0">
-              <div className="diff-pane-header bg-red-50/50 text-red-600 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
-                <span>Original Content</span>
-                <span className="text-[10px] bg-red-100 px-2 py-0.5 rounded font-bold">BEFORE</span>
+            <div ref={columnRef} className="diff-col diff-col-old diff-col-divider">
+              <div className="diff-col-inner" style={{ width: paneWidth }}>
+                <div
+                  className={`diff-pane-header flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm ${
+                    rejectWon ? "bg-slate-50 text-slate-600" : "bg-red-50/50 text-red-600"
+                  }`}
+                >
+                  <span>{rejectWon ? "Original Content Kept" : "Original Content"}</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded font-bold flex items-center gap-1 ${
+                      rejectWon ? "bg-slate-200 text-slate-600" : "bg-red-100"
+                    }`}
+                  >
+                    {rejectWon && <Undo2 className="w-3 h-3" />}
+                    {rejectWon ? "RESTORED" : "BEFORE"}
+                  </span>
+                </div>
+                <div
+                  className={`diff-pane flex-1 ${rejectWon ? "is-settled" : ""}`}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(oldHtml) }}
+                />
               </div>
-              <div
-                className="diff-pane flex-1"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(oldHtml) }}
-              />
             </div>
             {/* New Column */}
-            <div className="flex flex-col min-w-0">
-              <div className="diff-pane-header bg-emerald-50/50 text-emerald-700 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
-                <span>Refined Content</span>
-                <span className="text-[10px] bg-emerald-100 px-2 py-0.5 rounded font-bold">
-                  AFTER
-                </span>
+            <div className="diff-col diff-col-new">
+              <div className="diff-col-inner" style={{ width: paneWidth }}>
+                <div
+                  className={`diff-pane-header flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm text-emerald-700 ${
+                    acceptWon ? "bg-emerald-50" : "bg-emerald-50/50"
+                  }`}
+                >
+                  <span>{acceptWon ? "Updated Content" : "Refined Content"}</span>
+                  <span className="text-[10px] bg-emerald-100 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                    {acceptWon && <Check className="w-3 h-3" />}
+                    {acceptWon ? "APPLIED" : "AFTER"}
+                  </span>
+                </div>
+                <div
+                  className={`diff-pane flex-1 ${acceptWon ? "is-settled" : ""}`}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newHtml) }}
+                />
               </div>
-              <div
-                className="diff-pane flex-1"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newHtml) }}
-              />
             </div>
           </div>
         )}
       </div>
 
       {(onAccept || onReject) && (
-        <div className="flex items-center justify-end gap-3 mt-8 pt-6 pr-6 border-t border-slate-100 bg-white">
-          <button
-            type="button"
-            onClick={onReject}
-            className="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 rounded transition-all font-bold text-sm"
-          >
-            {rejectLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onAccept}
-            className="px-8 py-2.5 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded font-bold text-sm shadow-none transition-all active:scale-95"
-          >
-            {acceptLabel}
-          </button>
+        <div className="flex shrink-0 items-center justify-end gap-3 mt-8 px-6 py-6 border-t border-slate-100 bg-white">
+          {isResolving ? (
+            <div
+              className={`diff-resolve-note flex items-center gap-2 text-sm font-bold ${
+                acceptWon ? "text-emerald-600" : "text-slate-500"
+              }`}
+            >
+              {acceptWon ? <Check className="w-4 h-4" /> : <Undo2 className="w-4 h-4" />}
+              {acceptWon ? "Applying refined content…" : "Restoring original content…"}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => resolve("reject")}
+                className="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 rounded transition-all font-bold text-sm"
+              >
+                {rejectLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => resolve("accept")}
+                className="px-8 py-2.5 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded font-bold text-sm shadow-none transition-all active:scale-95"
+              >
+                {acceptLabel}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

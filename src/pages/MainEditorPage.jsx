@@ -14,6 +14,8 @@ import { debugPayload } from "@utils/debugPayload"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
+import EditorAiReview from "@/layout/Editor/EditorAiReview"
+import useAiReviewStore from "@/store/useAiReviewStore"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import useBlogStore from "@store/useBlogStore"
@@ -54,6 +56,7 @@ const MainEditorPage = () => {
   // isLoading is now derived from isBlogFetching
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
+  const resetAiReview = useAiReviewStore((s) => s.reset)
   const [editorTitle, setEditorTitle] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
@@ -130,6 +133,14 @@ const MainEditorPage = () => {
       navigate("/blogs", { replace: true })
     }
   }, [isError, error, navigate])
+
+  // A pending AI review belongs to the blog that raised it, so drop it when the
+  // editor switches blogs or unmounts.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the blog id is what should invalidate a pending review
+  useEffect(() => {
+    resetAiReview()
+    return resetAiReview
+  }, [id, resetAiReview])
 
   useEffect(() => {
     if (!id) {
@@ -736,37 +747,43 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
-              {isBlogFetching ? (
-                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                </div>
-              ) : (
-                <TipTapEditor
-                  blog={blog}
-                  content={editorContent}
-                  setContent={setEditorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
-                  title={editorTitle}
-                  setTitle={setEditorTitle}
-                  handleSubmit={handleSave}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
-                  isSavingKeyword={isSaving}
-                  humanizedContent={humanizedContent}
-                  showDiff={isHumanizeModalOpen}
-                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                  handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  wordpressMetadata={metadata}
-                  onReplaceReady={handleReplaceReady}
-                  // Same viewer treatment the public reader gets: content is selectable
-                  // but not editable, and the formatting toolbar/bubble menu stay hidden.
-                  isPublicMode={isReadOnlyWorkspace}
-                />
-              )}
+            {/* The AI review takes over this region rather than opening a dialog, so a
+                proposed rewrite is compared in the same place the content lives. The
+                editor below stays mounted and receives the accepted side. */}
+            <div className="relative grow flex flex-col min-h-0">
+              <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
+                {isBlogFetching ? (
+                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <TipTapEditor
+                    blog={blog}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    handleSubmit={handleSave}
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    isSavingKeyword={isSaving}
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    wordpressMetadata={metadata}
+                    onReplaceReady={handleReplaceReady}
+                    // Same viewer treatment the public reader gets: content is selectable
+                    // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                    isPublicMode={isReadOnlyWorkspace}
+                  />
+                )}
+              </div>
+              <EditorAiReview />
             </div>
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
