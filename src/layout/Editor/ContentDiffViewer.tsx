@@ -109,6 +109,32 @@ function buildDiffHtml(ops: DiffOp[], side: "old" | "new"): string {
     .join("")
 }
 
+/**
+ * Sanitizes diff HTML and gives each table its own horizontal scroll box.
+ *
+ * Filtering a side's ops can leave table markup half-closed (the tags that
+ * belong only to the other version are gone), so the string is round-tripped
+ * through the parser: it repairs the structure and lets the tables be wrapped
+ * as elements rather than by patching the markup with regexes.
+ */
+function toPaneHtml(html: string): string {
+  const clean = DOMPurify.sanitize(html)
+  if (typeof DOMParser === "undefined" || !clean.includes("<table")) return clean
+
+  const doc = new DOMParser().parseFromString(`<div id="diff-root">${clean}</div>`, "text/html")
+  const root = doc.getElementById("diff-root")
+  if (!root) return clean
+
+  for (const table of Array.from(root.querySelectorAll("table"))) {
+    if (table.parentElement?.classList.contains("diff-table-scroll")) continue
+    const scroller = doc.createElement("div")
+    scroller.className = "diff-table-scroll"
+    table.replaceWith(scroller)
+    scroller.appendChild(table)
+  }
+  return root.innerHTML
+}
+
 const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
   oldMarkdown,
   newMarkdown,
@@ -122,7 +148,11 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
     const newTokens = tokenizeHtml(newMarkdown || "")
     const ops = diffTokens(oldTokens, newTokens)
     const hasDiff = ops.some((op) => op.type !== "equal")
-    return { oldHtml: buildDiffHtml(ops, "old"), newHtml: buildDiffHtml(ops, "new"), hasDiff }
+    return {
+      oldHtml: toPaneHtml(buildDiffHtml(ops, "old")),
+      newHtml: toPaneHtml(buildDiffHtml(ops, "new")),
+      hasDiff,
+    }
   }, [oldMarkdown, newMarkdown])
 
   // Which side won, plus the frozen column width that keeps text from reflowing
@@ -288,8 +318,89 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
           font-weight: 700 !important;
           margin: 1em 0 0.5em !important;
         }
+        .diff-pane h4, .diff-pane h5, .diff-pane h6 {
+          font-size: 1.05em !important;
+          font-weight: 700 !important;
+          margin: 1em 0 0.4em !important;
+          color: #1e293b !important;
+        }
         .diff-pane p { margin: 0 0 1em; color: #334155; }
         .diff-pane strong, .diff-pane b { font-weight: 700; color: #0f172a; }
+        .diff-pane em, .diff-pane i { font-style: italic; }
+        .diff-pane a { color: #1d4ed8; text-decoration: underline; }
+
+        /* Tailwind's preflight strips list and table defaults, so the panes have
+           to restate them or AI output renders as a wall of loose text. */
+        .diff-pane ul, .diff-pane ol {
+          margin: 0 0 1em;
+          padding-left: 1.5em;
+          color: #334155;
+        }
+        .diff-pane ul { list-style: disc outside; }
+        .diff-pane ol { list-style: decimal outside; }
+        .diff-pane li { margin: 0.25em 0; display: list-item; }
+        .diff-pane li > p { margin: 0; }
+        .diff-pane blockquote {
+          margin: 0 0 1em;
+          padding: 0.25em 0 0.25em 1em;
+          border-left: 3px solid #e2e8f0;
+          color: #64748b;
+          font-style: italic;
+        }
+        .diff-pane hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
+        .diff-pane img { max-width: 100%; height: auto; border-radius: 6px; }
+        .diff-pane pre {
+          margin: 0 0 1em;
+          padding: 12px 14px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          overflow-x: auto;
+        }
+        .diff-pane code {
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 0.9em;
+          background: #f1f5f9;
+          border-radius: 4px;
+          padding: 0.1em 0.3em;
+        }
+        .diff-pane pre code { background: none; padding: 0; }
+
+        /* Tables are the widest thing the panes carry: scroll them inside their
+           own box so a half-width column never forces the page sideways. */
+        .diff-pane .diff-table-scroll {
+          overflow-x: auto;
+          margin: 0 0 1em;
+          -webkit-overflow-scrolling: touch;
+        }
+        .diff-pane table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 0 0 1em;
+          font-size: 0.92em;
+        }
+        .diff-pane .diff-table-scroll > table { margin: 0; min-width: 100%; }
+        .diff-pane th, .diff-pane td {
+          border: 1px solid #e2e8f0;
+          padding: 8px 10px;
+          text-align: left;
+          vertical-align: top;
+          color: #334155;
+        }
+        .diff-pane th {
+          background-color: #f8fafc;
+          font-weight: 700;
+          color: #0f172a;
+          white-space: nowrap;
+        }
+        .diff-pane tbody tr:nth-child(even) td { background-color: #fcfdfe; }
+        .diff-pane caption {
+          caption-side: top;
+          text-align: left;
+          font-weight: 700;
+          color: #0f172a;
+          padding-bottom: 6px;
+        }
         .diff-pane-header {
           font-size: 0.75rem;
           font-weight: 700;
@@ -344,8 +455,8 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                 </div>
                 <div
                   className={`diff-pane flex-1 ${rejectWon ? "is-settled" : ""}`}
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(oldHtml) }}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by toPaneHtml when the diff is built
+                  dangerouslySetInnerHTML={{ __html: oldHtml }}
                 />
               </div>
             </div>
@@ -365,8 +476,8 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                 </div>
                 <div
                   className={`diff-pane flex-1 ${acceptWon ? "is-settled" : ""}`}
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newHtml) }}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by toPaneHtml when the diff is built
+                  dangerouslySetInnerHTML={{ __html: newHtml }}
                 />
               </div>
             </div>

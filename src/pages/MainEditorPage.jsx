@@ -747,44 +747,39 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            {/* The AI review takes over this region rather than opening a dialog, so a
-                proposed rewrite is compared in the same place the content lives. The
-                editor below stays mounted and receives the accepted side. */}
-            <div className="relative grow flex flex-col min-h-0">
-              <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
-                {isBlogFetching ? (
-                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                  </div>
-                ) : (
-                  <TipTapEditor
-                    blog={blog}
-                    content={editorContent}
-                    setContent={setEditorContent}
-                    unsavedChanges={unsavedChanges}
-                    setUnsavedChanges={setUnsavedChanges}
-                    title={editorTitle}
-                    setTitle={setEditorTitle}
-                    handleSubmit={handleSave}
-                    keywords={keywords}
-                    setKeywords={setKeywords}
-                    proofreadingResults={proofreadingResults}
-                    handleReplace={handleReplace}
-                    isSavingKeyword={isSaving}
-                    humanizedContent={humanizedContent}
-                    showDiff={isHumanizeModalOpen}
-                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                    handleAcceptOriginalContent={handleAcceptOriginalContent}
-                    wordpressMetadata={metadata}
-                    onReplaceReady={handleReplaceReady}
-                    // Same viewer treatment the public reader gets: content is selectable
-                    // but not editable, and the formatting toolbar/bubble menu stay hidden.
-                    isPublicMode={isReadOnlyWorkspace}
-                  />
-                )}
-              </div>
-              <EditorAiReview />
+            <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
+              {isBlogFetching ? (
+                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                </div>
+              ) : (
+                <TipTapEditor
+                  blog={blog}
+                  content={editorContent}
+                  setContent={setEditorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
+                  title={editorTitle}
+                  setTitle={setEditorTitle}
+                  handleSubmit={handleSave}
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  isSavingKeyword={isSaving}
+                  humanizedContent={humanizedContent}
+                  showDiff={isHumanizeModalOpen}
+                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                  handleAcceptOriginalContent={handleAcceptOriginalContent}
+                  wordpressMetadata={metadata}
+                  onReplaceReady={handleReplaceReady}
+                  // Same viewer treatment the public reader gets: content is selectable
+                  // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                  isPublicMode={isReadOnlyWorkspace}
+                />
+              )}
             </div>
+            <EditorAiReview />
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar

@@ -1,21 +1,24 @@
 import { useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Sparkles, X } from "lucide-react"
 import ContentDiffViewer from "./ContentDiffViewer"
 import useAiReviewStore from "@/store/useAiReviewStore"
 
 /**
- * The in-editor review surface for an AI rewrite.
+ * The review surface for an AI rewrite.
  *
- * Renders over the editor's content area — not in a dialog — so the proposed
- * change sits exactly where the content it replaces lives. The TipTap instance
- * stays mounted underneath, which is what lets the accepted side settle into
- * the real editor when the split resolves.
+ * A pending rewrite owns the whole screen until it is accepted or rejected —
+ * the editor and its sidebar are covered rather than competing for width, so
+ * the comparison gets the full viewport for wide content like tables. Portalled
+ * to the body so no scroll container or transformed ancestor can clip it, and
+ * the TipTap instance underneath stays mounted to receive the accepted side.
  */
 const EditorAiReview = () => {
   const review = useAiReviewStore((s) => s.review)
   const closeReview = useAiReviewStore((s) => s.closeReview)
 
-  // Esc dismisses the same way the close button does: keep the original.
+  // Esc keeps the original, same as the close button. Nothing else dismisses
+  // this: a decision is the only way out.
   useEffect(() => {
     if (!review) return
     const onKeyDown = (e) => {
@@ -27,6 +30,16 @@ const EditorAiReview = () => {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [review, closeReview])
 
+  // The page behind must not scroll while the review owns the screen.
+  useEffect(() => {
+    if (!review) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [review])
+
   if (!review) return null
 
   const dismiss = () => {
@@ -34,14 +47,19 @@ const EditorAiReview = () => {
     closeReview()
   }
 
-  return (
-    <div className="editor-ai-review-shell absolute inset-0 z-30 flex flex-col bg-white">
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={review.title}
+      className="editor-ai-review-shell fixed inset-0 z-9999 flex flex-col bg-white"
+    >
       <style>{`
         .editor-ai-review-shell {
           animation: editor-ai-review-in 260ms ease both;
         }
         @keyframes editor-ai-review-in {
-          from { opacity: 0; transform: translateY(8px); }
+          from { opacity: 0; transform: scale(0.995); }
           to { opacity: 1; transform: none; }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -49,7 +67,7 @@ const EditorAiReview = () => {
         }
       `}</style>
 
-      <div className="flex items-center justify-between gap-4 px-6 py-3 border-b border-slate-100 bg-white">
+      <div className="flex items-center justify-between gap-4 px-6 py-3 border-b border-slate-100 bg-white shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 bg-indigo-600 rounded-xl shrink-0">
             <Sparkles className="w-4 h-4 text-white" />
@@ -95,7 +113,8 @@ const EditorAiReview = () => {
           }}
         />
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
