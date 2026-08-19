@@ -136,11 +136,21 @@ const PluginsMain = () => {
     // component instance is re-rendered with different plugin.id values across tab
     // switches, so a conditional hook here previously crashed on switch).
     const isShopify = plugin.id === 113
+    const wixInt = integrations?.integrations?.WIX
     const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
     const [domain, setDomain] = useState(savedDomain ?? "")
     const [isValidDomain, setIsValidDomain] = useState(true)
     const installWindowRef = useRef(null)
     const pollTimerRef = useRef(null)
+
+    // Wix-only: whether GenWrite should push its own SEO meta tags / JSON-LD structured
+    // data, or leave it to Wix's built-in AI-generated SEO for blog posts (default).
+    const [useCustomSeo, setUseCustomSeo] = useState(!!wixInt?.credentials?.useCustomSeo)
+    const [seoSaving, setSeoSaving] = useState(false)
+
+    useEffect(() => {
+      setUseCustomSeo(!!wixInt?.credentials?.useCustomSeo)
+    }, [wixInt?.credentials?.useCustomSeo])
 
     const validateDomain = useCallback(
       (val) => {
@@ -345,28 +355,49 @@ const PluginsMain = () => {
         }
         setLocalLoading(true)
         try {
-          if (isShopify) {
-            const resp = await axiosInstance.post("/integrations/connect", {
-              url: domain,
-              type: "SHOPIFY",
-            })
-            if (resp.data?.redirectUrl) {
-              installWindowRef.current = window.open(resp.data.redirectUrl, "_blank")
-              toast.info("Transmitting to Shopify installer...")
-              pollTimerRef.current = setInterval(() => {
-                const w = installWindowRef.current
-                if (!w || w.closed) {
-                  clearInterval(pollTimerRef.current)
-                  fetchIntegrations()
-                  pingIntegration("SHOPIFY")
-                }
-              }, 1200)
-            }
+          const resp = await axiosInstance.post("/integrations/connect", {
+            url: domain,
+            type: isShopify ? "SHOPIFY" : "WIX",
+          })
+          if (resp.data?.redirectUrl) {
+            installWindowRef.current = window.open(resp.data.redirectUrl, "_blank")
+            toast.info(`Transmitting to ${isShopify ? "Shopify" : "Wix"} installer...`)
+            pollTimerRef.current = setInterval(() => {
+              const w = installWindowRef.current
+              if (!w || w.closed) {
+                clearInterval(pollTimerRef.current)
+                fetchIntegrations()
+                pingIntegration(isShopify ? "SHOPIFY" : "WIX")
+              }
+            }, 1200)
           }
         } catch (err) {
           toast.error(err.message || "Installer bootstrap failed")
         } finally {
           setLocalLoading(false)
+        }
+      }
+
+      const handleSeoToggle = async (checked) => {
+        setUseCustomSeo(checked)
+        setSeoSaving(true)
+        try {
+          await createIntegration({
+            type: "WIX",
+            url: domain,
+            credentials: { useCustomSeo: checked },
+          })
+          await fetchIntegrations()
+          toast.success(
+            checked
+              ? "GenWrite will now push custom SEO tags & structured data to Wix."
+              : "Wix's built-in AI-generated SEO/structured data will be used."
+          )
+        } catch (err) {
+          setUseCustomSeo(!checked)
+          toast.error(err.message || "Failed to update SEO preference")
+        } finally {
+          setSeoSaving(false)
         }
       }
 
@@ -431,7 +462,7 @@ const PluginsMain = () => {
                   disabled={!domain || !isValidDomain || localLoading}
                   className="flex-1 py-3 bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg font-semibold shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  <Server className="size-4" /> Install Shopify
+                  <Server className="size-4" /> Install {isShopify ? "Shopify" : "Wix"}
                 </button>
                 <button
                   type="button"
@@ -448,6 +479,28 @@ const PluginsMain = () => {
                 </button>
               </div>
             </div>
+
+            {!isShopify && wixInt && (
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <span className="block text-sm font-medium text-gray-900">
+                    Let Wix AI generate SEO tags
+                  </span>
+                  <span className="text-xs text-gray-500 max-w-md block">
+                    Wix auto-generates SEO meta tags and structured data (schema.org) for every
+                    post. Turn this off to have GenWrite push its own SEO tags and JSON-LD
+                    instead.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={!useCustomSeo}
+                  disabled={seoSaving}
+                  onChange={(e) => handleSeoToggle(!e.target.checked)}
+                />
+              </div>
+            )}
 
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
               <Info className="size-5 text-indigo-600 shrink-0 mt-0.5" />
