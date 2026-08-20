@@ -207,6 +207,30 @@ const SECTION_TASK_LABELS = {
   promptChanges: "Custom Prompt",
 }
 
+/**
+ * Reduces whatever the section endpoint returns to the *inside* of a section.
+ *
+ * That endpoint answers in whole-section markup — the same shape it reports back
+ * as `previousContent`. Writing it into the section being edited would nest a
+ * second <section> carrying the same id, and because turndown is told to keep
+ * <section>, the duplicate survives into the saved blog. Section Tools then lists
+ * it twice, both cards select together, and both resolve to the same element,
+ * since getElementById can only ever return the first match.
+ *
+ * Sections are unwrapped innermost-first so unwrapping an outer one cannot
+ * re-introduce a nested one.
+ */
+const unwrapSectionMarkup = (html, parser) => {
+  if (!html || !/<section[\s>]/i.test(html)) return html || ""
+
+  const doc = parser.parseFromString(html, "text/html")
+  for (const section of Array.from(doc.body.querySelectorAll("section")).reverse()) {
+    const inner = section.querySelector(".section-content") || section
+    section.replaceWith(...Array.from(inner.childNodes))
+  }
+  return doc.body.innerHTML
+}
+
 const TextEditorSidebar = ({
   blog,
   keywords,
@@ -399,11 +423,19 @@ const TextEditorSidebar = ({
       }
 
       if (htmlSections.length > 0) {
+        // A section is addressed by id alone — both by the sectionTask payload and
+        // by getElementById, which resolves only the first match. So a repeated id
+        // is not two addressable sections, it is one; listing it twice would render
+        // two cards that select together and act on the same element either way.
+        const seenIds = new Set()
+
         htmlSections.forEach((el, i) => {
           const id = el.id
 
           // Skip if no ID (cannot target)
           if (!id) return
+          if (seenIds.has(id)) return
+          seenIds.add(id)
 
           // Try to find a heading inside this section
           const heading = el.querySelector("h1, h2, h3, h4, h5, h6")
@@ -413,18 +445,14 @@ const TextEditorSidebar = ({
           // Prefer content inside .section-content if available, otherwise full section text
           const contentEl = el.querySelector(".section-content") || el
 
-          // Remove heading text from preview if it exists inside the content element
-          let text = ""
-          if (heading && contentEl.contains(heading)) {
-            const clone = contentEl.cloneNode(true)
-            const cloneHeading = clone.querySelector("h1, h2, h3, h4, h5, h6")
-            if (cloneHeading) cloneHeading.remove()
-            text = clone.textContent || ""
-          } else {
-            text = contentEl.textContent || ""
+          // Drop every copy of the section's own heading rather than just the first.
+          // Content rewritten before the duplicate-id fix can still carry it twice,
+          // and a leftover copy runs straight into the body text in the preview.
+          const clone = contentEl.cloneNode(true)
+          for (const h of Array.from(clone.querySelectorAll("h1, h2, h3, h4, h5, h6"))) {
+            if (h.textContent.trim() === title) h.remove()
           }
-
-          text = text.replace(/\s+/g, " ").trim()
+          const text = (clone.textContent || "").replace(/\s+/g, " ").trim()
 
           const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
 
@@ -527,17 +555,25 @@ const TextEditorSidebar = ({
               }
             }
           } else {
+            // Never write the response in raw: it arrives as whole-section markup,
+            // which would nest a duplicate id inside the section being edited.
+            // Replacing the whole wrapper also repairs a section already carrying
+            // one from before this was guarded.
+            const incoming = unwrapSectionMarkup(response.data.content, parser)
+
             const contentDiv = sectionEl.querySelector(".section-content")
             if (contentDiv) {
-              contentDiv.innerHTML = response.data.content
+              contentDiv.innerHTML = incoming
             } else {
               // If .section-content wrapper is missing, preserve headers and wrap/replace content
               const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
               const headerHTML = headings.map((h) => h.outerHTML).join("")
 
-              // Only prepend headers if they aren't already in the AI response
-              const hasHeaderInResponse = /<h[1-6]/.test(response.data.content)
-              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + response.data.content
+              // Only prepend headers if they aren't already in the AI response —
+              // which may state them as markdown rather than as <h1>-<h6>.
+              const hasHeaderInResponse =
+                /<h[1-6]/i.test(incoming) || /^\s{0,3}#{1,6}\s/m.test(incoming)
+              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + incoming
             }
           }
 

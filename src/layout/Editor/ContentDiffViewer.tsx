@@ -486,7 +486,7 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
       </div>
 
       {(onAccept || onReject) && (
-        <div className="flex shrink-0 items-center justify-end gap-3 mt-8 px-6 py-6 border-t border-slate-100 bg-white">
+        <div className="flex shrink-0 items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-white">
           {isResolving ? (
             <div
               className={`diff-resolve-note flex items-center gap-2 text-sm font-bold ${

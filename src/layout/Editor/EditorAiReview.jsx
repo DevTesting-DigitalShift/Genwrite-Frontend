@@ -1,58 +1,33 @@
-import { useEffect } from "react"
-import { createPortal } from "react-dom"
-import { Sparkles, X } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import ContentDiffViewer from "./ContentDiffViewer"
 import useAiReviewStore from "@/store/useAiReviewStore"
 
 /**
  * The review surface for an AI rewrite.
  *
- * A pending rewrite owns the whole screen until it is accepted or rejected —
- * the editor and its sidebar are covered rather than competing for width, so
- * the comparison gets the full viewport for wide content like tables. Portalled
- * to the body so no scroll container or transformed ancestor can clip it, and
- * the TipTap instance underneath stays mounted to receive the accepted side.
+ * Rendered as an overlay over the text editor alone: a pending rewrite stands in
+ * for the editing surface, while the blog header above it, the editor sidebar
+ * beside it, and the app header and nav rail all stay put and usable.
+ *
+ * The TipTap instance underneath stays mounted to receive the accepted side —
+ * MainEditorPage marks it `invisible` meanwhile, which is what stops its sticky
+ * toolbar (z-50) painting through this overlay. The low z-index here is
+ * deliberate: the nav rail (z-30) expands over the content on hover and must
+ * keep winning against it.
+ *
+ * There is no dismiss affordance: Accept and Keep Original at the foot of the
+ * diff are the only ways out, so the decision is always explicit.
  */
 const EditorAiReview = () => {
   const review = useAiReviewStore((s) => s.review)
   const closeReview = useAiReviewStore((s) => s.closeReview)
 
-  // Esc keeps the original, same as the close button. Nothing else dismisses
-  // this: a decision is the only way out.
-  useEffect(() => {
-    if (!review) return
-    const onKeyDown = (e) => {
-      if (e.key !== "Escape") return
-      review.onReject?.()
-      closeReview()
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [review, closeReview])
-
-  // The page behind must not scroll while the review owns the screen.
-  useEffect(() => {
-    if (!review) return
-    const previous = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = previous
-    }
-  }, [review])
-
   if (!review) return null
 
-  const dismiss = () => {
-    review.onReject?.()
-    closeReview()
-  }
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
+  return (
+    <section
       aria-label={review.title}
-      className="editor-ai-review-shell fixed inset-0 z-9999 flex flex-col bg-white"
+      className="editor-ai-review-shell absolute inset-0 z-10 flex flex-col bg-white"
     >
       <style>{`
         .editor-ai-review-shell {
@@ -67,34 +42,24 @@ const EditorAiReview = () => {
         }
       `}</style>
 
-      <div className="flex items-center justify-between gap-4 px-6 py-3 border-b border-slate-100 bg-white shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 bg-indigo-600 rounded-xl shrink-0">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-black text-gray-900 text-base tracking-tight truncate">
-              {review.title}
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                {review.task || "Nothing is saved until you accept"}
-              </span>
-              <span className="w-1 h-1 bg-gray-300 rounded-full" />
-              <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
-                AI REFINED
-              </span>
-            </div>
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-100 bg-white shrink-0">
+        <div className="p-2 bg-indigo-600 rounded-xl shrink-0">
+          <Sparkles className="w-4 h-4 text-white" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-black text-gray-900 text-base tracking-tight truncate">
+            {review.title}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              {review.task || "Nothing is saved until you accept"}
+            </span>
+            <span className="w-1 h-1 bg-gray-300 rounded-full" />
+            <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
+              AI REFINED
+            </span>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Keep original content"
-          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0"
-          onClick={dismiss}
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -113,8 +78,7 @@ const EditorAiReview = () => {
           }}
         />
       </div>
-    </div>,
-    document.body
+    </section>
   )
 }
 

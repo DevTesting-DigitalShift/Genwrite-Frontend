@@ -57,6 +57,7 @@ const MainEditorPage = () => {
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
   const resetAiReview = useAiReviewStore((s) => s.reset)
+  const aiReview = useAiReviewStore((s) => s.review)
   const [editorTitle, setEditorTitle] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
@@ -521,7 +522,7 @@ const MainEditorPage = () => {
         </div>
       )}
 
-      <div className="flex flex-col max-h-screen overflow-y-hidden">
+      <div className="flex flex-col max-h-[calc(100dvh-4rem)] sm:max-h-[calc(100dvh-5rem)] overflow-y-hidden">
         {saveModalOpen && (
           <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">
             <motion.div
@@ -747,39 +748,49 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
-              {isBlogFetching ? (
-                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                </div>
-              ) : (
-                <TipTapEditor
-                  blog={blog}
-                  content={editorContent}
-                  setContent={setEditorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
-                  title={editorTitle}
-                  setTitle={setEditorTitle}
-                  handleSubmit={handleSave}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
-                  isSavingKeyword={isSaving}
-                  humanizedContent={humanizedContent}
-                  showDiff={isHumanizeModalOpen}
-                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                  handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  wordpressMetadata={metadata}
-                  onReplaceReady={handleReplaceReady}
-                  // Same viewer treatment the public reader gets: content is selectable
-                  // but not editable, and the formatting toolbar/bubble menu stay hidden.
-                  isPublicMode={isReadOnlyWorkspace}
-                />
-              )}
+            {/* Anchors the AI review, which stands in for the text editor while a
+                rewrite is pending. TipTap is only hidden, never unmounted, so it is
+                still there to receive the accepted side. */}
+            <div className="relative flex flex-col grow min-h-0">
+              <div
+                key={activeTab}
+                className={`grow overflow-auto max-h-[800px] custom-scroll ${
+                  aiReview ? "invisible" : ""
+                }`}
+              >
+                {isBlogFetching ? (
+                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <TipTapEditor
+                    blog={blog}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    handleSubmit={handleSave}
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    isSavingKeyword={isSaving}
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    wordpressMetadata={metadata}
+                    onReplaceReady={handleReplaceReady}
+                    // Same viewer treatment the public reader gets: content is selectable
+                    // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                    isPublicMode={isReadOnlyWorkspace}
+                  />
+                )}
+              </div>
+              <EditorAiReview />
             </div>
-            <EditorAiReview />
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
