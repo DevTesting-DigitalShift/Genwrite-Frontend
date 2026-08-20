@@ -31,22 +31,22 @@ const PluginsMain = () => {
   const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
   const extendedPlugins = useMemo(() => {
-    return plugins.filter((p) => p.isVisible)
+    return plugins.filter(p => p.isVisible)
   }, [plugins])
 
   const checkPlugin = useCallback(
-    async (plugin) => {
+    async plugin => {
       if (wordpressStatus[plugin.id]?.success) return
 
       try {
         const result = await plugin.onCheck()
-        setWordpressStatus((prev) => ({
+        setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: { status: result.status, message: result.message, success: result.success },
         }))
       } catch (err) {
         console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-        setWordpressStatus((prev) => ({
+        setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
             status: err.response?.status || "error",
@@ -76,9 +76,9 @@ const PluginsMain = () => {
     }
   }, [fetchIntegrations, activeTab, extendedPlugins])
 
-  const handleTabChange = (key) => {
+  const handleTabChange = key => {
     setActiveTab(key)
-    const plugin = plugins.find((p) => p.id.toString() === key)
+    const plugin = plugins.find(p => p.id.toString() === key)
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
@@ -104,17 +104,15 @@ const PluginsMain = () => {
       plugin.id === 115 ? sanityInt?.frontend || "" : serverInt?.frontend || ""
     )
     const [authToken, setAuthToken] = useState(
-      (plugin.id === 112 && serverInt?.data) || (plugin.id === 115 && sanityInt?.credentials?.token)
+      (plugin.id === 112 && serverInt?.data) || (plugin.id === 115 && sanityInt?.data)
         ? "*".repeat(10)
         : ""
     )
-    const [projectId, setProjectId] = useState(
-      sanityInt?.credentials?.projectId || sanityInt?.projectId || ""
-    )
-    const [dataset, setDataset] = useState(sanityInt?.credentials?.dataset || "production")
-    const [apiVersion, setApiVersion] = useState(sanityInt?.credentials?.apiVersion || "2024-01-01")
-    const [documentType, setDocumentType] = useState(sanityInt?.credentials?.documentType || "post")
-    const [blogRoute, setBlogRoute] = useState(sanityInt?.credentials?.blogRoute || "/blog/:slug")
+    const [projectId, setProjectId] = useState(sanityInt?.settings?.projectId || "")
+    const [dataset, setDataset] = useState(sanityInt?.settings?.dataset || "production")
+    const [apiVersion, setApiVersion] = useState(sanityInt?.settings?.apiVersion || "2024-01-01")
+    const [documentType, setDocumentType] = useState(sanityInt?.settings?.documentType || "post")
+    const [blogRoute, setBlogRoute] = useState(sanityInt?.settings?.blogRoute || "/blog/:slug")
 
     const [isValidUrl, setIsValidUrl] = useState(
       !!(plugin.id === 112 ? serverInt : plugin.id === 115 ? sanityInt : wordpressInt)
@@ -125,8 +123,9 @@ const PluginsMain = () => {
     const [isEditing, setIsEditing] = useState(false)
     const [localLoading, setLocalLoading] = useState(false)
 
-    // WordPress credentials
-    const [wpUsername, setWpUsername] = useState("")
+    // WordPress credentials — username isn't a secret (WP's own REST API exposes author
+    // names publicly), so it's stored in plain `settings` and shown for real, not masked.
+    const [wpUsername, setWpUsername] = useState(wordpressInt?.settings?.user || "")
     const [wpPassword, setWpPassword] = useState("")
     const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
@@ -145,15 +144,15 @@ const PluginsMain = () => {
 
     // Wix-only: whether GenWrite should push its own SEO meta tags / JSON-LD structured
     // data, or leave it to Wix's built-in AI-generated SEO for blog posts (default).
-    const [useCustomSeo, setUseCustomSeo] = useState(!!wixInt?.credentials?.useCustomSeo)
+    const [useCustomSeo, setUseCustomSeo] = useState(!!wixInt?.settings?.useCustomSeo)
     const [seoSaving, setSeoSaving] = useState(false)
 
     useEffect(() => {
-      setUseCustomSeo(!!wixInt?.credentials?.useCustomSeo)
-    }, [wixInt?.credentials?.useCustomSeo])
+      setUseCustomSeo(!!wixInt?.settings?.useCustomSeo)
+    }, [wixInt?.settings?.useCustomSeo])
 
     const validateDomain = useCallback(
-      (val) => {
+      val => {
         if (!val) return false
         if (isShopify) {
           try {
@@ -190,17 +189,17 @@ const PluginsMain = () => {
           const commonUrl = sanityInt.frontend || sanityInt.url || ""
           setUrl(commonUrl)
           setFrontend(commonUrl)
-          setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
-          setDataset(sanityInt.credentials?.dataset || "production")
-          setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
-          setDocumentType(sanityInt.credentials?.documentType || "post")
-          setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
+          setProjectId(sanityInt.settings?.projectId || "")
+          setDataset(sanityInt.settings?.dataset || "production")
+          setApiVersion(sanityInt.settings?.apiVersion || "2024-01-01")
+          setDocumentType(sanityInt.settings?.documentType || "post")
+          setBlogRoute(sanityInt.settings?.blogRoute || "/blog/:slug")
           setAuthToken("*".repeat(10))
           setIsValidUrl(true)
           setIsValidFrontend(true)
         } else if (plugin.id === 111 && wordpressInt) {
           setUrl(wordpressInt.url)
-          setWpUsername("**********")
+          setWpUsername(wordpressInt.settings?.user || "")
           setWpPassword("**********")
           setIsValidUrl(true)
           setHasCredentials(true)
@@ -221,18 +220,18 @@ const PluginsMain = () => {
         const commonUrl = sanityInt.frontend || sanityInt.url || ""
         setUrl(commonUrl)
         setFrontend(commonUrl)
-        setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
-        setDataset(sanityInt.credentials?.dataset || "production")
-        setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
-        setDocumentType(sanityInt.credentials?.documentType || "post")
-        setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
+        setProjectId(sanityInt.settings?.projectId || "")
+        setDataset(sanityInt.settings?.dataset || "production")
+        setApiVersion(sanityInt.settings?.apiVersion || "2024-01-01")
+        setDocumentType(sanityInt.settings?.documentType || "post")
+        setBlogRoute(sanityInt.settings?.blogRoute || "/blog/:slug")
         setAuthToken("*".repeat(10))
         setIsValidUrl(true)
         setIsValidFrontend(true)
         setIsEditing(false)
       } else if (plugin.id === 111 && wordpressInt) {
         setUrl(wordpressInt.url)
-        setWpUsername("**********")
+        setWpUsername(wordpressInt.settings?.user || "")
         setWpPassword("**********")
         setIsValidUrl(true)
         setIsEditing(false)
@@ -248,7 +247,7 @@ const PluginsMain = () => {
         const type =
           plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
         const result = await pingIntegration(type)
-        setWordpressStatus((prev) => ({
+        setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
             status: result.status || "success",
@@ -273,7 +272,7 @@ const PluginsMain = () => {
       }
     }, [hasPinged, handlePing])
 
-    const handleUrlChange = (e) => {
+    const handleUrlChange = e => {
       const val = e.target.value
       setUrl(val)
       try {
@@ -378,7 +377,7 @@ const PluginsMain = () => {
         }
       }
 
-      const handleSeoToggle = async (checked) => {
+      const handleSeoToggle = async checked => {
         setUseCustomSeo(checked)
         setSeoSaving(true)
         try {
@@ -405,7 +404,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const res = await pingIntegration(isShopify ? "SHOPIFY" : "WIX")
-          setWordpressStatus((prev) => ({
+          setWordpressStatus(prev => ({
             ...prev,
             [plugin.id]: { success: res.success, message: res.message },
           }))
@@ -444,7 +443,7 @@ const PluginsMain = () => {
                     id={`plugin-${plugin.id}-domain`}
                     placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
                     value={domain}
-                    onChange={(e) => setDomain(e.target.value.trim())}
+                    onChange={e => setDomain(e.target.value.trim())}
                     disabled={localLoading}
                     className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
                       domain && !isValidDomain
@@ -484,20 +483,20 @@ const PluginsMain = () => {
               <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100">
                 <div>
                   <span className="block text-sm font-medium text-gray-900">
-                    Let Wix AI generate SEO tags
+                    Push custom SEO tags from GenWrite
                   </span>
                   <span className="text-xs text-gray-500 max-w-md block">
-                    Wix auto-generates SEO meta tags and structured data (schema.org) for every
-                    post. Turn this off to have GenWrite push its own SEO tags and JSON-LD
-                    instead.
+                    Off (default): Wix auto-generates SEO meta tags and structured data
+                    (schema.org) for every post. On: GenWrite pushes its own SEO tags and
+                    JSON-LD instead.
                   </span>
                 </div>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
-                  checked={!useCustomSeo}
+                  checked={useCustomSeo}
                   disabled={seoSaving}
-                  onChange={(e) => handleSeoToggle(!e.target.checked)}
+                  onChange={e => handleSeoToggle(e.target.checked)}
                 />
               </div>
             )}
@@ -597,7 +596,7 @@ const PluginsMain = () => {
                   <input
                     id={`plugin-${plugin.id}-frontend`}
                     value={frontend}
-                    onChange={(e) => {
+                    onChange={e => {
                       const val = e.target.value
                       setFrontend(val)
                       if (plugin.id === 115) {
@@ -617,14 +616,17 @@ const PluginsMain = () => {
               {plugin.id === 115 && (
                 <>
                   <div className="space-y-2">
-                    <label htmlFor={`plugin-${plugin.id}-project-id`} className="text-sm font-medium ">
+                    <label
+                      htmlFor={`plugin-${plugin.id}-project-id`}
+                      className="text-sm font-medium "
+                    >
                       Sanity Project ID
                     </label>
                     <input
                       id={`plugin-${plugin.id}-project-id`}
                       type="text"
                       value={projectId}
-                      onChange={(e) => setProjectId(e.target.value)}
+                      onChange={e => setProjectId(e.target.value)}
                       disabled={!isEditing}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -632,14 +634,17 @@ const PluginsMain = () => {
 
                   <div className="gap-4">
                     <div className="space-y-2">
-                      <label htmlFor={`plugin-${plugin.id}-dataset`} className="text-sm font-medium ">
+                      <label
+                        htmlFor={`plugin-${plugin.id}-dataset`}
+                        className="text-sm font-medium "
+                      >
                         Sanity Data Set
                       </label>
                       <input
                         id={`plugin-${plugin.id}-dataset`}
                         type="text"
                         value={dataset}
-                        onChange={(e) => setDataset(e.target.value)}
+                        onChange={e => setDataset(e.target.value)}
                         disabled={!isEditing}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="production"
@@ -648,13 +653,16 @@ const PluginsMain = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor={`plugin-${plugin.id}-blog-route`} className="text-sm font-medium ">
+                    <label
+                      htmlFor={`plugin-${plugin.id}-blog-route`}
+                      className="text-sm font-medium "
+                    >
                       Blog Route
                     </label>
                     <select
                       id={`plugin-${plugin.id}-blog-route`}
                       value={blogRoute}
-                      onChange={(e) => setBlogRoute(e.target.value)}
+                      onChange={e => setBlogRoute(e.target.value)}
                       disabled={!isEditing}
                       className="select select-bordered w-full bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed font-normal"
                     >
@@ -685,7 +693,10 @@ const PluginsMain = () => {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <label htmlFor={`plugin-${plugin.id}-credential`} className="text-sm font-medium ">
+                  <label
+                    htmlFor={`plugin-${plugin.id}-credential`}
+                    className="text-sm font-medium "
+                  >
                     {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                   </label>
                   {(plugin.id === 115 || plugin.id === 111) && (
@@ -699,13 +710,13 @@ const PluginsMain = () => {
                   id={`plugin-${plugin.id}-credential`}
                   type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
                   value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                  onChange={(e) =>
+                  onChange={e =>
                     plugin.id === 112 || plugin.id === 115
                       ? setAuthToken(e.target.value)
                       : setWpUsername(e.target.value)
                   }
                   disabled={!isEditing}
-                  onFocus={(e) => {
+                  onFocus={e => {
                     if (isEditing) e.target.value = ""
                   }}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -714,16 +725,19 @@ const PluginsMain = () => {
 
               {plugin.id === 111 && (
                 <div className="space-y-2">
-                  <label htmlFor={`plugin-${plugin.id}-app-password`} className="text-sm font-medium ">
+                  <label
+                    htmlFor={`plugin-${plugin.id}-app-password`}
+                    className="text-sm font-medium "
+                  >
                     Application Password
                   </label>
                   <input
                     id={`plugin-${plugin.id}-app-password`}
                     type="password"
                     value={wpPassword}
-                    onChange={(e) => setWpPassword(e.target.value)}
+                    onChange={e => setWpPassword(e.target.value)}
                     disabled={!isEditing}
-                    onFocus={(e) => {
+                    onFocus={e => {
                       if (isEditing) e.target.value = ""
                     }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -876,10 +890,10 @@ const PluginsMain = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px]">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-150">
           {/* Horizontal Tabs */}
           <div className="flex items-center gap-6 px-6 sm:px-10 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-            {extendedPlugins.map((p) => {
+            {extendedPlugins.map(p => {
               const Icon = p.icon
               const isActive = activeTab === p.id.toString()
               return (
@@ -902,7 +916,7 @@ const PluginsMain = () => {
 
           <div className="p-6 lg:p-10">
             <AnimatePresence mode="wait">
-              {extendedPlugins.find((p) => p.id.toString() === activeTab) && (
+              {extendedPlugins.find(p => p.id.toString() === activeTab) && (
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
@@ -911,7 +925,7 @@ const PluginsMain = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
-                    plugin={extendedPlugins.find((p) => p.id.toString() === activeTab)}
+                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
                   />
                 </motion.div>
               )}
