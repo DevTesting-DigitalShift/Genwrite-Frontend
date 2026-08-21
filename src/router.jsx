@@ -14,6 +14,9 @@ const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
+const CampaignsListPage = lazy(() => import("@pages/campaigns/CampaignsListPage"))
+const CampaignDetailPage = lazy(() => import("@pages/campaigns/CampaignDetailPage"))
+const CampaignReportDetailPage = lazy(() => import("@pages/campaigns/CampaignReportDetailPage"))
 const jobs = lazy(() => import("@pages/Jobs"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
@@ -122,6 +125,9 @@ const router = createBrowserRouter([
           { path: "profile", element: r(Profile) },
           { path: "collaboration", element: r(Collaboration) },
           { path: "brand-voice", element: r(BrandVoice) },
+          { path: "campaigns", element: r(CampaignsListPage) },
+          { path: "campaigns/:id", element: r(CampaignDetailPage) },
+          { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },

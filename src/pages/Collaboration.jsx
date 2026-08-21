@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { UserPlus, Eye, X, Check, Inbox, Users, ShieldCheck } from "lucide-react"
+import { UserPlus, Eye, X, Inbox, Users } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 import { Button } from "@components/ui/button"
@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
 }
 
 /** What a collaborator actually gets — spelled out so the inviter isn't guessing. */
-const ACCESS_SCOPE = [
+const _ACCESS_SCOPE = [
   "Blogs and published content",
   "Brand voices",
   "Content agent jobs",

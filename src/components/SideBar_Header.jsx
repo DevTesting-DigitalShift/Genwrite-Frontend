@@ -13,6 +13,7 @@ import {
   Menu,
   Plug,
   Sparkles,
+  Target,
   Trash2,
   TrendingUp,
   UsersRound,
@@ -196,6 +197,7 @@ const SideBar_Header = () => {
     { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
     { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
+    { title: "Campaigns", icon: Target, path: "/campaigns" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
