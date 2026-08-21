@@ -93,6 +93,25 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     formData.aiModel, formData.numberOfImages
   ])
 
+  // Validate the fields that live on the details step (step 1)
+  const validateDetailsStep = () => ({
+    topic: !formData.topic.trim() ? "Please enter a topic." : "",
+    focusKeywords:
+      !formData.performKeywordResearch && formData.focusKeywords.length === 0
+        ? "Please add at least one focus keyword."
+        : "",
+    keywords:
+      !formData.performKeywordResearch && formData.keywords.length === 0
+        ? "Please add at least one secondary keyword."
+        : "",
+    otherLinks:
+      type === "yt" && otherLinks.length === 0
+        ? "Please add at least one valid link."
+        : otherLinks.length > 3
+          ? "You can only add up to 3 links."
+          : "",
+  })
+
   // Handle navigation to the next step
   const handleNext = () => {
     if (currentStep === 0) {
@@ -102,8 +121,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       }
       setErrors((prev) => ({ ...prev, template: "" }))
       setCurrentStep(1)
-    } else if (currentStep === 1 && formData.enableAdvanced) {
-      setCurrentStep(2)
+    } else if (currentStep === 1) {
+      // Don't let the user move on with missing fields - the errors would render
+      // on a step they can no longer see.
+      const newErrors = validateDetailsStep()
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+
+      if (Object.values(newErrors).some((error) => error)) {
+        toast.error("Please fill all required fields correctly.")
+        return
+      }
+
+      if (formData.enableAdvanced) {
+        setCurrentStep(2)
+      }
     }
   }
 
@@ -123,30 +154,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle form submission
   const handleSubmit = () => {
-    const newErrors = {
-      topic: !formData.topic.trim() ? "Please enter a topic." : "",
-      focusKeywords:
-        !formData.performKeywordResearch && formData.focusKeywords.length === 0
-          ? "Please add at least one focus keyword."
-          : "",
-      keywords:
-        !formData.performKeywordResearch && formData.keywords.length === 0
-          ? "Please add at least one secondary keyword."
-          : "",
-      otherLinks:
-        otherLinks.length === 0 && type === "yt" ? "Please add at least one valid link." : "",
-    }
+    const newErrors = validateDetailsStep()
 
-    setErrors(newErrors)
+    setErrors((prev) => ({ ...prev, ...newErrors }))
 
     if (Object.values(newErrors).some((error) => error)) {
+      // These fields all live on step 1 - go back so the user can see them.
+      setCurrentStep(1)
       toast.error("Please fill all required fields correctly.")
-      return
-    }
-
-    if (otherLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
-      toast.error("You can only add up to 3 links.")
       return
     }
 
@@ -722,7 +737,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
                       }
                       onKeyDown={(e) => handleKeyDown(e)}
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
+                      className={`flex-1 px-3 py-2 border ${
+                        errors.otherLinks ? "border-red-500" : "border-gray-200"
+                      } rounded-md text-sm bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
                     />

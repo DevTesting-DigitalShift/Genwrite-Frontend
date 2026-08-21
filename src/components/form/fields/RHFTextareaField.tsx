@@ -41,6 +41,7 @@ export function RHFTextareaField<TFieldValues extends FieldValues>({
           <Textarea
             id={name}
             rows={rows}
+            className="resize-none"
             placeholder={placeholder}
             aria-invalid={!!fieldState.error}
             {...field}

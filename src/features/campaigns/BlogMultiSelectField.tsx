@@ -5,8 +5,8 @@ import { Search } from "lucide-react"
 import { Input } from "@components/ui/input"
 import { Checkbox as CheckboxUntyped } from "@components/ui/checkbox"
 import { Label } from "@components/ui/label"
-import { Badge } from "@components/ui/badge"
 import { FieldShell } from "@components/form/fields"
+import { cn } from "@/lib/utils"
 import type { CampaignBlogRef } from "@/types/campaign"
 
 // `Checkbox` is a plain JSX (untyped) component — cast once here so every call site
@@ -72,10 +72,12 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
                     className="h-8 pl-7 text-sm"
                   />
                 </div>
-                <Badge variant="secondary">{selected.length} selected</Badge>
+                <span className="shrink-0 rounded-md border border-primary/15 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  {selected.length} selected
+                </span>
               </div>
 
-              <div className="max-h-48 overflow-y-auto rounded-md border border-input divide-y">
+              <div className="max-h-48 overflow-y-auto overflow-x-hidden rounded-md border border-input p-1">
                 {isLoading && (
                   <p className="p-3 text-sm text-muted-foreground">Loading blogs…</p>
                 )}
@@ -86,14 +88,23 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
                   <label
                     key={blog._id}
                     htmlFor={`blog-${blog._id}`}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent cursor-pointer"
+                    className={cn(
+                      "flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors",
+                      selected.includes(blog._id)
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-primary/5"
+                    )}
                   >
                     <Checkbox
                       id={`blog-${blog._id}`}
                       checked={selected.includes(blog._id)}
                       onCheckedChange={() => toggle(blog._id)}
+                      className="shrink-0"
                     />
-                    <Label htmlFor={`blog-${blog._id}`} className="cursor-pointer font-normal truncate">
+                    <Label
+                      htmlFor={`blog-${blog._id}`}
+                      className="min-w-0 flex-1 cursor-pointer truncate font-normal"
+                    >
                       {blog.title || "Untitled blog"}
                     </Label>
                   </label>

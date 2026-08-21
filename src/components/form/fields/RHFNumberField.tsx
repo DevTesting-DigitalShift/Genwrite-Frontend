@@ -16,6 +16,8 @@ interface RHFNumberFieldProps<TFieldValues extends FieldValues> {
   step?: number
   /** The field stores `null` for "no value" (e.g. an unset target) rather than 0. */
   nullable?: boolean
+  /** Render the label and the input on one row rather than stacked. */
+  inline?: boolean
   className?: string
 }
 
@@ -34,6 +36,7 @@ export function RHFNumberField<TFieldValues extends FieldValues>({
   max,
   step,
   nullable = false,
+  inline,
   className,
 }: RHFNumberFieldProps<TFieldValues>) {
   return (
@@ -47,11 +50,13 @@ export function RHFNumberField<TFieldValues extends FieldValues>({
           required={required}
           description={description}
           error={fieldState.error?.message}
+          inline={inline}
           className={className}
         >
           <Input
             id={name}
             type="number"
+            className={inline ? "w-24 text-center" : undefined}
             min={min}
             max={max}
             step={step}

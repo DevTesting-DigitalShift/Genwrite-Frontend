@@ -240,6 +240,19 @@ const WebsiteRanking = () => {
     }
   }, [resetWebsiteRanking])
 
+  // The loading overlay is fixed to the viewport, but the page behind it keeps
+  // scrolling - content slides around under the blur. Freeze it while it's up.
+  useEffect(() => {
+    if (!isLoading) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isLoading])
+
   const handleExportMD = (data) => {
     if (!data) return
     const { url: auditUrl, analysis, rankings, advancedReport } = data
@@ -854,25 +867,25 @@ const WebsiteRanking = () => {
         }}
       />
 
-      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
-        <AnimatePresence>
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-9999 bg-white/80 backdrop-blur-md flex items-center justify-center p-6"
-            >
-              <div className="w-full max-w-2xl bg-white p-12 rounded-3xl shadow-2xl border border-gray-100 text-center">
-                <ProgressLoadingScreen
-                  message={getLoadingMessage()}
-                  scenario={getLoadingScenario()}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-9999 bg-white/80 backdrop-blur-md flex items-center justify-center p-6 overscroll-contain"
+          >
+            <div className="w-full max-w-2xl bg-white p-12 rounded-3xl shadow-2xl border border-gray-100 text-center">
+              <ProgressLoadingScreen
+                message={getLoadingMessage()}
+                scenario={getLoadingScenario()}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
         <div className="bg-white rounded-xl border border-gray-200 shadow-none p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">

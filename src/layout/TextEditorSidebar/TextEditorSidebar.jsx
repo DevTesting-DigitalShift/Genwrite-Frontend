@@ -1218,6 +1218,10 @@ const TextEditorSidebar = ({
   )
 
   const handleMetadataGen = useCallback(() => {
+    if (!blog?._id) {
+      toast.error("Save the blog before generating metadata.")
+      return
+    }
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -1233,11 +1237,9 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsGeneratingMetadata(true)
         try {
-          const result = await generateMetadata({
-            content: editorContent,
-            keywords: keywords || [],
-            focusKeywords: blog?.focusKeywords || [],
-          })
+          // The backend reads the blog's content and keywords itself — the id is
+          // the whole payload.
+          const result = await generateMetadata({ blogId: blog._id })
           // Show the generated metadata in accept/reject modal
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
@@ -1248,7 +1250,7 @@ const TextEditorSidebar = ({
         }
       },
     })
-  }, [isPro, navigate, handlePopup, editorContent, keywords, blog])
+  }, [isPro, navigate, handlePopup, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {

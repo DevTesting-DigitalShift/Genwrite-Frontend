@@ -524,3 +524,26 @@ input[type="range"]::-moz-range-thumb {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
+
+/* ---------------------------------------------------------------------------
+ * daisyUI token repair
+ *
+ * The `@theme` block above maps Tailwind's colour utilities onto the GenWrite
+ * palette (`--color-accent: var(--accent)`, etc). daisyUI then re-declares the
+ * same `--color-*` names on `:root` with its own default theme — teal for
+ * accent, magenta for secondary, its own violet for primary — and, being later
+ * in the cascade at equal specificity, it wins. That is why `hover:bg-accent`
+ * rendered teal and `variant="secondary"` rendered pink all over the app.
+ *
+ * Re-pointing them at the palette variables restores the intended colours
+ * without inventing new ones, and keeps working in dark mode because `.dark`
+ * redefines `--accent` / `--secondary` / `--primary` at the source.
+ *
+ * `:root:root` is deliberate — it outranks daisyUI's own `:root` and
+ * `[data-theme=light]` selectors regardless of source order.
+ * ------------------------------------------------------------------------- */
+:root:root {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+}

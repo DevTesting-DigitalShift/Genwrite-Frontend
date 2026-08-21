@@ -8,6 +8,8 @@ interface FieldShellProps {
   required?: boolean
   description?: string
   error?: string
+  /** Put the label and the control on one row instead of stacking them. */
+  inline?: boolean
   className?: string
   children: ReactNode
 }
@@ -23,17 +25,37 @@ export function FieldShell({
   required,
   description,
   error,
+  inline,
   className,
   children,
 }: FieldShellProps) {
+  const labelNode = label && (
+    <Label htmlFor={htmlFor} className="flex items-center gap-1">
+      {label}
+      {required && <span className="text-destructive">*</span>}
+    </Label>
+  )
+
+  if (inline) {
+    return (
+      <div className={cn("space-y-1.5", className)}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 space-y-0.5">
+            {labelNode}
+            {description && !error && (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            )}
+          </div>
+          <div className="shrink-0">{children}</div>
+        </div>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
+    )
+  }
+
   return (
     <div className={cn("space-y-1.5", className)}>
-      {label && (
-        <Label htmlFor={htmlFor} className="flex items-center gap-1">
-          {label}
-          {required && <span className="text-destructive">*</span>}
-        </Label>
-      )}
+      {labelNode}
       {children}
       {description && !error && <p className="text-xs text-muted-foreground">{description}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}

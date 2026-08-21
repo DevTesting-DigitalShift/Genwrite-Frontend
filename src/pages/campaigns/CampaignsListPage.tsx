@@ -4,18 +4,19 @@ import { useNavigate } from "react-router-dom"
 import { Plus, Target, Calendar, FileStack, Loader2, Trash2, Pencil } from "lucide-react"
 import { Button } from "@components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@components/ui/card"
-import { Badge } from "@components/ui/badge"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
+import { PanelError } from "@/features/campaigns/CampaignStates"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
-const STATUS_BADGE: Record<CampaignStatusType, string> = {
-  active: "bg-green-100 text-green-700 border-green-200",
-  paused: "bg-amber-100 text-amber-700 border-amber-200",
-  completed: "bg-gray-100 text-gray-700 border-gray-200",
+// Matches the pill on the detail page. No green — brand indigo carries "active".
+const STATUS_PILL: Record<CampaignStatusType, string> = {
+  active: "bg-primary/10 text-primary",
+  paused: "bg-amber-100 text-amber-700",
+  completed: "bg-slate-100 text-slate-600",
 }
 
 const formatDate = (date: string) =>
@@ -24,7 +25,7 @@ const formatDate = (date: string) =>
 export default function CampaignsListPage() {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const { data: campaigns = [], isLoading } = campaignsQuery.useList()
+  const { data: campaigns = [], isLoading, isError, refetch } = campaignsQuery.useList()
   const { state: uiState, actions } = useCampaignFormUI()
 
   const deleteMutation = campaignsQuery.useDelete({
@@ -53,43 +54,68 @@ export default function CampaignsListPage() {
   }
 
   return (
-    <main className="max-container mx-auto space-y-6 p-4 sm:p-6 md:p-10">
+    <main className="max-container mx-auto flex min-h-[calc(100vh-5rem)] flex-col gap-6 p-4 sm:p-6 md:p-10">
       <Helmet>
         <title>Campaigns | GenWrite</title>
       </Helmet>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Campaigns</h1>
           <p className="text-sm text-muted-foreground">
             Group blogs under a shared SEO goal and get weekly suggestions toward it.
           </p>
         </div>
-        <Button onClick={actions.openCreate}>
-          <Plus className="size-4" /> New campaign
-        </Button>
+        {campaigns.length > 0 && (
+          <Button onClick={actions.openCreate}>
+            <Plus className="size-4" /> New campaign
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex flex-1 items-center justify-center">
           <Loader2 className="size-8 animate-spin text-primary" />
         </div>
+      ) : isError ? (
+        <div className="flex flex-1 items-center justify-center rounded-xl bg-muted/40">
+          <PanelError
+            title="Couldn't load your campaigns"
+            description="Check your connection and try again."
+            onRetry={() => refetch()}
+          />
+        </div>
       ) : campaigns.length === 0 ? (
-        <div className="p-10 bg-muted/40 rounded-xl border-2 border-dashed text-center text-muted-foreground">
-          No campaigns yet. Create one to start tracking blogs toward a shared goal.
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed bg-muted/40 p-10 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Target className="size-6" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">No campaigns yet</p>
+            <p className="text-sm text-muted-foreground">
+              Create one to start tracking blogs toward a shared goal.
+            </p>
+          </div>
+          <Button onClick={actions.openCreate}>
+            <Plus className="size-4" /> New campaign
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {campaigns.map((campaign) => (
             <Card
               key={campaign._id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="cursor-pointer border-slate-200/70 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
               onClick={() => navigate(`/campaigns/${campaign._id}`)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                  <Badge className={STATUS_BADGE[campaign.status]}>{campaign.status}</Badge>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_PILL[campaign.status]}`}
+                  >
+                    {campaign.status}
+                  </span>
                 </div>
                 {campaign.description && (
                   <CardDescription className="line-clamp-2">{campaign.description}</CardDescription>
