@@ -2,6 +2,7 @@ import { Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelError, PanelLoading } from "./CampaignStates"
+import { getFriendlyError } from "@utils/friendlyError"
 import type { ProgressStatusType } from "@/types/campaign"
 
 const PROGRESS_PILL: Record<ProgressStatusType, string> = {
@@ -59,12 +60,7 @@ function MetricTile({
  * is a snapshot, this is where the campaign stands right now.
  */
 export function LiveMetricsWidget({ campaignId }: { campaignId: string }) {
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = campaignsQuery.useMetrics(campaignId)
+  const { data, isLoading, isError, error, refetch } = campaignsQuery.useMetrics(campaignId)
 
   if (isLoading) return <PanelLoading label="Fetching live metrics…" />
 
@@ -72,7 +68,7 @@ export function LiveMetricsWidget({ campaignId }: { campaignId: string }) {
     return (
       <PanelError
         title="Couldn't load live metrics"
-        description="Search Console data may not be connected for these blogs yet."
+        description={getFriendlyError(error, "campaign")}
         onRetry={() => refetch()}
       />
     )

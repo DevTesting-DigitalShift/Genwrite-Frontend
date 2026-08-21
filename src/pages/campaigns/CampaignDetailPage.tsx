@@ -28,6 +28,7 @@ import { CampaignSuggestionsPanel } from "@/features/campaigns/CampaignSuggestio
 import { CampaignActivityLog } from "@/features/campaigns/CampaignActivityLog"
 import { PanelEmpty, PanelError, PanelLoading } from "@/features/campaigns/CampaignStates"
 import { useCreditConfirm } from "@/features/campaigns/useCreditConfirm"
+import { getFriendlyError } from "@utils/friendlyError"
 import type { CampaignStatusType } from "@/types/campaign"
 
 const formatDate = (date: string) =>
@@ -124,11 +125,12 @@ export default function CampaignDetailPage() {
   const [tab, setTab] = useState("overview")
 
   const { data: campaigns = [] } = campaignsQuery.useList()
-  const { data: campaign, isLoading, isError, refetch } = campaignsQuery.useDetail(id)
+  const { data: campaign, isLoading, isError, error, refetch } = campaignsQuery.useDetail(id)
   const {
     data: reports = [],
     isLoading: isReportsLoading,
     isError: isReportsError,
+    error: reportsError,
     refetch: refetchReports,
   } = campaignsQuery.useReports(id)
   const { data: allBlogs = [] } = useAllBlogsQuery()
@@ -148,17 +150,17 @@ export default function CampaignDetailPage() {
       toast.success(`Analyzed ${result.analyzed} of ${result.total} blogs`)
       setTab("suggestions")
     },
-    onError: () => toast.error("Analysis failed. Please try again."),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   const reportMutation = campaignsQuery.useGenerateReport({
     onSuccess: () => toast.success("Report generated"),
-    onError: () => toast.error("Couldn't generate the report."),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   const statusMutation = campaignsQuery.useUpdateStatus({
     onSuccess: (updated) => toast.success(`Campaign ${updated.status}`),
-    onError: () => toast.error("Couldn't update the status."),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   if (isLoading) {
@@ -174,7 +176,7 @@ export default function CampaignDetailPage() {
       <div className="flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center gap-4">
         <PanelError
           title="Couldn't load this campaign"
-          description="It may have been deleted, or the connection dropped."
+          description={getFriendlyError(error, "campaign")}
           onRetry={() => refetch()}
         />
         <Button variant="outline" onClick={() => navigate("/campaigns")}>
@@ -396,7 +398,11 @@ export default function CampaignDetailPage() {
             {isReportsLoading ? (
               <PanelLoading label="Loading reports…" />
             ) : isReportsError ? (
-              <PanelError title="Couldn't load reports" onRetry={() => refetchReports()} />
+              <PanelError
+                title="Couldn't load reports"
+                description={getFriendlyError(reportsError, "campaign")}
+                onRetry={() => refetchReports()}
+              />
             ) : reports.length === 0 ? (
               <PanelEmpty
                 icon={FileText}

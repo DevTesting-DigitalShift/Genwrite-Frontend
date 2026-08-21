@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { PanelError } from "@/features/campaigns/CampaignStates"
+import { getFriendlyError } from "@utils/friendlyError"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
@@ -25,12 +26,12 @@ const formatDate = (date: string) =>
 export default function CampaignsListPage() {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const { data: campaigns = [], isLoading, isError, refetch } = campaignsQuery.useList()
+  const { data: campaigns = [], isLoading, isError, error, refetch } = campaignsQuery.useList()
   const { state: uiState, actions } = useCampaignFormUI()
 
   const deleteMutation = campaignsQuery.useDelete({
     onSuccess: () => toast.success("Campaign deleted"),
-    onError: () => toast.error("Failed to delete campaign"),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   const handleDelete = (campaign: Campaign) => {
@@ -81,7 +82,7 @@ export default function CampaignsListPage() {
         <div className="flex flex-1 items-center justify-center rounded-xl bg-muted/40">
           <PanelError
             title="Couldn't load your campaigns"
-            description="Check your connection and try again."
+            description={getFriendlyError(error, "campaign")}
             onRetry={() => refetch()}
           />
         </div>

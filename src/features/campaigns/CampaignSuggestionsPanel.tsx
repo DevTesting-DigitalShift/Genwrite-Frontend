@@ -4,6 +4,7 @@ import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError, PanelLoading } from "./CampaignStates"
+import { getFriendlyError } from "@utils/friendlyError"
 import { SuggestionReviewDialog } from "./SuggestionReviewDialog"
 import type { CampaignLiveSuggestion, SuggestionPriorityType } from "@/types/campaign"
 
@@ -31,12 +32,18 @@ export function CampaignSuggestionsPanel({
   isAnalyzing,
 }: CampaignSuggestionsPanelProps) {
   const [reviewing, setReviewing] = useState<CampaignLiveSuggestion | null>(null)
-  const { data: suggestions = [], isLoading, isError, refetch } = campaignsQuery.useSuggestions(campaignId)
+  const { data: suggestions = [], isLoading, isError, error, refetch } = campaignsQuery.useSuggestions(campaignId)
 
   if (isLoading) return <PanelLoading label="Loading suggestions…" />
 
   if (isError) {
-    return <PanelError title="Couldn't load suggestions" onRetry={() => refetch()} />
+    return (
+      <PanelError
+        title="Couldn't load suggestions"
+        description={getFriendlyError(error, "campaign")}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   if (suggestions.length === 0) {

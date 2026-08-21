@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError, PanelLoading } from "./CampaignStates"
+import { getFriendlyError } from "@utils/friendlyError"
 
 const formatDateTime = (date: string) =>
   new Date(date).toLocaleString("en-US", {
@@ -24,12 +25,18 @@ interface CampaignActivityLogProps {
 
 /** Audit trail of automated rewrites and reposts — successes and failures alike. */
 export function CampaignActivityLog({ campaignId, blogTitles }: CampaignActivityLogProps) {
-  const { data: actions = [], isLoading, isError, refetch } = campaignsQuery.useActions(campaignId)
+  const { data: actions = [], isLoading, isError, error, refetch } = campaignsQuery.useActions(campaignId)
 
   if (isLoading) return <PanelLoading label="Loading activity…" />
 
   if (isError) {
-    return <PanelError title="Couldn't load the activity log" onRetry={() => refetch()} />
+    return (
+      <PanelError
+        title="Couldn't load the activity log"
+        description={getFriendlyError(error, "campaign")}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   if (actions.length === 0) {

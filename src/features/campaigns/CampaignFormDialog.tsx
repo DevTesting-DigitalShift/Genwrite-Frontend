@@ -32,6 +32,7 @@ import type { Campaign, CampaignBlogRef } from "@/types/campaign"
 import type { CampaignFormUIState } from "./campaignForm.types"
 import { getValueByPath } from "@utils/ObjectPath"
 import { COSTS } from "@/data/blogData"
+import { getFriendlyError } from "@utils/friendlyError"
 
 /** How long after a step change the submit button ignores clicks. */
 const SUBMIT_ARM_DELAY_MS = 400
@@ -96,7 +97,7 @@ export function CampaignFormDialog({
       toast.success("Campaign created")
       onClose()
     },
-    onError: () => toast.error("Failed to create campaign"),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   const updateMutation = campaignsQuery.useUpdate({
@@ -104,7 +105,7 @@ export function CampaignFormDialog({
       toast.success("Campaign updated")
       onClose()
     },
-    onError: () => toast.error("Failed to update campaign"),
+    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
   // `mutate` is fire-and-forget: it returns before the request does, so RHF's

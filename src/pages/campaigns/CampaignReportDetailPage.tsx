@@ -6,6 +6,7 @@ import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError } from "@/features/campaigns/CampaignStates"
+import { getFriendlyError } from "@utils/friendlyError"
 import type { ProgressStatusType, SuggestionPriorityType } from "@/types/campaign"
 
 const PROGRESS_LABEL: Record<ProgressStatusType, string> = {
@@ -122,7 +123,7 @@ export default function CampaignReportDetailPage() {
   const { id = "", reportId = "" } = useParams<{ id: string; reportId: string }>()
   const navigate = useNavigate()
   const { data: campaign } = campaignsQuery.useDetail(id)
-  const { data: report, isLoading, isError, refetch } = campaignsQuery.useReport(id, reportId)
+  const { data: report, isLoading, isError, error, refetch } = campaignsQuery.useReport(id, reportId)
 
   if (isLoading) {
     return (
@@ -137,7 +138,7 @@ export default function CampaignReportDetailPage() {
       <div className="flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center gap-4">
         <PanelError
           title="Couldn't load this report"
-          description="It may have been removed, or the connection dropped."
+          description={getFriendlyError(error, "campaign")}
           onRetry={() => refetch()}
         />
         <Button variant="outline" onClick={() => navigate(`/campaigns/${id}`)}>
