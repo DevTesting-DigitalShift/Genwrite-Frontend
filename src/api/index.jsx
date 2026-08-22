@@ -56,7 +56,7 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response
   },
-  (error) => {
+  async (error) => {
     const status = error.response ? error.response.status : null
 
     // 1. Throttled 429 Too Many Requests
@@ -68,13 +68,37 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 2. Read-only workspace write attempt — surface the backend's message as a safety net
+    // 2. Stale watch context. The workspace persisted for this tab no longer has an
+    //    accepted invite — the owner revoked it, or the database was restored from a
+    //    dump predating it. The X-Watch-As header can never succeed again, so exit to
+    //    our own workspace and replay the request once. Without this every scoped read
+    //    fails with a 403 that nothing surfaces, and the UI just renders empty forever.
+    if (
+      status === 403 &&
+      error.response?.data?.message?.includes("No active watcher access") &&
+      !error.config?._watchContextRetried
+    ) {
+      useWorkspaceStore.getState().exitToOwnWorkspace()
+      toast.error("That shared workspace is no longer available. Switched back to your account.")
+
+      const retryConfig = { ...error.config, _watchContextRetried: true }
+      // The request interceptor won't re-add the header now that activeWorkspace is
+      // null, but this config already carries it — strip it either way.
+      if (typeof retryConfig.headers?.delete === "function") {
+        retryConfig.headers.delete("X-Watch-As")
+      } else if (retryConfig.headers) {
+        delete retryConfig.headers["X-Watch-As"]
+      }
+      return axiosInstance(retryConfig)
+    }
+
+    // 3. Read-only workspace write attempt — surface the backend's message as a safety net
     //    for any write action we didn't proactively gate in the UI.
     if (status === 403 && error.response?.data?.message?.includes("Read-only access")) {
       toast.error(error.response.data.message)
     }
 
-    // 3. Only delete token for 401 Unauthorized
+    // 4. Only delete token for 401 Unauthorized
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       const expiredSession = getActiveSession()
