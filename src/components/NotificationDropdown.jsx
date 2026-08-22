@@ -1,170 +1,191 @@
-import React, { useState, useEffect, useMemo } from "react"
-import { Badge, Dropdown, Card, List, Typography, Empty, message } from "antd"
+import { useState, useEffect, useRef } from "react"
 import {
-  BellFilled,
-  BellOutlined,
-  CheckOutlined,
-  FileTextOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons"
-import { useDispatch, useSelector } from "react-redux"
-import { markAllNotificationsAsRead } from "@store/slices/userSlice"
-import { getSocket } from "@utils/socket"
+  Bell,
+  CheckCircle,
+  FileText,
+  Trash2,
+  AlertTriangle,
+  Play,
+  XCircle,
+  AlertCircle,
+  Info,
+  Clock,
+} from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
 
-const { Text } = Typography
-
-// Map notification types to icons
+// Map notification types to lucide icons
 const typeIconMap = {
-  BLOG_CREATED: <FileTextOutlined />,
-  BLOG_GENERATED: <FileTextOutlined />,
-  BLOG_TRASHED: <ReloadOutlined />,
-  BLOG_RESTORED: <CheckOutlined />,
-  BLOG_DELETED: <ReloadOutlined />,
-  BLOG_GENERATION_ERROR: <ReloadOutlined />,
-  JOB_STARTED: <ReloadOutlined />,
-  JOB_HALTED: <ReloadOutlined />,
-  JOB_COMPLETED: <CheckOutlined />,
-  JOB_FAILED_CREDITS: <ReloadOutlined />,
-  JOB_ERROR: <ReloadOutlined />,
+  BLOG_CREATED: { icon: FileText, color: "text-blue-500" },
+  BLOG_GENERATED: { icon: FileText, color: "text-green-500" },
+  BLOG_TRASHED: { icon: Trash2, color: "text-red-500" },
+  BLOG_RESTORED: { icon: CheckCircle, color: "text-emerald-500" },
+  BLOG_DELETED: { icon: Trash2, color: "text-red-600" },
+  BLOG_GENERATION_ERROR: { icon: AlertTriangle, color: "text-red-500" },
+  JOB_STARTED: { icon: Play, color: "text-indigo-500" },
+  JOB_HALTED: { icon: XCircle, color: "text-orange-500" },
+  JOB_COMPLETED: { icon: CheckCircle, color: "text-green-500" },
+  JOB_FAILED_CREDITS: { icon: AlertCircle, color: "text-red-500" },
+  JOB_ERROR: { icon: AlertTriangle, color: "text-red-500" },
 }
 
 // Format date using native Date methods
 const formatDate = (dateStr) => {
+  if (!dateStr) return ""
   const date = new Date(dateStr)
   return date.toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   })
 }
 
-/**
- * @param {Object} param0
- * @param {Array} param0.notifications
- * @returns
- */
 const NotificationDropdown = ({ notifications }) => {
-  const [open, setOpen] = useState(false)
   const [localNotifications, setLocalNotifications] = useState([])
-  const dispatch = useDispatch()
-  const { loading, error } = useSelector((state) => state.user)
+  const [isOpen, setIsOpen] = useState(false)
+  const { markAllNotificationsAsRead, error } = useAuthStore()
+  const dropdownRef = useRef(null)
 
   // Sync local notifications with prop changes
   useEffect(() => {
     if (notifications?.length) {
       setLocalNotifications(notifications)
+    } else {
+      setLocalNotifications([])
     }
   }, [notifications])
 
-  // Handle API errors
+  // Handle API errors - revert if needed
   useEffect(() => {
     if (error) {
-      message.error("Failed to mark notifications as read.")
-      // Revert optimistic update if API fails
-      setLocalNotifications(notifications)
+      setLocalNotifications(notifications || [])
     }
   }, [error, notifications])
 
-  // Optimistically update notification read status
-  const handleOpenChange = (flag) => {
-    setOpen(flag)
-    if (flag && localNotifications.some((n) => !n.read)) {
-      // Optimistically mark all notifications as read locally
-      setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-      // Dispatch API call to mark notifications as read
-      dispatch(markAllNotificationsAsRead())
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
     }
-  }
 
-  // Memoized notification list content
-  const content = useMemo(
-    () => (
-      <Card
-        title={
-          <div className="flex items-center justify-center gap-3">
-            <BellFilled className="text-blue-600" />
-            <span className="text-lg font-semibold text-gray-900">Notifications</span>
-          </div>
-        }
-        className="w-[400px] max-h-[500px] overflow-auto shadow-lg rounded-xl border border-gray-200 mt-4"
-        classNames={{
-          body: "!pt-2 !px-3",
-        }}
-      >
-        {localNotifications.length === 0 ? (
-          <Empty description="No notifications available" />
-        ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={localNotifications}
-            renderItem={(item) => (
-              <List.Item
-                className={`px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 ${
-                  !item.read ? "bg-blue-50 border-l-4 border-blue-500" : ""
-                }`}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div className="text-xl text-blue-600 ml-2">
-                      {typeIconMap[item.type] || <BellOutlined />}
-                    </div>
-                  }
-                  title={
-                    <Text strong={!item.read} className="text-base font-medium text-gray-800">
-                      {item.message}
-                    </Text>
-                  }
-                  description={
-                    <Text type="secondary" className="text-sm">
-                      {formatDate(item.createdAt)}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-    ),
-    [localNotifications]
-  )
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   const unreadCount = localNotifications.filter((n) => !n.read).length
 
+  const handleToggle = () => {
+    setIsOpen(!isOpen)
+
+    if (!isOpen && unreadCount > 0) {
+      setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      markAllNotificationsAsRead()
+    }
+  }
+
   return (
-    <Dropdown
-      trigger={["click"]}
-      open={open}
-      onOpenChange={handleOpenChange}
-      overlay={content}
-      placement="bottomRight"
-    >
-      <Badge
-        count={unreadCount}
-        showZero={false}
-        style={{
-          backgroundColor: "#1B6FC9",
-          color: "#fff",
-          fontWeight: "600",
-          fontSize: "0.75rem", // ~12px
-          lineHeight: "20px",
-          // minWidth: "10px",
-          // height: "20px",
-          width: "10px",
-          padding: "0 6px",
-          borderRadius: "100%", // 🔵 Make it a circle
-          boxShadow: "0 0 0 1px #1B6FC9",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+        onClick={handleToggle}
       >
-        <BellOutlined
-          className={`text-2xl cursor-pointer transition-colors duration-200 ease-in-out 
-      ${unreadCount > 0 ? "text-blue-600 animate-bounce" : "text-gray-700 hover:text-blue-600"}
-    `}
-        />
-      </Badge>
-    </Dropdown>
+        <div className="indicator">
+          <Bell
+            className={`w-5 h-5 transition-colors ${unreadCount > 0 ? "text-blue-600 fill-blue-600/10" : "text-gray-600"}`}
+          />
+          {unreadCount > 0 && (
+            <span className="badge badge-sm badge-primary rounded-full! indicator-item border-white shadow-sm bg-blue-600">
+              {unreadCount}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-50 card card-compact w-80 md:w-96 bg-white shadow-2xl border border-gray-100 mt-2 max-h-[70vh] overflow-hidden rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="card-body p-0">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="font-bold text-gray-800 text-lg">Notifications</h3>
+              {localNotifications.length > 0 && (
+                <span className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded-full border border-gray-200">
+                  {localNotifications.length} Total
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-y-auto max-h-[50vh] custom-scrollbar">
+              {localNotifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <div className="bg-gray-50 p-4 rounded-full mb-3">
+                    <Bell className="w-8 h-8 opacity-40" />
+                  </div>
+                  <p className="text-sm font-medium">No records found</p>
+                </div>
+              ) : (
+                <ul className="flex flex-col">
+                  {localNotifications.map((item) => {
+                    const typeConfig = typeIconMap[item.type] || {
+                      icon: Info,
+                      color: "text-gray-400",
+                    }
+                    const Icon = typeConfig.icon
+
+                    return (
+                      <li
+                        key={`${item.createdAt}-${item.message}`}
+                        className={`relative group border-b border-gray-50 last:border-none transition-all duration-200 
+                          ${!item.read ? "bg-blue-50/40 hover:bg-blue-50/60" : "hover:bg-gray-50/80"}`}
+                      >
+                        {/* Left edge indicator for unread */}
+                        {!item.read && (
+                          <div className="absolute left-0 top-2 bottom-2 w-1 bg-blue-500 rounded-r-full" />
+                        )}
+
+                        <div className="flex gap-4 p-4 items-start">
+                          <div
+                            className={`mt-0.5 p-2 rounded-xl transition-all duration-300 transform group-hover:scale-110 
+                              ${!item.read ? "bg-white shadow-sm" : "bg-gray-100 group-hover:bg-white group-hover:shadow-xs"} 
+                              ${typeConfig.color}`}
+                          >
+                            <Icon
+                              size={18}
+                              className="transition-all duration-300 group-hover:stroke-[2.5px]"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-[13px] leading-relaxed transition-colors duration-200
+                                ${!item.read ? "font-bold text-gray-900" : "text-gray-600 group-hover:text-gray-900"}`}
+                            >
+                              {item.message}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                                <Clock size={10} />
+                                {formatDate(item.createdAt)}
+                              </p>
+                              {!item.read && (
+                                <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

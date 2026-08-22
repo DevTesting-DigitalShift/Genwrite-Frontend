@@ -1,43 +1,34 @@
-const CHATGPT_MULTIPLIER = 3;
-const CLAUDE_MULTIPLIER = 5;
-
-export const creditCostswithGemini = Object.freeze({
-  analysis: {
-    competitors: 10, // competitor summaries & deep analysis using AI
-    keywords: 1,     // keyword suggestion per title
-  },
-  blog: {
-    quick: 5,       // quick blog with 1 image
-    proofread: 5,
-    single: 10,     // single blog without images / unstock images
-  },
-  aiImages: 10,      // credits to add for AI images (fixed for all AI as using DALL·E 3)
-});
+import { COSTS, MODEL_MULTIPLIER } from "@/data/blogData"
 
 /**
- *
- * @param {"analysis.competitors"|"analysis.keywords"|"blog.quick"|"blog.proofread"|"blog.single"|"aiImages"} type
+ * Get the estimated credit cost for a specific operation
+ * @param {string} type - Dot-separated path to the cost (e.g., "ANALYSIS.COMPETITORS")
  * @param {"gemini"|"chatgpt"|"claude"} aiModel
  * @returns {number}
  */
 export function getEstimatedCost(type, aiModel = "gemini") {
-  const types = type.split(".");
-  let cost =
-    types.length === 1
-      ? creditCostswithGemini[type]
-      : creditCostswithGemini[types[0]][types[1]];
+  const keys = type.toUpperCase().split(".")
+  let cost = COSTS
 
-  if (!cost) throw new Error("Unknown Operation: No cost available");
-
-  switch (aiModel.toLowerCase()) {
-    case "chatgpt":
-      cost = Math.ceil(CHATGPT_MULTIPLIER * cost);
-      break;
-    case "claude":
-      cost = Math.ceil(CLAUDE_MULTIPLIER * cost);
-      break;
-    // "gemini" or any unrecognized default will stay base
+  for (const key of keys) {
+    if (cost[key] === undefined) {
+      // Fallback for flat keys if nested not found
+      if (COSTS[keys[keys.length - 1]] !== undefined) {
+        cost = COSTS[keys[keys.length - 1]]
+        break
+      }
+      throw new Error(`Unknown Operation: No cost available for ${type}`)
+    }
+    cost = cost[key]
   }
 
-  return cost;
+  // Handle case where type was just one level but it's an object (e.g. "ANALYSIS")
+  if (typeof cost === "object" && keys.length === 1) {
+    cost = Object.values(cost)[0]
+  }
+
+  const modelKey = aiModel.toUpperCase() === "CHATGPT" ? "OPENAI" : aiModel.toUpperCase()
+  const multiplier = MODEL_MULTIPLIER[modelKey] ?? MODEL_MULTIPLIER.GEMINI
+
+  return Math.ceil(cost * multiplier)
 }

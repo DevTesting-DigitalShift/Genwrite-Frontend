@@ -1,0 +1,308 @@
+import { useState, useCallback, useEffect } from "react"
+import DOMPurify from "dompurify"
+import { useNavigate } from "react-router-dom"
+import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
+import useContentStore from "@store/useContentStore"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
+import { toast } from "sonner"
+
+const PromptContent = () => {
+  const [content, setContent] = useState("")
+  const [prompt, setPrompt] = useState("")
+  const [copiedField, setCopiedField] = useState(null)
+
+  const navigate = useNavigate()
+
+  // Zustand stores
+  const { user } = useAuthStore()
+  const userPlan = user?.subscription?.plan
+
+  const {
+    data: generatedContent,
+    loading: isGenerating,
+    error,
+    generatePromptContent,
+    resetMetadata,
+  } = useContentStore()
+
+  // Clear data on route change or component unmount
+  useEffect(() => {
+    return () => {
+      resetMetadata()
+    }
+  }, [resetMetadata])
+
+  // Robust word count calculation that ignores HTML tags
+  const plainText = content.replace(/<[^>]*>/g, " ").trim()
+  const wordCount = plainText ? (plainText.match(/\S+/g) || []).length : 0
+  const promptLength = prompt.trim().length
+
+  // Validation functions
+  const isPromptValid = prompt.trim().length >= 10 && prompt.trim().length <= 500
+  const isContentValid = wordCount >= 100 && wordCount <= 1000
+  const canGenerate = isPromptValid && isContentValid && !isGenerating
+
+  const handleGenerateContent = useCallback(async () => {
+    if (!isPromptValid) {
+      if (prompt.trim().length < 10) {
+        toast.error("Prompt must be at least 10 characters long.")
+      } else if (prompt.trim().length > 500) {
+        toast.error("Prompt must not exceed 500 characters.")
+      }
+      return
+    }
+
+    if (!isContentValid) {
+      if (wordCount < 100) {
+        toast.error("Content must be at least 100 words long.")
+      } else if (wordCount > 1000) {
+        toast.error("Content must not exceed 1000 words.")
+      }
+      return
+    }
+
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+      openUpgradePopup({ featureName: "Content Generation", navigate })
+      return
+    }
+
+    try {
+      await generatePromptContent({ prompt, content })
+      toast.success("Content generated successfully!")
+    } catch (error) {
+      console.error("Error generating content:", error)
+      toast.error(typeof error === "string" ? error : "Failed to generate content.")
+    }
+  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid, wordCount])
+
+  const handleReset = useCallback(() => {
+    setContent("")
+    setPrompt("")
+    resetMetadata()
+    toast.success("Content and prompt reset!")
+  }, [resetMetadata])
+
+  const copyToClipboard = async (text, label, fieldName) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(fieldName)
+      toast.success(`${label} copied to clipboard!`)
+
+      // Reset copy indicator after 2 seconds
+      setTimeout(() => {
+        setCopiedField(null)
+      }, 2000)
+    } catch (_error) {
+      toast.error(`Failed to copy ${label}.`)
+    }
+  }
+
+  // Helper function to strip HTML tags and get plain text
+  const stripHtml = (html) => {
+    const tmp = document.createElement("div")
+    tmp.innerHTML = html
+    return tmp.textContent || tmp.innerText || ""
+  }
+
+  // Helper function to render HTML content safely
+  const renderHtmlContent = (htmlContent) => {
+    return (
+      <div
+        className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
+        style={{ lineHeight: "1.6", color: "#374151" }}
+      />
+    )
+  }
+
+  if (isGenerating) {
+    return (
+      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <ProgressLoadingScreen toast="Generating content..." />
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6 p-5">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-xl text-white flex items-center justify-center">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Create Content from Prompts</h1>
+              <p className="text-gray-600">
+                Transform your ideas into ready-to-publish content in seconds.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Reset all content"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+        <div className="space-y-4">
+          {/* Prompt Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-file-text w-5 h-5 text-blue-600"
+                >
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                  <path d="M10 9H8"></path>
+                  <path d="M16 13H8"></path>
+                  <path d="M16 17H8"></path>
+                </svg>
+                <h2 className="text-xl font-semibold text-gray-900">Prompt</h2>
+              </div>
+              <span
+                className={`text-sm ${promptLength >= 10 && promptLength <= 500 ? "text-green-600" : "text-red-500"}`}
+              >
+                {promptLength}/500 characters
+              </span>
+            </div>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
+              rows={4}
+              maxLength={500}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
+                prompt.trim() && !isPromptValid ? "border-red-300" : "border-gray-300"
+              }`}
+            />
+          </div>
+
+          {/* Content Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-file-text w-5 h-5 text-blue-600"
+                >
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                  <path d="M10 9H8"></path>
+                  <path d="M16 13H8"></path>
+                  <path d="M16 17H8"></path>
+                </svg>
+                <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+              </div>
+              <span
+                className={`text-sm ${wordCount >= 100 && wordCount <= 1000 ? "text-green-600" : "text-red-500"}`}
+              >
+                {wordCount}/100 words minimum (Max 1000)
+              </span>
+            </div>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter your content here (100-1000 words)..."
+              rows={12}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
+                content.trim() && !isContentValid ? "border-red-300" : "border-gray-300"
+              }`}
+            />
+          </div>
+
+          {/* Generate button */}
+          <button
+            type="button"
+            onClick={() => handleGenerateContent()}
+            loading={isGenerating}
+            disabled={!canGenerate}
+            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
+              !canGenerate ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            {isGenerating ? "Generating..." : "Generate Content"}
+          </button>
+        </div>
+      </div>
+
+      {/* Generated Content Display */}
+      {generatedContent && !isGenerating && (
+        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-linear-to-r from-green-500 to-blue-600 rounded-lg text-white flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Generated Content</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                copyToClipboard(stripHtml(generatedContent), "Generated content", "generated")
+              }
+              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Copy generated content"
+            >
+              {copiedField === "generated" ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Render HTML content in a humanized way */}
+          {renderHtmlContent(generatedContent)}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isGenerating && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-red-700">Error: {error}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default PromptContent

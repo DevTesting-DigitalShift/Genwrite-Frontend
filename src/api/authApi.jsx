@@ -1,4 +1,23 @@
 import axiosInstance from "."
+import { getActiveToken, getActiveSession, removeSession } from "@utils/sessionStore"
+
+const removeActiveSession = () => {
+  const active = getActiveSession()
+  // Auth failure, not a deliberate sign-out — detach this tab rather than letting it
+  // adopt whichever other account is signed in on this browser.
+  if (active) removeSession(active.userId, { adoptNext: false })
+}
+
+export const getIP = async () => {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json")
+    const { ip } = await res.json()
+    return ip
+  } catch (err) {
+    console.error("IP Fecth Error", err)
+    return ""
+  }
+}
 
 // Utility function to retry API calls
 const retry = async (fn, retries = 3, delay = 1000) => {
@@ -7,34 +26,40 @@ const retry = async (fn, retries = 3, delay = 1000) => {
       return await fn()
     } catch (error) {
       if (i === retries - 1) throw error // Throw on last retry
-      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i))) // Exponential backoff
+      await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i)) // Exponential backoff
     }
   }
 }
 
-export const login = async (email, password) => {
-  const response = await axiosInstance.post("/auth/login", { email, password })
-  return response.data
+export const login = async (reqBody) => {
+  try {
+    reqBody.ip = await getIP()
+    const response = await axiosInstance.post("/auth/login", reqBody)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Login failed")
+  }
 }
 
-export const signup = async (email, password, name) => {
-  const response = await axiosInstance.post("/auth/register", {
-    email,
-    password,
-    name,
-  })
-  return response.data
+export const signup = async (body) => {
+  try {
+    body.ip = await getIP()
+    const response = await axiosInstance.post("/auth/register", body)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Signup failed")
+  }
 }
-
 export const UserLogout = async () => {
+  // Session removal from storage is owned by useAuthStore.logoutUser (via
+  // sessionStore), which calls this first — this function only hits the backend.
   const response = await axiosInstance.get(`/auth/logout`)
-  localStorage.removeItem("token") // Clear token on logout
   return response.data
 }
 
 export const loadUser = async (navigate) => {
   // Check if token exists before making API call
-  const token = localStorage.getItem("token")
+  const token = getActiveToken()
   if (!token) {
     navigate("/login")
     throw new Error("No authentication token found")
@@ -42,7 +67,7 @@ export const loadUser = async (navigate) => {
 
   try {
     // Retry the API call up to 3 times with exponential backoff
-    const response = await retry(() => axiosInstance.get(`/auth/me`), 3, 1000)
+    const response = await retry(() => axiosInstance.get(`/auth/me`), 2, 250)
     return response.data
   } catch (error) {
     const status = error?.response?.status
@@ -50,7 +75,7 @@ export const loadUser = async (navigate) => {
 
     if (status === 401 || status === 403) {
       // Unauthorized or Forbidden: Clear token and redirect to login
-      localStorage.removeItem("token")
+      removeActiveSession()
       navigate("/login")
       throw new Error("Session expired. Please log in again.")
     } else if (isNetworkError) {
@@ -75,11 +100,9 @@ export const resetPasswordAPI = async (token, newPassword) => {
   return response.data
 }
 
-export const loginWithGoogle = async (access_token) => {
+export const loginWithGoogle = async (body) => {
   try {
-    const response = await axiosInstance.post("/auth/google-signin", {
-      access_token,
-    })
+    const response = await axiosInstance.post("/auth/google-signin", body)
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Google login failed")

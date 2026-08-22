@@ -1,110 +1,188 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import { previewBlogLoader } from "@pages/preview/previewLoader"
-import Loading from "@components/Loading"
+import LoadingScreen from "@components/ui/LoadingScreen"
+import App from "./App"
+import ErrorBoundary from "./layout/error/ErrorBoundary"
+import VerifiedEmail from "@pages/VerifiedEmail"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
-const ErrorBoundary = lazy(() => import("@components/ErrorBoundary"))
-const PublicRoutesLayout = lazy(() => import("@components/layout/PublicRoutesLayout"))
-const PrivateRoutesLayout = lazy(() => import("@components/layout/PrivateRoutesLayout"))
-const Dashboard = lazy(() => import("@components/Dashboard"))
-const ToolBox = lazy(() => import("@components/toolbox/ToolBox"))
-const ToolboxSettings = lazy(() => import("@components/toolbox/toolboxSettings"))
-const MyProjects = lazy(() => import("@components/Projects/MyProjects"))
-const PluginsMain = lazy(() => import("@components/plugins/PluginsMain"))
-const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"))
-const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"))
+const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
+const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
+const Dashboard = lazy(() => import("@pages/Dashboard"))
+const ToolBox = lazy(() => import("@pages/MainEditorPage"))
+const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
+const BlogsPage = lazy(() => import("@pages/BlogsPage"))
+const PluginsMain = lazy(() => import("@pages/PluginsMain"))
+const BrandVoice = lazy(() => import("@pages/BrandVoice"))
+const CampaignsListPage = lazy(() => import("@pages/campaigns/CampaignsListPage"))
+const CampaignDetailPage = lazy(() => import("@pages/campaigns/CampaignDetailPage"))
+const CampaignReportDetailPage = lazy(() => import("@pages/campaigns/CampaignReportDetailPage"))
 const jobs = lazy(() => import("@pages/Jobs"))
-const trashcan = lazy(() => import("@pages/Trashcan"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
-const Login = lazy(() => import("@components/auth/Login"))
-const ForgotPassword = lazy(() => import("@components/auth/ForgotPassword"))
-const ResetPassword = lazy(() => import("@components/auth/ResetPassword"))
-const ErrorPage = lazy(() => import("@components/ErrorPage"))
+const Collaboration = lazy(() => import("@pages/Collaboration"))
+const AcceptInvite = lazy(() => import("@pages/AcceptInvite"))
+const Login = lazy(() => import("@pages/auth/Login"))
+const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword"))
+const ResetPassword = lazy(() => import("@pages/auth/ResetPassword"))
+const ErrorPage = lazy(() => import("./layout/error/ErrorPage"))
 const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 const ContactUs = lazy(() => import("@pages/ContactUs"))
-const SearchConsole = lazy(() => import("@pages/SearchConsole"))
+const SearchConsole = lazy(() => import("@pages/SearchConsole/SearchConsole.jsx"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
-const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlogEditor.jsx/ManualBlog"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
+const AnalyticsPage = lazy(() => import("@pages/AnalyticsPage"))
+const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
+const GenerateMetaData = lazy(() => import("@pages/GenerateMetaData"))
+const PromptContent = lazy(() => import("@pages/PromptContent"))
+const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
+const EmailVerification = lazy(() => import("@pages/EmailVerification"))
+const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 
-/**
- * Wraps a component in React.Suspense with fallback support.
- *
- * @param {React.ComponentType} Component - The lazy-loaded or regular component.
- * @param {Object} props - The props to pass to the component.
- * @param {React.ReactNode} [fallback=null] - Optional fallback content.
- * @returns {JSX.Element}
- */
-function withSuspense(Component, props = {}, fallback = null) {
+const ImageGallery = lazy(() => import("@pages/ImageGallery"))
+const Onboarding = lazy(() => import("@pages/Onboarding"))
+const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
+const YouTubeSummarization = lazy(() => import("@pages/YouTubeSummarization"))
+const KeywordScraping = lazy(() => import("@pages/KeywordScraping"))
+const ChatWithPdf = lazy(() => import("@pages/ChatWithPdf"))
+const CompetitorLikeBlog = lazy(() => import("@pages/CompetitorLikeBlog"))
+const WebsiteRanking = lazy(() => import("@pages/WebsiteRanking"))
+const PerformanceMonitoring = lazy(() => import("@pages/PerformanceMonitoring"))
+const CompetitiveAnalysis = lazy(() => import("@pages/CompetitiveAnalysis"))
+const KeywordResearch = lazy(() => import("@pages/KeywordResearch"))
+
+const AdminProtectedRoute = lazy(() => import("@admin/auth/AdminProtectedRoute"))
+const AdminShell = lazy(() => import("@admin/layout/AdminShell"))
+const AdminLogin = lazy(() => import("@admin/features/auth/pages/AdminLogin"))
+const AdminElevate = lazy(() => import("@admin/features/auth/pages/AdminElevate"))
+const AdminDashboard = lazy(() => import("@admin/features/dashboard/pages/AdminDashboard"))
+const AdminUsers = lazy(() => import("@admin/features/users/pages/AdminUsers"))
+const AdminUserDetail = lazy(() => import("@admin/features/users/pages/AdminUserDetail"))
+const AdminBlogs = lazy(() => import("@admin/features/blogs/pages/AdminBlogs"))
+const AdminBrands = lazy(() => import("@admin/features/brands/pages/AdminBrands"))
+const AdminContent = lazy(() => import("@admin/features/content/pages/AdminContent"))
+const AdminJobs = lazy(() => import("@admin/features/jobs/pages/AdminJobs"))
+const AdminRevenue = lazy(() => import("@admin/features/revenue/pages/AdminRevenue"))
+const AdminTransactions = lazy(() => import("@admin/features/transactions/pages/AdminTransactions"))
+
+const _RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
+
+function withLayoutSuspense(Layout, props = {}) {
   return (
-    <Suspense fallback={<Loading />}>
-      <Component {...props} />
+    <Suspense fallback={<LoadingScreen />}>
+      <Layout {...props} />
     </Suspense>
   )
 }
 
+const r = (Component, props = {}) => <Component {...props} />
+
 const router = createBrowserRouter([
   {
     path: "/",
-    element: withSuspense(PrivateRoutesLayout),
-    errorElement: withSuspense(ErrorBoundary),
+    element: <App />,
+    errorElement: <ErrorBoundary />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", element: withSuspense(Dashboard) },
-      { path: "toolbox", element: withSuspense(ToolboxSettings) },
-      { path: "editor", element: withSuspense(ToolBox) },
-      { path: "toolbox/:id", element: withSuspense(ToolBox) },
-      { path: "blogs", element: withSuspense(MyProjects) },
-      { path: "integrations", element: withSuspense(PluginsMain) },
-      { path: "jobs", element: withSuspense(jobs) },
-      { path: "trashcan", element: withSuspense(trashcan) },
-      { path: "pricing", element: withSuspense(pricing) },
-      { path: "profile", element: withSuspense(Profile) },
-      { path: "brand-voice", element: withSuspense(BrandVoice) },
-      { path: "transactions", element: withSuspense(Transactions) },
-      { path: "credit-logs", element: withSuspense(CreditLogsTable) },
-      { path: "contact", element: withSuspense(ContactUs) },
-      { path: "search-console", element: withSuspense(SearchConsole) },
-      { path: "humanize-content", element: withSuspense(HumanizeContent) },
-      { path: "blog-editor", element: withSuspense(ManualBlog) },
-      { path: "cancel-subscription", element: withSuspense(CancellationPage) },
       {
-        path: "payment",
+        path: "/",
+        element: withLayoutSuspense(PublicRoutesLayout),
         children: [
+          { path: "login", element: r(Login, { path: "login" }) },
+          { path: "unsubscribe", element: r(UnsubscribeEmail) },
+          { path: "signup", element: r(Login, { path: "signup" }) },
+          { path: "forgot-password", element: r(ForgotPassword) },
+          { path: "reset-password", element: r(ResetPassword) },
+          { path: "privacy-policy", element: r(PrivacyPolicy) },
+          { path: "privacy-policy", element: r(PrivacyPolicy) },
+          { path: "terms-and-conditions", element: r(TermsAndConditions) },
           {
-            path: "success",
-            element: withSuspense(SuccessPage),
+            path: "payment",
+            children: [
+              { path: "success", element: r(SuccessPage) },
+              { path: "cancel", element: r(CancelPage) },
+            ],
           },
-          {
-            path: "cancel",
-            element: withSuspense(CancelPage),
-          },
+          { path: "shopify-verify", element: r(ShopifyVerification) },
+          { path: "accept-invite", element: r(AcceptInvite) },
+          { path: "*", element: r(ErrorPage) },
         ],
       },
-    ],
-  },
-  {
-    path: "/",
-    element: withSuspense(PublicRoutesLayout),
-    errorElement: withSuspense(ErrorBoundary),
-    children: [
-      { path: "login", element: withSuspense(Login, { path: "login" }) },
-      { path: "signup", element: withSuspense(Login, { path: "signup" }) },
-      { path: "forgot-password", element: withSuspense(ForgotPassword) },
-      { path: "reset-password", element: withSuspense(ResetPassword) },
-      { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
-      { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
-      { path: "*", element: withSuspense(ErrorPage) },
       {
-        path: "preview/:blogId",
-        element: withSuspense(PreviewBlog),
-        loader: previewBlogLoader,
-        hydrateFallbackElement: <Loading />,
+        path: "/",
+        element: withLayoutSuspense(PrivateRoutesLayout),
+        children: [
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { path: "dashboard", element: r(Dashboard) },
+          { path: "editor", element: r(ToolBox) },
+          { path: "blogs", element: r(BlogsPage) },
+          { path: "integrations", element: r(PluginsMain) },
+          { path: "jobs", element: r(jobs) },
+          { path: "trashcan", element: r(BlogsPage) },
+          { path: "pricing", element: r(pricing) },
+          { path: "profile", element: r(Profile) },
+          { path: "collaboration", element: r(Collaboration) },
+          { path: "brand-voice", element: r(BrandVoice) },
+          { path: "campaigns", element: r(CampaignsListPage) },
+          { path: "campaigns/:id", element: r(CampaignDetailPage) },
+          { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
+          { path: "transactions", element: r(Transactions) },
+          { path: "credit-logs", element: r(CreditLogsTable) },
+          { path: "contact", element: r(ContactUs) },
+          { path: "blog/:id", element: r(PublicBlogReader) },
+          { path: "blog-performance", element: r(SearchConsole) },
+          { path: "humanize-content", element: r(HumanizeContent) },
+          { path: "outline", element: r(OutlineEditor) },
+          { path: "blog-editor", element: r(ToolBox) },
+          { path: "blog-editor/:id", element: r(ToolBox) },
+          { path: "editor/:id", element: r(ToolBox) },
+          { path: "cancel-subscription", element: r(CancellationPage) },
+          { path: "analytics", element: r(AnalyticsPage) },
+          { path: "generate-metadata", element: r(GenerateMetaData) },
+          { path: "prompt-content", element: r(PromptContent) },
+          { path: "image-gallery", element: r(ImageGallery) },
+          { path: "content-detection", element: r(AiContentDetection) },
+          { path: "youtube-summarization", element: r(YouTubeSummarization) },
+          { path: "keyword-scraping", element: r(KeywordScraping) },
+          { path: "chat-with-pdf", element: r(ChatWithPdf) },
+          { path: "competitor-like-blog", element: r(CompetitorLikeBlog) },
+          { path: "website-ranking", element: r(WebsiteRanking) },
+          { path: "performance-monitoring", element: r(PerformanceMonitoring) },
+          { path: "competitive-analysis", element: r(CompetitiveAnalysis) },
+          { path: "keyword-research", element: r(KeywordResearch) },
+          { path: "onboarding", element: r(Onboarding) },
+          { path: "email-verify", element: r(EmailVerification) },
+          { path: "verify-email", element: <VerifiedEmail /> },
+        ],
+      },
+      {
+        path: "admin",
+        children: [
+          { path: "login", element: r(AdminLogin) },
+          {
+            element: withLayoutSuspense(AdminProtectedRoute),
+            children: [
+              {
+                element: withLayoutSuspense(AdminShell),
+                children: [
+                  { index: true, element: <Navigate to="dashboard" replace /> },
+                  { path: "elevate", element: r(AdminElevate) },
+                  { path: "dashboard", element: r(AdminDashboard) },
+                  { path: "users", element: r(AdminUsers) },
+                  { path: "users/:userId", element: r(AdminUserDetail) },
+                  { path: "blogs", element: r(AdminBlogs) },
+                  { path: "brands", element: r(AdminBrands) },
+                  { path: "content", element: r(AdminContent) },
+                  { path: "jobs", element: r(AdminJobs) },
+                  { path: "revenue", element: r(AdminRevenue) },
+                  { path: "transactions", element: r(AdminTransactions) },
+                ],
+              },
+            ],
+          },
+        ],
       },
     ],
   },

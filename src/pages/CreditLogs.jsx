@@ -1,300 +1,307 @@
-import { Table, Tag, Input, Select, Spin, Empty } from "antd";
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { SearchOutlined } from "@ant-design/icons";
-import { Helmet } from "react-helmet";
-import dayjs from "dayjs";
-import { getCreditLogs } from "@store/slices/creditLogSlice";
-import { debounce } from "lodash";
-import { getSocket } from "@utils/socket";
-
-const { Option } = Select;
+import { useEffect, useMemo } from "react"
+import { Helmet } from "react-helmet"
+import dayjs from "dayjs"
+import useCreditLogStore from "@store/useCreditLogStore"
+import { useCreditLogsQuery } from "@api/queries/creditLogsQueries"
+import { getSocket } from "@utils/socket"
+import { Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
+import Fuse from "fuse.js"
+import { clsx } from "clsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
 
 const CreditLogsTable = () => {
-  const dispatch = useDispatch();
-  const { logs, loading, totalLogs } = useSelector((state) => state.creditLogs);
-
-  // Local State
-  const [searchText, setSearchText] = useState("");
-  const [dateRange, setDateRange] = useState("24h");
-  const [purposeFilter, setPurposeFilter] = useState([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
-
-  const pageSizeOptions = [10, 20, 50, 100];
-  const purposeOptions = [
-    "BLOG_GENERATION",
-    "QUICK_BLOG_GENERATION",
-    "AI_PROOFREADING",
-    "COMPETITOR_ANALYSIS",
-    "SUBSCRIPTION_PAYMENT",
-    "OTHER",
-  ];
-
-  // Debounced search
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((value) => {
-        setSearchText(value);
-        setPagination((prev) => ({ ...prev, current: 1 }));
-      }, 500),
-    []
-  );
+  const {
+    page,
+    pageSize,
+    searchText,
+    dateRange,
+    purposeFilter,
+    setPage,
+    setPageSize,
+    setSearchText,
+    setDateRange,
+  } = useCreditLogStore()
 
   // Calculate date range for backend fetch
   const getDateRangeParams = (range) => {
-    const now = dayjs();
+    const now = dayjs()
     switch (range) {
       case "24h":
         return {
           start: now.subtract(24, "hours").startOf("hour").toISOString(),
           end: now.endOf("hour").toISOString(),
-        };
+        }
       case "7d":
         return {
           start: now.subtract(7, "days").startOf("day").toISOString(),
           end: now.endOf("day").toISOString(),
-        };
+        }
       case "30d":
         return {
           start: now.subtract(30, "days").startOf("day").toISOString(),
           end: now.endOf("day").toISOString(),
-        };
+        }
       default:
-        return {};
+        return {}
     }
-  };
+  }
 
-  // Fetch Logs from backend
-  useEffect(() => {
-    const params = {
-      page: pagination.current,
-      limit: pagination.pageSize,
-      ...getDateRangeParams(dateRange),
-    };
-    dispatch(getCreditLogs(params));
-  }, [dispatch, dateRange, pagination.current, pagination.pageSize]);
+  const queryParams = { page: 1, limit: -1, ...getDateRangeParams(dateRange) }
 
-  // Frontend filtering
+  const { data: logsData, isLoading: loading, refetch } = useCreditLogsQuery(queryParams)
+  const logs = logsData?.data || []
+
+  const pageSizeOptions = [10, 20, 50, 100]
+  const _purposeOptions = [
+    { label: "Blog Generation", value: "BLOG_GENERATION" },
+    { label: "Quick Blog", value: "QUICK_BLOG_GENERATION" },
+    { label: "Proofreading", value: "AI_PROOFREADING" },
+    { label: "Competitor Analysis", value: "COMPETITOR_ANALYSIS" },
+    { label: "Subscription", value: "SUBSCRIPTION_PAYMENT" },
+    { label: "Other", value: "OTHER" },
+  ]
+
+  // Initialize Fuse.js with logs data
+  const fuse = useMemo(() => {
+    return new Fuse(logs, {
+      keys: ["metadata.title"],
+      threshold: 0.4,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    })
+  }, [logs])
+
+  // Filter logs based on search text and purpose filter
   const filteredLogs = useMemo(() => {
-    let result = logs;
+    let result = logs
 
-    // Filter by searchText (case-insensitive on metadata.title)
+    // Apply search filter using Fuse.js
     if (searchText) {
-      result = result.filter((log) =>
-        log.metadata?.title?.toLowerCase().includes(searchText.toLowerCase())
-      );
+      result = fuse.search(searchText).map(({ item }) => item)
     }
 
-    // Filter by purposeFilter
+    // Apply purpose filter
     if (purposeFilter.length > 0) {
-      result = result.filter((log) => purposeFilter.includes(log.purpose));
+      result = result.filter((log) => purposeFilter.includes(log.purpose))
     }
 
-    return result;
-  }, [logs, searchText, purposeFilter]);
-
-  const purposeColorMap = {
-    BLOG_GENERATION: "bg-blue-100 text-blue-700",
-    QUICK_BLOG_GENERATION: "bg-indigo-100 text-indigo-700",
-    AI_PROOFREADING: "bg-green-100 text-green-700",
-    COMPETITOR_ANALYSIS: "bg-yellow-100 text-yellow-800",
-    SUBSCRIPTION_PAYMENT: "bg-purple-100 text-purple-700",
-    OTHER: "bg-gray-100 text-gray-700",
-  };
-
-  // Table Columns
-  const columns = useMemo(
-    () => [
-      {
-        title: "Blog Topic",
-        dataIndex: ["metadata", "title"],
-        key: "blogTitle",
-        render: (title) => (
-          <div>
-            <span className="text-sm text-gray-700 capitalize">{title || "-"}</span>
-          </div>
-        ),
-      },
-      {
-        title: "Date",
-        dataIndex: "createdAt",
-        key: "createdAt",
-        sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-        render: (date) => (
-          <span className="text-sm text-gray-600">
-            {dayjs(date).format("DD MMM YYYY, hh:mm A")}
-          </span>
-        ),
-      },
-      {
-        title: "Type",
-        dataIndex: "category",
-        key: "category",
-        filters: [
-          { text: "Deduction", value: "DEDUCTION" },
-          { text: "Adjustment", value: "ADJUSTMENT" },
-        ],
-        onFilter: (value, record) => record.category === value,
-        render: (category) => (
-          <Tag
-            color={category === "DEDUCTION" ? "red" : "green"}
-            className="font-medium px-3 py-1 rounded-full text-xs"
-          >
-            {category}
-          </Tag>
-        ),
-      },
-      {
-        title: "Purpose",
-        dataIndex: "purpose",
-        key: "purpose",
-        filters: purposeOptions.map((purpose) => ({
-          text: purpose.toLowerCase().replace(/_/g, " "),
-          value: purpose,
-        })),
-        onFilter: (value, record) => record.purpose === value,
-        render: (purpose) => {
-          const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700";
-          const label = purpose?.toLowerCase().replace(/_/g, " ") || "-";
-          return (
-            <span
-              className={`inline-block px-2 py-1 rounded-full text-xs font-semibold capitalize ${colorClass}`}
-            >
-              {label}
-            </span>
-          );
-        },
-      },
-      {
-        title: "Amount",
-        dataIndex: "amount",
-        key: "amount",
-        sorter: (a, b) => a.amount - b.amount,
-        render: (amount) => (
-          <span className={`font-semibold ${amount < 0 ? "text-red-500" : "text-green-600"}`}>
-            {amount > 0 ? `+${amount}` : amount}
-          </span>
-        ),
-      },
-      {
-        title: "Remaining Credits",
-        dataIndex: "remainingCredits",
-        key: "remainingCredits",
-        render: (credits) => <span className="text-sm font-medium text-gray-800">{credits}</span>,
-      },
-    ],
-    [purposeColorMap]
-  );
+    return result
+  }, [logs, searchText, purposeFilter, fuse])
 
   // WebSocket for real-time updates
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    const socket = getSocket()
+    if (!socket) return
 
-    const handleCreditLogUpdate = (newLog) => {
-      // Only refetch if on the first page to avoid disrupting user navigation
-      if (pagination.current === 1) {
-        dispatch(
-          getCreditLogs({
-            page: 1,
-            limit: pagination.pageSize,
-            ...getDateRangeParams(dateRange),
-          })
-        );
-      }
-    };
+    const handleCreditLogUpdate = () => {
+      refetch()
+    }
 
-    socket.on("credit-log", handleCreditLogUpdate);
+    socket.on("credit-log", handleCreditLogUpdate)
 
     return () => {
-      socket.off("credit-log", handleCreditLogUpdate);
-    };
-  }, [dispatch, dateRange, pagination.pageSize, pagination.current]);
+      socket.off("credit-log", handleCreditLogUpdate)
+    }
+  }, [refetch])
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (page - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    return filteredLogs.slice(startIndex, endIndex)
+  }, [filteredLogs, page, pageSize])
+
+  const totalPages = Math.ceil(filteredLogs.length / pageSize)
 
   return (
-    <AnimatePresence>
+    <div className="min-h-screen p-6">
       <Helmet>
         <title>Credit Logs | GenWrite</title>
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="p-6 bg-white rounded-2xl shadow-md border border-gray-200"
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h2 className="text-2xl font-semibold text-gray-900">Credit Logs</h2>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Input
-              prefix={<SearchOutlined className="text-gray-400" />}
+      <div className="space-y-8">
+        {/* Simple Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-blue-600 tracking-tight">Credit Logs</h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-md">
+            All your credits, all in one spot. Check your activity, track your transactions, and
+            never miss a beat.
+          </p>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" />
+            <input
+              type="text"
               placeholder="Search by blog title"
-              onChange={(e) => debouncedSearch(e.target.value)}
-              className="w-full sm:w-64 rounded-lg border-gray-300 hover:border-blue-400 transition-all"
-              aria-label="Search credit logs by blog title"
-            />
-            <Select
-              value={dateRange}
-              onChange={(value) => {
-                setDateRange(value);
-                setPagination((prev) => ({ ...prev, current: 1 }));
+              value={searchText}
+              onChange={(e) => {
+                setSearchText(e.target.value)
+                setPage(1)
               }}
-              className="w-full sm:w-48 rounded-lg"
-              popupClassName="rounded-lg"
-              aria-label="Select date range"
-            >
-              <Option value="24h">Last 24 Hours</Option>
-              <Option value="7d">Last 7 Days</Option>
-              <Option value="30d">Last 30 Days</Option>
-            </Select>
-            <Select
-              value={pagination.pageSize}
-              onChange={(value) =>
-                setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }))
-              }
-              options={pageSizeOptions.map((size) => ({
-                label: `${size} / page`,
-                value: size,
-              }))}
-              className="w-full sm:w-32 rounded-lg"
-              popupClassName="rounded-lg"
-              aria-label="Select page size"
+              className="input input-bordered w-full h-11 pl-11 rounded-lg bg-white border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium text-sm transition-all text-slate-700"
             />
+          </div>
+
+          <div className="flex gap-3">
+            <select
+              value={dateRange}
+              onChange={(e) => {
+                setDateRange(e.target.value)
+                setPage(1)
+              }}
+              className="select select-bordered select-sm h-11 rounded-lg border-slate-200 font-medium text-slate-600 focus:border-blue-500 outline-none w-40"
+            >
+              <option value="all">All Time</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setPage(1)
+              }}
+              className="select select-bordered select-sm h-11 rounded-lg border-slate-200 font-medium text-slate-600 focus:border-blue-500 outline-none w-32"
+            >
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size} / page
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <Table
-          dataSource={filteredLogs}
-          columns={columns}
-          loading={loading}
-          rowKey="_id"
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: totalLogs, // Use backend totalLogs for pagination
-            showSizeChanger: false,
-            showTotal: (total) => `Total ${total} logs`,
-            onChange: (page, pageSize) => {
-              setPagination({ current: page, pageSize });
-            },
-          }}
-          className="rounded-xl overflow-hidden"
-          rowClassName="hover:bg-gray-50 transition-colors duration-200"
-          bordered={false}
-          scroll={{ x: "max-content" }}
-          locale={{
-            emptyText: loading ? (
-              <Spin tip="Loading logs..." />
-            ) : (
-              <Empty description={searchText || purposeFilter.length > 0 ? "No logs match the filters" : "No logs found"} />
-            ),
-          }}
-        />
-      </motion.div>
-    </AnimatePresence>
-  );
-};
+        {/* Table Section */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+          <div className="overflow-x-auto min-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 border-y border-slate-100 hover:bg-slate-50/50">
+                  <TableHead className="py-5 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Blog Topic
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Date <ArrowUpDown size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Type <Filter size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Purpose <Filter size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center gap-2">
+                      Amount <ArrowUpDown size={12} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-5 pr-8 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Remaining Credits
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-32 text-center">
+                      <span className="loading loading-spinner text-blue-600"></span>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <img src="/Images/trash-can.webp" alt="Empty" className="w-20 opacity-40" />
+                        <p className="text-slate-400 font-medium text-sm">No Logs Found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((log) => (
+                    <TableRow
+                      key={log._id}
+                      className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0"
+                    >
+                      <TableCell className="py-4 pl-8">
+                        <span className="font-semibold text-slate-700 text-sm">
+                          {log.metadata?.title || "System Transaction"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 font-medium text-slate-600 text-sm whitespace-nowrap">
+                        {dayjs(log.createdAt).format("MMM DD, YYYY")}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm font-medium text-slate-500 capitalize">
+                          {log.amount < 0 ? "Debit" : "Credit"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm font-medium text-slate-600 capitalize">
+                          {log.purpose?.replace(/_/g, " ").toLowerCase()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span
+                          className={clsx(
+                            "text-sm font-bold",
+                            log.amount < 0 ? "text-rose-500" : "text-emerald-500"
+                          )}
+                        >
+                          {log.amount < 0 ? "" : "+"}
+                          {log.amount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 pr-8 font-semibold text-slate-700 text-sm">
+                        {log.remainingCredits}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-export default CreditLogsTable;
+          {/* Pagination */}
+          {!loading && paginatedData.length > 0 && (
+            <div className="p-6 border-t border-slate-50 flex items-center justify-between bg-slate-50/20">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Showing {Math.min(filteredLogs.length, (page - 1) * pageSize + 1)}-
+                {Math.min(filteredLogs.length, page * pageSize)} of {filteredLogs.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="btn btn-sm btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-50"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default CreditLogsTable

@@ -1,1338 +1,698 @@
-import React, { useState, useEffect, useMemo } from "react"
-import MultiDatePicker from "react-multi-date-picker"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
-import Carousel from "@components/multipleStepModal/Carousel"
-import { packages } from "@constants/templates"
-import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { QuestionCircleOutlined } from "@ant-design/icons"
-import { message, Modal, Pagination, Popconfirm, Select, Tooltip } from "antd"
-import { Crown, Info, Plus, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
-  closeJobModal,
-  createJobThunk,
-  deleteJobThunk,
-  fetchJobs,
-  openJobModal,
-  toggleJobStatusThunk,
-  updateJobThunk,
-} from "@store/slices/jobSlice"
-import SkeletonLoader from "@components/Projects/SkeletonLoader"
-import { selectUser } from "@store/slices/authSlice"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
+  Plus,
+  RefreshCw,
+  Briefcase,
+  AlertTriangle,
+  Sparkles,
+  LayoutGrid,
+  List,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
+
+import {
+  useJobsQuery,
+  useToggleJobStatusMutation,
+  useDeleteJobMutation,
+} from "@api/queries/jobQueries"
 import UpgradeModal from "@components/UpgradeModal"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import JobModal from "@/layout/Jobs/JobModal"
+import JobCard from "@/layout/Jobs/JobCard"
+import JobExpandedPanel from "@/layout/Jobs/JobExpandedPanel"
+import { useQueryClient } from "@tanstack/react-query"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getSocket } from "@utils/socket"
+import { toast } from "sonner"
 
-const { Option } = Select
+const PAGE_SIZE = 12
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-const initialJob = {
-  name: "",
-  schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
-  blogs: {
-    numberOfBlogs: 1,
-    topics: [],
-    keywords: [],
-    templates: [],
-    tone: "Professional",
-    userDefinedLength: 1000,
-    imageSource: "unsplash",
-    aiModel: "gemini",
-  },
-  options: {
-    wordpressPosting: false,
-    includeFaqs: false,
-    useBrandVoice: false,
-    includeCompetitorResearch: false,
-    includeInterlinks: false,
-    performKeywordResearch: false,
-    includeTableOfContents: false,
-  },
-  status: "active",
-}
+const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
+  const [expandedRows, setExpandedRows] = useState(new Set())
 
-const PAGE_SIZE = 15
-const MAX_BLOGS = 100
+  const toggleExpand = (id) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
-// Job limits based on user plan
-const JOB_LIMITS = {
-  free: 0,
-  basic: 1,
-  pro: 5,
-  enterprise: Infinity,
+  const renderTags = (arr, jobId, limit = 2) => {
+    if (!arr?.length) return <span className="text-slate-300 text-xs">—</span>
+    const display = arr.slice(0, limit)
+    const remaining = arr.length - limit
+    return (
+      <div className="flex flex-wrap gap-1">
+        {display.map((item) => (
+          <span
+            key={item}
+            className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-medium border border-indigo-100 wrap-break-word max-w-[150px]"
+          >
+            {item}
+          </span>
+        ))}
+        {remaining > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleExpand(jobId)
+            }}
+            className="text-[10px] font-bold text-indigo-600 bg-indigo-100/50 hover:bg-indigo-200/50 px-1.5 py-0.5 rounded-md border border-indigo-200 transition-colors"
+          >
+            +{remaining} more
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return <span className="text-slate-300 italic text-[11px]">Never</span>
+    try {
+      const d = new Date(dateStr)
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm font-semibold text-slate-700">
+            {d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+          <span className="text-[10px] text-slate-400">
+            {d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )
+    } catch {
+      return <span className="text-slate-300">—</span>
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-100 overflow-hidden">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        <table className="w-full text-left border-collapse min-w-[860px]">
+          <thead>
+            <tr className="bg-slate-50/80 border-b border-slate-200">
+              <th className="w-10 px-3 py-4" />
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Job
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Last Run
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Schedule
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Topics
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                AI / Lang
+              </th>
+              <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((job) => {
+              const isExpanded = expandedRows.has(job._id)
+              const schedule = job.schedule || {}
+              const scheduleDayStr =
+                schedule.type === "weekly" && schedule.daysOfWeek?.length
+                  ? schedule.daysOfWeek.map((d) => DAY_NAMES[d]).join(", ")
+                  : null
+
+              return (
+                <>
+                  {/* ─── Main row ─── */}
+                  <tr
+                    key={job._id}
+                    className={`transition-colors group border-b border-slate-100 ${
+                      isExpanded ? "bg-indigo-50/30" : "hover:bg-slate-50/60"
+                    }`}
+                  >
+                    {/* Expand toggle */}
+                    <td className="pl-3 py-4">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(job._id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                        title={isExpanded ? "Collapse" : "Expand all details"}
+                      >
+                        <ChevronRight
+                          size={14}
+                          className={`transition-transform duration-200 ${
+                            isExpanded ? "rotate-90 text-indigo-500" : ""
+                          }`}
+                        />
+                      </button>
+                    </td>
+
+                    {/* Job name */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            job.status === "active"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-indigo-50 text-indigo-500"
+                          }`}
+                        >
+                          <Briefcase size={16} />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm capitalize leading-tight wrap-break-word max-w-[220px]">
+                            {job.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            #{job._id?.slice(-6)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-5 py-4">
+                      <button
+                        type="button"
+                        onClick={() => onToggleStatus(job)}
+                        disabled={isToggling || isReadOnlyWorkspace}
+                        title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border disabled:opacity-60 disabled:cursor-not-allowed ${
+                          job.status === "active"
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                        }`}
+                      >
+                        {job.status === "active" ? "▶ Running" : "⏸ Paused"}
+                      </button>
+                    </td>
+
+                    {/* Last run */}
+                    <td className="px-5 py-4">{formatDate(job.lastRun)}</td>
+
+                    {/* Schedule */}
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700 capitalize">
+                          {schedule.type || "Manual"}
+                        </span>
+                        {scheduleDayStr && (
+                          <span className="text-[10px] text-slate-400">{scheduleDayStr}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400">
+                          {job.blogs?.numberOfBlogs} blog{job.blogs?.numberOfBlogs !== 1 ? "s" : ""}
+                          /run
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Topics */}
+                    <td className="px-5 py-4 max-w-[180px]">
+                      {renderTags(job.blogs?.topics, job._id, 2)}
+                    </td>
+
+                    {/* AI / Lang */}
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit">
+                          {job.blogs?.aiModel?.toUpperCase() || "GEMINI"}
+                        </span>
+                        <span className="text-[11px] text-slate-400 pl-0.5">
+                          {job.blogs?.languageToWrite || "English"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        {/* Hidden outright in a read-only workspace — the pipeline
+                            belongs to the owner, not the viewer */}
+                        {!isReadOnlyWorkspace && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onEdit(job)}
+                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDelete(job)}
+                              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* ─── Expanded detail panel ─── */}
+                  {isExpanded && (
+                    <tr key={`${job._id}-detail`}>
+                      <td colSpan={8} className="bg-slate-50/60 p-0 border-b border-indigo-100">
+                        <JobExpandedPanel job={job} />
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 const Jobs = () => {
-  const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
-  const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const [currentStep, setCurrentStep] = useState(1)
-  const [newJob, setNewJob] = useState(initialJob)
-  const [topicInput, setTopicInput] = useState("")
-  const [errors, setErrors] = useState({})
-  const user = useSelector(selectUser)
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const navigate = useNavigate()
-  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
-  const dispatch = useDispatch()
-  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
-  const [currentPage, setCurrentPage] = useState(1)
-  const { selectedKeywords } = useSelector((state) => state.analysis)
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
+  const openJobModal = useJobStore((state) => state.openJobModal)
+  const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
+  const [searchQuery, _setSearchQuery] = useState("")
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem("jobs_view_mode") || "grid"
+  })
 
-  // Redirect to UpgradeModal for free plan
+  useEffect(() => {
+    localStorage.setItem("jobs_view_mode", viewMode)
+  }, [viewMode])
+
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
+  const { mutate: deleteMutate } = useDeleteJobMutation()
+
+  const user = useAuthStore((state) => state.user)
+  const updateUserPartial = useAuthStore((state) => state.updateUserPartial)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
+  const _totalBlogsGenerated = useMemo(() => {
+    return queryJobs
+      .filter((j) => !j.isArchived)
+      .reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
+  }, [queryJobs])
+
+  const usage = user?.usage?.createdJobs || 0
+  const usageLimit = user?.usageLimits?.createdJobs || 0
+  // const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) return
+
+    const handleJobChange = (data, _eventType) => {
+      if (
+        (data?.status === "stop" || data?.status === "stopped") &&
+        data?.reason?.toLowerCase().includes("insufficient credits")
+      ) {
+        toast.error("Job Stopped: Insufficient Credits")
+      }
+      // Fix: queryKey must match useJobsQuery's key ["jobs"], not ["jobs", user.id]
+      queryClient.invalidateQueries({ queryKey: ["jobs"] })
+    }
+
+    const handleUsageUpdate = (data) => {
+      if (data?.usage) {
+        updateUserPartial({ usage: data.usage })
+      }
+    }
+
+    socket.on("job:statusChanged", (data) => handleJobChange(data, "statusChanged"))
+    socket.on("job:updated", (data) => handleJobChange(data, "updated"))
+    socket.on("job:created", (data) => handleJobChange(data, "created"))
+    socket.on("job:deleted", (data) => handleJobChange(data, "deleted"))
+    socket.on("user:usage", handleUsageUpdate)
+
+    return () => {
+      socket.off("job:statusChanged")
+      socket.off("job:updated")
+      socket.off("job:created")
+      socket.off("job:deleted")
+      socket.off("user:usage", handleUsageUpdate)
+    }
+  }, [queryClient, user, updateUserPartial])
+
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ["jobs"] })
+      setCurrentPage(1)
+      setIsUserLoaded(false)
+    } else {
+      setIsUserLoaded(!!(user?.name || user?.credits))
+    }
+  }, [user, queryClient])
+
+  const checkJobLimit = useCallback(() => {
+    if (usage >= usageLimit) {
+      openUpgradePopup({ featureName: "Additional Jobs", navigate })
+      return false
+    }
+    return true
+  }, [usage, usageLimit, navigate])
+
+  const handleOpenJobModal = useCallback(() => {
+    guardWrite(() => {
+      if (!checkJobLimit()) return
+      openJobModal(null)
+    })
+  }, [checkJobLimit, openJobModal, guardWrite])
+
+  const handleEditJob = useCallback(
+    (job) => {
+      openJobModal(job)
+    },
+    [openJobModal]
+  )
+
+  const handleRefresh = () => {
+    refetch()
+    toast.success("Jobs list refreshed")
+  }
+
+  const activeJobsCount = queryJobs.filter((j) => j.status === "active").length
+  const stoppedJobsCount = queryJobs.filter((j) => j.status !== "active").length
+
+  const filteredJobs = useMemo(() => {
+    return queryJobs.filter(
+      (job) =>
+        job.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job._id?.toString().includes(searchQuery)
+    )
+  }, [queryJobs, searchQuery])
+
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return filteredJobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [filteredJobs, currentPage])
+
+  const totalPages = Math.ceil(filteredJobs.length / PAGE_SIZE)
+  const usagePercentage = usageLimit > 0 ? Math.min(100, Math.round((usage / usageLimit) * 100)) : 0
+
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
   }
 
-  // Initialize formData with keywords from selectedKeywords
-  const [formData, setFormData] = useState({
-    keywords: [],
-    keywordInput: "",
-    performKeywordResearch: false,
-  })
-
-  // Calculate total pages
-  const totalPages = Math.ceil(jobs.length / PAGE_SIZE) 
-
-  // Memoize paginated jobs
-  const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE
-    return jobs.slice(startIndex, startIndex + PAGE_SIZE)
-  }, [jobs, currentPage])
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [currentPage])
-
-  useEffect(() => {
-    dispatch(fetchJobs())
-  }, [dispatch])
-
-  // Check if user is loaded
-  useEffect(() => {
-    setIsUserLoaded(!!(user?.name || user?.credits))
-  }, [user])
-
-  // Sync formData and newJob with selectedKeywords
-  useEffect(() => {
-    const uniqueKeywords = [
-      ...new Set([
-        ...(selectedKeywords?.focusKeywords || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]),
-    ]
-    setFormData((prev) => ({
-      ...prev,
-      keywords: [...new Set([...prev.keywords, ...uniqueKeywords])],
-    }))
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        keywords: [...new Set([...prev.blogs.keywords, ...uniqueKeywords])],
-      },
-    }))
-  }, [selectedKeywords])
-
-  const validateSteps = (step) => {
-    const errors = {}
-    if (step === 1) {
-      if (newJob.blogs.templates.length === 0) {
-        errors.template = true
-        message.error("Please select at least one template before proceeding.")
-      }
-    }
-    if (step === 2) {
-      if (!newJob.name || newJob.blogs.topics.length === 0) {
-        if (!newJob.name) errors.name = true
-        if (newJob.blogs.topics.length === 0) errors.topics = true
-
-        const messages = []
-        if (errors.name) messages.push("job name")
-        if (errors.topics) messages.push("at least one topic")
-
-        message.error(`Please enter ${messages.join(" and ")}.`)
-      }
-    }
-    if (step === 3) {
-      if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
-        errors.numberOfBlogs = true
-        message.error(`Number of blogs must be between 1 and ${MAX_BLOGS}.`)
-      }
-      if (!formData.performKeywordResearch && formData.keywords.length === 0) {
-        errors.keywords = true
-        message.error("Please add at least one keyword or enable keyword research.")
-      }
-      if (
-        newJob.schedule.type === "weekly" &&
-        (!newJob.schedule.daysOfWeek || newJob.schedule.daysOfWeek.length === 0)
-      ) {
-        errors.daysOfWeek = true
-        message.error("Please select at least one day of the week.")
-      }
-      if (
-        newJob.schedule.type === "monthly" &&
-        (!newJob.schedule.daysOfMonth || newJob.schedule.daysOfMonth.length === 0)
-      ) {
-        errors.daysOfMonth = true
-        message.error("Please select at least one date of the month.")
-      }
-      if (
-        newJob.schedule.type === "custom" &&
-        (!newJob.schedule.customDates || newJob.schedule.customDates.length === 0)
-      ) {
-        errors.customDates = true
-        message.error("Please select at least one custom date.")
-      }
-    }
-    setErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const checkJobLimit = () => {
-    const limit = JOB_LIMITS[userPlan] || 0
-    if (jobs.length >= limit && !newJob._id) {
-      message.error(
-        `You have reached the job limit for your ${userPlan} plan (${limit} job${
-          limit === 1 ? "" : "s"
-        }). ${
-          userPlan === "basic"
-            ? "Delete an existing job to create a new one."
-            : "Please upgrade your plan to create more jobs."
-        }`
-      )
-      if (userPlan !== "basic") {
-        openUpgradePopup({ featureName: "Additional Jobs", navigate })
-      }
-      return false
-    }
-    return true
-  }
-
-  const handleCreateJob = () => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
-      return
-    }
-    if (!checkJobLimit()) return
-    if (!validateSteps(2) || !validateSteps(4)) return
-    const jobPayload = {
-      ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords },
-      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
-    }
-    dispatch(
-      createJobThunk({
-        jobPayload,
-        onSuccess: () => {
-          dispatch(closeJobModal())
-          dispatch(fetchJobs())
-          setCurrentPage(1)
-          setNewJob(initialJob)
-          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
-        },
-      })
-    )
-  }
-
-  const handleUpdateJob = (jobId) => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
-      return
-    }
-    if (!validateSteps(2) || !validateSteps(4)) return
-    const jobPayload = {
-      ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords },
-      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
-    }
-    dispatch(
-      updateJobThunk({
-        jobId,
-        jobPayload,
-        onSuccess: () => {
-          dispatch(closeJobModal())
-          dispatch(fetchJobs())
-          setCurrentPage(1)
-          setNewJob(initialJob)
-          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
-        },
-      })
-    )
-  }
-
-  const handleNumberOfBlogsChange = (e) => {
-    const value = parseInt(e.target.value, 10)
-    if (!isNaN(value) && value >= 0 && value <= MAX_BLOGS) {
-      setNewJob({ ...newJob, blogs: { ...newJob.blogs, numberOfBlogs: value } })
-      setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
-    }
-  }
-
-  const handleStartJob = (jobId) => {
-    const job = jobs.find((job) => job._id === jobId)
-    if (!job) {
-      message.error("Job not found.")
-      return
-    }
-    dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
-  }
-
-  const handleDeleteJob = (jobId) => {
-    dispatch(deleteJobThunk(jobId))
-    if (paginatedJobs.length === 1 && currentPage > 1) {
-      setCurrentPage((prev) => prev - 1)
-    }
-  }
-
-  const handleAddItems = (input, type) => {
-    const trimmedInput = input.trim()
-    if (!trimmedInput) return
-
-    const existing =
-      type === "topics"
-        ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-        : formData.keywords.map((k) => k.toLowerCase().trim())
-    const seen = new Set()
-    const newItems = trimmedInput
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => {
-        const lower = item.toLowerCase()
-        if (!item || seen.has(lower) || existing.includes(lower)) return false
-        seen.add(lower)
-        return true
-      })
-
-    if (newItems.length === 0) return
-
-    if (type === "topics") {
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },
-      }))
-      setTopicInput("")
-      setErrors((prev) => ({ ...prev, topics: false }))
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...prev.keywords, ...newItems],
-        keywordInput: "",
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...newItems] },
-      }))
-      setErrors((prev) => ({ ...prev, keywords: false }))
-    }
-  }
-
-  const handleCSVUpload = (e, type) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      e.target.value = null
-      return
-    }
-
-    const maxSizeInBytes = 20 * 1024
-    if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      e.target.value = null
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const text = event.target?.result
-      if (!text) return
-
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const items = lines
-        .map((line) => {
-          const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
-        })
-        .filter(Boolean)
-
-      const existing =
-        type === "topics"
-          ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-          : formData.keywords.map((k) => k.toLowerCase().trim())
-      const uniqueNewItems = items.filter((item) => !existing.includes(item.toLowerCase().trim()))
-
-      if (uniqueNewItems.length === 0) {
-        message.warning(`No new ${type} found in the CSV.`)
-        return
-      }
-
-      if (type === "topics") {
-        setNewJob((prev) => ({
-          ...prev,
-          blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...uniqueNewItems] },
-        }))
-        setErrors((prev) => ({ ...prev, topics: false }))
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          keywords: [...prev.keywords, ...uniqueNewItems],
-        }))
-        setNewJob((prev) => ({
-          ...prev,
-          blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...uniqueNewItems] },
-        }))
-        setErrors((prev) => ({ ...prev, keywords: false }))
-      }
-
-      if (uniqueNewItems.length > 8) {
-        setRecentlyUploadedCount(uniqueNewItems.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = null
-  }
-
-  const handleEditJob = (job) => {
-    if (!job?._id) {
-      message.error("Invalid job ID.")
-      return
-    }
-    if (job.status === "active") {
-      message.error("Stop the job before editing.")
-      return
-    }
-    const uniqueKeywords = [
-      ...new Set([...(job.blogs.keywords || []), ...(selectedKeywords?.focusKeywords || [])]),
-    ]
-    setNewJob({ ...job, blogs: { ...job.blogs, keywords: uniqueKeywords } })
-    setFormData({
-      keywords: uniqueKeywords,
-      keywordInput: "",
-      performKeywordResearch: job.options.performKeywordResearch || false,
-    })
-    dispatch(openJobModal())
-    setCurrentStep(1)
-  }
-
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target
-    if (name === "wordpressPosting" && checked && !user?.wordpressLink) {
-      message.error(
-        "Please connect your WordPress account in your profile before enabling automatic posting."
-      )
-      navigate("/profile")
-      return
-    }
-    setFormData((prev) => ({ ...prev, [name]: checked }))
-    setNewJob((prev) => ({ ...prev, options: { ...prev.options, [name]: checked } }))
-  }
-
-  const handleOpenJobModal = () => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
-      return
-    }
-    if (!checkJobLimit()) return
-    const uniqueKeywords = [
-      ...new Set([
-        ...(selectedKeywords?.focusKeywords || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]),
-    ]
-    setNewJob({ ...initialJob, blogs: { ...initialJob.blogs, keywords: uniqueKeywords } })
-    setFormData({ keywords: uniqueKeywords, keywordInput: "", performKeywordResearch: true })
-    dispatch(openJobModal())
-    setCurrentStep(1)
-  }
-
-  const imageSources = [
-    {
-      id: "unsplash",
-      label: "Stock Images",
-      value: "unsplash",
-      restricted: false,
-    },
-    {
-      id: "ai-generated",
-      label: "AI-Generated Images",
-      value: "ai-generated",
-      restricted: userPlan === "free",
-      featureName: "AI-Generated Images",
-    },
-  ]
-
-  const aiModels = [
-    {
-      id: "gemini",
-      label: "Gemini",
-      value: "gemini",
-      logo: "/Images/gemini.png",
-      restricted: false,
-    },
-    {
-      id: "openai",
-      label: "ChatGPT (Open AI)",
-      value: "openai",
-      restricted: userPlan === "free",
-      logo: "/Images/chatgpt.png",
-      featureName: "ChatGPT (Open AI)",
-    },
-    {
-      id: "claude",
-      label: "Claude",
-      value: "claude",
-      restricted: userPlan === "free" || userPlan === "basic",
-      logo: "/Images/claude.png",
-      featureName: "Claude",
-    },
-  ]
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <p className="text-sm text-gray-600 mb-4">
-              Select up to 3 templates for the types of blogs you want to generate.
-            </p>
-            <Carousel>
-              {packages.map((pkg) => (
-                <div
-                  key={pkg.name}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    newJob.blogs.templates.includes(pkg.name)
-                      ? "border-gray-300 border-2 rounded-lg"
-                      : errors.template
-                      ? "border-red-500 border-2"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    if (newJob.blogs.templates.includes(pkg.name)) {
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          templates: prev.blogs.templates.filter(
-                            (template) => template !== pkg.name
-                          ),
-                        },
-                      }))
-                      setErrors((prev) => ({ ...prev, template: false }))
-                    } else if (newJob.blogs.templates.length < 3) {
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
-                      }))
-                      setErrors((prev) => ({ ...prev, template: false }))
-                    } else {
-                      message.error("You can only select up to 3 templates.")
-                    }
-                  }}
-                >
-                  <div className="bg-white rounded-lg overflow-hidden">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-2">
-                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </Carousel>
-          </motion.div>
-        )
-      case 2:
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
-                <input
-                  type="text"
-                  value={newJob.name}
-                  placeholder="Enter job name"
-                  onChange={(e) => {
-                    setNewJob({ ...newJob, name: e.target.value })
-                    setErrors((prev) => ({ ...prev, name: false }))
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.name ? "border-red-500" : "border-gray-200"
-                  }`}
-                  aria-label="Job name"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
-                  Topics
-                  <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
-                    <Info size={16} className="text-blue-500 cursor-pointer" />
-                  </Tooltip>
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={topicInput}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddItems(topicInput, "topics")}
-                    onChange={(e) => setTopicInput(e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                      errors.topics ? "border-red-500" : "border-gray-200"
-                    }`}
-                    placeholder="Add a topic..."
-                    aria-label="Add topic"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleAddItems(topicInput, "topics")}
-                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg"
-                    aria-label="Add topic"
-                  >
-                    <Plus />
-                  </motion.button>
-                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
-                    <Upload size={16} />
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => handleCSVUpload(e, "topics")}
-                      hidden
-                    />
-                    <span className="sr-only">Upload CSV for topics</span>
-                  </label>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {newJob.blogs.topics
-                    .slice()
-                    .reverse()
-                    .slice(0, 18)
-                    .map((topic, reversedIndex) => {
-                      const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
-                      return (
-                        <span
-                          key={`${topic}-${actualIndex}`}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                        >
-                          {topic}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setNewJob((prev) => ({
-                                ...prev,
-                                blogs: {
-                                  ...prev.blogs,
-                                  topics: prev.blogs.topics.filter((_, i) => i !== actualIndex),
-                                },
-                              }))
-                            }
-                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                            aria-label={`Remove topic ${topic}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )
-                    })}
-                  {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
-                    <span className="text-xs font-medium text-blue-600 self-center">
-                      {newJob.blogs.topics.length > 18 &&
-                        `+${newJob.blogs.topics.length - 18} more `}
-                      {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tone of Voice
-                </label>
-                <Select
-                  value={newJob.blogs.tone}
-                  onChange={(value) =>
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                  }
-                  className="w-full"
-                  aria-label="Select tone of voice"
-                >
-                  {tones.map((tone) => (
-                    <Option key={tone} value={tone}>
-                      {tone}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
-                <Select
-                  value={newJob.blogs.userDefinedLength}
-                  onChange={(value) =>
-                    setNewJob({
-                      ...newJob,
-                      blogs: { ...newJob.blogs, userDefinedLength: parseInt(value) },
-                    })
-                  }
-                  className="w-full"
-                  aria-label="Select blog length"
-                >
-                  {wordLengths.map((length) => (
-                    <Option key={length} value={length}>
-                      {length} words
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">AI Model</label>
-                <div className="flex gap-4 flex-wrap">
-                  {aiModels.map((model) => (
-                    <label
-                      key={model.id}
-                      htmlFor={model.id}
-                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                        newJob.blogs.aiModel === model.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full max-w-[220px] relative`}
-                      // onClick={(e) => {
-                      //   if (model.restricted) {
-                      //     e.preventDefault()
-                      //     openUpgradePopup({ featureName: model.featureName, navigate })
-                      //   }
-                      // }}
-                    >
-                      <input
-                        type="radio"
-                        id={model.id}
-                        name="aiModel"
-                        value={model.value}
-                        checked={newJob.blogs.aiModel === model.value}
-                        onChange={() => {
-                          // if (!model.restricted) {
-                          setNewJob({
-                            ...newJob,
-                            blogs: { ...newJob.blogs, aiModel: model.value },
-                          })
-                          // }
-                        }}
-                        className="hidden"
-                      />
-                      <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                      <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                      {/* {model.restricted && (
-                        <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                      )} */}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Image Source
-                </label>
-                <div className="flex gap-4 flex-wrap">
-                  {imageSources.map((source) => (
-                    <label
-                      key={source.id}
-                      htmlFor={source.id}
-                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                        newJob.blogs.imageSource === source.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full max-w-[220px] relative`}
-                      onClick={(e) => {
-                        if (source.restricted) {
-                          e.preventDefault()
-                          openUpgradePopup({ featureName: source.featureName, navigate })
-                        }
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        id={source.id}
-                        name="imageSource"
-                        value={source.value}
-                        checked={newJob.blogs.imageSource === source.value}
-                        onChange={() => {
-                          if (!source.restricted) {
-                            setNewJob({
-                              ...newJob,
-                              blogs: { ...newJob.blogs, imageSource: source.value },
-                            })
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      {source.restricted && (
-                        <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )
-      case 3:
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-            {/* === Keyword Research Section === */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Perform Keyword Research?
-                  <p className="text-xs text-gray-500">
-                    Allow AI to find relevant keywords for the topics.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="performKeywordResearch"
-                    checked={formData.performKeywordResearch}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
-              </div>
-
-              {!formData.performKeywordResearch && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={formData.keywordInput}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
-                      }
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
-                      }
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.keywords ? "border-red-500" : "border-gray-300"
-                      }`}
-                      placeholder="e.g., digital marketing trends, AI in business"
-                    />
-                    <button
-                      onClick={() => handleAddItems(formData.keywordInput, "keywords")}
-                      className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
-                    >
-                      <Plus />
-                    </button>
-                    <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
-                      <Upload size={16} />
-                      <input
-                        type="file"
-                        accept=".csv"
-                        onChange={(e) => handleCSVUpload(e, "keywords")}
-                        hidden
-                      />
-                      <span className="sr-only">Upload CSV</span>
-                    </label>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                    {formData.keywords
-                      .slice()
-                      .reverse()
-                      .slice(0, 18)
-                      .map((keyword, reversedIndex) => {
-                        const actualIndex = formData.keywords.length - 1 - reversedIndex
-                        return (
-                          <span
-                            key={`${keyword}-${actualIndex}`}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                          >
-                            {keyword}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updatedKeywords = [...formData.keywords]
-                                updatedKeywords.splice(actualIndex, 1)
-                                setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
-                                setNewJob((prev) => ({
-                                  ...prev,
-                                  blogs: { ...prev.blogs, keywords: updatedKeywords },
-                                }))
-                              }}
-                              className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        )
-                      })}
-                    {(formData.keywords.length > 18 || recentlyUploadedCount) && (
-                      <span className="text-xs font-medium text-blue-600 self-center">
-                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
-                        {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* === Blog Options === */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  { label: "Add FAQ", name: "includeFaqs" },
-                  { label: "Add Competitive Research", name: "includeCompetitorResearch" },
-                  { label: "Add InterLinks", name: "includeInterlinks" },
-                  { label: "WordPress Automatic Posting", name: "wordpressPosting" },
-                  ...(newJob.options.wordpressPosting
-                    ? [{ label: "Table of Content", name: "includeTableOfContents" }]
-                    : []),
-                ].map(({ label, name }) => (
-                  <div key={name} className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-700">{label}</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={newJob.options[name]}
-                        onChange={handleCheckboxChange}
-                        name={name}
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* === Scheduling Section === */}
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Schedule Type
-                </label>
-                <Select
-                  value={newJob.schedule.type}
-                  onChange={(e) => {
-                    const type = e.target.value
-                    setNewJob({
-                      ...newJob,
-                      schedule: {
-                        ...newJob.schedule,
-                        type,
-                        daysOfWeek: type === "weekly" ? [] : newJob.schedule.daysOfWeek,
-                        daysOfMonth: type === "monthly" ? [] : newJob.schedule.daysOfMonth,
-                        customDates: type === "custom" ? [] : newJob.schedule.customDates,
-                      },
-                    })
-                    setErrors((prev) => ({
-                      ...prev,
-                      daysOfWeek: false,
-                      daysOfMonth: false,
-                      customDates: false,
-                    }))
-                  }}
-                  className="w-full"
-                >
-                  <Option value="daily">Daily</Option>
-                  <Option value="weekly">Weekly</Option>
-                  <Option value="monthly">Monthly</Option>
-                  <Option value="custom">Custom</Option>
-                </Select>
-              </div>
-
-              {newJob.schedule.type === "weekly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Days of Week
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfWeek?.includes(i)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                              ? prev.schedule.daysOfWeek.filter((day) => day !== i)
-                              : [...(prev.schedule.daysOfWeek || []), i]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfWeek: false }))
-                        }}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {newJob.schedule.type === "monthly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates of Month
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
-                      <button
-                        key={date}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfMonth?.includes(date)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                              ? prev.schedule.daysOfMonth.filter((d) => d !== date)
-                              : [...(prev.schedule.daysOfMonth || []), date]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfMonth: false }))
-                        }}
-                      >
-                        {date}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {newJob.schedule.type === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates
-                  </label>
-                  <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
-                    <MultiDatePicker
-                      value={newJob.schedule.customDates}
-                      onChange={(dates) => {
-                        setNewJob({
-                          ...newJob,
-                          schedule: {
-                            ...newJob.schedule,
-                            customDates: dates,
-                            daysOfWeek: [],
-                            daysOfMonth: [],
-                          },
-                        })
-                        setErrors((prev) => ({ ...prev, customDates: false }))
-                      }}
-                      multiple
-                      format="YYYY-MM-DD"
-                      className="w-full"
-                      inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Number of Blogs */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Blogs
-                </label>
-                <input
-                  type="number"
-                  value={newJob.blogs.numberOfBlogs}
-                  onChange={handleNumberOfBlogsChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
-                  }`}
-                  placeholder="Enter the number of blogs"
-                  min="1"
-                  max={MAX_BLOGS}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )
-
-      default:
-        return null
-    }
-  }
-
-  const footerButtons = [
-    currentStep > 1 && (
-      <button
-        key="previous"
-        onClick={() => setCurrentStep(currentStep - 1)}
-        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg mr-3 hover:bg-gray-300"
-        aria-label="Previous step"
-      >
-        Previous
-      </button>
-    ),
-    currentStep < 3 && (
-      <button
-        key="next"
-        onClick={() => {
-          if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
-        }}
-        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
-        aria-label="Next step"
-      >
-        Next
-      </button>
-    ),
-    currentStep === 3 && (
-      <button
-        key="submit"
-        onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
-        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
-        aria-label={newJob?._id ? "Update job" : "Create job"}
-      >
-        {newJob?._id ? "Update" : "Create"} Job
-      </button>
-    ),
-  ]
-
   return (
     <>
       <Helmet>
-        <title>Content Agent | GenWrite</title>
+        <title>Content Automation | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div>
-          <div className="mb-8">
-            <motion.h1
-              initial={{ y: -20 }}
-              animate={{ y: 0 }}
-              className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-            >
-              Jobs Automation
-            </motion.h1>
-            <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
-          </div>
-          <motion.div
-            whileHover={{ y: -2 }}
-            className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
-            onClick={handleOpenJobModal}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <span className="bg-blue-100 rounded-lg p-3">
-                <FiPlus className="w-6 h-6 text-blue-600" />
-              </span>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
-              <p className="text-gray-500 mt-2 text-sm">
-                Set up automated content generation with custom templates and scheduling
+
+      <div className="min-h-screen">
+        <div className="space-y-10 md:p-6 p-3 md:mt-0 mt-6">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Content Automation
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Manage your automated content generation pipelines
               </p>
             </div>
-          </motion.div>
-          {jobs.length > 0 && (
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
-          )}
 
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(PAGE_SIZE)].map((_, index) => (
-                <SkeletonLoader key={index} />
-              ))}
-            </div>
-          ) : jobs.length === 0 ? (
-            <div
-              className="flex flex-col justify-center items-center"
-              style={{ minHeight: "calc(100vh - 250px)" }}
-            >
-              <p className="text-xl text-gray-600">No jobs available.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedJobs.map((job) => (
-                <motion.div
-                  key={job._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
+            <div className="flex items-center gap-3">
+              <div className="join bg-white p-1 gap-1 rounded-xl border border-slate-200 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
+                    viewMode === "grid"
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "text-slate-400"
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        ID: {(job._id || "").toString().slice(-6) || "N/A"}
-                      </p>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleStartJob(job._id)}
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        job.status === "active"
-                          ? "bg-red-100 text-red-600 hover:bg-red-200"
-                          : "bg-green-100 text-green-600 hover:bg-green-200"
-                      }`}
-                      aria-label={job.status === "active" ? "Stop job" : "Start job"}
-                    >
-                      {job.status === "active" ? "Stop" : "Start"}
-                    </motion.button>
+                  <LayoutGrid size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
+                    viewMode === "list"
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "text-slate-400"
+                  }`}
+                >
+                  <List size={18} />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={queryLoading}
+                className="btn btn-ghost bg-white rounded-lg hover:bg-slate-100 text-slate-600 font-bold border border-slate-200 h-12 px-6 shadow-sm"
+              >
+                <RefreshCw
+                  size={18}
+                  className={`${queryLoading ? "animate-spin" : ""} mr-2 text-slate-400`}
+                />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Stats & Create Banner */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 p-8 rounded-2xl border border-slate-200 bg-white relative overflow-hidden group shadow-sm">
+              <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-800">Account Overview</h3>
+                    <p className="text-slate-500 font-medium text-xs">Capacity & status metrics</p>
                   </div>
-                  <div className="space-y-3 text-sm text-gray-600">
-                    <div className="flex items-center gap-2 capitalize">
-                      <FiCalendar className="w-4 h-4 text-blue-500" />
-                      <span>Scheduling: {job.schedule.type}</span>
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                    <Briefcase size={20} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Jobs Used */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Jobs Created
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-900">{usage}</span>
+                      <span className="text-sm font-bold text-slate-400">/ {usageLimit}</span>
                     </div>
-                    <div className="flex items-center gap-2 capitalize">
-                      <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Daily Blogs: {job.blogs.numberOfBlogs}</span>
-                    </div>
-                    <div className="flex items-center gap-2 capitalize">
-                      <FiSettings className="w-4 h-4 text-green-500" />
-                      <span>Model: {job.blogs.aiModel}</span>
-                    </div>
-                    <div className="flex items-center gap-2 capitalize">
-                      <FiCalendar className="w-4 h-4 text-red-500" />
-                      <span>Status: {job.status}</span>
-                    </div>
-                    {job.blogs.topics?.length > 0 && (
-                      <div className="flex items-start gap-2">
-                        <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
-                        <div className="flex flex-wrap gap-2">
-                          Topics:
-                          {job.blogs.topics.map((topic, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
-                            >
-                              {topic}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {job.blogs.keywords?.length > 0 && (
-                      <div className="flex items-start gap-2">
-                        <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
-                        <div className="flex flex-wrap gap-2">
-                          Keywords:
-                          {job.blogs.keywords.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                  {/* Active */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Active Status
+                    </p>
                     <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-yellow-500" />
-                      <span>
-                        Created:{" "}
-                        {job.createdAt
-                          ? new Date(job.createdAt).toLocaleString("en-IN", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : "N/A"}
+                      <span className="text-3xl font-black text-emerald-600">
+                        {activeJobsCount}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Generated Blogs: {(job.createdBlogs || []).length}</span>
-                    </div>
-                    {job.lastRun && (
-                      <div className="flex items-center gap-2">
-                        <FiCalendar className="w-4 h-4 text-yellow-500" />
-                        <span>
-                          Last Run:{" "}
-                          {new Date(job.lastRun).toLocaleString("en-IN", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </span>
-                      </div>
-                    )}
                   </div>
-                  <div className="flex gap-2 mt-6">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEditJob(job)}
-                      className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
-                      aria-label="Edit job"
-                    >
-                      <FiEdit />
-                      Edit
-                    </motion.button>
-                    <Popconfirm
-                      title="Delete Job"
-                      description="Are you sure you want to delete this job?"
-                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                      okText="Yes"
-                      cancelText="No"
-                      onConfirm={() => handleDeleteJob(job._id)}
-                    >
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                        aria-label="Delete job"
-                      >
-                        Delete
-                      </motion.button>
-                    </Popconfirm>
+                  {/* Paused */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Paused Jobs
+                    </p>
+                    <span className="text-3xl font-black text-slate-400">{stoppedJobsCount}</span>
                   </div>
-                </motion.div>
-              ))}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Consumption</span>
+                    <span className={usagePercentage > 90 ? "text-rose-500" : "text-blue-600"}>
+                      {usagePercentage}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${usagePercentage}%` }}
+                      className={`h-full rounded-full ${usagePercentage > 90 ? "bg-rose-500" : "bg-blue-600"}`}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                current={currentPage}
-                pageSize={PAGE_SIZE}
-                total={jobs.length}
-                onChange={(page) => setCurrentPage(page)}
-                showSizeChanger={false}
-                responsive
+
+            <button
+              type="button"
+              onClick={handleOpenJobModal}
+              disabled={usage >= usageLimit || isReadOnlyWorkspace}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+              className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
+                usage >= usageLimit || isReadOnlyWorkspace
+                  ? "bg-slate-100 cursor-not-allowed grayscale"
+                  : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800"
+              }`}
+            >
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+                <Sparkles size={160} />
+              </div>
+
+              <div className="relative z-10 h-full flex flex-col justify-between">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-xl text-white rounded-lg flex items-center justify-center border border-white/20">
+                  <Plus size={32} strokeWidth={3} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white mb-2">Create New Job</h3>
+                  <p className="text-indigo-100 font-medium leading-relaxed opacity-80">
+                    Setup a new automated content generation stream.
+                  </p>
+                </div>
+                {usage >= usageLimit && (
+                  <div
+                    className="mt-4 flex items-center gap-2 bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest tooltip tooltip-top [--tooltip-font-size:10px]"
+                    data-tip={`Job limit reached: ${usage}/${usageLimit} jobs used on ${userPlan} plan.`}
+                  >
+                    <AlertTriangle size={14} /> Full Capacity
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
+
+          {/* Job List/Grid Section */}
+          <div className="space-y-6">
+            {queryLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
+                    key={i}
+                    className="h-64 bg-white rounded-[32px] border border-slate-100 animate-pulse p-8 space-y-4"
+                  >
+                    <div className="flex gap-4">
+                      <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-100 rounded-full w-3/4" />
+                        <div className="h-3 bg-slate-100 rounded-full w-1/2" />
+                      </div>
+                    </div>
+                    <div className="h-24 bg-slate-50 rounded-2xl" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              <div className="py-24 bg-white rounded-[40px] border border-slate-100 flex flex-col items-center justify-center text-center space-y-4 shadow-xl shadow-slate-200/40">
+                <div className="w-24 h-24 bg-slate-50 text-slate-300 rounded-[32px] flex items-center justify-center">
+                  <Briefcase size={40} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-slate-900">No pipelines found</h3>
+                  <p className="text-slate-400 font-medium">Start automating your content today.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenJobModal}
+                  disabled={isReadOnlyWorkspace}
+                  title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Deploy Your First Job
+                </button>
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {paginatedJobs.map((job) => (
+                  <JobCard
+                    key={job._id}
+                    job={job}
+                    setCurrentPage={setCurrentPage}
+                    paginatedJobs={paginatedJobs}
+                    onEdit={handleEditJob}
+                  />
+                ))}
+              </div>
+            ) : (
+              <JobListView
+                data={paginatedJobs}
+                onEdit={handleEditJob}
+                isToggling={isToggling}
+                onToggleStatus={(job) => {
+                  toggleStatus({ jobId: job._id, currentStatus: job.status })
+                }}
+                onDelete={(job) => {
+                  handlePopup({
+                    title: "Terminate Job",
+                    description: `This action will permanently remove the pipeline "${job.name}". Are you sure?`,
+                    confirmText: "Terminate",
+                    onConfirm: () => deleteMutate(job._id),
+                    confirmProps: { className: "btn-error" },
+                  })
+                }}
               />
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center pt-8">
+              <div className="join bg-white shadow-xl shadow-slate-200/40 rounded-2xl border border-slate-100 p-1">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    type="button"
+                    // biome-ignore lint/suspicious/noArrayIndexKey: pagination button N always represents page N
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`join-item btn h-12 w-12 rounded-xl text-sm font-black transition-all border-none ${
+                      currentPage === i + 1
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                        : "btn-ghost text-slate-400 hover:bg-slate-50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
           )}
         </div>
+
+        <JobModal user={user} userPlan={userPlan} isUserLoaded={isUserLoaded} />
       </div>
-      <Modal
-        title={`Step ${currentStep}: ${
-          currentStep === 1
-            ? "Select Templates"
-            : currentStep === 2
-            ? "Job Details"
-            : "Blog Options & Schedule Settings"
-        }`}
-        open={showJobModal}
-        onCancel={() => {
-          dispatch(closeJobModal())
-          setNewJob(initialJob)
-          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
-          setCurrentStep(1)
-          setErrors({})
-          dispatch(clearSelectedKeywords())
-        }}
-        footer={footerButtons}
-        width={800}
-        centered
-        className="custom-modal"
-      >
-        <div className="p-4 max-h-[80vh] overflow-y-auto">{renderStep()}</div>
-      </Modal>
     </>
   )
 }

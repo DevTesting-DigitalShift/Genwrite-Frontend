@@ -1,0 +1,233 @@
+import { packages } from "@/data/templates"
+import { Switch } from "@components/ui/switch"
+import { toast } from "sonner"
+import clsx from "clsx"
+import { AlertCircle, Crown, Search } from "lucide-react"
+import { type FC, useEffect, useState, useMemo } from "react"
+
+interface TemplateSelectionProps {
+  numberOfSelection?: number
+  userSubscriptionPlan: string
+  onClick: (templates: BlogTemplate[]) => void
+  preSelectedIds?: Array<string | number>
+  className?: string
+  error?: string
+}
+
+export interface BlogTemplate {
+  id: number
+  imgSrc: string
+  name: string
+  description: string
+  paid: boolean
+}
+
+const TemplateSelection: FC<TemplateSelectionProps> = ({
+  numberOfSelection = 1,
+  userSubscriptionPlan,
+  preSelectedIds,
+  onClick,
+  className = "",
+  error = "",
+}) => {
+  const { isProUser, initialTemplates } = useMemo(() => {
+    const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
+    if (isProUser) {
+      return { isProUser, initialTemplates: [...packages] }
+    }
+    return {
+      isProUser,
+      initialTemplates: [...packages].sort((a, b) => {
+        return a.paid === b.paid ? 0 : a.paid ? 1 : -1
+      }),
+    }
+  }, [userSubscriptionPlan])
+
+  const [templates, setTemplates] = useState<BlogTemplate[]>(initialTemplates)
+  const [showSelected, setShowSelected] = useState<boolean>(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  // Clear local error when search term changes
+  useEffect(() => {
+    setLocalError(null)
+  }, [])
+
+  // Memoize preSelectedIds to stabilize the reference
+  const stabilizedPreSelectedIds = useMemo<number[]>(() => {
+    if (!preSelectedIds || !Array.isArray(preSelectedIds)) return []
+
+    if (typeof preSelectedIds[0] === "number") {
+      return [...preSelectedIds] as number[]
+    }
+
+    const mapped = preSelectedIds
+      .map((name) => {
+        const template = packages.find((t) => t.name === name)
+        return template ? template.id : null
+      })
+      .filter((id): id is number => typeof id === "number")
+
+    return mapped
+  }, [preSelectedIds])
+
+  const [selectedIds, setSelectedIds] = useState<number[]>(stabilizedPreSelectedIds)
+
+  // Sync selectedIds with stabilizedPreSelectedIds
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (
+        prev.length !== stabilizedPreSelectedIds.length ||
+        prev.some((id, index) => id !== stabilizedPreSelectedIds[index])
+      ) {
+        return stabilizedPreSelectedIds
+      }
+      return prev
+    })
+  }, [stabilizedPreSelectedIds])
+
+  // Trigger onClick when selectedIds changes
+  useEffect(() => {
+    onClick(selectedIds.map((id) => packages[id - 1]))
+  }, [selectedIds, onClick])
+
+  // Filter templates based on search and showSelected
+  useEffect(() => {
+    let filtered = initialTemplates
+
+    if (showSelected) {
+      filtered = selectedIds.map((id) => packages[id - 1])
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    }
+
+    setTemplates(filtered)
+
+    if (selectedIds.length === 0 && showSelected) {
+      setShowSelected(false)
+    }
+  }, [showSelected, selectedIds, searchTerm, initialTemplates])
+
+  const handlePackageSelect = (id: number) => {
+    const pkg = packages[id - 1]
+    if (!isProUser && pkg.paid) {
+      toast.error("Please upgrade to a Pro subscription or more to access this template.")
+    } else {
+      let indices = [...selectedIds]
+      const findIndex = indices.indexOf(id)
+      if (findIndex === -1) {
+        if (indices.length >= numberOfSelection) {
+          setLocalError(`You can select a maximum of ${numberOfSelection} templates.`)
+          return
+        }
+        indices.push(id)
+        setLocalError(null)
+      } else {
+        indices = indices.slice(0, findIndex).concat(indices.slice(findIndex + 1))
+        setLocalError(null)
+      }
+      setSelectedIds(indices)
+    }
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      {/* Header Section - Responsive */}
+      <div className="sticky top-0 pb-4 bg-white z-30 space-y-3">
+        <div className="flex sm:flex-row items-center gap-4">
+          <label className="input border border-gray-300 flex items-center gap-2 w-full">
+            <input
+              type="text"
+              className="grow rounded-lg"
+              placeholder="search template by name"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="w-4 h-4 opacity-70" />
+          </label>
+
+          <div className="flex items-center gap-3 w-1/3">
+            <label
+              htmlFor="show-template"
+              className="text-sm font-medium text-slate-700 cursor-pointer"
+            >
+              Show Selected
+            </label>
+
+            <Switch
+              id="show-template"
+              disabled={selectedIds?.length === 0}
+              checked={showSelected}
+              onCheckedChange={(checked: boolean) => setShowSelected(checked)}
+            />
+          </div>
+        </div>
+        {(localError || error) && (
+          <div className="flex items-center gap-3 p-3.5 px-4 mt-2 bg-red-50/90 border border-red-200/80 rounded-xl text-red-800 text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 backdrop-blur-sm">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <div className="flex-1">{localError || error}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Templates Grid - Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 py-2 max-h-[60vh] overflow-y-auto custom-scroll">
+        {templates.length ? (
+          templates.map((pkg) => {
+            return (
+              // A real <button> rather than role="button": it gets Space/Enter activation
+              // and focus handling for free. Inner nodes are spans because <button> only
+              // admits phrasing content — divs/headings inside it are invalid HTML.
+              <button
+                type="button"
+                key={pkg.id}
+                className={clsx(
+                  "relative block w-full text-left cursor-pointer transition-all rounded-lg duration-200 border-2",
+                  selectedIds.includes(pkg.id)
+                    ? "border-blue-500"
+                    : "border-transparent hover:border-gray-200"
+                )}
+                onClick={() => handlePackageSelect(pkg.id)}
+                aria-pressed={selectedIds.includes(pkg.id)}
+                aria-label={`Select ${pkg.name} template`}
+              >
+                <span className="block bg-white rounded-md overflow-hidden shadow-sm h-full border border-gray-300">
+                  <span className="block relative">
+                    <img
+                      src={pkg.imgSrc || "/placeholder.svg"}
+                      alt={pkg.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                    {pkg.paid && (
+                      <span className="absolute top-2 right-2 bg-white/80 rounded-full p-1 backdrop-blur-sm">
+                        <Crown size={16} className="text-purple-600" aria-label="Pro feature" />
+                      </span>
+                    )}
+                  </span>
+                  <span className="block p-3">
+                    <span className="block font-medium text-gray-900 text-base mb-1">
+                      {pkg.name}
+                    </span>
+                    <span className="block text-xs text-gray-500 line-clamp-2">
+                      {pkg.description}
+                    </span>
+                  </span>
+                </span>
+              </button>
+            )
+          })
+        ) : (
+          <div className="col-span-full flex flex-col items-center justify-center py-10 text-gray-400">
+            <div className="text-lg font-medium">No templates found</div>
+            <p className="text-sm">Try adjusting your search criteria</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default TemplateSelection

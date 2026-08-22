@@ -1,0 +1,880 @@
+import { useCallback, useEffect, useState, useRef } from "react"
+import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
+import { motion, AnimatePresence } from "framer-motion"
+import axiosInstance from "../api"
+import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
+import { Helmet } from "react-helmet"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
+import { toast } from "sonner"
+import { Sparkles as SparklesIcon } from "lucide-react"
+import { sendRetryLines } from "@api/blogApi"
+import { debugPayload } from "@utils/debugPayload"
+import TemplateModal from "@components/generateBlog/TemplateModal"
+import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
+import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
+import EditorAiReview from "@/layout/Editor/EditorAiReview"
+import useAiReviewStore from "@/store/useAiReviewStore"
+import "../layout/TextEditor/editor.css"
+import LoadingScreen from "@components/ui/LoadingScreen"
+import useBlogStore from "@store/useBlogStore"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
+import { TONES } from "@/data/blogData"
+import { Share2, Globe, Lock } from "lucide-react"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
+
+const MainEditorPage = () => {
+  const { id } = useParams()
+  const queryClient = useQueryClient()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Watching someone else's workspace: the blog is theirs, so this page is a reader.
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
+
+  // Zustand Stores
+  const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
+  const cachedBlog = queryClient.getQueryData(["blog", id]) || (blog?._id === id ? blog : null)
+
+  // TanStack Query for fetching blog
+  const {
+    data: fetchedBlog,
+    isLoading: isBlogFetching,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["blog", id],
+    queryFn: () => getBlogById(id),
+    enabled: !!id && !cachedBlog,
+    initialData: cachedBlog || undefined,
+    retry: false,
+  })
+
+  const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
+  const [activeTab, _setActiveTab] = useState("Normal")
+  // isLoading is now derived from isBlogFetching
+  const [keywords, setKeywords] = useState([])
+  const [editorContent, setEditorContent] = useState("")
+  const resetAiReview = useAiReviewStore((s) => s.reset)
+  const aiReview = useAiReviewStore((s) => s.review)
+  const [editorTitle, setEditorTitle] = useState("")
+  const [proofreadingResults, setProofreadingResults] = useState([])
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [saveContent, setSaveContent] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isPosted, setIsPosted] = useState(null)
+  const [isPosting, setIsPosting] = useState(false)
+  const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
+  const [showTemplateModal, setShowTemplateModal] = useState(!id)
+  const [isHumanizeModalOpen, setIsHumanizeModalOpen] = useState(false)
+  const [humanizedContent, setHumanizedContent] = useState("")
+  const [isHumanizing, setIsHumanizing] = useState(false)
+  const [humanizePrompt, setHumanizePrompt] = useState("")
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
+
+  const pathDetect =
+    location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
+  const [templateFormData, setTemplateFormData] = useState({
+    title: "",
+    topic: "",
+    tone: TONES[0],
+    focusKeywords: [],
+    keywords: [],
+    userDefinedLength: 1200,
+    focusKeywordInput: "",
+    keywordInput: "",
+    template: "",
+  })
+  const [errors, setErrors] = useState({
+    title: false,
+    topic: false,
+    tone: false,
+    focusKeywords: false,
+    keywords: false,
+    userDefinedLength: false,
+    template: false,
+  })
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (unsavedChanges) {
+        event.preventDefault()
+        event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [unsavedChanges])
+
+  // Block in-app React Router navigation (back button, links) when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      unsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  )
+
+  useEffect(() => {
+    if (fetchedBlog) {
+      setSelectedBlog(fetchedBlog)
+    }
+  }, [fetchedBlog, setSelectedBlog])
+
+  useEffect(() => {
+    if (isError) {
+      const status = error?.response?.status || 404
+      const message =
+        status === 403
+          ? "Access Restricted: This blog belongs to another account."
+          : "Blog Not Available: The requested blog doesn't exist or has been deleted."
+
+      toast.error(message)
+      navigate("/blogs", { replace: true })
+    }
+  }, [isError, error, navigate])
+
+  // A pending AI review belongs to the blog that raised it, so drop it when the
+  // editor switches blogs or unmounts.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the blog id is what should invalidate a pending review
+  useEffect(() => {
+    resetAiReview()
+    return resetAiReview
+  }, [id, resetAiReview])
+
+  useEffect(() => {
+    if (!id) {
+      // Clear selected blog when creating a new blog
+      clearBlogUI()
+      // Clear editor state to prevent showing previous blog content
+      setEditorContent("")
+      setEditorTitle("")
+      setKeywords([])
+      setIsPosted(null)
+      setFormData({ category: "", includeTableOfContents: false })
+    }
+  }, [id, clearBlogUI])
+
+  useEffect(() => {
+    if (blog && id && blog._id === id) {
+      setKeywords(blog.keywords || [])
+      setEditorTitle(blog.title || "")
+      setEditorContent(blog.content ?? "")
+      setIsPosted(blog.posting?.items || {})
+      setFormData({
+        category: blog.category || "",
+        includeTableOfContents: blog.includeTableOfContents || false,
+        title: blog.title || "",
+      })
+      setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
+    }
+  }, [blog, id])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
+  const hasMatchingBlog = !id || blog?._id === id
+
+  // Store the section-aware replace function from TextEditor
+  const sectionReplaceRef = useRef(null)
+  const handleReplaceReady = useCallback((replaceFn) => {
+    sectionReplaceRef.current = replaceFn
+  }, [])
+
+  const handleReplace = useCallback((original, change) => {
+    if (typeof original !== "string" || typeof change !== "string") {
+      toast.error("Invalid suggestion format.")
+      return
+    }
+
+    // Use section-aware replace if available (updates both sections and content)
+    if (sectionReplaceRef.current) {
+      sectionReplaceRef.current(original, change)
+    } else {
+      // Fallback to basic content replace
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+      setEditorContent((prev) => prev.replace(regex, change))
+    }
+
+    // Remove suggestion from list
+    setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
+  }, [])
+
+  const handlePostToWordPress = async (postData) => {
+    setIsPosting(true)
+
+    if (!editorTitle) {
+      toast.error("Blog title is missing.")
+      setIsPosting(false)
+      return
+    }
+    if (!editorContent.trim()) {
+      toast.error("Blog content is empty.")
+      setIsPosting(false)
+      return
+    }
+    if (!postData.categories) {
+      // 🔄 changed from categories → category
+      toast.error("Please select a category.")
+      setIsPosting(false)
+      return
+    }
+
+    const selectedCategory = postData.categories || formData.categories
+    if (!selectedCategory) {
+      toast.error("Please select a category.")
+      setIsPosting(false)
+      return
+    }
+
+    try {
+      const requestData = {
+        type: postData.type.platform,
+        blogId: blog._id,
+        includeTableOfContents: postData.includeTableOfContents ?? false,
+        category: selectedCategory,
+        removeWaterMark: postData.removeWaterMark ?? true,
+      }
+
+      const response = isPosted
+        ? await axiosInstance.put("/integrations/post", requestData)
+        : await axiosInstance.post("/integrations/post", requestData)
+
+      const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
+      setIsPosted((prev) => ({ ...(prev || {}), [postData.type.platform]: postedData }))
+      toast.success(
+        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
+      )
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+      )
+    } finally {
+      setIsPosting(false)
+    }
+  }
+
+  const getWordCount = (text) => {
+    if (!text) return 0
+    // Strip HTML tags first
+    const strippedText = text.replace(/<[^>]*>/g, " ")
+    // Count words
+    return strippedText
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length
+  }
+
+  const handleSave = async (updateData = {}) => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    const { metadata: seoMetadata, slug, ...rest } = updateData
+
+    if (!editorTitle.trim()) {
+      toast.error("Blog title is required.")
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        slug: slug !== undefined ? slug : blog?.slug,
+        seoMetadata: seoMetadata
+          ? { title: seoMetadata.title, description: seoMetadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+        ...rest,
+      }
+
+      const response = await updateBlog(blog._id, payload)
+
+      toast.success("Blog updated successfully")
+      setUnsavedChanges(false) // Reset unsavedChanges after save
+
+      // Refresh query data
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+
+      return response
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      toast.error("Failed to save blog.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleOptimizeSave = async () => {
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    setIsSaving(true)
+    try {
+      const payload = {
+        title: editorTitle,
+        content: editorContent,
+        published: blog?.published,
+        focusKeywords: blog?.focusKeywords,
+        keywords,
+        seoMetadata: metadata
+          ? { title: metadata.title, description: metadata.description }
+          : blog?.seoMetadata || { title: "", description: "" },
+      }
+      await updateBlog(blog._id, payload)
+      const res = await sendRetryLines(blog._id)
+      if (res.data) {
+        setSaveContent(res.data)
+        setSaveModalOpen(true)
+        toast.success("Review the suggested content.")
+      } else {
+        toast.error("No content received from retry.")
+      }
+      setUnsavedChanges(false) // Reset unsavedChanges after save
+      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      toast.error("Failed to save blog.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAcceptSave = () => {
+    if (saveContent) {
+      setEditorContent(saveContent)
+      toast.success("Content updated successfully!")
+    }
+    setSaveModalOpen(false)
+    setSaveContent(null)
+  }
+
+  const handleRejectSave = () => {
+    setSaveModalOpen(false)
+    setSaveContent(null)
+    toast.info("Changes discarded.")
+  }
+
+  const _tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
+
+  const handleTemplateModalClose = () => {
+    const isEmpty =
+      !templateFormData.title?.trim() ||
+      !templateFormData.topic?.trim() ||
+      !templateFormData.template ||
+      !templateFormData.userDefinedLength ||
+      templateFormData.userDefinedLength <= 0 ||
+      !templateFormData.focusKeywords ||
+      templateFormData.focusKeywords.length === 0 ||
+      !templateFormData.keywords ||
+      templateFormData.keywords.length === 0
+
+    if (isEmpty && !id) navigate("/blogs")
+    setShowTemplateModal(false)
+  }
+
+  const handleSubmit = async () => {
+    const blogData = {
+      title: templateFormData.title?.trim(),
+      topic: templateFormData.topic?.trim(),
+      tone: templateFormData.tone?.trim(),
+      focusKeywords: templateFormData.focusKeywords,
+      keywords: templateFormData.keywords,
+      userDefinedLength: Number(templateFormData.userDefinedLength),
+      template: templateFormData.template,
+      aiModel: "gemini",
+      isCheckedGeneratedImages: false,
+      isUnsplashActive: false,
+    }
+
+    const newErrors = {}
+    if (!blogData.title) newErrors.title = true
+    if (!blogData.topic) newErrors.topic = true
+    if (!blogData.template) newErrors.template = true
+    if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
+      newErrors.userDefinedLength = true
+    if (!blogData.focusKeywords || blogData.focusKeywords.length === 0)
+      newErrors.focusKeywords = true
+    if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+      return
+    }
+
+    if (debugPayload("ManualBlog", blogData)) return
+
+    try {
+      const res = await createSimpleBlog(blogData)
+      setShowTemplateModal(false)
+      navigate(`/blog-editor/${res._id}`)
+    } catch (err) {
+      console.error("Failed to create blog:", err)
+      toast.error(err?.message || "Failed to create blog")
+    }
+  }
+
+  const handleTitleChange = (e) => {
+    if (isReadOnlyWorkspace) return
+    if (blog?.isArchived) {
+      toast.error("This blog is archived. Please restore it to perform this action.")
+      return
+    }
+    const newTitle = e.target.value
+    if (getWordCount(newTitle) <= 60) {
+      setEditorTitle(newTitle)
+      setFormData((prev) => ({ ...prev, title: newTitle }))
+    } else {
+      toast.error("Title exceeds 60 words.")
+    }
+  }
+
+  const _generatePreviewContent = () => {
+    if (!editorContent.trim())
+      return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
+    return `<div class="prose prose-lg"><h1>${
+      editorTitle || templateFormData.topic || "Your Blog Title"
+    }</h1>${editorContent}</div>`
+  }
+
+  const handleAcceptHumanizedContent = useCallback(() => {
+    setEditorContent(humanizedContent)
+    setIsHumanizeModalOpen(false)
+    toast.success("Humanized content applied successfully!")
+  }, [humanizedContent])
+
+  const handleAcceptOriginalContent = useCallback(() => {
+    setIsHumanizeModalOpen(false)
+    toast.info("Retained original content.")
+  }, [])
+
+  if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
+    return (
+      <div className="fixed inset-0 z-999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
+        <LoadingScreen />
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>Blog Editor | GenWrite</title>
+      </Helmet>
+
+      {/* Unsaved Changes Confirmation Modal */}
+      {blocker.state === "blocked" && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center">
+          <button
+            type="button"
+            aria-label="Cancel"
+            className="absolute inset-0 w-full h-full bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => blocker.reset()}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm mx-4">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center">
+                <Save className="w-7 h-7 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900 mb-1">Unsaved Changes</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  You have unsaved changes that will be lost if you leave. Do you want to save
+                  before leaving?
+                </p>
+              </div>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  type="button"
+                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
+                  onClick={() => blocker.proceed()}
+                >
+                  Leave Anyway
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-[#3B4BB8] text-white font-bold text-sm transition-all shadow-none"
+                  onClick={async () => {
+                    await handleSave({})
+                    blocker.proceed()
+                  }}
+                >
+                  Save & Leave
+                </button>
+              </div>
+              <button
+                type="button"
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => blocker.reset()}
+              >
+                Stay on page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col max-h-[calc(100dvh-4rem)] sm:max-h-[calc(100dvh-5rem)] overflow-y-hidden">
+        {saveModalOpen && (
+          <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleRejectSave}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+            >
+              <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <SparklesIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">AI Suggestions</h3>
+                    <p className="text-blue-100 text-sm opacity-80">
+                      Optimized content recommendation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRejectSave}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scroll">
+                <div className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-600 prose-p:leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-bold hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-black text-slate-900">{children}</strong>
+                      ),
+                      p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                      li: ({ children }) => <li className="mb-2">{children}</li>,
+                    }}
+                  >
+                    {saveContent}
+                  </ReactMarkdown>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleRejectSave}
+                  className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptSave}
+                  className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Apply Suggestions
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row grow overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0">
+            {blog?.isArchived && (
+              <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center justify-center gap-2 text-amber-800">
+                <Info className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  This blog is archived. Please restore it to make changes.
+                </span>
+              </div>
+            )}
+            <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 mt-5 lg:mt-0 w-full">
+                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center border border-indigo-100">
+                    <FileText className="w-5 h-5" strokeWidth={2.5} />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      {id ? "Edit Blog" : "Create New Blog"}
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-0.5">Write and optimize your content</p>
+                  </div>
+                  <button type="button" onClick={toggleSidebar} className="md:hidden ml-auto">
+                    {!isSidebarOpen && <PanelRightOpen />}
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    disabled={isReadOnlyWorkspace}
+                    onClick={async () => {
+                      try {
+                        const newVisibility = !blog.isPublic
+                        const _response = await toggleBlogVisibility(blog._id, newVisibility)
+                        // Update both TanStack Query and Zustand store for immediate UI feedback
+                        queryClient.setQueryData(["blog", id], (prev) => ({
+                          ...prev,
+                          isPublic: newVisibility,
+                        }))
+                        setSelectedBlog({ ...blog, isPublic: newVisibility })
+                        toast.success(`Blog is now ${newVisibility ? "Public" : "Private"}`)
+                      } catch (_err) {
+                        toast.error("Failed to update visibility")
+                      }
+                    }}
+                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  >
+                    {blog?.isPublic ? (
+                      <>
+                        <Globe className="w-4 h-4 text-green-600" />
+                        Public
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-gray-400" />
+                        Private
+                      </>
+                    )}
+                  </button>
+
+                  {blog?.isPublic && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_FRONTEND_URL}/blog/${blog._id}`
+                        navigator.clipboard.writeText(url)
+                        toast.success("Public link copied to clipboard!")
+                      }}
+                      className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleSave({ metadata })}
+                    title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
+                      isSaving ||
+                      blog?.isArchived ||
+                      isReadOnlyWorkspace ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-primary text-white hover:bg-[#3B4BB8] shadow-none"
+                    }`}
+                    disabled={
+                      isSaving ||
+                      blog?.isArchived ||
+                      isReadOnlyWorkspace ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                    }
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 sm:w-5 h-4 sm:h-5" />
+                        Save Blog
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {pathDetect && (
+                <div className="mt-4">
+                  <div className="flex gap-2 flex-col sm:flex-row">
+                    <textarea
+                      value={editorTitle}
+                      onChange={handleTitleChange}
+                      onInput={(e) => {
+                        e.target.style.height = "auto"
+                        e.target.style.height = e.target.scrollHeight + "px"
+                      }}
+                      placeholder="Enter your blog title..."
+                      readOnly={isReadOnlyWorkspace}
+                      rows={1}
+                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full overflow-hidden leading-tight bg-transparent ${
+                        getWordCount(editorTitle) > 60 ? "text-red-600" : ""
+                      }`}
+                      aria-label="Blog title"
+                    />
+                  </div>
+                  <div className="mt-2 text-xs sm:text-sm text-gray-500">
+                    {getWordCount(editorTitle)}/60 words (optimal for SEO)
+                    {getWordCount(editorTitle) > 60 && (
+                      <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </header>
+            {/* Anchors the AI review, which stands in for the text editor while a
+                rewrite is pending. TipTap is only hidden, never unmounted, so it is
+                still there to receive the accepted side. */}
+            <div className="relative flex flex-col grow min-h-0">
+              <div
+                key={activeTab}
+                className={`grow overflow-auto max-h-[800px] custom-scroll ${
+                  aiReview ? "invisible" : ""
+                }`}
+              >
+                {isBlogFetching ? (
+                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <TipTapEditor
+                    blog={blog}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    handleSubmit={handleSave}
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    isSavingKeyword={isSaving}
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    wordpressMetadata={metadata}
+                    onReplaceReady={handleReplaceReady}
+                    // Same viewer treatment the public reader gets: content is selectable
+                    // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                    isPublicMode={isReadOnlyWorkspace}
+                  />
+                )}
+              </div>
+              <EditorAiReview />
+            </div>
+          </div>
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
+            <TextEditorSidebar
+              activeEditorVersion={1} // Hardcoded to TipTap
+              blog={blog}
+              keywords={keywords}
+              setKeywords={setKeywords}
+              onPost={handlePostToWordPress}
+              handleReplace={handleReplace}
+              proofreadingResults={proofreadingResults}
+              setProofreadingResults={setProofreadingResults}
+              handleSave={handleOptimizeSave}
+              handleSubmit={handleSave}
+              posted={isPosted}
+              isPosting={isPosting}
+              formData={formData}
+              title={editorTitle}
+              setEditorContent={setEditorContent}
+              editorContent={editorContent}
+              humanizePrompt={humanizePrompt}
+              setHumanizePrompt={setHumanizePrompt}
+              setIsHumanizing={setIsHumanizing}
+              isHumanizing={isHumanizing}
+              setHumanizedContent={setHumanizedContent}
+              setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+              unsavedChanges={unsavedChanges}
+              wordpressMetadata={metadata}
+            />
+          </div>
+
+          <AnimatePresence>
+            {isSidebarOpen && (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-y-0 right-0 w-4/5 max-w-xs bg-white shadow-lg z-50 overflow-y-auto md:hidden"
+              >
+                <TextEditorSidebar
+                  activeEditorVersion={1} // Hardcoded to TipTap
+                  blog={blog}
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  onPost={handlePostToWordPress}
+                  handleReplace={handleReplace}
+                  proofreadingResults={proofreadingResults}
+                  setProofreadingResults={setProofreadingResults}
+                  handleSave={handleOptimizeSave}
+                  handleSubmit={handleSave}
+                  posted={isPosted}
+                  isPosting={isPosting}
+                  formData={formData}
+                  title={editorTitle}
+                  setEditorContent={setEditorContent}
+                  editorContent={editorContent}
+                  humanizePrompt={humanizePrompt}
+                  setHumanizePrompt={setHumanizePrompt}
+                  setIsHumanizing={setIsHumanizing}
+                  isHumanizing={isHumanizing}
+                  setHumanizedContent={setHumanizedContent}
+                  setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+                  setIsSidebarOpen={setIsSidebarOpen}
+                  unsavedChanges={unsavedChanges}
+                  wordpressMetadata={metadata}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <TemplateModal
+        closeFnc={handleTemplateModalClose}
+        isOpen={showTemplateModal}
+        handleSubmit={handleSubmit}
+        errors={errors}
+        setErrors={setErrors}
+        formData={templateFormData}
+        setFormData={setTemplateFormData}
+        className="w-full max-w-lg"
+      />
+    </>
+  )
+}
+
+export default MainEditorPage

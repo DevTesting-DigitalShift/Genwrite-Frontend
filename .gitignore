@@ -8,7 +8,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist-ssr
 *.local
 
 # Editor directories and files
@@ -22,6 +21,11 @@ dist-ssr
 *.sln
 *.sw?
 
-anupDoc.md
+*.env
 .env
-package-lock.json
+todo.txt
+
+dist
+
+.firebase
+.firebase/*

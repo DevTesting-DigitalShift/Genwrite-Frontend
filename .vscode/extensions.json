@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "kilocode.kilo-code",
+    "dsznajder.es7-react-js-snippets",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.code-runner"
+  ],
+  "unwantedRecommendations": [
+    "nrwl.angular-console",
+    "mongodb.mongodb-vscode",
+    "mjmlio.vscode-mjml"
+  ]
+}

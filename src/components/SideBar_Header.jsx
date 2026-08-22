@@ -1,0 +1,484 @@
+import { useState, useEffect, useRef, useCallback } from "react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import useAuthStore from "../store/useAuthStore"
+import { RxAvatar } from "react-icons/rx"
+import { FiMenu } from "react-icons/fi"
+import {
+  Briefcase,
+  Crown,
+  FileText,
+  HelpCircle,
+  LayoutDashboard,
+  Megaphone,
+  Menu,
+  Plug,
+  Sparkles,
+  Target,
+  Trash2,
+  TrendingUp,
+  UsersRound,
+  Zap,
+} from "lucide-react"
+import { RiCoinsFill } from "react-icons/ri"
+import NotificationDropdown from "@components/NotificationDropdown"
+import GoProButton from "@components/GoProButton"
+import { getSocket } from "@utils/socket"
+import WhatsNewModal from "./dashboardModals/HowToModel"
+import ScheduleDemoButton from "@components/ScheduleDemoBtn"
+import useViewport from "@/hooks/useViewport"
+import { useProAction } from "@/hooks/useProAction"
+import HeaderAccountMenu from "@components/HeaderAccountMenu"
+import SignOutDialog from "@components/SignOutDialog"
+import { useSessions } from "@/hooks/useSessions"
+
+const SideBar_Header = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
+  const {
+    user,
+    loadAuthenticatedUser,
+    logoutUser,
+    logoutAllAccounts,
+    updateCredits,
+    addNotification,
+    updateUserPartial,
+  } = useAuthStore()
+  const { needsUpgrade } = useProAction()
+  const { sessions } = useSessions()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
+
+  const handleNavClick = (path, e) => {
+    // Show intro video for first-time users before allowing navigation
+    if (user && !user.lastLogin) {
+      setShowWhatsNew(true)
+      if (e) e.preventDefault()
+      return false
+    }
+
+    if (needsUpgrade) {
+      if (ALLOWED_ROUTES.some((r) => path.startsWith(r))) {
+        navigate(path)
+        return true
+      }
+      if (e) e.preventDefault()
+      return false
+    }
+    navigate(path)
+  }
+  const sidebarRef = useRef(null)
+  const { isDesktop } = useViewport()
+
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      await loadAuthenticatedUser()
+    } catch (err) {
+      console.error("User load failed:", err)
+      navigate("/login")
+    }
+  }, [loadAuthenticatedUser, navigate])
+
+  const handleCreditsUpdate = useCallback(
+    (data) => {
+      if (
+        data &&
+        typeof data === "object" &&
+        (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
+      ) {
+        updateCredits(data.credits || data)
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [updateCredits, fetchCurrentUser]
+  )
+
+  const handleNotificationUpdate = useCallback(
+    (data) => {
+      if (data && typeof data === "object" && data.message) {
+        addNotification(data)
+      } else if (data && typeof data === "object" && data.notifications) {
+        updateUserPartial({ notifications: data.notifications })
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [addNotification, updateUserPartial, fetchCurrentUser]
+  )
+
+  const handleUsageUpdate = useCallback(
+    (data) => {
+      if (data && typeof data === "object" && data.usage) {
+        updateUserPartial({ usage: data.usage })
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [updateUserPartial, fetchCurrentUser]
+  )
+
+  const handleCloseModal = () => {
+    setShowWhatsNew(false)
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        sidebarOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target) &&
+        window.innerWidth < 768
+      ) {
+        setSidebarOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [sidebarOpen])
+
+  useEffect(() => {
+    let socket = getSocket()
+    let retryCount = 0
+    const maxRetries = 10
+    let retryTimeout
+
+    const setupListeners = () => {
+      if (!socket) {
+        socket = getSocket()
+        if (!socket && retryCount < maxRetries) {
+          retryCount++
+          retryTimeout = setTimeout(setupListeners, 500)
+          return
+        }
+        if (!socket) {
+          console.warn("⚠️ Socket not available after retries")
+          return
+        }
+      }
+
+      socket.on("user:credits", handleCreditsUpdate)
+      socket.on("user:notification", handleNotificationUpdate)
+      socket.on("user:usage", handleUsageUpdate)
+    }
+
+    setupListeners()
+
+    return () => {
+      if (retryTimeout) clearTimeout(retryTimeout)
+      if (socket) {
+        socket.off("user:credits", handleCreditsUpdate)
+        socket.off("user:notification", handleNotificationUpdate)
+        socket.off("user:usage", handleUsageUpdate)
+      }
+    }
+  }, [handleCreditsUpdate, handleNotificationUpdate, handleUsageUpdate])
+
+  useEffect(() => {
+    fetchCurrentUser()
+  }, [fetchCurrentUser])
+
+  useEffect(() => {
+    if (user?._id || user?.name || user?.avatar) {
+      setIsUserLoaded(true)
+    } else {
+      setIsUserLoaded(false)
+    }
+  }, [user])
+
+  const Menus = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
+    { title: "My Projects", icon: FileText, path: "/blogs" },
+    { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
+    { title: "Campaigns", icon: Target, path: "/campaigns" },
+    { title: "Content Agent", icon: Briefcase, path: "/jobs" },
+    // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
+    { title: "Integrations", icon: Plug, path: "/integrations" },
+    { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
+    { title: "TrashCan", icon: Trash2, path: "/trashcan" },
+  ]
+
+  const path = location.pathname
+
+  const handleSignOutCurrent = async () => {
+    try {
+      const { switchedToAnotherAccount } = await logoutUser()
+      // If another logged-in account was switched to, logoutUser already navigated
+      // there — only redirect to /login when this was the last session.
+      if (!switchedToAnotherAccount) navigate("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
+  const handleSignOutAll = async () => {
+    try {
+      await logoutAllAccounts()
+      navigate("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
+  return (
+    <div
+      className={`z-50 ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
+    >
+      {/* Sidebar */}
+      {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
+      {/* <aside> rather than <div>: it is a complementary landmark, which is both the
+          correct semantics for a sidebar and what lets it carry the hover handlers.
+          onFocus/onBlur mirror the hover behaviour so keyboard users tabbing into the
+          nav get the expanded sidebar too, not just mouse users. */}
+      <aside
+        ref={sidebarRef}
+        className={`fixed top-0 left-0 h-full z-30 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
+          sidebarOpen ? "w-64" : "hidden md:w-20 md:flex"
+        }`}
+        onMouseEnter={() => setSidebarOpen(true)}
+        onMouseLeave={() => {
+          if (window.innerWidth >= 768) setSidebarOpen(false)
+        }}
+        onFocus={() => setSidebarOpen(true)}
+        onBlur={(e) => {
+          if (window.innerWidth >= 768 && !e.currentTarget.contains(e.relatedTarget)) {
+            setSidebarOpen(false)
+          }
+        }}
+      >
+        {/* Logo Header */}
+        <div className="flex items-center mt-2 justify-center h-16 border-b border-gray-200 px-4">
+          {!sidebarOpen ? (
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <Menu className="w-5 h-5 text-white" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <img src="/Images/logo_genwrite_2.webp" alt="logo" className="w-full h-12" />
+            </div>
+          )}
+        </div>
+
+        {/* Upgrade Button */}
+        {sidebarOpen && (
+          <div className="p-3">
+            <button
+              type="button"
+              onClick={() => navigate("/pricing")}
+              className="w-full h-14 bg-primary hover:bg-[#3B4BB8] text-white font-bold rounded-xl transition-all duration-300 shadow-none flex items-center justify-center gap-2 group relative overflow-hidden border border-white/10"
+            >
+              <div className="shimmer-effect absolute inset-0 pointer-events-none z-0 opacity-20" />
+              {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
+                <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
+              ) : (
+                <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300 relative z-10" />
+              )}
+              <span className="capitalize relative z-10 tracking-tight">
+                {user?.subscription?.plan} Plan
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 py-4 px-3 overflow-y-auto">
+          <ul className="space-y-1">
+            {Menus.map((Menu) => {
+              // Special case: highlight /blogs when on /blog/:id (blog editor)
+              const isActive =
+                location.pathname.startsWith(Menu.path) ||
+                (Menu.path === "/blogs" && location.pathname.startsWith("/blog/"))
+              const Icon = Menu.icon
+              const isAeo = Menu.path === "/website-ranking"
+
+              return (
+                <li key={Menu.path}>
+                  <NavLink
+                    to={Menu.path}
+                    onClick={(e) => handleNavClick(Menu.path, e)}
+                    className={`flex items-center gap-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                      sidebarOpen ? "px-3" : "px-3 md:px-0 md:justify-center"
+                    } ${
+                      isAeo
+                        ? isActive
+                          ? "bg-linear-to-r from-violet-100 to-fuchsia-100 text-fuchsia-700 ring-1 ring-inset ring-fuchsia-200"
+                          : "text-fuchsia-600 bg-linear-to-r from-violet-50 to-fuchsia-50 hover:from-violet-100 hover:to-fuchsia-100 ring-1 ring-inset ring-fuchsia-200/70"
+                        : isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
+                        isAeo ? "aeo-twinkle" : !isActive && "group-hover:scale-110"
+                      }`}
+                    />
+                    {sidebarOpen && (
+                      <span className="text-sm font-semibold whitespace-nowrap">{Menu.title}</span>
+                    )}
+                  </NavLink>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+
+        {/* Responsive Sidebar Items (Mobile Only) */}
+        {sidebarOpen && (
+          <div className="md:hidden p-3 border-t border-gray-200">
+            <ul className="space-y-2">
+              {/* Schedule Demo - Mobile Only */}
+              <li>
+                <ScheduleDemoButton
+                  calLink="genwrite/30min"
+                  buttonText="Schedule Demo"
+                  variant="linear"
+                  size="middle"
+                  tooltipText=""
+                  showIcon={true}
+                  className="w-full! justify-center!"
+                />
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => navigate("/pricing")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
+                >
+                  <Zap className="w-5 h-5" />
+                  <span className="text-sm font-medium">Go Pro</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsNew(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100 w-full"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">Introduction Video</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Contact Us - Bottom */}
+        <div className="p-3 border-t border-gray-200">
+          <NavLink
+            to="/contact"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-black duration-200 hover:bg-gray-100"
+          >
+            <UsersRound className="w-5 h-5 shrink-0" />
+            {sidebarOpen && <span className="text-sm font-medium">Contact Us</span>}
+          </NavLink>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 md:ml-20">
+        <header className="fixed top-0 z-20 px-4 py-3 flex items-center justify-between border-b bg-linear-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg border-gray-200 w-full md:w-[calc(100%-5rem)]">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="md:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <FiMenu size={24} className="" />
+            </button>
+            <a href="/dashboard">
+              <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Schedule Demo - Hidden on mobile, shown on tablet/desktop */}
+            <ScheduleDemoButton
+              calLink="genwrite/30min"
+              buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
+              variant="linear"
+              size="middle"
+              tooltipText="Schedule a free consultation"
+              showIcon={isDesktop}
+              hideOnMobile={true}
+            />
+            {user?.subscription?.plan !== "enterprise" && <GoProButton />}
+            {isUserLoaded ? (
+              <>
+                {/* Utility cluster: one size, one shape, no labels competing for attention */}
+                <div className="flex items-center gap-1 md:pl-2 md:border-l md:border-gray-200">
+                  <div className="hidden md:flex tooltip tooltip-bottom" data-tip="Credits">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/credit-logs")}
+                      className="flex h-10 items-center gap-1.5 rounded-full px-2.5 hover:bg-gray-100 transition-colors text-gray-800"
+                    >
+                      <RiCoinsFill size={18} color="orange" />
+                      <span className="font-semibold text-sm">
+                        {user?.credits?.base + user?.credits?.extra || 0}
+                      </span>
+                    </button>
+                  </div>
+                  <NotificationDropdown notifications={user?.notifications} />
+                  <div
+                    className="hidden md:flex tooltip tooltip-bottom"
+                    data-tip="Introduction Video"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowWhatsNew(true)}
+                      className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+                      data-tour="help-icon"
+                    >
+                      <HelpCircle className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* One identity control: account, workspace, and account-scoped links */}
+                <HeaderAccountMenu onSignOut={() => setSignOutOpen(true)} />
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <RxAvatar size={30} />
+                <div className="dropdown dropdown-end">
+                  <button type="button" className=" text-sm cursor-pointer">
+                    UserName
+                  </button>
+                  <ul className="dropdown-content z-1 menu p-2 shadow bg-base-100 rounded-box w-40 mt-2">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => navigate("/login")}
+                        className="text-error font-bold"
+                      >
+                        Login
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+      </div>
+
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        sessions={sessions}
+        activeEmail={user?.email}
+        onSignOutCurrent={handleSignOutCurrent}
+        onSignOutAll={handleSignOutAll}
+      />
+    </div>
+  )
+}
+
+export default SideBar_Header

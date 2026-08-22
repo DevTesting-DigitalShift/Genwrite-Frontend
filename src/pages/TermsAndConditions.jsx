@@ -1,6 +1,4 @@
-import React from "react"
-import { Link } from "react-router-dom"
-import { ArrowLeft, Mail, Users, AlertTriangle } from "lucide-react"
+import { Mail, AlertTriangle } from "lucide-react"
 
 const TermsAndConditions = () => {
   const lastUpdated = "January 15, 2025"
@@ -106,8 +104,8 @@ const TermsAndConditions = () => {
     {
       title: "12. Contact Information",
       content: [
-        "For questions about these Terms of Service, contact us at legal@genwrite.com.",
-        "For general support inquiries, use support@genwrite.com.",
+        "For questions about these Terms of Service, contact us at genwrite.co@gmail.com.",
+        "For general support inquiries, use  support@genwrite.com.",
         "Mailing address: GenWrite Technologies, 123 Innovation Drive, Suite 400, San Francisco, CA 94105",
         "We will respond to legal inquiries within 5 business days.",
       ],
@@ -120,7 +118,7 @@ const TermsAndConditions = () => {
       <header className="border-b border-gray-200 sticky top-0 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" class="w-40 h-auto" />
+            <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" class="w-40 h-auto" />
           </div>
         </div>
       </header>
@@ -130,21 +128,21 @@ const TermsAndConditions = () => {
         {/* Introduction */}
         <section className="mb-8">
           <p className="text-gray-600 leading-relaxed">
-            These Terms and Conditions govern your use of the GenWrite platform and
-            services. Please read them carefully as they contain important information about your
-            rights and obligations.
+            These Terms and Conditions govern your use of the GenWrite platform and services. Please
+            read them carefully as they contain important information about your rights and
+            obligations.
           </p>
           <p className="text-gray-600 mt-2 text-sm">Last Updated: {lastUpdated}</p>
         </section>
 
         {/* Terms Sections */}
         <div className="space-y-8">
-          {sections.map((section, index) => (
-            <section key={index}>
+          {sections.map((section) => (
+            <section key={section.title}>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">{section.title}</h3>
               <ul className="list-disc pl-5 space-y-2">
-                {section.content.map((paragraph, pIndex) => (
-                  <li key={pIndex} className="text-gray-600">
+                {section.content.map((paragraph) => (
+                  <li key={paragraph} className="text-gray-600">
                     {paragraph}
                   </li>
                 ))}
@@ -177,21 +175,13 @@ const TermsAndConditions = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a
-              href="mailto:legal@genwrite.com"
+              href="mailto:genwrite.co@gmail.com"
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
               aria-label="Contact legal team via email"
             >
               <Mail className="w-4 h-4" />
-              legal@genwrite.com
+              genwrite.co@gmail.com
             </a>
-            <Link
-              to="/contact"
-              className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors font-medium"
-              aria-label="Visit contact support page"
-            >
-              <Users className="w-4 h-4" />
-              Contact Support
-            </Link>
           </div>
         </section>
       </main>

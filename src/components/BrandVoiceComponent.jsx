@@ -1,0 +1,90 @@
+import { motion } from "framer-motion"
+import { FaEdit } from "react-icons/fa"
+import { Trash } from "lucide-react"
+
+const BrandVoicesComponent = ({
+  brandName,
+  brandVoice,
+  logoUrl,
+  onSelect,
+  isSelected,
+  onEdit,
+  onDelete,
+  readOnly = false,
+}) => {
+  return (
+    <motion.div
+      // Border width stays 2px in both states so selecting a card doesn't shift it by a
+      // pixel, and the selected border is full-strength indigo — indigo-300 sitting on an
+      // indigo-100 fill was so low-contrast it read as no border at all.
+      className={`p-4 mt-2 rounded-xl cursor-pointer border-2 transition-all ${
+        isSelected
+          ? "bg-linear-to-r from-indigo-50 to-purple-50 border-indigo-500 shadow-md"
+          : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+      }`}
+      onClick={onSelect}
+      whileHover={{ y: -2, boxShadow: "0 4px 15px rgba(99, 64, 241, 0.1)" }}
+      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      aria-label={`Select ${brandName} brand voice`}
+    >
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3 overflow-hidden">
+          {logoUrl ? (
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 bg-white shrink-0">
+              <img
+                key={logoUrl}
+                src={logoUrl}
+                alt={brandName}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
+              {brandName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <h3 className={`font-medium text-sm ${isSelected ? "text-indigo-700" : ""} truncate`}>
+            {brandName}
+          </h3>
+        </div>
+        {!readOnly && (
+          <div className="flex space-x-2">
+            <motion.button
+              className="text-indigo-500 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onEdit}
+              aria-label={`Edit ${brandName}`}
+              title="Edit"
+            >
+              <FaEdit className="w-4 h-4" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onDelete}
+              aria-label={`Delete ${brandName}`}
+              title="Delete"
+            >
+              <Trash className="w-4 h-4 text-red-400" />
+            </motion.button>
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
+    </motion.div>
+  )
+}
+
+export default BrandVoicesComponent
