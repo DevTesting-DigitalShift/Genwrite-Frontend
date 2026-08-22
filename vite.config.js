@@ -72,7 +72,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],
           tiptap: ["@tiptap/core", "@tiptap/react", "@tiptap/starter-kit"],
-          utils: ["axios", "dayjs", "lodash-es"],
+          utils: ["axios", "dayjs"],
         },
       },
     },

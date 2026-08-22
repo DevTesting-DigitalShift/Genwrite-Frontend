@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
-import { LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
-import { X } from "lucide-react"
+import { X, Lock, Eye, EyeOff } from "lucide-react"
 
 const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
   const [loading, setLoading] = useState(false)
@@ -101,7 +100,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <LockClosedIcon className="w-5 h-5 text-blue-600" />
+            <Lock className="w-5 h-5 text-blue-600" />
             <span>{hasPassword ? "Change Password" : "Set Password"}</span>
           </div>
           <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleCancel}>
@@ -144,9 +143,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showOldPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <EyeIcon className="w-5 h-5" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               </div>
@@ -179,9 +178,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showNewPassword ? (
-                  <EyeSlashIcon className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <EyeIcon className="w-5 h-5" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -217,9 +216,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showConfirmPassword ? (
-                  <EyeSlashIcon className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <EyeIcon className="w-5 h-5" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>

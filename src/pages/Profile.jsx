@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { Calendar } from "@components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
-import isEqual from "lodash-es/isEqual"
+import { isEqual } from "@/lib/utils"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import dayjs from "dayjs"
