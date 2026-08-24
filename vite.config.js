@@ -45,14 +45,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@api": path.resolve(__dirname, "./src/api"),
-      "@components": path.resolve(__dirname, "./src/components"),
-      "@constants": path.resolve(__dirname, "./src/constants"),
-      "@utils": path.resolve(__dirname, "./src/utils"),
-      "@pages": path.resolve(__dirname, "./src/pages"),
-      "@store": path.resolve(__dirname, "./src/store"),
-      "@admin": path.resolve(__dirname, "./src/admin"),
-      "@": path.resolve(__dirname, "./src"),
+      "@api": path.resolve(import.meta.dirname, "./src/api"),
+      "@components": path.resolve(import.meta.dirname, "./src/components"),
+      "@constants": path.resolve(import.meta.dirname, "./src/constants"),
+      "@utils": path.resolve(import.meta.dirname, "./src/utils"),
+      "@pages": path.resolve(import.meta.dirname, "./src/pages"),
+      "@store": path.resolve(import.meta.dirname, "./src/store"),
+      "@admin": path.resolve(import.meta.dirname, "./src/admin"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
     // Add .ts and .tsx extensions for TypeScript support
     extensions: [".js", ".jsx", ".ts", ".tsx"],
@@ -69,10 +69,15 @@ export default defineConfig({
     modulePreload: { polyfill: true },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          tiptap: ["@tiptap/core", "@tiptap/react", "@tiptap/starter-kit"],
-          utils: ["axios", "dayjs"],
+        // Vite 8 bundles with rolldown, which only accepts a function here — the object
+        // form is rejected outright. Same three groups as before, matched against the
+        // resolved module id (the trailing /node_modules/<pkg>/ segment keeps "react"
+        // from also catching react-icons, react-hook-form, and friends).
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return
+          if (/[\\/]node_modules[\\/]react(-dom|-router|-router-dom)?[\\/]/.test(id)) return "vendor"
+          if (id.includes("@tiptap")) return "tiptap"
+          if (/[\\/]node_modules[\\/](axios|dayjs)[\\/]/.test(id)) return "utils"
         },
       },
     },
