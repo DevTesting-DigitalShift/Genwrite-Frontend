@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react"
+import { useEffect } from "react"
 import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 import { Plus, Target, Calendar, FileStack, Loader2, Trash2, Pencil } from "lucide-react"
@@ -10,6 +11,7 @@ import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { PanelError } from "@/features/campaigns/CampaignStates"
 import { getFriendlyError } from "@utils/friendlyError"
+import { getSocket } from "@utils/socket"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
@@ -33,6 +35,29 @@ export default function CampaignsListPage() {
     onSuccess: () => toast.success("Campaign deleted"),
     onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
+
+  // The weekly job auto-completes campaigns past their endDate, so a status here can
+  // change with no request from this tab to hang a cache update off.
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+
+    const handleStatusChanged = ({
+      campaignId,
+      status,
+    }: {
+      campaignId: string
+      status: CampaignStatusType
+    }) => {
+      if (!campaignId) return
+      campaignsQuery.applyStatusChange(campaignId, status)
+    }
+
+    socket.on("campaign:statusChanged", handleStatusChanged)
+    return () => {
+      socket.off("campaign:statusChanged", handleStatusChanged)
+    }
+  }, [])
 
   const handleDelete = (campaign: Campaign) => {
     handlePopup({

@@ -4,7 +4,7 @@ import type {
   Campaign,
   CampaignReport,
   CampaignStatusType,
-  CampaignAnalyzeResult,
+  CampaignAnalyzeQueued,
   CampaignLiveMetrics,
   CampaignLiveSuggestion,
   CampaignActionLogEntry,
@@ -45,7 +45,9 @@ export const CampaignAPI = {
     return res.data
   },
 
-  analyze: async (campaignId: string): Promise<CampaignAnalyzeResult> => {
+  /** Queues analysis (202) — it does not wait for it. Listen for the `campaign:analyzed`
+   * socket event for the actual results. */
+  analyze: async (campaignId: string): Promise<CampaignAnalyzeQueued> => {
     const res = await axiosInstance.post(`/campaigns/${campaignId}/analyze`)
     return res.data
   },
