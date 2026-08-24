@@ -10,17 +10,12 @@ import { toast } from "sonner"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { PanelError } from "@/features/campaigns/CampaignStates"
+import { CampaignStatusControl } from "@/features/campaigns/CampaignStatusControl"
 import { getFriendlyError } from "@utils/friendlyError"
 import { getSocket } from "@utils/socket"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
-// Matches the pill on the detail page. No green — brand indigo carries "active".
-const STATUS_PILL: Record<CampaignStatusType, string> = {
-  active: "bg-primary/10 text-primary",
-  paused: "bg-amber-100 text-amber-700",
-  completed: "bg-slate-100 text-slate-600",
-}
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
@@ -137,11 +132,7 @@ export default function CampaignsListPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_PILL[campaign.status]}`}
-                  >
-                    {campaign.status}
-                  </span>
+                  <CampaignStatusControl status={campaign.status} readOnly />
                 </div>
                 {campaign.description && (
                   <CardDescription className="line-clamp-2">{campaign.description}</CardDescription>
