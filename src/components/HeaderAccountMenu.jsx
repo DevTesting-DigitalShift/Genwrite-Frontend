@@ -10,6 +10,7 @@ import {
   LogOut,
   Plus,
   Sparkles,
+  TrendingUp,
   User,
   Users,
 } from "lucide-react"
@@ -181,6 +182,9 @@ const HeaderAccountMenu = ({ onSignOut }) => {
         <div className="my-2 h-px bg-gray-100" />
 
         <Row icon={User} label="Profile" onClick={() => go("/profile")} />
+        {/* Analytics reads /blogs/status, which is a watchable route — so it resolves to
+            whichever workspace this tab is scoped to and stays useful while watching. */}
+        <Row icon={TrendingUp} label="Analytics" onClick={() => go("/analytics")} />
         {/* Billing, credits, plan and collaboration are all owner-account concerns —
             hidden while this tab is watching someone else's workspace. */}
         {!watching && (

@@ -216,21 +216,12 @@ export default function CampaignDetailPage() {
   }
 
   return (
-    <main className="max-container mx-auto space-y-6 p-4 sm:p-6 md:p-10">
+    <main className="md:p-6 p-3 md:mt-0 mt-6 mx-auto space-y-6 sm:p-6">
       <Helmet>
         <title>{campaign.name} | Campaigns | GenWrite</title>
       </Helmet>
 
       <header className="space-y-4">
-        <button
-          type="button"
-          onClick={() => navigate("/campaigns")}
-          className="-ml-1 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          All campaigns
-        </button>
-
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
