@@ -13,6 +13,8 @@ import {
   PlayCircle,
   Info,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
@@ -122,6 +124,7 @@ const PluginsMain = () => {
     )
     const [isEditing, setIsEditing] = useState(false)
     const [localLoading, setLocalLoading] = useState(false)
+    const [showAuthToken, setShowAuthToken] = useState(false)
 
     // WordPress credentials — username isn't a secret (WP's own REST API exposes author
     // names publicly), so it's stored in plain `settings` and shown for real, not masked.
@@ -599,6 +602,12 @@ const PluginsMain = () => {
                     onChange={e => {
                       const val = e.target.value
                       setFrontend(val)
+                      try {
+                        new URL(val)
+                        setIsValidFrontend(true)
+                      } catch {
+                        setIsValidFrontend(false)
+                      }
                       if (plugin.id === 115) {
                         setUrl(val)
                         setIsValidUrl(!!val)
@@ -706,21 +715,43 @@ const PluginsMain = () => {
                     </span>
                   )}
                 </div>
-                <input
-                  id={`plugin-${plugin.id}-credential`}
-                  type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
-                  value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                  onChange={e =>
-                    plugin.id === 112 || plugin.id === 115
-                      ? setAuthToken(e.target.value)
-                      : setWpUsername(e.target.value)
-                  }
-                  disabled={!isEditing}
-                  onFocus={e => {
-                    if (isEditing) e.target.value = ""
-                  }}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                />
+                <div className="relative">
+                  <input
+                    id={`plugin-${plugin.id}-credential`}
+                    type={
+                      plugin.id === 112 || plugin.id === 115
+                        ? showAuthToken
+                          ? "text"
+                          : "password"
+                        : "text"
+                    }
+                    value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
+                    onChange={e =>
+                      plugin.id === 112 || plugin.id === 115
+                        ? setAuthToken(e.target.value)
+                        : setWpUsername(e.target.value)
+                    }
+                    disabled={!isEditing}
+                    onFocus={e => {
+                      if (isEditing) e.target.value = ""
+                    }}
+                    className={clsx(
+                      "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+                      (plugin.id === 112 || plugin.id === 115) && "pr-11"
+                    )}
+                  />
+                  {(plugin.id === 112 || plugin.id === 115) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthToken(prev => !prev)}
+                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      title={showAuthToken ? "Hide token" : "Show token"}
+                    >
+                      {showAuthToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {plugin.id === 111 && (
