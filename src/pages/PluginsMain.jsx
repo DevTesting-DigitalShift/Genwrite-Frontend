@@ -13,6 +13,8 @@ import {
   PlayCircle,
   Info,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
@@ -127,11 +129,46 @@ const PluginsMain = () => {
     )
     const [isEditing, setIsEditing] = useState(false)
     const [localLoading, setLocalLoading] = useState(false)
+    const [showAuthToken, setShowAuthToken] = useState(false)
 
     // WordPress credentials
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
     const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
+
+    // Shopify / Wix state — hooks must be called unconditionally even though this data
+    // is only meaningful for plugin.id 113/114 (rules-of-hooks: this component instance
+    // is re-rendered with different plugin.id values across tab switches, so a
+    // conditional hook here crashes the tab switch with "Rendered more/fewer hooks").
+    const isShopify = plugin.id === 113
+    const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
+    const [domain, setDomain] = useState(savedDomain ?? "")
+    const [isValidDomain, setIsValidDomain] = useState(true)
+    const installWindowRef = useRef(null)
+    const pollTimerRef = useRef(null)
+
+    const validateDomain = (val) => {
+      if (!val) return false
+      if (isShopify) {
+        try {
+          const normalized = val.startsWith("http") ? new URL(val).hostname : val
+          return /^[\w-]+\.myshopify\.com$/i.test(normalized)
+        } catch {
+          return false
+        }
+      }
+      try {
+        new URL(val.startsWith("http") ? val : `https://${val}`)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    useEffect(() => {
+      setIsValidDomain(validateDomain(domain))
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [domain])
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     const handleToggleEdit = () => {
@@ -304,35 +341,6 @@ const PluginsMain = () => {
 
     // Shopify / Wix Logic
     if (plugin.id === 113 || plugin.id === 114) {
-      const isShopify = plugin.id === 113
-      const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
-      const [domain, setDomain] = useState(savedDomain ?? "")
-      const [isValidDomain, setIsValidDomain] = useState(true)
-      const installWindowRef = useRef(null)
-      const pollTimerRef = useRef(null)
-
-      const validateDomain = (val) => {
-        if (!val) return false
-        if (isShopify) {
-          try {
-            const normalized = val.startsWith("http") ? new URL(val).hostname : val
-            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
-          } catch {
-            return false
-          }
-        }
-        try {
-          new URL(val.startsWith("http") ? val : `https://${val}`)
-          return true
-        } catch {
-          return false
-        }
-      }
-
-      useEffect(() => {
-        setIsValidDomain(validateDomain(domain))
-      }, [domain])
-
       const openInstallUrl = async () => {
         if (!domain || !isValidDomain) {
           toast.error(isShopify ? "Invalid *.myshopify.com domain" : "Invalid URL")
@@ -534,6 +542,12 @@ const PluginsMain = () => {
                     onChange={(e) => {
                       const val = e.target.value
                       setFrontend(val)
+                      try {
+                        new URL(val)
+                        setIsValidFrontend(true)
+                      } catch {
+                        setIsValidFrontend(false)
+                      }
                       if (plugin.id === 115) {
                         setUrl(val)
                         setIsValidUrl(!!val)
@@ -620,20 +634,42 @@ const PluginsMain = () => {
                     </span>
                   )}
                 </div>
-                <input
-                  type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
-                  value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                  onChange={(e) =>
-                    plugin.id === 112 || plugin.id === 115
-                      ? setAuthToken(e.target.value)
-                      : setWpUsername(e.target.value)
-                  }
-                  disabled={!isEditing}
-                  onFocus={(e) => {
-                    if (isEditing) e.target.value = ""
-                  }}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                />
+                <div className="relative">
+                  <input
+                    type={
+                      plugin.id === 112 || plugin.id === 115
+                        ? showAuthToken
+                          ? "text"
+                          : "password"
+                        : "text"
+                    }
+                    value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
+                    onChange={(e) =>
+                      plugin.id === 112 || plugin.id === 115
+                        ? setAuthToken(e.target.value)
+                        : setWpUsername(e.target.value)
+                    }
+                    disabled={!isEditing}
+                    onFocus={(e) => {
+                      if (isEditing) e.target.value = ""
+                    }}
+                    className={clsx(
+                      "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+                      (plugin.id === 112 || plugin.id === 115) && "pr-11"
+                    )}
+                  />
+                  {(plugin.id === 112 || plugin.id === 115) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthToken((prev) => !prev)}
+                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      title={showAuthToken ? "Hide token" : "Show token"}
+                    >
+                      {showAuthToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {plugin.id === 111 && (
@@ -645,8 +681,8 @@ const PluginsMain = () => {
                     onChange={(e) => setWpPassword(e.target.value)}
                     disabled={!isEditing}
                     onFocus={(e) => {
-                    if (isEditing) e.target.value = ""
-                  }}
+                      if (isEditing) e.target.value = ""
+                    }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
