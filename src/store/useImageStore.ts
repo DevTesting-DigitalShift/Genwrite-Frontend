@@ -1,14 +1,50 @@
-import { create } from "zustand"
-import { devtools } from "zustand/middleware"
 import {
-  getImages,
-  searchImages,
-  generateImage,
   enhanceImage,
   generateAltText,
+  generateImage,
+  getImages,
+  searchImages,
 } from "@api/imageGalleryApi"
+import { create } from "zustand"
+import { devtools } from "zustand/middleware"
 
-const useImageStore = create(
+/** One image row from the gallery API. */
+export interface GalleryImage {
+  _id?: string
+  url?: string
+  [key: string]: unknown
+}
+
+export interface ImageQueryParams extends Record<string, unknown> {
+  q?: string
+  page?: number
+  limit?: number
+  tags?: string[]
+  minScore?: number
+}
+
+interface ImageListResponse {
+  data?: GalleryImage[]
+  pagination?: { total?: number }
+}
+
+interface ImageState {
+  images: GalleryImage[]
+  totalImages: number
+  loading: boolean
+  error: string | null
+
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  reset: () => void
+
+  fetchImages: (params: ImageQueryParams) => Promise<ImageListResponse>
+  generateImage: (genForm: object) => Promise<unknown>
+  enhanceImage: (formData: FormData) => Promise<unknown>
+  generateAltText: (imageUrl: string) => Promise<unknown>
+}
+
+const useImageStore = create<ImageState>()(
   devtools(
     (set, _get) => ({
       images: [],
@@ -27,7 +63,9 @@ const useImageStore = create(
       fetchImages: async (params) => {
         set({ loading: true, error: null })
         try {
-          const response = params.q ? await searchImages(params) : await getImages(params)
+          const response: ImageListResponse = params.q
+            ? await searchImages(params)
+            : await getImages(params)
           set({
             images: response.data || [],
             totalImages: response.pagination?.total || 0,
@@ -35,7 +73,7 @@ const useImageStore = create(
           })
           return response
         } catch (error) {
-          const errMsg = error?.message || "Failed to load images"
+          const errMsg = (error as Error)?.message || "Failed to load images"
           set({ error: errMsg, loading: false })
           throw error
         }

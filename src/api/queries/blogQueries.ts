@@ -22,7 +22,7 @@ import { toast } from "sonner"
 
 // ----------------------- Queries -----------------------
 
-export const useBlogsQuery = (params) => {
+export const useBlogsQuery = (params: Record<string, unknown>) => {
   return useQuery({ queryKey: ["blogs", params], queryFn: () => getAllBlogs(params) })
 }
 
@@ -30,11 +30,11 @@ export const useAllBlogsQuery = () => {
   return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
 }
 
-export const useBlogDetailsQuery = (id) => {
+export const useBlogDetailsQuery = (id: string) => {
   return useQuery({ queryKey: ["blog", id], queryFn: () => getBlogById(id), enabled: !!id })
 }
 
-export const useBlogStatsQuery = (id) => {
+export const useBlogStatsQuery = (id: string) => {
   return useQuery({
     queryKey: ["blogStats", id],
     queryFn: () => getBlogStatsById(id),
@@ -42,11 +42,11 @@ export const useBlogStatsQuery = (id) => {
   })
 }
 
-export const useBlogStatusQuery = (params) => {
+export const useBlogStatusQuery = (params: Record<string, unknown>) => {
   return useQuery({ queryKey: ["blogStatus", params], queryFn: () => getBlogStatus(params) })
 }
 
-export const useGeneratedTitlesQuery = (payload) => {
+export const useGeneratedTitlesQuery = (payload: unknown) => {
   return useQuery({
     queryKey: ["generatedTitles", payload],
     queryFn: () => getGeneratedTitles(payload),
@@ -113,7 +113,8 @@ export const useArchiveBlogMutation = () => {
 export const useRetryBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }) => retryBlogById(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload?: unknown }) =>
+      retryBlogById(id, payload),
     onSuccess: (result) => {
       toast.success(result?.message || "Blog regenerated successfully")
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
@@ -127,7 +128,7 @@ export const useRetryBlogMutation = () => {
 export const useUpdateBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => updateBlog(id, data),
+    mutationFn: ({ id, data }: { id: string; data: unknown }) => updateBlog(id, data),
     onSuccess: (_data, variables) => {
       toast.success("Blog updated successfully")
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
@@ -142,7 +143,8 @@ export const useUpdateBlogMutation = () => {
 export const useToggleBlogVisibilityMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, isPublic }) => toggleBlogVisibility(id, isPublic),
+    mutationFn: ({ id, isPublic }: { id: string; isPublic: boolean }) =>
+      toggleBlogVisibility(id, isPublic),
     onSuccess: (_data, variables) => {
       toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
@@ -161,7 +163,7 @@ export const useToggleBlogVisibilityMutation = () => {
 export const useAnalyzeBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id) => analyzeBlogPerformance(id),
+    mutationFn: (id: string) => analyzeBlogPerformance(id),
     onSuccess: () => {
       // The analysis spends credits, so the header balance is now stale.
       queryClient.invalidateQueries({ queryKey: ["user"] })
@@ -179,7 +181,7 @@ export const useAnalyzeBlogMutation = () => {
  * effect and handleAnalyzeInsights/useConfirmInsightMutation write to, so a
  * fresh analyze/confirm overwrites this query's cached data directly.
  */
-export const useBlogInsightQuery = (blogId) => {
+export const useBlogInsightQuery = (blogId: string) => {
   return useQuery({
     queryKey: ["blogInsight", blogId],
     queryFn: () => getBlogInsight(blogId),
@@ -196,7 +198,12 @@ export const useBlogInsightQuery = (blogId) => {
 export const useApplyInsightMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, suggestionId, scope }) => applyBlogInsight(id, { suggestionId, scope }),
+    mutationFn: ({
+      id,
+      suggestionId,
+      scope,
+    }: { id: string; suggestionId: string; scope?: string }) =>
+      applyBlogInsight(id, { suggestionId, scope }),
     onSuccess: () => {
       // The generation spends credits, so the header balance is now stale.
       queryClient.invalidateQueries({ queryKey: ["user"] })
@@ -215,7 +222,12 @@ export const useApplyInsightMutation = () => {
 export const useConfirmInsightMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, suggestionId, content, republish }) =>
+    mutationFn: ({
+      id,
+      suggestionId,
+      content,
+      republish,
+    }: { id: string; suggestionId: string; content?: string; republish?: boolean }) =>
       confirmBlogInsight(id, { suggestionId, content, republish }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })

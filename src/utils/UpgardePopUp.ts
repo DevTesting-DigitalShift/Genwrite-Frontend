@@ -1,4 +1,23 @@
-export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false, onCancel }) => {
+declare global {
+  interface Window {
+    closeUpgradePopup?: (confirm: boolean) => void
+  }
+}
+
+interface UpgradePopupOptions {
+  featureName?: string
+  navigate?: (path: string | number) => void
+  /** True when opened from a whole page (rather than an action), so cancel goes back. */
+  fromPage?: boolean
+  onCancel?: () => void
+}
+
+export const openUpgradePopup = ({
+  featureName = "",
+  navigate,
+  fromPage = false,
+  onCancel,
+}: UpgradePopupOptions): void => {
   // Since we want an imperative API like Modal.info, we'll create a temporary container
   const container = document.createElement("div")
   container.id = "upgrade-popup-container"
@@ -48,7 +67,7 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
 
   container.innerHTML = modalHtml
 
-  window.closeUpgradePopup = (confirm) => {
+  window.closeUpgradePopup = (confirm: boolean) => {
     if (confirm) {
       navigate?.("/pricing")
     } else {

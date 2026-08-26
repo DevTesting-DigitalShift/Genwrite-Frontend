@@ -1,30 +1,34 @@
+import { asApiError } from "@/types/api"
 import axiosInstance from "."
 
 export const getVerifiedSites = async () => {
   try {
     const response = await axiosInstance.get("/gsc/data")
     return response.data || []
-  } catch (error) {
-    throw new Error(error || "Failed to fetch verified sites")
+  } catch (rawError) {
+    const error = asApiError(rawError)
+    throw new Error(error.response?.data?.message || error.message || "Failed to fetch verified sites")
   }
 }
 
-export const getGscAnalytics = async (params) => {
+export const getGscAnalytics = async (params: Record<string, unknown>) => {
   try {
     const response = await axiosInstance.get("/gsc/data", { params })
     return response.data // Backend returns array of objects directly
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     const message = error?.response?.data?.message || error?.message || "Something went wrong"
     throw new Error(message)
   }
 }
 
-export const connectGsc = async ({ code, state }) => {
+export const connectGsc = async ({ code, state }: { code: string; state?: string }) => {
   try {
     const response = await axiosInstance.get("/gsc/callback", { params: { code, state } })
     return response.data
-  } catch (error) {
-    throw new Error(error || "Failed to connect GSC")
+  } catch (rawError) {
+    const error = asApiError(rawError)
+    throw new Error(error.response?.data?.message || error.message || "Failed to connect GSC")
   }
 }
 
@@ -32,8 +36,9 @@ export const getGscAuthUrl = async () => {
   try {
     const response = await axiosInstance.get("/gsc/auth")
     return response.data.url
-  } catch (error) {
-    throw new Error(error || "Failed to get auth URL")
+  } catch (rawError) {
+    const error = asApiError(rawError)
+    throw new Error(error.response?.data?.message || error.message || "Failed to get auth URL")
   }
 }
 
@@ -44,13 +49,16 @@ export const getGscAuthUrl = async () => {
  * @returns {Promise<{coverageState?: string, verdict?: string, lastCrawlTime?: string,
  *   indexingState?: string, pageFetchState?: string, raw?: Object}>}
  */
-export const inspectIndexing = async ({ blogId, pageUrl } = {}) => {
+export const inspectIndexing = async (
+  { blogId, pageUrl }: { blogId?: string; pageUrl?: string } = {}
+) => {
   try {
     const response = await axiosInstance.get("/gsc/indexing/inspect", {
       params: pageUrl ? { pageUrl } : { blogId },
     })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     const message =
       error?.response?.data?.message || error?.message || "Failed to check indexing status"
     throw new Error(message)
@@ -63,14 +71,17 @@ export const inspectIndexing = async ({ blogId, pageUrl } = {}) => {
  * daily quota is shared across the whole project, so never call this in a loop.
  * @param {{ blogId?: string, pageUrl?: string }} payload
  */
-export const requestIndexing = async ({ blogId, pageUrl } = {}) => {
+export const requestIndexing = async (
+  { blogId, pageUrl }: { blogId?: string; pageUrl?: string } = {}
+) => {
   try {
     const response = await axiosInstance.post(
       "/gsc/indexing/request",
       pageUrl ? { pageUrl } : { blogId }
     )
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     const message =
       error?.response?.data?.message || error?.message || "Failed to request indexing"
     throw new Error(message)

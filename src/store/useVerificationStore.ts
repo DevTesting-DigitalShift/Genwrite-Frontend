@@ -1,11 +1,21 @@
 import { create } from "zustand"
-import { persist, createJSONStorage } from "zustand/middleware"
+import { createJSONStorage, persist } from "zustand/middleware"
 
-const useVerificationStore = create(
+interface VerificationState {
+  email: string
+  /** Timestamp in ms, or null when no resend timer is running. */
+  timerStartedAt: number | null
+
+  setEmail: (email: string) => void
+  setTimerStartedAt: (timestamp: number | null) => void
+  clearVerificationState: () => void
+}
+
+const useVerificationStore = create<VerificationState>()(
   persist(
     (set) => ({
       email: "",
-      timerStartedAt: null, // timestamp in ms
+      timerStartedAt: null,
 
       setEmail: (email) => set({ email }),
 

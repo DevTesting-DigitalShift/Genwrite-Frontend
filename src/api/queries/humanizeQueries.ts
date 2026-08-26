@@ -6,7 +6,8 @@ export const useHumanizeMutation = () => {
   const { setResult } = useHumanizeStore()
 
   return useMutation({
-    mutationFn: (payload) => humanizeContentGenerator(payload),
+    mutationFn: (payload: Parameters<typeof humanizeContentGenerator>[0]) =>
+      humanizeContentGenerator(payload),
     onSuccess: (data) => {
       setResult(data)
     },

@@ -1,12 +1,37 @@
-import { pushToDataLayer } from "@utils/DataLayer"
 import useAuthStore from "@store/useAuthStore"
+import { apiErrorMessage } from "@/types/api"
+import { pushToDataLayer } from "@utils/DataLayer"
+
+interface BlogCreationEvent {
+  status: string
+  blogType?: string
+  blog?: { _id?: string; template?: string }
+  blogData?: Record<string, unknown> & {
+    template?: string
+    userDefinedLength?: number
+    wordCount?: number
+    aiModel?: string
+    blogImages?: unknown[]
+    isCheckedBrand?: boolean
+    brandVoiceId?: string
+    brief?: string
+    isCheckedQuick?: boolean
+  }
+  error?: unknown
+}
 
 /**
  * Fires the "blog_creation" GTM event on API completion (success or error).
  * Pulls the current user from the auth store directly so callers don't need
  * to thread a user object through just for analytics.
  */
-export function pushBlogCreationEvent({ status, blogType, blog, blogData, error }) {
+export function pushBlogCreationEvent({
+  status,
+  blogType,
+  blog,
+  blogData,
+  error,
+}: BlogCreationEvent): void {
   const { user } = useAuthStore.getState()
 
   pushToDataLayer({
@@ -22,14 +47,20 @@ export function pushBlogCreationEvent({ status, blogType, blog, blogData, error 
     isBranded: !!(blogData?.isCheckedBrand || blogData?.brandVoiceId),
     isBriefed: !!blogData?.brief,
     quickSummaryRequested: !!blogData?.isCheckedQuick,
-    error: error?.response?.data?.message || error?.message,
+    error: apiErrorMessage(error, ""),
   })
+}
+
+interface JobAgentCreationEvent {
+  status: string
+  job?: { _id?: string; job?: { _id?: string } }
+  error?: unknown
 }
 
 /**
  * Fires the "job_agent_creation" GTM event on API completion (success or error).
  */
-export function pushJobAgentCreationEvent({ status, job, error }) {
+export function pushJobAgentCreationEvent({ status, job, error }: JobAgentCreationEvent): void {
   const { user } = useAuthStore.getState()
 
   pushToDataLayer({
@@ -37,6 +68,6 @@ export function pushJobAgentCreationEvent({ status, job, error }) {
     status,
     user_id: user?._id,
     job_id: job?.job?._id ?? job?._id,
-    error: error?.response?.data?.message || error?.message,
+    error: apiErrorMessage(error, ""),
   })
 }

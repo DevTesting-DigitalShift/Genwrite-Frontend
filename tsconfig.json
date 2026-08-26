@@ -15,7 +15,6 @@
     "allowJs": true,
     "checkJs": false,
     "types": ["vite/client"],
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],

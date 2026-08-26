@@ -1,14 +1,33 @@
-import { create } from "zustand"
-import { devtools } from "zustand/middleware"
 import {
   createOutline,
+  fetchCategories,
   generateMetadata,
   generatePromptContent,
-  fetchCategories,
 } from "@api/otherApi"
+import { apiErrorMessage } from "@/types/api"
 import { toast } from "sonner"
+import { create } from "zustand"
+import { devtools } from "zustand/middleware"
 
-const useContentStore = create(
+interface ContentState {
+  data: unknown | null
+  metadata: unknown | null
+  categories: unknown[]
+  loading: boolean
+  error: string | null
+
+  resetMetadata: () => void
+  clearContentData: () => void
+  resetCategories: () => void
+  reset: () => void
+
+  fetchCategories: (type?: string) => Promise<unknown>
+  createOutline: (payload: unknown) => Promise<unknown>
+  generateMetadata: (payload: unknown) => Promise<unknown>
+  generatePromptContent: (args: { prompt: string; content?: string }) => Promise<unknown>
+}
+
+const useContentStore = create<ContentState>()(
   devtools(
     (set) => ({
       data: null,
@@ -33,8 +52,7 @@ const useContentStore = create(
           set({ categories: data, loading: false })
           return data
         } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
+          set({ error: apiErrorMessage(err, "Failed to fetch categories"), loading: false })
           throw err
         }
       },
@@ -46,9 +64,8 @@ const useContentStore = create(
           set({ data, loading: false })
           return data
         } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
           toast.error("Failed to create outline")
-          set({ error: errorMsg, loading: false })
+          set({ error: apiErrorMessage(err, "Failed to create outline"), loading: false })
           throw err
         }
       },
@@ -60,9 +77,8 @@ const useContentStore = create(
           set({ metadata: data, loading: false })
           return data
         } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
           toast.error("Failed to generate metadata")
-          set({ error: errorMsg, loading: false })
+          set({ error: apiErrorMessage(err, "Failed to generate metadata"), loading: false })
           throw err
         }
       },
@@ -74,9 +90,8 @@ const useContentStore = create(
           set({ data, loading: false })
           return data
         } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
           toast.error("Failed to generate content")
-          set({ error: errorMsg, loading: false })
+          set({ error: apiErrorMessage(err, "Failed to generate content"), loading: false })
           throw err
         }
       },

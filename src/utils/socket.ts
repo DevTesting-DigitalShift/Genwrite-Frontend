@@ -1,9 +1,9 @@
-import { io } from "socket.io-client"
+import { type Socket, io } from "socket.io-client"
 
-let socket
-let socketToken
+let socket: Socket | null = null
+let socketToken: string | null = null
 
-export const connectSocket = (token) => {
+export const connectSocket = (token: string | null): Socket | null => {
   if (socket && socketToken === token) {
     console.log("🔌 Socket already connected for this account, reusing existing connection")
     return socket
@@ -19,42 +19,48 @@ export const connectSocket = (token) => {
 
   console.log("🚀 Connecting to socket server:", url)
 
-  socket = io(url, { path: "/events", auth: { token }, transports: ["websocket"] })
+  const s = io(url, { path: "/events", auth: { token }, transports: ["websocket"] })
+  socket = s
 
   // Connection event
-  socket.on("connect", () => {
+  s.on("connect", () => {
     console.log("✅ Socket connected successfully!")
-    console.log("📡 Socket ID:", socket.id)
+    console.log("📡 Socket ID:", s.id)
   })
 
   // Disconnection event
-  socket.on("disconnect", (reason) => {
+  s.on("disconnect", (reason) => {
     console.log("❌ Socket disconnected. Reason:", reason)
   })
 
   // Connection error
-  socket.on("connect_error", (error) => {
+  s.on("connect_error", (error) => {
     console.error("🔴 Socket connection error:", error.message)
   })
 
   // Reconnection attempt
-  socket.on("reconnect_attempt", (attemptNumber) => {
+  s.io.on("reconnect_attempt", (attemptNumber: number) => {
     console.log(`🔄 Reconnection attempt #${attemptNumber}`)
   })
 
   // Reconnection success
-  socket.on("reconnect", (attemptNumber) => {
+  s.io.on("reconnect", (attemptNumber: number) => {
     console.log(`✅ Socket reconnected after ${attemptNumber} attempts`)
   })
 
   // Reconnection failed
-  socket.on("reconnect_failed", () => {
+  s.io.on("reconnect_failed", () => {
     console.error("🔴 Socket reconnection failed")
   })
 
-  // Log every event
-  const onevent = socket.onevent
-  socket.onevent = function (packet) {
+  // Log every event. `onevent` is internal to socket.io-client and not in its public
+  // types, so this patch is cast rather than typed.
+  interface PatchableSocket {
+    onevent: (packet: { data?: unknown[] }) => void
+  }
+  const patchable = s as unknown as PatchableSocket
+  const onevent = patchable.onevent
+  patchable.onevent = function (this: PatchableSocket, packet: { data?: unknown[] }) {
     try {
       const [eventName, ...args] = packet.data || []
       console.log(`📨 Socket event received: "${eventName}"`, args)
@@ -65,23 +71,23 @@ export const connectSocket = (token) => {
   }
 
   // Log outgoing events
-  const originalEmit = socket.emit
-  socket.emit = function (eventName, ...args) {
+  const originalEmit = s.emit.bind(s)
+  s.emit = ((eventName: string, ...args: unknown[]) => {
     console.log(`📤 Socket event sent: "${eventName}"`, args)
-    return originalEmit.apply(this, [eventName, ...args])
-  }
+    return originalEmit(eventName, ...args)
+  }) as Socket["emit"]
 
   return socket
 }
 
-export const getSocket = () => {
+export const getSocket = (): Socket | null => {
   if (!socket) {
     console.warn("⚠️ Socket not initialized! Call connectSocket() first")
   }
   return socket
 }
 
-export const disconnectSocket = () => {
+export const disconnectSocket = (): void => {
   if (!socket) return
   socket.disconnect()
   socket = null

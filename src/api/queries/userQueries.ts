@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getProfile,
@@ -24,7 +25,7 @@ export const useUpdateProfileMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] })
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to update profile")
+      toast.error(apiErrorMessage(error, "Failed to update profile"))
     },
   })
 }

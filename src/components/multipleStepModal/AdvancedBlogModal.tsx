@@ -95,9 +95,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   }, [fetchIntegrations])
 
   useEffect(() => {
-    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+    // Hoisted so the narrowing survives into the setFormData callback.
+    const connected = integrations?.integrations
+    if (connected && Object.keys(connected).length > 0) {
       if (!formData.postingType) {
-        setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+        setFormData((prev) => ({ ...prev, postingType: Object.keys(connected)[0] }))
       }
     }
   }, [integrations, formData.postingType])
@@ -332,7 +334,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               </p>
             </div>
           ),
-          okText: "Buy Credits",
+          confirmText: "Buy Credits",
           onConfirm: () => {
             void navigate("/pricing")
             handleClose()

@@ -1,10 +1,54 @@
-import { create } from "zustand"
-import { devtools } from "zustand/middleware"
-import { toast } from "sonner"
+import type { QueryClient } from "@tanstack/react-query"
 import { createBlog, createBlogMultiple, createQuickBlog, createTopicOnlyBlog } from "@api/blogApi"
 import { pushBlogCreationEvent } from "@utils/creationEvents"
+import { toast } from "sonner"
+import { create } from "zustand"
+import { devtools } from "zustand/middleware"
 
-const useBlogStore = create(
+/** A blog document as returned by the blogs API. */
+export interface Blog {
+  _id?: string
+  title?: string
+  [key: string]: unknown
+}
+
+type NavigateFn = (path: string) => void
+
+/** Shared arguments for every blog-creation action. */
+interface CreateBlogArgs {
+  blogData: Record<string, unknown>
+  navigate: NavigateFn
+  queryClient: QueryClient
+}
+
+interface BlogState {
+  selectedBlog: Blog | null
+  proofreadingSuggestions: unknown[]
+  isAnalyzingProofreading: boolean
+  generatedTitles: unknown[]
+  /** Keyed by blog id. */
+  blogPrompts: Record<string, string>
+
+  setSelectedBlog: (blog: Blog | null) => void
+  clearSelectedBlog: () => void
+  setProofreadingSuggestions: (suggestions: unknown[]) => void
+  clearProofreadingSuggestions: () => void
+  setIsAnalyzingProofreading: (isAnalyzing: boolean) => void
+  setGeneratedTitles: (titles: unknown[]) => void
+  setBlogPrompt: (id: string, prompt: string) => void
+  reset: () => void
+
+  createNewBlog: (args: CreateBlogArgs) => Promise<void>
+  createMultiBlog: (args: CreateBlogArgs) => Promise<void>
+  createNewQuickBlog: (args: CreateBlogArgs & { type?: string }) => Promise<void>
+  createTopicBlog: (args: {
+    topic: string
+    navigate: NavigateFn
+    queryClient: QueryClient
+  }) => Promise<Blog>
+}
+
+const useBlogStore = create<BlogState>()(
   devtools(
     (set) => ({
       selectedBlog: null,

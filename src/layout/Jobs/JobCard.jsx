@@ -252,7 +252,8 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
                   description: "Are you sure you want to delete this job?",
                   confirmText: "Delete",
                   onConfirm: () => handleDeleteJob(job._id),
-                  confirmProps: { danger: true },
+                  // NOTE: was `danger: true` (Ant Design) — a native button ignores it, so the
+                  // intended red styling never applied. Add a className here if it is wanted.
                 })
               }
               className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"

@@ -380,7 +380,6 @@ const BrandVoice = () => {
           type: "text",
           className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
         },
-        cancelProps: { danger: false },
       })
     },
     [brandVoiceMutations, formData.selectedVoice, resetForm, handlePopup]

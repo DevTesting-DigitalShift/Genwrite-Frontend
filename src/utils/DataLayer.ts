@@ -1,16 +1,22 @@
+declare global {
+  interface Window {
+    dataLayer?: Record<string, unknown>[]
+  }
+}
+
 /**
  * Pushes a custom event and data to the Google Tag Manager data layer.
- * @param {object} eventData - The data object to push.
+ * Any key ending in `_id` is SHA-256 hashed before being sent.
  */
-export function pushToDataLayer(eventData) {
+export function pushToDataLayer(eventData: Record<string, unknown>): void {
   // Ensure the dataLayer is initialized before pushing anything
   window.dataLayer = window.dataLayer || []
-  const transformedData = { ...eventData }
+  const transformedData: Record<string, unknown> = { ...eventData }
   // Collect promises for all _id hashes
   const hashPromises = Object.keys(transformedData).map(async (key) => {
     if (/_id$/.test(key) && transformedData[key] != null) {
       try {
-        const hash = await getHashedId(transformedData[key])
+        const hash = await getHashedId(transformedData[key] as string | number)
         transformedData[key] = hash
       } catch (err) {
         console.error(err)
@@ -25,28 +31,26 @@ export function pushToDataLayer(eventData) {
   Promise.all(hashPromises)
     .then(() => {
       try {
-        window.dataLayer.push(transformedData)
+        window.dataLayer?.push(transformedData)
       } catch (error) {
         // Silent fail if GTM is blocked (ad blockers, CORS, etc.)
-        if (import.meta.env.NODE_ENV === "development") {
+        if (import.meta.env.DEV) {
           console.warn("[DataLayer] Failed to push event:", error, transformedData)
         }
       }
     })
     .catch((error) => {
       // Catch any hashing errors
-      if (import.meta.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         console.warn("[DataLayer] Hashing failed:", error)
       }
     })
 }
 
 /**
- * Hash a given ID to SHA-256 hex using Web Crypto API
- * @param {string|number} id - ID to hash
- * @returns {Promise<string>} - SHA-256 hash in hex
+ * Hash a given ID to SHA-256 hex using Web Crypto API.
  */
-async function getHashedId(id) {
+async function getHashedId(id: string | number): Promise<string | null> {
   if (!id) return null
 
   // Convert string to Uint8Array

@@ -42,7 +42,37 @@ export const SESSION_LIMIT_ERROR_CODE = "SESSION_LIMIT_REACHED"
 
 export const SESSION_LIMIT_MESSAGE = `You can be signed into at most ${MAX_SESSIONS} accounts on this browser. Sign out of one before adding another.`
 
-function readRaw() {
+/** One signed-in account held in the shared pool. */
+export interface Session {
+  userId: string
+  email: string
+  name: string
+  avatar: string
+  token: string
+  addedAt: number
+  lastActiveAt: number
+}
+
+/** The v2 shape persisted under localStorage["gw_sessions"]. */
+interface SessionStoreData {
+  version: 2
+  sessions: Session[]
+  lastActiveUserId: string | null
+}
+
+/** Minimal user shape upsertSession needs from the auth response. */
+export interface SessionUser {
+  _id: string
+  email?: string
+  name?: string
+  avatar?: string
+}
+
+export interface SessionLimitError extends Error {
+  code?: string
+}
+
+function readRaw(): SessionStoreData | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
@@ -52,7 +82,7 @@ function readRaw() {
     // v1 kept a single browser-wide `activeUserId` here. Carry it over as this browser's
     // default starting account; per-tab selection now lives in sessionStorage.
     if (parsed.version === 1) {
-      const upgraded = {
+      const upgraded: SessionStoreData = {
         version: 2,
         sessions: parsed.sessions,
         lastActiveUserId: parsed.activeUserId ?? null,
@@ -67,13 +97,13 @@ function readRaw() {
   }
 }
 
-function writeRaw(data) {
+function writeRaw(data: SessionStoreData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   window.dispatchEvent(new CustomEvent(SESSIONS_CHANGED_EVENT))
 }
 
 /** This tab's active account id, or null if the tab hasn't pinned one yet. */
-function readTabActiveUserId() {
+function readTabActiveUserId(): string | null {
   try {
     return sessionStorage.getItem(ACTIVE_USER_KEY)
   } catch {
@@ -81,7 +111,7 @@ function readTabActiveUserId() {
   }
 }
 
-function writeTabActiveUserId(userId) {
+function writeTabActiveUserId(userId: string | null): void {
   try {
     if (userId) sessionStorage.setItem(ACTIVE_USER_KEY, userId)
     else sessionStorage.removeItem(ACTIVE_USER_KEY)
@@ -97,7 +127,7 @@ function writeTabActiveUserId(userId) {
  * browser's default account — a tab whose own session just expired must NOT silently
  * start acting as some other logged-in account behind the session-expired modal.
  */
-function detachTab() {
+function detachTab(): void {
   try {
     sessionStorage.setItem(ACTIVE_USER_KEY, TAB_DETACHED)
   } catch {
@@ -110,11 +140,11 @@ function detachTab() {
 // existing logged-in users aren't logged out when this ships. The real userId isn't
 // known yet — upsertSession() patches this placeholder in once loadAuthenticatedUser
 // resolves.
-function migrateLegacyToken() {
+function migrateLegacyToken(): SessionStoreData | null {
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY)
   if (!legacyToken) return null
 
-  const data = {
+  const data: SessionStoreData = {
     version: 2,
     sessions: [
       {
@@ -134,7 +164,7 @@ function migrateLegacyToken() {
   return data
 }
 
-function getStore() {
+function getStore(): SessionStoreData {
   return readRaw() || migrateLegacyToken() || { version: 2, sessions: [], lastActiveUserId: null }
 }
 
@@ -145,8 +175,8 @@ function getStore() {
  * moment it resolves, it is written to sessionStorage — that pin is what stops the tab
  * from drifting to a different account later when another tab switches.
  */
-function resolveActiveUserId(store) {
-  const isValid = (id) => !!id && store.sessions.some((s) => s.userId === id)
+function resolveActiveUserId(store: SessionStoreData): string | null {
+  const isValid = (id: string | null | undefined): boolean => !!id && store.sessions.some((s) => s.userId === id)
 
   const pinned = readTabActiveUserId()
   if (isValid(pinned)) return pinned
@@ -169,25 +199,25 @@ function resolveActiveUserId(store) {
 }
 
 /** The account id this tab is acting as. */
-export function getActiveUserId() {
+export function getActiveUserId(): string | null {
   return resolveActiveUserId(getStore())
 }
 
-export function getSessions() {
+export function getSessions(): Session[] {
   return getStore().sessions
 }
 
-export function getActiveSession() {
+export function getActiveSession(): Session | null {
   const store = getStore()
   const activeUserId = resolveActiveUserId(store)
   return store.sessions.find((s) => s.userId === activeUserId) || null
 }
 
-export function getActiveToken() {
+export function getActiveToken(): string | null {
   return getActiveSession()?.token || null
 }
 
-export function hasAnySession() {
+export function hasAnySession(): boolean {
   return getStore().sessions.length > 0
 }
 
@@ -195,19 +225,18 @@ export function hasAnySession() {
  * True when no further *new* account can be added. Signing back into an account that is
  * already in the list is always allowed — it replaces a slot rather than taking one.
  */
-export function isAtSessionLimit() {
+export function isAtSessionLimit(): boolean {
   return getStore().sessions.length >= MAX_SESSIONS
 }
 
-/** @returns {Error & {code?: string}} */
-function sessionLimitError() {
-  const err = new Error(SESSION_LIMIT_MESSAGE)
+function sessionLimitError(): SessionLimitError {
+  const err: SessionLimitError = new Error(SESSION_LIMIT_MESSAGE)
   err.code = SESSION_LIMIT_ERROR_CODE
   return err
 }
 
-export function isSessionLimitError(err) {
-  return err?.code === SESSION_LIMIT_ERROR_CODE
+export function isSessionLimitError(err: unknown): boolean {
+  return (err as SessionLimitError | null)?.code === SESSION_LIMIT_ERROR_CODE
 }
 
 /**
@@ -218,7 +247,7 @@ export function isSessionLimitError(err) {
  *   to check isAtSessionLimit() first and never get here; this is the backstop that keeps
  *   an over-limit token out of storage (check with isSessionLimitError).
  */
-export function upsertSession({ user, token }) {
+export function upsertSession({ user, token }: { user: SessionUser; token: string }): Session {
   const store = getStore()
   const userId = user._id
   const existingIndex = store.sessions.findIndex((s) => s.userId === userId)
@@ -234,7 +263,7 @@ export function upsertSession({ user, token }) {
     lastActiveAt: Date.now(),
   }
 
-  let sessions
+  let sessions: Session[]
   if (existingIndex !== -1) {
     sessions = store.sessions.map((s, i) =>
       i === existingIndex ? { ...snapshot, addedAt: s.addedAt } : s
@@ -266,7 +295,7 @@ export function upsertSession({ user, token }) {
 }
 
 /** Updates this tab's active session's token in place (no user snapshot change). */
-export function updateActiveSessionToken(token) {
+export function updateActiveSessionToken(token: string): void {
   const store = getStore()
   const activeUserId = resolveActiveUserId(store)
   if (!activeUserId) return
@@ -278,7 +307,7 @@ export function updateActiveSessionToken(token) {
  * Switches which account THIS TAB acts as. No-ops if userId isn't in the pool.
  * Other tabs are unaffected — they keep their own pinned account.
  */
-export function setActiveUserId(userId) {
+export function setActiveUserId(userId: string): void {
   const store = getStore()
   if (!store.sessions.some((s) => s.userId === userId)) return
   const sessions = store.sessions.map((s) =>
@@ -302,12 +331,15 @@ export function setActiveUserId(userId) {
  *
  * @returns {string | null} this tab's account id afterwards, or null if none/detached
  */
-export function removeSession(userId, { adoptNext = true } = {}) {
+export function removeSession(
+  userId: string,
+  { adoptNext = true }: { adoptNext?: boolean } = {}
+): string | null {
   const store = getStore()
   const wasActiveHere = resolveActiveUserId(store) === userId
   const sessions = store.sessions.filter((s) => s.userId !== userId)
 
-  let nextForThisTab
+  let nextForThisTab: string | null
   if (!wasActiveHere) {
     nextForThisTab = resolveActiveUserId(store)
   } else if (adoptNext) {
@@ -333,7 +365,7 @@ export function removeSession(userId, { adoptNext = true } = {}) {
   return nextForThisTab
 }
 
-export function removeAllSessions() {
+export function removeAllSessions(): void {
   writeRaw({ version: 2, sessions: [], lastActiveUserId: null })
   writeTabActiveUserId(null)
 }

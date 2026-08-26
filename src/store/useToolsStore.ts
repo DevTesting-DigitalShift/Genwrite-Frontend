@@ -1,26 +1,91 @@
 import { create } from "zustand"
 
-const useToolsStore = create((set) => ({
-  aiDetection: { result: null, error: null },
+/** The common { result, error } slice shared by every one-shot tool. */
+interface ToolSlice {
+  result: unknown | null
+  error: unknown | null
+}
+
+interface PdfChatSlice extends ToolSlice {
+  messages: unknown[]
+  cacheKey: string | null
+}
+
+/** The five stages of the website-ranking pipeline. */
+type WebsiteRankingKey =
+  | "analyser"
+  | "prompts"
+  | "rankings"
+  | "advancedComp"
+  | "orchestrator"
+
+type WebsiteRankingSlice = Record<WebsiteRankingKey, ToolSlice>
+
+interface ToolsState {
+  aiDetection: ToolSlice
+  setAiDetectionResult: (result: unknown) => void
+  setAiDetectionError: (error: unknown) => void
+  resetAiDetection: () => void
+
+  keywordScraping: ToolSlice
+  setKeywordScrapingResult: (result: unknown) => void
+  setKeywordScrapingError: (error: unknown) => void
+  resetKeywordScraping: () => void
+
+  youtubeSummary: ToolSlice
+  setYoutubeSummaryResult: (result: unknown) => void
+  setYoutubeSummaryError: (error: unknown) => void
+  resetYoutubeSummary: () => void
+
+  pdfChat: PdfChatSlice
+  setPdfChatResult: (result: { cacheKey?: string } & Record<string, unknown>) => void
+  setPdfChatError: (error: unknown) => void
+  addPdfChatMessage: (message: unknown) => void
+  resetPdfChat: () => void
+
+  competitorLikeBlog: ToolSlice
+  setCompetitorLikeBlogResult: (result: unknown) => void
+  setCompetitorLikeBlogError: (error: unknown) => void
+  resetCompetitorLikeBlog: () => void
+
+  websiteRanking: WebsiteRankingSlice
+  setWebsiteRankingResult: (key: WebsiteRankingKey, result: unknown) => void
+  setWebsiteRankingError: (key: WebsiteRankingKey, error: unknown) => void
+  resetWebsiteRanking: () => void
+
+  resetAllTools: () => void
+}
+
+const emptySlice = (): ToolSlice => ({ result: null, error: null })
+const emptyWebsiteRanking = (): WebsiteRankingSlice => ({
+  analyser: emptySlice(),
+  prompts: emptySlice(),
+  rankings: emptySlice(),
+  advancedComp: emptySlice(),
+  orchestrator: emptySlice(),
+})
+
+const useToolsStore = create<ToolsState>((set) => ({
+  aiDetection: emptySlice(),
   setAiDetectionResult: (result) =>
     set((state) => ({ aiDetection: { ...state.aiDetection, result, error: null } })),
   setAiDetectionError: (error) =>
     set((state) => ({ aiDetection: { ...state.aiDetection, error } })),
-  resetAiDetection: () => set((_state) => ({ aiDetection: { result: null, error: null } })),
+  resetAiDetection: () => set(() => ({ aiDetection: emptySlice() })),
 
-  keywordScraping: { result: null, error: null },
+  keywordScraping: emptySlice(),
   setKeywordScrapingResult: (result) =>
     set((state) => ({ keywordScraping: { ...state.keywordScraping, result, error: null } })),
   setKeywordScrapingError: (error) =>
     set((state) => ({ keywordScraping: { ...state.keywordScraping, error } })),
-  resetKeywordScraping: () => set((_state) => ({ keywordScraping: { result: null, error: null } })),
+  resetKeywordScraping: () => set(() => ({ keywordScraping: emptySlice() })),
 
-  youtubeSummary: { result: null, error: null },
+  youtubeSummary: emptySlice(),
   setYoutubeSummaryResult: (result) =>
     set((state) => ({ youtubeSummary: { ...state.youtubeSummary, result, error: null } })),
   setYoutubeSummaryError: (error) =>
     set((state) => ({ youtubeSummary: { ...state.youtubeSummary, error } })),
-  resetYoutubeSummary: () => set((_state) => ({ youtubeSummary: { result: null, error: null } })),
+  resetYoutubeSummary: () => set(() => ({ youtubeSummary: emptySlice() })),
 
   pdfChat: { result: null, error: null, messages: [], cacheKey: null },
   setPdfChatResult: (result) =>
@@ -38,23 +103,16 @@ const useToolsStore = create((set) => ({
       pdfChat: { ...state.pdfChat, messages: [...state.pdfChat.messages, message] },
     })),
   resetPdfChat: () =>
-    set((_state) => ({ pdfChat: { result: null, error: null, messages: [], cacheKey: null } })),
+    set(() => ({ pdfChat: { result: null, error: null, messages: [], cacheKey: null } })),
 
-  competitorLikeBlog: { result: null, error: null },
+  competitorLikeBlog: emptySlice(),
   setCompetitorLikeBlogResult: (result) =>
     set((state) => ({ competitorLikeBlog: { ...state.competitorLikeBlog, result, error: null } })),
   setCompetitorLikeBlogError: (error) =>
     set((state) => ({ competitorLikeBlog: { ...state.competitorLikeBlog, error } })),
-  resetCompetitorLikeBlog: () =>
-    set((_state) => ({ competitorLikeBlog: { result: null, error: null } })),
+  resetCompetitorLikeBlog: () => set(() => ({ competitorLikeBlog: emptySlice() })),
 
-  websiteRanking: {
-    analyser: { result: null, error: null },
-    prompts: { result: null, error: null },
-    rankings: { result: null, error: null },
-    advancedComp: { result: null, error: null },
-    orchestrator: { result: null, error: null },
-  },
+  websiteRanking: emptyWebsiteRanking(),
   setWebsiteRankingResult: (key, result) =>
     set((state) => ({
       websiteRanking: {
@@ -66,30 +124,16 @@ const useToolsStore = create((set) => ({
     set((state) => ({
       websiteRanking: { ...state.websiteRanking, [key]: { ...state.websiteRanking[key], error } },
     })),
-  resetWebsiteRanking: () =>
-    set((_state) => ({
-      websiteRanking: {
-        analyser: { result: null, error: null },
-        prompts: { result: null, error: null },
-        rankings: { result: null, error: null },
-        advancedComp: { result: null, error: null },
-        orchestrator: { result: null, error: null },
-      },
-    })),
+  resetWebsiteRanking: () => set(() => ({ websiteRanking: emptyWebsiteRanking() })),
+
   resetAllTools: () =>
     set({
-      aiDetection: { result: null, error: null },
-      keywordScraping: { result: null, error: null },
-      youtubeSummary: { result: null, error: null },
+      aiDetection: emptySlice(),
+      keywordScraping: emptySlice(),
+      youtubeSummary: emptySlice(),
       pdfChat: { result: null, error: null, messages: [], cacheKey: null },
-      competitorLikeBlog: { result: null, error: null },
-      websiteRanking: {
-        analyser: { result: null, error: null },
-        prompts: { result: null, error: null },
-        rankings: { result: null, error: null },
-        advancedComp: { result: null, error: null },
-        orchestrator: { result: null, error: null },
-      },
+      competitorLikeBlog: emptySlice(),
+      websiteRanking: emptyWebsiteRanking(),
     }),
 }))
 

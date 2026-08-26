@@ -1,14 +1,27 @@
+/** Where the error occurred, used to pick a more specific fallback message. */
+export type ErrorContext = "login" | "signup" | "google" | "pdfChat" | "campaign" | "general"
+
+/** Loosely-typed error from a catch block — axios error, Error, or anything thrown. */
+interface CaughtError {
+  response?: { status?: number; data?: { message?: string; error?: string } }
+  status?: number
+  code?: string
+  message?: string
+}
 /**
  * Maps axios errors or store errors to safe, user-friendly messages.
  * Never exposes raw backend strings, stack traces, or undefined values.
  *
- * @param {any} err - Error object from catch block
- * @param {'login'|'signup'|'google'|'pdfChat'|'campaign'|'general'} context - Where the error occurred
- * @returns {string} - Safe, human-readable message
+ * @param err - Error object from catch block
+
+ * @returns Safe, human-readable message
  */
-export function getFriendlyError(err, context = "general") {
-  const status = err?.response?.status ?? err?.status ?? null
-  const backendMsg = err?.response?.data?.message ?? err?.response?.data?.error ?? ""
+export function getFriendlyError(err: unknown, context: ErrorContext = "general"): string {
+  // Callers pass whatever landed in their catch block, so narrow here rather than
+  // making every call site cast.
+  const e = err as CaughtError | null | undefined
+  const status = e?.response?.status ?? e?.status ?? null
+  const backendMsg = e?.response?.data?.message ?? e?.response?.data?.error ?? ""
 
   // --- SAFE backend messages: authentication-related, always user-understandable ---
   const SAFE_PATTERNS = [
@@ -106,16 +119,16 @@ export function getFriendlyError(err, context = "general") {
     return "The request took too long. Please try again."
   }
 
-  if (status >= 500) {
+  if (status !== null && status >= 500) {
     return "We're experiencing technical difficulties. Please try again in a moment."
   }
 
   // --- Network / connection errors ---
   if (!status) {
-    if (err?.code === "ERR_NETWORK" || err?.message?.toLowerCase().includes("network")) {
+    if (e?.code === "ERR_NETWORK" || e?.message?.toLowerCase().includes("network")) {
       return "Unable to connect. Please check your internet connection."
     }
-    if (err?.code === "ECONNABORTED" || err?.message?.toLowerCase().includes("timeout")) {
+    if (e?.code === "ECONNABORTED" || e?.message?.toLowerCase().includes("timeout")) {
       if (context === "pdfChat")
         return "This is taking longer than expected. Please try again, or ask a shorter question."
       if (context === "campaign")
@@ -125,7 +138,7 @@ export function getFriendlyError(err, context = "general") {
   }
 
   // --- Last resort: generic message (never expose raw err.message) ---
-  const contextMessages = {
+  const contextMessages: Record<ErrorContext, string> = {
     login: "Unable to sign in. Please try again.",
     signup: "Unable to create account. Please try again.",
     google: "Google sign-in failed. Please try again.",

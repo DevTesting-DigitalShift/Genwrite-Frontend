@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   createInvite,
@@ -8,7 +9,7 @@ import {
 } from "@api/collaborationApi"
 import { toast } from "sonner"
 
-export const useInvitesQuery = (enabled = true) => {
+export const useInvitesQuery = (enabled: boolean = true) => {
   return useQuery({ queryKey: ["collaboration", "invites"], queryFn: listInvites, enabled })
 }
 
@@ -21,7 +22,7 @@ export const useCreateInviteMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["collaboration", "invites"] })
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to send invite")
+      toast.error(apiErrorMessage(error, "Failed to send invite"))
     },
   })
 }
@@ -35,12 +36,12 @@ export const useRevokeInviteMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["collaboration", "invites"] })
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to revoke invite")
+      toast.error(apiErrorMessage(error, "Failed to revoke invite"))
     },
   })
 }
 
-export const useWorkspacesSharedWithMeQuery = (enabled = true) => {
+export const useWorkspacesSharedWithMeQuery = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["collaboration", "watching"],
     queryFn: listWorkspacesSharedWithMe,
@@ -56,7 +57,7 @@ export const useAcceptInviteMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["collaboration", "watching"] })
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to accept invite")
+      toast.error(apiErrorMessage(error, "Failed to accept invite"))
     },
   })
 }

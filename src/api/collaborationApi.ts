@@ -1,6 +1,6 @@
 import axiosInstance from "."
 
-export const createInvite = async (payload) => {
+export const createInvite = async (payload: unknown) => {
   const response = await axiosInstance.post("/collaboration/invites", payload)
   return response.data
 }
@@ -10,12 +10,12 @@ export const listInvites = async () => {
   return response.data
 }
 
-export const revokeInvite = async (inviteId) => {
+export const revokeInvite = async (inviteId: string) => {
   const response = await axiosInstance.delete(`/collaboration/invites/${inviteId}`)
   return response.data
 }
 
-export const acceptInvite = async (token) => {
+export const acceptInvite = async (token: string) => {
   const response = await axiosInstance.post("/collaboration/invites/accept", { token })
   return response.data
 }

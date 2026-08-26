@@ -18,6 +18,7 @@ import {
 import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
 import { toast } from "sonner"
+import { apiErrorMessage, asApiError } from "@/types/api"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
@@ -32,7 +33,63 @@ const removeToken = () => {
   if (active) sessionStore.removeSession(active.userId)
 }
 
-const useAuthStore = create(
+/** The authenticated user as returned by /user/profile and the auth endpoints. */
+export interface AuthUser {
+  _id?: string
+  email?: string
+  name?: string
+  avatar?: string
+  createdAt?: string
+  plan?: string
+  trialOpted?: boolean
+  credits?: { base?: number; extra?: number }
+  subscription?: { plan?: string; status?: string; startDate?: string; renewalDate?: string }
+  notifications?: unknown[]
+  referral?: { referralId?: string }
+  [key: string]: unknown
+}
+
+interface AuthState {
+  user: AuthUser | null
+  token: string | null
+  loading: boolean
+  error: string | null
+  isAuthenticated: boolean
+  forgotMessage: string | null
+  resetMessage: string | null
+  transactions: unknown[]
+  profileLoading: boolean
+  unsubscribeSuccessMessage: string | null
+
+  setUser: (user: AuthUser | null) => void
+  setToken: (token: string | null) => void
+  clearAuth: () => void
+  resetUnsubscribe: () => void
+  updateCredits: (credits: AuthUser["credits"]) => void
+  addNotification: (notification: unknown) => void
+  updateUserPartial: (updates: Partial<AuthUser>) => void
+
+  loginUser: (args: { email: string; password: string; captchaToken?: string }) => Promise<unknown>
+  signupUser: (args: {
+    email: string
+    password: string
+    name: string
+    captchaToken?: string
+    referralId?: string
+  }) => Promise<unknown>
+  googleLogin: (args: { access_token: string; referralId?: string }) => Promise<unknown>
+  loadAuthenticatedUser: () => Promise<unknown>
+  logoutUser: () => Promise<unknown>
+  logoutAllAccounts: () => Promise<unknown>
+  forgotPassword: (email: string) => Promise<unknown>
+  resetPassword: (args: { token: string; newPassword: string }) => Promise<unknown>
+  fetchUserProfile: () => Promise<unknown>
+  markAllNotificationsAsRead: () => Promise<unknown>
+  fetchTransactions: () => Promise<unknown>
+  updateProfile: (payload: unknown) => Promise<unknown>
+  unsubscribeAction: (email: string) => Promise<unknown>
+}
+const useAuthStore = create<AuthState>()(
   devtools(
     (set, get) => ({
       user: null,
@@ -50,7 +107,7 @@ const useAuthStore = create(
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
       setToken: (token) => {
-        sessionStore.updateActiveSessionToken(token)
+        if (token) sessionStore.updateActiveSessionToken(token)
         set({ token, isAuthenticated: true })
       },
 
@@ -115,7 +172,7 @@ const useAuthStore = create(
             event: "login_attempt",
             event_status: "fail",
             auth_method: "email_password",
-            error_msg: err?.message || err?.response?.data?.message || "Login Failed",
+            error_msg: apiErrorMessage(err, "Login Failed"),
           })
           const errorMsg = getFriendlyError(err, "login")
           set({ loading: false, error: errorMsg })
@@ -145,7 +202,7 @@ const useAuthStore = create(
             event: "sign_up_attempt",
             event_status: "fail",
             auth_method: "email_password",
-            error_msg: err?.message || err?.response?.data?.message || "Signup Failed",
+            error_msg: apiErrorMessage(err, "Signup Failed"),
           })
           const errorMsg = getFriendlyError(err, "signup")
           set({ loading: false, error: errorMsg })
@@ -181,7 +238,7 @@ const useAuthStore = create(
             event: "google_auth",
             event_status: "fail",
             auth_method: "google_oauth",
-            error_msg: error?.message || error?.response?.data?.message || "Google Login Failed",
+            error_msg: apiErrorMessage(error, "Google Login Failed"),
           })
           const errorMsg = getFriendlyError(error, "google")
           set({ loading: false, error: errorMsg })
@@ -287,7 +344,7 @@ const useAuthStore = create(
           return data
         } catch (error) {
           toast.error("Failed to fetch user profile")
-          set({ profileLoading: false, error: error.message })
+          set({ profileLoading: false, error: asApiError(error).message })
           throw error
         }
       },
@@ -302,7 +359,10 @@ const useAuthStore = create(
             set({
               user: {
                 ...user,
-                notifications: user.notifications.map((n) => ({ ...n, read: true })),
+                notifications: (user.notifications ?? []).map((n) => ({
+                  ...(n as Record<string, unknown>),
+                  read: true,
+                })),
               },
             })
           }
@@ -323,7 +383,7 @@ const useAuthStore = create(
           return data || []
         } catch (error) {
           toast.error("Failed to fetch transactions")
-          set({ loading: false, error: error.message })
+          set({ loading: false, error: asApiError(error).message })
           throw error
         }
       },
@@ -338,7 +398,7 @@ const useAuthStore = create(
           return data
         } catch (error) {
           toast.error("Error updating profile, try again")
-          set({ loading: false, error: error.message })
+          set({ loading: false, error: asApiError(error).message })
           throw error
         }
       },
@@ -350,7 +410,7 @@ const useAuthStore = create(
           set({ loading: false, unsubscribeSuccessMessage: data })
           return data
         } catch (err) {
-          const errorMsg = err.message || "Failed to unsubscribe"
+          const errorMsg = apiErrorMessage(err, "Failed to unsubscribe")
           set({ loading: false, error: errorMsg })
           throw err
         }

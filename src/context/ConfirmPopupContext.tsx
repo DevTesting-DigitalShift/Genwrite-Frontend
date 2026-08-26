@@ -1,19 +1,50 @@
-import { createContext, useCallback, useContext, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle } from "lucide-react"
+import {
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+} from "react"
 
-const ConfirmPopupContext = createContext()
+/** Why the popup closed — `handleClose` passes this to `onCancel`/`onClose`. */
+export interface CloseReason {
+  source: string
+}
 
-export const ConfirmPopupProvider = ({ children }) => {
+export interface ConfirmPopupOptions {
+  title?: ReactNode
+  description?: ReactNode
+  confirmText?: string
+  cancelText?: string
+  confirmProps?: ButtonHTMLAttributes<HTMLButtonElement>
+  cancelProps?: ButtonHTMLAttributes<HTMLButtonElement>
+  icon?: ReactNode
+  loading?: boolean
+  onConfirm?: () => void | Promise<void>
+  onCancel?: (reason: CloseReason) => void
+  onClose?: (reason: CloseReason) => void
+}
+
+interface ConfirmPopupContextValue {
+  handlePopup: (opts: ConfirmPopupOptions) => void
+}
+
+// Undefined default so `useConfirmPopup` can tell "no provider" from "no options yet".
+const ConfirmPopupContext = createContext<ConfirmPopupContextValue | undefined>(undefined)
+
+export const ConfirmPopupProvider = ({ children }: { children: ReactNode }) => {
   const [visible, setVisible] = useState(false)
-  const [options, setOptions] = useState({})
+  const [options, setOptions] = useState<ConfirmPopupOptions>({})
 
-  const handlePopup = useCallback((opts) => {
+  const handlePopup = useCallback((opts: ConfirmPopupOptions) => {
     setOptions(opts)
     setVisible(true)
   }, [])
 
-  const handleClose = (e) => {
+  const handleClose = (e: CloseReason) => {
     setVisible(false)
     if (options?.onCancel) {
       options.onCancel(e)
@@ -86,4 +117,10 @@ export const ConfirmPopupProvider = ({ children }) => {
   )
 }
 
-export const useConfirmPopup = () => useContext(ConfirmPopupContext)
+export const useConfirmPopup = (): ConfirmPopupContextValue => {
+  const ctx = useContext(ConfirmPopupContext)
+  if (!ctx) {
+    throw new Error("useConfirmPopup must be used within a ConfirmPopupProvider")
+  }
+  return ctx
+}

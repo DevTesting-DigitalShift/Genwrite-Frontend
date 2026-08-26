@@ -1,5 +1,20 @@
 import { create } from "zustand"
-import { persist, createJSONStorage } from "zustand/middleware"
+import { createJSONStorage, persist } from "zustand/middleware"
+
+/** The owner of a shared workspace this tab is currently watching. */
+export interface Workspace {
+  id: string
+  name?: string
+  email?: string
+  avatar?: string
+}
+
+interface WorkspaceState {
+  /** null means "my own workspace". */
+  activeWorkspace: Workspace | null
+  switchToWorkspace: (owner: Workspace) => void
+  exitToOwnWorkspace: () => void
+}
 
 // Persisted to sessionStorage, not localStorage: "which workspace am I watching" is a
 // per-tab fact, exactly like the active account in @utils/sessionStore. Putting it in
@@ -13,10 +28,10 @@ try {
   /* ignore */
 }
 
-const useWorkspaceStore = create(
+const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set) => ({
-      activeWorkspace: null, // { id, name, email, avatar } | null — null means "my own workspace"
+      activeWorkspace: null,
 
       switchToWorkspace: (owner) => set({ activeWorkspace: owner }),
 

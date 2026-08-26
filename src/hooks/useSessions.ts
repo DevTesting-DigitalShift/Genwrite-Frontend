@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from "react"
 import * as sessionStore from "@utils/sessionStore"
+import { useSyncExternalStore } from "react"
 
 /**
  * Subscribes to the session pool so account UI re-renders when accounts are added,
@@ -10,7 +10,7 @@ import * as sessionStore from "@utils/sessionStore"
  * snapshots at render time and then goes stale until something unrelated re-renders the
  * component.
  */
-function subscribe(onChange) {
+function subscribe(onChange: () => void): () => void {
   window.addEventListener(sessionStore.SESSIONS_CHANGED_EVENT, onChange)
   window.addEventListener("storage", onChange)
   return () => {
@@ -21,7 +21,7 @@ function subscribe(onChange) {
 
 // useSyncExternalStore compares snapshots by identity, and getSessions() builds a fresh
 // array each call — so we snapshot the serialized form and parse it in the selector.
-const getSnapshot = () =>
+const getSnapshot = (): string =>
   `${sessionStore.getActiveUserId() ?? ""}|${sessionStore
     .getSessions()
     .map((s) => `${s.userId}:${s.name}:${s.email}:${s.avatar}`)
@@ -43,7 +43,7 @@ export function useSessions() {
 }
 
 /** Convenience for components that only need to know whether a switch is possible. */
-export function useHasMultipleSessions() {
+export function useHasMultipleSessions(): boolean {
   const { sessions } = useSessions()
   return sessions.length > 1
 }

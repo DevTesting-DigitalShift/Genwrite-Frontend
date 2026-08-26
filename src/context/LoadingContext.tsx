@@ -1,22 +1,26 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
-/**
- * @typedef {Object} LoadingContextValue
- * @property {boolean} isLoading
- * @property {string|null} loadingMessage
- * @property {(message?: string|null) => number} showLoading
- * @property {(id?: number) => void} hideLoading
- */
+interface LoadingContextValue {
+  isLoading: boolean
+  loadingMessage: string | null
+  showLoading: (message?: string | null) => number
+  hideLoading: (id?: number) => void
+}
 
-/** @type {import('react').Context<LoadingContextValue>} */
-const LoadingContext = createContext({
+interface LoadingEntry {
+  id: number
+  message: string | null
+  timestamp: number
+}
+
+const LoadingContext = createContext<LoadingContextValue>({
   isLoading: false,
-  loadingMessage: /** @type {string|null} */ (null),
-  showLoading: /** @type {(message?: string|null) => number} */ (() => 0),
-  hideLoading: /** @type {(id?: number) => void} */ (() => {}),
+  loadingMessage: null,
+  showLoading: () => 0,
+  hideLoading: () => {},
 })
 
-export const useLoading = () => {
+export const useLoading = (): LoadingContextValue => {
   const context = useContext(LoadingContext)
   if (!context) {
     throw new Error("useLoading must be used within LoadingProvider")
@@ -24,16 +28,16 @@ export const useLoading = () => {
   return context
 }
 
-export const LoadingProvider = ({ children }) => {
-  const [loadingStack, setLoadingStack] = useState([])
-  const [loadingMessage, setLoadingMessage] = useState(null)
+export const LoadingProvider = ({ children }: { children: ReactNode }) => {
+  const [loadingStack, setLoadingStack] = useState<LoadingEntry[]>([])
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null)
 
   /**
-   * Show loading - adds to stack to handle multiple requests
-   * @param {string|null} [message=null] - Optional loading message
-   * @returns {number} Loading ID for later removal
+   * Show loading - adds to stack to handle multiple requests.
+   *
+   * @returns Loading ID for later removal
    */
-  const showLoading = useCallback((message = null) => {
+  const showLoading = useCallback((message: string | null = null): number => {
     const id = Date.now() + Math.random()
 
     setLoadingStack((prev) => {
@@ -49,13 +53,10 @@ export const LoadingProvider = ({ children }) => {
     return id
   }, [])
 
-  /**
-   * Hide loading - removes from stack by ID or last item
-   * @param {number} [id] - Optional loading ID to remove
-   */
-  const hideLoading = useCallback((id) => {
+  /** Hide loading - removes from stack by ID or last item. */
+  const hideLoading = useCallback((id?: number): void => {
     setLoadingStack((prev) => {
-      let newStack
+      let newStack: LoadingEntry[]
 
       if (id !== undefined && id !== null) {
         // Remove specific ID
@@ -63,7 +64,7 @@ export const LoadingProvider = ({ children }) => {
 
         if (newStack.length === prev.length) {
           // ID not found, log warning
-          if (import.meta.env.NODE_ENV === "development") {
+          if (import.meta.env.DEV) {
             console.warn("[LoadingContext] Attempted to hide loading with non-existent ID:", id)
           }
           return prev
@@ -71,7 +72,7 @@ export const LoadingProvider = ({ children }) => {
       } else {
         // Remove last item (LIFO)
         if (prev.length === 0) {
-          if (import.meta.env.NODE_ENV === "development") {
+          if (import.meta.env.DEV) {
             console.warn("[LoadingContext] Attempted to hide loading but stack is empty")
           }
           return prev

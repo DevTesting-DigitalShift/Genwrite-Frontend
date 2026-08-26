@@ -1,6 +1,12 @@
 import { create } from "zustand"
 
-const useHumanizeStore = create((set) => ({
+interface HumanizeState {
+  result: unknown | null
+  setResult: (result: unknown) => void
+  resetHumanizeState: () => void
+}
+
+const useHumanizeStore = create<HumanizeState>((set) => ({
   result: null,
   setResult: (result) => set({ result }),
   resetHumanizeState: () => set({ result: null }),

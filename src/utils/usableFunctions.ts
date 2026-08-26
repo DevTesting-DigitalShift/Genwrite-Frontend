@@ -1,4 +1,4 @@
-export const objectToFormData = (obj) => {
+export const objectToFormData = (obj: Record<string, unknown>): FormData => {
   const formData = new FormData()
 
   Object.entries(obj).forEach(([key, value]) => {
@@ -9,13 +9,13 @@ export const objectToFormData = (obj) => {
 
     // Arrays → append multiple times
     if (Array.isArray(value)) {
-      value.forEach((item) => formData.append(key, item))
+      value.forEach((item) => formData.append(key, item as string | Blob))
     } else if (typeof value === "object" && !(value instanceof File)) {
       // Objects → stringify only if needed (for template maybe)
       formData.append(key, JSON.stringify(value))
     } else {
       // Booleans, numbers, strings → append as-is
-      formData.append(key, value)
+      formData.append(key, value as string | Blob)
     }
   })
 

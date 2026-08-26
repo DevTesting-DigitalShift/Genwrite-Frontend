@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useMutation } from "@tanstack/react-query"
 import useToolsStore from "@store/useToolsStore"
 import {
@@ -26,7 +27,7 @@ export const useAiDetectionMutation = () => {
       setAiDetectionResult(data)
     },
     onError: (error) => {
-      setAiDetectionError(error.response?.data || error.message)
+      setAiDetectionError(apiErrorMessage(error, "Something went wrong"))
     },
   })
 }
@@ -45,7 +46,7 @@ export const useKeywordScrapingMutation = () => {
       setKeywordScrapingResult(data)
     },
     onError: (error) => {
-      setKeywordScrapingError(error.response?.data || error.message)
+      setKeywordScrapingError(apiErrorMessage(error, "Something went wrong"))
     },
   })
 }
@@ -63,7 +64,7 @@ export const useYoutubeSummaryMutation = () => {
       setYoutubeSummaryResult(data)
     },
     onError: (error) => {
-      setYoutubeSummaryError(error.response?.data || error.message)
+      setYoutubeSummaryError(apiErrorMessage(error, "Something went wrong"))
     },
   })
 }
@@ -78,7 +79,7 @@ export const usePdfChatMutation = () => {
       setPdfChatResult(data)
     },
     onError: (error) => {
-      setPdfChatError(error.response?.data || error.message)
+      setPdfChatError(apiErrorMessage(error, "Something went wrong"))
     },
   })
 }
@@ -97,13 +98,16 @@ export const useCompetitorLikeBlogMutation = () => {
       setCompetitorLikeBlogResult(data)
     },
     onError: (error) => {
-      setCompetitorLikeBlogError(error.response?.data || error.message)
+      setCompetitorLikeBlogError(apiErrorMessage(error, "Something went wrong"))
     },
   })
 }
 
 /* ================== Website Ranking ================== */
-const useWebsiteRankingMutation = (mutationFn, key) => {
+const useWebsiteRankingMutation = <TVars>(
+  mutationFn: (vars: TVars) => Promise<unknown>,
+  key: Parameters<ReturnType<typeof useToolsStore.getState>["setWebsiteRankingResult"]>[0]
+) => {
   const { setWebsiteRankingResult, setWebsiteRankingError } = useToolsStore()
 
   return useMutation({
@@ -112,7 +116,7 @@ const useWebsiteRankingMutation = (mutationFn, key) => {
       setWebsiteRankingResult(key, data)
     },
     onError: (error) => {
-      setWebsiteRankingError(key, error.response?.data || error.message)
+      setWebsiteRankingError(key, apiErrorMessage(error, "Something went wrong"))
     },
   })
 }

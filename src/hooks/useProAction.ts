@@ -1,6 +1,12 @@
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useAuthStore from "@store/useAuthStore"
 import { useNavigate } from "react-router-dom"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+
+export interface ProActionOptions {
+  title?: string
+  confirmText?: string
+  cancelText?: string
+}
 
 export const useProAction = () => {
   const navigate = useNavigate()
@@ -21,7 +27,7 @@ export const useProAction = () => {
     user?.subscription?.status === "unpaid" ||
     user?.subscription?.plan === "free"
 
-  const handleProAction = (callback, options = {}) => {
+  const handleProAction = (callback?: () => void, options: ProActionOptions = {}): void => {
     if (showTrialMessage) {
       handlePopup({
         title: options.title || "Upgrade Required",

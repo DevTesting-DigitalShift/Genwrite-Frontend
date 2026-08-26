@@ -1,9 +1,50 @@
-import { create } from "zustand"
-import { devtools } from "zustand/middleware"
+import { apiErrorMessage } from "@/types/api"
 import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
 import { toast } from "sonner"
+import { create } from "zustand"
+import { devtools } from "zustand/middleware"
 
-const useAnalysisStore = create(
+interface CompetitiveAnalysisArgs {
+  blogId: string
+  title?: string
+  content?: string
+  keywords?: string[]
+}
+
+/** Keyword selection carried between the analysis tools and the blog modals. */
+export interface SelectedKeywords {
+  focusKeywords?: string[]
+  keywords?: string[]
+  allKeywords?: string[]
+  [key: string]: unknown
+}
+
+interface AnalysisState {
+  keywordAnalysis: unknown[]
+  suggestions: unknown[]
+  loading: boolean
+  /** Keyed by blogId. */
+  analysisResult: Record<string, unknown>
+  error: string | null
+  selectedKeywords: SelectedKeywords
+  pendingImport: string | null
+
+  setPendingImport: (type: string | null) => void
+  setAnalysisResult: (blogId: string, data: unknown) => void
+  setSelectedKeywords: (selectedKeywords: SelectedKeywords) => void
+  clearSelectedKeywords: () => void
+  clearKeywordAnalysis: () => void
+  clearSuggestions: () => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  reset: () => void
+
+  fetchCompetitiveAnalysis: (args: CompetitiveAnalysisArgs) => Promise<unknown>
+  analyzeKeywords: (keywords: string[]) => Promise<unknown>
+  fetchSuggestions: (query: string) => Promise<unknown>
+}
+
+const useAnalysisStore = create<AnalysisState>()(
   devtools(
     (set) => ({
       keywordAnalysis: [],
@@ -11,7 +52,7 @@ const useAnalysisStore = create(
       loading: false,
       analysisResult: {},
       error: null,
-      selectedKeywords: [],
+      selectedKeywords: [] as unknown as SelectedKeywords,
       pendingImport: null,
 
       // Actions
@@ -22,7 +63,8 @@ const useAnalysisStore = create(
 
       setSelectedKeywords: (selectedKeywords) => set({ selectedKeywords }),
 
-      clearSelectedKeywords: () => set({ selectedKeywords: [], pendingImport: null }),
+      clearSelectedKeywords: () =>
+        set({ selectedKeywords: [] as unknown as SelectedKeywords, pendingImport: null }),
 
       clearKeywordAnalysis: () => set({ keywordAnalysis: [] }),
 
@@ -40,7 +82,7 @@ const useAnalysisStore = create(
           loading: false,
           analysisResult: {},
           error: null,
-          selectedKeywords: [],
+          selectedKeywords: [] as unknown as SelectedKeywords,
           pendingImport: null,
         }),
 
@@ -57,7 +99,7 @@ const useAnalysisStore = create(
           return data
         } catch (error) {
           console.error("Competitive analysis error", error)
-          const errMsg = error.response?.data?.message || "Failed to fetch competitive analysis."
+          const errMsg = apiErrorMessage(error, "Failed to fetch competitive analysis.")
           toast.error(errMsg)
           set({ error: errMsg, loading: false })
           throw error
@@ -71,7 +113,7 @@ const useAnalysisStore = create(
           set({ keywordAnalysis: result, loading: false })
           return result
         } catch (err) {
-          const errMsg = err?.response?.data?.message || "Failed to analyze keywords."
+          const errMsg = apiErrorMessage(err, "Failed to analyze keywords.")
           toast.error(errMsg)
           set({ error: errMsg, loading: false })
           throw err

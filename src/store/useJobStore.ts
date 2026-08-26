@@ -1,7 +1,23 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
-const useJobStore = create(
+/** A scheduled generation job, as returned by the jobs API. */
+export interface Job {
+  _id?: string
+  [key: string]: unknown
+}
+
+interface JobState {
+  showJobModal: boolean
+  selectedJob: Job | null
+
+  openJobModal: (job?: Job | null) => void
+  closeJobModal: () => void
+  setSelectedJob: (job: Job | null) => void
+  reset: () => void
+}
+
+const useJobStore = create<JobState>()(
   devtools(
     (set) => ({
       showJobModal: false,

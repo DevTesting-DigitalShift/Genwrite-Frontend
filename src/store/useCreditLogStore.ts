@@ -1,6 +1,21 @@
 import { create } from "zustand"
 
-const useCreditLogStore = create((set) => ({
+interface CreditLogState {
+  page: number
+  pageSize: number
+  searchText: string
+  dateRange: string
+  purposeFilter: string[]
+
+  setPage: (page: number) => void
+  setPageSize: (pageSize: number) => void
+  setSearchText: (text: string) => void
+  setDateRange: (range: string) => void
+  setPurposeFilter: (filters: string[]) => void
+  reset: () => void
+}
+
+const useCreditLogStore = create<CreditLogState>((set) => ({
   page: 1,
   pageSize: 10,
   searchText: "",

@@ -4,7 +4,10 @@ import path from "path"
 import { visualizer } from "rollup-plugin-visualizer"
 
 // https://vitejs.dev/config/
-export default defineConfig({
+// Function form so we can branch on `command` — console/debugger are stripped from
+// production builds only, and stay intact in the dev server.
+export default defineConfig(({ command }) => ({
+  esbuild: command === "build" ? { drop: ["console", "debugger"] } : {},
   plugins: [
     react({
       // Optimize React production builds
@@ -108,4 +111,4 @@ export default defineConfig({
   define: {
     'process.env': 'import.meta.env',
   }
-})
+}))

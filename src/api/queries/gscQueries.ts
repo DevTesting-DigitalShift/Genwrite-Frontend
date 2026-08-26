@@ -12,7 +12,7 @@ import { toast } from "sonner"
  * @param {string} [pageUrl] - The published URL to inspect
  * @param {{ enabled?: boolean }} [options]
  */
-export const useIndexingStatusQuery = (pageUrl, { enabled = true } = {}) => {
+export const useIndexingStatusQuery = (pageUrl?: string, { enabled = true }: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: ["indexingStatus", pageUrl],
     queryFn: () => inspectIndexing({ pageUrl }),
@@ -36,13 +36,14 @@ export const useRequestIndexingMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     /** @param {{ blogId?: string, pageUrl?: string }} vars */
-    mutationFn: ({ blogId, pageUrl }) => requestIndexing({ blogId, pageUrl }),
+    mutationFn: ({ blogId, pageUrl }: NonNullable<Parameters<typeof requestIndexing>[0]>) =>
+      requestIndexing({ blogId, pageUrl }),
     onSuccess: (_data, variables) => {
       toast.success("Indexing requested", {
         description: "Google decides when to crawl — this usually takes a few days.",
       })
       queryClient.invalidateQueries({
-        queryKey: ["indexingStatus", variables.pageUrl],
+        queryKey: ["indexingStatus", variables?.pageUrl],
         refetchType: "none",
       })
       // The posting's indexing counters were bumped server-side.

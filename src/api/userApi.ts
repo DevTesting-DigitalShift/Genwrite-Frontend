@@ -15,12 +15,12 @@ export const getTransactions = async () => {
   return response.data
 }
 
-export const updateUserProfile = async (payload) => {
+export const updateUserProfile = async (payload: unknown) => {
   const response = await axiosInstance.put("/user/profile", payload)
   return response.data
 }
 
-export const updatePasswordAPI = async (payload) => {
+export const updatePasswordAPI = async (payload: unknown) => {
   const response = await axiosInstance.post("/user/update-password", payload)
   return response.data
 }
@@ -40,7 +40,7 @@ export const getEmailPreferencesAPI = async () => {
   return response.data
 }
 
-export const updateEmailPreferencesAPI = async (payload) => {
+export const updateEmailPreferencesAPI = async (payload: unknown) => {
   const response = await axiosInstance.put("/user/email-preferences", payload)
   return response.data
 }

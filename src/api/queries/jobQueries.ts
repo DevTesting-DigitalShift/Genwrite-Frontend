@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getJobs,
@@ -11,7 +12,7 @@ import {
 import { toast } from "sonner"
 import { pushJobAgentCreationEvent } from "@utils/creationEvents"
 
-export const useJobsQuery = (enabled = true) => {
+export const useJobsQuery = (enabled: boolean = true) => {
   return useQuery({ queryKey: ["jobs"], queryFn: getJobs, enabled })
 }
 
@@ -26,7 +27,7 @@ export const useCreateJobMutation = () => {
     },
     onError: (error) => {
       pushJobAgentCreationEvent({ status: "error", error })
-      toast.error(error?.response?.data?.message || "Failed to create job")
+      toast.error(apiErrorMessage(error, "Failed to create job"))
     },
   })
 }
@@ -40,7 +41,7 @@ export const useCreateJobFromRankingMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to create job from audit")
+      toast.error(apiErrorMessage(error, "Failed to create job from audit"))
     },
   })
 }
@@ -48,7 +49,8 @@ export const useCreateJobFromRankingMutation = () => {
 export const useUpdateJobMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ jobId, jobPayload }) => updateJob(jobId, jobPayload),
+    mutationFn: ({ jobId, jobPayload }: { jobId: string; jobPayload: unknown }) =>
+      updateJob(jobId, jobPayload),
     onSuccess: () => {
       toast.success("Job updated successfully!")
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
@@ -62,7 +64,7 @@ export const useUpdateJobMutation = () => {
 export const useToggleJobStatusMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ jobId, currentStatus }) => {
+    mutationFn: async ({ jobId, currentStatus }: { jobId: string; currentStatus: string }) => {
       if (currentStatus === "active") {
         return stopJob(jobId)
       } else {
@@ -89,7 +91,7 @@ export const useDeleteJobMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to delete job")
+      toast.error(apiErrorMessage(error, "Failed to delete job"))
     },
   })
 }

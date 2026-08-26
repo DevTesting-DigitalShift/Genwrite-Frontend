@@ -1,6 +1,25 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
+/** One AI rewrite awaiting an accept/reject decision. */
+export interface AiReview {
+  title: string
+  task?: string
+  original: string
+  refined: string
+  acceptLabel?: string
+  rejectLabel?: string
+  onAccept?: () => void
+  onReject?: () => void
+}
+
+interface AiReviewState {
+  review: AiReview | null
+  openReview: (review: AiReview) => void
+  closeReview: () => void
+  reset: () => void
+}
+
 /**
  * Holds the one AI rewrite that is currently awaiting a decision.
  *
@@ -14,21 +33,9 @@ import { devtools } from "zustand/middleware"
  * applying its own kind of change. Callbacks must close over everything they
  * need — the review outlives the render that raised it.
  */
-const useAiReviewStore = create(
+const useAiReviewStore = create<AiReviewState>()(
   devtools(
     (set) => ({
-      /**
-       * @type {null | {
-       *   title: string,
-       *   task?: string,
-       *   original: string,
-       *   refined: string,
-       *   acceptLabel?: string,
-       *   rejectLabel?: string,
-       *   onAccept?: () => void,
-       *   onReject?: () => void,
-       * }}
-       */
       review: null,
 
       openReview: (review) => set({ review }),

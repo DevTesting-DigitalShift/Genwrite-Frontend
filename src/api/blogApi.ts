@@ -1,23 +1,34 @@
+/** An upload entry as produced by the file picker before it is turned into a File. */
+interface UploadFile {
+  originFileObj: BlobPart
+  name: string
+  type: string
+}
+
+/** Blog creation payload; blogImages is split out and sent as multipart. */
+export interface BlogFormData extends Record<string, unknown> {
+  blogImages?: UploadFile[]
+}
+
+import { asApiError, creditError } from "@/types/api"
 import axiosInstance from "."
 
-export const createQuickBlog = async (blogData, type) => {
+export const createQuickBlog = async (blogData: unknown, type?: string) => {
   try {
     const endpoint = type === "yt" ? "/blogs/yt" : "/blogs/quick"
     const response = await axiosInstance.post(endpoint, blogData)
     return response.data.blog
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     console.error("Blog creation API error:", error)
 
     // Handle 402 Insufficient Credits error
     if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits
+      const neededCredits = error.response?.data?.neededCredits as number | undefined
       const errorMsg = neededCredits
         ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
         : error.response?.data?.message || "Insufficient credits to create blog"
-      const err = new Error(errorMsg)
-      err.status = 402
-      err.neededCredits = neededCredits
-      throw err
+      throw creditError(errorMsg, neededCredits)
     }
 
     const msg = error.response?.data?.message || "Failed to create blog"
@@ -25,30 +36,28 @@ export const createQuickBlog = async (blogData, type) => {
   }
 }
 
-export const createTopicOnlyBlog = async ({ topic }) => {
+export const createTopicOnlyBlog = async ({ topic }: { topic: string }) => {
   try {
     const response = await axiosInstance.post("/blogs/topic", { topic })
     return response.data.blog || response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     console.error("createTopicOnlyBlog error", error.response?.data || error)
 
     // Handle 402 Insufficient Credits error
     if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits
+      const neededCredits = error.response?.data?.neededCredits as number | undefined
       const errorMsg = neededCredits
         ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
         : error.response?.data?.message || "Insufficient credits to create blog"
-      const err = new Error(errorMsg)
-      err.status = 402
-      err.neededCredits = neededCredits
-      throw err
+      throw creditError(errorMsg, neededCredits)
     }
 
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const createBlog = async (blogData) => {
+export const createBlog = async (blogData: BlogFormData) => {
   try {
     const formData = new FormData()
     const { blogImages, ...restData } = blogData
@@ -61,8 +70,8 @@ export const createBlog = async (blogData) => {
     formData.append("data", JSON.stringify(finalData))
 
     // Append images (binary form)
-    if (blogImages?.length > 0) {
-      blogImages.forEach((blogfile) => {
+    if (blogImages && blogImages.length > 0) {
+      blogImages.forEach((blogfile: UploadFile) => {
         const file = new File([blogfile.originFileObj], blogfile.name, { type: blogfile.type })
         formData.append("blogImages", file, file.name) // directly append file object
       })
@@ -72,80 +81,80 @@ export const createBlog = async (blogData) => {
     const response = await axiosInstance.postForm("/blogs", formData)
 
     return response.data.blog || response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     console.error("createBlog error", error.response?.data || error)
 
     // Handle 402 Insufficient Credits error
     if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits
+      const neededCredits = error.response?.data?.neededCredits as number | undefined
       const errorMsg = neededCredits
         ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
         : error.response?.data?.message || "Insufficient credits to create blog"
-      const err = new Error(errorMsg)
-      err.status = 402
-      err.neededCredits = neededCredits
-      throw err
+      throw creditError(errorMsg, neededCredits)
     }
 
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const createBlogMultiple = async (blogData) => {
+export const createBlogMultiple = async (blogData: BlogFormData) => {
   try {
     const response = await axiosInstance.post("/blogs/xyz", blogData)
     return response.data.insertedBlogs
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     console.error("createBlogMultiple", error)
 
     // Handle 402 Insufficient Credits error
     if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits
+      const neededCredits = error.response?.data?.neededCredits as number | undefined
       const errorMsg = neededCredits
         ? `Insufficient credits. You need ${neededCredits} credits to create these blogs.`
         : error.response?.data?.message || "Insufficient credits to create blogs"
-      const err = new Error(errorMsg)
-      err.status = 402
-      err.neededCredits = neededCredits
-      throw err
+      throw creditError(errorMsg, neededCredits)
     }
 
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const getAllBlogs = async (params = {}) => {
+export const getAllBlogs = async (params: Record<string, unknown> = {}) => {
   try {
     const response = await axiosInstance.get("/blogs", { params })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blogs")
   }
 }
 
-export const getBlogById = async (id) => {
+export const getBlogById = async (id: string) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blog")
   }
 }
 
-export const updateBlog = async (id, updatedData) => {
+export const updateBlog = async (id: string, updatedData: unknown) => {
   try {
     const response = await axiosInstance.put(`/blogs/update/${id}`, updatedData)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to update blog")
   }
 }
 
-export const deleteBlog = async (id) => {
+export const deleteBlog = async (id: string) => {
   try {
     const response = await axiosInstance.delete(`/blogs/${id}`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to delete blog")
   }
 }
@@ -154,26 +163,29 @@ export const getBlogsByAuthor = async () => {
   try {
     const response = await axiosInstance.get(`/blogs`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blogs")
   }
 }
 
-export const sendBrand = async (formData) => {
+export const sendBrand = async (formData: unknown) => {
   try {
     const _response = await axiosInstance.post("/brand/addBrand", formData)
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const sendRetryLines = async (id, payload) => {
+export const sendRetryLines = async (id: string, payload: unknown) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/rewrite`, payload)
     return response
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     console.error(error)
-    throw new Error(error || "Failed to retry")
+    throw new Error(error.response?.data?.message || error.message || "Failed to retry")
   }
 }
 
@@ -181,16 +193,18 @@ export const deleteAllBlogs = async () => {
   try {
     const response = await axiosInstance.delete("/blogs")
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to delete blogs")
   }
 }
 
-export const restoreBlogById = async (id) => {
+export const restoreBlogById = async (id: string) => {
   try {
     const response = await axiosInstance.patch(`/blogs/restore/${id}`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to restore blog")
   }
 }
@@ -199,62 +213,68 @@ export const restoreAllBlogs = async () => {
   try {
     const response = await axiosInstance.patch("/blogs/restore")
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to restore blogs")
   }
 }
 
-export const archiveBlogById = async (id) => {
+export const archiveBlogById = async (id: string) => {
   try {
     const response = await axiosInstance.patch(`/blogs/archive/${id}`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to archive blog")
   }
 }
 
-export const retryBlogById = async (id, payload = { createNew: false }) => {
+export const retryBlogById = async (id: string, payload: unknown = { createNew: false }) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/retry`, payload)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to retry blog")
   }
 }
 
-export const proofreadBlogContent = async ({ id }) => {
+export const proofreadBlogContent = async ({ id }: { id: string }) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/proofread`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to get proofreading suggestions")
   }
 }
 
-export const getBlogStatsById = async (id) => {
+export const getBlogStatsById = async (id: string) => {
   const response = await axiosInstance.get(`/blogs/${id}/stats`)
   return response.data
 }
 
-export const getGeneratedTitles = async (data) => {
+export const getGeneratedTitles = async (data: unknown) => {
   const response = await axiosInstance.post(`/generate/title`, data)
   return response.data
 }
 
-export const createSimpleBlog = async (data) => {
+export const createSimpleBlog = async (data: unknown) => {
   try {
     const response = await axiosInstance.post("/blogs/new", data)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const getBlogStatus = async (params = {}) => {
+export const getBlogStatus = async (params: Record<string, unknown> = {}) => {
   try {
     const response = await axiosInstance.get("/blogs/status", { params })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blog status")
   }
 }
@@ -263,16 +283,18 @@ export const getBlogs = async () => {
   try {
     const response = await axiosInstance.get("/blogs/all")
     return response.data
-  } catch (error) {
-    throw new Error(error || "Failed to fetch blogs")
+  } catch (rawError) {
+    const error = asApiError(rawError)
+    throw new Error(error.response?.data?.message || error.message || "Failed to fetch blogs")
   }
 }
 
-export const getBlogPrompt = async (id, prompt) => {
+export const getBlogPrompt = async (id: string, prompt: string) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/prompt`, { prompt })
     return response
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
   }
 }
@@ -282,16 +304,20 @@ export const getBlogPrompt = async (id, prompt) => {
  * @param {string} blogId - The blog ID
  * @returns {Promise<Array>} Array of posting objects
  */
-export const getBlogPostings = async (blogId) => {
+export const getBlogPostings = async (blogId: string) => {
   try {
     const response = await axiosInstance.get(`/blogs/postings/${blogId}`)
     return response.data.postings || []
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
   }
 }
 
-export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) => {
+export const exportBlog = async (
+  id: string,
+  { type = "pdf", withImages = false }: { type?: string; withImages?: boolean } = {}
+) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}/export`, {
       params: { type, withImages: withImages ? "true" : "false" },
@@ -310,31 +336,34 @@ export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) 
     }
 
     return { data: response.data, filename }
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || `Failed to export ${type.toUpperCase()}`)
   }
 }
 
 // Legacy function for backward compatibility
-export const exportBlogAsPdf = async (id) => {
+export const exportBlogAsPdf = async (id: string) => {
   const result = await exportBlog(id, { type: "pdf", withImages: false })
   return result.data
 }
 
-export const toggleBlogVisibility = async (id, isPublic) => {
+export const toggleBlogVisibility = async (id: string, isPublic: unknown) => {
   try {
     const response = await axiosInstance.patch(`/blogs/${id}/visibility`, { isPublic })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to toggle blog visibility")
   }
 }
 
-export const getBlogPublicly = async (id) => {
+export const getBlogPublicly = async (id: string) => {
   try {
     const response = await axiosInstance.get(`/public/blog/${id}`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Public blog not found")
   }
 }
@@ -345,11 +374,12 @@ export const getBlogPublicly = async (id) => {
  * @param {string} id - Blog ID
  * @returns {Promise<Object>} BlogInsight document (metricsSnapshot, overallSummary, suggestions)
  */
-export const analyzeBlogPerformance = async (id) => {
+export const analyzeBlogPerformance = async (id: string) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/analyze`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to analyze blog performance")
   }
 }
@@ -360,11 +390,12 @@ export const analyzeBlogPerformance = async (id) => {
  * @param {string} id - Blog ID
  * @returns {Promise<Object|null>} BlogInsight document, or null if never analyzed
  */
-export const getBlogInsight = async (id) => {
+export const getBlogInsight = async (id: string) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}/insight`)
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to fetch blog insight")
   }
 }
@@ -379,14 +410,18 @@ export const getBlogInsight = async (id) => {
  * @param {"section"|"whole"} [payload.scope="section"] - Rewrite scope
  * @returns {Promise<{content: string, suggestionId: string, scope: string}>}
  */
-export const applyBlogInsight = async (id, { suggestionId, scope = "section" }) => {
+export const applyBlogInsight = async (
+  id: string,
+  { suggestionId, scope = "section" }: { suggestionId: string; scope?: string }
+) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/apply-insight`, {
       suggestionId,
       scope,
     })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to generate suggestion rewrite")
   }
 }
@@ -401,7 +436,14 @@ export const applyBlogInsight = async (id, { suggestionId, scope = "section" }) 
  * @param {boolean} [payload.republish=false] - Repost to connected platforms after applying
  * @returns {Promise<{content: string, repost: Object|null}>}
  */
-export const confirmBlogInsight = async (id, { suggestionId, content, republish = false }) => {
+export const confirmBlogInsight = async (
+  id: string,
+  {
+    suggestionId,
+    content,
+    republish = false,
+  }: { suggestionId: string; content?: string; republish?: boolean }
+) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/confirm-insight`, {
       suggestionId,
@@ -409,7 +451,8 @@ export const confirmBlogInsight = async (id, { suggestionId, content, republish 
       republish,
     })
     return response.data
-  } catch (error) {
+  } catch (rawError) {
+    const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || "Failed to apply suggestion")
   }
 }

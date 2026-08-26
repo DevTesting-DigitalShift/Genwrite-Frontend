@@ -4,11 +4,18 @@ import { toast } from "sonner"
 export const READ_ONLY_MESSAGE =
   "This workspace is read-only — exit to your own workspace to make changes."
 
+/** Props spread onto a write-action element while the workspace is read-only. */
+export interface ReadOnlyProps {
+  "aria-disabled"?: boolean
+  title?: string
+  className?: string
+}
+
 export const useReadOnlyGuard = () => {
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const isReadOnlyWorkspace = !!activeWorkspace
 
-  const guardWrite = (fn) => {
+  const guardWrite = (fn?: () => void): void => {
     if (isReadOnlyWorkspace) {
       toast.error(READ_ONLY_MESSAGE)
       return
@@ -21,7 +28,7 @@ export const useReadOnlyGuard = () => {
    * visible up front (dimmed + not-allowed cursor + tooltip) rather than only surfacing
    * as a toast after the click.
    */
-  const readOnlyProps = isReadOnlyWorkspace
+  const readOnlyProps: ReadOnlyProps = isReadOnlyWorkspace
     ? {
         "aria-disabled": true,
         title: READ_ONLY_MESSAGE,

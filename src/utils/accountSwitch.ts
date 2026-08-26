@@ -1,16 +1,16 @@
-import { queryClient } from "@utils/queryClient"
-import { disconnectSocket, connectSocket } from "@utils/socket"
-import * as sessionStore from "@utils/sessionStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import useAuthStore from "@store/useAuthStore"
-import useWorkspaceStore from "@store/useWorkspaceStore"
-import useJobStore from "@store/useJobStore"
 import useBlogStore from "@store/useBlogStore"
 import useBrandStore from "@store/useBrandStore"
-import useAnalysisStore from "@store/useAnalysisStore"
-import useGscStore from "@store/useGscStore"
 import useContentStore from "@store/useContentStore"
 import useCreditLogStore from "@store/useCreditLogStore"
+import useGscStore from "@store/useGscStore"
 import useImageStore from "@store/useImageStore"
+import useJobStore from "@store/useJobStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
+import { queryClient } from "@utils/queryClient"
+import * as sessionStore from "@utils/sessionStore"
+import { connectSocket, disconnectSocket } from "@utils/socket"
 
 // Every account-scoped Zustand store that caches data in plain (non-persisted) module
 // state and would otherwise leak from one account into another across a switch.
@@ -25,13 +25,16 @@ const ACCOUNT_SCOPED_STORES = [
   useImageStore,
 ]
 
+/** Navigate function accepted by the switch helpers (react-router's `useNavigate`). */
+type NavigateFn = (path: string | number, options?: { replace?: boolean }) => void
+
 /** Full teardown for "signing out of everything" — no account remains to switch into. */
-export function clearAllAccountState() {
+export function clearAllAccountState(): void {
   disconnectSocket()
   clearAccountScopedState()
 }
 
-function clearAccountScopedState() {
+function clearAccountScopedState(): void {
   queryClient.clear()
   for (const store of ACCOUNT_SCOPED_STORES) {
     store.getState().reset?.()
@@ -41,16 +44,24 @@ function clearAccountScopedState() {
   useWorkspaceStore.getState().exitToOwnWorkspace()
 }
 
+interface SwitchOptions {
+  navigate?: NavigateFn
+  /**
+   * Overrides the landing route, e.g. a freshly signed-up second account goes to
+   * /onboarding rather than straight to the dashboard.
+   */
+  redirectTo?: string
+}
+
 /**
  * Switches the active account to an already-added session, refetching that user's
  * profile and reconnecting the socket, then clearing every other account-scoped
  * cache/store so nothing from the previous account leaks into the new one.
- * @param {string} userId
- * @param {{navigate?: (path: string) => void, redirectTo?: string}} [options] - redirectTo
- *   overrides the landing route, e.g. a freshly signed-up second account goes to
- *   /onboarding rather than straight to the dashboard.
  */
-export async function switchToAccount(userId, { navigate, redirectTo = "/dashboard" } = {}) {
+export async function switchToAccount(
+  userId: string,
+  { navigate, redirectTo = "/dashboard" }: SwitchOptions = {}
+): Promise<void> {
   disconnectSocket()
   clearAccountScopedState()
 
@@ -70,9 +81,13 @@ export async function switchToAccount(userId, { navigate, redirectTo = "/dashboa
  * Removes the current session and, if any others remain, switches to the next one.
  * If none remain, the caller (useAuthStore.logoutUser) falls back to redirecting to
  * /login itself.
- * @returns {string | null} the next active userId, or null if no sessions remain
+ *
+ * @returns the next active userId, or null if no sessions remain
  */
-export async function switchToNextOrNull(removedUserId, { navigate } = {}) {
+export async function switchToNextOrNull(
+  removedUserId: string,
+  { navigate }: { navigate?: NavigateFn } = {}
+): Promise<string | null> {
   const nextUserId = sessionStore.removeSession(removedUserId)
   disconnectSocket()
   clearAccountScopedState()

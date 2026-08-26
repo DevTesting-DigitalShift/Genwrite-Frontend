@@ -321,7 +321,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             </p>
           </div>
         ),
-        okText: "Buy Credits",
+        confirmText: "Buy Credits",
         onConfirm: () => {
           navigate("/pricing")
           handleClose()

@@ -1,8 +1,27 @@
+import { connectGsc, getGscAnalytics, getGscAuthUrl, getVerifiedSites } from "@/api/gscApi"
+import { apiErrorMessage } from "@/types/api"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import { getVerifiedSites, getGscAnalytics, connectGsc, getGscAuthUrl } from "@/api/gscApi"
 
-const useGscStore = create(
+interface GscState {
+  verifiedSites: unknown[]
+  analyticsData: unknown[]
+  gscAuthUrl: string | null
+  loading: boolean
+  error: string | null
+
+  clearAnalytics: () => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  reset: () => void
+
+  fetchVerifiedSites: () => Promise<unknown>
+  fetchGscAnalytics: (params: Record<string, unknown>) => Promise<unknown>
+  connectGscAccount: (args: { code: string; state?: string }) => Promise<unknown>
+  fetchGscAuthUrl: () => Promise<unknown>
+}
+
+const useGscStore = create<GscState>()(
   devtools(
     (set) => ({
       verifiedSites: [],
@@ -34,8 +53,7 @@ const useGscStore = create(
           set({ verifiedSites: data || [], loading: false })
           return data
         } catch (error) {
-          const errMsg = error?.message || error?.response?.data || "Failed to fetch verified sites"
-          set({ error: errMsg, loading: false })
+          set({ error: apiErrorMessage(error, "Failed to fetch verified sites"), loading: false })
           throw error
         }
       },
@@ -47,8 +65,7 @@ const useGscStore = create(
           set({ analyticsData: data || [], loading: false })
           return data
         } catch (error) {
-          const errMsg = error?.message || error?.response?.data || "Failed to fetch GSC analytics"
-          set({ error: errMsg, loading: false })
+          set({ error: apiErrorMessage(error, "Failed to fetch GSC analytics"), loading: false })
           throw error
         }
       },
@@ -60,8 +77,7 @@ const useGscStore = create(
           set({ loading: false })
           return data
         } catch (error) {
-          const errMsg = error?.message || error?.response?.data || "Failed to connect GSC"
-          set({ error: errMsg, loading: false })
+          set({ error: apiErrorMessage(error, "Failed to connect GSC"), loading: false })
           throw error
         }
       },
@@ -73,8 +89,7 @@ const useGscStore = create(
           set({ gscAuthUrl: url, loading: false })
           return url
         } catch (error) {
-          const errMsg = error?.message || error?.response?.data || "Failed to get auth URL"
-          set({ error: errMsg, loading: false })
+          set({ error: apiErrorMessage(error, "Failed to get auth URL"), loading: false })
           throw error
         }
       },

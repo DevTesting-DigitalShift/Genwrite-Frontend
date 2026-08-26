@@ -1,13 +1,22 @@
-import { useMemo, useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
+
+/** A debounced callback, with a `cancel()` for dropping any pending invocation. */
+export type DebouncedFn<Args extends unknown[]> = ((...args: Args) => void) & {
+  cancel: () => void
+}
 
 /**
- * A hook to create a debounced version of a callback function.
+ * Creates a debounced version of a callback. The returned function is stable for
+ * a given `delay`, and always invokes the most recent `callback` passed in — so
+ * it can be used in deps arrays without re-creating the timer on every render.
  *
- * @param {Function} callback - The function to debounce.
- * @param {number} delay - The delay in milliseconds.
- * @returns {Function} - The debounced function, exposing a `cancel()` method.
+ * @param callback - The function to debounce.
+ * @param delay - The delay in milliseconds.
  */
-const useDebounce = (callback, delay = 500) => {
+const useDebounce = <Args extends unknown[]>(
+  callback: (...args: Args) => void,
+  delay = 500
+): DebouncedFn<Args> => {
   const callbackRef = useRef(callback)
 
   // Update the ref to the latest callback on each render
@@ -16,9 +25,10 @@ const useDebounce = (callback, delay = 500) => {
   }, [callback])
 
   // Create the debounced function only once (or when delay changes)
-  const debouncedCallback = useMemo(() => {
-    let timeoutId
-    const debounced = (...args) => {
+  const debouncedCallback = useMemo<DebouncedFn<Args>>(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    const debounced = (...args: Args) => {
       clearTimeout(timeoutId)
       timeoutId = setTimeout(() => {
         callbackRef.current?.(...args)
