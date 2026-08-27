@@ -132,39 +132,6 @@ const PluginsMain = () => {
     const [wpPassword, setWpPassword] = useState("")
     const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
 
-    // Shopify / Wix state — hooks must be called unconditionally even though this data
-    // is only meaningful for plugin.id 113/114 (rules-of-hooks: this component instance
-    // is re-rendered with different plugin.id values across tab switches, so a
-    // conditional hook here crashes the tab switch with "Rendered more/fewer hooks").
-    const isShopify = plugin.id === 113
-    const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
-    const [domain, setDomain] = useState(savedDomain ?? "")
-    const [isValidDomain, setIsValidDomain] = useState(true)
-    const installWindowRef = useRef(null)
-    const pollTimerRef = useRef(null)
-
-    const validateDomain = (val) => {
-      if (!val) return false
-      if (isShopify) {
-        try {
-          const normalized = val.startsWith("http") ? new URL(val).hostname : val
-          return /^[\w-]+\.myshopify\.com$/i.test(normalized)
-        } catch {
-          return false
-        }
-      }
-      try {
-        new URL(val.startsWith("http") ? val : `https://${val}`)
-        return true
-      } catch {
-        return false
-      }
-    }
-
-    useEffect(() => {
-      setIsValidDomain(validateDomain(domain))
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [domain])
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     // Shopify / Wix domain state — hooks must be called unconditionally even though

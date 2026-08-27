@@ -4,7 +4,6 @@ import { Helmet } from "react-helmet"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
-  ArrowLeft,
   Calendar,
   ChevronRight,
   FileStack,
