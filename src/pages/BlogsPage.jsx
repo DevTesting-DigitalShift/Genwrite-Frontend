@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import BlogCard from "../components/Blog/BlogCard"
 import {
@@ -60,6 +60,10 @@ const BlogsPage = () => {
   // viewed, so switching into/out of a shared workspace doesn't reuse the invitee's
   // own stale filters or React Query cache.
   const scopeKey = activeWorkspace?.id || userId
+  // Identifies one view's worth of blogs: the account being viewed, plus which of the
+  // two lists this component is rendering. Matches how the filters are keyed in
+  // sessionStorage, so anything scoped per-view can key off this one value.
+  const filterScope = `${scopeKey}:${isTrashcan ? "trash" : "active"}`
   const { handleProAction } = useProAction()
   const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
@@ -233,12 +237,22 @@ const BlogsPage = () => {
     [user, activeWorkspace]
   )
 
+  // Both hold the scope they last widened for, rather than a bare flag, so switching
+  // workspace or hopping to the trashcan re-arms this for that view's own blogs.
+  const widenedScopeRef = useRef(null)
+  const [widenedScope, setWidenedScope] = useState(null)
+  const didWiden = widenedScope === filterScope
+
   const resetFilters = useCallback(() => {
     const freshStart = { ...initialBlogFilter, start: defaultFilterStart }
     setBlogFilters(freshStart)
     setTempGscClicks(null)
     setTempGscImpressions(null)
     sessionStorage.removeItem(`user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`)
+    // Back on the defaults, so the auto-widen below is allowed to fire again rather
+    // than stranding the user in the same empty date window they just cleared out of.
+    widenedScopeRef.current = null
+    setWidenedScope(null)
     toast.success("Filters reset to basics")
   }, [defaultFilterStart, isTrashcan, scopeKey, initialBlogFilter])
 
@@ -257,6 +271,36 @@ const BlogsPage = () => {
     })
     return hasActiveDates || isOtherChanged
   }, [blogFilters, hasActiveDates, initialBlogFilter])
+
+  // A fresh visit lands on the "Last 7 days" preset, so anyone whose newest blog is
+  // older than that gets an empty page — which reads as "my blogs are gone", not as
+  // "nothing matched". When the untouched default window comes back empty, widen it
+  // once to the whole history: every status, newest first, no date bounds. A filter
+  // the user actually chose is left alone — an empty result there is an answer.
+  useEffect(() => {
+    if (widenedScopeRef.current === filterScope) return
+    if (!user || isLoading || isRefetching || isFetchingNextPage) return
+    if (allBlogs.length > 0 || hasActiveFilters) return
+
+    widenedScopeRef.current = filterScope
+    setWidenedScope(filterScope)
+    updateBlogFilters({
+      start: "",
+      end: "",
+      status: BLOG_STATUS.ALL,
+      sort: "createdAt:desc",
+    })
+    toast.info("No blogs in the default date range — showing all of them instead.")
+  }, [
+    filterScope,
+    user,
+    isLoading,
+    isRefetching,
+    isFetchingNextPage,
+    allBlogs.length,
+    hasActiveFilters,
+    updateBlogFilters,
+  ])
 
   useEffect(() => {
     const socket = getSocket()
@@ -754,17 +798,25 @@ const BlogsPage = () => {
               alt="No blogs found"
               className="w-36 h-36 mb-4 object-contain opacity-80"
             />
-            <h3 className="text-xl font-bold text-slate-600">No blogs found</h3>
+            <h3 className="text-xl font-bold text-slate-600">
+              {didWiden ? "No blogs yet" : "No blogs found"}
+            </h3>
             <p className="text-slate-400 mt-2 text-sm">
-              Try adjusting your filters or search terms.
+              {didWiden
+                ? `Nothing here across every date and status${isTrashcan ? "" : " — create your first blog to get started."}`
+                : "Try adjusting your filters or search terms."}
             </p>
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-            >
-              Clear all filters
-            </button>
+            {/* Hidden once the range has already been widened to everything: resetting
+                would only put the user back inside the empty default window. */}
+            {!didWiden && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+              >
+                Clear all filters
+              </button>
+            )}
           </motion.div>
         ) : (
           <div>

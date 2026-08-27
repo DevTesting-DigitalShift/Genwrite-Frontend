@@ -43,10 +43,16 @@ export interface CampaignAutomation {
   maxAutoActionsPerWeek: number
 }
 
-/** Minimal shape needed to render a blog in a picker/list — not the full Blog record. */
+/** Minimal shape needed to render a blog in a picker/list — not the full Blog record.
+ * `platforms`/`postedOn` come from the blog's postings and are what make a blog
+ * eligible for a campaign at all, so the picker shows them alongside the title. */
 export interface CampaignBlogRef {
   _id: string
   title: string
+  /** Integration types the blog is live on, e.g. ["WORDPRESS"]. */
+  platforms?: string[]
+  /** When it was first published, ISO. */
+  postedOn?: string
 }
 
 export interface Campaign {

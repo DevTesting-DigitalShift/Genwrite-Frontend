@@ -11,6 +11,7 @@ import {
   getGeneratedTitles,
   getBlogStatus,
   getBlogs,
+  getAllBlogPostings,
   getBlogStatsById,
   toggleBlogVisibility,
   analyzeBlogPerformance,
@@ -28,6 +29,42 @@ export const useBlogsQuery = (params) => {
 
 export const useAllBlogsQuery = () => {
   return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
+}
+
+/**
+ * The blogs that are actually live somewhere, one entry per blog rather than one per
+ * posting — a blog published to two platforms comes back from /blogs/postings twice.
+ * Anything that reads Search Console performance (campaigns, most of all) can only
+ * work with these, since an unpublished blog has no URL for GSC to report on.
+ */
+export const usePostedBlogsQuery = () => {
+  return useQuery({
+    queryKey: ["postedBlogs"],
+    queryFn: () => getAllBlogPostings(),
+    select: (postings) => {
+      const byBlogId = new Map()
+      for (const posting of postings ?? []) {
+        // `blogId` is populated server-side, but falls back to a bare id string if
+        // the blog was deleted after it was posted — skip those, they can't be shown.
+        const blog = posting?.blogId
+        if (!blog || typeof blog !== "object" || !blog._id) continue
+        const existing = byBlogId.get(blog._id)
+        if (existing) {
+          if (posting.integrationType && !existing.platforms.includes(posting.integrationType)) {
+            existing.platforms.push(posting.integrationType)
+          }
+          continue
+        }
+        byBlogId.set(blog._id, {
+          _id: blog._id,
+          title: blog.title || "Untitled blog",
+          postedOn: posting.postedOn,
+          platforms: [posting.integrationType].filter(Boolean),
+        })
+      }
+      return [...byBlogId.values()]
+    },
+  })
 }
 
 export const useBlogDetailsQuery = (id) => {

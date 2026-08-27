@@ -119,6 +119,12 @@ const Dashboard = () => {
 
   const recentBlogs = blogsArray.filter((b) => b.status === "complete" && !b.isArchived).slice(0, 4)
 
+  // Recent cards must open where My Blogs opens them: the AI editor for generated
+  // posts, the manual editor for hand-written ones. /blog/:id is the public reader
+  // and reports the blog as missing unless it has been shared publicly.
+  const openBlog = (blog) =>
+    navigate(blog.isManuallyEdited === true ? `/blog-editor/${blog._id}` : `/editor/${blog._id}`)
+
   const stats = blogStatus?.stats || {}
   const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
 
@@ -540,57 +546,45 @@ const Dashboard = () => {
         {/* --- Recent Successful Blogs (Footer) --- */}
         {recentBlogs.length > 0 && (
           <motion.div variants={itemVariants}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                Recent Creations
-              </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Recent Creations</h2>
               <button
                 type="button"
-                onClick={() => navigate("/all-blogs")}
-                className="text-sm text-primary hover:text-primary/80 font-bold"
+                onClick={() => navigate("/blogs")}
+                className="text-sm text-primary hover:text-primary/80 font-semibold flex items-center gap-1"
               >
                 View All
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="gap-6">
-              {recentBlogs.slice(0, 4).map((blog) => (
-                <motion.div
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+              {recentBlogs.map((blog) => (
+                <button
                   key={blog._id}
-                  onClick={() => navigate(`/blog/${blog._id}`)}
-                  className="group bg-white rounded-xl border border-gray-200 shadow-none hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
+                  type="button"
+                  onClick={() => openBlog(blog)}
+                  className="group w-full text-left flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
-                  <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${blog.aiModel?.includes("gpt") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
-                        >
-                          {blog.aiModel || "AI"}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-400">
-                        {dayjs(blog.createdAt).fromNow(true)} ago
-                      </span>
-                    </div>
+                  <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <FileText className="w-4 h-4" />
+                  </div>
 
-                    <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-3 leading-snug">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-primary transition-colors">
                       {blog.title || "Untitled Blog"}
                     </h4>
-
-                    {blog.shortContent && (
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-4 leading-relaxed">
-                        {blog.shortContent}
-                      </p>
-                    )}
-
-                    <div className="mt-auto flex items-center justify-end pt-4">
-                      <span className="text-xs text-gray-400 font-medium group-hover:translate-x-1 transition-transform">
-                        Read &rarr;
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                      <span className="uppercase font-semibold tracking-wide text-gray-500">
+                        {blog.aiModel || "AI"}
                       </span>
+                      <span>&middot;</span>
+                      <span>{dayjs(blog.createdAt).fromNow()}</span>
                     </div>
                   </div>
-                </motion.div>
+
+                  <ChevronRight className="w-4 h-4 shrink-0 text-gray-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </button>
               ))}
             </div>
           </motion.div>

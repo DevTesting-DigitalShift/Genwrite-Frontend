@@ -2,6 +2,7 @@ import type { ChangeEvent, ComponentType } from "react"
 import type { Control, FieldPath, FieldValues } from "react-hook-form"
 import { Controller } from "react-hook-form"
 import { Search } from "lucide-react"
+import dayjs from "dayjs"
 import { Input } from "@components/ui/input"
 import { Checkbox as CheckboxUntyped } from "@components/ui/checkbox"
 import { Label } from "@components/ui/label"
@@ -18,6 +19,17 @@ const Checkbox = CheckboxUntyped as ComponentType<{
   className?: string
 }>
 
+const PLATFORM_LABELS: Record<string, string> = {
+  WORDPRESS: "WordPress",
+  SHOPIFY: "Shopify",
+  WIX: "Wix",
+  WEBFLOW: "Webflow",
+  SANITY: "Sanity",
+  MEDIUM: "Medium",
+}
+
+const platformLabel = (platform: string) => PLATFORM_LABELS[platform] ?? platform
+
 interface BlogMultiSelectFieldProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>
   name: FieldPath<TFieldValues>
@@ -27,7 +39,7 @@ interface BlogMultiSelectFieldProps<TFieldValues extends FieldValues> {
   onSearchChange: (value: string) => void
 }
 
-/** Checkbox list of blogs to assign to a campaign, filterable by title. */
+/** Checkbox list of published blogs to assign to a campaign, filterable by title. */
 export function BlogMultiSelectField<TFieldValues extends FieldValues>({
   control,
   name,
@@ -58,7 +70,8 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
         return (
           <FieldShell
             label="Blogs"
-            description="Blogs whose GSC performance counts toward this campaign's targets."
+            required
+            description="Only published blogs are listed — a campaign scores Search Console performance, and an unpublished blog has no URL to report on."
             error={fieldState.error?.message}
           >
             <div className="space-y-2">
@@ -68,7 +81,7 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
                   <Input
                     value={search}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
-                    placeholder="Search blogs by title…"
+                    placeholder="Search published blogs by title…"
                     className="h-8 pl-7 text-sm"
                   />
                 </div>
@@ -77,19 +90,28 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
                 </span>
               </div>
 
-              <div className="max-h-48 overflow-y-auto overflow-x-hidden rounded-md border border-input p-1">
-                {isLoading && (
-                  <p className="p-3 text-sm text-muted-foreground">Loading blogs…</p>
+              {/* No max-height here on purpose: the dialog body is the one scroll
+                  container, so a second one nested inside it would leave the user
+                  with two scrollbars fighting over the same list. */}
+              <div className="space-y-0.5 overflow-x-hidden">
+                {isLoading && <p className="p-3 text-sm text-muted-foreground">Loading blogs…</p>}
+                {!isLoading && blogs.length === 0 && (
+                  <p className="p-3 text-sm text-muted-foreground">
+                    No published blogs yet. Publish a blog to WordPress, Shopify, or another
+                    connected platform first — then it can be tracked in a campaign.
+                  </p>
                 )}
-                {!isLoading && filtered.length === 0 && (
-                  <p className="p-3 text-sm text-muted-foreground">No blogs found.</p>
+                {!isLoading && blogs.length > 0 && filtered.length === 0 && (
+                  <p className="p-3 text-sm text-muted-foreground">
+                    No published blog matches “{search.trim()}”.
+                  </p>
                 )}
                 {filtered.map((blog) => (
                   <label
                     key={blog._id}
                     htmlFor={`blog-${blog._id}`}
                     className={cn(
-                      "flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors",
+                      "flex min-w-0 cursor-pointer items-center gap-3 rounded-md px-2.5 py-2.5 text-sm transition-colors",
                       selected.includes(blog._id)
                         ? "bg-primary/10 text-primary"
                         : "hover:bg-primary/5"
@@ -107,6 +129,16 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
                     >
                       {blog.title || "Untitled blog"}
                     </Label>
+                    {/* pl-4 on top of the row gap: the title truncates right up to
+                        this column, and an ellipsis butted against the date reads as
+                        one run-on string. */}
+                    {(blog.platforms?.length || blog.postedOn) && (
+                      <span className="shrink-0 whitespace-nowrap pl-4 text-xs text-muted-foreground">
+                        {blog.platforms?.map(platformLabel).join(", ")}
+                        {blog.platforms?.length && blog.postedOn ? " · " : ""}
+                        {blog.postedOn ? dayjs(blog.postedOn).format("D MMM YYYY") : ""}
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>

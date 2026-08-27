@@ -291,6 +291,22 @@ export const getBlogPostings = async (blogId) => {
   }
 }
 
+/**
+ * Get every posting the user has made, across all blogs and platforms. Each entry
+ * carries its blog populated as `{ _id, title, status }`, which makes this the only
+ * list endpoint that can answer "which blogs are actually published?" — /blogs/all
+ * returns ids and titles with no posting information at all.
+ * @returns {Promise<Array>} Array of posting objects
+ */
+export const getAllBlogPostings = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get("/blogs/postings", { params })
+    return response.data.postings || []
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+  }
+}
+
 export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}/export`, {
