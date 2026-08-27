@@ -119,6 +119,13 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       const findIndex = indices.indexOf(id)
       if (findIndex === -1) {
         if (indices.length >= numberOfSelection) {
+          if (numberOfSelection === 1) {
+            // Single-select mode: swap the selection instead of erroring.
+            indices = [id]
+            setLocalError(null)
+            setSelectedIds(indices)
+            return
+          }
           setLocalError(`You can select a maximum of ${numberOfSelection} templates.`)
           return
         }

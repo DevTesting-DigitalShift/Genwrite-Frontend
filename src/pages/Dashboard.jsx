@@ -108,7 +108,11 @@ const Dashboard = () => {
   // Fetch Recent Successful Blogs
   const { data: recentBlogsData } = useQuery({
     queryKey: ["recentBlogs", activeWorkspace?.id],
-    queryFn: () => getAllBlogs({ limit: 20, sort: "createdAt:desc" }), // Fetch more to ensure we find successful ones
+    queryFn: () => {
+      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      // Fetch more than we need (limit: 20) to ensure we find enough "complete" ones
+      return getAllBlogs({ limit: 20, sort: "createdAt:desc", start })
+    },
     enabled: !!user,
   })
 
