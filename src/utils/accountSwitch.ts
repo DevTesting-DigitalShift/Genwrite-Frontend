@@ -1,3 +1,4 @@
+import type { NavigateFunction } from "react-router-dom"
 import useAnalysisStore from "@store/useAnalysisStore"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
@@ -25,8 +26,8 @@ const ACCOUNT_SCOPED_STORES = [
   useImageStore,
 ]
 
-/** Navigate function accepted by the switch helpers (react-router's `useNavigate`). */
-type NavigateFn = (path: string | number, options?: { replace?: boolean }) => void
+/** react-router's `useNavigate` return value. */
+type NavigateFn = NavigateFunction
 
 /** Full teardown for "signing out of everything" — no account remains to switch into. */
 export function clearAllAccountState(): void {

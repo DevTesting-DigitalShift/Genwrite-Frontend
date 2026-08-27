@@ -1,3 +1,5 @@
+import { asApiError } from "@/types/api"
+import type { GalleryImage } from "@store/useImageStore"
 import { useState, useEffect, useCallback } from "react"
 import { Image as ImageIcon, Check } from "lucide-react"
 import { getImages, searchImages } from "@api/imageGalleryApi"
@@ -36,10 +38,16 @@ const SkeletonGrid = ({ count = 12 }) => {
   )
 }
 
-const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
-  const [images, setImages] = useState([])
+const ImageGalleryPicker = ({
+  onSelect,
+  selectedImageUrl,
+}: {
+  onSelect?: (url: string, alt: string) => void
+  selectedImageUrl?: string
+}) => {
+  const [images, setImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(20)
   const [hasMore, setHasMore] = useState(true)
@@ -57,7 +65,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
       try {
         const params = { page, limit: pageSize }
 
-        let response
+        let response: Awaited<ReturnType<typeof getImages>>
         if (searchQuery.trim()) {
           response = await searchImages({ ...params, q: searchQuery })
         } else {
@@ -75,7 +83,8 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
 
         // Check if there are more pages
         setHasMore(pagination.page < pagination.totalPages)
-      } catch (error) {
+      } catch (rawError) {
+    const error = asApiError(rawError)
         console.error("Error fetching images:", error)
         toast.error("Failed to load images")
       } finally {
@@ -93,9 +102,9 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
     fetchImages(1, false)
   }, [fetchImages])
 
-  const handleImageClick = (image) => {
+  const handleImageClick = (image: GalleryImage) => {
     if (onSelect) {
-      onSelect(image.url, image.description || "")
+      onSelect(image.url ?? "", String(image.description ?? ""))
     }
   }
 
@@ -107,7 +116,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
@@ -147,12 +156,12 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
           ) : (
             <>
               <div className="columns-1 md:columns-2 lg:columns-3 gap-3 md:gap-4 space-y-3 md:space-y-4">
-                {images.map((image) => (
+                {images.map((image: GalleryImage) => (
                   <button
                     type="button"
                     key={image._id}
                     aria-pressed={selectedImageUrl === image.url}
-                    aria-label={image.description || "Select image"}
+                    aria-label={String(image.description ?? "") || "Select image"}
                     className={`break-inside-avoid relative group block w-full rounded-lg md:rounded-xl overflow-hidden cursor-pointer bg-gray-100 transition-all ${
                       selectedImageUrl === image.url
                         ? "ring-4 ring-blue-500 ring-offset-2"

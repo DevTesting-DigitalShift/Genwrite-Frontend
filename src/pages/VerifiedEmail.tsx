@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useEffect, useState, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
@@ -12,12 +13,12 @@ const VerifiedEmail = () => {
   const hasVerified = useRef(false)
   const { mutate: verifyEmail, isPending, isError, error, isSuccess, data } = useVerifyEmail()
 
-  const [errorMessage, setErrorMessage] = useState("")
+  const [errorMessage, setErrorMessage] = useState<string>("")
 
   // Update error message when mutation fails
   useEffect(() => {
     if (error) {
-      setErrorMessage(error.response?.data?.message || error.message || "Verification failed")
+      setErrorMessage(apiErrorMessage(error, "Verification failed"))
     }
   }, [error])
 

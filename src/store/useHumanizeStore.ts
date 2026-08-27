@@ -1,7 +1,7 @@
 import { create } from "zustand"
 
 interface HumanizeState {
-  result: unknown | null
+  result: any | null
   setResult: (result: unknown) => void
   resetHumanizeState: () => void
 }

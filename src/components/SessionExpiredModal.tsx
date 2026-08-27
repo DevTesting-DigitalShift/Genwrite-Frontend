@@ -19,10 +19,11 @@ import { switchToAccount } from "@utils/accountSwitch"
  */
 const SessionExpiredModal = () => {
   const navigate = useNavigate()
-  const [expiredEmail, setExpiredEmail] = useState(null)
+  const [expiredEmail, setExpiredEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const handler = (event) => setExpiredEmail(event.detail?.email || "your account")
+    const handler = (event: Event) =>
+      setExpiredEmail((event as CustomEvent<{ email?: string }>).detail?.email || "your account")
     window.addEventListener(sessionStore.SESSION_EXPIRED_EVENT, handler)
     return () => window.removeEventListener(sessionStore.SESSION_EXPIRED_EVENT, handler)
   }, [])
@@ -36,13 +37,13 @@ const SessionExpiredModal = () => {
     navigate("/login?mode=add-account")
   }
 
-  const handleSwitch = async (userId) => {
+  const handleSwitch = async (userId: string) => {
     setExpiredEmail(null)
     await switchToAccount(userId, { navigate })
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && setExpiredEmail(null)}>
+    <Dialog open onOpenChange={(open: boolean) => !open && setExpiredEmail(null)}>
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">

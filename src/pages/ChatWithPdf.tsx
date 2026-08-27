@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,13 +27,22 @@ import { toast } from "sonner"
 const ChatWithPdf = () => {
   const { pdfChat, resetPdfChat } = useToolsStore()
   const { cacheKey } = pdfChat
-  const { mutateAsync: sendMessage, isLoading: loading } = usePdfChatMutation()
+  const { mutateAsync: sendMessage, isPending: loading } = usePdfChatMutation()
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
-  const [file, setFile] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [messages, setMessages] = useState([
+  const [file, setFile] = useState<any>(null)
+  const [isDragging, setIsDragging] = useState<any>(false)
+  const [messages, setMessages] = useState<
+    Array<{
+      id: number
+      role: string
+      content: string
+      timestamp: Date
+      isError?: boolean
+      failedQuestion?: string
+    }>
+  >([
     {
       id: 1,
       role: "model",
@@ -43,8 +53,8 @@ const ChatWithPdf = () => {
   ])
   const location = useLocation()
   const [input, setInput] = useState(location.state?.transferValue || "")
-  const messagesEndRef = useRef(null)
-  const fileInputRef = useRef(null)
+  const messagesEndRef = useRef<any>(null)
+  const fileInputRef = useRef<any>(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -54,7 +64,7 @@ const ChatWithPdf = () => {
     scrollToBottom()
   }, [scrollToBottom])
 
-  const processFile = (uploadedFile) => {
+  const processFile = (uploadedFile: any) => {
     if (!uploadedFile) return
 
     if (uploadedFile.type !== "application/pdf") {
@@ -82,22 +92,22 @@ const ChatWithPdf = () => {
     ])
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: any) => {
     const uploadedFile = e.target.files[0]
     processFile(uploadedFile)
   }
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: any) => {
     e.preventDefault()
     setIsDragging(true)
   }
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = (e: any) => {
     e.preventDefault()
     setIsDragging(false)
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: any) => {
     e.preventDefault()
     setIsDragging(false)
     const uploadedFile = e.dataTransfer.files[0]
@@ -130,7 +140,7 @@ const ChatWithPdf = () => {
     setInput("")
 
     try {
-      let payload
+      let payload: any
       if (!cacheKey) {
         const formData = new FormData()
         formData.append("file", file)
@@ -149,7 +159,8 @@ const ChatWithPdf = () => {
         ...prev,
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
       ])
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       // Surface the reason in the thread too - a toast disappears before the user
       // can read why their question went unanswered.
       const message = getFriendlyError(err, "pdfChat")
@@ -168,7 +179,7 @@ const ChatWithPdf = () => {
     }
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: any) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -399,8 +410,9 @@ const ChatWithPdf = () => {
                       placeholder="Ask a question about your document..."
                       rows={1}
                       onInput={(e) => {
-                        e.target.style.height = "auto"
-                        e.target.style.height = e.target.scrollHeight + "px"
+                        const ta = e.target as HTMLTextAreaElement
+                        ta.style.height = "auto"
+                        ta.style.height = `${ta.scrollHeight}px`
                       }}
                       disabled={loading}
                       className="w-full pr-14 pl-5 py-4 rounded-2xl bg-slate-100 border border-slate-200 

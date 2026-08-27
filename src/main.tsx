@@ -20,7 +20,10 @@ if ("serviceWorker" in navigator) {
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root")
+if (!rootElement) throw new Error("Root element #root not found")
+
+ReactDOM.createRoot(rootElement).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <QueryProvider>
       <RouterProvider router={router} />

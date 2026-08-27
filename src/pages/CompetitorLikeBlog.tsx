@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import {
@@ -30,9 +31,8 @@ const CompetitorLikeBlog = () => {
   const {
     mutate: generateContent,
     isPending,
-    isLoading: isMutationLoading,
   } = useCompetitorLikeBlogMutation()
-  const isLoading = isPending || isMutationLoading
+  const isLoading = isPending
 
   // Cleanup on unmount
   useEffect(() => {
@@ -41,7 +41,7 @@ const CompetitorLikeBlog = () => {
     }
   }, [resetCompetitorLikeBlog])
 
-  const isValidUrl = (str) => {
+  const isValidUrl = (str: string) => {
     try {
       new URL(str)
       return true
@@ -78,13 +78,13 @@ const CompetitorLikeBlog = () => {
         toast.success("Content generated successfully!")
       },
       onError: (err) => {
-        toast.error(err?.toast || "Failed to generate content. Please try again.")
+        toast.error(apiErrorMessage(err, "Failed to generate content. Please try again."))
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async (content) => {
+  const handleCopy = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
@@ -105,7 +105,7 @@ const CompetitorLikeBlog = () => {
 
   // Custom timer logic for loading progress
   useEffect(() => {
-    let interval
+    let interval: ReturnType<typeof setInterval> | undefined
     if (isLoading) {
       setTimer(1)
       const specificPoints = [2, 3, 4, 10, 25, 30]
@@ -362,8 +362,8 @@ const CompetitorLikeBlog = () => {
                         {...props}
                       />
                     ),
-                    code: ({ node, inline, ...props }) =>
-                      inline ? (
+                    code: ({ node, ...props }: any) =>
+                      node?.position?.start?.line === node?.position?.end?.line ? (
                         <code
                           className="bg-gray-200 text-pink-600 px-1.5 py-0.5 rounded text-sm font-mono"
                           {...props}

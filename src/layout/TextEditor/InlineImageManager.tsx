@@ -2,14 +2,14 @@ import { useState, useEffect } from "react"
 import { Trash2, Image as ImageIcon, Check, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 
-export const parseImagesFromHtml = (html) => {
+export const parseImagesFromHtml = (html: string) => {
   if (!html) return []
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, "text/html")
   const imgElements = doc.querySelectorAll("img")
 
-  const images = []
+  const images: Array<Record<string, any>> = []
   imgElements.forEach((img, index) => {
     images.push({
       id: `img-${index}-${Date.now()}`,
@@ -23,7 +23,7 @@ export const parseImagesFromHtml = (html) => {
   return images
 }
 
-export const replaceImageInHtml = (html, imageIndex, newImageData) => {
+export const replaceImageInHtml = (html: string, imageIndex: number, newImageData: any) => {
   if (!html) return html
 
   const parser = new DOMParser()
@@ -39,7 +39,7 @@ export const replaceImageInHtml = (html, imageIndex, newImageData) => {
   return doc.body.innerHTML
 }
 
-export const deleteImageFromHtml = (html, imageIndex) => {
+export const deleteImageFromHtml = (html: string, imageIndex: number) => {
   if (!html) return html
 
   const parser = new DOMParser()
@@ -53,7 +53,7 @@ export const deleteImageFromHtml = (html, imageIndex) => {
   return doc.body.innerHTML
 }
 
-export const reorderImagesInHtml = (html, newOrder) => {
+export const reorderImagesInHtml = (html: string, newOrder: any) => {
   if (!html || !newOrder || newOrder.length === 0) return html
 
   const parser = new DOMParser()
@@ -64,7 +64,7 @@ export const reorderImagesInHtml = (html, newOrder) => {
 
   // Create a map of old positions to new positions
   const reorderedImages = newOrder
-    .map((item) => {
+    .map((item: any) => {
       const originalImg = imgElements[item.originalIndex]
       return originalImg ? originalImg.cloneNode(true) : null
     })
@@ -80,14 +80,14 @@ export const reorderImagesInHtml = (html, newOrder) => {
   return doc.body.innerHTML
 }
 
-export const moveImageInHtml = (html, imageIndex, direction) => {
+export const moveImageInHtml = (html: string, imageIndex: number, direction: any) => {
   if (!html) return html
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, "text/html")
   const imgElements = Array.from(doc.querySelectorAll("img"))
 
-  const targetIndex = direction === "up" ? imageIndex - 1 : imageIndex + 1
+  const targetIndex = direction === "up" ? imageIndex - 1 : (imageIndex ?? 0) + 1
 
   if (targetIndex < 0 || targetIndex >= imgElements.length) return html
 
@@ -108,7 +108,23 @@ export const moveImageInHtml = (html, imageIndex, direction) => {
   return doc.body.innerHTML
 }
 
-const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, onMove }) => {
+interface InlineImageCardProps {
+  image?: any
+  imageIndex?: number
+  totalImages?: any
+  onUpdate?: (...args: any[]) => void
+  onDelete?: (...args: any[]) => void
+  onMove?: (...args: any[]) => void
+}
+
+const InlineImageCard = ({
+  image,
+  imageIndex,
+  totalImages,
+  onUpdate,
+  onDelete,
+  onMove,
+}: InlineImageCardProps) => {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [altText, setAltText] = useState(image.alt || "")
   const [imageUrl, setImageUrl] = useState(image.src || "")
@@ -117,31 +133,31 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
   const isLast = imageIndex === totalImages - 1
 
   const handleSaveChanges = () => {
-    const updates = {}
+    const updates: { alt?: string; src?: string } = {}
     if (altText !== image.alt) updates.alt = altText
     if (imageUrl !== image.src) updates.src = imageUrl
 
     if (Object.keys(updates).length > 0) {
-      onUpdate(imageIndex, updates)
+      onUpdate?.(imageIndex, updates)
       toast.success("Image updated successfully")
     }
     setEditModalOpen(false)
   }
 
   const handleDelete = () => {
-    onDelete(imageIndex)
+    onDelete?.(imageIndex)
     setEditModalOpen(false)
     toast.success("Image deleted")
   }
 
   const handleMoveUp = () => {
-    onMove(imageIndex, "up")
+    onMove?.(imageIndex, "up")
     setEditModalOpen(false)
     toast.success("Image moved up")
   }
 
   const handleMoveDown = () => {
-    onMove(imageIndex, "down")
+    onMove?.(imageIndex, "down")
     setEditModalOpen(false)
     toast.success("Image moved down")
   }
@@ -151,7 +167,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
       <div className="relative group mb-4">
         <button
           type="button"
-          aria-label={`Edit image ${imageIndex + 1} of ${totalImages}`}
+          aria-label={`Edit image ${(imageIndex ?? 0) + 1} of ${totalImages}`}
           className="cursor-pointer relative block w-full"
           onClick={() => {
             setAltText(image.alt || "")
@@ -172,7 +188,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
           </span>
           {/* Image index badge */}
           <span className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
-            Image {imageIndex + 1} of {totalImages}
+            Image {(imageIndex ?? 0) + 1} of {totalImages}
           </span>
         </button>
       </div>
@@ -183,7 +199,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
           <div className="modal-box max-w-2xl">
             <h3 className="flex items-center gap-2 font-bold text-lg mb-4">
               <ImageIcon className="w-5 h-5 text-purple-600" />
-              <span>Edit Image {imageIndex + 1}</span>
+              <span>Edit Image {(imageIndex ?? 0) + 1}</span>
             </h3>
 
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
@@ -195,7 +211,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   className="max-w-full h-auto rounded-lg object-contain"
                   style={{ maxHeight: "200px" }}
                   onError={(e) => {
-                    e.target.src = image.src // Fallback to original if new URL fails
+                    (e.target as HTMLImageElement).src = image.src // Fallback to original if new URL fails
                   }}
                 />
               </div>
@@ -241,7 +257,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-gray-600 mb-1">Position</p>
                 <p className="text-sm text-blue-700 font-medium">
-                  Image {imageIndex + 1} of {totalImages} in this section
+                  Image {(imageIndex ?? 0) + 1} of {totalImages} in this section
                 </p>
               </div>
             </div>
@@ -301,27 +317,32 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
   )
 }
 
-export const InlineImageManager = ({ sectionContent, onContentChange }) => {
-  const [images, setImages] = useState([])
+export interface InlineImageManagerProps {
+  sectionContent?: any
+  onContentChange?: (...args: any[]) => void
+}
+
+const InlineImageManager = ({ sectionContent, onContentChange }: InlineImageManagerProps) => {
+  const [images, setImages] = useState<any[]>([])
 
   useEffect(() => {
     const parsedImages = parseImagesFromHtml(sectionContent)
     setImages(parsedImages)
   }, [sectionContent])
 
-  const handleUpdateImage = (imageIndex, updates) => {
+  const handleUpdateImage = (imageIndex: number, updates: any) => {
     const updatedHtml = replaceImageInHtml(sectionContent, imageIndex, updates)
-    onContentChange(updatedHtml)
+    onContentChange?.(updatedHtml)
   }
 
-  const handleDeleteImage = (imageIndex) => {
+  const handleDeleteImage = (imageIndex: number) => {
     const updatedHtml = deleteImageFromHtml(sectionContent, imageIndex)
-    onContentChange(updatedHtml)
+    onContentChange?.(updatedHtml)
   }
 
-  const handleMoveImage = (imageIndex, direction) => {
+  const handleMoveImage = (imageIndex: number, direction: any) => {
     const updatedHtml = moveImageInHtml(sectionContent, imageIndex, direction)
-    onContentChange(updatedHtml)
+    onContentChange?.(updatedHtml)
   }
 
   if (images.length === 0) {

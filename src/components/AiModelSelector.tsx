@@ -17,6 +17,14 @@ const AiModelSelector = ({
   showCostCutter = false,
   error = "",
   label = "Select AI Model",
+}: {
+  value?: string
+  onChange?: (modelId: string) => void
+  costCutterValue?: boolean
+  onCostCutterChange?: (checked: boolean) => void
+  showCostCutter?: boolean
+  error?: string
+  label?: string
 }) => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -43,7 +51,7 @@ const AiModelSelector = ({
                   if (isRestricted) {
                     openUpgradePopup({ featureName: model.label, navigate })
                   } else {
-                    onChange(model.id)
+                    onChange?.(model.id)
                   }
                 }}
                 className={`

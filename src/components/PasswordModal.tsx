@@ -1,8 +1,16 @@
+import { asApiError } from "@/types/api"
 import { useState } from "react"
 import { toast } from "sonner"
 import { X, Lock, Eye, EyeOff } from "lucide-react"
 
-const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
+interface PasswordModalProps {
+  visible?: boolean
+  onClose?: (...args: any[]) => void
+  hasPassword?: boolean
+  onSubmit?: (...args: any[]) => void
+}
+
+const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }: PasswordModalProps) => {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     oldPassword: "",
@@ -14,7 +22,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const validatePassword = (value) => {
+  const validatePassword = (value: string) => {
     if (!value) {
       return "Password is required"
     }
@@ -65,11 +73,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
 
     try {
       setLoading(true)
-      await onSubmit(formData)
+      await onSubmit?.(formData)
 
       toast.success(hasPassword ? "Password changed successfully!" : "Password set successfully!")
       handleCancel()
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       toast.error(error.message || "Failed to update password")
     } finally {
       setLoading(false)
@@ -82,14 +91,14 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
     setShowOldPassword(false)
     setShowNewPassword(false)
     setShowConfirmPassword(false)
-    onClose()
+    onClose?.()
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
-    if (errors[name]) {
+    if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
@@ -142,11 +151,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                   onClick={() => setShowOldPassword(!showOldPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showOldPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
               {errors.oldPassword && (
@@ -177,11 +182,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {showNewPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {errors.newPassword && <p className="mt-1 text-sm text-error">{errors.newPassword}</p>}
@@ -215,11 +216,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {errors.confirmPassword && (

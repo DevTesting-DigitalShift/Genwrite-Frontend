@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { UserPlus, Eye, X, Inbox, Users } from "lucide-react"
@@ -31,11 +32,15 @@ const _ACCESS_SCOPE = [
   "Search Console analytics",
 ]
 
-const formatDate = value =>
+const formatDate = (value: string) =>
   new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
 
-const StatusPill = ({ status }) => {
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending
+interface StatusPillProps {
+  status?: string
+}
+
+const StatusPill = ({ status }: StatusPillProps) => {
+  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending
   return (
     <span
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset ${config.className}`}
@@ -45,19 +50,35 @@ const StatusPill = ({ status }) => {
   )
 }
 
-const Card = ({ className = "", children }) => (
+interface CardProps {
+  className?: string
+  children?: ReactNode
+}
+
+const Card = ({ className = "", children }: CardProps) => (
   <div className={`bg-white rounded-xl border border-slate-200/70 shadow-sm ${className}`}>
     {children}
   </div>
 )
 
-const Avatar = ({ src, fallback }) => (
+interface AvatarProps {
+  src?: string
+  fallback?: any
+}
+
+const Avatar = ({ src, fallback }: AvatarProps) => (
   <div className="w-9 h-9 shrink-0 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center overflow-hidden">
     {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : fallback}
   </div>
 )
 
-const EmptyState = ({ icon: Icon, title, hint }) => (
+interface EmptyStateProps {
+  icon?: any
+  title?: string
+  hint?: any
+}
+
+const EmptyState = ({ icon: Icon, title, hint }: EmptyStateProps) => (
   <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
     <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
       <Icon className="size-5" />
@@ -67,7 +88,12 @@ const EmptyState = ({ icon: Icon, title, hint }) => (
   </div>
 )
 
-const SeatMeter = ({ used, max }) => {
+interface SeatMeterProps {
+  used?: any
+  max?: any
+}
+
+const SeatMeter = ({ used, max }: SeatMeterProps) => {
   const pct = Math.min(100, (used / max) * 100)
   return (
     <div className="space-y-1.5">
@@ -88,11 +114,16 @@ const SeatMeter = ({ used, max }) => {
   )
 }
 
-const InvitePanel = ({ activeCount, atLimit }) => {
-  const [email, setEmail] = useState("")
+interface InvitePanelProps {
+  activeCount?: number
+  atLimit?: boolean
+}
+
+const InvitePanel = ({ activeCount, atLimit }: InvitePanelProps) => {
+  const [email, setEmail] = useState<string>("")
   const { mutate: createInvite, isPending } = useCreateInviteMutation()
 
-  const handleSubmit = e => {
+  const handleSubmit = (e: any) => {
     e.preventDefault()
     if (!email.trim()) return
     createInvite({ email: email.trim() }, { onSuccess: () => setEmail("") })
@@ -117,7 +148,7 @@ const InvitePanel = ({ activeCount, atLimit }) => {
             disabled={atLimit}
             placeholder="teammate@company.com"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e: any) => setEmail(e.target.value)}
             className="mt-1"
           />
         </div>
@@ -144,9 +175,9 @@ const InvitesSentTab = () => {
   const { mutate: revokeInvite } = useRevokeInviteMutation()
   const { handlePopup } = useConfirmPopup()
   const invites = data?.invites ?? []
-  const activeCount = invites.filter(i => i.status !== "revoked").length
+  const activeCount = invites.filter((i: { status?: string }) => i.status !== "revoked").length
 
-  const confirmRevoke = invite => {
+  const confirmRevoke = (invite: any) => {
     handlePopup({
       title: "Revoke invite?",
       description: `${invite.inviteeEmail} will lose access to your workspace immediately.`,
@@ -192,7 +223,7 @@ const InvitesSentTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invites.map(invite => (
+              {invites.map((invite: any) => (
                 <TableRow key={invite._id}>
                   <TableCell className="pl-5 py-3">
                     <div className="flex items-center gap-3">
@@ -240,7 +271,7 @@ const WorkspacesSharedWithMeTab = () => {
   const navigate = useNavigate()
   const workspaces = data?.watching ?? []
 
-  const handleView = access => {
+  const handleView = (access: any) => {
     switchToWorkspace({
       id: access.ownerId._id,
       name: access.ownerId.name,
@@ -274,7 +305,7 @@ const WorkspacesSharedWithMeTab = () => {
   // stacking down the left edge of an otherwise empty page.
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {workspaces.map(access => (
+      {workspaces.map((access: any) => (
         <Card
           key={access._id}
           className="p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"

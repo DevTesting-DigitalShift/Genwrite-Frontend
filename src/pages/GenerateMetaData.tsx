@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
@@ -9,7 +10,7 @@ import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ConnectedTools from "@components/ConnectedTools"
 
 // Helper to detect if input is URL
-const isUrl = (text) => text.trim().startsWith("http")
+const isUrl = (text: string) => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
   const location = useLocation()
@@ -25,7 +26,7 @@ const GenerateMetaData = () => {
     if (isUrl(content)) return 100 // Sufficient for URL to pass backend validation
     const text = content.trim()
     if (!text) return 0
-    return text.split(/\s+/).filter((word) => word.length > 0).length
+    return text.split(/\s+/).filter((word: string) => word.length > 0).length
   }, [content])
 
   const handleGenerateMetadata = useCallback(async () => {
@@ -44,7 +45,7 @@ const GenerateMetaData = () => {
       return
     }
 
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.() ?? "")) {
       navigate("/pricing")
       return
     }
@@ -54,14 +55,15 @@ const GenerateMetaData = () => {
       const payload = isUrl(content) ? { url: content } : { content }
       await generateMetadata(payload)
       toast.success("Metadata generated successfully!")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Error generating metadata:", error)
     } finally {
       setIsGenerating(false)
     }
   }, [content, userPlan, navigate, generateMetadata, wordCount])
 
-  const copyToClipboard = (text, label) => {
+  const copyToClipboard = (text: string, label: string) => {
     if (!text) return
     navigator.clipboard
       .writeText(text)
@@ -219,7 +221,7 @@ const GenerateMetaData = () => {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {metadata.tags.map((tag) => (
+                    {metadata.tags.map((tag: string) => (
                       <span
                         key={tag}
                         className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-100"

@@ -2,10 +2,17 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Bot, User } from "lucide-react"
 
-const ChatBox = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState([])
+interface ChatMessage {
+  id: number
+  text: string
+  sender: "user" | "ai"
+  timestamp: Date
+}
+
+const ChatBox = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [showQuestions, setShowQuestions] = useState(true)
-  const messagesEndRef = useRef(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const qna = [
     {
@@ -35,14 +42,14 @@ const ChatBox = ({ isOpen, onClose }) => {
     scrollToBottom()
   }, [scrollToBottom])
 
-  const handleQuestionClick = (question, answer) => {
-    const userMsg = { id: Date.now(), text: question, sender: "user", timestamp: new Date() }
+  const handleQuestionClick = (question: string, answer: string) => {
+    const userMsg: ChatMessage = { id: Date.now(), text: question, sender: "user", timestamp: new Date() }
 
     setMessages((prev) => [...prev, userMsg])
     setShowQuestions(false)
 
     setTimeout(() => {
-      const aiMsg = { id: Date.now() + 1, text: answer, sender: "ai", timestamp: new Date() }
+      const aiMsg: ChatMessage = { id: Date.now() + 1, text: answer, sender: "ai", timestamp: new Date() }
       setMessages((prev) => [...prev, aiMsg])
     }, 800)
 
@@ -152,7 +159,7 @@ const ChatBox = ({ isOpen, onClose }) => {
           </div>
 
           {/* Custom Bubbles */}
-          <style jsx>{`
+          <style>{`
             .clip-path-user {
               clip-path: polygon(0 0, 100% 0, 100% 100%);
             }

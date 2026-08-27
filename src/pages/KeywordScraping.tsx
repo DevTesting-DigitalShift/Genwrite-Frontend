@@ -16,15 +16,14 @@ const KeywordScraping = () => {
   const {
     mutate: scrapeKeywords,
     isPending,
-    isLoading: isMutationLoading,
   } = useKeywordScrapingMutation()
-  const isLoading = isPending || isMutationLoading
+  const isLoading = isPending
 
   const [timer, setTimer] = useState(0)
 
   // Custom timer logic for loading progress
   useEffect(() => {
-    let interval
+    let interval: ReturnType<typeof setInterval> | undefined
     if (isLoading) {
       setTimer(1)
       const specificPoints = [2, 3, 4, 10, 25, 30]
@@ -64,7 +63,7 @@ const KeywordScraping = () => {
     }
   }, [resetKeywordScraping])
 
-  const isValidUrl = (url) => {
+  const isValidUrl = (url: string) => {
     const urlRegex =
       /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/
     return urlRegex.test(url.trim())
@@ -94,7 +93,7 @@ const KeywordScraping = () => {
     })
   }
 
-  const handleCopy = async (content) => {
+  const handleCopy = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
@@ -237,7 +236,7 @@ const KeywordScraping = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {scrapingResult.keywords.map((keyword) => (
+                  {scrapingResult.keywords.map((keyword: string, idx: number) => (
                     <div
                       key={keyword}
                       className="bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all duration-200 flex items-center gap-2"

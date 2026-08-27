@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect } from "react"
 import {
   CheckCircle,
@@ -20,16 +21,15 @@ const ShopifyVerification = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [verified, setVerified] = useState(false)
-  const [error, setError] = useState(null)
-  const [blogData, setBlogData] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
+  const [error, setError] = useState<any>(null)
+  const [blogData, setBlogData] = useState<any[]>([])
+  const [searchTerm, setSearchTerm] = useState<string>("")
   const [sortConfig, setSortConfig] = useState({ key: "postedOn", direction: "desc" })
 
   useEffect(() => {
     async function init() {
       try {
         setLoading(true)
-        // @ts-expect-error
         if (!window?.shopify?.idToken) {
           setError(
             "Shopify App Bridge not detected. Please access this page from your Shopify Admin."
@@ -48,7 +48,8 @@ const ShopifyVerification = () => {
         } else {
           setError("Authentication failed. Please try again.")
         }
-      } catch (err) {
+      } catch (rawErr) {
+        const err = asApiError(rawErr)
         console.error("Error fetching token or data:", err)
         setError(
           err.response?.data?.message || err.message || "Failed to verify Shopify integration"
@@ -100,7 +101,7 @@ const ShopifyVerification = () => {
     return 0
   })
 
-  const requestSort = (key) => {
+  const requestSort = (key: string) => {
     let direction = "asc"
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc"
@@ -309,7 +310,7 @@ const ShopifyVerification = () => {
                       ) : (
                         <tr>
                           <td
-                            colSpan="3"
+                            colSpan={3}
                             className="py-20 text-center text-gray-400 font-bold italic"
                           >
                             No blogs found matching your search.
@@ -340,3 +341,10 @@ const ShopifyVerification = () => {
 }
 
 export default ShopifyVerification
+
+// Shopify App Bridge injects this onto window when the page is opened from Shopify Admin.
+declare global {
+  interface Window {
+    shopify?: { idToken: () => Promise<string> } & Record<string, unknown>
+  }
+}

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion"
+import type { ComponentType } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ArrowRight,
@@ -120,16 +121,33 @@ const ALL_TOOLS = {
   },
 }
 
+/** One entry in the ALL_TOOLS map. */
+interface ToolEntry {
+  id?: string
+  title?: string
+  description?: string
+  path?: string
+  type?: string
+  color?: string
+  icon: ComponentType<{ className?: string }>
+}
+
 const ConnectedTools = ({
   currentToolId,
   suggestions = [],
   title = "What's Next?",
   transferValue = "",
   isCompact = false,
+}: {
+  currentToolId?: string
+  suggestions?: string[]
+  title?: string
+  transferValue?: string
+  isCompact?: boolean
 }) => {
   const navigate = useNavigate()
 
-  const currentTool = ALL_TOOLS[currentToolId] || {}
+  const currentTool = (ALL_TOOLS[currentToolId as keyof typeof ALL_TOOLS] ?? {}) as ToolEntry
   const currentType = currentTool.type || TOOL_TYPES.GENERIC
 
   // Smart suggestions logic
@@ -163,8 +181,8 @@ const ConnectedTools = ({
   const toolsToShow =
     suggestions.length > 0
       ? suggestions
-          .map((id) => ALL_TOOLS[id])
-          .filter((tool) => tool && tool.id !== currentToolId)
+          .map((id: string) => ALL_TOOLS[id as keyof typeof ALL_TOOLS] as ToolEntry)
+          .filter((tool: ToolEntry | undefined) => tool && tool.id !== currentToolId)
           .slice(0, 3)
       : getSmartSuggestions()
 
@@ -191,7 +209,7 @@ const ConnectedTools = ({
             onClick={() => {
               const finalValue =
                 tool.id === "youtube" || tool.id === "scraping" ? "" : transferValue
-              navigate(tool.path, { state: { transferValue: finalValue } })
+              navigate(tool.path ?? "/", { state: { transferValue: finalValue } })
             }}
             className={`group cursor-pointer bg-white border border-gray-100 ${isCompact ? "p-3.5" : "p-5"} rounded-2xl hover:shadow-xl hover:border-blue-200 transition-all duration-300 relative overflow-hidden`}
           >

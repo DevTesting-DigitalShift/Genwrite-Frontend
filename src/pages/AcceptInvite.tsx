@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useEffect, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
@@ -122,7 +123,7 @@ const AcceptInvite = () => {
                 Couldn't accept invite
               </h1>
               <p className="text-gray-500 font-medium text-lg mb-10 max-w-xs mx-auto">
-                {error?.response?.data?.message || "This invite may be invalid or expired."}
+                {apiErrorMessage(error, "This invite may be invalid or expired.")}
               </p>
               <button
                 type="button"

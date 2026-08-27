@@ -1,15 +1,22 @@
-import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
+import type { StripeError } from "@stripe/stripe-js"
 import { useState } from "react"
 import { toast } from "sonner"
 
-export default function PaymentForm({ onSuccess, onError }) {
+export default function PaymentForm({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: (error: StripeError) => void
+}) {
   const stripe = useStripe()
   const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [message, setMessage] = useState("")
+  const [message, setMessage] = useState<string>("")
   const [hasError, setHasError] = useState(false)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!stripe || !elements) {

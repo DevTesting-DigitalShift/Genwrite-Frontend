@@ -1,3 +1,5 @@
+import type { NavigateFunction } from "react-router-dom"
+
 declare global {
   interface Window {
     closeUpgradePopup?: (confirm: boolean) => void
@@ -6,7 +8,7 @@ declare global {
 
 interface UpgradePopupOptions {
   featureName?: string
-  navigate?: (path: string | number) => void
+  navigate?: NavigateFunction
   /** True when opened from a whole page (rather than an action), so cancel goes back. */
   fromPage?: boolean
   onCancel?: () => void

@@ -4,12 +4,12 @@ import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
 
-const Breadcrumb = React.forwardRef(({ ...props }, ref) => (
+const Breadcrumb = React.forwardRef<React.ElementRef<"nav">, React.ComponentPropsWithoutRef<"nav">>(({ ...props }, ref) => (
   <nav ref={ref} aria-label="breadcrumb" {...props} />
 ))
 Breadcrumb.displayName = "Breadcrumb"
 
-const BreadcrumbList = React.forwardRef(({ className, ...props }, ref) => (
+const BreadcrumbList = React.forwardRef<React.ElementRef<"ol">, React.ComponentPropsWithoutRef<"ol">>(({ className, ...props }, ref) => (
   <ol
     ref={ref}
     className={cn(
@@ -21,12 +21,15 @@ const BreadcrumbList = React.forwardRef(({ className, ...props }, ref) => (
 ))
 BreadcrumbList.displayName = "BreadcrumbList"
 
-const BreadcrumbItem = React.forwardRef(({ className, ...props }, ref) => (
+const BreadcrumbItem = React.forwardRef<React.ElementRef<"li">, React.ComponentPropsWithoutRef<"li">>(({ className, ...props }, ref) => (
   <li ref={ref} className={cn("inline-flex items-center gap-1.5", className)} {...props} />
 ))
 BreadcrumbItem.displayName = "BreadcrumbItem"
 
-const BreadcrumbLink = React.forwardRef(({ asChild, className, ...props }, ref) => {
+const BreadcrumbLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.AnchorHTMLAttributes<HTMLAnchorElement> & { asChild?: boolean }
+>(({ asChild, className, ...props }, ref) => {
   const Comp = asChild ? Slot : "a"
 
   return (
@@ -42,7 +45,7 @@ BreadcrumbLink.displayName = "BreadcrumbLink"
 // The current page is not a link — `aria-current="page"` on a plain span is the WAI-ARIA
 // breadcrumb pattern. The previous `role="link"` + `aria-disabled` announced it as an
 // unreachable link and left it unfocusable, which is worse than not marking it at all.
-const BreadcrumbPage = React.forwardRef(({ className, ...props }, ref) => (
+const BreadcrumbPage = React.forwardRef<React.ElementRef<"span">, React.ComponentPropsWithoutRef<"span">>(({ className, ...props }, ref) => (
   <span
     ref={ref}
     aria-current="page"
@@ -52,7 +55,7 @@ const BreadcrumbPage = React.forwardRef(({ className, ...props }, ref) => (
 ))
 BreadcrumbPage.displayName = "BreadcrumbPage"
 
-const BreadcrumbSeparator = ({ children, className, ...props }) => (
+const BreadcrumbSeparator = ({ children, className, ...props }: React.ComponentProps<"li">) => (
   <li
     role="presentation"
     aria-hidden="true"
@@ -64,7 +67,7 @@ const BreadcrumbSeparator = ({ children, className, ...props }) => (
 )
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
 
-const BreadcrumbEllipsis = ({ className, ...props }) => (
+const BreadcrumbEllipsis = ({ className, ...props }: React.ComponentProps<"span">) => (
   <span
     role="presentation"
     aria-hidden="true"

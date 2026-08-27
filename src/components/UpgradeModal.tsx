@@ -3,7 +3,7 @@ import { Lock, ArrowLeft, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
 
-const UpgradeModal = ({ featureName }) => {
+const UpgradeModal = ({ featureName }: { featureName?: string }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { logoutUser } = useAuthStore()

@@ -1,3 +1,4 @@
+import type { Editor } from "@tiptap/react"
 import { useState } from "react"
 import {
   Bold,
@@ -18,9 +19,9 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-const Toolbar = ({ editor, onOpenImageModal }) => {
+const Toolbar = ({ editor, onOpenImageModal }: { editor: Editor | null; onOpenImageModal?: () => void }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [linkUrl, setLinkUrl] = useState("")
+  const [linkUrl, setLinkUrl] = useState<string>("")
 
   if (!editor) return null
 

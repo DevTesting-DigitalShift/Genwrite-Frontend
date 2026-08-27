@@ -39,7 +39,7 @@ const AppContent = () => {
         <title>GenWrite</title>
       </Helmet>
 
-      {isLoading && <LoadingScreen message={loadingMessage} />}
+      {isLoading && <LoadingScreen message={loadingMessage ?? undefined} />}
 
       <Outlet />
     </>

@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useCallback, useEffect } from "react"
 import DOMPurify from "dompurify"
 import { useNavigate } from "react-router-dom"
@@ -9,9 +10,9 @@ import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
 
 const PromptContent = () => {
-  const [content, setContent] = useState("")
-  const [prompt, setPrompt] = useState("")
-  const [copiedField, setCopiedField] = useState(null)
+  const [content, setContent] = useState<string>("")
+  const [prompt, setPrompt] = useState<string>("")
+  const [copiedField, setCopiedField] = useState<any>(null)
 
   const navigate = useNavigate()
 
@@ -63,7 +64,7 @@ const PromptContent = () => {
       return
     }
 
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.() ?? "")) {
       openUpgradePopup({ featureName: "Content Generation", navigate })
       return
     }
@@ -71,11 +72,21 @@ const PromptContent = () => {
     try {
       await generatePromptContent({ prompt, content })
       toast.success("Content generated successfully!")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Error generating content:", error)
       toast.error(typeof error === "string" ? error : "Failed to generate content.")
     }
-  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid, wordCount])
+  }, [
+    content,
+    prompt,
+    generatePromptContent,
+    userPlan,
+    navigate,
+    isPromptValid,
+    isContentValid,
+    wordCount,
+  ])
 
   const handleReset = useCallback(() => {
     setContent("")
@@ -84,7 +95,7 @@ const PromptContent = () => {
     toast.success("Content and prompt reset!")
   }, [resetMetadata])
 
-  const copyToClipboard = async (text, label, fieldName) => {
+  const copyToClipboard = async (text: string, label: string, fieldName: string) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopiedField(fieldName)
@@ -100,14 +111,14 @@ const PromptContent = () => {
   }
 
   // Helper function to strip HTML tags and get plain text
-  const stripHtml = (html) => {
+  const stripHtml = (html: string) => {
     const tmp = document.createElement("div")
     tmp.innerHTML = html
     return tmp.textContent || tmp.innerText || ""
   }
 
   // Helper function to render HTML content safely
-  const renderHtmlContent = (htmlContent) => {
+  const renderHtmlContent = (htmlContent: any) => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
@@ -247,7 +258,6 @@ const PromptContent = () => {
           <button
             type="button"
             onClick={() => handleGenerateContent()}
-            loading={isGenerating}
             disabled={!canGenerate}
             className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
               !canGenerate ? "opacity-50 cursor-not-allowed" : ""

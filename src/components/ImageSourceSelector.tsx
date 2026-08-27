@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { Crown, Image, Sparkles, Upload, X, AlertCircle } from "lucide-react"
-import { IMAGE_OPTIONS, IMAGE_SOURCE } from "../data/blogData"
+import { IMAGE_OPTIONS, IMAGE_SOURCE, type ImageOption } from "../data/blogData"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
 import { Slider } from "@/components/ui/slider"
@@ -16,20 +16,31 @@ const ImageSourceSelector = ({
   numberOfImages,
   onNumberChange,
   showNumberSelector = true,
+}: {
+  value?: string
+  onChange?: (source: string) => void
+  showUpload?: boolean
+  showNone?: boolean
+  error?: string
+  numberOfImages?: number
+  onNumberChange?: (n: number) => void
+  showNumberSelector?: boolean
 }) => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!value) {
-      onChange(IMAGE_SOURCE.STOCK)
+      onChange?.(IMAGE_SOURCE.STOCK)
     }
   }, [value, onChange])
 
   const userPlan = user?.subscription?.plan || "free"
-  const isAiLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
+  const usage = user?.usage as { aiImages?: number } | undefined
+  const usageLimits = user?.usageLimits as { aiImages?: number } | undefined
+  const isAiLimitReached = (usage?.aiImages || 0) >= (usageLimits?.aiImages || 0)
 
-  const handleSelect = (option) => {
+  const handleSelect = (option: ImageOption) => {
     const isRestricted = option.restrictedPlans?.includes(userPlan?.toLowerCase())
 
     if (isRestricted) {
@@ -45,7 +56,7 @@ const ImageSourceSelector = ({
       return
     }
 
-    onChange(option.id)
+    onChange?.(option.id)
   }
 
   const filteredOptions = IMAGE_OPTIONS.filter((opt) => {
@@ -54,7 +65,7 @@ const ImageSourceSelector = ({
     return true
   })
 
-  const getIcon = (id) => {
+  const getIcon = (id: string) => {
     switch (id) {
       case IMAGE_SOURCE.NONE:
         return <X className="w-5 h-5" />
@@ -148,7 +159,7 @@ const ImageSourceSelector = ({
         })}
       </div>
 
-      {showNumberSelector && value && value !== "none" && (
+      {showNumberSelector && value && value !== IMAGE_SOURCE.NONE && (
         <div className="pt-4 px-1 border-t border-slate-100 mt-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-800">Number of Images</span>
@@ -165,7 +176,7 @@ const ImageSourceSelector = ({
               max={BLOG_CONFIG.IMAGES.MAX_COUNT || 15}
               step={1}
               value={[Number(numberOfImages) || 0]}
-              onValueChange={(vals) => onNumberChange(vals[0])}
+              onValueChange={(vals: number[]) => onNumberChange?.(vals[0])}
             />
           </div>
         </div>

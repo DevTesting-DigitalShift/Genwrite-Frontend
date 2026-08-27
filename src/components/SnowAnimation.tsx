@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 
-const SnowAnimation = ({ density = 50 }) => {
+const SnowAnimation = ({ density = 50 }: { density?: number }) => {
   // Generate random snowflakes
   const snowflakes = Array.from({ length: density }, (_, i) => ({
     id: i,

@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { type FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
@@ -29,7 +30,7 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 interface AdvancedBlogModalProps {
-  onSubmit: (data: unknown) => void
+  onSubmit?: (data: unknown) => void
   closeFnc: () => void
 }
 
@@ -144,7 +145,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       }
       const result = await getGeneratedTitles(payload)
       setGeneratedTitles(result)
-    } catch (error) {
+    } catch (rawError) {
+    const error = asApiError(rawError)
       console.error("Error generating titles:", error)
       toast.error("Failed to generate titles. Please try again later.")
     } finally {

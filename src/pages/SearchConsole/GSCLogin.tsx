@@ -1,12 +1,14 @@
+import { asApiError } from "@/types/api"
 import useGscStore from "@store/useGscStore"
 import { toast } from "sonner"
 import { LogIn } from "lucide-react"
+import { apiErrorMessage } from "@/types/api"
 import { useCallback, useState } from "react"
 import { FcGoogle } from "react-icons/fc"
 
 const GSCLogin = () => {
   const [isConnecting, setIsConnecting] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const { fetchGscAuthUrl } = useGscStore()
 
   // Connect to Google Search Console
@@ -14,7 +16,7 @@ const GSCLogin = () => {
     try {
       setIsConnecting(true)
       const authUrl = await fetchGscAuthUrl()
-      const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
+      const popup = window.open(authUrl as string, "GSC Connect", "width=600,height=600")
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
       }
@@ -27,7 +29,7 @@ const GSCLogin = () => {
       }, 1000)
 
       const expectedOrigin = new URL(import.meta.env.VITE_BACKEND_URL).origin
-      const handleMessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         if (event.origin !== expectedOrigin) return
         const status = event.data || {}
         if (status === "GSC Connected") {
@@ -42,9 +44,10 @@ const GSCLogin = () => {
       }
 
       window.addEventListener("message", handleMessage)
-    } catch (err) {
-      toast.error(err.message || "Failed to connect to Google Search Console")
-      setError(err.message || "Connection failed")
+    } catch (rawErr) {
+    const err = asApiError(rawErr)
+      toast.error(apiErrorMessage(err, "Failed to connect to Google Search Console"))
+      setError(apiErrorMessage(err, "Connection failed"))
       setIsConnecting(false)
     }
   }, [fetchGscAuthUrl])

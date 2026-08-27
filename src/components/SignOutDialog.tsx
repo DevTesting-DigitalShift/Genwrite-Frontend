@@ -29,12 +29,19 @@ const SignOutDialog = ({
   activeEmail,
   onSignOutCurrent,
   onSignOutAll,
+}: {
+  open?: boolean
+  onOpenChange: (open: boolean) => void
+  sessions?: Array<{ userId: string; email?: string; name?: string; avatar?: string }>
+  activeEmail?: string
+  onSignOutCurrent: () => void | Promise<void>
+  onSignOutAll: () => void | Promise<void>
 }) => {
-  const [pendingAction, setPendingAction] = useState(null)
+  const [pendingAction, setPendingAction] = useState<string | null>(null)
   const hasMultiple = sessions.length > 1
   const isBusy = pendingAction !== null
 
-  const run = async (action, handler) => {
+  const run = async (action: string, handler: () => void | Promise<void>) => {
     setPendingAction(action)
     try {
       await handler()
@@ -45,7 +52,7 @@ const SignOutDialog = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !isBusy && onOpenChange(next)}>
+    <Dialog open={open} onOpenChange={(next: boolean) => !isBusy && onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">

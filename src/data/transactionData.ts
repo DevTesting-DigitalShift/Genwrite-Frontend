@@ -1,6 +1,6 @@
 import { DollarSign, IndianRupee } from "lucide-react"
 
-export function getCurrencySymbol(currency) {
+export function getCurrencySymbol(currency?: string): string {
   switch (currency) {
     case "usd":
       return "$"
@@ -11,7 +11,7 @@ export function getCurrencySymbol(currency) {
   }
 }
 
-export function getCurrencyIcon(currency) {
+export function getCurrencyIcon(currency?: string) {
   switch (currency) {
     case "usd":
       return DollarSign

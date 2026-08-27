@@ -3,7 +3,18 @@ import React from "react"
 import { Check, X } from "lucide-react"
 import { motion } from "framer-motion"
 
-const ComparisonTable = ({ plans }) => {
+/** A pricing tier key used across the comparison grid. */
+type PlanTier = "basic" | "pro" | "enterprise"
+
+interface ComparisonPlan {
+  name: string
+  tier: PlanTier
+  seats?: number
+  extraSeatsMonthly?: number
+  extraSeatsAnnual?: number
+}
+
+const ComparisonTable = ({ plans }: { plans: ComparisonPlan[] }) => {
   const featureCategories = [
     {
       index: 1,
@@ -67,7 +78,7 @@ const ComparisonTable = ({ plans }) => {
     },
   ]
 
-  const getPlanStyles = (tier) => {
+  const getPlanStyles = (tier: PlanTier | string) => {
     switch (tier) {
       case "basic":
         return { text: "text-green-600", icon: "text-green-600" }
@@ -98,7 +109,7 @@ const ComparisonTable = ({ plans }) => {
             <thead>
               <tr className="sticky top-0 z-20 bg-white">
                 <th className="p-2 sm:p-3 md:p-4 text-left text-gray-900 font-semibold text-sm sm:text-base md:text-lg"></th>
-                {plans.map((plan) => {
+                {plans.map((plan: ComparisonPlan) => {
                   const styles = getPlanStyles(plan.tier)
                   return (
                     <th
@@ -141,7 +152,7 @@ const ComparisonTable = ({ plans }) => {
                     >
                       {category.name}
                     </td>
-                    {plans.map((plan) => (
+                    {plans.map((plan: ComparisonPlan) => (
                       <td key={plan.name} className="bg-white"></td>
                     ))}
                   </tr>
@@ -168,14 +179,14 @@ const ComparisonTable = ({ plans }) => {
                           {feature.name}
                         </td>
 
-                        {plans.map((plan) => {
+                        {plans.map((plan: ComparisonPlan) => {
                           const styles = getPlanStyles(plan.tier)
                           return (
                             <td key={plan.name} className="p-2 sm:p-3 md:p-4 text-center">
                               {feature.available.includes(plan.tier) ? (
-                                feature.details?.[plan.tier] ? (
+                                feature.details?.[plan.tier as PlanTier] ? (
                                   <span className={`text-xs sm:text-sm ${styles.text} font-medium`}>
-                                    {feature.details[plan.tier]}
+                                    {feature.details[plan.tier as PlanTier]}
                                   </span>
                                 ) : (
                                   <Check

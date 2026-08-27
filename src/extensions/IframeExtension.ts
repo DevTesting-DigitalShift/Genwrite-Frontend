@@ -1,3 +1,4 @@
+import type { CommandProps } from "@tiptap/core"
 import { Node, mergeAttributes } from "@tiptap/core"
 
 export const Iframe = Node.create({
@@ -66,7 +67,7 @@ export const Iframe = Node.create({
           editor
             .chain()
             .focus()
-            .deleteRange({ from: getPos(), to: getPos() + node.nodeSize })
+            .deleteRange({ from: getPos() ?? 0, to: (getPos() ?? 0) + node.nodeSize })
             .run()
         }
       }
@@ -101,8 +102,8 @@ export const Iframe = Node.create({
   addCommands() {
     return {
       setIframe:
-        (options) =>
-        ({ commands }) => {
+        (options: Record<string, unknown>) =>
+        ({ commands }: CommandProps) => {
           return commands.insertContent({ type: this.name, attrs: options })
         },
     }
@@ -110,3 +111,12 @@ export const Iframe = Node.create({
 })
 
 export default Iframe
+
+// Registers this node's command on the editor so `editor.commands.setIframe` type-checks.
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    iframe: {
+      setIframe: (options: Record<string, unknown>) => ReturnType
+    }
+  }
+}

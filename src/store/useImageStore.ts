@@ -12,7 +12,8 @@ import { devtools } from "zustand/middleware"
 export interface GalleryImage {
   _id?: string
   url?: string
-  [key: string]: unknown
+  description?: string
+  [key: string]: any
 }
 
 export interface ImageQueryParams extends Record<string, unknown> {
@@ -39,9 +40,9 @@ interface ImageState {
   reset: () => void
 
   fetchImages: (params: ImageQueryParams) => Promise<ImageListResponse>
-  generateImage: (genForm: object) => Promise<unknown>
-  enhanceImage: (formData: FormData) => Promise<unknown>
-  generateAltText: (imageUrl: string) => Promise<unknown>
+  generateImage: (genForm: object) => Promise<any>
+  enhanceImage: (formData: FormData) => Promise<any>
+  generateAltText: (imageUrl: string) => Promise<any>
 }
 
 const useImageStore = create<ImageState>()(

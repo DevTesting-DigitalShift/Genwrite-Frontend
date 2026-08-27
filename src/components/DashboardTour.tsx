@@ -49,12 +49,17 @@ const TOUR_STEPS = [
   },
 ]
 
-const DashboardTour = ({ run, onComplete }) => {
+interface DashboardTourProps {
+  run?: any
+  onComplete?: (...args: any[]) => void
+}
+
+const DashboardTour = ({ run, onComplete }: DashboardTourProps) => {
   const [currentStep, setCurrentStep] = useState(0)
-  const [isVisible, setIsVisible] = useState(false)
-  const [targetRect, setTargetRect] = useState(null)
-  const [waitingForUserAction, setWaitingForUserAction] = useState(false)
-  const steps = TOUR_STEPS
+  const [isVisible, setIsVisible] = useState<any>(false)
+  const [targetRect, setTargetRect] = useState<any>(null)
+  const [waitingForUserAction, setWaitingForUserAction] = useState<any>(false)
+  const steps: any[] = TOUR_STEPS
 
   useEffect(() => {
     if (run) {
@@ -257,7 +262,7 @@ const DashboardTour = ({ run, onComplete }) => {
                 // Trigger click on the actual element
                 const element = document.querySelector('[data-tour="create-blog"]')
                 if (element) {
-                  element.click()
+                  ;(element as HTMLElement).click()
                 }
               }}
             />
@@ -305,7 +310,7 @@ const DashboardTour = ({ run, onComplete }) => {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
             className="fixed z-[10000] bg-white rounded-xl shadow-2xl p-6 max-w-md pointer-events-auto"
-            style={tooltipPos}
+            style={tooltipPos as any}
           >
             {/* Icon for welcome step */}
             {currentStep === 0 && (

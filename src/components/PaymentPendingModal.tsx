@@ -3,8 +3,12 @@ import { AlertTriangle, Lock, ChevronRight, CreditCard } from "lucide-react"
 import { useCreatePortalSession } from "@api/queries/paymentQueries"
 import { toast } from "sonner"
 
-const PaymentPendingModal = ({ user }) => {
-  const isOpen = ["past_due"].includes(user?.subscription?.status)
+const PaymentPendingModal = ({
+  user,
+}: {
+  user?: { subscription?: { status?: string } } | null
+}) => {
+  const isOpen = ["past_due"].includes(user?.subscription?.status ?? "")
   const { mutate: createPortalSession, isPending } = useCreatePortalSession()
 
   const handleResolveIssue = () => {

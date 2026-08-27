@@ -10,9 +10,9 @@ import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
 interface ContentState {
-  data: unknown | null
-  metadata: unknown | null
-  categories: unknown[]
+  data: any | null
+  metadata: any | null
+  categories: any[]
   loading: boolean
   error: string | null
 

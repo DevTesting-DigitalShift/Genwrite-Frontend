@@ -1,4 +1,4 @@
-import { cva } from "class-variance-authority"
+import { type VariantProps, cva } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
@@ -19,7 +19,7 @@ const badgeVariants = cva(
   }
 )
 
-function Badge({ className, variant, ...props }) {
+function Badge({ className, variant, ...props }: React.ComponentPropsWithoutRef<"div"> & VariantProps<typeof badgeVariants>) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 

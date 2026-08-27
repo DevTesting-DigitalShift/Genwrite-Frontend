@@ -9,7 +9,7 @@ import { devtools } from "zustand/middleware"
 export interface Blog {
   _id?: string
   title?: string
-  [key: string]: unknown
+  [key: string]: any
 }
 
 type NavigateFn = (path: string) => void
@@ -23,18 +23,18 @@ interface CreateBlogArgs {
 
 interface BlogState {
   selectedBlog: Blog | null
-  proofreadingSuggestions: unknown[]
+  proofreadingSuggestions: any[]
   isAnalyzingProofreading: boolean
-  generatedTitles: unknown[]
+  generatedTitles: any[]
   /** Keyed by blog id. */
   blogPrompts: Record<string, string>
 
   setSelectedBlog: (blog: Blog | null) => void
   clearSelectedBlog: () => void
-  setProofreadingSuggestions: (suggestions: unknown[]) => void
+  setProofreadingSuggestions: (suggestions: any[]) => void
   clearProofreadingSuggestions: () => void
   setIsAnalyzingProofreading: (isAnalyzing: boolean) => void
-  setGeneratedTitles: (titles: unknown[]) => void
+  setGeneratedTitles: (titles: any[]) => void
   setBlogPrompt: (id: string, prompt: string) => void
   reset: () => void
 

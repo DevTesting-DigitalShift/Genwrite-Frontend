@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useState } from "react"
 import {
   CheckCircle2,
@@ -17,13 +18,22 @@ import {
 
 import { brandsQuery } from "@api/Brand/Brand.query"
 
-const SectionLabel = ({ children }) => (
+interface SectionLabelProps {
+  children?: ReactNode
+}
+
+const SectionLabel = ({ children }: SectionLabelProps) => (
   <p className="text-[10px] font-bold text-[#4C5BD6] uppercase tracking-wider mb-2 flex items-center gap-1">
     {children}
   </p>
 )
 
-const Pill = ({ on, label }) => (
+interface PillProps {
+  on?: any
+  label?: string
+}
+
+const Pill = ({ on, label }: PillProps) => (
   <span
     className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
       on
@@ -36,7 +46,12 @@ const Pill = ({ on, label }) => (
   </span>
 )
 
-const Tag = ({ children, color = "slate" }) => {
+interface TagProps {
+  children?: ReactNode
+  color?: string
+}
+
+const Tag = ({ children, color = "slate" }: TagProps) => {
   const colors = {
     slate: "bg-slate-100 text-slate-600 border-slate-200",
     indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
@@ -48,14 +63,19 @@ const Tag = ({ children, color = "slate" }) => {
   }
   return (
     <span
-      className={`px-2 py-0.5 rounded-md text-[10px] font-medium border whitespace-nowrap ${colors[color]}`}
+      className={`px-2 py-0.5 rounded-md text-[10px] font-medium border whitespace-nowrap ${colors[color as keyof typeof colors]}`}
     >
       {children}
     </span>
   )
 }
 
-const TagList = ({ items, color }) => {
+interface TagListProps {
+  items?: any[]
+  color?: string
+}
+
+const TagList = ({ items, color }: TagListProps) => {
   if (!items?.length) return <span className="text-slate-300 text-[11px] italic">None</span>
   return (
     <div className="flex flex-wrap gap-1">
@@ -68,8 +88,14 @@ const TagList = ({ items, color }) => {
   )
 }
 
-const ExpandableTagList = ({ items, color, limit = 20 }) => {
-  const [expanded, setExpanded] = useState(false)
+interface ExpandableTagListProps {
+  items?: any[]
+  color?: string
+  limit?: any
+}
+
+const ExpandableTagList = ({ items, color, limit = 20 }: ExpandableTagListProps) => {
+  const [expanded, setExpanded] = useState<any>(false)
   if (!items?.length) return <span className="text-slate-300 text-[11px] italic">No data</span>
 
   const displayItems = expanded ? items : items.slice(0, limit)
@@ -119,14 +145,20 @@ const ExpandableTagList = ({ items, color, limit = 20 }) => {
   )
 }
 
-const KV = ({ label, value, valueClass = "text-slate-700" }) => (
+interface KVProps {
+  label?: string
+  value?: string
+  valueClass?: string
+}
+
+const KV = ({ label, value, valueClass = "text-slate-700" }: KVProps) => (
   <div className="flex justify-between items-start gap-3 text-[11px]">
     <span className="text-slate-400 shrink-0">{label}</span>
     <span className={`font-semibold text-right capitalize ${valueClass}`}>{value ?? "—"}</span>
   </div>
 )
 
-const formatDate = (date) => {
+const formatDate = (date: string) => {
   if (!date) return "Never"
   const d = new Date(date)
   const day = d.getDate().toString().padStart(2, "0")
@@ -149,7 +181,13 @@ const formatDate = (date) => {
   return `${day}-${month}-${year}`
 }
 
-const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
+interface FrequencyDisplayProps {
+  type?: string
+  daysOfWeek?: any
+  daysOfMonth?: any
+}
+
+const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }: FrequencyDisplayProps) => {
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
   if (type === "weekly" && daysOfWeek?.length) {
@@ -211,7 +249,11 @@ const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
   return null
 }
 
-const JobExpandedPanel = ({ job }) => {
+interface JobExpandedPanelProps {
+  job?: any
+}
+
+const JobExpandedPanel = ({ job }: JobExpandedPanelProps) => {
   const { data: brands = [] } = brandsQuery.useList()
   const blogs = job.blogs || {}
   const options = job.options || {}
@@ -222,7 +264,7 @@ const JobExpandedPanel = ({ job }) => {
   const _gridGroupStyle = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4"
 
   const imageSrcLabel =
-    { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[blogs.imageSource] ||
+    { stock: "Stock Photos", ai: "AI Generated", none: "No Images" }[blogs.imageSource as "stock" | "ai" | "none"] ||
     blogs.imageSource ||
     "—"
 
@@ -343,7 +385,7 @@ const JobExpandedPanel = ({ job }) => {
                   Reference Links
                 </p>
                 <div className="space-y-1.5">
-                  {blogs.references.map((url) => (
+                  {blogs.references.map((url: string) => (
                     <a
                       key={url}
                       href={url}

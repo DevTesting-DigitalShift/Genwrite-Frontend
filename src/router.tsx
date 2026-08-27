@@ -1,3 +1,4 @@
+import type { ComponentType } from "react"
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/ui/LoadingScreen"
@@ -70,7 +71,7 @@ const AdminTransactions = lazy(() => import("@admin/features/transactions/pages/
 
 const _RouteFallback = () => <div className="min-h-screen bg-slate-50/50 animate-pulse" />
 
-function withLayoutSuspense(Layout, props = {}) {
+function withLayoutSuspense(Layout: ComponentType<any>, props: Record<string, unknown> = {}) {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <Layout {...props} />
@@ -78,7 +79,9 @@ function withLayoutSuspense(Layout, props = {}) {
   )
 }
 
-const r = (Component, props = {}) => <Component {...props} />
+const r = (Component: ComponentType<any>, props: Record<string, unknown> = {}) => (
+  <Component {...props} />
+)
 
 const router = createBrowserRouter([
   {

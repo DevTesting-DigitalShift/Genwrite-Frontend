@@ -1,3 +1,4 @@
+import { apiErrorMessage, asApiError } from "@/types/api"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -15,15 +16,15 @@ import useAuthStore from "@store/useAuthStore"
 import { toast } from "sonner"
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<string>("")
   const [timer, setTimer] = useState(0)
 
   const { forgotPassword } = useAuthStore()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
 
     if (!email) {
@@ -43,9 +44,10 @@ const ForgotPassword = () => {
       const res = await forgotPassword(email)
       setSuccess(true)
       setTimer(900) // 15 minutes = 900 seconds
-      toast.success(res) // e.g., "Password reset link sent to your email"
-    } catch (err) {
-      setError(err)
+      toast.success(String(res)) // e.g., "Password reset link sent to your email"
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
+      setError(apiErrorMessage(err, "Something went wrong"))
     } finally {
       setLoading(false)
     }
@@ -61,7 +63,7 @@ const ForgotPassword = () => {
     return () => clearInterval(interval)
   }, [timer])
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`

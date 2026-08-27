@@ -56,6 +56,16 @@ export function computeCost({
   imageSource = "stock",
   numberOfImages = 0,
   costCutter = false,
+}: {
+  wordCount?: number
+  features?: string[]
+  aiModel?: string
+  options?: Record<string, unknown> & { isCheckedQuick?: boolean }
+  isCheckedBrand?: boolean
+  includeImages?: boolean
+  imageSource?: string
+  numberOfImages?: number
+  costCutter?: boolean
 }) {
   let totalCost = 0
 
@@ -65,12 +75,13 @@ export function computeCost({
 
   // 2. AI multiplier
   const aiModelKey = (aiModel || "gemini").toLowerCase()
-  const multiplier = pricingConfig.aiModels[aiModelKey]?.costMultiplier || 1
+  const multiplier =
+    pricingConfig.aiModels[aiModelKey as keyof typeof pricingConfig.aiModels]?.costMultiplier || 1
   totalCost += baseWordCost * multiplier
 
   // 3. Feature Costs
-  const hasFeature = (feat) => features.includes(feat)
-  const hasOption = (opt) => !!options?.[opt]
+  const hasFeature = (feat: string) => features.includes(feat)
+  const hasOption = (opt: string) => !!options?.[opt]
 
   if (isCheckedBrand || hasFeature("brandVoice")) {
     totalCost += pricingConfig.features.brandVoice.cost

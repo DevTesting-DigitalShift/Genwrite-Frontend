@@ -3,6 +3,14 @@ import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import dayjs from "dayjs"
 
+/** One banner entry from the announcements endpoint. */
+interface Announcement {
+  type?: string
+  date?: string
+  message?: string
+  [key: string]: unknown
+}
+
 // Configuration for different announcement types
 const announcementConfig = {
   PLUGIN_UPDATE: {
@@ -72,24 +80,24 @@ const InlineAnnouncementBanner = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 24 * 60 * 60 * 1000, // Garbage collect after 24 hours
     retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
-    onError: (error) => {
-      console.error("Failed to fetch announcements:", error)
-    },
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 30000),
   })
 
   // Get the display configuration for the current announcement type, or use default
-  const announcement = data?.announcements?.[0]
+  const announcement = (data as { announcements?: Announcement[] } | undefined)?.announcements?.[0]
   const config = useMemo(
     () =>
-      announcement ? announcementConfig[announcement.type] || announcementConfig.DEFAULT : null,
+      announcement
+        ? announcementConfig[announcement.type as keyof typeof announcementConfig] ||
+          announcementConfig.DEFAULT
+        : null,
     [announcement]
   )
 
   const IconComponent = config?.icon
 
   // Format the date for better readability
-  const formattedDate = useMemo(() => {
+  const formattedDate = useMemo<{ date?: string; dayDifference?: number }>(() => {
     if (!announcement?.date) return {}
     return {
       date: new Date(announcement.date).toLocaleDateString("en-US", {
@@ -109,7 +117,8 @@ const InlineAnnouncementBanner = () => {
   return (
     showAnnouncementBanner &&
     formattedDate?.date &&
-    formattedDate.dayDifference <= 7 && (
+    (formattedDate.dayDifference ?? Infinity) <= 7 &&
+    config && (
       <div
         className={`${config.bannerBg} border ${config.borderColor} rounded-lg p-4 mb-6 relative`}
       >

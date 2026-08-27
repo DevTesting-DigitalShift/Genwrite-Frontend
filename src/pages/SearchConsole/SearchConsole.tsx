@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
@@ -17,18 +18,21 @@ const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
 const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
 
 const SearchConsole = () => {
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("query")
   const [dateRange, setDateRange] = useState("7d")
-  const [customDateRange, setCustomDateRange] = useState([dayjs().subtract(6, "days"), dayjs()])
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [customDateRange, setCustomDateRange] = useState<[any, any]>([
+    dayjs().subtract(6, "days"),
+    dayjs(),
+  ])
+  const [showDatePicker, setShowDatePicker] = useState<any>(false)
   const [filterType, setFilterType] = useState("search")
-  const [blogUrlFilter, setBlogUrlFilter] = useState(null)
-  const [blogTitleFilter, setBlogTitleFilter] = useState(null)
+  const [blogUrlFilter, setBlogUrlFilter] = useState<any>(null)
+  const [blogTitleFilter, setBlogTitleFilter] = useState<any>(null)
   // searchQuery is passed directly to GSCAnalyticsTabs — Fuse runs inside the table
   const [searchQuery, setSearchQuery] = useState("")
   const [userCountry] = useState(navigator.language.split("-")[1] || "US")
-  const [autoFallbackDone, setAutoFallbackDone] = useState(false)
+  const [autoFallbackDone, setAutoFallbackDone] = useState<any>(false)
 
   const { user } = useAuthStore()
   const { clearAnalytics, fetchGscAnalytics } = useGscStore()
@@ -59,7 +63,7 @@ const SearchConsole = () => {
   }, [filterType, blogUrlFilter, blogTitleFilter, userCountry])
 
   const getDateRangeParams = useCallback(() => {
-    let from, to
+    let from: any, to: any
     if (dateRange === "custom" && customDateRange[0] && customDateRange[1]) {
       from = customDateRange[0].startOf("day").format("YYYY-MM-DD")
       to = customDateRange[1].endOf("day").format("YYYY-MM-DD")
@@ -93,7 +97,7 @@ const SearchConsole = () => {
   }, [activeTab])
 
   const {
-    data: blogData = [],
+    data: blogData = [] as any[],
     isLoading,
     isFetching,
     refetch,
@@ -103,8 +107,20 @@ const SearchConsole = () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
       const params = { from, to, query: JSON.stringify(dimensions) }
-      const data = await fetchGscAnalytics(params)
-      return data.gscData.map((item, index) => ({
+      let data: any
+      try {
+        data = await fetchGscAnalytics(params)
+      } catch (rawErr) {
+        const err = asApiError(rawErr)
+        setError(err.message || "Failed to fetch analytics data")
+        if (err?.message?.includes("invalid_grant")) {
+          toast.error("Your Google Search Console session has expired. Please reconnect.")
+          clearAnalytics()
+          queryClient.clear()
+        }
+        throw rawErr
+      }
+      return data.gscData.map((item: any, index: number) => ({
         id: `${item.page || item.query || item.country}-${index}`,
         url: item.page || "-",
         query: item.query ? item.query.replace(/["+\-!@#$%^&*()]/g, "") : "-",
@@ -120,18 +136,15 @@ const SearchConsole = () => {
     },
     enabled: hasGscAccess,
     retry: 1,
-    onError: (err) => {
-      setError(err.message || "Failed to fetch analytics data")
-      if (err?.message?.includes("invalid_grant")) {
-        toast.error("Your Google Search Console session has expired. Please reconnect.")
-        clearAnalytics()
-        queryClient.clear()
-      }
-    },
   })
 
   const blogTitles = useMemo(
-    () => [...new Set(blogData.map((item) => item.blogTitle).filter((t) => t !== "Untitled"))],
+    () =>
+      [
+        ...new Set(
+          blogData.map((item: any) => item.blogTitle).filter((t: any) => t !== "Untitled")
+        ),
+      ] as string[],
     [blogData]
   )
 
@@ -146,12 +159,12 @@ const SearchConsole = () => {
     }
   }, [isLoading, isFetching, blogData.length, autoFallbackDone, dateRange])
 
-  const handleTabChange = (key) => {
+  const handleTabChange = (key: string) => {
     setActiveTab(key)
     setSearchQuery("")
   }
 
-  const handleDateRangeChange = (value) => {
+  const handleDateRangeChange = (value: string) => {
     setDateRange(value)
     setCustomDateRange([null, null])
     setError(null)
@@ -159,7 +172,7 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const handleCustomDateRangeChange = (dates) => {
+  const handleCustomDateRangeChange = (dates: any) => {
     if (dates?.[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
@@ -180,9 +193,9 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const aggregateData = useCallback((data) => {
-    const grouped = {}
-    data.forEach((row) => {
+  const aggregateData = useCallback((data: any) => {
+    const grouped: Record<string, any> = {}
+    data.forEach((row: any) => {
       const key = row.country
       if (!grouped[key]) {
         grouped[key] = { ...row }
@@ -204,12 +217,12 @@ const SearchConsole = () => {
 
   // URL/title pre-filter (Fuse text search happens inside GSCAnalyticsTabs)
   const filteredData = useMemo(() => {
-    let result = blogData
+    let result: any[] = (blogData as any[]) ?? []
     if (filterType === "blog" && blogUrlFilter) {
-      result = result.filter((item) => item.url === blogUrlFilter)
+      result = result.filter((item: any) => item.url === blogUrlFilter)
     }
     if (blogTitleFilter) {
-      result = result.filter((item) => item.blogTitle === blogTitleFilter)
+      result = result.filter((item: any) => item.blogTitle === blogTitleFilter)
     }
     if (activeTab === "country") {
       result = aggregateData(result)
@@ -219,18 +232,18 @@ const SearchConsole = () => {
 
   // Metrics always calculated on full filteredData (before Fuse)
   const metrics = useMemo(() => {
-    const totalClicks = filteredData.reduce((sum, item) => sum + item.clicks, 0)
-    const totalImpressions = filteredData.reduce((sum, item) => sum + item.impressions, 0)
+    const totalClicks = filteredData.reduce((sum: any, item: any) => sum + item.clicks, 0)
+    const totalImpressions = filteredData.reduce((sum: any, item: any) => sum + item.impressions, 0)
     const avgCtr =
       filteredData.length > 0
         ? (
-            filteredData.reduce((sum, item) => sum + parseFloat(item.ctr), 0) / filteredData.length
+            filteredData.reduce((sum: any, item: any) => sum + parseFloat(item.ctr), 0) / filteredData.length
           ).toFixed(2)
         : "0.00"
     const avgPosition =
       filteredData.length > 0
         ? (
-            filteredData.reduce((sum, item) => sum + (parseFloat(item.position) || 0), 0) /
+            filteredData.reduce((sum: any, item: any) => sum + (parseFloat(item.position) || 0), 0) /
             filteredData.length
           ).toFixed(1)
         : "0"
@@ -258,7 +271,7 @@ const SearchConsole = () => {
       { header: "Position", key: "position", width: 10 },
     ]
     worksheet.columns = columns
-    filteredData.forEach((item) => {
+    filteredData.forEach((item: any) => {
       worksheet.addRow({
         ...(isPageTab && !blogTitleFilter ? { blogTitle: item.blogTitle } : {}),
         ...(isPageTab ? { url: item.url } : {}),
@@ -446,7 +459,7 @@ const SearchConsole = () => {
                   <DateRangePicker
                     value={customDateRange}
                     onChange={handleCustomDateRangeChange}
-                    maxDate={dayjs().endOf("day")}
+                    maxDate={dayjs().endOf("day").toDate()}
                     className={clsx(
                       "w-full",
                       customDateRange[0] && customDateRange[1] && "border-blue-500 rounded-lg"
@@ -464,7 +477,7 @@ const SearchConsole = () => {
                 )}
               >
                 <option value="">All Blog Titles</option>
-                {blogTitles.map((title) => (
+                {blogTitles.map((title: string) => (
                   <option key={title} value={title}>
                     {title}
                   </option>

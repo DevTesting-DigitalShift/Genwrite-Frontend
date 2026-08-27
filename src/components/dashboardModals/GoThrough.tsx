@@ -1,7 +1,7 @@
 import { X } from "lucide-react"
 import { motion } from "framer-motion"
 
-const GoThrough = ({ onClose, visible = true }) => {
+const GoThrough = ({ onClose, visible = true }: { onClose: () => void; visible?: boolean }) => {
   if (!visible) return null
 
   return (

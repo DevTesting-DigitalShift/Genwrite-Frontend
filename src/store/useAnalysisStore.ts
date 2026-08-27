@@ -16,12 +16,12 @@ export interface SelectedKeywords {
   focusKeywords?: string[]
   keywords?: string[]
   allKeywords?: string[]
-  [key: string]: unknown
+  [key: string]: any
 }
 
 interface AnalysisState {
-  keywordAnalysis: unknown[]
-  suggestions: unknown[]
+  keywordAnalysis: any[]
+  suggestions: any[]
   loading: boolean
   /** Keyed by blogId. */
   analysisResult: Record<string, unknown>
@@ -39,9 +39,9 @@ interface AnalysisState {
   setError: (error: string | null) => void
   reset: () => void
 
-  fetchCompetitiveAnalysis: (args: CompetitiveAnalysisArgs) => Promise<unknown>
-  analyzeKeywords: (keywords: string[]) => Promise<unknown>
-  fetchSuggestions: (query: string) => Promise<unknown>
+  fetchCompetitiveAnalysis: (args: CompetitiveAnalysisArgs) => Promise<any>
+  analyzeKeywords: (keywords: string[]) => Promise<any>
+  fetchSuggestions: (query: string) => Promise<any>
 }
 
 const useAnalysisStore = create<AnalysisState>()(

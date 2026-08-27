@@ -29,7 +29,7 @@ const typeIconMap = {
 }
 
 // Format date using native Date methods
-const formatDate = (dateStr) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return ""
   const date = new Date(dateStr)
   return date.toLocaleString("en-IN", {
@@ -40,11 +40,20 @@ const formatDate = (dateStr) => {
   })
 }
 
-const NotificationDropdown = ({ notifications }) => {
-  const [localNotifications, setLocalNotifications] = useState([])
+/** One notification row from the user payload. */
+interface AppNotification {
+  type?: string
+  read?: boolean
+  message?: string
+  createdAt?: string
+  [key: string]: unknown
+}
+
+const NotificationDropdown = ({ notifications }: { notifications?: AppNotification[] }) => {
+  const [localNotifications, setLocalNotifications] = useState<AppNotification[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const { markAllNotificationsAsRead, error } = useAuthStore()
-  const dropdownRef = useRef(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Sync local notifications with prop changes
   useEffect(() => {
@@ -64,8 +73,8 @@ const NotificationDropdown = ({ notifications }) => {
 
   // Handle click outside to close dropdown
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
@@ -129,7 +138,7 @@ const NotificationDropdown = ({ notifications }) => {
               ) : (
                 <ul className="flex flex-col">
                   {localNotifications.map((item) => {
-                    const typeConfig = typeIconMap[item.type] || {
+                    const typeConfig = typeIconMap[item.type as keyof typeof typeIconMap] || {
                       icon: Info,
                       color: "text-gray-400",
                     }

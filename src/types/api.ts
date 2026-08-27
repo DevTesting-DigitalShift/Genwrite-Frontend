@@ -9,7 +9,7 @@ export interface ApiError extends Error {
       message?: string
       error?: string
       /** Endpoints attach their own fields here (neededCredits, code, …). */
-      [key: string]: unknown
+      [key: string]: any
     }
   }
   code?: string

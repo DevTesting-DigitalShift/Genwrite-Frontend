@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import useAuthStore from "../store/useAuthStore"
@@ -32,10 +33,10 @@ import SignOutDialog from "@components/SignOutDialog"
 import { useSessions } from "@/hooks/useSessions"
 
 const SideBar_Header = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const [showWhatsNew, setShowWhatsNew] = useState(false)
-  const [signOutOpen, setSignOutOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState<any>(false)
+  const [isUserLoaded, setIsUserLoaded] = useState<any>(false)
+  const [showWhatsNew, setShowWhatsNew] = useState<any>(false)
+  const [signOutOpen, setSignOutOpen] = useState<any>(false)
   const {
     user,
     loadAuthenticatedUser,
@@ -52,7 +53,7 @@ const SideBar_Header = () => {
 
   const ALLOWED_ROUTES = ["/pricing", "/transactions", "/profile", "/contact"]
 
-  const handleNavClick = (path, e) => {
+  const handleNavClick = (path: string, e: any) => {
     // Show intro video for first-time users before allowing navigation
     if (user && !user.lastLogin) {
       setShowWhatsNew(true)
@@ -70,20 +71,21 @@ const SideBar_Header = () => {
     }
     navigate(path)
   }
-  const sidebarRef = useRef(null)
+  const sidebarRef = useRef<any>(null)
   const { isDesktop } = useViewport()
 
   const fetchCurrentUser = useCallback(async () => {
     try {
       await loadAuthenticatedUser()
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       console.error("User load failed:", err)
       navigate("/login")
     }
   }, [loadAuthenticatedUser, navigate])
 
   const handleCreditsUpdate = useCallback(
-    (data) => {
+    (data: any) => {
       if (
         data &&
         typeof data === "object" &&
@@ -98,7 +100,7 @@ const SideBar_Header = () => {
   )
 
   const handleNotificationUpdate = useCallback(
-    (data) => {
+    (data: any) => {
       if (data && typeof data === "object" && data.message) {
         addNotification(data)
       } else if (data && typeof data === "object" && data.notifications) {
@@ -111,7 +113,7 @@ const SideBar_Header = () => {
   )
 
   const handleUsageUpdate = useCallback(
-    (data) => {
+    (data: any) => {
       if (data && typeof data === "object" && data.usage) {
         updateUserPartial({ usage: data.usage })
       } else {
@@ -126,7 +128,7 @@ const SideBar_Header = () => {
   }
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: any) => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
@@ -147,7 +149,7 @@ const SideBar_Header = () => {
     let socket = getSocket()
     let retryCount = 0
     const maxRetries = 10
-    let retryTimeout
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined
 
     const setupListeners = () => {
       if (!socket) {
@@ -209,11 +211,12 @@ const SideBar_Header = () => {
 
   const handleSignOutCurrent = async () => {
     try {
-      const { switchedToAnotherAccount } = await logoutUser()
+      const { switchedToAnotherAccount } = (await logoutUser()) as any
       // If another logged-in account was switched to, logoutUser already navigated
       // there — only redirect to /login when this was the last session.
       if (!switchedToAnotherAccount) navigate("/login")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Logout error:", error)
     }
   }
@@ -222,7 +225,8 @@ const SideBar_Header = () => {
     try {
       await logoutAllAccounts()
       navigate("/login")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Logout error:", error)
     }
   }
@@ -275,7 +279,7 @@ const SideBar_Header = () => {
               className="w-full h-14 bg-primary hover:bg-[#3B4BB8] text-white font-bold rounded-xl transition-all duration-300 shadow-none flex items-center justify-center gap-2 group relative overflow-hidden border border-white/10"
             >
               <div className="shimmer-effect absolute inset-0 pointer-events-none z-0 opacity-20" />
-              {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
+              {["pro", "enterprise"].includes(user?.subscription?.plan ?? "") ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300 relative z-10" />
@@ -341,7 +345,6 @@ const SideBar_Header = () => {
                   buttonText="Schedule Demo"
                   variant="linear"
                   size="middle"
-                  tooltipText=""
                   showIcon={true}
                   className="w-full! justify-center!"
                 />
@@ -404,9 +407,7 @@ const SideBar_Header = () => {
               buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
               variant="linear"
               size="middle"
-              tooltipText="Schedule a free consultation"
               showIcon={isDesktop}
-              hideOnMobile={true}
             />
             {user?.subscription?.plan !== "enterprise" && <GoProButton />}
             {isUserLoaded ? (
@@ -421,11 +422,11 @@ const SideBar_Header = () => {
                     >
                       <RiCoinsFill size={18} color="orange" />
                       <span className="font-semibold text-sm">
-                        {user?.credits?.base + user?.credits?.extra || 0}
+                        {(user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)}
                       </span>
                     </button>
                   </div>
-                  <NotificationDropdown notifications={user?.notifications} />
+                  <NotificationDropdown notifications={user?.notifications as any} />
                   <div
                     className="hidden md:flex tooltip tooltip-bottom"
                     data-tip="Introduction Video"

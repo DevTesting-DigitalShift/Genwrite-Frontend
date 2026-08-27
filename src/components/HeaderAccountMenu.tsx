@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Check,
@@ -21,7 +22,13 @@ import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import { useWorkspacesSharedWithMeQuery } from "@api/queries/collaborationQueries"
 
-const Avatar = ({ src, fallback, className = "w-6 h-6 text-xs" }) => (
+interface AvatarProps {
+  src?: string
+  fallback?: any
+  className?: string
+}
+
+const Avatar = ({ src, fallback, className = "w-6 h-6 text-xs" }: AvatarProps) => (
   <div
     className={`rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center overflow-hidden shrink-0 ${className}`}
   >
@@ -33,13 +40,35 @@ const Avatar = ({ src, fallback, className = "w-6 h-6 text-xs" }) => (
   </div>
 )
 
-const SectionLabel = ({ children }) => (
+interface SectionLabelProps {
+  children?: ReactNode
+}
+
+const SectionLabel = ({ children }: SectionLabelProps) => (
   <div className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
     {children}
   </div>
 )
 
-const Row = ({ icon: Icon, leading, label, onClick, active, trailing, tone = "default" }) => {
+interface RowProps {
+  icon?: any
+  leading?: any
+  label?: string
+  onClick?: (...args: any[]) => void
+  active?: boolean
+  trailing?: any
+  tone?: any
+}
+
+const Row = ({
+  icon: Icon,
+  leading,
+  label,
+  onClick,
+  active,
+  trailing,
+  tone = "default",
+}: RowProps) => {
   const tones = {
     default: "text-gray-700 hover:bg-gray-100",
     danger: "text-red-600 hover:bg-red-50",
@@ -49,7 +78,7 @@ const Row = ({ icon: Icon, leading, label, onClick, active, trailing, tone = "de
       type="button"
       onClick={onClick}
       className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-left transition-colors ${
-        active ? "bg-primary/10 text-primary" : tones[tone]
+        active ? "bg-primary/10 text-primary" : tones[tone as keyof typeof tones]
       }`}
     >
       {/* Fixed-width slot so avatars and icons share one alignment column */}
@@ -72,7 +101,11 @@ const Row = ({ icon: Icon, leading, label, onClick, active, trailing, tone = "de
  * pinned (see @utils/sessionStore). Read-only state is shown as a tint on the trigger, not
  * as a separate badge — the in-page WorkspaceAccessBanner already states it in words.
  */
-const HeaderAccountMenu = ({ onSignOut }) => {
+interface HeaderAccountMenuProps {
+  onSignOut?: (...args: any[]) => void
+}
+
+const HeaderAccountMenu = ({ onSignOut }: HeaderAccountMenuProps) => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { sessions, activeSession, atLimit, maxSessions } = useSessions()
@@ -93,14 +126,14 @@ const HeaderAccountMenu = ({ onSignOut }) => {
   const ownerName = activeWorkspace?.name || activeWorkspace?.email || "shared workspace"
 
   // daisyUI dropdowns close on blur, so drop focus before any navigation.
-  const close = () => document.activeElement?.blur?.()
+  const close = () => (document.activeElement as HTMLElement | null)?.blur?.()
 
-  const go = path => {
+  const go = (path: string) => {
     close()
     navigate(path)
   }
 
-  const handleSwitchAccount = userId => {
+  const handleSwitchAccount = (userId: string) => {
     close()
     if (userId === activeSession?.userId) return
     switchToAccount(userId, { navigate })
@@ -108,7 +141,7 @@ const HeaderAccountMenu = ({ onSignOut }) => {
 
   // Full page loads rather than re-renders: in-flight queries were scoped to an owner via
   // the X-Watch-As header, so the cleanest way across the boundary is a fresh load.
-  const handleSwitchWorkspace = access => {
+  const handleSwitchWorkspace = (access: any) => {
     switchToWorkspace({
       id: access.ownerId._id,
       name: access.ownerId.name,
@@ -205,7 +238,7 @@ const HeaderAccountMenu = ({ onSignOut }) => {
         <SectionLabel>
           Accounts ({sessions.length}/{maxSessions})
         </SectionLabel>
-        {sessions.map(session => {
+        {sessions.map((session) => {
           const isActive = session.userId === activeSession?.userId
           return (
             <Row
@@ -252,7 +285,7 @@ const HeaderAccountMenu = ({ onSignOut }) => {
               onClick={handleExitWorkspace}
               trailing={!watching ? <Check className="w-4 h-4 text-primary shrink-0" /> : null}
             />
-            {sharedWorkspaces.map(access => {
+            {sharedWorkspaces.map((access: any) => {
               const isActive = activeWorkspace?.id === access.ownerId?._id
               return (
                 <Row

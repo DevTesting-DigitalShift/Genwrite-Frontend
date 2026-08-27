@@ -1,6 +1,18 @@
+import type { ReactNode } from "react"
 import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Lightbulb, CheckCircle, AlertCircle, ExternalLink, Crown } from "lucide-react"
+
+interface FeatureCardProps {
+  title?: string
+  description?: string
+  isPro?: boolean
+  isLoading?: boolean
+  onClick?: (...args: any[]) => void
+  buttonText?: string
+  icon?: any
+  children?: ReactNode
+}
 
 const FeatureCard = ({
   title,
@@ -11,7 +23,7 @@ const FeatureCard = ({
   buttonText,
   icon: Icon,
   children,
-}) => (
+}: FeatureCardProps) => (
   <motion.div
     whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
     className="bg-white rounded-lg shadow-sm border hover:shadow-xl border-gray-200 p-4"
@@ -42,8 +54,14 @@ const FeatureCard = ({
   </motion.div>
 )
 
-const ScoreCard = ({ title, score, icon: Icon }) => {
-  const getScoreColor = (score) => {
+interface ScoreCardProps {
+  title?: string
+  score?: any
+  icon?: any
+}
+
+const ScoreCard = ({ title, score, icon: Icon }: ScoreCardProps) => {
+  const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
     return "bg-red-100 text-red-700 border-red-200"
@@ -82,7 +100,14 @@ const ScoreCard = ({ title, score, icon: Icon }) => {
 }
 
 // Simple stat card for displaying counts (word count, keywords count, etc.)
-const StatCard = ({ title, value, icon: Icon, subtitle }) => {
+interface StatCardProps {
+  title?: string
+  value?: string
+  icon?: any
+  subtitle?: any
+}
+
+const StatCard = ({ title, value, icon: Icon, subtitle }: StatCardProps) => {
   return (
     <div className="p-3 rounded-lg border bg-gray-50 border-gray-200">
       <div className="flex items-center justify-between">
@@ -96,14 +121,18 @@ const StatCard = ({ title, value, icon: Icon, subtitle }) => {
           </div>
         </div>
         <span className="text-lg font-bold text-gray-900">
-          {typeof value === "number" ? value.toLocaleString() : value}
+          {typeof value === "number" ? (value as number).toLocaleString() : (value as ReactNode)}
         </span>
       </div>
     </div>
   )
 }
 
-const CompetitorsList = ({ competitors }) => {
+interface CompetitorsListProps {
+  competitors?: any
+}
+
+const CompetitorsList = ({ competitors }: CompetitorsListProps) => {
   const [showAll, setShowAll] = useState(false)
   const visibleCompetitors = showAll ? competitors : competitors?.slice(0, 5)
 
@@ -115,7 +144,7 @@ const CompetitorsList = ({ competitors }) => {
         </span>
       )}
 
-      {visibleCompetitors?.map((item, index) => (
+      {visibleCompetitors?.map((item: any, index: number) => (
         <motion.div
           key={item.link || item.url}
           initial={{ opacity: 0, x: -10 }}
@@ -158,14 +187,18 @@ const CompetitorsList = ({ competitors }) => {
   )
 }
 
-const AnalysisInsights = ({ insights }) => {
+interface AnalysisInsightsProps {
+  insights?: any
+}
+
+const AnalysisInsights = ({ insights }: AnalysisInsightsProps) => {
   const [showAll, setShowAll] = useState(false)
   const [expandedIndexes, setExpandedIndexes] = useState(new Set())
 
   const entries = Object.entries(insights || {})
   const visibleEntries = showAll ? entries : entries.slice(0, 3)
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = (index: number) => {
     const updated = new Set(expandedIndexes)
     updated.has(index) ? updated.delete(index) : updated.add(index)
     setExpandedIndexes(updated)
@@ -176,9 +209,9 @@ const AnalysisInsights = ({ insights }) => {
       {visibleEntries.map(([key, value], index) => {
         const isExpanded = expandedIndexes.has(index)
         const text = typeof value === "object" ? "Multiple insights available" : value?.toString()
-        const shouldTruncate = text?.length > 120 && !isExpanded
-        const displayText = shouldTruncate ? text.slice(0, 120) + "..." : text
-        const match = value.match(/\((\d+\/\d+)\)$/)
+        const shouldTruncate = (text?.length ?? 0) > 120 && !isExpanded
+        const displayText = shouldTruncate ? `${text?.slice(0, 120)}...` : text
+        const match = String(value).match(/\((\d+\/\d+)\)$/)
         const score = match ? match[1] : null
 
         return (
@@ -231,7 +264,10 @@ const AnalysisInsights = ({ insights }) => {
   )
 }
 
-const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, onReject }, ref) => (
+const ProofreadingSuggestion = React.forwardRef<
+  HTMLDivElement,
+  { suggestion?: any; index?: number; onApply?: (...args: any[]) => void; onReject?: (...args: any[]) => void }
+>(({ suggestion, index, onApply, onReject }, ref) => (
   <div
     ref={ref}
     className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
@@ -258,14 +294,14 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => onApply(index, suggestion)}
+          onClick={() => onApply?.(index, suggestion)}
           className="btn btn-success btn-sm flex-1 text-white"
         >
           Accept
         </button>
         <button
           type="button"
-          onClick={() => onReject(index)}
+          onClick={() => onReject?.(index)}
           className="btn btn-ghost btn-outline btn-sm flex-1"
         >
           Reject

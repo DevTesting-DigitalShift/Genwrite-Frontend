@@ -26,9 +26,8 @@ const YouTubeSummarization = () => {
   const {
     mutate: summarizeVideo,
     isPending,
-    isLoading: isMutationLoading,
   } = useYoutubeSummaryMutation()
-  const isLoading = isPending || isMutationLoading
+  const isLoading = isPending
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -38,7 +37,7 @@ const YouTubeSummarization = () => {
     }
   }, [resetYoutubeSummary])
 
-  const isValidYoutubeUrl = (url) => {
+  const isValidYoutubeUrl = (url: string) => {
     const youtubeRegex =
       /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)[a-zA-Z0-9_-]{11}/
     return youtubeRegex.test(url.trim())
@@ -70,7 +69,7 @@ const YouTubeSummarization = () => {
     })
   }
 
-  const handleCopy = async (content) => {
+  const handleCopy = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
@@ -82,7 +81,7 @@ const YouTubeSummarization = () => {
 
   const handleCopySummary = async () => {
     if (!summaryResult) return
-    const summaryText = `${summaryResult.title}\n\n${summaryResult.summary}\n\nKey Points:\n${summaryResult.keyPoints.map((point, idx) => `${idx + 1}. ${point}`).join("\n")}`
+    const summaryText = `${summaryResult.title}\n\n${summaryResult.summary}\n\nKey Points:\n${summaryResult.keyPoints.map((point: any, idx: number) => `${idx + 1}. ${point}`).join("\n")}`
     await handleCopy(summaryText)
   }
 
@@ -96,7 +95,7 @@ const YouTubeSummarization = () => {
 
   // Custom timer logic for loading progress
   useEffect(() => {
-    let interval
+    let interval: ReturnType<typeof setInterval> | undefined
     if (isLoading) {
       setTimer(1)
       const specificPoints = [2, 3, 4, 10, 25, 30]
@@ -236,7 +235,7 @@ const YouTubeSummarization = () => {
                     alt={summaryResult.title}
                     className="w-full h-auto object-cover"
                     onError={(e) => {
-                      e.target.style.display = "none"
+                      (e.target as HTMLImageElement).style.display = "none"
                     }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4">
@@ -276,7 +275,7 @@ const YouTubeSummarization = () => {
                 </div>
 
                 <ul className="space-y-3">
-                  {summaryResult.keyPoints.map((point, idx) => (
+                  {summaryResult.keyPoints.map((point: any, idx: number) => (
                     <li key={point} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}

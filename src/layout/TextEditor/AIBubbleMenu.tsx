@@ -1,3 +1,6 @@
+import { asApiError } from "@/types/api"
+import type { ReactNode } from "react"
+import type { Editor } from "@tiptap/react"
 import { useEffect, useState, useRef } from "react"
 import axiosInstance from "@/api"
 import { Sparkles, Loader2 } from "lucide-react"
@@ -8,12 +11,24 @@ import TurndownService from "turndown"
 import useAiReviewStore from "@/store/useAiReviewStore"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
-const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children }) => {
+const AIBubbleMenu = ({
+  editor,
+  blogId,
+  isArchived,
+  onContentUpdate,
+  children,
+}: {
+  editor: Editor
+  blogId?: string
+  isArchived?: boolean
+  onContentUpdate?: (content: string) => void
+  children?: ReactNode
+}) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showMenu, setShowMenu] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
-  const menuRef = useRef(null)
+  const menuRef = useRef<any>(null)
 
   // The result is reviewed inside the editor, so this only needs to raise it.
   const openReview = useAiReviewStore((s) => s.openReview)
@@ -65,7 +80,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children })
     }
   }, [editor, isArchived])
 
-  const handleAIOperation = async (operation) => {
+  const handleAIOperation = async (operation: string) => {
     if (!blogId) {
       toast.error("Blog ID not found")
       return
@@ -156,7 +171,8 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children })
         })
         toast.success(`${operation} completed! Review the changes.`)
       }
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("AI Operation Error:", error)
       if (error.response?.status === 402) {
         const neededCredits = error.response?.data?.neededCredits

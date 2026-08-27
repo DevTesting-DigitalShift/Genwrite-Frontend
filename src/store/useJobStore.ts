@@ -4,7 +4,7 @@ import { devtools } from "zustand/middleware"
 /** A scheduled generation job, as returned by the jobs API. */
 export interface Job {
   _id?: string
-  [key: string]: unknown
+  [key: string]: any
 }
 
 interface JobState {

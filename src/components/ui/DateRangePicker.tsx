@@ -1,13 +1,34 @@
 import { useState, useEffect } from "react"
-import dayjs from "dayjs"
+import dayjs, { type Dayjs } from "dayjs"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Calendar } from "./calendar"
+import type { DateRange } from "react-day-picker"
 import clsx from "clsx"
 
-export default function DateRangePicker({ value, onChange, minDate, maxDate, className }) {
+/** A [start, end] pair of dayjs instances, or nulls when the range is cleared. */
+type DayjsRange = [Dayjs | null, Dayjs | null]
+
+interface DateRangePickerProps {
+  value?: DayjsRange
+  onChange: (range: DayjsRange) => void
+  minDate?: Date
+  maxDate?: Date
+  className?: string
+}
+
+export default function DateRangePicker({
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  className,
+}: DateRangePickerProps) {
   // value is expected to be [dayjs, dayjs]
-  const [date, setDate] = useState({ from: value?.[0]?.toDate(), to: value?.[1]?.toDate() })
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: value?.[0]?.toDate(),
+    to: value?.[1]?.toDate(),
+  })
 
   // Sync state if props change (e.g. from parent Reset All)
   useEffect(() => {
@@ -16,7 +37,7 @@ export default function DateRangePicker({ value, onChange, minDate, maxDate, cla
 
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleSelect = (selectedRange) => {
+  const handleSelect = (selectedRange: DateRange | undefined) => {
     setDate(selectedRange)
     if (selectedRange?.from) {
       const start = dayjs(selectedRange.from).startOf("day")

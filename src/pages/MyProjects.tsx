@@ -5,7 +5,6 @@ import BlogCard from "../components/Blog/BlogCard"
 import { toast } from "sonner"
 import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
 import dayjs from "dayjs"
@@ -33,7 +32,6 @@ const MyProjects = () => {
   const queryClient = useQueryClient()
   const userId = user?._id || "guest"
   const { handleProAction } = useProAction()
-  const { handlePopup } = useConfirmPopup()
 
   // Memoized because three hooks below take it as a dependency: as a bare object literal
   // it was a new reference every render, so those memos/callbacks never actually memoized.
@@ -58,9 +56,9 @@ const MyProjects = () => {
   useEffect(() => {
     const field = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
     if (field) {
-      setBlogFilters((prev) => ({ ...prev, ...JSON.parse(field) }))
+      setBlogFilters((prev: any) => ({ ...prev, ...JSON.parse(field) }))
     } else {
-      setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
+      setBlogFilters((prev: any) => ({ ...prev, start: user?.createdAt }))
     }
   }, [user?.createdAt, user?._id])
 
@@ -69,7 +67,7 @@ const MyProjects = () => {
       queryKey: ["blogs", userId, blogFilters],
       initialPageParam: 1,
       queryFn: async ({ pageParam = 1 }) => {
-        let params = {
+        let params: Record<string, any> = {
           page: pageParam,
           limit: ITEMS_PER_PAGE,
           q: blogFilters.q || undefined,
@@ -96,28 +94,20 @@ const MyProjects = () => {
       staleTime: Infinity,
       gcTime: Infinity,
       refetchOnWindowFocus: false,
-      onError: (error) => {
-        console.error("Failed to fetch blogs:", {
-          error: error.message,
-          status: error.status,
-          response: error.response,
-        })
-        toast.error("Failed to load blogs. Please try again.")
-      },
     })
 
   // Flatten all pages
-  const allBlogs = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data])
+  const allBlogs = useMemo(() => data?.pages.flatMap((p: any) => p.data) ?? [], [data])
   // const hasMore = data?.pages[data?.pages.length - 1]?.hasMore ?? false
   const totalItems = data?.pages[0]?.totalItems ?? 0
-  const inputRef = useRef(null)
+  const inputRef = useRef<any>(null)
 
-  const [_isMenuOpen, _setMenuOpen] = useState(false)
-  const [_isFunnelMenuOpen, _setFunnelMenuOpen] = useState(false)
+  const [_isMenuOpen, _setMenuOpen] = useState<any>(false)
+  const [_isFunnelMenuOpen, _setFunnelMenuOpen] = useState<any>(false)
 
   // // Reset filters to default
   const resetFilters = useCallback(() => {
-    setBlogFilters((_prev) => ({ ...initialBlogFilter, start: user?.createdAt }))
+    setBlogFilters((_prev: any) => ({ ...initialBlogFilter, start: user?.createdAt }))
     if (inputRef?.current?.input?.value) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
   }, [user, initialBlogFilter, userId])
@@ -137,7 +127,7 @@ const MyProjects = () => {
 
     const isOtherChanged = Object.keys(blogFilters).some((key) => {
       if (key === "start" || key === "end") return false
-      return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
+      return JSON.stringify(blogFilters[key as keyof typeof blogFilters]) !== JSON.stringify(initialBlogFilter[key as keyof typeof initialBlogFilter])
     })
 
     return hasActiveDates || isOtherChanged
@@ -151,44 +141,44 @@ const MyProjects = () => {
       return
     }
 
-    const patchBlogInCache = (blogId, patcher) => {
+    const patchBlogInCache = (blogId: string, patcher: any) => {
       if (!blogId) return
-      queryClient.setQueriesData({ queryKey: ["blogs"] }, (oldData) => {
+      queryClient.setQueriesData({ queryKey: ["blogs"] }, (oldData: any) => {
         if (!oldData?.pages) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map((page) => ({
+          pages: oldData.pages.map((page: any) => ({
             ...page,
-            data: page.data.map((blog) => (blog._id === blogId ? patcher(blog) : blog)),
+            data: page.data.map((blog: any) => (blog._id === blogId ? patcher(blog) : blog)),
           })),
         }
       })
     }
 
     // Real-time progress: update taskStatus in cache directly — no API call
-    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
+    const handleProgressUpdated = ({ blogId, taskStatus }: any = {}) => {
       if (blogId && taskStatus) {
-        patchBlogInCache(blogId, (blog) => ({ ...blog, taskStatus }))
+        patchBlogInCache(blogId, (blog: any) => ({ ...blog, taskStatus }))
       }
     }
 
-    const handleStatusChange = ({ blogId, newStatus } = {}) => {
+    const handleStatusChange = ({ blogId, newStatus }: any = {}) => {
       if (newStatus === "complete" || newStatus === "failed") {
         // Final state — fetch fresh blog data from API
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       } else if (blogId && newStatus) {
         // In-progress transition — patch status in cache only
-        patchBlogInCache(blogId, (blog) => ({ ...blog, status: newStatus }))
+        patchBlogInCache(blogId, (blog: any) => ({ ...blog, status: newStatus }))
       }
     }
 
-    const handleBlogCreated = (_) => {
+    const handleBlogCreated = (_: any) => {
       queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
     }
 
-    const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
+    const handleBlogJobRetry = ({ blogId, retryTime }: any = {}) => {
       if (!blogId) return
-      patchBlogInCache(blogId, (blog) => ({ ...blog, agendaNextRun: retryTime }))
+      patchBlogInCache(blogId, (blog: any) => ({ ...blog, agendaNextRun: retryTime }))
     }
 
     socket.on("blog:progressUpdated", handleProgressUpdated)
@@ -205,20 +195,20 @@ const MyProjects = () => {
   }, [user, queryClient])
 
   const handleBlogClick = useCallback(
-    (blog) => {
+    (blog: any) => {
       navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    (blog) => {
+    (blog: any) => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
   )
 
-  const handleRetry = useCallback(async (id) => {
+  const handleRetry = useCallback(async (id: string) => {
     try {
       await retryBlogById(id)
       toast.success("Blog will be regenerated shortly")
@@ -228,7 +218,7 @@ const MyProjects = () => {
     }
   }, [refetch])
 
-  const handleArchive = useCallback(async (id) => {
+  const handleArchive = useCallback(async (id: string) => {
     try {
       await archiveBlogById(id)
       toast.success("Blog archived successfully")
@@ -242,8 +232,8 @@ const MyProjects = () => {
   // is evaluated during render — reading it any earlier hits the temporal dead zone and
   // throws "Cannot access 'updateBlogFilters' before initialization".
   const updateBlogFilters = useCallback(
-    (updates) => {
-      setBlogFilters((prev) => {
+    (updates: any) => {
+      setBlogFilters((prev: any) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
         return newValue
@@ -257,7 +247,7 @@ const MyProjects = () => {
     () =>
       SORT_OPTIONS.map((opt) => ({
         ...opt,
-        onClick: (_) => {
+        onClick: (_: any) => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
@@ -269,7 +259,7 @@ const MyProjects = () => {
     () =>
       BLOG_STATUS_OPTIONS.map((opt) => ({
         ...opt,
-        onClick: (_) => {
+        onClick: (_: any) => {
           updateBlogFilters({ status: opt.value })
         },
       })),
@@ -408,7 +398,7 @@ const MyProjects = () => {
             >
               <ArrowDownUp className="w-4 h-4" />
               <span className="font-bold">
-                Sort: {menuOptions.find((t) => t.value === blogFilters.sort).label}
+                Sort: {menuOptions.find((t) => t.value === blogFilters.sort)?.label}
               </span>
             </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
@@ -438,7 +428,7 @@ const MyProjects = () => {
             >
               <Filter className="w-4 h-4" />
               <span className="font-bold">
-                Filter: {funnelMenuOptions.find((t) => t.value === blogFilters.status).label}
+                Filter: {funnelMenuOptions.find((t) => t.value === blogFilters.status)?.label}
               </span>
             </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
@@ -475,11 +465,11 @@ const MyProjects = () => {
         <div className="w-full lg:w-1/3">
           <DateRangePicker
             value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
-            minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
-            maxDate={dayjs()}
+            minDate={user?.createdAt ? dayjs(user.createdAt).toDate() : undefined}
+            maxDate={dayjs().toDate()}
             onChange={(dates) => {
               updateBlogFilters({
-                ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1].toISOString() } : {}),
+                ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1]?.toISOString() } : {}),
               })
             }}
             className={clsx(
@@ -521,7 +511,6 @@ const MyProjects = () => {
                   onManualBlogClick={handleManualBlogClick}
                   onRetry={handleRetry}
                   onArchive={handleArchive}
-                  handlePopup={handlePopup}
                   hasGSCPermissions={Boolean(user?.gsc?.length)}
                 />
               ))}

@@ -10,20 +10,20 @@ interface ApiError {
 }
 
 interface SiteInfoSlice {
-  data: unknown | null
+  data: any | null
   loading: boolean
   error: string | null
 }
 
 interface BrandState {
-  selectedVoice: unknown | null
+  selectedVoice: any | null
   siteInfo: SiteInfoSlice
 
-  setSelectedVoice: (voice: unknown | null) => void
+  setSelectedVoice: (voice: any | null) => void
   setSiteInfo: (updates: Partial<SiteInfoSlice>) => void
   resetSiteInfo: () => void
   reset: () => void
-  fetchSiteInfo: (url: string) => Promise<unknown>
+  fetchSiteInfo: (url: string) => Promise<any>
 }
 
 const useBrandStore = create<BrandState>()(

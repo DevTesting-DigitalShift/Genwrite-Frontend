@@ -15,26 +15,26 @@ import { devtools } from "zustand/middleware"
  */
 export interface IntegrationsPayload {
   integrations?: Record<string, unknown>
-  [key: string]: unknown
+  [key: string]: any
 }
 
 interface IntegrationState {
   integrations: IntegrationsPayload
-  categories: unknown[]
+  categories: any[]
   loading: boolean
   error: string | null
-  ping: unknown | null
+  ping: any | null
 
   setIntegrations: (integrations: IntegrationsPayload) => void
-  setCategories: (categories: unknown[]) => void
+  setCategories: (categories: any[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 
-  fetchIntegrations: () => Promise<unknown>
-  fetchCategories: (type?: string) => Promise<unknown>
-  pingIntegration: (type: string) => Promise<unknown>
-  createIntegration: (payload: unknown) => Promise<unknown>
-  updateIntegration: (payload: unknown) => Promise<unknown>
+  fetchIntegrations: () => Promise<any>
+  fetchCategories: (type?: string) => Promise<any>
+  pingIntegration: (type: string) => Promise<any>
+  createIntegration: (payload: unknown) => Promise<any>
+  updateIntegration: (payload: unknown) => Promise<any>
   resetCategories: () => void
 }
 

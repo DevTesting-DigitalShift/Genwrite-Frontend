@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react"
+import React, { type ReactNode, useEffect, useState } from "react"
 
-const Carousel = ({ children }) => {
+const Carousel = ({ children }: { children?: ReactNode }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [_length, setLength] = useState(children.length)
+  const [_length, setLength] = useState(React.Children.count(children))
   const itemsPerPage = 4
   const totalPages = Math.ceil(React.Children.count(children) / itemsPerPage)
 
@@ -34,17 +34,17 @@ const Carousel = ({ children }) => {
         >
           <div className="flex flex-nowrap min-w-full">
             {React.Children.toArray(children)
-              .reduce((acc, child, index) => {
+              .reduce<ReactNode[][]>((acc, child, index) => {
                 if (index % itemsPerPage === 0) {
                   acc.push([])
                 }
                 acc[acc.length - 1].push(child)
                 return acc
               }, [])
-              .map((group, groupIndex) => (
+              .map((group: ReactNode[], groupIndex: number) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: fixed carousel pages of opaque children, never reordered
                 <div key={groupIndex} className="grid grid-cols-4  gap-6 min-w-full px-2">
-                  {group.map((child, childIndex) => (
+                  {group.map((child: ReactNode, childIndex: number) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: opaque children with no natural id, fixed order
                     <div key={childIndex} className="w-full">
                       {child}

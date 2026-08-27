@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
@@ -33,7 +34,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { type Variants, motion } from "framer-motion"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 
@@ -46,8 +47,8 @@ const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogM
 
 const Dashboard = () => {
   const [activeModel, setActiveModel] = useState("")
-  const [_loading, setLoading] = useState(true)
-  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [_loading, setLoading] = useState<any>(true)
+  const [showWhatsNew, setShowWhatsNew] = useState<any>(false)
 
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
@@ -56,13 +57,13 @@ const Dashboard = () => {
   const { clearSelectedKeywords } = useAnalysisStore()
   const { isReadOnlyWorkspace, guardWrite, readOnlyMessage } = useReadOnlyGuard()
   const queryClient = useQueryClient()
-  const [runTour, setRunTour] = useState(false)
+  const [runTour, setRunTour] = useState<any>(false)
 
   const [topic, setTopic] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isGenerating, setIsGenerating] = useState<any>(false)
   const { createTopicBlog } = useBlogStore()
 
-  const handleTopicSubmit = async (e) => {
+  const handleTopicSubmit = async (e: any) => {
     e.preventDefault()
     if (isReadOnlyWorkspace) {
       toast.error(readOnlyMessage)
@@ -85,7 +86,8 @@ const Dashboard = () => {
     try {
       await createTopicBlog({ topic: topic.trim(), navigate, queryClient })
       setTopic("")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Failed to generate blog:", error)
       toast.error(error.message || "An error occurred while generating the blog.")
     } finally {
@@ -117,7 +119,7 @@ const Dashboard = () => {
     ? recentBlogsData
     : recentBlogsData?.data || recentBlogsData?.blogs || []
 
-  const recentBlogs = blogsArray.filter((b) => b.status === "complete" && !b.isArchived).slice(0, 4)
+  const recentBlogs = blogsArray.filter((b: any) => b.status === "complete" && !b.isArchived).slice(0, 4)
 
   const stats = blogStatus?.stats || {}
   const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
@@ -133,12 +135,12 @@ const Dashboard = () => {
   }
 
   // Animation Variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
   }
@@ -153,7 +155,8 @@ const Dashboard = () => {
       try {
         await loadAuthenticatedUser()
         setLoading(false)
-      } catch (error) {
+      } catch (rawError) {
+      const error = asApiError(rawError)
         console.error("User init failed:", error)
         setLoading(false)
       }
@@ -206,7 +209,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.YouTube_Blog:
         return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Advanced_Blog:
-        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} queryClient={queryClient} />
+        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       default:
@@ -464,7 +467,7 @@ const Dashboard = () => {
                 className={`group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between min-h-[180px] ${
                   isReadOnlyWorkspace ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                 }`}
-                onClick={() => guardWrite(() => setActiveModel(tool.modelKey))}
+                onClick={() => guardWrite(() => setActiveModel(tool.modelKey ?? ""))}
               >
                 {isReadOnlyWorkspace && (
                   <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-200">
@@ -527,7 +530,7 @@ const Dashboard = () => {
                         // spend the owner's credits, so they're no safer to open.
                         disabled={isReadOnlyWorkspace}
                         disabledReason={readOnlyMessage}
-                        onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey)}
+                        onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey ?? "")}
                       />
                     ))}
                   </div>
@@ -554,7 +557,7 @@ const Dashboard = () => {
             </div>
 
             <div className="gap-6">
-              {recentBlogs.slice(0, 4).map((blog) => (
+              {recentBlogs.slice(0, 4).map((blog: any) => (
                 <motion.div
                   key={blog._id}
                   onClick={() => navigate(`/blog/${blog._id}`)}

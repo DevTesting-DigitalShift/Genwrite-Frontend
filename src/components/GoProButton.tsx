@@ -6,7 +6,7 @@ import useAuthStore from "@store/useAuthStore"
 
 const GoProButton = () => {
   const { user } = useAuthStore()
-  const [userPlan, setUserPlan] = useState("")
+  const [userPlan, setUserPlan] = useState<string>("")
 
   useEffect(() => {
     setUserPlan(user?.subscription?.plan || "")

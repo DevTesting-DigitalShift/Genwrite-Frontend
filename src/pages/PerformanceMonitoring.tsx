@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useEffect, useState } from "react"
 import DOMPurify from "dompurify"
 import { useLocation } from "react-router-dom"
@@ -10,15 +11,15 @@ import ConnectedTools from "@components/ConnectedTools"
 
 const PerformanceMonitoring = () => {
   const location = useLocation()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     selectedBlog: null,
     title: "",
     content: location.state?.transferValue || "",
     keywords: [],
   })
-  const [stats, setStats] = useState(null)
-  const [id, setId] = useState(null)
-  const [isStatsLoading, setIsStatsLoading] = useState(false)
+  const [stats, setStats] = useState<any>(null)
+  const [id, setId] = useState<any>(null)
+  const [isStatsLoading, setIsStatsLoading] = useState<any>(false)
 
   // Fetch all blogs
   const { data: allBlogs, isLoading: blogsLoading } = useAllBlogsQuery()
@@ -30,7 +31,7 @@ const PerformanceMonitoring = () => {
 
   useEffect(() => {
     if (blogDetails && blogDetails._id === id) {
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         title: blogDetails.title || "",
         content: blogDetails.content || "",
@@ -41,7 +42,7 @@ const PerformanceMonitoring = () => {
     }
   }, [blogDetails, id])
 
-  const handleBlogSelect = (e) => {
+  const handleBlogSelect = (e: any) => {
     const value = e.target.value
     if (!value) {
       setId(null)
@@ -49,7 +50,7 @@ const PerformanceMonitoring = () => {
       setStats(null)
       return
     }
-    const blog = allBlogs?.find((b) => b._id === value)
+    const blog = allBlogs?.find((b: any) => b._id === value)
     if (blog) {
       setId(blog._id)
       setFormData({
@@ -79,7 +80,8 @@ const PerformanceMonitoring = () => {
         setStats(result.data.stats || result.data)
         toast.success("Performance insights loaded successfully.")
       }
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Failed to fetch blog stats:", error)
       toast.error("Failed to load performance stats.")
     } finally {
@@ -102,13 +104,27 @@ const PerformanceMonitoring = () => {
     seo: "📈 Blog Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
   }
 
-  const InfoTooltip = ({ type = "seo" }) => (
-    <div className="tooltip tooltip-top" data-tip={scoreInfo[type]}>
+  interface InfoTooltipProps {
+  type?: string
+}
+
+const InfoTooltip = ({ type = "seo" }: InfoTooltipProps) => (
+    <div className="tooltip tooltip-top" data-tip={scoreInfo[type as keyof typeof scoreInfo]}>
       <Info className="w-4 h-4 text-gray-400 hover:text-blue-500 cursor-pointer" />
     </div>
   )
 
-  const StatCard = ({ icon, label, value, color, delay = 0, suffix = "", description = "" }) => (
+  interface StatCardProps {
+  icon?: any
+  label?: string
+  value?: string
+  color?: string
+  delay?: any
+  suffix?: any
+  description?: string
+}
+
+const StatCard = ({ icon, label, value, color, delay = 0, suffix = "", description = "" }: StatCardProps) => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -129,12 +145,20 @@ const PerformanceMonitoring = () => {
     </motion.div>
   )
 
-  const ScoreBox = ({ score, max, label, level, color }) => (
+  interface ScoreBoxProps {
+  score?: any
+  max?: any
+  label?: string
+  level?: any
+  color?: string
+}
+
+const ScoreBox = ({ score, max, label, level, color }: ScoreBoxProps) => (
     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm w-full">
       <div className="flex justify-between items-center mb-2">
         <span className="text-sm font-semibold  flex items-center gap-2">
           {label}
-          <InfoTooltip type={/seo/gi.test(label) ? "seo" : "flesch"} />
+          <InfoTooltip type={/seo/gi.test(label ?? "") ? "seo" : "flesch"} />
         </span>
         <span
           className={`badge ${score >= 80 ? "badge-success text-white" : score >= 50 ? "badge-warning text-white" : "badge-error text-white"}`}
@@ -156,7 +180,11 @@ const PerformanceMonitoring = () => {
     </div>
   )
 
-  const StatsInfoBox = ({ stats }) => {
+  interface StatsInfoBoxProps {
+  stats?: any
+}
+
+const StatsInfoBox = ({ stats }: StatsInfoBoxProps) => {
     if (!stats) return null
     const { readabililty = {}, seo = {}, metadata = {} } = stats
     const keywordDensity = seo?.keywordDensity || {}
@@ -169,7 +197,7 @@ const PerformanceMonitoring = () => {
     ).length
 
     const dataSource = Object.entries(keywordDensity).map(
-      ([keyword, { count, density }], index) => ({
+      ([keyword, { count, density }]: [string, any], index: number) => ({
         key: keyword,
         keyword,
         count,
@@ -279,14 +307,14 @@ const PerformanceMonitoring = () => {
                 <StatCard
                   icon={<Tag className="w-4 h-4" />}
                   label="Short-Tail"
-                  value={shortTailCount}
+                  value={String(shortTailCount)}
                   color="border-gray-100"
                   suffix=" keywords"
                 />
                 <StatCard
                   icon={<Tags className="w-4 h-4" />}
                   label="Long-Tail"
-                  value={longTailCount}
+                  value={String(longTailCount)}
                   color="border-gray-100"
                   suffix=" keywords"
                 />
@@ -427,7 +455,7 @@ const PerformanceMonitoring = () => {
             <option value="" disabled>
               Select a blog from your projects...
             </option>
-            {allBlogs?.map((blog) => (
+            {allBlogs?.map((blog: any) => (
               <option key={blog._id} value={blog._id}>
                 {blog.title || "Untitled"}
               </option>

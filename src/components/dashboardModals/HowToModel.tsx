@@ -19,7 +19,14 @@ const CloseIcon = () => (
   </svg>
 )
 
-const FeatureCarousel = ({ features }) => {
+interface Feature {
+  id: number
+  title?: string
+  description?: string
+  videoUrl?: string
+}
+
+const FeatureCarousel = ({ features }: { features: Feature[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const prevSlide = () => {
@@ -34,7 +41,7 @@ const FeatureCarousel = ({ features }) => {
     setCurrentIndex(newIndex)
   }
 
-  const goToSlide = (slideIndex) => {
+  const goToSlide = (slideIndex: number) => {
     setCurrentIndex(slideIndex)
   }
 
@@ -43,7 +50,7 @@ const FeatureCarousel = ({ features }) => {
       {/* Carousel container */}
       <div className="relative h-full overflow-hidden">
         {/* Slides */}
-        {features.map((feature, index) => (
+        {features.map((feature: Feature, index: number) => (
           <div
             key={feature.id}
             className="absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out"
@@ -105,7 +112,7 @@ const FeatureCarousel = ({ features }) => {
 
       {/* Navigation Dots */}
       <div className="absolute bottom-[-30px] left-1/2 -translate-x-1/2 flex space-x-2">
-        {features.map((_, slideIndex) => (
+        {features.map((_: unknown, slideIndex: number) => (
           <button
             type="button"
             // biome-ignore lint/suspicious/noArrayIndexKey: nav dot N always represents slide N
@@ -122,7 +129,7 @@ const FeatureCarousel = ({ features }) => {
   )
 }
 
-const WhatsNewModal = ({ onClose }) => {
+const WhatsNewModal = ({ onClose }: { onClose?: () => void }) => {
   const features = [
     {
       id: 1,

@@ -23,6 +23,16 @@ const POPULAR_CATEGORIES = [
   "DIY & Crafts",
 ]
 
+interface CategoriesModalProps {
+  isCategoryModalOpen?: boolean
+  setIsCategoryModalOpen?: (...args: any[]) => void
+  onSubmit?: (...args: any[]) => void
+  initialIncludeTableOfContents?: any
+  integrations?: any
+  blogData?: any
+  posted?: any
+}
+
 const CategoriesModal = ({
   isCategoryModalOpen,
   setIsCategoryModalOpen,
@@ -31,18 +41,18 @@ const CategoriesModal = ({
   integrations,
   blogData,
   posted,
-}) => {
+}: CategoriesModalProps) => {
   const [_customCategory, setCustomCategory] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("")
   const [includeTableOfContents, setIncludeTableOfContents] = useState(
     initialIncludeTableOfContents
   )
-  const [categoryError, setCategoryError] = useState(false)
-  const [platformError, setPlatformError] = useState(false)
-  const [errors, setErrors] = useState({ category: "", platform: "" })
+  const [categoryError, setCategoryError] = useState<any>(false)
+  const [platformError, setPlatformError] = useState<any>(false)
+  const [errors, setErrors] = useState<any>({ category: "", platform: "" })
   const { categories, fetchCategories, resetCategories, error: wordpressError } = useContentStore()
-  const [selectedIntegration, setSelectedIntegration] = useState(null)
-  const [isCategoryLocked, setIsCategoryLocked] = useState(false)
+  const [selectedIntegration, setSelectedIntegration] = useState<any>(null)
+  const [isCategoryLocked, setIsCategoryLocked] = useState<any>(false)
 
   const hasShopifyPosted = !!posted?.SHOPIFY?.link
 
@@ -52,7 +62,7 @@ const CategoriesModal = ({
     }
   }, [fetchCategories, selectedIntegration?.platform])
 
-  const handleIntegrationChange = (platform, url) => {
+  const handleIntegrationChange = (platform: any, url: string) => {
     setSelectedIntegration({
       platform: platform.toLowerCase(), // for UI
       rawPlatform: platform, // for backend
@@ -61,7 +71,7 @@ const CategoriesModal = ({
 
     // Clear platform error when platform is selected
     setPlatformError(false)
-    setErrors((prev) => ({ ...prev, platform: "" }))
+    setErrors((prev: any) => ({ ...prev, platform: "" }))
 
     if (platform === "SHOPIFY") {
       if (hasShopifyPosted) {
@@ -75,21 +85,21 @@ const CategoriesModal = ({
   }
 
   // Handle adding a category (custom or predefined)
-  const handleCategoryAdd = useCallback((category) => {
+  const handleCategoryAdd = useCallback((category: string) => {
     setSelectedCategory(category)
     setCategoryError(false)
-    setErrors((prev) => ({ ...prev, category: "" }))
+    setErrors((prev: any) => ({ ...prev, category: "" }))
   }, [])
 
   // Handle removing the selected category
   const handleCategoryRemove = useCallback(() => {
     setSelectedCategory("")
     setCategoryError(false)
-    setErrors((prev) => ({ ...prev, category: "" }))
+    setErrors((prev: any) => ({ ...prev, category: "" }))
   }, [])
 
   // Handle table of contents toggle
-  const handleCheckboxChange = useCallback((e) => {
+  const handleCheckboxChange = useCallback((e: any) => {
     setIncludeTableOfContents(e.target.checked)
   }, [])
 
@@ -146,7 +156,7 @@ const CategoriesModal = ({
       return
     }
 
-    onSubmit({
+    onSubmit?.({
       category: selectedCategory.trim(),
       includeTableOfContents,
       type: {
@@ -156,7 +166,7 @@ const CategoriesModal = ({
     })
 
     // Reset form
-    setIsCategoryModalOpen(false)
+    setIsCategoryModalOpen?.(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
     setCustomCategory("")
@@ -175,7 +185,7 @@ const CategoriesModal = ({
 
   // Handle modal cancellation
   const handleCancel = useCallback(() => {
-    setIsCategoryModalOpen(false)
+    setIsCategoryModalOpen?.(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
     setCustomCategory("")
@@ -184,12 +194,12 @@ const CategoriesModal = ({
     setErrors({ category: "", platform: "" })
   }, [setIsCategoryModalOpen])
 
-  const handleCategoryInputChange = useCallback((e) => {
+  const handleCategoryInputChange = useCallback((e: any) => {
     const value = e.target.value
     setSelectedCategory(value)
     if (value) {
       setCategoryError(false)
-      setErrors((prev) => ({ ...prev, category: "" }))
+      setErrors((prev: any) => ({ ...prev, category: "" }))
     }
   }, [])
 
@@ -248,7 +258,7 @@ const CategoriesModal = ({
 
     // CASE 3: Posted on other platforms → DO NOT LOCK CATEGORY
     const otherPosted = Object.entries(posted || {}).find(
-      ([key, val]) => key !== "SHOPIFY" && val?.link
+      ([key, val]: [string, any]) => key !== "SHOPIFY" && val?.link
     )
 
     if (otherPosted) {
@@ -262,7 +272,7 @@ const CategoriesModal = ({
       setSelectedIntegration({
         platform: platformKey.toLowerCase(),
         rawPlatform: platformKey,
-        url: val?.url || "",
+        url: (val as any)?.url || "",
       })
 
       return

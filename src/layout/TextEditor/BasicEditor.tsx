@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
@@ -42,7 +43,15 @@ import {
   Check,
 } from "lucide-react"
 
-const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
+interface ToolbarButtonProps {
+  active?: boolean
+  onClick?: (...args: any[]) => void
+  disabled?: boolean
+  children?: ReactNode
+  title?: string
+}
+
+const ToolbarButton = ({ active, onClick, disabled, children, title }: ToolbarButtonProps) => (
   <div className="tooltip tooltip-bottom" data-tip={title}>
     <button
       onClick={onClick}
@@ -63,11 +72,16 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
 
 const ToolbarDivider = () => <div className="w-px h-5 bg-gray-200 mx-1" />
 
-const BasicEditor = ({ content, onChange }) => {
-  const [linkModalOpen, setLinkModalOpen] = useState(false)
+interface BasicEditorProps {
+  content?: string
+  onChange?: (...args: any[]) => void
+}
+
+const BasicEditor = ({ content, onChange }: BasicEditorProps) => {
+  const [linkModalOpen, setLinkModalOpen] = useState<any>(false)
   const [linkUrl, setLinkUrl] = useState("")
   const [linkText, setLinkText] = useState("")
-  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [imageModalOpen, setImageModalOpen] = useState<any>(false)
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
 
@@ -137,7 +151,7 @@ const BasicEditor = ({ content, onChange }) => {
   // Update content when prop changes
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content || "", false)
+      editor.commands.setContent(content || "", { emitUpdate: false })
     }
   }, [content, editor])
 
@@ -488,7 +502,7 @@ const BasicEditor = ({ content, onChange }) => {
                     src={imageUrl}
                     alt={imageAlt || "Preview"}
                     className="max-h-32 mx-auto rounded"
-                    onError={(e) => (e.target.style.display = "none")}
+                    onError={(e) => ((e.target as HTMLElement).style.display = "none")}
                   />
                 </div>
               )}

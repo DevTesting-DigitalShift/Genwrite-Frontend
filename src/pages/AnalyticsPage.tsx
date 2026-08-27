@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
@@ -22,10 +23,24 @@ import dayjs from "dayjs"
 
 ChartJS.register(...registerables)
 
-const StatsCard = ({ title, value, icon, iconBg, cardBg, progress, limit }) => {
-  const percent = limit ? Math.min((value / limit) * 100, 100) : 0
+interface StatsCardProps {
+  title?: string
+  value?: number
+  icon?: any
+  iconBg?: any
+  cardBg?: any
+  progress?: any
+  limit?: number
+}
+
+const StatsCard = ({ title, value, icon, iconBg, cardBg, progress, limit }: StatsCardProps) => {
+  const percent = limit ? Math.min(((value ?? 0) / limit) * 100, 100) : 0
   const progressColor =
-    value >= limit ? "bg-red-500" : value / limit > 0.8 ? "bg-amber-500" : "bg-emerald-500"
+    (value ?? 0) >= (limit ?? 0)
+      ? "bg-red-500"
+      : (value ?? 0) / (limit || 1) > 0.8
+        ? "bg-amber-500"
+        : "bg-emerald-500"
 
   return (
     <motion.div
@@ -63,7 +78,13 @@ const StatsCard = ({ title, value, icon, iconBg, cardBg, progress, limit }) => {
   )
 }
 
-const ChartCard = ({ title, children, className = "" }) => (
+interface ChartCardProps {
+  title?: string
+  children?: ReactNode
+  className?: string
+}
+
+const ChartCard = ({ title, children, className = "" }: ChartCardProps) => (
   <div
     className={`rounded-xl p-6 shadow-none border transition-all duration-300
       bg-white border-gray-200 text-gray-900
@@ -110,7 +131,7 @@ const AnalyticsPage = () => {
   const usage = user?.usage || { createdJobs: 0, aiImages: 0 }
   const usageLimits = user?.usageLimits || { createdJobs: 10, aiImages: 50 }
 
-  const chartOptions = {
+  const chartOptions: any = {
     maintainAspectRatio: false,
     plugins: {
       legend: {
@@ -141,7 +162,7 @@ const AnalyticsPage = () => {
     },
   }
 
-  const barChartOptions = {
+  const barChartOptions: any = {
     ...chartOptions,
     scales: {
       x: {
@@ -161,7 +182,7 @@ const AnalyticsPage = () => {
     },
   }
 
-  const lineChartOptions = {
+  const lineChartOptions: any = {
     ...chartOptions,
     plugins: { ...chartOptions.plugins, legend: { display: false } },
     scales: {
@@ -283,7 +304,15 @@ const AnalyticsPage = () => {
     },
   ]
 
-  const statsData = [
+  const statsData: Array<{
+    title: string
+    value?: number
+    icon?: any
+    iconBg?: string
+    cardBg?: string
+    progress?: number
+    limit?: number
+  }> = [
     {
       title: "Total Blogs",
       value: totalBlogs,

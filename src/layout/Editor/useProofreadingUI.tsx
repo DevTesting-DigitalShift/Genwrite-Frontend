@@ -1,8 +1,10 @@
+import { asApiError } from "@/types/api"
+import type { Editor } from "@tiptap/react"
 import { useEffect, useRef, useState } from "react"
 
-export function useProofreadingUI(editor) {
-  const [activeSpan, setActiveSpan] = useState(null)
-  const bubbleRef = useRef(null)
+export function useProofreadingUI(editor: Editor | null) {
+  const [activeSpan, setActiveSpan] = useState<HTMLElement | null>(null)
+  const bubbleRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!editor?.view) {
@@ -10,8 +12,8 @@ export function useProofreadingUI(editor) {
     }
 
     const dom = editor.view.dom
-    const handler = (e) => {
-      const target = e.target.closest(".proofreading-mark")
+    const handler = (e: Event) => {
+      const target = (e.target as HTMLElement)?.closest<HTMLElement>(".proofreading-mark")
       if (target?.dataset.suggestion) {
         setActiveSpan(target)
       } else {
@@ -50,7 +52,7 @@ export function useProofreadingUI(editor) {
       const newSuggestions =
         editor.extensionManager.extensions
           .find((ext) => ext.name === "proofreadingDecoration")
-          ?.options?.suggestions?.filter((s) => s.original !== original) || []
+          ?.options?.suggestions?.filter((s: { original: string }) => s.original !== original) || []
 
       // Reconfigure the ProofreadingDecoration extension
       const proofExt = editor.extensionManager.extensions.find(
@@ -62,7 +64,8 @@ export function useProofreadingUI(editor) {
       }
 
       setActiveSpan(null)
-    } catch (error) {
+    } catch (rawError) {
+    const error = asApiError(rawError)
       console.error("Error applying change:", error)
     }
   }
@@ -84,7 +87,7 @@ export function useProofreadingUI(editor) {
       const newSuggestions =
         editor.extensionManager.extensions
           .find((ext) => ext.name === "proofreadingDecoration")
-          ?.options?.suggestions?.filter((s) => s.original !== original) || []
+          ?.options?.suggestions?.filter((s: { original: string }) => s.original !== original) || []
 
       // Reconfigure the ProofreadingDecoration extension
       const proofExt = editor.extensionManager.extensions.find(
@@ -96,7 +99,8 @@ export function useProofreadingUI(editor) {
       }
 
       setActiveSpan(null)
-    } catch (error) {
+    } catch (rawError) {
+    const error = asApiError(rawError)
       console.error("Error rejecting change:", error)
     }
   }

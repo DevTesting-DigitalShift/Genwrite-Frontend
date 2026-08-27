@@ -56,7 +56,7 @@ const initialJob = {
 // Older jobs never persisted `enableAdvanced` even though advanced-section fields
 // were saved, so derive it from those fields when the flag itself is falsy. Pure
 // function of its argument — module scope so it's a stable reference.
-const hasAdvancedOptionsEnabled = (job) => {
+const hasAdvancedOptionsEnabled = (job: any) => {
   if (!job) return false
   const { blogs = {}, options = {} } = job
   return Boolean(
@@ -78,8 +78,14 @@ const hasAdvancedOptionsEnabled = (job) => {
   )
 }
 
-const JobModal = ({ user, userPlan, isUserLoaded }) => {
-  const scrollableRef = React.useRef(null)
+interface JobModalProps {
+  user?: any
+  userPlan?: any
+  isUserLoaded?: boolean
+}
+
+const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
+  const scrollableRef = React.useRef<any>(null)
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()
   const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } =
     useAnalysisStore()
@@ -87,19 +93,19 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
 
   const [currentStep, setCurrentStep] = useState(1)
-  const [newJob, setNewJob] = useState(initialJob)
-  const [formData, setFormData] = useState({
+  const [newJob, setNewJob] = useState<any>(initialJob)
+  const [formData, setFormData] = useState<any>({
     keywords: initialJob.blogs.keywords || [],
     keywordInput: "",
     performKeywordResearch: initialJob.options.performKeywordResearch,
     aiModel: initialJob.blogs.aiModel,
     postingType: initialJob.blogs.postingType,
   })
-  const [errors, setErrors] = useState({})
-  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
-  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
-  const [showAllTopics, setShowAllTopics] = useState(false)
-  const [showAllKeywords, setShowAllKeywords] = useState(false)
+  const [errors, setErrors] = useState<any>({})
+  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState<any>(null)
+  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState<any>(null)
+  const [showAllTopics, setShowAllTopics] = useState<any>(false)
+  const [showAllKeywords, setShowAllKeywords] = useState<any>(false)
 
   const MAX_BLOGS = 10
   const MAX_IMAGES = 15
@@ -107,7 +113,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   // Clear Job Modules and it's states on close
   useEffect(() => {
     if (!showJobModal) {
-      setNewJob((_prev) => initialJob)
+      setNewJob((_prev: any) => initialJob)
       setFormData({
         keywords: [],
         keywordInput: "",
@@ -123,7 +129,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
 
   useEffect(() => {
     if (selectedJob) {
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
         performKeywordResearch:
@@ -168,7 +174,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         },
       })
 
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         keywords: [
           ...new Set([
@@ -182,8 +188,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     }
   }, [selectedKeywords, selectedJob, pendingImport, setPendingImport])
 
-  const validateSteps = (step) => {
-    const newErrors = {}
+  const validateSteps = (step: number | "all") => {
+    const newErrors: Record<string, string> = {}
     if (step === 1 || step === "all") {
       if (newJob.blogs.templates.length === 0) {
         newErrors.templates = "Please select at least one template."
@@ -277,7 +283,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
     })
   }
 
-  const handleUpdateJob = async (jobId) => {
+  const handleUpdateJob = async (jobId: string) => {
     if (!isUserLoaded) {
       toast.error("User data is still loading. Please try again.")
       return
@@ -396,7 +402,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             <button
               type="button"
               key="submit"
-              onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
+              onClick={selectedJob ? () => handleUpdateJob(selectedJob._id ?? "") : handleCreateJob}
               className="btn min-h-auto h-auto font-bold text-base normal-case px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label={selectedJob ? "Update job" : "Create job"}
               disabled={isCreating || isUpdating}

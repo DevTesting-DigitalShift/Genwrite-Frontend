@@ -1,16 +1,20 @@
 import { useRef, useState } from "react"
 
-const ImageGenerationModal = ({ onClose }) => {
+const ImageGenerationModal = ({ onClose }: { onClose?: () => void }) => {
   const [currentStep, setCurrentStep] = useState(0)
-  const [data, setData] = useState({ brief: "", tags: [], keywords: [] })
-  const keywordInputRef = useRef(null)
+  const [data, setData] = useState<{ brief: string; tags: string[]; keywords: string[] }>({
+    brief: "",
+    tags: [],
+    keywords: [],
+  })
+  const keywordInputRef = useRef<HTMLInputElement>(null)
 
   const tagsList = ["Ultrarealistic", "Photography", "Art", "Illustration"] // Predefined tags
 
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
-  const handleTagToggle = (tag) => {
+  const handleTagToggle = (tag: string) => {
     const isSelected = data.tags.includes(tag)
     if (isSelected) {
       setData({ ...data, tags: data.tags.filter((t) => t !== tag) })
@@ -19,14 +23,15 @@ const ImageGenerationModal = ({ onClose }) => {
     }
   }
 
-  const handleKeywordInputKeyDown = (e) => {
-    if ((e.key === "Enter" || e.key === ",") && e.target.value.trim()) {
+  const handleKeywordInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const input = e.target as HTMLInputElement
+    if ((e.key === "Enter" || e.key === ",") && input.value.trim()) {
       e.preventDefault()
-      const keyword = e.target.value.trim().replace(/,$/, "")
+      const keyword = input.value.trim().replace(/,$/, "")
       if (!data.keywords.includes(keyword)) {
         setData((prev) => ({ ...prev, keywords: [...prev.keywords, keyword] }))
       }
-      e.target.value = ""
+      input.value = ""
     }
   }
 
@@ -34,11 +39,11 @@ const ImageGenerationModal = ({ onClose }) => {
     const value = keywordInputRef.current?.value.trim()
     if (value && !data.keywords.includes(value)) {
       setData((prev) => ({ ...prev, keywords: [...prev.keywords, value] }))
-      keywordInputRef.current.value = ""
+      if (keywordInputRef.current) keywordInputRef.current.value = ""
     }
   }
 
-  const handleRemoveKeyword = (keywordToRemove) => {
+  const handleRemoveKeyword = (keywordToRemove: string) => {
     setData({ ...data, keywords: data.keywords.filter((keyword) => keyword !== keywordToRemove) })
   }
 
@@ -81,7 +86,7 @@ const ImageGenerationModal = ({ onClose }) => {
               <textarea
                 className="w-full p-3 border border-gray-300 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter brief description"
-                rows="3"
+                rows={3}
                 value={data.brief}
                 onChange={(e) => setData({ ...data, brief: e.target.value })}
               />
@@ -90,7 +95,7 @@ const ImageGenerationModal = ({ onClose }) => {
               <div className="mt-6">
                 <h3 className="text-xl font-hind font-medium mb-2">Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {tagsList.map((tag) => (
+                  {tagsList.map((tag: string) => (
                     <button
                       type="button"
                       key={tag}

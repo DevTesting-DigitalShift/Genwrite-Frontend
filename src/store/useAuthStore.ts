@@ -43,10 +43,30 @@ export interface AuthUser {
   plan?: string
   trialOpted?: boolean
   credits?: { base?: number; extra?: number }
-  subscription?: { plan?: string; status?: string; startDate?: string; renewalDate?: string }
+  subscription?: {
+    plan?: string
+    status?: string
+    startDate?: string
+    renewalDate?: string
+    /** A future date when the subscription will be cancelled. */
+    cancelAt?: string
+    /** A past date when the user cancelled. */
+    canceledAt?: string
+    trialOpted?: boolean
+    stripeSubscriptionId?: string
+    stripeCustomerId?: string
+    discountApplied?: number
+    billingPeriod?: string
+    paymentFailedSince?: string
+    scheduledPlanChange?: {
+      newPlan?: string
+      newBillingPeriod?: string
+      effectiveDate?: string
+    }
+  }
   notifications?: unknown[]
   referral?: { referralId?: string }
-  [key: string]: unknown
+  [key: string]: any
 }
 
 interface AuthState {

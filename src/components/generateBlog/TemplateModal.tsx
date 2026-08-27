@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
@@ -9,6 +10,16 @@ import useAuthStore from "@store/useAuthStore"
 import { getGeneratedTitles } from "@api/blogApi"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
+interface TemplateModalProps {
+  closeFnc?: any
+  isOpen?: boolean
+  handleSubmit?: (...args: any[]) => void
+  errors?: any
+  setErrors?: (...args: any[]) => void
+  formData?: any
+  setFormData?: (...args: any[]) => void
+}
+
 const TemplateModal = ({
   closeFnc,
   isOpen,
@@ -17,14 +28,14 @@ const TemplateModal = ({
   setErrors,
   formData,
   setFormData,
-}) => {
+}: TemplateModalProps) => {
   const { user } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState([])
-  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
-  const [generatedTitles, setGeneratedTitles] = useState([])
-  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
-  const [showAllKeywords, setShowAllKeywords] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<any[]>([])
+  const [isGeneratingTitles, setIsGeneratingTitles] = useState<any>(false)
+  const [generatedTitles, setGeneratedTitles] = useState<any[]>([])
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState<any>(false)
+  const [showAllKeywords, setShowAllKeywords] = useState<any>(false)
 
   const visibleKeywords = showAllKeywords
     ? formData.keywords
@@ -44,11 +55,11 @@ const TemplateModal = ({
 
   const handleNext = () => {
     if (currentStep === 0 && (!selectedTemplate || selectedTemplate.length === 0)) {
-      setErrors((prev) => ({ ...prev, template: true }))
+      setErrors?.((prev: any) => ({ ...prev, template: true }))
       toast.error("Please select a template before proceeding.")
       return
     }
-    setErrors((prev) => ({ ...prev, template: false }))
+    setErrors?.((prev: any) => ({ ...prev, template: false }))
     setCurrentStep(1)
   }
 
@@ -56,49 +67,49 @@ const TemplateModal = ({
 
   const handleClose = () => closeFnc()
 
-  const handlePackageSelect = useCallback((temp) => {
+  const handlePackageSelect = useCallback((temp: any) => {
     setSelectedTemplate(temp)
-    setFormData((prev) => ({ ...prev, template: temp?.[0]?.name || "" }))
-    setErrors((prev) => ({ ...prev, template: false }))
+    setFormData?.((prev: any) => ({ ...prev, template: temp?.[0]?.name || "" }))
+    setErrors?.((prev: any) => ({ ...prev, template: false }))
   }, [setFormData, setErrors])
 
-  const handleInputChange = (e, key) => {
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [key]: false }))
+  const handleInputChange = (e: any, key: string) => {
+    setFormData?.((prev: any) => ({ ...prev, [key]: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = (e) => {
-    setFormData((prev) => ({ ...prev, tone: e.target.value }))
-    setErrors((prev) => ({ ...prev, tone: false }))
+  const handleSelectChange = (e: any) => {
+    setFormData?.((prev: any) => ({ ...prev, tone: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, tone: false }))
   }
 
-  const handleKeywordInputChange = (e, type) => {
+  const handleKeywordInputChange = (e: any, type: string) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setFormData?.((prev: any) => ({ ...prev, [key]: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = (type, forcedValue = null) => {
+  const handleAddKeyword = (type: string, forcedValue: string[] | null = null) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     const seen = new Set()
     const rawItems = Array.isArray(forcedValue)
       ? forcedValue
       : formData[inputKey].split(/[,\t\n\r;]+/)
     const items = rawItems
-      .map((k) => k.trim())
-      .filter((k) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+      .map((k: any) => k.trim())
+      .filter((k: any) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
     if (items.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors?.((prev: any) => ({ ...prev, [type]: true }))
       toast.error("Please enter a keyword.")
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
-    const filteredKeywords = items.filter((k) => !existingSet.has(k.toLowerCase()))
+    const existingSet = new Set(formData[type].map((k: any) => k.trim().toLowerCase()))
+    const filteredKeywords = items.filter((k: any) => !existingSet.has(k.toLowerCase()))
 
     if (filteredKeywords.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors?.((prev: any) => ({ ...prev, [type]: true }))
       toast.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
@@ -106,42 +117,42 @@ const TemplateModal = ({
     if (type === "focusKeywords" && formData[type].length + filteredKeywords.length > 3) {
       const availableSlots = 3 - formData[type].length
       if (availableSlots > 0) {
-        setFormData((prev) => ({
+        setFormData?.((prev: any) => ({
           ...prev,
           [type]: [...prev[type], ...filteredKeywords.slice(0, availableSlots)],
           [inputKey]: "",
         }))
       }
-      setErrors((prev) => ({ ...prev, [type]: false }))
+      setErrors?.((prev: any) => ({ ...prev, [type]: false }))
       toast.error("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData((prev) => ({
+    setFormData?.((prev: any) => ({
       ...prev,
       [type]: [...prev[type], ...filteredKeywords],
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors?.((prev: any) => ({ ...prev, [type]: false }))
   }
 
-  const handleRemoveKeyword = (index, type) => {
+  const handleRemoveKeyword = (index: number, type: string) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
-    setFormData({ ...formData, [type]: updatedKeywords })
+    setFormData?.({ ...formData, [type]: updatedKeywords })
   }
 
-  const handleKeyPress = (e, type) => {
+  const handleKeyPress = (e: any, type: string) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
     }
   }
 
-  const handlePasteKeywords = (event, type) => {
+  const handlePasteKeywords = (event: any, type: "keywords" | "focusKeywords") => {
     extractKeywordsFromClipboard(event, {
       type,
-      cb: (items) => {
+      cb: (items: string[]) => {
         handleAddKeyword(type, items)
       },
     })
@@ -149,12 +160,12 @@ const TemplateModal = ({
 
   const handleGenerateTitles = async () => {
     if (!formData.topic.trim()) {
-      setErrors((prev) => ({ ...prev, topic: true }))
+      setErrors?.((prev: any) => ({ ...prev, topic: true }))
       toast.error("Please enter a topic before generating titles.")
       return
     }
     if (formData.focusKeywords.length < 1 && formData.keywords.length < 1) {
-      setErrors((prev) => ({ ...prev, focusKeywords: true, keywords: true }))
+      setErrors?.((prev: any) => ({ ...prev, focusKeywords: true, keywords: true }))
       toast.error("Please add at least one focus keyword or secondary keyword.")
       return
     }
@@ -171,7 +182,8 @@ const TemplateModal = ({
       setGeneratedTitles(result)
       setHasGeneratedTitles(true)
       toast.success("Titles generated successfully!")
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Failed to generate titles:", error)
       toast.error(error?.message || "Failed to generate titles. Please try again.")
     } finally {
@@ -278,7 +290,7 @@ const TemplateModal = ({
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.focusKeywords.map((keyword, index) => (
+                  {formData.focusKeywords.map((keyword: string, index: number) => (
                     <span
                       key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
@@ -329,7 +341,7 @@ const TemplateModal = ({
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {visibleKeywords.map((keyword, index) => (
+                  {visibleKeywords.map((keyword: string, index: number) => (
                     <span
                       key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
@@ -348,7 +360,7 @@ const TemplateModal = ({
                   {formData.keywords.length > 18 && (
                     <button
                       type="button"
-                      onClick={() => setShowAllKeywords((prev) => !prev)}
+                      onClick={() => setShowAllKeywords((prev: any) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
@@ -411,8 +423,8 @@ const TemplateModal = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, title: generatedTitle }))
-                              setErrors((prev) => ({ ...prev, title: false }))
+                              setFormData?.((prev: any) => ({ ...prev, title: generatedTitle }))
+                              setErrors?.((prev: any) => ({ ...prev, title: false }))
                             }}
                             className={`px-3 py-1 rounded-lg text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
                               isSelected

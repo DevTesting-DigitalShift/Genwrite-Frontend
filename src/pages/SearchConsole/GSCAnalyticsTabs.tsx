@@ -30,7 +30,12 @@ const fuseOptions = {
 }
 
 // Sortable column header
-const SortableHeader = ({ column, title }) => {
+interface SortableHeaderProps {
+  column?: any
+  title?: string
+}
+
+const SortableHeader = ({ column, title }: SortableHeaderProps) => {
   const sorted = column.getIsSorted()
   return (
     <button
@@ -53,6 +58,15 @@ const SortableHeader = ({ column, title }) => {
   )
 }
 
+interface GSCAnalyticsTabsProps {
+  items?: any[]
+  filteredData?: any
+  activeTab?: any
+  handleTabChange?: (...args: any[]) => void
+  isLoading?: boolean
+  searchQuery?: any
+}
+
 export default function GSCAnalyticsTabs({
   items,
   filteredData,
@@ -60,9 +74,9 @@ export default function GSCAnalyticsTabs({
   handleTabChange,
   isLoading,
   searchQuery = "",
-}) {
-  const [sorting, setSorting] = useState([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+}: GSCAnalyticsTabsProps) {
+  const [sorting, setSorting] = useState<any[]>([])
+  const [pagination, setPagination] = useState<any>({ pageIndex: 0, pageSize: 10 })
 
   // Apply Fuse.js fuzzy search on top of already-filtered data
   const tableData = useMemo(() => {
@@ -72,7 +86,7 @@ export default function GSCAnalyticsTabs({
     return fuse.search(searchQuery.trim()).map(({ item }) => item)
   }, [filteredData, searchQuery])
 
-  const columns = useMemo(() => {
+  const columns = useMemo<any[]>(() => {
     const base = []
 
     if (activeTab === "query") {
@@ -98,7 +112,7 @@ export default function GSCAnalyticsTabs({
           cell: (info) => (
             <div className="tooltip tooltip-right" data-tip={info.getValue()}>
               <span className=" line-clamp-1 max-w-[160px] text-left block">
-                {info.getValue()} ({info.row.original.country})
+                {info.getValue()} ({(info.row.original as any).country})
               </span>
             </div>
           ),
@@ -145,13 +159,13 @@ export default function GSCAnalyticsTabs({
       columnHelper.accessor("ctr", {
         header: ({ column }) => <SortableHeader column={column} title="CTR" />,
         cell: (info) => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}%</span>,
-        sortingFn: (rowA, rowB) => parseFloat(rowA.original.ctr) - parseFloat(rowB.original.ctr),
+        sortingFn: (rowA, rowB) => parseFloat((rowA.original as any).ctr) - parseFloat((rowB.original as any).ctr),
       }),
       columnHelper.accessor("position", {
         header: ({ column }) => <SortableHeader column={column} title="Position" />,
         cell: (info) => <span className=" font-medium">{Number(info.getValue()).toFixed(2)}</span>,
         sortingFn: (rowA, rowB) =>
-          parseFloat(rowA.original.position) - parseFloat(rowB.original.position),
+          parseFloat((rowA.original as any).position) - parseFloat((rowB.original as any).position),
       })
     )
 
@@ -173,7 +187,7 @@ export default function GSCAnalyticsTabs({
                 <ul className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100">
                   <li>
                     <a
-                      href={row.original.url}
+                      href={(row.original as any).url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 hover:bg-slate-50 text-slate-700"
@@ -184,7 +198,7 @@ export default function GSCAnalyticsTabs({
                   </li>
                   <li>
                     <a
-                      href={`${import.meta.env.VITE_FRONTEND_URL}/blog/${row.original.blogId}`}
+                      href={`${import.meta.env.VITE_FRONTEND_URL}/blog/${(row.original as any).blogId}`}
                       target="_blank"
                       className="flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                       rel="noopener"
@@ -225,14 +239,14 @@ export default function GSCAnalyticsTabs({
       {/* Tabs Header */}
       <div className="bg-[#F8FAFC] border-b border-slate-100 flex items-center px-2 overflow-x-auto">
         <div className="flex gap-4 sm:gap-8 px-2 sm:px-4 min-w-max">
-          {items.map((item) => (
+          {(items ?? []).map((item: any) => (
             <button
               type="button"
               key={item.key}
               onClick={() => {
-                handleTabChange(item.key)
+                handleTabChange?.(item.key)
                 setSorting([])
-                setPagination((p) => ({ ...p, pageIndex: 0 }))
+                setPagination((p: any) => ({ ...p, pageIndex: 0 }))
               }}
               className={`py-4 sm:py-5 text-[13px] sm:text-[15px] font-bold transition-all relative whitespace-nowrap ${
                 activeTab === item.key ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"

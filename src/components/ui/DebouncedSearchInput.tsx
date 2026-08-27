@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { type ComponentProps, type InputHTMLAttributes, useEffect, useState } from "react"
 import { Search } from "lucide-react"
 import useDebounce from "@/hooks/useDebounce"
 import clsx from "clsx"
@@ -17,6 +17,20 @@ import clsx from "clsx"
  * @param {Object} [props.iconProps] - Props to pass to the Search icon.
  * @param {boolean} [props.disabled=false] - Whether the input is disabled.
  */
+interface DebouncedSearchInputProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "className"> {
+  /** Called with the current text once the user stops typing for `debounceTime` ms. */
+  onSearch: (value: string) => void
+  placeholder?: string
+  className?: string
+  containerClassName?: string
+  debounceTime?: number
+  initialValue?: string
+  bordered?: boolean
+  iconProps?: ComponentProps<typeof Search>
+  disabled?: boolean
+}
+
 const DebouncedSearchInput = ({
   onSearch,
   placeholder = "Search...",
@@ -28,13 +42,13 @@ const DebouncedSearchInput = ({
   iconProps = {},
   disabled = false,
   ...rest
-}) => {
+}: DebouncedSearchInputProps) => {
   const [value, setValue] = useState(initialValue)
 
   // Use our custom useDebounce hook
   const debouncedSearch = useDebounce(onSearch, debounceTime)
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setValue(newValue)
     debouncedSearch(newValue)

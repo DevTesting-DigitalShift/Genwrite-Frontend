@@ -23,7 +23,7 @@ const CreditLogsTable = () => {
   } = useCreditLogStore()
 
   // Calculate date range for backend fetch
-  const getDateRangeParams = (range) => {
+  const getDateRangeParams = (range: any) => {
     const now = dayjs()
     switch (range) {
       case "24h":
@@ -82,7 +82,7 @@ const CreditLogsTable = () => {
 
     // Apply purpose filter
     if (purposeFilter.length > 0) {
-      result = result.filter((log) => purposeFilter.includes(log.purpose))
+      result = result.filter((log: any) => purposeFilter.includes(log.purpose))
     }
 
     return result
@@ -227,7 +227,7 @@ const CreditLogsTable = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedData.map((log) => (
+                  paginatedData.map((log: any) => (
                     <TableRow
                       key={log._id}
                       className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0"

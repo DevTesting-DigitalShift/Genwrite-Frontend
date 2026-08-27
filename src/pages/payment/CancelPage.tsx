@@ -1,19 +1,19 @@
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
+import { type Variants, motion } from "framer-motion"
 import { XCircle } from "lucide-react"
 
 const CancelPage = () => {
   const navigate = useNavigate()
 
   // Animation variants for the main content
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   }
 
   // Animation variants for the icon
-  const iconVariants = {
+  const iconVariants: Variants = {
     hidden: { scale: 0, opacity: 0 },
     visible: {
       scale: 1,
@@ -23,7 +23,7 @@ const CancelPage = () => {
   }
 
   // Animation variants for the button
-  const buttonVariants = {
+  const buttonVariants: Variants = {
     hover: { scale: 1.05, boxShadow: "0 4px 20px rgba(59, 130, 246, 0.3)" },
     tap: { scale: 0.95 },
   }

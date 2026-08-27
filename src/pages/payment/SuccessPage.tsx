@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { motion } from "framer-motion"
+import { type Variants, motion } from "framer-motion"
 import { CheckCircle } from "lucide-react"
 import Confetti from "react-confetti"
 import { subscriptions } from "@/data/subscriptions"
@@ -16,7 +16,7 @@ const SuccessPage = () => {
     // const timer = setTimeout(() => navigate("/dashboard"), 5000)
     if (allParamsObject?.isTrialOpted === "true") {
       const { userId, plan, billingPeriod } = allParamsObject
-      const trialPlan = plan ? subscriptions?.[plan] : undefined
+      const trialPlan = plan ? subscriptions?.[plan as keyof typeof subscriptions] : undefined
       const eventData = {
         event: "trialOpted",
         user_id: userId,
@@ -36,13 +36,13 @@ const SuccessPage = () => {
   }, [allParamsObject?.isTrialOpted, allParamsObject])
 
   // Animation variants for the main content
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   }
 
   // Animation variants for the icon
-  const iconVariants = {
+  const iconVariants: Variants = {
     hidden: { scale: 0, opacity: 0 },
     visible: {
       scale: 1,
@@ -56,7 +56,7 @@ const SuccessPage = () => {
   }
 
   // Animation variants for the button
-  const buttonVariants = {
+  const buttonVariants: Variants = {
     hover: { scale: 1.05, boxShadow: "0 4px 20px rgba(59, 130, 246, 0.3)" },
     tap: { scale: 0.95 },
   }

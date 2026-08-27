@@ -1,12 +1,15 @@
+import type * as React from "react"
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
 
-const Toaster = ({ ...props }) => {
+type ToasterProps = React.ComponentProps<typeof Sonner>
+
+const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "light" } = useTheme()
 
   return (
     <Sonner
-      theme={theme}
+      theme={theme as ToasterProps["theme"]}
       className="toaster group"
       closeButton
       richColors

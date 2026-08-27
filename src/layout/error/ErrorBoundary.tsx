@@ -4,10 +4,10 @@ import { AlertTriangle } from "lucide-react"
 const ErrorBoundary = () => {
   const error = useRouteError()
 
-  const status = isRouteErrorResponse(error) ? error.status || error.statusCode : 500
+  const status = isRouteErrorResponse(error) ? error.status : 500
   const message = isRouteErrorResponse(error)
     ? error.statusText
-    : error?.message || "An unexpected error occurred."
+    : (error as Error)?.message || "An unexpected error occurred."
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">

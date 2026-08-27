@@ -19,7 +19,7 @@ export const ProofreadingDecoration = Extension.create({
         key: proofreadingPluginKey,
         props: {
           decorations: (state) => {
-            const decorations = []
+            const decorations: Decoration[] = []
             const { doc } = state
             const suggestions = this.options.suggestions
 
@@ -28,7 +28,7 @@ export const ProofreadingDecoration = Extension.create({
 
               const text = node.text || ""
 
-              suggestions.forEach(({ original, change }) => {
+              suggestions.forEach(({ original, change }: { original: string; change: string }) => {
                 let start = 0
                 while (start < text.length) {
                   const index = text.indexOf(original, start)
@@ -43,8 +43,8 @@ export const ProofreadingDecoration = Extension.create({
                       nodeName: "span",
                       "data-original": original,
                       "data-suggestion": change,
-                      "data-from": from,
-                      "data-to": to,
+                      "data-from": String(from),
+                      "data-to": String(to),
                     })
                   )
 

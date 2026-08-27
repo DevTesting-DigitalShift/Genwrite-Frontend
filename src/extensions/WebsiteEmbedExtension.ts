@@ -1,3 +1,4 @@
+import type { CommandProps } from "@tiptap/core"
 import { Node, mergeAttributes } from "@tiptap/core"
 
 export const WebsiteEmbed = Node.create({
@@ -91,7 +92,7 @@ export const WebsiteEmbed = Node.create({
           editor
             .chain()
             .focus()
-            .deleteRange({ from: getPos(), to: getPos() + node.nodeSize })
+            .deleteRange({ from: getPos() ?? 0, to: (getPos() ?? 0) + node.nodeSize })
             .run()
         }
       }
@@ -117,8 +118,8 @@ export const WebsiteEmbed = Node.create({
   addCommands() {
     return {
       setWebsiteEmbed:
-        (options) =>
-        ({ commands }) => {
+        (options: Record<string, unknown>) =>
+        ({ commands }: CommandProps) => {
           return commands.insertContent({ type: this.name, attrs: options })
         },
     }
@@ -126,3 +127,12 @@ export const WebsiteEmbed = Node.create({
 })
 
 export default WebsiteEmbed
+
+// Registers this node's command on the editor so `editor.commands.setWebsiteEmbed` type-checks.
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    websiteEmbed: {
+      setWebsiteEmbed: (options: Record<string, unknown>) => ReturnType
+    }
+  }
+}

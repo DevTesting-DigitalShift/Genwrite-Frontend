@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState } from "react"
 import emailjs from "@emailjs/browser"
 import {
@@ -19,22 +20,22 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 
 const ContactUs = () => {
-  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" })
-  const [errors, setErrors] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [formData, setFormData] = useState<any>({ name: "", email: "", subject: "", message: "" })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState<any>(false)
+  const [isSubmitted, setIsSubmitted] = useState<any>(false)
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData((prev: any) => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }))
+      setErrors((prev: any) => ({ ...prev, [name]: "" }))
     }
   }
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors: Record<string, string> = {}
 
     if (!formData.name.trim()) {
       newErrors.name = "Name is required"
@@ -55,7 +56,7 @@ const ContactUs = () => {
     return newErrors
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
     const newErrors = validateForm()
 
@@ -77,7 +78,8 @@ const ContactUs = () => {
       setFormData({ name: "", email: "", subject: "", message: "" })
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 5000)
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("FAILED...", error)
       toast.error("Failed to send message. Try again.")
     } finally {

@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect } from "react"
 import { Link, useSearchParams, useNavigate, useLocation } from "react-router-dom"
 import { motion } from "framer-motion"
@@ -20,11 +21,11 @@ const ResetPassword = () => {
   const navigate = useNavigate()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [showPassword, setShowPassword] = useState<any>(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState<any>(false)
+  const [loading, setLoading] = useState<any>(false)
+  const [success, setSuccess] = useState<any>(false)
+  const [errors, setErrors] = useState<any>({})
   const [_token, setToken] = useState("")
   const location = useLocation()
   const { resetPassword } = useAuthStore()
@@ -38,7 +39,7 @@ const ResetPassword = () => {
     }
   }, [searchParams, navigate])
 
-  const validatePassword = (pwd) => {
+  const validatePassword = (pwd: any) => {
     const errors = []
     if (pwd.length < 8) errors.push("At least 8 characters")
     if (!/[A-Z]/.test(pwd)) errors.push("One uppercase letter")
@@ -48,10 +49,10 @@ const ResetPassword = () => {
     return errors
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
 
-    const newErrors = {}
+    const newErrors: Record<string, string> = {}
 
     // Password validation
     const passwordErrors = validatePassword(password)
@@ -85,11 +86,12 @@ const ResetPassword = () => {
     try {
       const res = await resetPassword({ token, newPassword: password })
       if (res) {
-        toast.success(res)
+        toast.success(String(res))
         setSuccess(true)
         navigate("/login", { replace: true })
       }
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       console.error("Reset password error:", err)
       setErrors({ server: err }) // e.g., "Invalid or expired token"
     } finally {
@@ -97,7 +99,7 @@ const ResetPassword = () => {
     }
   }
 
-  const getPasswordStrength = (pwd) => {
+  const getPasswordStrength = (pwd: any) => {
     const errors = validatePassword(pwd)
     const strength = 5 - errors.length
 
@@ -275,7 +277,7 @@ const ResetPassword = () => {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
-                    setErrors((prev) => ({ ...prev, password: "" }))
+                    setErrors((prev: any) => ({ ...prev, password: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-xl focus:shadow-primary/5 outline-none transition-all duration-300 ${
                     errors.password
@@ -353,7 +355,7 @@ const ResetPassword = () => {
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value)
-                    setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+                    setErrors((prev: any) => ({ ...prev, confirmPassword: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-xl focus:shadow-primary/5 outline-none transition-all duration-300 ${
                     errors.confirmPassword

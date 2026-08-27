@@ -6,7 +6,7 @@ import { FiGift } from "react-icons/fi"
 // This ensures only the specific digit that changes will bounce
 // e.g., if seconds go from 09 to 08, only the "9" -> "8" animates
 const AnimatedDigit = React.memo(
-  function AnimatedDigit({ value }) {
+  function AnimatedDigit({ value }: { value: string }) {
     return (
       <span className="inline-block w-[1ch] text-center overflow-hidden tabular-nums">
         <motion.span
@@ -27,7 +27,7 @@ const AnimatedDigit = React.memo(
 AnimatedDigit.displayName = "AnimatedDigit"
 
 const TimeUnit = React.memo(
-  function TimeUnit({ digit1, digit2, label }) {
+  function TimeUnit({ digit1, digit2, label }: { digit1: string; digit2: string; label: string }) {
     return (
       <div className="flex flex-col items-center">
         <div className="flex gap-0.5 sm:gap-1">
@@ -60,7 +60,15 @@ const TimeUnit = React.memo(
     prev.digit1 === next.digit1 && prev.digit2 === next.digit2 && prev.label === next.label
 )
 
-const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
+const CountdownTimer = ({
+  startDate,
+  endDate,
+  discount = "50%",
+}: {
+  startDate?: string | Date
+  endDate?: string | Date
+  discount?: string
+}) => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -72,8 +80,8 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = Date.now()
-      const start = new Date(startDate).getTime()
-      const end = new Date(endDate).getTime()
+      const start = startDate ? new Date(startDate).getTime() : 0
+      const end = endDate ? new Date(endDate).getTime() : 0
 
       let status = "loading"
       let difference = 0

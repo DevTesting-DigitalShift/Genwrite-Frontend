@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { memo, useState } from "react"
 import { motion } from "framer-motion"
 import { Play, Square, Clock } from "lucide-react"
@@ -7,8 +8,14 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-const _Badge = ({ children, variant = "gray" }) => {
-  const variants = {
+const _Badge = ({
+  children,
+  variant = "gray",
+}: {
+  children?: ReactNode
+  variant?: "gray" | "indigo" | "emerald"
+}) => {
+  const variants: Record<string, string> = {
     gray: "bg-slate-100 text-slate-600 border border-slate-200/60",
     indigo: "bg-indigo-50 text-indigo-700 border border-indigo-100",
     emerald: "bg-emerald-50 text-emerald-700 border border-emerald-100",
@@ -22,7 +29,14 @@ const _Badge = ({ children, variant = "gray" }) => {
   )
 }
 
-const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
+interface JobCardProps {
+  job?: any
+  setCurrentPage?: (...args: any[]) => void
+  paginatedJobs?: any
+  onEdit?: (...args: any[]) => void
+}
+
+const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }: JobCardProps) => {
   const _queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const [_showAllTopics, _setShowAllTopics] = useState(false)
@@ -33,35 +47,35 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
   const { mutate: deleteMutate } = useDeleteJobMutation()
 
-  const handleToggleStatus = (e) => {
+  const handleToggleStatus = (e: any) => {
     e.stopPropagation()
     toggleStatus({ jobId: job._id, currentStatus: job.status })
   }
 
-  const handleDeleteJob = (jobId) => {
+  const handleDeleteJob = (jobId: string) => {
     deleteMutate(jobId, {
       onSuccess: () => {
         if (paginatedJobs.length === 1 && setCurrentPage) {
-          setCurrentPage((prev) => Math.max(1, prev - 1))
+          setCurrentPage((prev: any) => Math.max(1, prev - 1))
         }
       },
     })
   }
 
-  const handleEditJob = (e) => {
+  const handleEditJob = (e: any) => {
     e.stopPropagation()
     if (job.status === "active") {
       toast.warning("Please pause the job before editing.")
       return
     }
-    onEdit(job)
+    onEdit?.(job)
   }
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A"
     return new Date(dateStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
   }
-  const getTrueOptions = (options) => {
+  const getTrueOptions = (options: any) => {
     if (!options) return []
     const mapping = {
       wordpressPosting: "WordPress Posting",
@@ -75,8 +89,8 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
       easyToUnderstand: "Simple Style",
     }
     return Object.entries(options)
-      .filter(([key, value]) => value === true && mapping[key])
-      .map(([key]) => mapping[key])
+      .filter(([key, value]) => value === true && mapping[key as keyof typeof mapping])
+      .map(([key]) => mapping[key as keyof typeof mapping])
   }
 
   const activeOptions = getTrueOptions(job.options)
@@ -106,9 +120,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               ? "bg-red-500 text-white hover:bg-red-600"
               : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
           }`}
-          title={
-            isReadOnlyWorkspace ? readOnlyMessage : isRunning ? "Stop Job" : "Start Job"
-          }
+          title={isReadOnlyWorkspace ? readOnlyMessage : isRunning ? "Stop Job" : "Start Job"}
         >
           {isToggling ? (
             <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -128,7 +140,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               Topics
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.topics.slice(0, 5).map((topic) => (
+              {job.blogs.topics.slice(0, 5).map((topic: string) => (
                 <span
                   key={topic}
                   className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-100"
@@ -151,7 +163,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
               Focus Keywords
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {job.blogs.keywords.slice(0, 5).map((kw) => (
+              {job.blogs.keywords.slice(0, 5).map((kw: any) => (
                 <span
                   key={kw}
                   className="px-2 py-1 bg-indigo-50/50 text-indigo-700 text-[11px] font-bold rounded-lg border border-indigo-100/50"

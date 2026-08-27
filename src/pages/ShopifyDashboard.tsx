@@ -25,7 +25,7 @@ const ShopifyDashboard = () => {
     minute: "2-digit",
   })
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast.success("Store URL copied to clipboard")
   }

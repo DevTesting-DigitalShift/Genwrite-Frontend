@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import { SlidersHorizontal } from "lucide-react"
 
-const FeatureSettingsModal = ({ features }) => {
+const FeatureSettingsModal = ({ features }: { features?: Record<string, unknown> }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -11,7 +11,7 @@ const FeatureSettingsModal = ({ features }) => {
     >
       <div className="grid grid-cols-1 gap-3">
         {Object.entries(features || {}).length > 0 ? (
-          Object.entries(features).map(([key, value]) => {
+          Object.entries(features ?? {}).map(([key, value]) => {
             const isEnabled = Boolean(value)
             return (
               <motion.div

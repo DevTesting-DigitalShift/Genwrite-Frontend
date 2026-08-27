@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Copy, Download, RefreshCw, FileText, Sparkles, Loader2, GitCompare } from "lucide-react"
-import ReactDiffViewer from "react-diff-viewer-continued"
+import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued"
 import { toast } from "sonner"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -21,10 +21,10 @@ const HumanizeContent = () => {
   const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
-  const leftPanelRef = useRef()
-  const rightPanelRef = useRef()
+  const leftPanelRef = useRef<HTMLDivElement>(null)
+  const rightPanelRef = useRef<HTMLDivElement>(null)
   const isScrollingSyncRef = useRef(false)
-  const [isDiffView, setIsDiffView] = useState(false)
+  const [isDiffView, setIsDiffView] = useState<any>(false)
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -38,7 +38,7 @@ const HumanizeContent = () => {
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
   // Synchronized scrolling function
-  const _handleScroll = useCallback((source) => {
+  const _handleScroll = useCallback((source: any) => {
     if (isScrollingSyncRef.current) return
 
     isScrollingSyncRef.current = true
@@ -111,7 +111,7 @@ const HumanizeContent = () => {
     })
   }
 
-  const handleCopy = async (content, type) => {
+  const handleCopy = async (content: string, type: string) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success(`${type === "original" ? "Original" : "Processed"} content copied to clipboard`)
@@ -121,7 +121,7 @@ const HumanizeContent = () => {
     }
   }
 
-  const handleDownload = (content, filename) => {
+  const handleDownload = (content: string, filename: any) => {
     const blob = new Blob([content], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -262,7 +262,7 @@ const HumanizeContent = () => {
                     splitView={true}
                     leftTitle="Original"
                     rightTitle="Processed"
-                    compareMethod="diffChars"
+                    compareMethod={DiffMethod.CHARS}
                     hideLineNumbers={false}
                     styles={{
                       variables: {
@@ -281,7 +281,7 @@ const HumanizeContent = () => {
                           codeFoldGutterBackground: "#f9fafb",
                           codeFoldBackground: "#f3f4f6",
                           emptyLineBackground: "#f9fafb",
-                          foldPlaceholderColor: "#6b7280",
+                          // foldPlaceholderColor is not a supported style variable
                           addedGutterColor: "#047857",
                           removedGutterColor: "#b91c1c",
                         },

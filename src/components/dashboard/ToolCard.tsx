@@ -1,15 +1,41 @@
+import type { ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Coins, Lock } from "lucide-react"
 
-const ToolCard = ({ item, onClick, variant = "small", disabled = false, disabledReason }) => {
+/** One entry from @/data/toolsData. */
+interface ToolItem {
+  title?: ReactNode
+  description?: ReactNode
+  icon?: ReactNode
+  credit?: ReactNode
+  color?: string
+  bgColor?: string
+  type?: string
+  path?: string
+  [key: string]: unknown
+}
+
+const ToolCard = ({
+  item,
+  onClick,
+  variant = "small",
+  disabled = false,
+  disabledReason,
+}: {
+  item: ToolItem
+  onClick?: (item: ToolItem) => void
+  variant?: string
+  disabled?: boolean
+  disabledReason?: string
+}) => {
   const navigate = useNavigate()
 
-  const handleClick = (e = {}) => {
-    e.stopPropagation?.()
+  const handleClick = (e?: { stopPropagation?: () => void }) => {
+    e?.stopPropagation?.()
     if (disabled) return
     if (item.type === "navigation") {
-      navigate(item.path)
+      navigate(item.path as string)
       return
     }
     if (item.type === "modal" && onClick) {

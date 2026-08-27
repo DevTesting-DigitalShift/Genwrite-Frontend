@@ -8,6 +8,16 @@ const DifferentPlugins = ({
   onClick,
   onCheck,
   wordpressStatus,
+}: {
+  pluginImage?: string
+  pluginLink?: string
+  pluginName?: string
+  pluginTitle?: string
+  name?: string
+  updatedDate?: string
+  onClick?: () => void
+  onCheck?: () => void
+  wordpressStatus?: { success?: boolean }
 }) => {
   return (
     <div className="border-b border-gray-200 mx-0 sm:mx-4 md:mx-8">

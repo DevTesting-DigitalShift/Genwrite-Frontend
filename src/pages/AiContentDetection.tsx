@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/types/api"
 import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import {
@@ -51,13 +52,13 @@ const AiContentDetection = () => {
         toast.success("Content analyzed successfully!")
       },
       onError: (err) => {
-        toast.error(err?.toast || "Failed to analyze content. Please try again.")
+        toast.error(apiErrorMessage(err, "Failed to analyze content. Please try again."))
         console.error(err)
       },
     })
   }
 
-  const handleCopy = async (content) => {
+  const handleCopy = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content)
       toast.success("Content copied to clipboard")
@@ -73,19 +74,19 @@ const AiContentDetection = () => {
     toast.info("Content reset")
   }
 
-  const getScoreColor = (score) => {
+  const getScoreColor = (score: number) => {
     if (score >= 80) return "text-red-600"
     if (score >= 50) return "text-yellow-600"
     return "text-green-600"
   }
 
-  const getScoreBgColor = (score) => {
+  const getScoreBgColor = (score: number) => {
     if (score >= 80) return "bg-red-100 border-red-200"
     if (score >= 50) return "bg-yellow-100 border-yellow-200"
     return "bg-green-100 border-green-200"
   }
 
-  const getStyleIcon = (styleType) => {
+  const getStyleIcon = (styleType: any) => {
     if (styleType === "ai") return <AlertCircle className="w-5 h-5 text-red-600" />
     if (styleType === "mixed") return <Info className="w-5 h-5 text-yellow-600" />
     return <CheckCircle className="w-5 h-5 text-green-600" />
@@ -230,7 +231,7 @@ const AiContentDetection = () => {
                   Detailed Analysis
                 </h3>
                 <ul className="space-y-3">
-                  {detectionResult.analysis.map((point, idx) => (
+                  {detectionResult.analysis.map((point: any, idx: number) => (
                     <li key={point} className="flex gap-3 ">
                       <span className="shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
                         {idx + 1}

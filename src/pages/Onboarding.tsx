@@ -1,3 +1,5 @@
+import { apiErrorMessage } from "@/types/api"
+import { asApiError } from "@/types/api"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Building2, Target, Check } from "lucide-react"
@@ -14,8 +16,8 @@ const Onboarding = () => {
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [fetchingInfo, setFetchingInfo] = useState(false)
+  const [loading, setLoading] = useState<any>(false)
+  const [fetchingInfo, setFetchingInfo] = useState<any>(false)
 
   // Load authenticated user on mount
   useEffect(() => {
@@ -40,7 +42,7 @@ const Onboarding = () => {
     // If user has lastLogin OR has completed onboarding, redirect to dashboard
     if (user.lastLogin || hasCompletedOnboarding) {
       if (user.emailVerified === false) {
-        useVerificationStore.getState().setEmail(user.email)
+        useVerificationStore.getState().setEmail(user.email ?? "")
         navigate(`/email-verify`, { replace: true })
       } else {
         navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
@@ -49,7 +51,7 @@ const Onboarding = () => {
   }, [user, navigate])
 
   const [protocol, setProtocol] = useState("https://")
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     nameOfVoice: "",
     postLink: "",
     sitemap: "",
@@ -71,7 +73,7 @@ const Onboarding = () => {
       const fullUrl = `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`
       const siteInfo = await getSiteInfo(fullUrl)
 
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         nameOfVoice: siteInfo.nameOfVoice || prev.nameOfVoice,
         describeBrand: siteInfo.describeBrand || prev.describeBrand,
@@ -82,11 +84,14 @@ const Onboarding = () => {
 
       toast.success("Company information fetched successfully!")
       setCurrentStep(1)
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       // Show error but still allow user to proceed to manually enter information
       toast.warning(
-        error.toast ||
+        apiErrorMessage(
+          error,
           "Couldn't fetch company information automatically. Please enter details manually."
+        )
       )
       // Proceed to next step anyway
       setCurrentStep(1)
@@ -102,28 +107,28 @@ const Onboarding = () => {
         .map((k) => k.trim())
         .filter((k) => k && !formData.keywords.includes(k))
 
-      setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+      setFormData((prev: any) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
       setKeywordInput("")
     }
   }
 
-  const handlePasteKeywords = (e) => {
+  const handlePasteKeywords = (e: any) => {
     extractKeywordsFromClipboard(e, {
       type: "keywords",
       cb: (items) => {
-        const existingKeywords = new Set(formData.keywords.map((keyword) => keyword.toLowerCase()))
+        const existingKeywords = new Set(formData.keywords.map((keyword: string) => keyword.toLowerCase()))
         const newKeywords = items.filter((keyword) => !existingKeywords.has(keyword.toLowerCase()))
 
         if (newKeywords.length === 0) return
 
-        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+        setFormData((prev: any) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
         setKeywordInput("")
       },
     })
   }
 
-  const removeKeyword = (keyword) => {
-    setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== keyword) }))
+  const removeKeyword = (keyword: string) => {
+    setFormData((prev: any) => ({ ...prev, keywords: prev.keywords.filter((k: any) => k !== keyword) }))
   }
 
   const handleStep1Continue = () => {
@@ -162,8 +167,9 @@ const Onboarding = () => {
       sessionStorage.setItem("justCompletedOnboarding", "true")
 
       navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
-    } catch (error) {
-      toast.error(error.toast || "Failed to create brand voice")
+    } catch (rawError) {
+      const error = asApiError(rawError)
+      toast.error(apiErrorMessage(error, "Failed to create brand voice"))
     } finally {
       setLoading(false)
     }
@@ -247,7 +253,7 @@ const Onboarding = () => {
                     placeholder="Digital Shift"
                     value={formData.nameOfVoice}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, nameOfVoice: e.target.value }))
+                      setFormData((prev: any) => ({ ...prev, nameOfVoice: e.target.value }))
                     }
                     className="input outline-0 w-full rounded-lg"
                   />
@@ -269,7 +275,7 @@ const Onboarding = () => {
                       placeholder="www.example.com"
                       value={formData.postLink}
                       onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, postLink: e.target.value }))
+                        setFormData((prev: any) => ({ ...prev, postLink: e.target.value }))
                       }
                       className="input outline-0 join-item w-full"
                     />
@@ -287,7 +293,7 @@ const Onboarding = () => {
                     id="onboarding-sitemap"
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, sitemap: e.target.value }))}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, sitemap: e.target.value }))}
                     className="input outline-0 w-full rounded-lg"
                   />
                 </div>
@@ -295,10 +301,7 @@ const Onboarding = () => {
 
               <button
                 type="button"
-                size="large"
-                block
                 onClick={handleFetchSiteInfo}
-                loading={fetchingInfo}
                 disabled={!formData.postLink || !formData.nameOfVoice}
                 className="h-12 text-white w-full bg-gray-900 hover:bg-gray-800 rounded-lg font-medium"
               >
@@ -336,7 +339,7 @@ const Onboarding = () => {
                     placeholder="Describe what your company does..."
                     value={formData.describeBrand}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, describeBrand: e.target.value }))
+                      setFormData((prev: any) => ({ ...prev, describeBrand: e.target.value }))
                     }
                     className="textarea outline-0 w-full rounded-lg text-base"
                   />
@@ -354,7 +357,7 @@ const Onboarding = () => {
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, persona: e.target.value }))}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, persona: e.target.value }))}
                     className="textarea outline-0 w-full rounded-lg text-base"
                   />
                 </div>
@@ -386,7 +389,7 @@ const Onboarding = () => {
                   </div>
                   {formData.keywords.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword) => (
+                      {formData.keywords.map((keyword: string) => (
                         <span
                           key={keyword}
                           className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100  rounded-full text-sm"
@@ -482,7 +485,7 @@ const Onboarding = () => {
                       Keywords
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword) => (
+                      {formData.keywords.map((keyword: string) => (
                         <span key={keyword} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
                           {keyword}
                         </span>

@@ -29,12 +29,12 @@ const PublicBlogReader = () => {
     error,
   } = useQuery({
     queryKey: ["blog", id, "public"],
-    queryFn: () => getBlogPublicly(id),
+    queryFn: () => getBlogPublicly(id ?? ""),
     enabled: !!id,
     retry: false,
   })
 
-  const getAuthor = (blogData) => {
+  const getAuthor = (blogData: any) => {
     if (!blogData) return { name: "GenWrite Author", avatar: null }
 
     // Priority: author object > user object > createdBy object
@@ -101,7 +101,7 @@ const PublicBlogReader = () => {
 
   useEffect(() => {
     if (isError) {
-      const status = error?.response?.status || 404
+      const status = (error as any)?.response?.status || 404
       const message =
         status === 403
           ? "Access Restricted: This blog is not public."
@@ -116,7 +116,7 @@ const PublicBlogReader = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: any) => {
     if (!dateString) return ""
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
@@ -339,7 +339,7 @@ const PublicBlogReader = () => {
                     <div className="flex-1 h-px bg-slate-200" />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {focusKeywords.map((kw) => (
+                    {focusKeywords.map((kw: any) => (
                       <span
                         key={`focus-${kw}`}
                         className="px-4 py-2 bg-blue-600 text-white border border-blue-700 text-sm font-black rounded-md shadow-sm cursor-default"
@@ -347,7 +347,7 @@ const PublicBlogReader = () => {
                         #{kw}
                       </span>
                     ))}
-                    {keywords.map((kw) => (
+                    {keywords.map((kw: any) => (
                       <span
                         key={`keyword-${kw}`}
                         className="px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 text-sm font-bold rounded-md hover:bg-slate-200 transition-colors cursor-default"
@@ -455,8 +455,8 @@ const PublicBlogReader = () => {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-x-2 gap-y-3">
-                  {(blog?.tags?.length > 0
-                    ? blog.tags
+                  {((blog?.tags?.length ?? 0) > 0
+                    ? (blog?.tags ?? [])
                     : [
                         "viral music",
                         "music marketing strategy",
@@ -469,7 +469,7 @@ const PublicBlogReader = () => {
                         "hit song case study",
                         "algorithm trap",
                       ]
-                  ).map((tag) => (
+                  ).map((tag: string) => (
                     <span
                       key={tag}
                       className="px-3.5 py-1.5 bg-white text-slate-600 text-[11px] font-bold border border-slate-100 rounded-md hover:border-blue-200 transition-all cursor-default"
@@ -490,7 +490,7 @@ const PublicBlogReader = () => {
                 </div>
                 <div className="flex flex-col gap-2">
                   {(focusKeywords.length > 0 ? focusKeywords : keywords.slice(0, 3)).map(
-                    (kw) => (
+                    (kw: any) => (
                       <div
                         key={kw}
                         className="group relative flex items-center gap-3 p-3 bg-blue-600 text-white border border-blue-700 rounded-md shadow-lg shadow-blue-100/50"
@@ -515,7 +515,7 @@ const PublicBlogReader = () => {
                     </span>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {keywords.map((kw) => (
+                    {keywords.map((kw: any) => (
                       <div
                         key={kw}
                         className="group relative flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-md hover:border-blue-200 transition-all duration-300"

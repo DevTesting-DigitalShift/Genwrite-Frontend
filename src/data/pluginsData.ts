@@ -1,7 +1,16 @@
+import { asApiError } from "@/types/api"
+import { apiErrorMessage } from "@/types/api"
 import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
 import { SiSanity } from "react-icons/si"
 
-export const pluginsData = (pingFn) => [
+/** What a plugin ping reports back to the connect button. */
+export interface PluginPingResult {
+  status?: string
+  message?: string
+  success?: boolean
+}
+
+export const pluginsData = (pingFn: (type: string) => Promise<PluginPingResult>) => [
   {
     id: 111,
     name: "WordPress",
@@ -24,10 +33,11 @@ export const pluginsData = (pingFn) => [
           message: result.message || "WordPress connection verified",
           success: result.success !== false,
         }
-      } catch (err) {
+      } catch (rawErr) {
+    const err = asApiError(rawErr)
         return {
           status: "error",
-          message: err.message || "WordPress Connection Error",
+          message: apiErrorMessage(err, "WordPress Connection Error"),
           success: false,
         }
       }
@@ -55,10 +65,11 @@ export const pluginsData = (pingFn) => [
           message: result.message || "Server-to-Server connection verified",
           success: result.success !== false,
         }
-      } catch (err) {
+      } catch (rawErr) {
+    const err = asApiError(rawErr)
         return {
           status: "error",
-          message: err.message || "Server-to-Server Connection Error",
+          message: apiErrorMessage(err, "Server-to-Server Connection Error"),
           success: false,
         }
       }
@@ -84,10 +95,11 @@ export const pluginsData = (pingFn) => [
           message: result.message || "Shopify connection verified",
           success: result.success !== false,
         }
-      } catch (err) {
+      } catch (rawErr) {
+    const err = asApiError(rawErr)
         return {
           status: "error",
-          message: err.message || "Shopify Connection Error",
+          message: apiErrorMessage(err, "Shopify Connection Error"),
           success: false,
         }
       }
@@ -113,8 +125,13 @@ export const pluginsData = (pingFn) => [
           message: result.message || "Wix connection verified",
           success: result.success !== false,
         }
-      } catch (err) {
-        return { status: "error", message: err.message || "Wix Connection Error", success: false }
+      } catch (rawErr) {
+    const err = asApiError(rawErr)
+        return {
+          status: "error",
+          message: apiErrorMessage(err, "Wix Connection Error"),
+          success: false,
+        }
       }
     },
   },
@@ -138,10 +155,11 @@ export const pluginsData = (pingFn) => [
           message: result.message || "Sanity connection verified",
           success: result.success !== false,
         }
-      } catch (err) {
+      } catch (rawErr) {
+    const err = asApiError(rawErr)
         return {
           status: "error",
-          message: err.message || "Sanity Connection Error",
+          message: apiErrorMessage(err, "Sanity Connection Error"),
           success: false,
         }
       }

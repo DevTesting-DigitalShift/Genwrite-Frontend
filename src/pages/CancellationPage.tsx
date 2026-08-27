@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
@@ -32,7 +33,7 @@ const CancellationPage = () => {
   useEffect(() => {
     if (
       user?.subscription?.plan === "free" ||
-      ["unpaid", "cancelled"].includes(user?.subscription?.status) ||
+      ["unpaid", "cancelled"].includes(user?.subscription?.status ?? "") ||
       user?.subscription?.status === "trialing" ||
       user?.subscription?.cancelAt
     ) {
@@ -45,9 +46,10 @@ const CancellationPage = () => {
       setIsProcessing(true)
       await updateProfileMutate({ "subscription.discountApplied": 30 })
       setShowSuccess(true)
-      sendCancellationRelatedEvent(user, "discount")
+      sendCancellationRelatedEvent(user ?? {}, "discount")
       toast.success("30% Bonus Credits activated!")
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       console.error("Error applying discount:", err)
       toast.error("Failed to apply bonus, please try again later.")
     } finally {
@@ -77,10 +79,11 @@ const CancellationPage = () => {
         try {
           setIsProcessing(true)
           await cancelStripeSubscription()
-          sendCancellationRelatedEvent(user, "cancel")
+          sendCancellationRelatedEvent(user ?? {}, "cancel")
           toast.success("Subscription schedule updated for termination")
           navigate("/dashboard")
-        } catch (err) {
+        } catch (rawErr) {
+          const err = asApiError(rawErr)
           console.error("Error cancelling subscription:", err)
           toast.error("Failed to update status, please try again.")
         } finally {

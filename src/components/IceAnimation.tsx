@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 
-const IceAnimation = ({ density = 40 }) => {
+const IceAnimation = ({ density = 40 }: { density?: number }) => {
   // Different ice crystal shapes with varying sizes
   const iceShapes = ["❄", "◇", "✧", "❆"]
 

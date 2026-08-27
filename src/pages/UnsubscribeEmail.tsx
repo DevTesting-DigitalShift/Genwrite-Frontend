@@ -33,7 +33,7 @@ const UnsubscribeEmail = () => {
   }, [unsubscribeSuccessMessage, error, navigate])
 
   // Validate email format
-  const isValidEmail = (email) => {
+  const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return email && emailRegex.test(email)
   }

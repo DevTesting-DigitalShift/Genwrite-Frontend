@@ -1,9 +1,12 @@
 import { create } from "zustand"
 
-/** The common { result, error } slice shared by every one-shot tool. */
+/**
+ * The common { result, error } slice shared by every one-shot tool. `result` is the raw
+ * endpoint payload — its shape differs per tool, so pages read their own fields off it.
+ */
 interface ToolSlice {
-  result: unknown | null
-  error: unknown | null
+  result: any | null
+  error: any | null
 }
 
 interface PdfChatSlice extends ToolSlice {

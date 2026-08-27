@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 import { useEffect, useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import {
@@ -30,7 +31,7 @@ const Transactions = () => {
 
   const [searchTerm, _setSearchTerm] = useState("")
   const [statusFilter, _setStatusFilter] = useState("all")
-  const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" })
+  const [sortConfig, setSortConfig] = useState<any>({ key: "createdAt", direction: "desc" })
 
   const showTrialMessage =
     user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
@@ -45,7 +46,8 @@ const Transactions = () => {
       } else {
         toast.warning("Could not open billing settings.")
       }
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error(error)
       toast.error("Failed to open billing portal. Please try again.")
     }
@@ -57,7 +59,7 @@ const Transactions = () => {
 
   // Filter & Sort Logic
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    return transactions.filter((t: any) => {
       const matchesSearch =
         t.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.plan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,7 +87,7 @@ const Transactions = () => {
     })
   }, [filteredTransactions, sortConfig])
 
-  const requestSort = (key) => {
+  const requestSort = (key: string) => {
     let direction = "asc"
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc"
@@ -93,7 +95,7 @@ const Transactions = () => {
     setSortConfig({ key, direction })
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "success":
         return (
@@ -195,7 +197,7 @@ const Transactions = () => {
                       starting on{" "}
                       <span className="text-amber-900 font-extrabold">
                         {new Date(
-                          user.subscription.scheduledPlanChange.effectiveDate
+                          user.subscription?.scheduledPlanChange?.effectiveDate ?? ""
                         ).toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "long",

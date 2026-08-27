@@ -11,6 +11,15 @@ const BrandVoicesComponent = ({
   onEdit,
   onDelete,
   readOnly = false,
+}: {
+  brandName?: string
+  brandVoice?: string
+  logoUrl?: string
+  onSelect?: () => void
+  isSelected?: boolean
+  onEdit?: () => void
+  onDelete?: () => void
+  readOnly?: boolean
 }) => {
   return (
     <motion.div
@@ -33,7 +42,7 @@ const BrandVoicesComponent = ({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          onSelect()
+          onSelect?.()
         }
       }}
       aria-label={`Select ${brandName} brand voice`}
@@ -51,7 +60,7 @@ const BrandVoicesComponent = ({
             </div>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
-              {brandName.charAt(0).toUpperCase()}
+              {brandName?.charAt(0).toUpperCase()}
             </div>
           )}
           <h3 className={`font-medium text-sm ${isSelected ? "text-indigo-700" : ""} truncate`}>

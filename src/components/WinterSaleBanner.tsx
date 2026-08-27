@@ -139,7 +139,7 @@ const WinterSaleBanner = () => {
   )
 }
 
-const TimeBlock = ({ value, label }) => (
+const TimeBlock = ({ value, label }: { value: number | string; label: string }) => (
   <div className="backdrop-blur-md px-2 py-2 sm:px-3 sm:py-2.5 rounded-xl sm:rounded-2xl min-w-[55px] sm:min-w-[60px] md:min-w-[65px] text-center border border-white/5 shadow-inner">
     <div className="text-lg sm:text-xl md:text-2xl font-black text-white leading-none mb-0.5 sm:mb-1">
       {String(value).padStart(2, "0")}

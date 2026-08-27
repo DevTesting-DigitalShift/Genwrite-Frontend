@@ -4,8 +4,8 @@ import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
 interface GscState {
-  verifiedSites: unknown[]
-  analyticsData: unknown[]
+  verifiedSites: any[]
+  analyticsData: any[]
   gscAuthUrl: string | null
   loading: boolean
   error: string | null
@@ -15,10 +15,10 @@ interface GscState {
   setError: (error: string | null) => void
   reset: () => void
 
-  fetchVerifiedSites: () => Promise<unknown>
-  fetchGscAnalytics: (params: Record<string, unknown>) => Promise<unknown>
-  connectGscAccount: (args: { code: string; state?: string }) => Promise<unknown>
-  fetchGscAuthUrl: () => Promise<unknown>
+  fetchVerifiedSites: () => Promise<any>
+  fetchGscAnalytics: (params: Record<string, unknown>) => Promise<any>
+  connectGscAccount: (args: { code: string; state?: string }) => Promise<any>
+  fetchGscAuthUrl: () => Promise<any>
 }
 
 const useGscStore = create<GscState>()(

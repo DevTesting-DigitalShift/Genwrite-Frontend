@@ -1,3 +1,5 @@
+import { asApiError } from "@/types/api"
+import { apiErrorMessage } from "@/types/api"
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -75,14 +77,15 @@ export default function EmailVerification() {
       setTimerStartedAt(Date.now())
       setShowOTP(true)
       toast.success("Verification link sent!")
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send email")
+    } catch (rawErr) {
+    const err = asApiError(rawErr)
+      toast.error(apiErrorMessage(err, "Failed to send email"))
     } finally {
       setLoading(false)
     }
   }
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const min = Math.floor(seconds / 60)
     const sec = seconds % 60
     return `${min}:${sec.toString().padStart(2, "0")}`

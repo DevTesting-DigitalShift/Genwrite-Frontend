@@ -46,7 +46,7 @@ const PrivateRoutesLayout = () => {
   // DOES concern us is this tab's account being signed out elsewhere: its token is gone
   // from the shared pool, so every further request would 401. Only that case reacts.
   useEffect(() => {
-    const handleStorage = (event) => {
+    const handleStorage = (event: StorageEvent) => {
       if (event.key !== "gw_sessions") return
 
       // Read live rather than from a ref captured at mount: this tab may have switched

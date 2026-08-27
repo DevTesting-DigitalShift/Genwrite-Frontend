@@ -47,7 +47,15 @@ export const AI_MODELS = [
   },
 ]
 
-export const IMAGE_OPTIONS = [
+/** One selectable image source shown by ImageSourceSelector. */
+export interface ImageOption {
+  id: string
+  label: string
+  description: string
+  restrictedPlans: string[]
+}
+
+export const IMAGE_OPTIONS: ImageOption[] = [
   {
     id: IMAGE_SOURCE.NONE,
     label: "None",
