@@ -218,6 +218,56 @@ export interface RegeneratePanelProps extends BasePanelProps {
 }
 
 /**
+ * A single AI-generated rewrite suggestion from a blog performance review.
+ * Mirrors the suggestion subdocument of the backend BlogInsight model.
+ */
+export interface InsightSuggestion {
+  _id: string
+  sectionId: string | null
+  sectionTitle: string
+  issue: string
+  recommendation: string
+  targetKeywords: string[]
+  priority: "high" | "medium" | "low"
+  status: "pending" | "applied" | "dismissed"
+}
+
+/**
+ * Result of POST /blogs/:id/analyze — a persisted BlogInsight document.
+ */
+export interface BlogInsight {
+  _id: string
+  blogId: string
+  userId: string
+  generatedAt: string
+  rangeFrom: string | null
+  rangeTo: string | null
+  metricsSnapshot: {
+    totalClicks: number
+    totalImpressions: number
+    avgPosition: number
+    trend: "up" | "down" | "flat" | "unknown"
+  }
+  /** Set when there was no search data yet, explaining why (from URL inspection) */
+  indexingNote: string | null
+  overallSummary: string
+  suggestions: InsightSuggestion[]
+}
+
+export interface InsightsPanelProps extends BasePanelProps {
+  insight: BlogInsight | null
+  isAnalyzing: boolean
+  onAnalyze: () => void
+  onApplySuggestion: (
+    suggestion: InsightSuggestion,
+    options: { scope: "section" | "whole"; republish: boolean }
+  ) => void
+  applyingSuggestionId: string | null
+  hasPublishedLinks: boolean
+  setIsSidebarOpen?: (open: boolean) => void
+}
+
+/**
  * Animation variants for framer-motion
  */
 export interface AnimationVariants {

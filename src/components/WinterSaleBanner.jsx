@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Gift, Sparkles } from "lucide-react"
 
@@ -7,7 +7,7 @@ const WinterSaleBanner = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hrs: 0, min: 0, sec: 0 })
 
   // Calculate time remaining until Dec 31, 2025 12:00 AM
-  const calculateTimeLeft = () => {
+  const calculateTimeLeft = useCallback(() => {
     const endDate = new Date("2026-01-01T23:59:59").getTime()
     const now = Date.now()
     const difference = endDate - now
@@ -21,7 +21,7 @@ const WinterSaleBanner = () => {
       }
     }
     return { days: 0, hrs: 0, min: 0, sec: 0 }
-  }
+  }, [])
 
   useEffect(() => {
     const hasSeenSale = sessionStorage.getItem("hasSeenWinterSale")
@@ -44,7 +44,7 @@ const WinterSaleBanner = () => {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [calculateTimeLeft])
 
   return (
     <>
@@ -110,6 +110,7 @@ const WinterSaleBanner = () => {
             <div className="relative z-10 px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-4 flex flex-col items-center">
               {/* Close Button */}
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
                 className="absolute right-2 top-2 sm:right-4 sm:top-2 text-red-700 bg-white/80 rounded-full  transition-colors p-2"
               >

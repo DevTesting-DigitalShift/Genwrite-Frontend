@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { motion } from "framer-motion"
 import { FaTimes } from "react-icons/fa"
 import useAuthStore from "@store/useAuthStore"
@@ -10,10 +10,17 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 import { uploadImage } from "@api/imageGalleryApi"
+
+// Stable reference for the "no brands yet" case. An inline `= []` default would build a
+// fresh array on every render, changing `resetForm`'s identity each time, which made the
+// reset effect below re-fire forever ("Maximum update depth exceeded") whenever the
+// brands request failed and `data` stayed undefined.
+const NO_BRANDS = []
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
@@ -44,19 +51,43 @@ const BrandVoice = () => {
     user?.subscription?.plan === "free" &&
     user?.subscription?.status === "unpaid"
 
-  if (showTrialMessage) {
-    return <UpgradeModal featureName="Brand Voice" />
-  }
-
   const { brand: brandVoiceMutations } = useEntityMutations()
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
-  const { data: brands = [], isLoading, error } = brandsQuery.useList()
+  const { data: brands = NO_BRANDS, isLoading } = brandsQuery.useList()
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      nameOfVoice: "",
+      postLink: "",
+      keywords: [],
+      describeBrand: "",
+      sitemapUrl: "",
+      persona: "",
+      logoUrl: "",
+      selectedVoice: brands && brands.length > 0 ? brands[0] : null,
+      _id: undefined,
+    })
+    setInputValue("")
+    setErrors({})
+    setLastScrapedUrl("")
+    setIsFormReset(true)
+    setShowAllKeywords(false)
+    resetSiteInfo()
+  }, [brands, resetSiteInfo])
+
+  // Held in a ref so the effect below keys off the *editing state* only. Depending on
+  // `resetForm` directly re-fired it on every identity change of `brands` — on mount that
+  // was an infinite loop, and after mount a background refetch would silently wipe a
+  // half-filled new-brand form.
+  const resetFormRef = useRef(resetForm)
+  resetFormRef.current = resetForm
 
   useEffect(() => {
     if (!formData._id) {
-      resetForm()
+      resetFormRef.current()
     }
-  }, [])
+  }, [formData._id])
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
@@ -82,26 +113,6 @@ const BrandVoice = () => {
       setLastScrapedUrl(formData.postLink)
     }
   }, [siteInfo, formData.postLink, isFormReset])
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      nameOfVoice: "",
-      postLink: "",
-      keywords: [],
-      describeBrand: "",
-      sitemapUrl: "",
-      persona: "",
-      logoUrl: "",
-      selectedVoice: brands && brands.length > 0 ? brands[0] : null,
-      _id: undefined,
-    })
-    setInputValue("")
-    setErrors({})
-    setLastScrapedUrl("")
-    setIsFormReset(true)
-    setShowAllKeywords(false)
-    resetSiteInfo()
-  }, [brands, resetSiteInfo])
 
   const validateForm = useCallback(() => {
     const newErrors = {}
@@ -269,7 +280,7 @@ const BrandVoice = () => {
 
     try {
       setIsUploading(true)
-      const res = await uploadImage(formDataUpload, formData.logoUrl.split("?")[0] || null)
+      const res = await uploadImage(formDataUpload, formData.logoUrl?.split("?")[0] || null)
       if (res?.url) {
         const bustedUrl = `${res.url}?t=${Date.now()}`
         setFormData((prev) => ({ ...prev, logoUrl: bustedUrl }))
@@ -281,9 +292,13 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [])
+  }, [formData.logoUrl])
 
   const handleSave = useCallback(async () => {
+    if (isReadOnlyWorkspace) {
+      toast.error("This workspace is read-only — exit to your own workspace to make changes.")
+      return
+    }
     if (!validateForm()) return
     setIsUploading(true)
     const payload = {
@@ -293,7 +308,7 @@ const BrandVoice = () => {
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       persona: formData.persona.trim(),
-      logoUrl: formData.logoUrl.split("?")[0].trim(),
+      logoUrl: formData.logoUrl?.split("?")[0].trim() || "",
     }
 
     const isDuplicate = brands.some(
@@ -320,7 +335,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations])
+  }, [formData, validateForm, resetForm, brands, brandVoiceMutations, isReadOnlyWorkspace])
 
   const handleEdit = useCallback((brand) => {
     setFormData({
@@ -368,7 +383,7 @@ const BrandVoice = () => {
         cancelProps: { danger: false },
       })
     },
-    [brandVoiceMutations, formData.selectedVoice, resetForm]
+    [brandVoiceMutations, formData.selectedVoice, resetForm, handlePopup]
   )
 
   const handleSelect = useCallback((voice) => {
@@ -399,7 +414,7 @@ const BrandVoice = () => {
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
     }
-  }, [formData.postLink, lastScrapedUrl])
+  }, [formData.postLink, lastScrapedUrl, fetchSiteInfo])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])
@@ -449,6 +464,12 @@ const BrandVoice = () => {
     )
   }, [formData.keywords, removeKeyword, showAllKeywords])
 
+  // Checked after every hook has run unconditionally (rules-of-hooks) — this can flip
+  // true/false within the same mounted instance as credits/subscription update live.
+  if (showTrialMessage) {
+    return <UpgradeModal featureName="Brand Voice" />
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -473,6 +494,16 @@ const BrandVoice = () => {
           Define your brand's unique tone and style to ensure consistent content creation.
         </p>
 
+        {isReadOnlyWorkspace && (
+          <div className="mb-4 sm:mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {readOnlyMessage}
+          </div>
+        )}
+
+        {/* `display: contents` keeps the fieldset out of the layout while its disabled
+            attribute still cascades to every input inside it — one guard instead of
+            threading `disabled` through a dozen fields. */}
+        <fieldset disabled={isReadOnlyWorkspace} className="contents">
         <div className="space-y-4 sm:space-y-6">
           <div>
             <label htmlFor="postLink" className="text-sm font-medium  flex gap-2 mb-1">
@@ -502,6 +533,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <button
+                type="button"
                 className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
                 onClick={handleFetchSiteInfo}
                 disabled={
@@ -578,6 +610,7 @@ const BrandVoice = () => {
                 />
                 {formData.logoUrl && (
                   <button
+                    type="button"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
                     onClick={() => setFormData((prev) => ({ ...prev, logoUrl: "" }))}
                   >
@@ -761,9 +794,11 @@ const BrandVoice = () => {
 
           <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
             <button
+              type="button"
               className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-2 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[11px] sm:text-base flex-1 sm:flex-none"
               onClick={handleSave}
-              disabled={isUploading || showTrialMessage}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+              disabled={isUploading || showTrialMessage || isReadOnlyWorkspace}
             >
               {isUploading ? (
                 <span className="flex items-center justify-center gap-1 sm:gap-2">
@@ -778,6 +813,7 @@ const BrandVoice = () => {
             </button>
 
             <button
+              type="button"
               className="bg-linear-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-base flex-none sm:flex-none"
               onClick={resetForm}
               disabled={isUploading}
@@ -786,6 +822,7 @@ const BrandVoice = () => {
             </button>
           </div>
         </div>
+        </fieldset>
       </motion.div>
 
       <motion.div
@@ -798,7 +835,12 @@ const BrandVoice = () => {
             Your Brand Voices
           </h2>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={isLoading}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
               <RefreshCcw className="w-4 h-4" />
             </button>
           </motion.div>
@@ -818,6 +860,7 @@ const BrandVoice = () => {
                 logoUrl={item.logoUrl}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
+                readOnly={isReadOnlyWorkspace}
                 onEdit={(e) => {
                   e.stopPropagation()
                   handleEdit(item)

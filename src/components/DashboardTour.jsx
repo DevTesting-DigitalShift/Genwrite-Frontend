@@ -1,56 +1,60 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ArrowRight, ArrowLeft, Sparkles, Zap, MousePointer } from "lucide-react"
 
-const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
+// Static tour content — defined outside the component so it's a stable reference
+// across renders (was previously recreated every render, breaking the memoized
+// updateTargetRect callback's dependency stability).
+const TOUR_STEPS = [
+  {
+    target: null,
+    title: "Welcome to GenWrite! 🎉",
+    description:
+      "We're excited to have you here! Let me show you around and help you create your first amazing blog post.",
+    placement: "center",
+    showNext: true,
+  },
+  {
+    target: '[data-tour="lets-begin"]',
+    title: "Let's Begin - Your Starting Point",
+    description:
+      "This section gives you quick access to create different types of blogs. You can create Quick Blogs, YouTube Blogs, Advanced Blogs, and more!",
+    placement: "bottom",
+    showNext: true,
+  },
+  {
+    target: '[data-tour="analytics"]',
+    title: "Quick Tools - Powerful Features",
+    description:
+      "Access advanced tools like Keyword Research, Performance Monitoring, and Competitive Analysis to optimize your content strategy.",
+    placement: "bottom",
+    showNext: true,
+  },
+  {
+    target: '[data-tour="help-icon"]',
+    title: "Need Help? Watch Our Video Guide",
+    description:
+      "Click this question mark icon anytime to watch our introduction video and learn how GenWrite works. It's a quick guide to help you get the most out of the platform!",
+    placement: "bottom",
+    showNext: true,
+  },
+  {
+    target: '[data-tour="create-blog"]',
+    title: "Create Your First Quick Blog",
+    description:
+      "Now you're ready to create your first blog! Click on the 'Quick Blog' card to get started. It's super easy - just choose a template, add your topic and keywords, and submit!",
+    placement: "bottom",
+    showNext: true,
+    isFinalStep: true,
+  },
+]
+
+const DashboardTour = ({ run, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
   const [targetRect, setTargetRect] = useState(null)
   const [waitingForUserAction, setWaitingForUserAction] = useState(false)
-
-  const steps = [
-    {
-      target: null,
-      title: "Welcome to GenWrite! 🎉",
-      description:
-        "We're excited to have you here! Let me show you around and help you create your first amazing blog post.",
-      placement: "center",
-      showNext: true,
-    },
-    {
-      target: '[data-tour="lets-begin"]',
-      title: "Let's Begin - Your Starting Point",
-      description:
-        "This section gives you quick access to create different types of blogs. You can create Quick Blogs, YouTube Blogs, Advanced Blogs, and more!",
-      placement: "bottom",
-      showNext: true,
-    },
-    {
-      target: '[data-tour="analytics"]',
-      title: "Quick Tools - Powerful Features",
-      description:
-        "Access advanced tools like Keyword Research, Performance Monitoring, and Competitive Analysis to optimize your content strategy.",
-      placement: "bottom",
-      showNext: true,
-    },
-    {
-      target: '[data-tour="help-icon"]',
-      title: "Need Help? Watch Our Video Guide",
-      description:
-        "Click this question mark icon anytime to watch our introduction video and learn how GenWrite works. It's a quick guide to help you get the most out of the platform!",
-      placement: "bottom",
-      showNext: true,
-    },
-    {
-      target: '[data-tour="create-blog"]',
-      title: "Create Your First Quick Blog",
-      description:
-        "Now you're ready to create your first blog! Click on the 'Quick Blog' card to get started. It's super easy - just choose a template, add your topic and keywords, and submit!",
-      placement: "bottom",
-      showNext: true,
-      isFinalStep: true,
-    },
-  ]
+  const steps = TOUR_STEPS
 
   useEffect(() => {
     if (run) {
@@ -60,20 +64,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
     }
   }, [run])
 
-  useEffect(() => {
-    if (isVisible) {
-      updateTargetRect()
-      window.addEventListener("resize", updateTargetRect)
-      window.addEventListener("scroll", updateTargetRect)
-
-      return () => {
-        window.removeEventListener("resize", updateTargetRect)
-        window.removeEventListener("scroll", updateTargetRect)
-      }
-    }
-  }, [isVisible, currentStep])
-
-  const updateTargetRect = () => {
+  const updateTargetRect = useCallback(() => {
     const step = steps[currentStep]
     if (!step?.target) {
       setTargetRect(null)
@@ -87,7 +78,20 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
     } else {
       setTargetRect(null)
     }
-  }
+  }, [currentStep])
+
+  useEffect(() => {
+    if (isVisible) {
+      updateTargetRect()
+      window.addEventListener("resize", updateTargetRect)
+      window.addEventListener("scroll", updateTargetRect)
+
+      return () => {
+        window.removeEventListener("resize", updateTargetRect)
+        window.removeEventListener("scroll", updateTargetRect)
+      }
+    }
+  }, [isVisible, updateTargetRect])
 
   const handleNext = () => {
     const step = steps[currentStep]
@@ -239,7 +243,9 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
 
           {/* Clickable area for highlighted element */}
           {targetRect && waitingForUserAction && (
-            <div
+            <button
+              type="button"
+              aria-label="Continue tour"
               className="fixed z-[10001] cursor-pointer"
               style={{
                 top: `${targetRect.top - 8}px`,
@@ -320,6 +326,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
 
             {/* Close button */}
             <button
+              type="button"
               onClick={handleSkip}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -346,6 +353,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
               <div className="flex items-center gap-2 mb-4">
                 {steps.map((_, index) => (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: progress segment N always represents step N
                     key={index}
                     className={`h-1.5 flex-1 rounded-full transition-colors ${
                       index <= currentStep ? "bg-blue-600" : "bg-gray-200"
@@ -362,6 +370,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
               {/* Actions */}
               <div className="flex items-center justify-between">
                 <button
+                  type="button"
                   onClick={handleSkip}
                   className="text-sm text-gray-500 hover: transition-colors"
                 >
@@ -371,6 +380,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
                 <div className="flex items-center gap-2">
                   {currentStep > 0 && (
                     <button
+                      type="button"
                       onClick={handleBack}
                       className="px-4 py-2 text-sm font-medium  hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
                     >
@@ -380,6 +390,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
                   )}
                   {step.showNext && (
                     <button
+                      type="button"
                       onClick={handleNext}
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1"
                     >

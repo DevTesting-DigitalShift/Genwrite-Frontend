@@ -14,9 +14,14 @@ const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
+const CampaignsListPage = lazy(() => import("@pages/campaigns/CampaignsListPage"))
+const CampaignDetailPage = lazy(() => import("@pages/campaigns/CampaignDetailPage"))
+const CampaignReportDetailPage = lazy(() => import("@pages/campaigns/CampaignReportDetailPage"))
 const jobs = lazy(() => import("@pages/Jobs"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
+const Collaboration = lazy(() => import("@pages/Collaboration"))
+const AcceptInvite = lazy(() => import("@pages/AcceptInvite"))
 const Login = lazy(() => import("@pages/auth/Login"))
 const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword"))
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword"))
@@ -101,6 +106,7 @@ const router = createBrowserRouter([
             ],
           },
           { path: "shopify-verify", element: r(ShopifyVerification) },
+          { path: "accept-invite", element: r(AcceptInvite) },
           { path: "*", element: r(ErrorPage) },
         ],
       },
@@ -117,7 +123,11 @@ const router = createBrowserRouter([
           { path: "trashcan", element: r(BlogsPage) },
           { path: "pricing", element: r(pricing) },
           { path: "profile", element: r(Profile) },
+          { path: "collaboration", element: r(Collaboration) },
           { path: "brand-voice", element: r(BrandVoice) },
+          { path: "campaigns", element: r(CampaignsListPage) },
+          { path: "campaigns/:id", element: r(CampaignDetailPage) },
+          { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },

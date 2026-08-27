@@ -179,7 +179,7 @@ const ImageModal = ({
                     : title}
             </span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onCancel}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={onCancel}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -211,6 +211,7 @@ const ImageModal = ({
                   {/* Actions Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-emerald-300 text-emerald-600 bg-emerald-50"
                       onClick={() => document.getElementById("local-image-upload").click()}
                     >
@@ -277,6 +278,7 @@ const ImageModal = ({
                       />
                     </button>
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-purple-300 text-purple-600 bg-purple-50"
                       onClick={() => setView(VIEWS.GALLERY)}
                     >
@@ -284,6 +286,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Gallery</span>
                     </button>
                     <button
+                      type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-blue-300 text-blue-600 bg-blue-50"
                       onClick={() => setView(VIEWS.GENERATE)}
                     >
@@ -291,6 +294,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Generate AI</span>
                     </button>
                     <button
+                      type="button"
                       disabled={!url || !allowEnhance}
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-indigo-300 text-indigo-600 bg-indigo-50 disabled:bg-gray-100"
                       onClick={() => {
@@ -302,6 +306,7 @@ const ImageModal = ({
                       <span className="text-xs font-normal">Enhance</span>
                     </button>
                     <button
+                      type="button"
                       disabled={!url}
                       className="btn btn-outline btn-error h-auto py-2 flex flex-col items-center justify-center gap-1 disabled:bg-gray-100"
                       onClick={() => {
@@ -319,8 +324,11 @@ const ImageModal = ({
                 {/* URL & Alt Text Inputs */}
                 <div className="space-y-4 px-1">
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Image URL</label>
+                    <label htmlFor="image-url" className="block text-sm font-medium  mb-1">
+                      Image URL
+                    </label>
                     <input
+                      id="image-url"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com/image.jpg"
@@ -329,11 +337,12 @@ const ImageModal = ({
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium ">
+                      <label htmlFor="image-alt" className="block text-sm font-medium ">
                         Alt Text <span className="text-gray-400 font-normal">(Optional)</span>
                       </label>
                       {url && (
                         <button
+                          type="button"
                           className="btn btn-ghost btn-xs text-xs flex items-center gap-1 text-blue-600"
                           onClick={handleAutoAlt}
                         >
@@ -342,6 +351,7 @@ const ImageModal = ({
                       )}
                     </div>
                     <textarea
+                      id="image-alt"
                       value={alt}
                       onChange={(e) => setAlt(e.target.value)}
                       placeholder="Describe the image for SEO..."
@@ -382,8 +392,11 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Prompt</label>
+                    <label htmlFor="gen-prompt" className="block text-sm font-medium  mb-1">
+                      Prompt
+                    </label>
                     <textarea
+                      id="gen-prompt"
                       placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
                       value={genForm.prompt}
                       onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
@@ -394,8 +407,11 @@ const ImageModal = ({
 
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="block text-sm font-medium  mb-1">Style</label>
+                      <label htmlFor="gen-style" className="block text-sm font-medium  mb-1">
+                        Style
+                      </label>
                       <select
+                        id="gen-style"
                         value={genForm.style}
                         onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                         className="select select-bordered w-full"
@@ -408,8 +424,11 @@ const ImageModal = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium  mb-1">Aspect Ratio</label>
+                      <label htmlFor="gen-aspect-ratio" className="block text-sm font-medium  mb-1">
+                        Aspect Ratio
+                      </label>
                       <select
+                        id="gen-aspect-ratio"
                         value={genForm.aspectRatio}
                         onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                         className="select select-bordered w-full"
@@ -420,8 +439,11 @@ const ImageModal = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium  mb-1">Quality</label>
+                      <label htmlFor="gen-quality" className="block text-sm font-medium  mb-1">
+                        Quality
+                      </label>
                       <select
+                        id="gen-quality"
                         value={genForm.imageSize}
                         onChange={(e) => setGenForm({ ...genForm, imageSize: e.target.value })}
                         className="select select-bordered w-full"
@@ -450,8 +472,11 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Instruction</label>
+                    <label htmlFor="enhance-instruction" className="block text-sm font-medium  mb-1">
+                      Instruction
+                    </label>
                     <textarea
+                      id="enhance-instruction"
                       placeholder="e.g. Make it higher resolution, fix lighting..."
                       value={enhanceForm.prompt}
                       onChange={(e) => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
@@ -461,8 +486,11 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Style</label>
+                    <label htmlFor="enhance-style" className="block text-sm font-medium  mb-1">
+                      Style
+                    </label>
                     <select
+                      id="enhance-style"
                       value={enhanceForm.style}
                       onChange={(e) => setEnhanceForm({ ...enhanceForm, style: e.target.value })}
                       className="select select-bordered w-full"
@@ -475,8 +503,11 @@ const ImageModal = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Quality</label>
+                    <label htmlFor="enhance-quality" className="block text-sm font-medium  mb-1">
+                      Quality
+                    </label>
                     <select
+                      id="enhance-quality"
                       value={enhanceForm.imageSize}
                       onChange={(e) =>
                         setEnhanceForm({ ...enhanceForm, imageSize: e.target.value })
@@ -530,10 +561,11 @@ const ImageModal = ({
           <div className="p-4 border-t border-gray-300 bg-white shrink-0 flex items-center justify-between">
             {view === VIEWS.MAIN && (
               <>
-                <button className="btn btn-ghost" onClick={onCancel}>
+                <button type="button" className="btn btn-ghost" onClick={onCancel}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     onSave(url, alt)
@@ -547,12 +579,14 @@ const ImageModal = ({
             {view === VIEWS.GENERATE && (
               <>
                 <button
+                  type="button"
                   className="btn btn-ghost border border-gray-300"
                   onClick={() => setView(VIEWS.MAIN)}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary bg-linear-to-r from-blue-600 to-indigo-600 border-none"
                   onClick={handleGenerate}
                 >
@@ -564,10 +598,11 @@ const ImageModal = ({
 
             {view === VIEWS.ENHANCE && (
               <>
-                <button className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
+                <button type="button" className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary bg-linear-to-r from-purple-600 to-pink-600 border-none"
                   onClick={handleEnhance}
                 >
@@ -579,10 +614,15 @@ const ImageModal = ({
 
             {view === VIEWS.PREVIEW_GENERATE && (
               <>
-                <button className="btn btn-ghost" onClick={() => setView(VIEWS.GENERATE)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setView(VIEWS.GENERATE)}
+                >
                   Try Again
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     setUrl(generatedImageTemp.url)
@@ -597,7 +637,7 @@ const ImageModal = ({
             )}
 
             {view === VIEWS.GALLERY && (
-              <button className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setView(VIEWS.MAIN)}>
                 Back
               </button>
             )}
@@ -605,7 +645,9 @@ const ImageModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={onCancel}>close</button>
+        <button type="button" onClick={onCancel}>
+          close
+        </button>
       </form>
     </dialog>
   )

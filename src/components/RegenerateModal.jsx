@@ -19,8 +19,6 @@ const RegenerateModal = ({
   isRegenerating,
   regenForm,
   updateRegenField,
-  userPlan,
-  user,
   integrations,
 }) => {
   const _navigate = useNavigate()
@@ -119,7 +117,7 @@ const RegenerateModal = ({
               Regenerate Blog - Step {regenerateStep} of 2
             </span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -143,8 +141,11 @@ const RegenerateModal = ({
               {/* Topic & Title */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Topic</label>
+                  <label htmlFor="regen-topic" className="text-sm font-semibold  mb-2 block">
+                    Topic
+                  </label>
                   <input
+                    id="regen-topic"
                     type="text"
                     className="input outline-0 w-full"
                     value={regenForm.topic}
@@ -173,8 +174,11 @@ const RegenerateModal = ({
                 {/* Only show Title input if performKeywordResearch is OFF */}
                 {!regenForm.options.performKeywordResearch && (
                   <div>
-                    <label className="text-sm font-semibold  mb-2 block">Title</label>
+                    <label htmlFor="regen-title" className="text-sm font-semibold  mb-2 block">
+                      Title
+                    </label>
                     <input
+                      id="regen-title"
                       type="text"
                       className="input outline-0 w-full"
                       value={regenForm.title}
@@ -188,22 +192,27 @@ const RegenerateModal = ({
               {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">
+                  <label htmlFor="regen-focus-keywords" className="text-sm font-semibold  mb-2 block">
                     Focus Keywords (max 3)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
+                      id="regen-focus-keywords"
                       type="text"
                       className="input outline-0 w-full"
                       value={focusKeywordInput}
                       onChange={(e) => setFocusKeywordInput(e.target.value)}
                       onPaste={(e) => handlePasteKeywords(e, "focus")}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
-                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addRegenKeyword("focus")
+                        }
+                      }}
                       placeholder="Add keyword..."
                     />
                     <button
+                      type="button"
                       className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                       onClick={() => addRegenKeyword("focus")}
                     >
@@ -213,11 +222,11 @@ const RegenerateModal = ({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {regenForm.focusKeywords.map((kw, i) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-semibold"
                       >
                         {kw}
-                        <button onClick={() => removeRegenKeyword("focus", i)}>
+                        <button type="button" onClick={() => removeRegenKeyword("focus", i)}>
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </span>
@@ -229,20 +238,27 @@ const RegenerateModal = ({
               {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
               {!regenForm.options.performKeywordResearch && (
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Keywords</label>
+                  <label htmlFor="regen-keywords" className="text-sm font-semibold  mb-2 block">
+                    Keywords
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
+                      id="regen-keywords"
                       type="text"
                       className="input outline-0 w-full"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       onPaste={(e) => handlePasteKeywords(e, "secondary")}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addRegenKeyword("secondary")
+                        }
+                      }}
                       placeholder="Add keywords..."
                     />
                     <button
+                      type="button"
                       className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                       onClick={() => addRegenKeyword("secondary")}
                     >
@@ -252,11 +268,11 @@ const RegenerateModal = ({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {regenForm.keywords.map((kw, i) => (
                       <span
-                        key={i}
+                        key={kw}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm font-semibold"
                       >
                         {kw}
-                        <button onClick={() => removeRegenKeyword("secondary", i)}>
+                        <button type="button" onClick={() => removeRegenKeyword("secondary", i)}>
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </span>
@@ -268,8 +284,11 @@ const RegenerateModal = ({
               {/* Tone & Length */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-semibold  mb-2 block">Tone</label>
+                  <label htmlFor="regen-tone" className="text-sm font-semibold  mb-2 block">
+                    Tone
+                  </label>
                   <select
+                    id="regen-tone"
                     className="select select-bordered w-full"
                     value={regenForm.tone}
                     onChange={(e) => updateRegenField("tone", e.target.value)}
@@ -283,7 +302,7 @@ const RegenerateModal = ({
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-semibold">Word Count</label>
+                    <span className="text-sm font-semibold">Word Count</span>
                     <span className="text-xs font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
                       {Math.max(500, Math.round((regenForm.userDefinedLength || 1000) / 500) * 500)}{" "}
                       words
@@ -581,10 +600,14 @@ const RegenerateModal = ({
                       </div>
 
                       <div>
-                        <label className="text-sm font-semibold text-gray-600 block mb-2">
+                        <label
+                          htmlFor="regen-platform"
+                          className="text-sm font-semibold text-gray-600 block mb-2"
+                        >
                           Choose Platform
                         </label>
                         <select
+                          id="regen-platform"
                           className="select select-bordered outline-0 w-full"
                           value={regenForm.postingDefaultType || ""}
                           onChange={(e) => updateRegenField("postingDefaultType", e.target.value)}
@@ -622,6 +645,7 @@ const RegenerateModal = ({
           <div className="flex gap-2">
             {regenerateStep === 2 && (
               <button
+                type="button"
                 className="btn rounded-md transition-all"
                 onClick={() => setRegenerateStep(1)}
               >
@@ -630,6 +654,7 @@ const RegenerateModal = ({
             )}
             {regenerateStep === 1 ? (
               <button
+                type="button"
                 className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                 onClick={() => setRegenerateStep(2)}
               >
@@ -637,6 +662,7 @@ const RegenerateModal = ({
               </button>
             ) : (
               <button
+                type="button"
                 className="btn bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white border-none rounded-md transition-all"
                 disabled={isRegenerating}
                 onClick={handleSubmit}
@@ -653,7 +679,9 @@ const RegenerateModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

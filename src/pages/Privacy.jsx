@@ -131,12 +131,12 @@ const PrivacyPolicy = () => {
 
         {/* Privacy Sections */}
         <div className="space-y-8">
-          {sections.map((section, index) => (
-            <section key={index}>
+          {sections.map((section) => (
+            <section key={section.title}>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">{section.title}</h3>
               <ul className="list-disc pl-5 space-y-2">
-                {section.content.map((paragraph, pIndex) => (
-                  <li key={pIndex} className="text-gray-600">
+                {section.content.map((paragraph) => (
+                  <li key={paragraph} className="text-gray-600">
                     {paragraph}
                   </li>
                 ))}

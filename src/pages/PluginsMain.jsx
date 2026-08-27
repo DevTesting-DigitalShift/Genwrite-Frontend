@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import {
   Server,
   Download,
@@ -27,63 +27,60 @@ import clsx from "clsx"
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
   const [activeTab, setActiveTab] = useState(null)
-  const {
-    integrations,
-    loading,
-    fetchIntegrations,
-    createIntegration,
-    pingIntegration,
-    updateIntegration: updateExistingIntegration,
-    fetchCategories,
-    categories,
-    ping,
-    loading: postsLoading,
-  } = useIntegrationStore()
+  const { integrations, loading, fetchIntegrations, createIntegration, pingIntegration } =
+    useIntegrationStore()
 
   const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
   const extendedPlugins = useMemo(() => {
-    return plugins.filter((p) => p.isVisible)
+    return plugins.filter(p => p.isVisible)
   }, [plugins])
 
+  const checkPlugin = useCallback(
+    async plugin => {
+      if (wordpressStatus[plugin.id]?.success) return
+
+      try {
+        const result = await plugin.onCheck()
+        setWordpressStatus(prev => ({
+          ...prev,
+          [plugin.id]: { status: result.status, message: result.message, success: result.success },
+        }))
+      } catch (err) {
+        console.error(`Error checking plugin ${plugin.pluginName}:`, err)
+        setWordpressStatus(prev => ({
+          ...prev,
+          [plugin.id]: {
+            status: err.response?.status || "error",
+            message:
+              err.response?.status === 400
+                ? "No configuration found. Provide details below."
+                : err.response?.status === 502
+                  ? `${plugin.pluginName} connection failed. Check service URL.`
+                  : `${plugin.pluginName} Connection Error`,
+            success: false,
+          },
+        }))
+      }
+    },
+    [wordpressStatus]
+  )
+
+  // Intentionally omits `checkPlugin` — this effect's job is a one-time "pick the
+  // first tab once plugins load" (guarded by `!activeTab`), not to re-run whenever
+  // a plugin's check status changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: guarded by !activeTab, see comment above
   useEffect(() => {
     fetchIntegrations()
     if (extendedPlugins.length > 0 && !activeTab) {
       setActiveTab(extendedPlugins[0].id.toString())
       checkPlugin(extendedPlugins[0])
     }
-  }, [plugins, fetchIntegrations, activeTab])
+  }, [fetchIntegrations, activeTab, extendedPlugins])
 
-  const checkPlugin = async (plugin) => {
-    if (wordpressStatus[plugin.id]?.success) return
-
-    try {
-      const result = await plugin.onCheck()
-      setWordpressStatus((prev) => ({
-        ...prev,
-        [plugin.id]: { status: result.status, message: result.message, success: result.success },
-      }))
-    } catch (err) {
-      console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-      setWordpressStatus((prev) => ({
-        ...prev,
-        [plugin.id]: {
-          status: err.response?.status || "error",
-          message:
-            err.response?.status === 400
-              ? "No configuration found. Provide details below."
-              : err.response?.status === 502
-                ? `${plugin.pluginName} connection failed. Check service URL.`
-                : `${plugin.pluginName} Connection Error`,
-          success: false,
-        },
-      }))
-    }
-  }
-
-  const handleTabChange = (key) => {
+  const handleTabChange = key => {
     setActiveTab(key)
-    const plugin = plugins.find((p) => p.id.toString() === key)
+    const plugin = plugins.find(p => p.id.toString() === key)
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
@@ -93,9 +90,9 @@ const PluginsMain = () => {
   }
 
   const PluginTabContent = ({ plugin }) => {
-    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [integrations])
-    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [integrations])
-    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [integrations])
+    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [])
+    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [])
+    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [])
 
     // States for inputs
     const [url, setUrl] = useState(
@@ -109,17 +106,15 @@ const PluginsMain = () => {
       plugin.id === 115 ? sanityInt?.frontend || "" : serverInt?.frontend || ""
     )
     const [authToken, setAuthToken] = useState(
-      (plugin.id === 112 && serverInt?.data) || (plugin.id === 115 && sanityInt?.credentials?.token)
+      (plugin.id === 112 && serverInt?.data) || (plugin.id === 115 && sanityInt?.data)
         ? "*".repeat(10)
         : ""
     )
-    const [projectId, setProjectId] = useState(
-      sanityInt?.credentials?.projectId || sanityInt?.projectId || ""
-    )
-    const [dataset, setDataset] = useState(sanityInt?.credentials?.dataset || "production")
-    const [apiVersion, setApiVersion] = useState(sanityInt?.credentials?.apiVersion || "2024-01-01")
-    const [documentType, setDocumentType] = useState(sanityInt?.credentials?.documentType || "post")
-    const [blogRoute, setBlogRoute] = useState(sanityInt?.credentials?.blogRoute || "/blog/:slug")
+    const [projectId, setProjectId] = useState(sanityInt?.settings?.projectId || "")
+    const [dataset, setDataset] = useState(sanityInt?.settings?.dataset || "production")
+    const [apiVersion, setApiVersion] = useState(sanityInt?.settings?.apiVersion || "2024-01-01")
+    const [documentType, setDocumentType] = useState(sanityInt?.settings?.documentType || "post")
+    const [blogRoute, setBlogRoute] = useState(sanityInt?.settings?.blogRoute || "/blog/:slug")
 
     const [isValidUrl, setIsValidUrl] = useState(
       !!(plugin.id === 112 ? serverInt : plugin.id === 115 ? sanityInt : wordpressInt)
@@ -131,8 +126,9 @@ const PluginsMain = () => {
     const [localLoading, setLocalLoading] = useState(false)
     const [showAuthToken, setShowAuthToken] = useState(false)
 
-    // WordPress credentials
-    const [wpUsername, setWpUsername] = useState("")
+    // WordPress credentials — username isn't a secret (WP's own REST API exposes author
+    // names publicly), so it's stored in plain `settings` and shown for real, not masked.
+    const [wpUsername, setWpUsername] = useState(wordpressInt?.settings?.user || "")
     const [wpPassword, setWpPassword] = useState("")
     const [_hasCredentials, setHasCredentials] = useState(!!wordpressInt)
 
@@ -171,6 +167,52 @@ const PluginsMain = () => {
     }, [domain])
     const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
+    // Shopify / Wix domain state — hooks must be called unconditionally even though
+    // this data is only meaningful for plugin.id 113/114 (rules-of-hooks: this
+    // component instance is re-rendered with different plugin.id values across tab
+    // switches, so a conditional hook here previously crashed on switch).
+    const isShopify = plugin.id === 113
+    const wixInt = integrations?.integrations?.WIX
+    const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
+    const [domain, setDomain] = useState(savedDomain ?? "")
+    const [isValidDomain, setIsValidDomain] = useState(true)
+    const installWindowRef = useRef(null)
+    const pollTimerRef = useRef(null)
+
+    // Wix-only: whether GenWrite should push its own SEO meta tags / JSON-LD structured
+    // data, or leave it to Wix's built-in AI-generated SEO for blog posts (default).
+    const [useCustomSeo, setUseCustomSeo] = useState(!!wixInt?.settings?.useCustomSeo)
+    const [seoSaving, setSeoSaving] = useState(false)
+
+    useEffect(() => {
+      setUseCustomSeo(!!wixInt?.settings?.useCustomSeo)
+    }, [wixInt?.settings?.useCustomSeo])
+
+    const validateDomain = useCallback(
+      val => {
+        if (!val) return false
+        if (isShopify) {
+          try {
+            const normalized = val.startsWith("http") ? new URL(val).hostname : val
+            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
+          } catch {
+            return false
+          }
+        }
+        try {
+          new URL(val.startsWith("http") ? val : `https://${val}`)
+          return true
+        } catch {
+          return false
+        }
+      },
+      [isShopify]
+    )
+
+    useEffect(() => {
+      setIsValidDomain(validateDomain(domain))
+    }, [domain, validateDomain])
+
     const handleToggleEdit = () => {
       if (isEditing) {
         // Reset to original values on cancel
@@ -184,17 +226,17 @@ const PluginsMain = () => {
           const commonUrl = sanityInt.frontend || sanityInt.url || ""
           setUrl(commonUrl)
           setFrontend(commonUrl)
-          setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
-          setDataset(sanityInt.credentials?.dataset || "production")
-          setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
-          setDocumentType(sanityInt.credentials?.documentType || "post")
-          setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
+          setProjectId(sanityInt.settings?.projectId || "")
+          setDataset(sanityInt.settings?.dataset || "production")
+          setApiVersion(sanityInt.settings?.apiVersion || "2024-01-01")
+          setDocumentType(sanityInt.settings?.documentType || "post")
+          setBlogRoute(sanityInt.settings?.blogRoute || "/blog/:slug")
           setAuthToken("*".repeat(10))
           setIsValidUrl(true)
           setIsValidFrontend(true)
         } else if (plugin.id === 111 && wordpressInt) {
           setUrl(wordpressInt.url)
-          setWpUsername("**********")
+          setWpUsername(wordpressInt.settings?.user || "")
           setWpPassword("**********")
           setIsValidUrl(true)
           setHasCredentials(true)
@@ -215,18 +257,18 @@ const PluginsMain = () => {
         const commonUrl = sanityInt.frontend || sanityInt.url || ""
         setUrl(commonUrl)
         setFrontend(commonUrl)
-        setProjectId(sanityInt.credentials?.projectId || sanityInt.projectId || "")
-        setDataset(sanityInt.credentials?.dataset || "production")
-        setApiVersion(sanityInt.credentials?.apiVersion || "2024-01-01")
-        setDocumentType(sanityInt.credentials?.documentType || "post")
-        setBlogRoute(sanityInt.credentials?.blogRoute || "/blog/:slug")
+        setProjectId(sanityInt.settings?.projectId || "")
+        setDataset(sanityInt.settings?.dataset || "production")
+        setApiVersion(sanityInt.settings?.apiVersion || "2024-01-01")
+        setDocumentType(sanityInt.settings?.documentType || "post")
+        setBlogRoute(sanityInt.settings?.blogRoute || "/blog/:slug")
         setAuthToken("*".repeat(10))
         setIsValidUrl(true)
         setIsValidFrontend(true)
         setIsEditing(false)
       } else if (plugin.id === 111 && wordpressInt) {
         setUrl(wordpressInt.url)
-        setWpUsername("**********")
+        setWpUsername(wordpressInt.settings?.user || "")
         setWpPassword("**********")
         setIsValidUrl(true)
         setIsEditing(false)
@@ -234,15 +276,40 @@ const PluginsMain = () => {
       }
     }, [wordpressInt, serverInt, sanityInt, plugin.id])
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: loading/pingIntegration kept intentionally to avoid a stale closure
+    const handlePing = useCallback(async () => {
+      if (loading || localLoading) return
+      setLocalLoading(true)
+      try {
+        const type =
+          plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
+        const result = await pingIntegration(type)
+        setWordpressStatus(prev => ({
+          ...prev,
+          [plugin.id]: {
+            status: result.status || "success",
+            message: result.message,
+            success: result.success,
+          },
+        }))
+        if (result.success) toast.success(result.message)
+        else toast.error(result.message)
+      } catch (err) {
+        toast.error(err.message || "Heath check failed")
+      } finally {
+        setLocalLoading(false)
+      }
+    }, [loading, localLoading, pingIntegration, plugin.id])
+
     useEffect(() => {
       if (integrations && !hasPinged && !sessionStorage.getItem("hasPinged")) {
         handlePing()
         setHasPinged(true)
         sessionStorage.setItem("hasPinged", "true")
       }
-    }, [integrations, hasPinged])
+    }, [hasPinged, handlePing])
 
-    const handleUrlChange = (e) => {
+    const handleUrlChange = e => {
       const val = e.target.value
       setUrl(val)
       try {
@@ -315,30 +382,6 @@ const PluginsMain = () => {
       }
     }
 
-    const handlePing = async () => {
-      if (loading || localLoading) return
-      setLocalLoading(true)
-      try {
-        const type =
-          plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
-        const result = await pingIntegration(type)
-        setWordpressStatus((prev) => ({
-          ...prev,
-          [plugin.id]: {
-            status: result.status || "success",
-            message: result.message,
-            success: result.success,
-          },
-        }))
-        if (result.success) toast.success(result.message)
-        else toast.error(result.message)
-      } catch (err) {
-        toast.error(err.message || "Heath check failed")
-      } finally {
-        setLocalLoading(false)
-      }
-    }
-
     // Shopify / Wix Logic
     if (plugin.id === 113 || plugin.id === 114) {
       const openInstallUrl = async () => {
@@ -348,23 +391,21 @@ const PluginsMain = () => {
         }
         setLocalLoading(true)
         try {
-          if (isShopify) {
-            const resp = await axiosInstance.post("/integrations/connect", {
-              url: domain,
-              type: "SHOPIFY",
-            })
-            if (resp.data?.redirectUrl) {
-              installWindowRef.current = window.open(resp.data.redirectUrl, "_blank")
-              toast.info("Transmitting to Shopify installer...")
-              pollTimerRef.current = setInterval(() => {
-                const w = installWindowRef.current
-                if (!w || w.closed) {
-                  clearInterval(pollTimerRef.current)
-                  fetchIntegrations()
-                  pingIntegration("SHOPIFY")
-                }
-              }, 1200)
-            }
+          const resp = await axiosInstance.post("/integrations/connect", {
+            url: domain,
+            type: isShopify ? "SHOPIFY" : "WIX",
+          })
+          if (resp.data?.redirectUrl) {
+            installWindowRef.current = window.open(resp.data.redirectUrl, "_blank")
+            toast.info(`Transmitting to ${isShopify ? "Shopify" : "Wix"} installer...`)
+            pollTimerRef.current = setInterval(() => {
+              const w = installWindowRef.current
+              if (!w || w.closed) {
+                clearInterval(pollTimerRef.current)
+                fetchIntegrations()
+                pingIntegration(isShopify ? "SHOPIFY" : "WIX")
+              }
+            }, 1200)
           }
         } catch (err) {
           toast.error(err.message || "Installer bootstrap failed")
@@ -373,11 +414,34 @@ const PluginsMain = () => {
         }
       }
 
+      const handleSeoToggle = async checked => {
+        setUseCustomSeo(checked)
+        setSeoSaving(true)
+        try {
+          await createIntegration({
+            type: "WIX",
+            url: domain,
+            credentials: { useCustomSeo: checked },
+          })
+          await fetchIntegrations()
+          toast.success(
+            checked
+              ? "GenWrite will now push custom SEO tags & structured data to Wix."
+              : "Wix's built-in AI-generated SEO/structured data will be used."
+          )
+        } catch (err) {
+          setUseCustomSeo(!checked)
+          toast.error(err.message || "Failed to update SEO preference")
+        } finally {
+          setSeoSaving(false)
+        }
+      }
+
       const handleInternalPing = async () => {
         setLocalLoading(true)
         try {
           const res = await pingIntegration(isShopify ? "SHOPIFY" : "WIX")
-          setWordpressStatus((prev) => ({
+          setWordpressStatus(prev => ({
             ...prev,
             [plugin.id]: { success: res.success, message: res.message },
           }))
@@ -407,13 +471,16 @@ const PluginsMain = () => {
 
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium ">Store / Domain URL</label>
+                <label htmlFor={`plugin-${plugin.id}-domain`} className="text-sm font-medium ">
+                  Store / Domain URL
+                </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                   <input
+                    id={`plugin-${plugin.id}-domain`}
                     placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
                     value={domain}
-                    onChange={(e) => setDomain(e.target.value.trim())}
+                    onChange={e => setDomain(e.target.value.trim())}
                     disabled={localLoading}
                     className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
                       domain && !isValidDomain
@@ -426,13 +493,15 @@ const PluginsMain = () => {
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={openInstallUrl}
                   disabled={!domain || !isValidDomain || localLoading}
                   className="flex-1 py-3 bg-linear-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-lg font-semibold shadow-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  <Server className="size-4" /> Install Shopify
+                  <Server className="size-4" /> Install {isShopify ? "Shopify" : "Wix"}
                 </button>
                 <button
+                  type="button"
                   onClick={handleInternalPing}
                   disabled={!domain || localLoading}
                   className="flex-1 py-3 bg-white border border-gray-200  hover:bg-gray-50 rounded-lg font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
@@ -446,6 +515,28 @@ const PluginsMain = () => {
                 </button>
               </div>
             </div>
+
+            {!isShopify && wixInt && (
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <span className="block text-sm font-medium text-gray-900">
+                    Push custom SEO tags from GenWrite
+                  </span>
+                  <span className="text-xs text-gray-500 max-w-md block">
+                    Off (default): Wix auto-generates SEO meta tags and structured data
+                    (schema.org) for every post. On: GenWrite pushes its own SEO tags and
+                    JSON-LD instead.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={useCustomSeo}
+                  disabled={seoSaving}
+                  onChange={e => handleSeoToggle(e.target.checked)}
+                />
+              </div>
+            )}
 
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
               <Info className="size-5 text-indigo-600 shrink-0 mt-0.5" />
@@ -485,6 +576,7 @@ const PluginsMain = () => {
                   : "Plugin Settings"}
               </h3>
               <button
+                type="button"
                 onClick={handleToggleEdit}
                 className={clsx(
                   "flex items-center justify-center transition-all border rounded-lg",
@@ -516,12 +608,13 @@ const PluginsMain = () => {
             <div className="space-y-5">
               {plugin.id !== 115 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">
+                  <label htmlFor={`plugin-${plugin.id}-url`} className="text-sm font-medium ">
                     {plugin.id === 112 ? "Endpoint URL" : "WordPress URL"}
                   </label>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                     <input
+                      id={`plugin-${plugin.id}-url`}
                       value={url}
                       onChange={handleUrlChange}
                       disabled={!isEditing}
@@ -534,12 +627,13 @@ const PluginsMain = () => {
 
               {(plugin.id === 112 || plugin.id === 115) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">
+                  <label htmlFor={`plugin-${plugin.id}-frontend`} className="text-sm font-medium ">
                     {plugin.id === 115 ? "Sanity Frontend / URL" : "Frontend URL"}
                   </label>
                   <input
+                    id={`plugin-${plugin.id}-frontend`}
                     value={frontend}
-                    onChange={(e) => {
+                    onChange={e => {
                       const val = e.target.value
                       setFrontend(val)
                       try {
@@ -565,11 +659,17 @@ const PluginsMain = () => {
               {plugin.id === 115 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium ">Sanity Project ID</label>
+                    <label
+                      htmlFor={`plugin-${plugin.id}-project-id`}
+                      className="text-sm font-medium "
+                    >
+                      Sanity Project ID
+                    </label>
                     <input
+                      id={`plugin-${plugin.id}-project-id`}
                       type="text"
                       value={projectId}
-                      onChange={(e) => setProjectId(e.target.value)}
+                      onChange={e => setProjectId(e.target.value)}
                       disabled={!isEditing}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -577,11 +677,17 @@ const PluginsMain = () => {
 
                   <div className="gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium ">Sanity Data Set</label>
+                      <label
+                        htmlFor={`plugin-${plugin.id}-dataset`}
+                        className="text-sm font-medium "
+                      >
+                        Sanity Data Set
+                      </label>
                       <input
+                        id={`plugin-${plugin.id}-dataset`}
                         type="text"
                         value={dataset}
-                        onChange={(e) => setDataset(e.target.value)}
+                        onChange={e => setDataset(e.target.value)}
                         disabled={!isEditing}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="production"
@@ -590,10 +696,16 @@ const PluginsMain = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium ">Blog Route</label>
+                    <label
+                      htmlFor={`plugin-${plugin.id}-blog-route`}
+                      className="text-sm font-medium "
+                    >
+                      Blog Route
+                    </label>
                     <select
+                      id={`plugin-${plugin.id}-blog-route`}
                       value={blogRoute}
-                      onChange={(e) => setBlogRoute(e.target.value)}
+                      onChange={e => setBlogRoute(e.target.value)}
                       disabled={!isEditing}
                       className="select select-bordered w-full bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed font-normal"
                     >
@@ -624,7 +736,10 @@ const PluginsMain = () => {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-sm font-medium ">
+                  <label
+                    htmlFor={`plugin-${plugin.id}-credential`}
+                    className="text-sm font-medium "
+                  >
                     {plugin.id === 112 || plugin.id === 115 ? "Authentication Token" : "Username"}
                   </label>
                   {(plugin.id === 115 || plugin.id === 111) && (
@@ -636,6 +751,7 @@ const PluginsMain = () => {
                 </div>
                 <div className="relative">
                   <input
+                    id={`plugin-${plugin.id}-credential`}
                     type={
                       plugin.id === 112 || plugin.id === 115
                         ? showAuthToken
@@ -644,13 +760,13 @@ const PluginsMain = () => {
                         : "text"
                     }
                     value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                    onChange={(e) =>
+                    onChange={e =>
                       plugin.id === 112 || plugin.id === 115
                         ? setAuthToken(e.target.value)
                         : setWpUsername(e.target.value)
                     }
                     disabled={!isEditing}
-                    onFocus={(e) => {
+                    onFocus={e => {
                       if (isEditing) e.target.value = ""
                     }}
                     className={clsx(
@@ -661,7 +777,7 @@ const PluginsMain = () => {
                   {(plugin.id === 112 || plugin.id === 115) && (
                     <button
                       type="button"
-                      onClick={() => setShowAuthToken((prev) => !prev)}
+                      onClick={() => setShowAuthToken(prev => !prev)}
                       tabIndex={-1}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                       title={showAuthToken ? "Hide token" : "Show token"}
@@ -674,13 +790,19 @@ const PluginsMain = () => {
 
               {plugin.id === 111 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium ">Application Password</label>
+                  <label
+                    htmlFor={`plugin-${plugin.id}-app-password`}
+                    className="text-sm font-medium "
+                  >
+                    Application Password
+                  </label>
                   <input
+                    id={`plugin-${plugin.id}-app-password`}
                     type="password"
                     value={wpPassword}
-                    onChange={(e) => setWpPassword(e.target.value)}
+                    onChange={e => setWpPassword(e.target.value)}
                     disabled={!isEditing}
-                    onFocus={(e) => {
+                    onFocus={e => {
                       if (isEditing) e.target.value = ""
                     }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -690,6 +812,7 @@ const PluginsMain = () => {
             </div>
 
             <button
+              type="button"
               onClick={isEditing ? handleConnect : handlePing}
               className={clsx(
                 "w-full py-3.5 sm:py-4 rounded-xl font-bold text-white transition-all transform active:scale-[0.98] text-sm sm:text-base px-2",
@@ -832,14 +955,15 @@ const PluginsMain = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px]">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-150">
           {/* Horizontal Tabs */}
           <div className="flex items-center gap-6 px-6 sm:px-10 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-            {extendedPlugins.map((p) => {
+            {extendedPlugins.map(p => {
               const Icon = p.icon
               const isActive = activeTab === p.id.toString()
               return (
                 <button
+                  type="button"
                   key={p.id}
                   onClick={() => handleTabChange(p.id.toString())}
                   className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
@@ -857,7 +981,7 @@ const PluginsMain = () => {
 
           <div className="p-6 lg:p-10">
             <AnimatePresence mode="wait">
-              {extendedPlugins.find((p) => p.id.toString() === activeTab) && (
+              {extendedPlugins.find(p => p.id.toString() === activeTab) && (
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
@@ -866,7 +990,7 @@ const PluginsMain = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
-                    plugin={extendedPlugins.find((p) => p.id.toString() === activeTab)}
+                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
                   />
                 </motion.div>
               )}

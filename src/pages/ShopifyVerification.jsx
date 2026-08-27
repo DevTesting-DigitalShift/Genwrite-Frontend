@@ -79,7 +79,7 @@ const ShopifyVerification = () => {
         clearTimeout(timeout)
       }
     }
-  }, [])
+  }, [verified, loading, error])
 
   // Table Data Sorting & Filtering
   const filteredData = blogData.filter((blog) =>
@@ -184,12 +184,14 @@ const ShopifyVerification = () => {
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
+                      type="button"
                       onClick={() => window.location.reload()}
                       className="btn btn-primary rounded-2xl bg-purple-600 border-none font-bold normal-case h-14 px-8"
                     >
                       <RefreshCcw className="size-4 mr-2" /> Try Again
                     </button>
                     <button
+                      type="button"
                       onClick={() => navigate("/")}
                       className="btn btn-ghost rounded-2xl font-bold normal-case h-14 px-8"
                     >
@@ -285,6 +287,7 @@ const ShopifyVerification = () => {
                             <td>
                               <div className="flex gap-2">
                                 <button
+                                  type="button"
                                   onClick={() =>
                                     window.open(`/blog/${record.blogId._id}`, "_blank")
                                   }
@@ -293,6 +296,7 @@ const ShopifyVerification = () => {
                                   <Eye className="size-4" /> Edit
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => window.open(record.link, "_blank")}
                                   className="btn btn-ghost btn-sm text-teal-600 hover:bg-teal-100 rounded-lg font-bold gap-2"
                                 >
@@ -318,6 +322,7 @@ const ShopifyVerification = () => {
 
                 <div className="mt-12 text-center">
                   <button
+                    type="button"
                     onClick={() => navigate("/dashboard")}
                     className="btn btn-primary btn-lg rounded-2xl font-black text-xl bg-linear-to-r from-purple-600 to-teal-600 border-none text-white shadow-xl shadow-purple-200 hover:scale-[1.02] transition-transform normal-case h-16 w-full sm:w-80 gap-3"
                   >

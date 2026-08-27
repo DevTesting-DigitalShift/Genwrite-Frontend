@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useId } from "react"
 import { motion } from "framer-motion"
 import {
   CreditCard,
@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { Calendar } from "@components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
-import isEqual from "lodash-es/isEqual"
+import { isEqual } from "@/lib/utils"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import dayjs from "dayjs"
@@ -264,7 +264,7 @@ const Profile = () => {
                     <ShieldCheck className="size-6 text-blue-500 fill-blue-50" />
                   )}
                 </div>
-                <button className="font-semibold text-gray-500">
+                <button type="button" className="font-semibold text-gray-500">
                   {profileData.personalDetails.bio}
                 </button>
               </div>
@@ -316,12 +316,14 @@ const Profile = () => {
             </div>
             <div className="hidden sm:flex flex-row items-center gap-2 w-auto">
               <button
+                type="button"
                 onClick={() => setPasswordModalVisible(true)}
                 className="btn bg-slate-600 hover:bg-slate-700 text-white border-none rounded-lg font-semibold px-6 h-12 gap-2"
               >
                 <Lock size={18} /> Change Password
               </button>
               <button
+                type="button"
                 disabled={!isChanged}
                 onClick={handleSave}
                 className={`btn ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} border-none rounded-lg font-semibold px-8 h-12 gap-2 shadow-sm transition-all`}
@@ -379,8 +381,11 @@ const Profile = () => {
             />
 
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-slate-600 ml-1">Bio</label>
+              <label htmlFor="profile-bio" className="text-sm font-semibold text-slate-600 ml-1">
+                Bio
+              </label>
               <textarea
+                id="profile-bio"
                 name="personalDetails.bio"
                 value={profileData.personalDetails.bio}
                 onChange={handleInputChange}
@@ -390,7 +395,7 @@ const Profile = () => {
             </div>
 
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-slate-600 ml-1">Interests</label>
+              <span className="block text-sm font-semibold text-slate-600 ml-1">Interests</span>
               <div className="relative">
                 <div className="flex flex-wrap gap-2 p-3 min-h-[56px] mt-1 bg-white border border-slate-200 rounded-lg items-center">
                   {profileData.personalDetails.interests.map((val) => (
@@ -399,7 +404,11 @@ const Profile = () => {
                       className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-medium border border-slate-200"
                     >
                       {INTEREST_OPTIONS.find((o) => o.value === val)?.label || val}
-                      <button onClick={() => toggleInterest(val)} className="hover:text-red-500">
+                      <button
+                        type="button"
+                        onClick={() => toggleInterest(val)}
+                        className="hover:text-red-500"
+                      >
                         <X className="size-3" />
                       </button>
                     </div>
@@ -434,12 +443,14 @@ const Profile = () => {
           {/* Mobile-only Action Buttons */}
           <div className="flex sm:hidden flex-row items-center gap-3 pt-6 mt-2 border-t border-slate-100">
             <button
+              type="button"
               onClick={() => setPasswordModalVisible(true)}
               className="px-2 h-11 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-bold flex-1 text-[11px] whitespace-nowrap"
             >
               Change Password
             </button>
             <button
+              type="button"
               disabled={!isChanged}
               onClick={handleSave}
               className={`px-2 h-11 ${isChanged ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"} rounded-lg font-bold flex-1 text-[11px] shadow-sm whitespace-nowrap`}
@@ -475,6 +486,7 @@ const Profile = () => {
                     {referralCode}
                   </code>
                   <button
+                    type="button"
                     onClick={copyReferralCode}
                     className="btn btn-sm btn-ghost hover:bg-blue-50 text-blue-600 rounded-xl"
                   >
@@ -498,6 +510,7 @@ const Profile = () => {
               </div>
             ) : (
               <button
+                type="button"
                 onClick={handleGenerateReferral}
                 className="w-full h-16 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
               >
@@ -642,15 +655,25 @@ const Profile = () => {
   )
 }
 
-const ProfileInput = ({ label, ...props }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
-    <input
-      {...props}
-      className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
-    />
-  </div>
-)
+const ProfileInput = ({ label, ...props }) => {
+  // Generated so each rendered instance gets a unique, stable label/input pairing —
+  // a hardcoded id would collide across the several fields on this page.
+  const generatedId = useId()
+  const inputId = props.id ?? generatedId
+
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={inputId} className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">
+        {label}
+      </label>
+      <input
+        {...props}
+        id={inputId}
+        className="w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 placeholder:text-slate-300 font-medium transition-all disabled:bg-slate-50 disabled:text-slate-400"
+      />
+    </div>
+  )
+}
 
 const DatePickerField = ({ label, value, onChange }) => {
   const [open, setOpen] = useState(false)
@@ -666,10 +689,14 @@ const DatePickerField = ({ label, value, onChange }) => {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</label>
+      {/* A <label> can't caption a popover trigger button, so the button carries its own
+          accessible name via aria-label instead. */}
+      <span className="block text-xs sm:text-sm font-semibold text-slate-600 ml-1">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
+            type="button"
+            aria-label={label}
             className={`w-full h-12 sm:h-14 px-4 sm:px-5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm sm:text-base text-slate-800 font-medium transition-all flex items-center justify-between ${
               !value ? "text-slate-300" : ""
             }`}

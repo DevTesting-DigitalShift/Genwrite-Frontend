@@ -27,6 +27,16 @@ const useBlogStore = create(
       setBlogPrompt: (id, prompt) =>
         set((state) => ({ blogPrompts: { ...state.blogPrompts, [id]: prompt } })),
 
+      // Cleared on account switch — cached blog UI state must not leak across accounts.
+      reset: () =>
+        set({
+          selectedBlog: null,
+          proofreadingSuggestions: [],
+          isAnalyzingProofreading: false,
+          generatedTitles: [],
+          blogPrompts: {},
+        }),
+
       createNewBlog: async ({ blogData, navigate, queryClient }) => {
         try {
           const newBlog = await createBlog(blogData)

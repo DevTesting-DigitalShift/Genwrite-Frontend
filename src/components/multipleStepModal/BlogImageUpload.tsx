@@ -66,7 +66,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
     ) {
       setFileList(initialFiles)
     }
-  }, [initialFiles])
+  }, [initialFiles, fileList.length, fileList])
 
   // Reset to page 1 if current page exceeds total pages after deletion
   useEffect(() => {
@@ -176,6 +176,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
         <div className="flex gap-2 w-full sm:w-auto">
           {/* Gallery Picker Toggle */}
           <button
+            type="button"
             onClick={() => setShowGalleryPicker((prev) => !prev)}
             className={`btn btn-sm ${showGalleryPicker ? "btn-primary" : "btn-outline"} flex-1 sm:flex-none text-xs sm:text-sm`}
           >
@@ -234,6 +235,7 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button
+                      type="button"
                       className="btn btn-circle btn-error btn-sm text-white"
                       onClick={() => handleRemove(file)}
                     >
@@ -250,16 +252,18 @@ const BlogImageUpload: React.FC<BlogImageUploadProps> = ({
             <div className="flex justify-center mt-2">
               <div className="join">
                 <button
+                  type="button"
                   className="join-item btn btn-sm"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((p) => p - 1)}
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <button className="join-item btn btn-sm pointer-events-none">
+                <button type="button" className="join-item btn btn-sm pointer-events-none">
                   Page {currentPage} of {totalPages}
                 </button>
                 <button
+                  type="button"
                   className="join-item btn btn-sm"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((p) => p + 1)}

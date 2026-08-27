@@ -59,8 +59,8 @@ const TagList = ({ items, color }) => {
   if (!items?.length) return <span className="text-slate-300 text-[11px] italic">None</span>
   return (
     <div className="flex flex-wrap gap-1">
-      {items.map((item, i) => (
-        <Tag key={i} color={color}>
+      {items.map((item) => (
+        <Tag key={item} color={color}>
           {item}
         </Tag>
       ))}
@@ -82,9 +82,9 @@ const ExpandableTagList = ({ items, color, limit = 20 }) => {
           expanded ? "max-h-[500px] overflow-y-auto pr-3 custom-scroll" : ""
         }`}
       >
-        {displayItems.map((item, i) => (
+        {displayItems.map((item) => (
           <span
-            key={i}
+            key={item}
             className={`px-3 py-1 rounded-xl text-[11px] font-bold border transition-all shadow-xs ${
               color === "indigo"
                 ? "bg-indigo-50 text-indigo-600 border-indigo-100/50 hover:border-indigo-300"
@@ -97,6 +97,7 @@ const ExpandableTagList = ({ items, color, limit = 20 }) => {
       </div>
       {hasMore && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation()
             setExpanded(!expanded)
@@ -195,9 +196,9 @@ const FrequencyDisplay = ({ type, daysOfWeek, daysOfMonth }) => {
 
     return (
       <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
-        {ranges.map((range, i) => (
+        {ranges.map((range) => (
           <span
-            key={i}
+            key={range}
             className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-bold"
           >
             {range}
@@ -342,9 +343,9 @@ const JobExpandedPanel = ({ job }) => {
                   Reference Links
                 </p>
                 <div className="space-y-1.5">
-                  {blogs.references.map((url, i) => (
+                  {blogs.references.map((url) => (
                     <a
-                      key={url + i}
+                      key={url}
                       href={url}
                       target="_blank"
                       rel="noreferrer"

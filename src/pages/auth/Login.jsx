@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import useAuthStore from "@store/useAuthStore"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { switchToAccount } from "@utils/accountSwitch"
+import {
+  isAtSessionLimit,
+  isSessionLimitError,
+  SESSION_LIMIT_MESSAGE,
+  MAX_SESSIONS,
+} from "@utils/sessionStore"
 import { useGoogleLogin } from "@react-oauth/google"
 import { motion, AnimatePresence } from "framer-motion"
 import ReCAPTCHA from "react-google-recaptcha"
@@ -15,12 +22,14 @@ import {
   TrendingUp,
   User,
   RefreshCcw,
+  AlertCircle,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
+import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
@@ -34,6 +43,11 @@ const Auth = ({ path }) => {
 
   const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isAddingAccount = searchParams.get("mode") === "add-account"
+  // Only blocks *adding* an account. A normal signed-out login is always allowed — it
+  // either re-uses an existing slot or there were no sessions to begin with.
+  const atSessionLimit = isAddingAccount && isAtSessionLimit()
 
   // Validate form fields
   const validateForm = useCallback(() => {
@@ -101,17 +115,37 @@ const Auth = ({ path }) => {
       googleLogin({
         access_token: tokenResponse.access_token,
         referralId: formData.referralId,
-      }).then((data) => {
-        toast.success("Google login successful!")
-
-        const _user = data.user || data?.data?.user || data
-
-        if (isSignup) {
-          navigate("/onboarding", { replace: true })
-        } else {
-          navigate("/dashboard", { replace: true })
-        }
       })
+        .then((data) => {
+          toast.success("Google login successful!")
+
+          const user = data.user || data?.data?.user || data
+
+          if (isAddingAccount && user?._id) {
+            switchToAccount(user._id, {
+              navigate,
+              redirectTo: isSignup ? "/onboarding" : "/dashboard",
+            })
+            return
+          }
+
+          const redirect = !isSignup ? consumePostAuthRedirect() : null
+          if (redirect) {
+            navigate(redirect, { replace: true })
+          } else if (isSignup) {
+            navigate("/onboarding", { replace: true })
+          } else {
+            navigate("/dashboard", { replace: true })
+          }
+        })
+        // This chain had no rejection handler at all, so any failure here (the session
+        // limit backstop included) surfaced only as an unhandled rejection.
+        .catch((err) => {
+          console.error("Google login error:", err)
+          toast.error(
+            isSessionLimitError(err) ? SESSION_LIMIT_MESSAGE : getFriendlyError(err, "google")
+          )
+        })
     },
     onError: (err) => {
       console.error("Google OAuth error:", err)
@@ -124,6 +158,10 @@ const Auth = ({ path }) => {
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault()
+      if (atSessionLimit) {
+        toast.error(SESSION_LIMIT_MESSAGE)
+        return
+      }
       if (!validateForm()) return
 
       setLoading(true)
@@ -147,22 +185,49 @@ const Auth = ({ path }) => {
 
         toast.success(isSignup ? "Signup successful!" : "Login successful!")
 
+        if (isAddingAccount && user?._id) {
+          await switchToAccount(user._id, {
+            navigate,
+            redirectTo: isSignup ? "/onboarding" : "/dashboard",
+          })
+          return
+        }
+
         // 🔥 Your new redirect rule
-        if (isSignup) {
+        const redirect = !isSignup ? consumePostAuthRedirect() : null
+        if (redirect) {
+          navigate(redirect, { replace: true })
+        } else if (isSignup) {
           navigate("/onboarding", { replace: true }) // New user onboarding flow
         } else {
           navigate("/dashboard", { replace: true }) // Returning user flow
         }
       } catch (err) {
         console.error("Auth error:", err)
-        toast.error(getFriendlyError(err, isSignup ? "signup" : "login"))
+        // Already a plain, user-facing sentence — getFriendlyError would flatten it into
+        // a generic "something went wrong".
+        toast.error(
+          isSessionLimitError(err)
+            ? SESSION_LIMIT_MESSAGE
+            : getFriendlyError(err, isSignup ? "signup" : "login")
+        )
         setRecaptchaValue(null)
         recaptchaRef.current?.reset()
       } finally {
         setLoading(false)
       }
     },
-    [formData, isSignup, loginUser, signupUser, navigate, validateForm, recaptchaValue]
+    [
+      formData,
+      isSignup,
+      isAddingAccount,
+      atSessionLimit,
+      loginUser,
+      signupUser,
+      navigate,
+      validateForm,
+      recaptchaValue,
+    ]
   )
 
   // Update isSignup based on path
@@ -324,8 +389,8 @@ const Auth = ({ path }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    {trialFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                    {trialFeatures.map((feature) => (
+                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -360,8 +425,8 @@ const Auth = ({ path }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    {trialFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                    {trialFeatures.map((feature) => (
+                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -380,9 +445,9 @@ const Auth = ({ path }) => {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="grid grid-cols-2 gap-4"
             >
-              {quickFeatures.map((feature, index) => (
+              {quickFeatures.map((feature) => (
                 <motion.div
-                  key={index}
+                  key={feature.text}
                   whileHover={{ scale: 1.02, y: -4 }}
                   className="bg-white/60 backdrop-blur-md rounded-lg p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
                 >
@@ -452,11 +517,25 @@ const Auth = ({ path }) => {
                 </motion.p>
               </div>
 
+              {atSessionLimit && (
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <div className="text-sm text-amber-900">
+                    <p className="font-semibold">Account limit reached</p>
+                    <p className="mt-0.5 text-xs leading-snug">
+                      You're signed into the maximum of {MAX_SESSIONS} accounts on this browser.
+                      Sign out of one before adding another.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Google Button */}
               <button
+                type="button"
                 onClick={handleGoogleLogin}
-                disabled={loading}
-                className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300  font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all"
+                disabled={loading || atSessionLimit}
+                className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300  font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FcGoogle className="text-xl mr-2" />
                 <span>{isSignup ? "Sign up with Google" : "Continue with Google"}</span>
@@ -720,9 +799,11 @@ const Auth = ({ path }) => {
                   whileHover={{ y: -2, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading || (isSignup && !termsAccepted)}
+                  disabled={loading || (isSignup && !termsAccepted) || atSessionLimit}
                   className={`btn w-full h-14 border-none text-lg rounded-xl shadow-lg shadow-primary/20 text-white font-bold normal-case bg-linear-to-r from-primary to-[#6E7AFF] transition-all duration-300 ${
-                    loading || (isSignup && !termsAccepted) ? "opacity-70 cursor-not-allowed" : ""
+                    loading || (isSignup && !termsAccepted) || atSessionLimit
+                      ? "opacity-70 cursor-not-allowed"
+                      : ""
                   }`}
                 >
                   {loading ? (
@@ -757,7 +838,7 @@ const Auth = ({ path }) => {
               >
                 {isSignup ? "Already have an account? " : "Don't have an account? "}
                 <Link
-                  to={isSignup ? "/login" : "/signup"}
+                  to={`${isSignup ? "/login" : "/signup"}${isAddingAccount ? "?mode=add-account" : ""}`}
                   className="text-purple-600 font-semibold hover:text-purple-800 transition-colors hover:underline"
                 >
                   {isSignup ? "Sign in here" : "Sign up free"}

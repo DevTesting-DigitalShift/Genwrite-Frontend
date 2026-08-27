@@ -33,7 +33,7 @@ const SuccessPage = () => {
       pushToDataLayer(eventData)
     }
     // return () => clearTimeout(timer)
-  }, [])
+  }, [allParamsObject?.isTrialOpted, allParamsObject])
 
   // Animation variants for the main content
   const containerVariants = {
@@ -75,6 +75,7 @@ const SuccessPage = () => {
 
       {/* Background Wave Pattern */}
       <svg
+        aria-hidden="true"
         className="absolute bottom-0 left-0 w-full h-1/3 opacity-20"
         viewBox="0 0 1440 320"
         preserveAspectRatio="none"

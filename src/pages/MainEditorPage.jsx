@@ -14,24 +14,26 @@ import { debugPayload } from "@utils/debugPayload"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
+import EditorAiReview from "@/layout/Editor/EditorAiReview"
+import useAiReviewStore from "@/store/useAiReviewStore"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 const MainEditorPage = () => {
   const { id } = useParams()
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
-  const _token = localStorage.getItem("token")
+  // Watching someone else's workspace: the blog is theirs, so this page is a reader.
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
   // Zustand Stores
-  const { user } = useAuthStore()
   const { selectedBlog: blog, setSelectedBlog, clearSelectedBlog: clearBlogUI } = useBlogStore()
   const cachedBlog = queryClient.getQueryData(["blog", id]) || (blog?._id === id ? blog : null)
 
@@ -54,6 +56,8 @@ const MainEditorPage = () => {
   // isLoading is now derived from isBlogFetching
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
+  const resetAiReview = useAiReviewStore((s) => s.reset)
+  const aiReview = useAiReviewStore((s) => s.review)
   const [editorTitle, setEditorTitle] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
@@ -130,6 +134,14 @@ const MainEditorPage = () => {
       navigate("/blogs", { replace: true })
     }
   }, [isError, error, navigate])
+
+  // A pending AI review belongs to the blog that raised it, so drop it when the
+  // editor switches blogs or unmounts.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the blog id is what should invalidate a pending review
+  useEffect(() => {
+    resetAiReview()
+    return resetAiReview
+  }, [id, resetAiReview])
 
   useEffect(() => {
     if (!id) {
@@ -411,6 +423,7 @@ const MainEditorPage = () => {
   }
 
   const handleTitleChange = (e) => {
+    if (isReadOnlyWorkspace) return
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -436,12 +449,12 @@ const MainEditorPage = () => {
     setEditorContent(humanizedContent)
     setIsHumanizeModalOpen(false)
     toast.success("Humanized content applied successfully!")
-  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen])
+  }, [humanizedContent])
 
   const handleAcceptOriginalContent = useCallback(() => {
     setIsHumanizeModalOpen(false)
     toast.info("Retained original content.")
-  }, [setIsHumanizeModalOpen])
+  }, [])
 
   if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
     return (
@@ -460,8 +473,10 @@ const MainEditorPage = () => {
       {/* Unsaved Changes Confirmation Modal */}
       {blocker.state === "blocked" && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          <button
+            type="button"
+            aria-label="Cancel"
+            className="absolute inset-0 w-full h-full bg-slate-900/60 backdrop-blur-sm"
             onClick={() => blocker.reset()}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm mx-4">
@@ -478,12 +493,14 @@ const MainEditorPage = () => {
               </div>
               <div className="flex gap-3 w-full mt-2">
                 <button
+                  type="button"
                   className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
                   onClick={() => blocker.proceed()}
                 >
                   Leave Anyway
                 </button>
                 <button
+                  type="button"
                   className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-[#3B4BB8] text-white font-bold text-sm transition-all shadow-none"
                   onClick={async () => {
                     await handleSave({})
@@ -494,6 +511,7 @@ const MainEditorPage = () => {
                 </button>
               </div>
               <button
+                type="button"
                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 onClick={() => blocker.reset()}
               >
@@ -504,7 +522,7 @@ const MainEditorPage = () => {
         </div>
       )}
 
-      <div className="flex flex-col max-h-screen overflow-y-hidden">
+      <div className="flex flex-col max-h-[calc(100dvh-4rem)] sm:max-h-[calc(100dvh-5rem)] overflow-y-hidden">
         {saveModalOpen && (
           <div className="fixed inset-0 max-w-md z-50 flex items-center justify-center p-4 sm:p-6">
             <motion.div
@@ -533,6 +551,7 @@ const MainEditorPage = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleRejectSave}
                   className="p-2 hover:bg-white/10 rounded-xl transition-colors"
                 >
@@ -570,12 +589,14 @@ const MainEditorPage = () => {
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={handleRejectSave}
                   className="btn btn-ghost h-12 px-6 rounded-2xl font-bold text-slate-400 hover:bg-slate-200 transition-all normal-case"
                 >
                   Discard Changes
                 </button>
                 <button
+                  type="button"
                   onClick={handleAcceptSave}
                   className="btn btn-primary h-12 px-8 rounded-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all"
                 >
@@ -608,13 +629,15 @@ const MainEditorPage = () => {
                     </h2>
                     <p className="text-gray-500 text-sm mt-0.5">Write and optimize your content</p>
                   </div>
-                  <button onClick={toggleSidebar} className="md:hidden ml-auto">
+                  <button type="button" onClick={toggleSidebar} className="md:hidden ml-auto">
                     {!isSidebarOpen && <PanelRightOpen />}
                   </button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <button
+                    type="button"
+                    disabled={isReadOnlyWorkspace}
                     onClick={async () => {
                       try {
                         const newVisibility = !blog.isPublic
@@ -630,7 +653,7 @@ const MainEditorPage = () => {
                         toast.error("Failed to update visibility")
                       }
                     }}
-                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    className="px-3 sm:px-4 py-2 rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                   >
                     {blog?.isPublic ? (
                       <>
@@ -647,6 +670,7 @@ const MainEditorPage = () => {
 
                   {blog?.isPublic && (
                     <button
+                      type="button"
                       onClick={() => {
                         const url = `${import.meta.env.VITE_FRONTEND_URL}/blog/${blog._id}`
                         navigator.clipboard.writeText(url)
@@ -660,10 +684,13 @@ const MainEditorPage = () => {
                   )}
 
                   <button
+                    type="button"
                     onClick={() => handleSave({ metadata })}
+                    title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
                       blog?.isArchived ||
+                      isReadOnlyWorkspace ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -673,6 +700,7 @@ const MainEditorPage = () => {
                     disabled={
                       isSaving ||
                       blog?.isArchived ||
+                      isReadOnlyWorkspace ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
@@ -703,6 +731,7 @@ const MainEditorPage = () => {
                         e.target.style.height = e.target.scrollHeight + "px"
                       }}
                       placeholder="Enter your blog title..."
+                      readOnly={isReadOnlyWorkspace}
                       rows={1}
                       className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full overflow-hidden leading-tight bg-transparent ${
                         getWordCount(editorTitle) > 60 ? "text-red-600" : ""
@@ -719,34 +748,48 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="grow overflow-auto max-h-[800px] custom-scroll">
-              {isBlogFetching ? (
-                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                </div>
-              ) : (
-                <TipTapEditor
-                  blog={blog}
-                  content={editorContent}
-                  setContent={setEditorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
-                  title={editorTitle}
-                  setTitle={setEditorTitle}
-                  handleSubmit={handleSave}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
-                  isSavingKeyword={isSaving}
-                  humanizedContent={humanizedContent}
-                  showDiff={isHumanizeModalOpen}
-                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                  handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  wordpressMetadata={metadata}
-                  onReplaceReady={handleReplaceReady}
-                />
-              )}
+            {/* Anchors the AI review, which stands in for the text editor while a
+                rewrite is pending. TipTap is only hidden, never unmounted, so it is
+                still there to receive the accepted side. */}
+            <div className="relative flex flex-col grow min-h-0">
+              <div
+                key={activeTab}
+                className={`grow overflow-auto max-h-[800px] custom-scroll ${
+                  aiReview ? "invisible" : ""
+                }`}
+              >
+                {isBlogFetching ? (
+                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <TipTapEditor
+                    blog={blog}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    handleSubmit={handleSave}
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    isSavingKeyword={isSaving}
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    wordpressMetadata={metadata}
+                    onReplaceReady={handleReplaceReady}
+                    // Same viewer treatment the public reader gets: content is selectable
+                    // but not editable, and the formatting toolbar/bubble menu stay hidden.
+                    isPublicMode={isReadOnlyWorkspace}
+                  />
+                )}
+              </div>
+              <EditorAiReview />
             </div>
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">

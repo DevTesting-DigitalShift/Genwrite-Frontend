@@ -30,24 +30,34 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { useNavigate } from "react-router-dom"
 import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { debugPayload } from "@utils/debugPayload"
 import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
+import InsightsPanel from "./sidebars/InsightsPanel"
+import IndexingStatus from "@components/Blog/IndexingStatus"
+import {
+  useAnalyzeBlogMutation,
+  useApplyInsightMutation,
+  useConfirmInsightMutation,
+  useBlogInsightQuery,
+} from "@api/queries/blogQueries"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
-import ContentDiffViewer from "../Editor/ContentDiffViewer"
+import useAiReviewStore from "@/store/useAiReviewStore"
 import axiosInstance from "@/api"
 import useAuthStore from "@store/useAuthStore"
-import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { fetchCategories, generateMetadata } from "@api/otherApi"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE, COSTS } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 
 import { marked } from "marked"
@@ -140,9 +150,9 @@ const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-wrap gap-2">
-              {displayCategories.map((cat, idx) => (
+              {displayCategories.map((cat) => (
                 <button
-                  key={idx}
+                  key={cat}
                   onClick={() => onSelect(cat)}
                   type="button"
                   className={`
@@ -190,14 +200,42 @@ const POPULAR_CATEGORIES = [
   "DIY & Crafts",
 ]
 
+// Labels for the AI section tasks, used in the in-editor review header.
+const SECTION_TASK_LABELS = {
+  rewrite: "Rewrite",
+  proofread: "Proofread",
+  promptChanges: "Custom Prompt",
+}
+
+/**
+ * Reduces whatever the section endpoint returns to the *inside* of a section.
+ *
+ * That endpoint answers in whole-section markup — the same shape it reports back
+ * as `previousContent`. Writing it into the section being edited would nest a
+ * second <section> carrying the same id, and because turndown is told to keep
+ * <section>, the duplicate survives into the saved blog. Section Tools then lists
+ * it twice, both cards select together, and both resolve to the same element,
+ * since getElementById can only ever return the first match.
+ *
+ * Sections are unwrapped innermost-first so unwrapping an outer one cannot
+ * re-introduce a nested one.
+ */
+const unwrapSectionMarkup = (html, parser) => {
+  if (!html || !/<section[\s>]/i.test(html)) return html || ""
+
+  const doc = parser.parseFromString(html, "text/html")
+  for (const section of Array.from(doc.body.querySelectorAll("section")).reverse()) {
+    const inner = section.querySelector(".section-content") || section
+    section.replaceWith(...Array.from(inner.childNodes))
+  }
+  return doc.body.innerHTML
+}
+
 const TextEditorSidebar = ({
   blog,
   keywords,
   setKeywords,
   onPost,
-  handleReplace,
-  setProofreadingResults,
-  proofreadingResults,
   handleSave,
   posted,
   isPosting,
@@ -205,7 +243,6 @@ const TextEditorSidebar = ({
   editorContent,
   handleSubmit,
   setIsHumanizing,
-  isHumanizing,
   setHumanizedContent,
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
@@ -214,6 +251,13 @@ const TextEditorSidebar = ({
   setEditorContent,
   isPublicMode = false,
 }) => {
+  // Two flavours of view-only. `isPublicMode` (the public blog reader) keeps controls
+  // visible but locked, because the reader may still sign in and get them. A read-only
+  // *workspace* removes them outright: a collaborator watching someone else's workspace
+  // can do nothing to unlock a write from here, so a disabled button is just noise.
+  const { isReadOnlyWorkspace } = useReadOnlyGuard()
+  const isLocked = isPublicMode || isReadOnlyWorkspace
+
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
@@ -313,9 +357,19 @@ const TextEditorSidebar = ({
   const [availableSections, setAvailableSections] = useState([])
   const [_isAnalyzingProofreading, _setIsAnalyzingProofreading] = useState(false)
 
-  // Diff Viewer State
-  const [showDiff, setShowDiff] = useState(false)
-  const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
+  // AI rewrites are reviewed inside the editor, not in a dialog here.
+  const openReview = useAiReviewStore((s) => s.openReview)
+
+  // Performance Insights State. Re-running the analysis costs credits, so the
+  // last generated insight is fetched once via useBlogInsightQuery and then
+  // mirrored into local state — leaving the editor and coming back (or a full
+  // reload) restores it instead of silently discarding it.
+  const [insight, setInsight] = useState(null)
+  const [applyingSuggestionId, setApplyingSuggestionId] = useState(null)
+  const analyzeBlogMutation = useAnalyzeBlogMutation()
+  const applyInsightMutation = useApplyInsightMutation()
+  const confirmInsightMutation = useConfirmInsightMutation()
+  const { data: fetchedInsight } = useBlogInsightQuery(blog?._id)
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -326,6 +380,7 @@ const TextEditorSidebar = ({
       ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
       : []),
     { id: "posting", icon: Send, label: "Publish" },
+    { id: "insights", icon: Lightbulb, label: "Insights" },
     // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
     ...(availableSections.length > 0 && activeEditorVersion === 1
       ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
@@ -339,7 +394,7 @@ const TextEditorSidebar = ({
       setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
       window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
     }
-  }, [activePanel])
+  }, [activePanel, sectionToolState.sectionId])
 
   // Parse sections from content whenever it changes
   useEffect(() => {
@@ -368,11 +423,19 @@ const TextEditorSidebar = ({
       }
 
       if (htmlSections.length > 0) {
+        // A section is addressed by id alone — both by the sectionTask payload and
+        // by getElementById, which resolves only the first match. So a repeated id
+        // is not two addressable sections, it is one; listing it twice would render
+        // two cards that select together and act on the same element either way.
+        const seenIds = new Set()
+
         htmlSections.forEach((el, i) => {
           const id = el.id
 
           // Skip if no ID (cannot target)
           if (!id) return
+          if (seenIds.has(id)) return
+          seenIds.add(id)
 
           // Try to find a heading inside this section
           const heading = el.querySelector("h1, h2, h3, h4, h5, h6")
@@ -382,18 +445,14 @@ const TextEditorSidebar = ({
           // Prefer content inside .section-content if available, otherwise full section text
           const contentEl = el.querySelector(".section-content") || el
 
-          // Remove heading text from preview if it exists inside the content element
-          let text = ""
-          if (heading && contentEl.contains(heading)) {
-            const clone = contentEl.cloneNode(true)
-            const cloneHeading = clone.querySelector("h1, h2, h3, h4, h5, h6")
-            if (cloneHeading) cloneHeading.remove()
-            text = clone.textContent || ""
-          } else {
-            text = contentEl.textContent || ""
+          // Drop every copy of the section's own heading rather than just the first.
+          // Content rewritten before the duplicate-id fix can still carry it twice,
+          // and a leftover copy runs straight into the body text in the preview.
+          const clone = contentEl.cloneNode(true)
+          for (const h of Array.from(clone.querySelectorAll("h1, h2, h3, h4, h5, h6"))) {
+            if (h.textContent.trim() === title) h.remove()
           }
-
-          text = text.replace(/\s+/g, " ").trim()
+          const text = (clone.textContent || "").replace(/\s+/g, " ").trim()
 
           const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
 
@@ -413,7 +472,7 @@ const TextEditorSidebar = ({
     } catch (e) {
       console.error("Failed to parse sections for tools:", e)
     }
-  }, [editorContent])
+  }, [editorContent, sectionToolState.sectionId])
 
   const handleSectionTask = async () => {
     if (blog?.isArchived) {
@@ -496,17 +555,25 @@ const TextEditorSidebar = ({
               }
             }
           } else {
+            // Never write the response in raw: it arrives as whole-section markup,
+            // which would nest a duplicate id inside the section being edited.
+            // Replacing the whole wrapper also repairs a section already carrying
+            // one from before this was guarded.
+            const incoming = unwrapSectionMarkup(response.data.content, parser)
+
             const contentDiv = sectionEl.querySelector(".section-content")
             if (contentDiv) {
-              contentDiv.innerHTML = response.data.content
+              contentDiv.innerHTML = incoming
             } else {
               // If .section-content wrapper is missing, preserve headers and wrap/replace content
               const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
               const headerHTML = headings.map((h) => h.outerHTML).join("")
 
-              // Only prepend headers if they aren't already in the AI response
-              const hasHeaderInResponse = /<h[1-6]/.test(response.data.content)
-              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + response.data.content
+              // Only prepend headers if they aren't already in the AI response —
+              // which may state them as markdown rather than as <h1>-<h6>.
+              const hasHeaderInResponse =
+                /<h[1-6]/i.test(incoming) || /^\s{0,3}#{1,6}\s/m.test(incoming)
+              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + incoming
             }
           }
 
@@ -584,9 +651,23 @@ const TextEditorSidebar = ({
         const oldContentDiv = doc1.querySelector(".section-content")
         htmlContent = oldContentDiv ? oldContentDiv.innerHTML : htmlContent
 
-        // Open Diff Modal instead of instant replace
-        setDiffData({ old: htmlContent, new: response.data.content, full: newFullContent })
-        setShowDiff(true)
+        // Hand the rewrite to the editor for review instead of replacing
+        // outright. Everything the commit needs is captured here, since the
+        // review outlives this call.
+        const taskLabel = SECTION_TASK_LABELS[sectionToolState.task] || "Refinement"
+        openReview({
+          title: "Review Section Changes",
+          task: `Task: ${taskLabel}`,
+          original: htmlContent,
+          refined: response.data.content,
+          acceptLabel: "Accept & Apply to Section",
+          rejectLabel: "Keep Original",
+          onAccept: () => {
+            if (typeof setEditorContent === "function") setEditorContent(newFullContent)
+            toast.success("Changes applied successfully!")
+          },
+        })
+        setIsSidebarOpen?.(false)
 
         // Clear instructions if custom
         if (sectionToolState.task === "promptChanges") {
@@ -611,10 +692,11 @@ const TextEditorSidebar = ({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
 
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { integrations, categories, fetchIntegrations } = useIntegrationStore()
   const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
-  const { setBlogPrompt } = useBlogStore()
 
   // Sync UI categories with Store, preserving data during re-renders
   useEffect(() => {
@@ -626,7 +708,7 @@ const TextEditorSidebar = ({
   // Clear UI categories only when actual platform changes
   useEffect(() => {
     setUiCategories([])
-  }, [selectedIntegration?.platform])
+  }, [])
 
   const result = analysisResult?.[blog?._id]
 
@@ -656,6 +738,10 @@ const TextEditorSidebar = ({
   // Use blog postings from API instead of posted object
   const hasPublishedLinks = blogPostings.length > 0
 
+  // While watching a shared workspace, Search Console belongs to the owner being
+  // watched, so the invitee's own `user.gsc` says nothing about access here.
+  const hasGscAccess = !!activeWorkspace || !!user?.gsc
+
   // Fetch blog postings when blog changes
   const fetchPostings = useCallback(async () => {
     if (!blog?._id) return
@@ -674,7 +760,26 @@ const TextEditorSidebar = ({
 
   useEffect(() => {
     fetchPostings()
-  }, [fetchPostings, posted]) // Re-fetch when blog changes or when new post is made
+  }, [fetchPostings]) // Re-fetch when blog changes or when new post is made
+
+  // Restore a previously generated insight for this blog, so re-opening the editor
+  // (or a full page reload) shows the analysis the user already paid for instead
+  // of an empty state.
+  useEffect(() => {
+    setInsight(blog?._id ? (fetchedInsight ?? null) : null)
+  }, [blog?._id, fetchedInsight])
+
+  // Single writer for insight state — keeps the cached copy and local copy in step.
+  const persistInsight = useCallback(
+    (next) => {
+      setInsight((prev) => {
+        const value = typeof next === "function" ? next(prev) : next
+        if (blog?._id) queryClient.setQueryData(["blogInsight", blog._id], value)
+        return value
+      })
+    },
+    [blog?._id, queryClient]
+  )
 
   // Initialize data
   useEffect(() => {
@@ -683,7 +788,7 @@ const TextEditorSidebar = ({
       description: blog?.seoMetadata?.description || "",
     })
     setBlogSlug(blog?.slug || "")
-  }, [blog?._id, blog?.slug])
+  }, [blog?.slug, blog?.seoMetadata?.description, blog?.seoMetadata?.title])
 
   useEffect(() => {
     if (blog) {
@@ -938,7 +1043,185 @@ const TextEditorSidebar = ({
     }
   }, [isPro, navigate, blog, keywords])
 
+  // Guard shared by both insight actions: archived blogs are read-only, and both
+  // calls spend credits, so bail out before the request if the balance is short.
+  const guardCreditedAction = useCallback(
+    (cost) => {
+      if (blog?.isArchived) {
+        toast.error("This blog is archived. Please restore it to perform this action.")
+        return false
+      }
+      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+      if (credits < cost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: `Need ${cost} credits, have ${credits}.`,
+          confirmText: "Buy Credits",
+          onConfirm: () => navigate("/pricing"),
+        })
+        return false
+      }
+      return true
+    },
+    [blog?.isArchived, user, handlePopup, navigate]
+  )
+
+  const handleAnalyzeInsights = useCallback(async () => {
+    if (!blog?._id) return toast.error("Blog ID missing")
+    if (!guardCreditedAction(COSTS.BLOG_INSIGHT.ANALYZE)) return
+
+    const loadingId = showLoading("Analyzing performance and generating suggestions...")
+    try {
+      const result = await analyzeBlogMutation.mutateAsync(blog._id)
+      persistInsight(result)
+      toast.success(
+        result?.suggestions?.length
+          ? `${result.suggestions.length} suggestions ready`
+          : "Analysis complete"
+      )
+    } catch {
+      // useAnalyzeBlogMutation already surfaces the error toast
+    } finally {
+      hideLoading(loadingId)
+    }
+  }, [
+    blog?._id,
+    guardCreditedAction,
+    analyzeBlogMutation,
+    persistInsight,
+    showLoading,
+    hideLoading,
+  ])
+
+  // Commits a rewrite the user accepted in the editor's review view. Takes the
+  // suggestion and content explicitly rather than reading them back out of
+  // state, since the review that triggers it can outlive the render that raised it.
+  const handleConfirmSuggestion = useCallback(
+    async ({ suggestionId, republish, content }) => {
+      if (!suggestionId || !blog?._id) return
+
+      const loadingId = showLoading("Applying changes...")
+      try {
+        const result = await confirmInsightMutation.mutateAsync({
+          id: blog._id,
+          suggestionId,
+          content,
+          republish,
+        })
+
+        if (typeof setEditorContent === "function") {
+          setEditorContent(result?.content ?? content)
+        }
+
+        persistInsight((prev) =>
+          prev
+            ? {
+                ...prev,
+                suggestions: prev.suggestions.map((s) =>
+                  s._id === suggestionId ? { ...s, status: "applied" } : s
+                ),
+              }
+            : prev
+        )
+
+        if (republish || result?.repost) await fetchPostings()
+        toast.success(
+          result?.repost ? "Applied and republished!" : "Suggestion applied to your content"
+        )
+      } catch {
+        // useConfirmInsightMutation already surfaces the error toast
+      } finally {
+        hideLoading(loadingId)
+      }
+    },
+    [
+      blog?._id,
+      confirmInsightMutation,
+      setEditorContent,
+      persistInsight,
+      fetchPostings,
+      showLoading,
+      hideLoading,
+    ]
+  )
+
+  const handleApplySuggestion = useCallback(
+    async (suggestion, { scope, republish }) => {
+      if (!blog?._id) return toast.error("Blog ID missing")
+      if (!guardCreditedAction(COSTS.BLOG_INSIGHT.APPLY)) return
+
+      setApplyingSuggestionId(suggestion._id)
+      const loadingId = showLoading(
+        scope === "whole" ? "Rewriting whole blog..." : "Rewriting section..."
+      )
+      try {
+        // Generates the rewrite only — nothing is persisted yet. The blog's
+        // saved content and the suggestion's status stay untouched until the
+        // user reviews the diff below and accepts it (handleConfirmSuggestion).
+        const result = await applyInsightMutation.mutateAsync({
+          id: blog._id,
+          suggestionId: suggestion._id,
+          scope,
+        })
+
+        if (result?.content) {
+          let original = editorContent
+          let refined = result.content
+
+          if (scope === "section" && suggestion.sectionId) {
+            const parser = new DOMParser()
+            const oldDoc = parser.parseFromString(editorContent, "text/html")
+            const oldSectionEl = oldDoc.getElementById(suggestion.sectionId)
+            const newDoc = parser.parseFromString(result.content, "text/html")
+            const newSectionEl = newDoc.getElementById(suggestion.sectionId)
+
+            if (oldSectionEl && newSectionEl) {
+              original = oldSectionEl.outerHTML
+              refined = newSectionEl.outerHTML
+            }
+          }
+
+          openReview({
+            title: "Review Insight Rewrite",
+            task: "Nothing is saved until you accept",
+            original,
+            refined,
+            acceptLabel: "Accept & Apply",
+            rejectLabel: "Keep Original",
+            onAccept: () =>
+              handleConfirmSuggestion({
+                suggestionId: suggestion._id,
+                republish,
+                content: result.content,
+              }),
+          })
+          setIsSidebarOpen?.(false)
+        }
+      } catch {
+        // useApplyInsightMutation already surfaces the error toast
+      } finally {
+        setApplyingSuggestionId(null)
+        hideLoading(loadingId)
+      }
+    },
+    [
+      blog?._id,
+      guardCreditedAction,
+      applyInsightMutation,
+      editorContent,
+      showLoading,
+      hideLoading,
+      openReview,
+      handleConfirmSuggestion,
+      setIsSidebarOpen,
+    ]
+  )
+
   const handleMetadataGen = useCallback(() => {
+    if (!blog?._id) {
+      toast.error("Save the blog before generating metadata.")
+      return
+    }
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -954,11 +1237,9 @@ const TextEditorSidebar = ({
       onConfirm: async () => {
         setIsGeneratingMetadata(true)
         try {
-          const result = await generateMetadata({
-            content: editorContent,
-            keywords: keywords || [],
-            focusKeywords: blog?.focusKeywords || [],
-          })
+          // The backend reads the blog's content and keywords itself — the id is
+          // the whole payload.
+          const result = await generateMetadata({ blogId: blog._id })
           // Show the generated metadata in accept/reject modal
           setGeneratedMetadata(result)
           setGeneratedMetadataModal(true)
@@ -969,7 +1250,7 @@ const TextEditorSidebar = ({
         }
       },
     })
-  }, [isPro, navigate, handlePopup, editorContent, keywords, blog])
+  }, [isPro, navigate, handlePopup, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {
@@ -1013,7 +1294,7 @@ const TextEditorSidebar = ({
     } finally {
       setIsSavingEnhancement(false)
     }
-  }, [enhancementOptions, handleSubmit])
+  }, [enhancementOptions, handleSubmit, blog?.isArchived])
 
   const _handleCustomPromptBlog = useCallback(async () => {
     if (blog?.isArchived) {
@@ -1068,7 +1349,7 @@ const TextEditorSidebar = ({
     } catch {
       toast.error("Save failed")
     }
-  }, [handleSubmit, metadata])
+  }, [handleSubmit, metadata, blog?.isArchived])
 
   const handlePdfExport = useCallback(async () => {
     if (!blog?._id) return toast.error("Blog ID missing")
@@ -1077,7 +1358,7 @@ const TextEditorSidebar = ({
     try {
       toast.loading("Exporting PDF...", { id: "pdf-export" })
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "pdf",
         withImages: includeImagesInExport,
       })
@@ -1116,7 +1397,7 @@ const TextEditorSidebar = ({
       description: "Rewrite content with keywords? (3 times max)",
       onConfirm: handleSave,
     })
-  }, [handlePopup, handleSave])
+  }, [handlePopup, handleSave, blog?.isArchived])
 
   // --- Posting Helpers ---
   const openRepostModal = (posting) => {
@@ -1200,7 +1481,7 @@ const TextEditorSidebar = ({
         fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
       }
     }
-  }, [fetchCategories, selectedIntegration?.platform])
+  }, [selectedIntegration?.platform])
 
   // Initialize posting form based on Blog Data & History
   useEffect(() => {
@@ -1291,15 +1572,7 @@ const TextEditorSidebar = ({
       }
       return
     }
-  }, [
-    activePanel,
-    posted,
-    blog,
-    integrations,
-    selectedIntegration,
-    setIncludeTableOfContents,
-    blogPostings,
-  ])
+  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings, selectedCategory])
 
   const handlePostClick = useCallback(() => {
     if (blog?.isArchived) {
@@ -1404,10 +1677,10 @@ const TextEditorSidebar = ({
     metadata,
     handlePopup,
     navigate,
-    isPosting,
-    blogPostings,
     fetchPostings,
     queryClient,
+    hasPublishedLinks,
+    blog?.isArchived,
   ])
 
   const _addKeyword = useCallback(() => {
@@ -1451,6 +1724,7 @@ const TextEditorSidebar = ({
             across your content.
           </p>
           <button
+            type="button"
             onClick={() => {
               if (blog?.isArchived) {
                 toast.error("This blog is archived. Please restore it to perform this action.")
@@ -1490,6 +1764,7 @@ const TextEditorSidebar = ({
             </div>
             {setIsSidebarOpen && (
               <button
+                type="button"
                 onClick={() => setIsSidebarOpen(false)}
                 className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
               >
@@ -1542,9 +1817,9 @@ const TextEditorSidebar = ({
                   Core Keywords
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {brand.keywords.map((kw, i) => (
+                  {brand.keywords.map((kw) => (
                     <span
-                      key={i}
+                      key={kw}
                       className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
                     >
                       {kw}
@@ -1583,6 +1858,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -1647,20 +1923,23 @@ const TextEditorSidebar = ({
           <ScoreCard title="SEO Potential" score={seoScore} icon={TrendingUp} />
         </div>
 
-        {/* Optimization Card */}
-        <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
-            <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
-          </div>
-          <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
-            Run our advanced competitive analysis to uncover keyword opportunities and improve
-            rankings.
-          </p>
-          <button
-            onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive || isPublicMode}
-            className={`
+        {/* Optimization Card — spends the owner's credits, so it's gone entirely for
+            read-only collaborators rather than shown disabled. */}
+        {!isReadOnlyWorkspace && (
+          <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+              <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
+              Run our advanced competitive analysis to uncover keyword opportunities and improve
+              rankings.
+            </p>
+            <button
+              type="button"
+              onClick={handleAnalyzing}
+              disabled={isAnalyzingCompetitive || isPublicMode}
+              className={`
               w-full py-3 px-4 rounded-md text-xs font-bold transition-all
               ${
                 isAnalyzingCompetitive || isPublicMode
@@ -1668,14 +1947,15 @@ const TextEditorSidebar = ({
                   : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
               }
             `}
-          >
-            {isPublicMode
-              ? "Analysis Locked"
-              : isAnalyzingCompetitive
-                ? "Analyzing Content..."
-                : "Run Analysis (10 Credits)"}
-          </button>
-        </div>
+            >
+              {isPublicMode
+                ? "Analysis Locked"
+                : isAnalyzingCompetitive
+                  ? "Analyzing Content..."
+                  : "Run Analysis (10 Credits)"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1700,7 +1980,7 @@ const TextEditorSidebar = ({
         { id: "md-export" }
       )
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "markdown",
         withImages: includeImagesInExport,
       })
@@ -1748,7 +2028,7 @@ const TextEditorSidebar = ({
         { id: "html-export" }
       )
 
-      const { data: blob, filename } = await exportBlog(blog._id, {
+      const { data: blob } = await exportBlog(blog._id, {
         type: "html",
         withImages: includeImagesInExport,
       })
@@ -1801,6 +2081,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -1818,17 +2099,20 @@ const TextEditorSidebar = ({
               <Sparkles className="w-4 h-4 text-blue-600" />
               SEO Metadata
             </span>
-            <button
-              onClick={handleMetadataGen}
-              disabled={blog?.isArchived || isPublicMode}
-              className={`text-xs font-medium flex items-center gap-1 ${
-                blog?.isArchived || isPublicMode
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-blue-600 hover:text-blue-700 hover:underline"
-              }`}
-            >
-              <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
-            </button>
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={handleMetadataGen}
+                disabled={blog?.isArchived || isPublicMode}
+                className={`text-xs font-medium flex items-center gap-1 ${
+                  blog?.isArchived || isPublicMode
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700 hover:underline"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
+              </button>
+            )}
           </div>
           <div className="space-y-3">
             <input
@@ -1836,7 +2120,7 @@ const TextEditorSidebar = ({
               value={metadata.title}
               onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
               placeholder="Meta title..."
-              disabled={isPublicMode}
+              disabled={isLocked}
               className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
             />
             <textarea
@@ -1844,21 +2128,25 @@ const TextEditorSidebar = ({
               onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
               placeholder="Meta description..."
               rows={4}
-              disabled={isPublicMode}
+              disabled={isLocked}
               className="textarea textarea-bordered w-full text-sm resize-none disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>
-          <button
-            onClick={handleMetadataSave}
-            disabled={blog?.isArchived || isPublicMode}
-            className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
-              blog?.isArchived || isPublicMode
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
-            }`}
-          >
-            {isPublicMode ? "Metadata Locked" : "Save Metadata"}
-          </button>
+          {/* Nothing to save when the fields above can't be edited */}
+          {!isReadOnlyWorkspace && (
+            <button
+              type="button"
+              onClick={handleMetadataSave}
+              disabled={blog?.isArchived || isPublicMode}
+              className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
+                blog?.isArchived || isPublicMode
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+              }`}
+            >
+              {isPublicMode ? "Metadata Locked" : "Save Metadata"}
+            </button>
+          )}
         </div>
 
         {/* Export Section */}
@@ -1920,6 +2208,7 @@ const TextEditorSidebar = ({
           >
             {/* Markdown */}
             <button
+              type="button"
               onClick={handleExportMarkdown}
               disabled={userPlan === "free"}
               className={`
@@ -1951,6 +2240,7 @@ const TextEditorSidebar = ({
 
             {/* HTML */}
             <button
+              type="button"
               onClick={handleExportHTML}
               disabled={userPlan === "free"}
               className={`
@@ -1980,11 +2270,13 @@ const TextEditorSidebar = ({
               <span>HTML</span>
             </button>
 
-            {/* PDF */}
-            <button
-              onClick={handlePdfExport}
-              disabled={userPlan === "free"}
-              className={`
+            {/* PDF — withheld from read-only collaborators */}
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={handlePdfExport}
+                disabled={userPlan === "free"}
+                className={`
       group flex flex-col items-center justify-center gap-2
       py-4 px-3
       rounded-xl text-sm font-semibold
@@ -2001,15 +2293,16 @@ const TextEditorSidebar = ({
           `
       }
     `}
-            >
-              <Download
-                className={`
+              >
+                <Download
+                  className={`
         w-6 h-6
         ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
       `}
-              />
-              <span>PDF</span>
-            </button>
+                />
+                <span>PDF</span>
+              </button>
+            )}
           </div>
 
           {userPlan === "free" && (
@@ -2069,7 +2362,7 @@ const TextEditorSidebar = ({
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
                   {result.insights.suggestions.map((suggestion, idx) => (
                     <motion.div
-                      key={idx}
+                      key={suggestion}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
@@ -2122,6 +2415,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2136,8 +2430,9 @@ const TextEditorSidebar = ({
         <div className="p-3 bg-white border border-gray-300 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-gray-500">Blog Slug</div>
-            {!hasPublishedLinks && (
+            {!hasPublishedLinks && !isReadOnlyWorkspace && (
               <button
+                type="button"
                 onClick={() => {
                   if (blog?.isArchived || isPublicMode) {
                     toast.error(
@@ -2169,6 +2464,7 @@ const TextEditorSidebar = ({
                 className="input input-bordered input-sm w-full text-sm font-mono"
               />
               <button
+                type="button"
                 onClick={async () => {
                   if (!blogSlug.trim()) {
                     return toast.error("Slug cannot be empty")
@@ -2238,9 +2534,9 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.tags.map((tag, i) => (
+              {blog.tags.map((tag) => (
                 <span
-                  key={i}
+                  key={tag}
                   className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
                 >
                   <TagIcon className="w-3 h-3 mr-1" />
@@ -2256,8 +2552,8 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.keywords.map((kw, i) => (
-                <span key={i} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+              {blog.keywords.map((kw) => (
+                <span key={kw} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
                   {kw}
                 </span>
               ))}
@@ -2270,9 +2566,9 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.focusKeywords.map((kw, i) => (
+              {blog.focusKeywords.map((kw) => (
                 <span
-                  key={i}
+                  key={kw}
                   className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
                 >
                   {kw}
@@ -2385,9 +2681,9 @@ const TextEditorSidebar = ({
                 label: "Deep Research",
                 value: blog?.deepResearch || blog?.options?.deepResearch || false,
               },
-            ].map((feature, idx) => (
+            ].map((feature) => (
               <div
-                key={idx}
+                key={feature.key}
                 className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
               >
                 <span className="text-sm  font-medium">{feature.label}</span>
@@ -2438,6 +2734,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2451,11 +2748,12 @@ const TextEditorSidebar = ({
         {/* Section List (Cards) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
               Result Sections ({availableSections.length})
-            </label>
+            </span>
             {sectionToolState.sectionId ? (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
@@ -2478,8 +2776,10 @@ const TextEditorSidebar = ({
               </div>
             ) : (
               availableSections.map((section) => (
-                <div
+                <button
+                  type="button"
                   key={section.id}
+                  aria-pressed={sectionToolState.sectionId === section.id}
                   onClick={() => {
                     if (blog?.isArchived) {
                       toast.error(
@@ -2494,7 +2794,7 @@ const TextEditorSidebar = ({
                     )
                   }}
                   className={`
-                            group relative p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
+                            group relative block w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
                             ${
                               sectionToolState.sectionId === section.id
                                 ? "bg-primary/10 border-primary/40 shadow-none ring-1 ring-primary/20"
@@ -2504,26 +2804,27 @@ const TextEditorSidebar = ({
                             }
                         `}
                 >
-                  <h4
-                    className={`text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
+                  {/* spans, not h4/p — <button> admits only phrasing content */}
+                  <span
+                    className={`block text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
                   >
                     {section.title}
-                  </h4>
-                  <p
-                    className={`text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
+                  </span>
+                  <span
+                    className={`block text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
                   >
                     {section.preview || "No content preview available..."}
-                  </p>
+                  </span>
 
                   {sectionToolState.sectionId === section.id && (
-                    <div className="absolute top-3 right-3">
+                    <span className="absolute top-3 right-3">
                       <span className="flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                       </span>
-                    </div>
+                    </span>
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -2533,9 +2834,9 @@ const TextEditorSidebar = ({
         <div
           className={`space-y-3 transition-opacity duration-300 ${!sectionToolState.sectionId ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}`}
         >
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
             Operation
-          </label>
+          </span>
 
           <div className="grid grid-cols-1 gap-2">
             {[
@@ -2558,11 +2859,13 @@ const TextEditorSidebar = ({
                 desc: "Give your own instructions",
               },
             ].map((task) => (
-              <div
+              <button
+                type="button"
                 key={task.id}
+                aria-pressed={sectionToolState.task === task.id}
                 onClick={() => setSectionToolState((prev) => ({ ...prev, task: task.id }))}
                 className={`
-                            relative p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
+                            relative w-full text-left p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
                             ${
                               sectionToolState.task === task.id
                                 ? "bg-blue-50 border-blue-200 shadow-sm"
@@ -2570,28 +2873,28 @@ const TextEditorSidebar = ({
                             }
                         `}
               >
-                <div
+                <span
                   className={`
                             p-2 rounded-full
                             ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
                         `}
                 >
                   <task.icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <div
-                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
+                </span>
+                <span>
+                  <span
+                    className={`block text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
                   >
                     {task.label}
-                  </div>
-                  <div className="text-[10px] text-gray-400">{task.desc}</div>
-                </div>
+                  </span>
+                  <span className="block text-[10px] text-gray-400">{task.desc}</span>
+                </span>
                 {sectionToolState.task === task.id && (
-                  <div className="absolute top-3 right-3 text-blue-500">
+                  <span className="absolute top-3 right-3 text-blue-500">
                     <CheckCircle className="w-4 h-4 fill-blue-100" />
-                  </div>
+                  </span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -2603,10 +2906,14 @@ const TextEditorSidebar = ({
             animate={{ opacity: 1, height: "auto" }}
             className="space-y-2"
           >
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            <label
+              htmlFor="section-tool-instructions"
+              className="text-xs font-bold text-gray-500 uppercase tracking-widest block"
+            >
               Your Instructions
             </label>
             <textarea
+              id="section-tool-instructions"
               placeholder="E.g., Make it more professional and add 2 examples..."
               rows={4}
               value={sectionToolState.instructions}
@@ -2621,11 +2928,12 @@ const TextEditorSidebar = ({
         {/* Action Button */}
         <div className="pt-2">
           <button
+            type="button"
             onClick={handleSectionTask}
             disabled={
               isProcessingSection ||
               blog?.isArchived ||
-              isPublicMode ||
+              isLocked ||
               !sectionToolState.sectionId ||
               (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
             }
@@ -2672,6 +2980,7 @@ const TextEditorSidebar = ({
           </div>
           {setIsSidebarOpen && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
@@ -2700,9 +3009,9 @@ const TextEditorSidebar = ({
             </div>
           ) : hasPublishedLinks ? (
             <div className="space-y-3">
-              {blogPostings.map((posting, idx) => (
+              {blogPostings.map((posting) => (
                 <div
-                  key={idx}
+                  key={posting.link || posting.postedOn}
                   className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -2718,7 +3027,7 @@ const TextEditorSidebar = ({
                   <div className="space-y-1 mb-2">
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium  text-right truncate max-w-[120px]">
+                      <span className="text-[12px] font-medium  text-right truncate max-w-30">
                         {posting.metadata?.category || posting.category || blog.category}
                       </span>
                     </div>
@@ -2732,10 +3041,20 @@ const TextEditorSidebar = ({
                         View Live <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     )}
+
+                    {/* Live Search Console index status + best-effort indexing request */}
+                    <IndexingStatus
+                      blogId={blog?._id}
+                      pageUrl={posting.link}
+                      indexing={posting.indexing}
+                      hasGscAccess={hasGscAccess}
+                      canRequest={!isLocked}
+                    />
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="tooltip" data-tip="Edit settings and repost">
                       <button
+                        type="button"
                         className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
                         onClick={() => {
                           if (blog?.isArchived) {
@@ -2752,6 +3071,7 @@ const TextEditorSidebar = ({
                       </button>
                     </div>
                     <button
+                      type="button"
                       className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
                       onClick={() => {
                         if (blog?.isArchived) {
@@ -2804,9 +3124,12 @@ const TextEditorSidebar = ({
           <div className="space-y-4">
             {/* Platform Select */}
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Select Platform</label>
+              <label htmlFor="posting-platform" className="text-xs font-semibold  mb-1.5 block">
+                Select Platform
+              </label>
               {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
                 <select
+                  id="posting-platform"
                   className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
                     blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
                   }`}
@@ -2830,12 +3153,13 @@ const TextEditorSidebar = ({
               ) : (
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
                   No platforms connected.{" "}
-                  <span
+                  <button
+                    type="button"
                     className="font-bold cursor-pointer underline"
                     onClick={() => navigate("/plugins")}
                   >
                     Connect now
-                  </span>
+                  </button>
                   .
                 </div>
               )}
@@ -2843,7 +3167,7 @@ const TextEditorSidebar = ({
             </div>
             {/* Category Select */}
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Select Category</label>
+              <span className="text-xs font-semibold  mb-1.5 block">Select Category</span>
 
               {/* Active Category Tag */}
               {/* {selectedCategory && (
@@ -2906,10 +3230,11 @@ const TextEditorSidebar = ({
       {/* Main Post Action */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
         <button
+          type="button"
           onClick={handlePostClick}
-          disabled={isPosting || blog?.isArchived || isPublicMode}
+          disabled={isPosting || blog?.isArchived || isLocked}
           className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
-            isPosting || blog?.isArchived || isPublicMode
+            isPosting || blog?.isArchived || isLocked
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
               : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
           }`}
@@ -2942,6 +3267,22 @@ const TextEditorSidebar = ({
         return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
+      case "insights":
+        return (
+          <InsightsPanel
+            blog={blog}
+            user={user}
+            userPlan={userPlan}
+            isPro={isPro}
+            insight={insight}
+            isAnalyzing={analyzeBlogMutation.isPending}
+            onAnalyze={handleAnalyzeInsights}
+            onApplySuggestion={handleApplySuggestion}
+            applyingSuggestionId={applyingSuggestionId}
+            hasPublishedLinks={hasPublishedLinks}
+            setIsSidebarOpen={setIsSidebarOpen}
+          />
+        )
       case "sectionTools":
         return renderSectionToolsPanel()
       default:
@@ -2955,6 +3296,7 @@ const TextEditorSidebar = ({
         <div className="flex flex-col gap-2">
           <div className="tooltip tooltip-left" data-tip="Expand Sidebar">
             <button
+              type="button"
               onClick={() => setIsCollapsed(false)}
               className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-300 group"
             >
@@ -2965,13 +3307,15 @@ const TextEditorSidebar = ({
         </div>
         <div className="flex flex-col items-center gap-4 py-6">
           {NAV_ITEMS.filter(
-            (item) => !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+            (item) =>
+              !isLocked || !["regenerate", "sectionTools", "posting", "insights"].includes(item.id)
           ).map((item) => {
             const isActive = activePanel === item.id
             const Icon = item.icon
             return (
               <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                 <button
+                  type="button"
                   onClick={() => {
                     if (item.id === "regenerate") {
                       setIsRegenerateModalOpen(true)
@@ -3029,6 +3373,7 @@ const TextEditorSidebar = ({
             {/* Mobile close */}
             <div className="md:hidden">
               <button
+                type="button"
                 onClick={() => setIsSidebarOpen(false)}
                 className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
               >
@@ -3039,13 +3384,15 @@ const TextEditorSidebar = ({
           <div className="flex flex-col gap-3 mt-5">
             {NAV_ITEMS.filter(
               (item) =>
-                !isPublicMode || !["regenerate", "sectionTools", "posting"].includes(item.id)
+                !isLocked ||
+                !["regenerate", "sectionTools", "posting", "insights"].includes(item.id)
             ).map((item) => {
               const Icon = item.icon
               const isActive = activePanel === item.id
               return (
                 <div key={item.id} className="tooltip tooltip-left" data-tip={item.label}>
                   <button
+                    type="button"
                     onClick={() => {
                       if (blog?.isArchived && item.id === "regenerate") {
                         toast.error(
@@ -3054,7 +3401,7 @@ const TextEditorSidebar = ({
                         return
                       }
                       if (item.id === "regenerate") {
-                        if (isPublicMode) {
+                        if (isLocked) {
                           toast.error("Regeneration is unavailable in read-only mode.")
                           return
                         }
@@ -3105,6 +3452,7 @@ const TextEditorSidebar = ({
           <div className="space-y-2">
             {integrationLinks.map(({ platform, link, label }) => (
               <button
+                type="button"
                 key={platform}
                 onClick={() => window.open(link, "_blank")}
                 className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
@@ -3114,12 +3462,21 @@ const TextEditorSidebar = ({
             ))}
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={() => setChoosePlatformOpen(false)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setChoosePlatformOpen(false)}
+            >
               Close
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setChoosePlatformOpen(false)}></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={() => setChoosePlatformOpen(false)}
+        />
       </div>
 
       {/* Edit & Repost Modal */}
@@ -3128,8 +3485,11 @@ const TextEditorSidebar = ({
           <h3 className="font-bold text-lg mb-4">Edit & Repost</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Platform</label>
+              <label htmlFor="repost-platform" className="text-xs font-semibold  mb-1.5 block">
+                Platform
+              </label>
               <select
+                id="repost-platform"
                 className="select select-bordered outline-0 w-full"
                 value={repostSettings.platform}
                 onChange={(e) => setRepostSettings({ ...repostSettings, platform: e.target.value })}
@@ -3146,8 +3506,11 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <label className="text-xs font-semibold  mb-1.5 block">Category</label>
+              <label htmlFor="repost-category" className="text-xs font-semibold  mb-1.5 block">
+                Category
+              </label>
               <input
+                id="repost-category"
                 type="text"
                 className="input input-bordered w-full"
                 placeholder="Select or type..."
@@ -3177,10 +3540,15 @@ const TextEditorSidebar = ({
             )}
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={() => setIsRepostModalOpen(false)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setIsRepostModalOpen(false)}
+            >
               Cancel
             </button>
             <button
+              type="button"
               className={`btn btn-sm btn-primary text-white ${isPosting ? "loading" : ""}`}
               onClick={handleRepostSubmit}
             >
@@ -3188,7 +3556,12 @@ const TextEditorSidebar = ({
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setIsRepostModalOpen(false)}></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={() => setIsRepostModalOpen(false)}
+        />
       </div>
 
       {/* Generated Metadata Accept/Reject Modal */}
@@ -3202,9 +3575,7 @@ const TextEditorSidebar = ({
             </p>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Generated Title
-              </label>
+              <span className="block text-xs font-medium text-gray-500 mb-1">Generated Title</span>
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-gray-800">
                   {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
@@ -3213,9 +3584,9 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <span className="block text-xs font-medium text-gray-500 mb-1">
                 Generated Description
-              </label>
+              </span>
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-gray-800">
                   {generatedMetadata?.description ||
@@ -3242,10 +3613,11 @@ const TextEditorSidebar = ({
             </div>
           </div>
           <div className="modal-action">
-            <button className="btn btn-sm" onClick={handleRejectMetadata}>
+            <button type="button" className="btn btn-sm" onClick={handleRejectMetadata}>
               Reject
             </button>
             <button
+              type="button"
               onClick={handleAcceptMetadata}
               className="btn btn-sm btn-success text-white bg-linear-to-r from-green-500 to-emerald-600 border-0"
             >
@@ -3253,61 +3625,12 @@ const TextEditorSidebar = ({
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={handleRejectMetadata}></div>
-      </div>
-
-      {/* Diff Viewer Modal */}
-      <div className={`modal ${showDiff ? "modal-open" : ""} z-9999`}>
-        <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="flex items-center justify-between p-5 px-8 border-b border-gray-50 bg-white sticky top-0 z-20">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-100">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-black text-gray-900 text-xl tracking-tight">
-                  Review Section Changes
-                </h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                    Task: {sectionToolState?.task || "Refinement"}
-                  </span>
-                  <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">
-                    AI REFINED
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-              onClick={() => setShowDiff(false)}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-hidden p-6 sm:p-8 bg-slate-50/50">
-            <ContentDiffViewer
-              oldMarkdown={diffData.old}
-              newMarkdown={diffData.new}
-              onAccept={() => {
-                if (typeof setEditorContent === "function") {
-                  setEditorContent(diffData.full)
-                }
-                setShowDiff(false)
-                toast.success("Changes applied successfully!")
-              }}
-              onReject={() => setShowDiff(false)}
-              acceptLabel="Accept & Apply to Section"
-              rejectLabel="Discard Changes"
-            />
-          </div>
-        </div>
-        <div
-          className="modal-backdrop bg-slate-900/60 backdrop-blur-md"
-          onClick={() => setShowDiff(false)}
-        ></div>
+        <button
+          type="button"
+          aria-label="Close"
+          className="modal-backdrop"
+          onClick={handleRejectMetadata}
+        />
       </div>
 
       {/* Regenerate Modal */}

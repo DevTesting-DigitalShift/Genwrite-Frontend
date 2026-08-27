@@ -102,7 +102,7 @@ export const pluginsData = (pingFn) => [
     version: "1.0.0",
     updatedDate: "Nov 2025",
     downloadLink: "#",
-    isVisible: false,
+    isVisible: true,
     icon: FaWix,
     message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
     onCheck: async () => {

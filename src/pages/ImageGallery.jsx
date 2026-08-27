@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Fragment } from "react"
 import {
   Image as ImageIcon,
   X,
@@ -39,6 +39,7 @@ const SkeletonGrid = ({ count = 12 }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, index) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
           key={index}
           className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse"
         >
@@ -109,7 +110,7 @@ const ImageGallery = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, minScore, selectedTags])
+  }, [])
 
   // Fetch images
   const loadImages = useCallback(async () => {
@@ -370,10 +371,11 @@ const ImageGallery = () => {
             <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-style" className="label">
                     <span className="label-text font-semibold">Style</span>
                   </label>
                   <select
+                    id="gallery-gen-style"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.style}
                     onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
@@ -386,10 +388,11 @@ const ImageGallery = () => {
                   </select>
                 </div>
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-dimension" className="label">
                     <span className="label-text font-semibold">Dimension</span>
                   </label>
                   <select
+                    id="gallery-gen-dimension"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.aspectRatio}
                     onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
@@ -402,10 +405,11 @@ const ImageGallery = () => {
                   </select>
                 </div>
                 <div className="form-control w-full">
-                  <label className="label">
+                  <label htmlFor="gallery-gen-quality" className="label">
                     <span className="label-text font-semibold">Quality</span>
                   </label>
                   <select
+                    id="gallery-gen-quality"
                     className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                     value={genForm.imageSize}
                     onChange={(e) => setGenForm({ ...genForm, imageSize: e.target.value })}
@@ -418,12 +422,13 @@ const ImageGallery = () => {
               </div>
 
               <div className="space-y-2 mb-8">
-                <label className="label">
+                <label htmlFor="gallery-creative-prompt" className="label">
                   <span className="label-text font-semibold">
                     Creative Prompt <span className="text-rose-500 text-lg">*</span>
                   </span>
                 </label>
                 <textarea
+                  id="gallery-creative-prompt"
                   className={`textarea w-full min-h-[160px] rounded-2xl p-6 outline-0 border resize-none ${
                     showErrors && countWords(genForm.prompt) < 10
                       ? "border-rose-200 bg-rose-50"
@@ -449,6 +454,7 @@ const ImageGallery = () => {
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
+                    type="button"
                     onClick={() => {
                       setGenForm({
                         prompt: "",
@@ -463,6 +469,7 @@ const ImageGallery = () => {
                     Reset
                   </button>
                   <button
+                    type="button"
                     onClick={handleGenerateImage}
                     disabled={isGenerating}
                     className="btn btn-primary flex-1 md:flex-none px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02]"
@@ -489,10 +496,25 @@ const ImageGallery = () => {
           {/* Masonry Grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {images.map((image, _index) => (
+              // Fragment only exists so the suppression below can sit in JSX-child
+              // position, which is the only place Biome honours it.
+              <Fragment key={image._id}>
+              {/* The card holds its own action buttons (copy, enhance, delete) and a
+                  <button> may not nest interactive content, so role + tabIndex + onKeyDown
+                  stand in for it and give equivalent keyboard access. */}
+              {/* biome-ignore lint/a11y/useSemanticElements: see comment above */}
               <div
-                key={image._id}
+                role="button"
+                tabIndex={0}
+                aria-label={image.description || "Open image"}
                 className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
                 onClick={() => handleImageClick(image)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleImageClick(image)
+                  }
+                }}
               >
                 <img
                   src={image.url}
@@ -518,6 +540,7 @@ const ImageGallery = () => {
                     </p>
                     <div className="flex gap-2 shrink-0">
                       <button
+                        type="button"
                         onClick={(e) => handleCopyLink(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
                         title="Copy Link"
@@ -525,6 +548,7 @@ const ImageGallery = () => {
                         <Copy className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={(e) => handleDownload(image, e)}
                         className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
                         title="Download"
@@ -535,6 +559,7 @@ const ImageGallery = () => {
                   </div>
                 </div>
               </div>
+              </Fragment>
             ))}
           </div>
 
@@ -555,6 +580,7 @@ const ImageGallery = () => {
             <div className="mt-16 flex justify-center">
               <div className="join bg-white shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100 p-1">
                 <button
+                  type="button"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
@@ -572,6 +598,7 @@ const ImageGallery = () => {
 
                   return (
                     <button
+                      type="button"
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`join-item btn h-12 w-12 rounded-lg text-sm font-black transition-all border-none ${
@@ -586,6 +613,7 @@ const ImageGallery = () => {
                 })}
 
                 <button
+                  type="button"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-lg p-0 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border-none"
@@ -634,6 +662,7 @@ const ImageGallery = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => setPreviewImage(null)}
                     className="absolute top-6 left-6 p-3 bg-black/40 hover:bg-white/20 text-white rounded-2xl transition-all backdrop-blur-md z-20 border border-white/10"
                   >
@@ -642,6 +671,7 @@ const ImageGallery = () => {
 
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 z-20">
                     <button
+                      type="button"
                       onClick={() => handleCopyLink(previewImage)}
                       className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Copy Link"
@@ -650,6 +680,7 @@ const ImageGallery = () => {
                     </button>
                     <div className="w-px h-6 bg-white/10" />
                     <button
+                      type="button"
                       onClick={() => handleDownload(previewImage)}
                       className="p-3 hover:bg-white/20 text-white rounded-lg transition-colors"
                       title="Download"
@@ -673,10 +704,14 @@ const ImageGallery = () => {
                     {isEnhanceMode ? (
                       <div className="space-y-4 lg:space-y-8 animate-in slide-in-from-right-8 duration-500">
                         <div className="space-y-3 lg:space-y-4">
-                          <label className="text-xs lg:text-sm font-medium text-slate-400">
+                          <label
+                            htmlFor="gallery-refine-instruction"
+                            className="text-xs lg:text-sm font-medium text-slate-400"
+                          >
                             Refinement Instruction
                           </label>
                           <textarea
+                            id="gallery-refine-instruction"
                             className="textarea mt-1 w-full h-24 lg:h-32 outline-0 bg-slate-50 border border-gray-300 rounded-lg p-3 lg:p-4 text-sm lg:text-base font-medium"
                             value={enhanceForm.prompt}
                             onChange={(e) =>
@@ -688,10 +723,14 @@ const ImageGallery = () => {
 
                         <div className="grid grid-cols-1 gap-3 lg:gap-4">
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-style"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Target Style
                             </label>
                             <select
+                              id="gallery-enhance-style"
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.style}
                               onChange={(e) =>
@@ -705,10 +744,14 @@ const ImageGallery = () => {
                             </select>
                           </div>
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-resolution"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Resolution
                             </label>
                             <select
+                              id="gallery-enhance-resolution"
                               className="select outline-0 mt-1 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium"
                               value={enhanceForm.imageSize}
                               onChange={(e) =>
@@ -721,10 +764,14 @@ const ImageGallery = () => {
                             </select>
                           </div>
                           <div className="space-y-2 lg:space-y-3">
-                            <label className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2">
+                            <label
+                              htmlFor="gallery-enhance-aspect"
+                              className="font-medium text-slate-400 text-xs lg:text-sm mb-1 lg:mb-2"
+                            >
                               Aspect Ratio
                             </label>
                             <select
+                              id="gallery-enhance-aspect"
                               className="select outline-0 w-full h-10 lg:h-12 rounded-lg border-gray-300 text-sm lg:text-base font-medium mt-1"
                               value={enhanceForm.aspectRatio}
                               onChange={(e) =>
@@ -770,6 +817,7 @@ const ImageGallery = () => {
                         {/* Toolset */}
                         <div className="grid grid-cols-2 gap-3 lg:gap-4">
                           <button
+                            type="button"
                             onClick={handleGenerateAltText}
                             disabled={isGeneratingAlt}
                             className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all font-bold"
@@ -785,6 +833,7 @@ const ImageGallery = () => {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => setIsEnhanceMode(true)}
                             disabled={!canEnhance(previewImage)}
                             className="btn btn-ghost h-auto flex-col gap-2 lg:gap-3 p-4 lg:p-6 rounded-2xl lg:rounded-[24px] border border-slate-100 hover:bg-purple-50 hover:border-purple-100 hover:text-purple-600 transition-all font-bold"
@@ -799,23 +848,25 @@ const ImageGallery = () => {
                         {/* Resulting Intelligence */}
                         {generatedAltText && (
                           <div className="space-y-3 lg:space-y-4 animate-in zoom-in-95 duration-500">
-                            <label className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span className="text-[10px] lg:text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               Optimized Alternative Text
-                            </label>
-                            <div
+                            </span>
+                            <button
+                              type="button"
+                              aria-label="Copy alternative text"
                               onClick={() => {
                                 navigator.clipboard.writeText(generatedAltText)
                                 toast.success("Copied to clipboard!")
                               }}
-                              className="p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
+                              className="w-full text-left p-4 lg:p-6 bg-emerald-50/30 rounded-2xl lg:rounded-[24px] border border-emerald-100 text-emerald-900 font-bold text-xs lg:text-sm leading-relaxed cursor-pointer hover:bg-emerald-50 transition-all relative group"
                             >
                               <Copy
                                 size={14}
                                 className="absolute top-3 right-3 lg:top-4 lg:right-4 text-emerald-300 opacity-0 group-hover:opacity-100 transition-all"
                               />
                               {generatedAltText}
-                            </div>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -827,12 +878,14 @@ const ImageGallery = () => {
                     {isEnhanceMode ? (
                       <div className="flex gap-3 lg:gap-4">
                         <button
+                          type="button"
                           onClick={() => setIsEnhanceMode(false)}
                           className="btn btn-ghost h-10 lg:h-12 flex-1 rounded-lg font-bold border border-slate-200 bg-white text-sm lg:text-base"
                         >
                           Cancel
                         </button>
                         <button
+                          type="button"
                           onClick={handleEnhanceImage}
                           className="btn btn-primary h-10 lg:h-12 flex-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white font-medium text-sm lg:text-base"
                         >
@@ -845,6 +898,7 @@ const ImageGallery = () => {
                       </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => handleDownload(previewImage)}
                         className="btn btn-primary w-full h-12 lg:h-[60px] rounded-lg bg-slate-900 border-none text-white font-medium text-sm lg:text-base hover:bg-black transition-all"
                       >

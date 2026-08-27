@@ -1,8 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import useBlogStore from "@store/useBlogStore"
@@ -13,6 +13,9 @@ import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
+import { getDefaultFilterStart } from "@utils/dateDefaults"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
+import { getActiveToken } from "@utils/sessionStore"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
@@ -25,6 +28,7 @@ import {
   Sparkles,
   ChevronRight,
   Coins,
+  Lock,
   ArrowRight,
   Search,
   Loader2,
@@ -47,9 +51,10 @@ const Dashboard = () => {
 
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { openJobModal } = useJobStore()
   const { clearSelectedKeywords } = useAnalysisStore()
-  const { handlePopup } = useConfirmPopup()
+  const { isReadOnlyWorkspace, guardWrite, readOnlyMessage } = useReadOnlyGuard()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
 
@@ -59,6 +64,10 @@ const Dashboard = () => {
 
   const handleTopicSubmit = async (e) => {
     e.preventDefault()
+    if (isReadOnlyWorkspace) {
+      toast.error(readOnlyMessage)
+      return
+    }
     if (!topic.trim()) {
       toast.error("Please enter a blog topic.")
       return
@@ -86,10 +95,11 @@ const Dashboard = () => {
 
   // Fetch blog status for analytics cards
   const { data: blogStatus } = useQuery({
-    queryKey: ["blogStatus"],
+    queryKey: ["blogStatus", activeWorkspace?.id],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      const params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
+      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      const params = { start: new Date(start).toISOString(), end: endDate }
       return getBlogStatus(params)
     },
     enabled: !!user,
@@ -97,7 +107,7 @@ const Dashboard = () => {
 
   // Fetch Recent Successful Blogs
   const { data: recentBlogsData } = useQuery({
-    queryKey: ["recentBlogs"],
+    queryKey: ["recentBlogs", activeWorkspace?.id],
     queryFn: () => getAllBlogs({ limit: 20, sort: "createdAt:desc" }), // Fetch more to ensure we find successful ones
     enabled: !!user,
   })
@@ -135,7 +145,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const initUser = async () => {
-      const token = localStorage.getItem("token")
+      const token = getActiveToken()
       if (!token) {
         navigate("/login")
         return
@@ -149,7 +159,7 @@ const Dashboard = () => {
       }
     }
     initUser()
-  }, [navigate])
+  }, [navigate, loadAuthenticatedUser])
 
   useEffect(() => {
     if (!user?._id) return
@@ -200,7 +210,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       default:
-        return <></>
+        return null
     }
   }
 
@@ -251,7 +261,6 @@ const Dashboard = () => {
           setRunTour(false)
           if (user?._id) localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
         }}
-        onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />
 
       {activeModel && renderModel()}
@@ -302,15 +311,21 @@ const Dashboard = () => {
                     type="text"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    disabled={isGenerating}
-                    placeholder="Enter blog topic (e.g., '10 Best SEO Practices for 2026')..."
+                    disabled={isGenerating || isReadOnlyWorkspace}
+                    title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                    placeholder={
+                      isReadOnlyWorkspace
+                        ? "Blog creation is unavailable in a read-only workspace"
+                        : "Enter blog topic (e.g., '10 Best SEO Practices for 2026')..."
+                    }
                     className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-400 rounded-xl text-sm focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10 dark:focus:ring-indigo-400/10 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 font-medium transition-all shadow-xs"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isGenerating}
+                  disabled={isGenerating || isReadOnlyWorkspace}
+                  title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-98 transition-all flex items-center justify-center gap-2 min-w-[140px] disabled:opacity-50 disabled:pointer-events-none cursor-pointer sm:shrink-0"
                 >
                   {isGenerating ? (
@@ -444,10 +459,20 @@ const Dashboard = () => {
             {creationTools.map((tool) => (
               <motion.div
                 key={tool.id}
-                className="group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[180px]"
-                onClick={() => setActiveModel(tool.modelKey)}
+                aria-disabled={isReadOnlyWorkspace || undefined}
+                title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                className={`group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between min-h-[180px] ${
+                  isReadOnlyWorkspace ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                }`}
+                onClick={() => guardWrite(() => setActiveModel(tool.modelKey))}
               >
-                {tool.credit && (
+                {isReadOnlyWorkspace && (
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-200">
+                    <Lock className="w-3 h-3" />
+                    Read-only
+                  </div>
+                )}
+                {!isReadOnlyWorkspace && tool.credit && (
                   <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
                     <Coins className="w-3 h-3" />
                     {tool.credit}
@@ -497,6 +522,11 @@ const Dashboard = () => {
                       <ToolCard
                         key={tool.id}
                         item={tool}
+                        // Every tool is locked, not just the creation modals: the
+                        // navigation-only ones land on pages that generate content and
+                        // spend the owner's credits, so they're no safer to open.
+                        disabled={isReadOnlyWorkspace}
+                        disabledReason={readOnlyMessage}
                         onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey)}
                       />
                     ))}
@@ -515,6 +545,7 @@ const Dashboard = () => {
                 Recent Creations
               </h2>
               <button
+                type="button"
                 onClick={() => navigate("/all-blogs")}
                 className="text-sm text-primary hover:text-primary/80 font-bold"
               >

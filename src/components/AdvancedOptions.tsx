@@ -62,7 +62,9 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
     return (
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
-          <label className={labelClass}>{label}</label>
+          {/* `content` is an arbitrary node (usually a Switch), not a form control this
+              can point at, so the caption is plain text. */}
+          <span className={labelClass}>{label}</span>
           {description && <p className="text-xs text-gray-500">{description}</p>}
         </div>
         <div className="flex items-center">{content}</div>

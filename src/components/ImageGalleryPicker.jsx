@@ -21,6 +21,7 @@ const SkeletonGrid = ({ count = 12 }) => {
     <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
       {Array.from({ length: count }).map((_, index) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
           key={index}
           className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse"
         >
@@ -90,7 +91,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
     setCurrentPage(1)
     setImages([])
     fetchImages(1, false)
-  }, [searchQuery])
+  }, [fetchImages])
 
   const handleImageClick = (image) => {
     if (onSelect) {
@@ -147,9 +148,12 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
             <>
               <div className="columns-1 md:columns-2 lg:columns-3 gap-3 md:gap-4 space-y-3 md:space-y-4">
                 {images.map((image) => (
-                  <div
+                  <button
+                    type="button"
                     key={image._id}
-                    className={`break-inside-avoid relative group rounded-lg md:rounded-xl overflow-hidden cursor-pointer bg-gray-100 transition-all ${
+                    aria-pressed={selectedImageUrl === image.url}
+                    aria-label={image.description || "Select image"}
+                    className={`break-inside-avoid relative group block w-full rounded-lg md:rounded-xl overflow-hidden cursor-pointer bg-gray-100 transition-all ${
                       selectedImageUrl === image.url
                         ? "ring-4 ring-blue-500 ring-offset-2"
                         : "hover:ring-2 hover:ring-blue-300"
@@ -165,18 +169,18 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
 
                     {/* Selected Indicator */}
                     {selectedImageUrl === image.url && (
-                      <div className="absolute top-2 right-2 p-2 bg-blue-600 rounded-full shadow-lg">
+                      <span className="absolute top-2 right-2 p-2 bg-blue-600 rounded-full shadow-lg">
                         <Check className="w-4 h-4 text-white" />
-                      </div>
+                      </span>
                     )}
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 md:p-4">
-                      <p className="text-white text-xs md:text-sm line-clamp-2 font-medium">
+                    <span className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 md:p-4">
+                      <span className="block text-white text-xs md:text-sm line-clamp-2 font-medium">
                         {image.description}
-                      </p>
-                    </div>
-                  </div>
+                      </span>
+                    </span>
+                  </button>
                 ))}
               </div>
 
@@ -184,6 +188,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
               {hasMore && (
                 <div className="mt-6 flex justify-center">
                   <button
+                    type="button"
                     onClick={handleLoadMore}
                     disabled={loadingMore}
                     className="btn btn-lg px-6 md:px-8 rounded-lg w-full sm:w-auto"

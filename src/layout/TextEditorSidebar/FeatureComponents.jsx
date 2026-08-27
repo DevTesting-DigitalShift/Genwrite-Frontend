@@ -30,6 +30,7 @@ const FeatureCard = ({
     </div>
     {children}
     <button
+      type="button"
       onClick={onClick}
       disabled={isLoading}
       className={`btn btn-primary w-full min-h-0 h-10 text-sm rounded-lg font-medium transition-all duration-200 bg-linear-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg border-none ${
@@ -116,7 +117,7 @@ const CompetitorsList = ({ competitors }) => {
 
       {visibleCompetitors?.map((item, index) => (
         <motion.div
-          key={index}
+          key={item.link || item.url}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.05 }}
@@ -146,6 +147,7 @@ const CompetitorsList = ({ competitors }) => {
 
       {competitors?.length > 5 && !showAll && (
         <button
+          type="button"
           onClick={() => setShowAll(true)}
           className="text-xs text-blue-600 hover:text-blue-700 text-center w-full"
         >
@@ -202,13 +204,14 @@ const AnalysisInsights = ({ insights }) => {
                     )}
                   </p>
                 </div>
-                <p
-                  className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
+                <button
+                  type="button"
+                  className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none text-left"
                   onClick={() => toggleExpanded(index)}
                 >
                   {displayText}
                   {shouldTruncate && <span className="text-blue-500 ml-1">(more)</span>}
-                </p>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -217,6 +220,7 @@ const AnalysisInsights = ({ insights }) => {
 
       {entries.length > 5 && (
         <button
+          type="button"
           onClick={() => setShowAll(!showAll)}
           className="text-xs text-blue-600 hover:text-blue-700 text-center w-full"
         >
@@ -253,12 +257,17 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
       </div>
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => onApply(index, suggestion)}
           className="btn btn-success btn-sm flex-1 text-white"
         >
           Accept
         </button>
-        <button onClick={() => onReject(index)} className="btn btn-ghost btn-outline btn-sm flex-1">
+        <button
+          type="button"
+          onClick={() => onReject(index)}
+          className="btn btn-ghost btn-outline btn-sm flex-1"
+        >
           Reject
         </button>
       </div>

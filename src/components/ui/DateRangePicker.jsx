@@ -42,6 +42,7 @@ export default function DateRangePicker({ value, onChange, minDate, maxDate, cla
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <button
+            type="button"
             className={clsx(
               "w-full h-10 px-3 inline-flex items-center text-left font-medium rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm text-sm",
               !date?.from && "text-slate-400"

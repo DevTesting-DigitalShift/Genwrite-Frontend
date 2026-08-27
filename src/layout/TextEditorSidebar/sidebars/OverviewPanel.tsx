@@ -58,6 +58,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
           </div>
           {setIsSidebarOpen && isMobile && (
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -109,6 +110,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
             rankings.
           </p>
           <button
+            type="button"
             onClick={onAnalyze}
             disabled={isAnalyzing}
             className={`

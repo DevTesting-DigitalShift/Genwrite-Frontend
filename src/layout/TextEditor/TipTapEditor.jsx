@@ -35,7 +35,6 @@ import { toast } from "sonner"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useLocation, useNavigate } from "react-router-dom"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js"
 import "./editor.css"
@@ -76,14 +75,7 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const TipTapEditor = ({
-  blog,
-  content,
-  setContent,
-  unsavedChanges,
-  setUnsavedChanges,
-  isPublicMode = false,
-}) => {
+const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMode = false }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -131,7 +123,6 @@ const TipTapEditor = ({
   const [ytUrl, setYtUrl] = useState("")
 
   const _navigate = useNavigate()
-  const { handlePopup } = useConfirmPopup()
   const { user } = useAuthStore()
   const _userPlan = user?.subscription?.plan
   const _location = useLocation()
@@ -281,7 +272,7 @@ const TipTapEditor = ({
           })
         })
     },
-    [setLinkPreview, setLinkPreviewPos, setLinkPreviewUrl, setLinkPreviewElement]
+    []
   )
 
   const normalEditor = useEditor(
@@ -554,11 +545,17 @@ const TipTapEditor = ({
         changed = true
       }
 
-      if (changed) {
+      // Compare against the current values rather than trusting `changed`: a link near
+      // the bottom of the viewport can re-trigger the same flip every pass, and writing
+      // an identical-but-new object each time would spin this effect forever.
+      if (changed && (newTop !== linkPreviewPos.top || newLeft !== linkPreviewPos.left)) {
         setLinkPreviewPos({ top: newTop, left: newLeft })
       }
     }
-  }, [linkPreview, linkPreviewElement])
+    // NB: depend on `linkPreviewPos` itself, never `linkPreviewPos.top` — dependency
+    // arrays are evaluated on every render, including the initial one where this state
+    // is still null.
+  }, [linkPreview, linkPreviewElement, linkPreviewPos])
 
   const safeEditorAction = useCallback(
     (action) => {
@@ -733,7 +730,7 @@ const TipTapEditor = ({
         }, 100)
       }
     },
-    [normalEditor]
+    [normalEditor, blog?.isArchived]
   )
 
   const handleAddYoutube = useCallback(() => {
@@ -801,7 +798,7 @@ const TipTapEditor = ({
         }
       }, 100)
     }
-  }, [normalEditor, blog, markdownToHtml])
+  }, [normalEditor, blog, markdownToHtml, setContent, htmlToMarkdown])
 
   // Handle external content updates (e.g. from Sidebar AI tools)
   useEffect(() => {
@@ -835,7 +832,7 @@ const TipTapEditor = ({
       // Don't auto-focus to prevent scrolling to bottom
     }, 300)
     return () => clearTimeout(timer)
-  }, [normalEditor])
+  }, [])
 
   useEffect(() => {
     if (normalEditor) {
@@ -1104,14 +1101,18 @@ const TipTapEditor = ({
               <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(10, 1fr)" }}>
                 {Array.from({ length: 10 }, (_, rowIndex) =>
                   Array.from({ length: 10 }, (_, colIndex) => (
-                    <div
+                    <button
+                      type="button"
+                      // biome-ignore lint/suspicious/noArrayIndexKey: fixed 10x10 grid picker, cell N,M is always position N,M
                       key={`${rowIndex}-${colIndex}`}
+                      aria-label={`Insert ${rowIndex + 1} by ${colIndex + 1} table`}
                       className={`w-5 h-5 border border-gray-300 cursor-pointer text-black ${
                         rowIndex < hoveredCell.row && colIndex < hoveredCell.col
                           ? "bg-blue-500 border-blue-600"
                           : "bg-white hover:bg-blue-100"
                       }`}
                       onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
+                      onFocus={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
                       onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
                     />
                   ))
@@ -1138,6 +1139,7 @@ const TipTapEditor = ({
             {tableOptionsOpen && (
               <div className="absolute left-0 top-full mt-1 z-10000 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[180px] flex flex-col gap-0.5">
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().addRowBefore().run()
@@ -1149,6 +1151,7 @@ const TipTapEditor = ({
                   <Plus className="w-3 h-3" /> Add Row Before
                 </button>
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().addRowAfter().run()
@@ -1160,6 +1163,7 @@ const TipTapEditor = ({
                   <Plus className="w-3 h-3" /> Add Row After
                 </button>
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().deleteRow().run()
@@ -1172,6 +1176,7 @@ const TipTapEditor = ({
                 </button>
                 <div className="border-t my-1" />
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().addColumnBefore().run()
@@ -1183,6 +1188,7 @@ const TipTapEditor = ({
                   <Plus className="w-3 h-3" /> Add Column Before
                 </button>
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().addColumnAfter().run()
@@ -1193,6 +1199,7 @@ const TipTapEditor = ({
                   <Plus className="w-3 h-3" /> Add Column After
                 </button>
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().deleteColumn().run()
@@ -1204,6 +1211,7 @@ const TipTapEditor = ({
                 </button>
                 <div className="border-t my-1" />
                 <button
+                  type="button"
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded hover:bg-gray-100 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-left"
                   onClick={() => {
                     normalEditor.chain().focus().deleteTable().run()
@@ -1290,6 +1298,7 @@ const TipTapEditor = ({
           >
             <div className="tooltip tooltip-bottom" data-tip="Bold">
               <button
+                type="button"
                 className={`p-2 rounded transition-colors ${
                   normalEditor.isActive("bold") ? "bg-blue-100 text-blue-600" : " hover:bg-gray-200"
                 }`}
@@ -1302,6 +1311,7 @@ const TipTapEditor = ({
             </div>
             <div className="tooltip tooltip-bottom" data-tip="Italic">
               <button
+                type="button"
                 className={`p-2 rounded transition-colors ${
                   normalEditor.isActive("italic")
                     ? "bg-blue-100 text-blue-600"
@@ -1316,6 +1326,7 @@ const TipTapEditor = ({
             </div>
             <div className="tooltip tooltip-bottom" data-tip="Underline">
               <button
+                type="button"
                 className={`p-2 rounded transition-colors ${
                   normalEditor.isActive("underline")
                     ? "bg-blue-100 text-blue-600"
@@ -1329,7 +1340,11 @@ const TipTapEditor = ({
               </button>
             </div>
             <div className="tooltip tooltip-bottom" data-tip="Link">
-              <button className="p-2 rounded  hover:bg-gray-200" onClick={handleAddLink}>
+              <button
+                type="button"
+                className="p-2 rounded  hover:bg-gray-200"
+                onClick={handleAddLink}
+              >
                 <LinkIcon className="w-5 h-5" />
               </button>
             </div>
@@ -1352,15 +1367,24 @@ const TipTapEditor = ({
               onKeyDown={(e) => e.key === "Enter" && handleConfirmLink()}
             />
             <div className="modal-action">
-              <button className="btn btn-ghost" onClick={() => setLinkModalOpen(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setLinkModalOpen(false)}
+              >
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleConfirmLink}>
+              <button type="button" className="btn btn-primary" onClick={handleConfirmLink}>
                 OK
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setLinkModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setLinkModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1373,10 +1397,11 @@ const TipTapEditor = ({
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="label">
+                <label htmlFor="tiptap-yt-url" className="label">
                   <span className="label-text">YouTube URL</span>
                 </label>
                 <input
+                  id="tiptap-yt-url"
                   type="text"
                   value={ytUrl}
                   onChange={(e) => setYtUrl(e.target.value)}
@@ -1390,15 +1415,24 @@ const TipTapEditor = ({
               </p>
             </div>
             <div className="modal-action">
-              <button className="btn btn-ghost" onClick={() => setYtModalOpen(false)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setYtModalOpen(false)}>
                 Cancel
               </button>
-              <button className="btn btn-primary bg-red-600" onClick={handleConfirmYoutube}>
+              <button
+                type="button"
+                className="btn btn-primary bg-red-600"
+                onClick={handleConfirmYoutube}
+              >
                 Embed Video
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setYtModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setYtModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1413,6 +1447,7 @@ const TipTapEditor = ({
                 Edit Image
               </h3>
               <button
+                type="button"
                 className="btn btn-ghost btn-sm btn-circle"
                 onClick={() => setEditModalOpen(false)}
               >
@@ -1435,6 +1470,7 @@ const TipTapEditor = ({
 
                 {imageUrl && !isEnhanceMode && blog?.imageSource === "ai" && (
                   <button
+                    type="button"
                     className="btn btn-sm mt-2 text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 flex items-center gap-2"
                     onClick={() => {
                       setIsEnhanceMode(true)
@@ -1451,12 +1487,14 @@ const TipTapEditor = ({
                 {!imageUrl && !isGenerateMode && (
                   <div className="flex gap-2 w-full mt-2">
                     <button
+                      type="button"
                       className="btn btn-sm btn-outline flex-1 flex items-center justify-center gap-1"
                       onClick={() => setIsGenerateMode(true)}
                     >
                       <Sparkles className="w-4 h-4 text-blue-600" /> Generate AI
                     </button>
                     <button
+                      type="button"
                       className="btn btn-sm btn-outline flex-1 flex items-center justify-center gap-1"
                       onClick={() => document.getElementById("edit-modal-upload").click()}
                     >
@@ -1485,8 +1523,11 @@ const TipTapEditor = ({
                 {isGenerateMode && (
                   <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-500">Prompt</label>
+                      <label htmlFor="tiptap-gen-prompt" className="text-xs font-medium text-gray-500">
+                        Prompt
+                      </label>
                       <textarea
+                        id="tiptap-gen-prompt"
                         placeholder="Describe image..."
                         value={genForm.prompt}
                         onChange={(e) => setGenForm({ ...genForm, prompt: e.target.value })}
@@ -1496,8 +1537,11 @@ const TipTapEditor = ({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs font-medium text-gray-500">Style</label>
+                        <label htmlFor="tiptap-gen-style" className="text-xs font-medium text-gray-500">
+                          Style
+                        </label>
                         <select
+                          id="tiptap-gen-style"
                           value={genForm.style}
                           onChange={(e) => setGenForm({ ...genForm, style: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
@@ -1511,8 +1555,11 @@ const TipTapEditor = ({
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500">Ratio</label>
+                        <label htmlFor="tiptap-gen-ratio" className="text-xs font-medium text-gray-500">
+                          Ratio
+                        </label>
                         <select
+                          id="tiptap-gen-ratio"
                           value={genForm.aspectRatio}
                           onChange={(e) => setGenForm({ ...genForm, aspectRatio: e.target.value })}
                           className="select select-bordered select-sm w-full mt-1"
@@ -1526,12 +1573,14 @@ const TipTapEditor = ({
                     </div>
                     <div className="flex gap-2 justify-end">
                       <button
+                        type="button"
                         className="btn btn-sm btn-ghost"
                         onClick={() => setIsGenerateMode(false)}
                       >
                         Cancel
                       </button>
                       <button
+                        type="button"
                         className="btn btn-sm btn-primary bg-blue-600"
                         onClick={async () => {
                           if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
@@ -1584,8 +1633,11 @@ const TipTapEditor = ({
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium ">Instruction</label>
+                      <label htmlFor="tiptap-enhance-instruction" className="text-sm font-medium ">
+                        Instruction
+                      </label>
                       <textarea
+                        id="tiptap-enhance-instruction"
                         placeholder="Describe changes (e.g. make it high res, fix lighting)"
                         value={enhanceForm.prompt}
                         onChange={(e) => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
@@ -1595,8 +1647,11 @@ const TipTapEditor = ({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-sm font-medium ">Style</label>
+                        <label htmlFor="tiptap-enhance-style" className="text-sm font-medium ">
+                          Style
+                        </label>
                         <select
+                          id="tiptap-enhance-style"
                           value={enhanceForm.style}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, style: e.target.value })
@@ -1611,8 +1666,11 @@ const TipTapEditor = ({
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium ">Quality</label>
+                        <label htmlFor="tiptap-enhance-quality" className="text-sm font-medium ">
+                          Quality
+                        </label>
                         <select
+                          id="tiptap-enhance-quality"
                           value={enhanceForm.quality || "2k"}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, quality: e.target.value })
@@ -1625,8 +1683,11 @@ const TipTapEditor = ({
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium ">Aspect Ratio</label>
+                        <label htmlFor="tiptap-enhance-aspect" className="text-sm font-medium ">
+                          Aspect Ratio
+                        </label>
                         <select
+                          id="tiptap-enhance-aspect"
                           value={enhanceForm.dimensions || "1024x1024"}
                           onChange={(e) =>
                             setEnhanceForm({ ...enhanceForm, dimensions: e.target.value })
@@ -1642,12 +1703,14 @@ const TipTapEditor = ({
                     </div>
                     <div className="flex gap-2 justify-end mt-auto pt-4">
                       <button
+                        type="button"
                         className="btn btn-ghost btn-sm"
                         onClick={() => setIsEnhanceMode(false)}
                       >
                         Cancel
                       </button>
                       <button
+                        type="button"
                         className="btn btn-sm bg-purple-600 text-white hover:bg-purple-700"
                         onClick={async () => {
                           if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
@@ -1692,10 +1755,11 @@ const TipTapEditor = ({
                   <>
                     {/* Image URL */}
                     <div>
-                      <label className="block text-sm font-medium  mb-1">
+                      <label htmlFor="tiptap-image-url" className="block text-sm font-medium  mb-1">
                         Image URL <span className="text-red-500">*</span>
                       </label>
                       <input
+                        id="tiptap-image-url"
                         type="text"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
@@ -1708,12 +1772,13 @@ const TipTapEditor = ({
                     {/* Alt Text */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium ">
+                        <label htmlFor="tiptap-image-alt" className="block text-sm font-medium ">
                           Alt Text <span className="text-red-500">*</span>
                         </label>
                         {imageUrl && (
                           <div className="tooltip" data-tip="Generate Alt Text using AI">
                             <button
+                              type="button"
                               className="btn btn-ghost btn-xs text-gray-500 hover:text-blue-600 flex items-center gap-1"
                               onClick={async () => {
                                 const credits =
@@ -1747,6 +1812,7 @@ const TipTapEditor = ({
                         )}
                       </div>
                       <textarea
+                        id="tiptap-image-alt"
                         value={imageAlt}
                         onChange={(e) => setImageAlt(e.target.value)}
                         placeholder="Describe the image for accessibility and SEO"
@@ -1766,6 +1832,7 @@ const TipTapEditor = ({
             {!isEnhanceMode && (
               <div className="modal-action mt-4">
                 <button
+                  type="button"
                   className="btn btn-error btn-outline btn-sm flex items-center gap-1"
                   onClick={handleDeleteImage}
                 >
@@ -1773,18 +1840,21 @@ const TipTapEditor = ({
                 </button>
                 <div className="flex items-center gap-2 ml-auto">
                   <button
+                    type="button"
                     className="btn btn-ghost btn-sm border border-gray-300"
                     onClick={handleOpenAdvancedOptions}
                   >
                     Advanced Options
                   </button>
                   <button
+                    type="button"
                     className="btn btn-ghost btn-sm border border-gray-300"
                     onClick={() => setEditModalOpen(false)}
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     className="btn btn-primary btn-sm flex items-center gap-1"
                     onClick={handleSaveImageChanges}
                   >
@@ -1794,7 +1864,12 @@ const TipTapEditor = ({
               </div>
             )}
           </div>
-          <div className="modal-backdrop" onClick={() => setEditModalOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close"
+            className="modal-backdrop"
+            onClick={() => setEditModalOpen(false)}
+          />
         </dialog>
       )}
 
@@ -1904,6 +1979,10 @@ const TipTapEditor = ({
         createPortal(
           <div
             ref={previewRef}
+            // Hover-only link preview: the mouse handlers keep it open while the pointer
+            // is over it, they are not an activation affordance. role="tooltip" states
+            // that, and is what the rule wants instead of a bare interactive <div>.
+            role="tooltip"
             className="fixed z-10000 pointer-events-none"
             style={{ top: `${linkPreviewPos.top}px`, left: `${linkPreviewPos.left}px` }}
             onMouseEnter={() => {

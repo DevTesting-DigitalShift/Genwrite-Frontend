@@ -353,7 +353,13 @@ const BlogCard: React.FC<BlogCardProps> = ({
     onRestore?.(initialBlog._id)
   }
 
-  const handleCardClick = () => {
+  const handleCardClick = (e?: { target?: unknown }) => {
+    // Ignore activations that originated in the action-button cluster. Previously that
+    // cluster stopped mouse propagation, but keyboard activation of those buttons still
+    // bubbled up and opened the blog as well.
+    const target = e?.target as HTMLElement | undefined
+    if (target?.closest?.("[data-card-actions]")) return
+
     if (!isRunning) {
       if (isManualEditor) {
         onManualBlogClick(initialBlog)
@@ -365,9 +371,20 @@ const BlogCard: React.FC<BlogCardProps> = ({
 
   return (
     <div className="flex flex-col">
+      {/* biome-ignore lint/a11y/useSemanticElements: this card contains its own action
+          buttons, and a <button> may not legally nest interactive content. role="button"
+          plus tabIndex and a key handler give the same keyboard behaviour. */}
       <div
+        role="button"
+        tabIndex={0}
         className={`group flex flex-col bg-white rounded-xl border-2 ${borderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-90 h-full relative overflow-hidden`}
         onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            handleCardClick(e)
+          }
+        }}
       >
         {/* Header: Model + Action Buttons */}
         <div className="flex justify-between items-start mb-5">
@@ -387,9 +404,12 @@ const BlogCard: React.FC<BlogCardProps> = ({
           </div>
 
           {/* Direct action buttons */}
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {/* handleCardClick skips anything inside this marker, so no propagation guard
+              is needed — and unlike stopPropagation it also covers keyboard activation. */}
+          <div className="flex items-center gap-1" data-card-actions>
             {status === "failed" && !isTrashcan && (
               <button
+                type="button"
                 onClick={handleRetryClick}
                 title="Retry generation"
                 className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-95"
@@ -399,6 +419,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
             )}
             {!isTrashcan && onArchive && (
               <button
+                type="button"
                 onClick={handleArchiveClick}
                 title="Move to trash"
                 className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95"
@@ -408,6 +429,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
             )}
             {isTrashcan && onRestore && (
               <button
+                type="button"
                 onClick={handleRestoreClick}
                 title="Restore blog"
                 className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-95"
@@ -435,9 +457,9 @@ const BlogCard: React.FC<BlogCardProps> = ({
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-              {focusKeywords?.slice(0, 5).map((tag: string, i: number) => (
+              {focusKeywords?.slice(0, 5).map((tag: string) => (
                 <span
-                  key={i}
+                  key={tag}
                   className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-slate-50 text-slate-500 border border-slate-200/60 uppercase tracking-tight"
                 >
                   {tag}

@@ -121,6 +121,7 @@ export default function EmailVerification() {
 
           {!showOTP ? (
             <button
+              type="button"
               onClick={handleSendEmail}
               disabled={loading || !storeEmail}
               className="group w-full h-14 bg-[#3B4BB8] border-none hover:bg-[#3B4BB8]/90 text-white rounded-2xl font-bold flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50"
@@ -184,6 +185,7 @@ export default function EmailVerification() {
               {/* Resend Action */}
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={handleSendEmail}
                   disabled={!canResend || loading}
                   className="w-full h-14 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed group"

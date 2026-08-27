@@ -79,6 +79,7 @@ const UnsubscribeEmail = () => {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
+            type="button"
             onClick={handleStaySubscribed}
             disabled={loading}
             className="btn btn-primary btn-lg w-full sm:w-auto rounded-2xl font-semibold text-lg bg-linear-to-r from-purple-600 to-indigo-600 border-none text-white shadow-xl shadow-purple-200 hover:scale-[1.05] transition-all normal-case h-16 min-w-[200px]"
@@ -86,6 +87,7 @@ const UnsubscribeEmail = () => {
             Stay Subscribed
           </button>
           <button
+            type="button"
             onClick={handleUnsubscribe}
             disabled={loading || !email || !isValidEmail(email)}
             className="btn btn-ghost btn-lg w-full sm:w-auto rounded-2xl font-semibold text-lg text-purple-800 hover:bg-purple-100/50 normal-case h-16 min-w-[180px]"

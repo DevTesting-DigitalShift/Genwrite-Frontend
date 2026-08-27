@@ -149,8 +149,10 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
   return (
     <>
       <div className="relative group mb-4">
-        <div
-          className="cursor-pointer relative"
+        <button
+          type="button"
+          aria-label={`Edit image ${imageIndex + 1} of ${totalImages}`}
+          className="cursor-pointer relative block w-full"
           onClick={() => {
             setAltText(image.alt || "")
             setImageUrl(image.src || "")
@@ -163,16 +165,16 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
             className="w-full h-auto object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
           />
           {/* Overlay hint on hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+          <span className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
             <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium  shadow">
               Click to edit image
             </span>
-          </div>
+          </span>
           {/* Image index badge */}
-          <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+          <span className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
             Image {imageIndex + 1} of {totalImages}
-          </div>
-        </div>
+          </span>
+        </button>
       </div>
 
       {/* Edit Image Modal */}
@@ -200,12 +202,13 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
               {/* Image URL */}
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="inline-image-url" className="label">
                   <span className="label-text font-medium ">
                     Image URL <span className="text-red-500">*</span>
                   </span>
                 </label>
                 <input
+                  id="inline-image-url"
                   type="text"
                   className="input input-bordered w-full"
                   value={imageUrl}
@@ -216,7 +219,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
               {/* Alt Text */}
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="inline-image-alt" className="label">
                   <span className="label-text font-medium ">
                     Alt Text <span className="text-red-500">*</span>
                   </span>
@@ -225,6 +228,7 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   Describe what's in the image. This helps with SEO and accessibility.
                 </p>
                 <textarea
+                  id="inline-image-alt"
                   className="textarea textarea-bordered w-full"
                   value={altText}
                   onChange={(e) => setAltText(e.target.value)}
@@ -244,12 +248,17 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
 
             <div className="modal-action flex justify-between items-center mt-6">
               {/* Left: Destructive action */}
-              <button className="btn btn-error btn-outline btn-sm gap-2" onClick={handleDelete}>
+              <button
+                type="button"
+                className="btn btn-error btn-outline btn-sm gap-2"
+                onClick={handleDelete}
+              >
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   className="btn btn-ghost btn-sm gap-2"
                   onClick={handleMoveUp}
                   disabled={isFirst}
@@ -257,23 +266,34 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
                   <ChevronUp className="w-4 h-4" /> Move Up
                 </button>
                 <button
+                  type="button"
                   className="btn btn-ghost btn-sm gap-2"
                   onClick={handleMoveDown}
                   disabled={isLast}
                 >
                   <ChevronDown className="w-4 h-4" /> Move Down
                 </button>
-                <button className="btn btn-sm" onClick={() => setEditModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => setEditModalOpen(false)}
+                >
                   Cancel
                 </button>
-                <button className="btn btn-primary btn-sm gap-2" onClick={handleSaveChanges}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-2"
+                  onClick={handleSaveChanges}
+                >
                   <Check className="w-4 h-4" /> Save
                 </button>
               </div>
             </div>
           </div>
           <form method="dialog" className="modal-backdrop">
-            <button onClick={() => setEditModalOpen(false)}>close</button>
+            <button type="button" onClick={() => setEditModalOpen(false)}>
+              close
+            </button>
           </form>
         </div>
       )}

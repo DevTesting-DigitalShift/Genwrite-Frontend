@@ -338,3 +338,78 @@ export const getBlogPublicly = async (id) => {
     throw new Error(error.response?.data?.message || "Public blog not found")
   }
 }
+
+/**
+ * Run an AI performance review of a posted blog using its Search Console data.
+ * Backend requires the blog to already be published somewhere.
+ * @param {string} id - Blog ID
+ * @returns {Promise<Object>} BlogInsight document (metricsSnapshot, overallSummary, suggestions)
+ */
+export const analyzeBlogPerformance = async (id) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/analyze`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to analyze blog performance")
+  }
+}
+
+/**
+ * Fetch the most recently generated insight for a blog, if one exists — lets the
+ * editor restore a previous analysis on reload instead of re-running it.
+ * @param {string} id - Blog ID
+ * @returns {Promise<Object|null>} BlogInsight document, or null if never analyzed
+ */
+export const getBlogInsight = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/blogs/${id}/insight`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog insight")
+  }
+}
+
+/**
+ * Generate the rewrite for an insight suggestion (target section or the whole
+ * blog) for review. Nothing is persisted yet — the blog's saved content and the
+ * suggestion's status are untouched until confirmBlogInsight is called.
+ * @param {string} id - Blog ID
+ * @param {Object} payload
+ * @param {string} payload.suggestionId - Suggestion _id from the insight document
+ * @param {"section"|"whole"} [payload.scope="section"] - Rewrite scope
+ * @returns {Promise<{content: string, suggestionId: string, scope: string}>}
+ */
+export const applyBlogInsight = async (id, { suggestionId, scope = "section" }) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/apply-insight`, {
+      suggestionId,
+      scope,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to generate suggestion rewrite")
+  }
+}
+
+/**
+ * Commit a rewrite the user reviewed and accepted: persists it as the blog's
+ * content, marks the suggestion applied, and reposts if requested.
+ * @param {string} id - Blog ID
+ * @param {Object} payload
+ * @param {string} payload.suggestionId - Suggestion _id from the insight document
+ * @param {string} payload.content - The reviewed content, as returned by applyBlogInsight
+ * @param {boolean} [payload.republish=false] - Repost to connected platforms after applying
+ * @returns {Promise<{content: string, repost: Object|null}>}
+ */
+export const confirmBlogInsight = async (id, { suggestionId, content, republish = false }) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/confirm-insight`, {
+      suggestionId,
+      content,
+      republish,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to apply suggestion")
+  }
+}

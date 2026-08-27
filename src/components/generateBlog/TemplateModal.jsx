@@ -60,7 +60,7 @@ const TemplateModal = ({
     setSelectedTemplate(temp)
     setFormData((prev) => ({ ...prev, template: temp?.[0]?.name || "" }))
     setErrors((prev) => ({ ...prev, template: false }))
-  }, [])
+  }, [setFormData, setErrors])
 
   const handleInputChange = (e, key) => {
     setFormData((prev) => ({ ...prev, [key]: e.target.value }))
@@ -192,7 +192,7 @@ const TemplateModal = ({
           <h3 className="text-xl font-bold">
             {currentStep === 0 ? "Select Template" : "Create Simple Blog"}
           </h3>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -214,10 +214,11 @@ const TemplateModal = ({
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-topic" className="block text-sm font-medium  mb-1">
                   Topic <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="template-topic"
                   type="text"
                   value={formData.topic}
                   onChange={(e) => handleInputChange(e, "topic")}
@@ -232,8 +233,11 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">Tone</label>
+                <label htmlFor="template-tone" className="block text-sm font-medium  mb-1">
+                  Tone
+                </label>
                 <select
+                  id="template-tone"
                   value={formData.tone}
                   onChange={handleSelectChange}
                   className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
@@ -247,11 +251,12 @@ const TemplateModal = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-focus-keywords" className="block text-sm font-medium  mb-1">
                   Focus Keywords (max 3) <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="template-focus-keywords"
                     type="text"
                     value={formData.focusKeywordInput}
                     onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
@@ -264,6 +269,7 @@ const TemplateModal = ({
                     aria-label="Focus keywords"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddKeyword("focusKeywords")}
                     className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                     aria-label="Add focus keyword"
@@ -274,11 +280,12 @@ const TemplateModal = ({
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.focusKeywords.map((keyword, index) => (
                     <span
-                      key={index}
+                      key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
+                        type="button"
                         onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove focus keyword ${keyword}`}
@@ -295,11 +302,12 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-keywords" className="block text-sm font-medium  mb-1">
                   Keywords <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="template-keywords"
                     type="text"
                     value={formData.keywordInput}
                     onChange={(e) => handleKeywordInputChange(e, "keywords")}
@@ -312,6 +320,7 @@ const TemplateModal = ({
                     aria-label="Secondary keywords"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddKeyword("keywords")}
                     className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
                     aria-label="Add keyword"
@@ -322,11 +331,12 @@ const TemplateModal = ({
                 <div className="flex flex-wrap gap-2 mt-2">
                   {visibleKeywords.map((keyword, index) => (
                     <span
-                      key={`${keyword}-${index}`}
+                      key={keyword}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
+                        type="button"
                         onClick={() => handleRemoveKeyword(index, "keywords")}
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove keyword ${keyword}`}
@@ -336,7 +346,8 @@ const TemplateModal = ({
                     </span>
                   ))}
                   {formData.keywords.length > 18 && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
@@ -345,7 +356,7 @@ const TemplateModal = ({
                       ) : (
                         <>+{formData.keywords.length - 18} more</>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
                 {errors.keywords && formData.keywords.length === 0 && (
@@ -353,11 +364,12 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <label htmlFor="template-title" className="block text-sm font-medium  mb-1">
                   Title <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-4">
                   <input
+                    id="template-title"
                     type="text"
                     value={formData.title}
                     onChange={(e) => handleInputChange(e, "title")}
@@ -368,6 +380,7 @@ const TemplateModal = ({
                     aria-label="Blog title"
                   />
                   <button
+                    type="button"
                     onClick={handleGenerateTitles}
                     disabled={isGeneratingTitles}
                     className={`btn btn-primary bg-[#4C5BD6] text-white border-none rounded-md px-6 hover:bg-[#3B4BB8] transition-colors ${
@@ -391,10 +404,10 @@ const TemplateModal = ({
                 </div>
                 {generatedTitles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {generatedTitles.map((generatedTitle, index) => {
+                    {generatedTitles.map((generatedTitle) => {
                       const isSelected = generatedTitle === formData.title
                       return (
-                        <div key={index} className="relative group">
+                        <div key={generatedTitle} className="relative group">
                           <button
                             type="button"
                             onClick={() => {
@@ -417,9 +430,9 @@ const TemplateModal = ({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium  mb-1">
+                <span className="block text-sm font-medium  mb-1">
                   Choose length of Blog <span className="text-red-500">*</span>
-                </label>
+                </span>
                 <Slider
                   min={BLOG_CONFIG.LENGTH.MIN}
                   max={BLOG_CONFIG.LENGTH.MAX}
@@ -442,6 +455,7 @@ const TemplateModal = ({
         <div className="modal-action flex items-center justify-end gap-3">
           {currentStep === 0 ? (
             <button
+              type="button"
               key="next"
               onClick={handleNext}
               className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
@@ -452,6 +466,7 @@ const TemplateModal = ({
           ) : (
             <>
               <button
+                type="button"
                 key="previous"
                 onClick={handlePrev}
                 className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-bold transition-all border border-gray-200"
@@ -460,6 +475,7 @@ const TemplateModal = ({
                 Previous
               </button>
               <button
+                type="button"
                 key="submit"
                 onClick={handleSubmit}
                 className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
@@ -472,7 +488,9 @@ const TemplateModal = ({
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

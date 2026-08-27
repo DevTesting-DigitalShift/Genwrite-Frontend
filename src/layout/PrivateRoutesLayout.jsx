@@ -7,8 +7,17 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 import PaymentPendingModal from "@components/PaymentPendingModal"
 import { useProAction } from "@/hooks/useProAction"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
+import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
+import SessionExpiredModal from "@components/SessionExpiredModal"
+import {
+  getActiveToken,
+  removeSession,
+  getActiveSession,
+  getSessions,
+  getActiveUserId,
+} from "@utils/sessionStore"
+import { toast } from "sonner"
 
 // Routes that needsUpgrade users are allowed to visit freely
 const ALLOWED_ROUTES = [
@@ -22,21 +31,41 @@ const ALLOWED_ROUTES = [
 ]
 
 const PrivateRoutesLayout = () => {
-  const token = localStorage.getItem("token")
+  const token = getActiveToken()
   const navigate = useNavigate()
   const location = useLocation()
   const { user, loading, loadAuthenticatedUser } = useAuthStore()
   const { needsUpgrade } = useProAction()
-  const { handlePopup } = useConfirmPopup()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
   const isPublicPath = location.pathname.startsWith("/blog/")
 
-  // For guest users on public links, bypass auth checks immediately
-  if (!token && isPublicPath) {
-    return <Outlet />
-  }
+  // Each tab pins its own account (sessionStorage), so another tab switching accounts is
+  // none of this tab's business — it keeps running its own. The one cross-tab change that
+  // DOES concern us is this tab's account being signed out elsewhere: its token is gone
+  // from the shared pool, so every further request would 401. Only that case reacts.
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== "gw_sessions") return
+
+      // Read live rather than from a ref captured at mount: this tab may have switched
+      // accounts since, and a stale id would fire this warning for the wrong account.
+      // sessionStorage is updated synchronously on switch, so it is always current.
+      const myUserId = getActiveUserId()
+      if (!myUserId) return
+
+      const stillSignedIn = getSessions().some((s) => s.userId === myUserId)
+      if (stillSignedIn) return
+
+      toast.error("You were signed out of this account in another tab.", {
+        action: { label: "Reload", onClick: () => window.location.reload() },
+        duration: Number.POSITIVE_INFINITY,
+      })
+    }
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [])
 
   // Load authenticated user on mount
   useEffect(() => {
@@ -44,7 +73,10 @@ const PrivateRoutesLayout = () => {
       try {
         await loadAuthenticatedUser()
       } catch {
-        localStorage.removeItem("token")
+        const active = getActiveSession()
+        // Couldn't authenticate — detach rather than adopt another account, so /login
+        // actually shows the login form instead of bouncing back in as someone else.
+        if (active) removeSession(active.userId, { adoptNext: false })
         if (!isPublicPath) {
           navigate("/login")
         }
@@ -58,7 +90,7 @@ const PrivateRoutesLayout = () => {
     } else {
       setIsSocketConnected(true)
     }
-  }, [])
+  }, [token, navigate, loadAuthenticatedUser, isPublicPath])
 
   const isAllowed =
     ALLOWED_ROUTES.some((path) => location.pathname.startsWith(path)) || isPublicPath
@@ -72,6 +104,14 @@ const PrivateRoutesLayout = () => {
       navigate("/onboarding", { replace: true })
     }
   }, [user, navigate])
+
+  // For guest users on public links, bypass auth checks immediately. Checked after
+  // every hook above has run unconditionally (rules-of-hooks) — isPublicPath can flip
+  // within the same mounted layout instance via client-side navigation (e.g. a public
+  // blog page -> a private route) without this component unmounting.
+  if (!token && isPublicPath) {
+    return <Outlet />
+  }
 
   // Show loading screen while authenticating or connecting socket
   if ((loading && !user) || (token && !isSocketConnected)) {
@@ -92,6 +132,7 @@ const PrivateRoutesLayout = () => {
 
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 px-3 md:px-6">
           <main>
+            <WorkspaceAccessBanner />
             <Outlet />
           </main>
         </div>
@@ -108,6 +149,7 @@ const PrivateRoutesLayout = () => {
       <PaymentPendingModal user={user} />
       {/* If user needs upgrade and hits a restricted route, show the lock modal instead of silent redirect */}
       {needsUpgrade && !isAllowed && <UpgradeModal featureName="Full Dashboard Access" />}
+      <SessionExpiredModal />
     </>
   ) : (
     <Navigate to="/login" replace />

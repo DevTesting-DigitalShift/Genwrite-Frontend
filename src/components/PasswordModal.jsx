@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
-import { LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
-import { X } from "lucide-react"
+import { X, Lock, Eye, EyeOff } from "lucide-react"
 
 const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
   const [loading, setLoading] = useState(false)
@@ -101,10 +100,10 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <LockClosedIcon className="w-5 h-5 text-blue-600" />
+            <Lock className="w-5 h-5 text-blue-600" />
             <span>{hasPassword ? "Change Password" : "Set Password"}</span>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={handleCancel}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleCancel}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -122,9 +121,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
           {hasPassword && (
             <div>
-              <label className="block text-sm font-medium  mb-2">Old Password</label>
+              <label htmlFor="old-password" className="block text-sm font-medium  mb-2">
+                Old Password
+              </label>
               <div className="relative">
                 <input
+                  id="old-password"
                   type={showOldPassword ? "text" : "password"}
                   name="oldPassword"
                   value={formData.oldPassword}
@@ -141,9 +143,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showOldPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <EyeIcon className="w-5 h-5" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               </div>
@@ -154,9 +156,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           )}
 
           <div>
-            <label className="block text-sm font-medium  mb-2">New Password</label>
+            <label htmlFor="new-password" className="block text-sm font-medium  mb-2">
+              New Password
+            </label>
             <div className="relative">
               <input
+                id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 name="newPassword"
                 value={formData.newPassword}
@@ -173,9 +178,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showNewPassword ? (
-                  <EyeSlashIcon className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <EyeIcon className="w-5 h-5" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -189,9 +194,12 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium  mb-2">Confirm Password</label>
+            <label htmlFor="confirm-password" className="block text-sm font-medium  mb-2">
+              Confirm Password
+            </label>
             <div className="relative">
               <input
+                id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={formData.confirmPassword}
@@ -208,9 +216,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showConfirmPassword ? (
-                  <EyeSlashIcon className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <EyeIcon className="w-5 h-5" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -222,10 +230,11 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
 
         {/* Footer */}
         <div className="modal-action flex items-center gap-2 mt-6">
-          <button onClick={handleCancel} className="btn btn-ghost hover:bg-gray-100">
+          <button type="button" onClick={handleCancel} className="btn btn-ghost hover:bg-gray-100">
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading}
             className="btn btn-primary text-white disabled:opacity-50"
@@ -236,7 +245,9 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleCancel}>close</button>
+        <button type="button" onClick={handleCancel}>
+          close
+        </button>
       </form>
     </dialog>
   )

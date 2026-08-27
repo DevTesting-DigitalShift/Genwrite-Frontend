@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
+import useWorkspaceStore from "@store/useWorkspaceStore"
 import dayjs from "dayjs"
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
@@ -25,6 +26,8 @@ import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import DateRangePicker from "@components/ui/DateRangePicker"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { useProAction } from "@/hooks/useProAction"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
+import { getDefaultFilterStart } from "@utils/dateDefaults"
 import {
   archiveBlogById,
   getAllBlogs,
@@ -49,10 +52,16 @@ const BlogsPage = () => {
   const isTrashcan = location.pathname === "/trashcan"
 
   const { user } = useAuthStore()
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userId = user?._id || "guest"
+  // Scope caching/filter-persistence to whichever account's blogs are actually being
+  // viewed, so switching into/out of a shared workspace doesn't reuse the invitee's
+  // own stale filters or React Query cache.
+  const scopeKey = activeWorkspace?.id || userId
   const { handleProAction } = useProAction()
+  const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
 
   const initialBlogFilter = useMemo(
@@ -70,7 +79,7 @@ const BlogsPage = () => {
 
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     return item ? JSON.parse(item) : initialBlogFilter
   })
@@ -85,13 +94,13 @@ const BlogsPage = () => {
       setBlogFilters((prev) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
-          `user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`,
+          `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`,
           JSON.stringify(newValue)
         )
         return newValue
       })
     },
-    [userId, isTrashcan]
+    [scopeKey, isTrashcan]
   )
 
   const handleApplyDetailedFilters = useCallback(() => {
@@ -101,7 +110,7 @@ const BlogsPage = () => {
 
   useEffect(() => {
     const field = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
@@ -109,9 +118,13 @@ const BlogsPage = () => {
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
-      setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
+      const isSharedWorkspace = !!activeWorkspace
+      setBlogFilters((prev) => ({
+        ...prev,
+        start: getDefaultFilterStart(user, { isSharedWorkspace }),
+      }))
     }
-  }, [user?.createdAt, isTrashcan])
+  }, [scopeKey, activeWorkspace, user, isTrashcan])
 
   const {
     isLoading: isLoadingActive,
@@ -122,7 +135,7 @@ const BlogsPage = () => {
     isFetchingNextPage: isFetchingNextPageActive,
     refetch: refetchActive,
   } = useInfiniteQuery({
-    queryKey: ["blogs", userId, blogFilters],
+    queryKey: ["blogs", scopeKey, blogFilters],
     initialPageParam: 1,
     queryFn: async ({ pageParam = 1 }) => {
       let params = {
@@ -166,7 +179,7 @@ const BlogsPage = () => {
     fetchNextPage: fetchNextPageTrash,
     isFetchingNextPage: isFetchingNextPageTrash,
   } = useInfiniteQuery({
-    queryKey: ["trashedBlogs", userId, blogFilters],
+    queryKey: ["trashedBlogs", scopeKey, blogFilters],
     initialPageParam: 1,
     queryFn: async ({ pageParam = 1 }) => {
       let params = {
@@ -215,21 +228,26 @@ const BlogsPage = () => {
   const fetchNextPage = isTrashcan ? fetchNextPageTrash : fetchNextPageActive
   const isFetchingNextPage = isTrashcan ? isFetchingNextPageTrash : isFetchingNextPageActive
 
+  const defaultFilterStart = useMemo(
+    () => getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace }),
+    [user, activeWorkspace]
+  )
+
   const resetFilters = useCallback(() => {
-    const freshStart = { ...initialBlogFilter, start: user?.createdAt }
+    const freshStart = { ...initialBlogFilter, start: defaultFilterStart }
     setBlogFilters(freshStart)
     setTempGscClicks(null)
     setTempGscImpressions(null)
-    sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
+    sessionStorage.removeItem(`user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     toast.success("Filters reset to basics")
-  }, [user, isTrashcan, userId, initialBlogFilter])
+  }, [defaultFilterStart, isTrashcan, scopeKey, initialBlogFilter])
 
   const hasActiveDates = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
-    const sameStart = blogFilters.start === user?.createdAt
+    const sameStart = blogFilters.start === defaultFilterStart
     const sameEnd = blogFilters.end === initialBlogFilter.end
     return !sameStart || !sameEnd
-  }, [blogFilters, user?.createdAt, initialBlogFilter])
+  }, [blogFilters, defaultFilterStart, initialBlogFilter])
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -238,7 +256,7 @@ const BlogsPage = () => {
       return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
     })
     return hasActiveDates || isOtherChanged
-  }, [blogFilters, user?.createdAt, hasActiveDates, initialBlogFilter])
+  }, [blogFilters, hasActiveDates, initialBlogFilter])
 
   useEffect(() => {
     const socket = getSocket()
@@ -453,8 +471,11 @@ const BlogsPage = () => {
         <div className="flex flex-wrap items-center gap-4">
           {!isTrashcan && (
             <button
-              onClick={() => handleProAction(() => navigate("/blog-editor"))}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10"
+              type="button"
+              disabled={isReadOnlyWorkspace}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+              onClick={() => guardWrite(() => handleProAction(() => navigate("/blog-editor")))}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
             >
               <Plus
                 size={20}
@@ -466,6 +487,7 @@ const BlogsPage = () => {
           )}
 
           <button
+            type="button"
             onClick={() =>
               queryClient.invalidateQueries({ queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"] })
             }
@@ -478,6 +500,7 @@ const BlogsPage = () => {
           {isTrashcan && allBlogs.length > 0 && (
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() =>
                   handlePopup({
                     title: "Restore All Articles?",
@@ -491,6 +514,7 @@ const BlogsPage = () => {
                 Restore All
               </button>
               <button
+                type="button"
                 onClick={() =>
                   handlePopup({
                     title: "Empty Trash?",
@@ -549,6 +573,7 @@ const BlogsPage = () => {
           <Popover>
             <PopoverTrigger asChild>
               <button
+                type="button"
                 className={clsx(
                   "btn gap-3 transition-all rounded-lg",
                   hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
@@ -572,6 +597,7 @@ const BlogsPage = () => {
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
                 <h4 className="font-bold text-slate-800 text-sm">Detailed Filters</h4>
                 <button
+                  type="button"
                   onClick={resetFilters}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
                 >
@@ -607,10 +633,14 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <label
+                    htmlFor="filter-gsc-clicks"
+                    className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5"
+                  >
                     <MousePointerClick size={14} className="text-slate-400" /> MIN. GSC CLICKS
                   </label>
                   <input
+                    id="filter-gsc-clicks"
                     type="number"
                     value={tempGscClicks || ""}
                     onChange={(e) => setTempGscClicks(parseInt(e.target.value, 10) || null)}
@@ -621,10 +651,14 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <label
+                    htmlFor="filter-gsc-impressions"
+                    className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5"
+                  >
                     <Eye size={14} className="text-slate-400" /> MIN. GSC IMPRESSIONS
                   </label>
                   <input
+                    id="filter-gsc-impressions"
                     type="number"
                     value={tempGscImpressions || ""}
                     onChange={(e) => setTempGscImpressions(parseInt(e.target.value, 10) || null)}
@@ -635,12 +669,14 @@ const BlogsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                     <Calendar size={14} className="text-slate-400" /> DATE RANGE
-                  </label>
+                  </span>
                   <DateRangePicker
                     value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
-                    minDate={user?.createdAt ? dayjs(user.createdAt) : undefined}
+                    minDate={
+                      !activeWorkspace && user?.createdAt ? dayjs(user.createdAt) : undefined
+                    }
                     maxDate={dayjs()}
                     onChange={(dates) => {
                       if (dates?.[0]) {
@@ -656,6 +692,7 @@ const BlogsPage = () => {
 
                 <div className="pt-2">
                   <button
+                    type="button"
                     onClick={handleApplyDetailedFilters}
                     className="w-full py-2.5 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all"
                   >
@@ -668,6 +705,7 @@ const BlogsPage = () => {
 
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={resetFilters}
               className="btn btn-ghost rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-500 transition-all shadow-sm"
               title="Clear Matrix Filters"
@@ -684,6 +722,7 @@ const BlogsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(9)].map((_, index) => (
               <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
                 key={index}
                 className="bg-white rounded-[40px] p-8 border border-slate-100 h-[400px] flex flex-col space-y-6"
               >
@@ -720,6 +759,7 @@ const BlogsPage = () => {
               Try adjusting your filters or search terms.
             </p>
             <button
+              type="button"
               onClick={resetFilters}
               className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
             >
@@ -758,6 +798,7 @@ const BlogsPage = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
                     className="btn btn-outline p-6 px-8 border rounded-lg  border-slate-200 disabled:opacity-50"

@@ -162,6 +162,7 @@ const ForgotPassword = () => {
               </Link>
 
               <button
+                type="button"
                 onClick={() => {
                   setSuccess(false)
                   setEmail("")

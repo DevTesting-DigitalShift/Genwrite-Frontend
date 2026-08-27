@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import DOMPurify from "dompurify"
+import { useNavigate } from "react-router-dom"
 import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useContentStore from "@store/useContentStore"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
@@ -14,8 +14,6 @@ const PromptContent = () => {
   const [copiedField, setCopiedField] = useState(null)
 
   const navigate = useNavigate()
-  const location = useLocation()
-  const { handlePopup } = useConfirmPopup()
 
   // Zustand stores
   const { user } = useAuthStore()
@@ -34,7 +32,7 @@ const PromptContent = () => {
     return () => {
       resetMetadata()
     }
-  }, [location.pathname, resetMetadata])
+  }, [resetMetadata])
 
   // Robust word count calculation that ignores HTML tags
   const plainText = content.replace(/<[^>]*>/g, " ").trim()
@@ -77,7 +75,7 @@ const PromptContent = () => {
       console.error("Error generating content:", error)
       toast.error(typeof error === "string" ? error : "Failed to generate content.")
     }
-  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid])
+  }, [content, prompt, generatePromptContent, userPlan, navigate, isPromptValid, isContentValid, wordCount])
 
   const handleReset = useCallback(() => {
     setContent("")
@@ -113,7 +111,8 @@ const PromptContent = () => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-300"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
         style={{ lineHeight: "1.6", color: "#374151" }}
       />
     )
@@ -145,6 +144,7 @@ const PromptContent = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={handleReset}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               title="Reset all content"
@@ -163,6 +163,7 @@ const PromptContent = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
@@ -205,6 +206,7 @@ const PromptContent = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
@@ -243,6 +245,7 @@ const PromptContent = () => {
 
           {/* Generate button */}
           <button
+            type="button"
             onClick={() => handleGenerateContent()}
             loading={isGenerating}
             disabled={!canGenerate}
@@ -266,6 +269,7 @@ const PromptContent = () => {
               <h2 className="text-xl font-semibold text-gray-900">Generated Content</h2>
             </div>
             <button
+              type="button"
               onClick={() =>
                 copyToClipboard(stripHtml(generatedContent), "Generated content", "generated")
               }

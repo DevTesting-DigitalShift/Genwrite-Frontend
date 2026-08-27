@@ -32,6 +32,18 @@ const useAnalysisStore = create(
 
       setError: (error) => set({ error }),
 
+      // Cleared on account switch.
+      reset: () =>
+        set({
+          keywordAnalysis: [],
+          suggestions: [],
+          loading: false,
+          analysisResult: {},
+          error: null,
+          selectedKeywords: [],
+          pendingImport: null,
+        }),
+
       // Async Actions
       fetchCompetitiveAnalysis: async ({ blogId, title, content, keywords }) => {
         set({ loading: true, error: null })

@@ -59,6 +59,7 @@ const GSCLogin = () => {
         </p>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
         <button
+          type="button"
           onClick={connectGSC}
           disabled={isConnecting}
           className="btn w-full bg-linear-to-r from-blue-600 to-purple-600 hover:opacity-90 border-none rounded-lg h-12 text-base font-medium tracking-wider text-white flex items-center justify-center gap-2 disabled:opacity-70"
@@ -66,6 +67,7 @@ const GSCLogin = () => {
           {isConnecting ? (
             <>
               <svg
+                aria-hidden="true"
                 className="w-4 h-4 animate-spin"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

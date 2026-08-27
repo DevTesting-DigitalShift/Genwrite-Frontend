@@ -14,6 +14,11 @@ const useBrandStore = create(
       setSiteInfo: (updates) => set((state) => ({ siteInfo: { ...state.siteInfo, ...updates } })),
       resetSiteInfo: () => set({ siteInfo: { data: null, loading: false, error: null } }),
 
+      // Cleared on account switch — the previous account's selected brand/site-info
+      // must not leak into the newly active one.
+      reset: () =>
+        set({ selectedVoice: null, siteInfo: { data: null, loading: false, error: null } }),
+
       // Async Actions
       fetchSiteInfo: async (url) => {
         set((state) => ({ siteInfo: { ...state.siteInfo, loading: true, error: null } }))

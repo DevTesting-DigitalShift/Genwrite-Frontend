@@ -39,11 +39,12 @@ const BreadcrumbLink = React.forwardRef(({ asChild, className, ...props }, ref) 
 })
 BreadcrumbLink.displayName = "BreadcrumbLink"
 
+// The current page is not a link — `aria-current="page"` on a plain span is the WAI-ARIA
+// breadcrumb pattern. The previous `role="link"` + `aria-disabled` announced it as an
+// unreachable link and left it unfocusable, which is worse than not marking it at all.
 const BreadcrumbPage = React.forwardRef(({ className, ...props }, ref) => (
   <span
     ref={ref}
-    role="link"
-    aria-disabled="true"
     aria-current="page"
     className={cn("font-normal text-foreground", className)}
     {...props}

@@ -2,7 +2,7 @@ import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { useState } from "react"
 import { toast } from "sonner"
 
-export default function PaymentForm({ clientSecret, onSuccess, onError }) {
+export default function PaymentForm({ onSuccess, onError }) {
   const stripe = useStripe()
   const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)

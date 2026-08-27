@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import {
   useJobsQuery,
@@ -37,6 +38,7 @@ const PAGE_SIZE = 12
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
+  const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [expandedRows, setExpandedRows] = useState(new Set())
 
   const toggleExpand = (id) => {
@@ -53,9 +55,9 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     const remaining = arr.length - limit
     return (
       <div className="flex flex-wrap gap-1">
-        {display.map((item, i) => (
+        {display.map((item) => (
           <span
-            key={i}
+            key={item}
             className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-medium border border-indigo-100 wrap-break-word max-w-[150px]"
           >
             {item}
@@ -63,6 +65,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
         ))}
         {remaining > 0 && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               toggleExpand(jobId)
@@ -146,6 +149,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* Expand toggle */}
                     <td className="pl-3 py-4">
                       <button
+                        type="button"
                         onClick={() => toggleExpand(job._id)}
                         className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                         title={isExpanded ? "Collapse" : "Expand all details"}
@@ -185,9 +189,11 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* Status */}
                     <td className="px-5 py-4">
                       <button
+                        type="button"
                         onClick={() => onToggleStatus(job)}
-                        disabled={isToggling}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                        disabled={isToggling || isReadOnlyWorkspace}
+                        title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border disabled:opacity-60 disabled:cursor-not-allowed ${
                           job.status === "active"
                             ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
                             : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
@@ -236,20 +242,28 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
                     {/* Actions */}
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => onEdit(job)}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => onDelete(job)}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {/* Hidden outright in a read-only workspace — the pipeline
+                            belongs to the owner, not the viewer */}
+                        {!isReadOnlyWorkspace && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onEdit(job)}
+                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDelete(job)}
+                              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -277,6 +291,7 @@ const Jobs = () => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const openJobModal = useJobStore((state) => state.openJobModal)
+  const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [searchQuery, _setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("jobs_view_mode") || "grid"
@@ -287,7 +302,7 @@ const Jobs = () => {
   }, [viewMode])
 
   const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
-  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteJobMutation()
+  const { mutate: deleteMutate } = useDeleteJobMutation()
 
   const user = useAuthStore((state) => state.user)
   const updateUserPartial = useAuthStore((state) => state.updateUserPartial)
@@ -339,7 +354,7 @@ const Jobs = () => {
       socket.off("job:deleted")
       socket.off("user:usage", handleUsageUpdate)
     }
-  }, [queryClient, user, navigate, updateUserPartial])
+  }, [queryClient, user, updateUserPartial])
 
   useEffect(() => {
     if (!user) {
@@ -360,9 +375,11 @@ const Jobs = () => {
   }, [usage, usageLimit, navigate])
 
   const handleOpenJobModal = useCallback(() => {
-    if (!checkJobLimit()) return
-    openJobModal(null)
-  }, [checkJobLimit, openJobModal])
+    guardWrite(() => {
+      if (!checkJobLimit()) return
+      openJobModal(null)
+    })
+  }, [checkJobLimit, openJobModal, guardWrite])
 
   const handleEditJob = useCallback(
     (job) => {
@@ -421,6 +438,7 @@ const Jobs = () => {
             <div className="flex items-center gap-3">
               <div className="join bg-white p-1 gap-1 rounded-xl border border-slate-200 shadow-sm">
                 <button
+                  type="button"
                   onClick={() => setViewMode("grid")}
                   className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
                     viewMode === "grid"
@@ -431,6 +449,7 @@ const Jobs = () => {
                   <LayoutGrid size={18} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode("list")}
                   className={`join-item btn btn-ghost btn-sm h-10 w-10 p-0 rounded-lg transition-all ${
                     viewMode === "list"
@@ -443,6 +462,7 @@ const Jobs = () => {
               </div>
 
               <button
+                type="button"
                 onClick={handleRefresh}
                 disabled={queryLoading}
                 className="btn btn-ghost bg-white rounded-lg hover:bg-slate-100 text-slate-600 font-bold border border-slate-200 h-12 px-6 shadow-sm"
@@ -520,10 +540,12 @@ const Jobs = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleOpenJobModal}
-              disabled={usage >= usageLimit}
+              disabled={usage >= usageLimit || isReadOnlyWorkspace}
+              title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
               className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
-                usage >= usageLimit
+                usage >= usageLimit || isReadOnlyWorkspace
                   ? "bg-slate-100 cursor-not-allowed grayscale"
                   : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800"
               }`}
@@ -560,6 +582,7 @@ const Jobs = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[...Array(6)].map((_, i) => (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
                     key={i}
                     className="h-64 bg-white rounded-[32px] border border-slate-100 animate-pulse p-8 space-y-4"
                   >
@@ -584,8 +607,11 @@ const Jobs = () => {
                   <p className="text-slate-400 font-medium">Start automating your content today.</p>
                 </div>
                 <button
+                  type="button"
                   onClick={handleOpenJobModal}
-                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4"
+                  disabled={isReadOnlyWorkspace}
+                  title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
+                  className="btn btn-primary bg-indigo-600 border-none text-white h-12 px-8 rounded-2xl font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Deploy Your First Job
                 </button>
@@ -628,6 +654,7 @@ const Jobs = () => {
             <div className="flex justify-center pt-8">
               <div className="join bg-white shadow-xl shadow-slate-200/40 rounded-2xl border border-slate-100 p-1">
                 <button
+                  type="button"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"
@@ -637,6 +664,8 @@ const Jobs = () => {
 
                 {[...Array(totalPages)].map((_, i) => (
                   <button
+                    type="button"
+                    // biome-ignore lint/suspicious/noArrayIndexKey: pagination button N always represents page N
                     key={i + 1}
                     onClick={() => setCurrentPage(i + 1)}
                     className={`join-item btn h-12 w-12 rounded-xl text-sm font-black transition-all border-none ${
@@ -650,6 +679,7 @@ const Jobs = () => {
                 ))}
 
                 <button
+                  type="button"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   className="join-item btn btn-ghost h-12 w-12 rounded-xl p-0 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border-none"

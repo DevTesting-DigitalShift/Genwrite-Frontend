@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -10,6 +10,7 @@ import {
   Loader2,
   ArrowRight,
   BrainCircuit,
+  AlertCircle,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
@@ -18,6 +19,7 @@ import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
+import { getFriendlyError } from "@utils/friendlyError"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
 
@@ -44,13 +46,13 @@ const ChatWithPdf = () => {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, loading])
+  }, [scrollToBottom])
 
   const processFile = (uploadedFile) => {
     if (!uploadedFile) return
@@ -106,7 +108,7 @@ const ChatWithPdf = () => {
     if (!input.trim() || !file) return
 
     // Credit Check
-    const creditCheck = checkSufficientCredits(user, "tools.chatpdf", "gemini")
+    const creditCheck = checkSufficientCredits(user, "tools.pdf_chat", "gemini")
     if (!creditCheck.hasEnough) {
       const popupConfig = getInsufficientCreditsPopup(
         creditCheck.required,
@@ -136,6 +138,7 @@ const ChatWithPdf = () => {
         payload = formData
       } else {
         const conversationHistory = messages
+          .filter((msg) => !msg.isError) // never feed error notices back to the model
           .slice(-10)
           .map((msg) => ({ role: msg.role, content: msg.content }))
         payload = { cacheKey, messages: conversationHistory, question: userMessage.content }
@@ -147,7 +150,21 @@ const ChatWithPdf = () => {
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
       ])
     } catch (err) {
-      toast.error(err?.toast || "Failed to get response")
+      // Surface the reason in the thread too - a toast disappears before the user
+      // can read why their question went unanswered.
+      const message = getFriendlyError(err, "pdfChat")
+      toast.error(message)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "model",
+          isError: true,
+          failedQuestion: userMessage.content,
+          content: message,
+          timestamp: new Date(),
+        },
+      ])
     }
   }
 
@@ -193,8 +210,7 @@ const ChatWithPdf = () => {
 
           {file && (
             <button
-              danger
-              type="text"
+              type="button"
               className="hover:bg-red-50 text-red-600 rounded-xl font-medium flex items-center gap-2"
               onClick={clearFile}
             >
@@ -237,23 +253,28 @@ const ChatWithPdf = () => {
                           accept=".pdf"
                           className="hidden"
                         />
-                        <div
+                        <button
+                          type="button"
                           onClick={() => fileInputRef.current?.click()}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
-                          className={`border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
+                          className={`w-full border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer text-center h-80 flex flex-col items-center justify-center ${
                             isDragging
                               ? "bg-indigo-50 border-indigo-500 shadow-inner scale-[1.01]"
                               : "bg-slate-50/50 border-slate-200 group-hover:bg-indigo-50/30 group-hover:border-indigo-400"
                           }`}
                         >
-                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
+                          <span className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition-transform">
                             <Upload className="w-6 h-6" />
-                          </div>
-                          <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
-                          <p className="text-slate-400 text-sm">or drag and drop here</p>
-                        </div>
+                          </span>
+                          <span className="block text-indigo-600 font-medium mb-2">
+                            Click to browse
+                          </span>
+                          <span className="block text-slate-400 text-sm">
+                            or drag and drop here
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -295,16 +316,43 @@ const ChatWithPdf = () => {
                       className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       {msg.role === "model" && (
-                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
-                          <BrainCircuit className="w-4 h-4" />
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-lg text-white mt-1 ${
+                            msg.isError
+                              ? "bg-red-500 shadow-red-500/20"
+                              : "bg-linear-to-br from-indigo-600 to-violet-600 shadow-indigo-500/20"
+                          }`}
+                        >
+                          {msg.isError ? (
+                            <AlertCircle className="w-4 h-4" />
+                          ) : (
+                            <BrainCircuit className="w-4 h-4" />
+                          )}
                         </div>
                       )}
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[85%] md:max-w-[75%] p-3 md:p-4 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-indigo-50/50 text-indigo-900 border border-indigo-100 rounded-tr-none" : "bg-white text-slate-600 border border-slate-100 rounded-tl-none shadow-xs"}`}
+                        className={`max-w-[85%] md:max-w-[75%] p-3 md:p-4 rounded-2xl text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-indigo-50/50 text-indigo-900 border border-indigo-100 rounded-tr-none"
+                            : msg.isError
+                              ? "bg-red-50 text-red-700 border border-red-100 rounded-tl-none"
+                              : "bg-white text-slate-600 border border-slate-100 rounded-tl-none shadow-xs"
+                        }`}
                       >
-                        {msg.role === "model" ? (
+                        {msg.isError ? (
+                          <div className="space-y-2">
+                            <p>{msg.content}</p>
+                            <button
+                              type="button"
+                              onClick={() => setInput(msg.failedQuestion ?? "")}
+                              className="text-xs font-semibold text-red-700 underline underline-offset-2 hover:text-red-800"
+                            >
+                              Try again
+                            </button>
+                          </div>
+                        ) : msg.role === "model" ? (
                           <div className="prose prose-sm max-w-none prose-slate">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                           </div>
@@ -362,6 +410,7 @@ const ChatWithPdf = () => {
                     />
 
                     <button
+                      type="button"
                       onClick={handleSendMessage}
                       disabled={!input.trim() || loading}
                       className={`absolute right-3 bottom-3 flex items-center justify-center 

@@ -94,6 +94,7 @@ const ShopifyDashboard = () => {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => copyToClipboard(storeDomain)}
                       className="btn btn-ghost btn-sm normal-case font-bold text-emerald-600 hover:bg-white gap-2 flex items-center"
                     >
@@ -132,9 +133,9 @@ const ShopifyDashboard = () => {
                       color: "cyan",
                       action: () => window.open("https://docs.genwrite.ai/shopify", "_blank"),
                     },
-                  ].map((item, idx) => (
+                  ].map((item) => (
                     <motion.div
-                      key={idx}
+                      key={item.title}
                       whileHover={{ x: 8, backgroundColor: "#f9fafb" }}
                       onClick={item.action}
                       className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-50 cursor-pointer transition-all hover:border-emerald-100 group"
@@ -158,6 +159,7 @@ const ShopifyDashboard = () => {
             {/* Footer CTA */}
             <div className="mt-12 text-center">
               <button
+                type="button"
                 onClick={() => navigate("/dashboard")}
                 className="btn btn-primary btn-lg rounded-2xl font-black text-xl bg-linear-to-r from-emerald-500 to-teal-600 border-none text-white shadow-xl shadow-emerald-200 hover:scale-[1.02] transition-transform normal-case h-16 w-full sm:w-80 gap-3"
               >

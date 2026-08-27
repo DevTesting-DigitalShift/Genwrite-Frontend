@@ -49,7 +49,9 @@ const StepContent = ({
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: brands = [] } = brandsQuery.useList()
+  // Prefetches/warms the shared brands query cache so BrandVoiceSelector below
+  // doesn't show a loading flicker when it mounts.
+  brandsQuery.useList()
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -57,7 +59,7 @@ const StepContent = ({
         setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
-  }, [integrations])
+  }, [integrations, formData.postingType, setFormData])
 
   const _wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = BLOG_CONFIG.BULK.MAX_BLOGS
@@ -325,7 +327,7 @@ const StepContent = ({
       templateIds: temps.map((t) => t.id),
     }))
     setErrors((prev) => ({ ...prev, templates: false }))
-  }, [])
+  }, [setNewJob, setErrors])
 
   switch (currentStep) {
     case 1:
@@ -355,8 +357,11 @@ const StepContent = ({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 pt-4">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold  mb-2">Job Name</label>
+              <label htmlFor="job-name" className="block text-sm font-semibold  mb-2">
+                Job Name
+              </label>
               <input
+                id="job-name"
                 type="text"
                 value={newJob.name}
                 placeholder="Enter job name"
@@ -444,7 +449,8 @@ const StepContent = ({
                   )
                 })}
                 {(newJob.blogs?.topics?.length > 18 || recentlyUploadedTopicsCount) && (
-                  <span
+                  <button
+                    type="button"
                     onClick={() => setShowAllTopics((prev) => !prev)}
                     className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
@@ -458,7 +464,7 @@ const StepContent = ({
                           ` (+${recentlyUploadedTopicsCount} uploaded)`}
                       </>
                     )}
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -466,14 +472,14 @@ const StepContent = ({
               <FieldLabel tip="Allow AI to automatically discover high-traffic SEO keywords for your topics. Disable to enter your own keywords.">
                 Perform Keyword Research?
               </FieldLabel>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <span className="relative inline-flex items-center cursor-pointer">
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={(checked) =>
                     handleCheckboxChange({ target: { name: "performKeywordResearch", checked } })
                   }
                 />
-              </label>
+              </span>
             </div>
             {!formData.performKeywordResearch && (
               <div>
@@ -499,6 +505,7 @@ const StepContent = ({
                     placeholder="Enter keywords (comma, tab, or newline separated)"
                   />
                   <button
+                    type="button"
                     onClick={() => handleAddItems(formData.keywordInput, "keywords")}
                     className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                   >
@@ -544,7 +551,8 @@ const StepContent = ({
                     )
                   })}
                   {((formData?.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
@@ -558,15 +566,15 @@ const StepContent = ({
                             ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>
             )}
             <div>
-              <label className="text-sm font-semibold  mb-2 flex gap-2 items-center">
+              <span className="text-sm font-semibold  mb-2 flex gap-2 items-center">
                 References (URLs, max 3)
-              </label>
+              </span>
               <div className="flex gap-2">
                 <input
                   type="url"
@@ -607,6 +615,7 @@ const StepContent = ({
                   placeholder="https://example.com/blog-post"
                 />
                 <button
+                  type="button"
                   onClick={() => {
                     const val = formData.referenceInput?.trim()
                     if (!val) return
@@ -641,11 +650,12 @@ const StepContent = ({
               <div className="flex flex-col gap-2 mt-2">
                 {newJob.blogs?.references?.map((ref, idx) => (
                   <div
-                    key={idx}
+                    key={ref}
                     className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded text-xs text-blue-600 truncate"
                   >
                     <span className="truncate flex-1">{ref}</span>
                     <button
+                      type="button"
                       onClick={() =>
                         setNewJob((prev) => ({
                           ...prev,
@@ -669,6 +679,7 @@ const StepContent = ({
                   Tone of Voice
                 </label>
                 <select
+                  id="tone"
                   className={`select select-bordered w-full h-10 min-h-0 text-sm ${errors.tone ? "select-error" : ""}`}
                   value={newJob.blogs.tone}
                   onChange={(e) => {
@@ -688,6 +699,7 @@ const StepContent = ({
                   Language <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="language"
                   className="select select-bordered w-full h-10 min-h-0 text-sm"
                   value={newJob.blogs.languageToWrite}
                   onChange={(e) => {
@@ -710,9 +722,9 @@ const StepContent = ({
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold  mb-2">
+                <span className="block text-sm font-semibold  mb-2">
                   Approx. Blog Length (Words)
-                </label>
+                </span>
                 <div className="relative">
                   <Slider
                     min={BLOG_CONFIG.LENGTH.MIN}
@@ -741,7 +753,7 @@ const StepContent = ({
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="flex justify-between items-center">
-            <label className="block text-sm font-semibold ">Add Image</label>
+            <span className="block text-sm font-semibold ">Add Image</span>
             <div className="flex items-center">
               <Switch
                 checked={newJob.blogs.isCheckedGeneratedImages}
@@ -782,8 +794,11 @@ const StepContent = ({
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold  mb-2">Schedule Type</label>
+              <label htmlFor="schedule-type" className="block text-sm font-semibold  mb-2">
+                Schedule Type
+              </label>
               <select
+                id="schedule-type"
                 value={newJob.schedule.type}
                 onChange={(e) => {
                   const value = e.target.value
@@ -814,7 +829,7 @@ const StepContent = ({
             </div>
             {newJob.schedule.type === "weekly" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Days of Week</label>
+                <span className="block text-sm font-semibold  mb-2">Select Days of Week</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
@@ -822,7 +837,7 @@ const StepContent = ({
                 >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                     <button
-                      key={i}
+                      key={d}
                       type="button"
                       className={`px-2 py-1 rounded-md transition-all ${
                         newJob.schedule.daysOfWeek?.includes(i)
@@ -850,7 +865,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "monthly" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Dates of Month</label>
+                <span className="block text-sm font-semibold  mb-2">Select Dates of Month</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
                     errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
@@ -886,7 +901,7 @@ const StepContent = ({
             )}
             {newJob.schedule.type === "custom" && (
               <div>
-                <label className="block text-sm font-semibold  mb-2">Select Dates</label>
+                <span className="block text-sm font-semibold  mb-2">Select Dates</span>
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
@@ -914,8 +929,11 @@ const StepContent = ({
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold  mb-2">Number of Blogs</label>
+              <label htmlFor="number-of-blogs" className="block text-sm font-semibold  mb-2">
+                Number of Blogs
+              </label>
               <input
+                id="number-of-blogs"
                 type="tel"
                 inputMode="numeric"
                 name="numberOfBlogs"
@@ -1084,9 +1102,9 @@ const StepContent = ({
                     errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
                   }`}
                 >
-                  <label className="block text-sm font-semibold ">
+                  <span className="block text-sm font-semibold ">
                     Select Your Publishing Platform
-                  </label>
+                  </span>
                   <p className="text-xs text-gray-500 font-normal mt-1">
                     Post your blog automatically to connected platforms.
                   </p>

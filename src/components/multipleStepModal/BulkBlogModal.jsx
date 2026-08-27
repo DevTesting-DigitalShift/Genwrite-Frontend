@@ -97,7 +97,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   useEffect(() => {
     fetchIntegrations()
-  }, [])
+  }, [fetchIntegrations])
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
@@ -105,7 +105,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
       }
     }
-  }, [integrations])
+  }, [integrations, formData.postingType])
 
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
@@ -854,7 +854,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       <div className="modal-box w-11/12 max-w-3xl p-0 overflow-hidden bg-white">
         <div className="flex items-center justify-between p-4 px-6">
           <h3 className="text-md font-black text-slate-900 tracking-tight">{`Step ${currentStep + 1}: ${steps[currentStep]}`}</h3>
-          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+          <button type="button" onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -885,13 +885,14 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="space-y-6 pt-2">
               {/* Number of Blogs */}
               <div>
-                <label className="block text-sm font-semibold">
+                <label htmlFor="bulk-number-of-blogs" className="block text-sm font-semibold">
                   Number of Blogs <span className="text-red-500">*</span>
                 </label>
                 <p className="text-xs text-slate-500 font-medium mb-3">
                   How many blogs to generate based on the topics provided.
                 </p>
                 <input
+                  id="bulk-number-of-blogs"
                   type="tel"
                   inputMode="numeric"
                   name="numberOfBlogs"
@@ -936,6 +937,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     placeholder="Enter topics (comma, tab, or newline separated)"
                   />
                   <button
+                    type="button"
                     onClick={handleAddTopic}
                     className="flex-1 sm:flex-none px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                   >
@@ -977,7 +979,8 @@ const BulkBlogModal = ({ closeFnc }) => {
                     )
                   })}
                   {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowAllTopics((prev) => !prev)}
                       className="cursor-pointer text-xs font-semibold text-blue-600 self-center flex items-center gap-1"
                     >
@@ -990,7 +993,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                             ` (+${recentlyUploadedTopicsCount} uploaded)`}
                         </>
                       )}
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1021,9 +1024,12 @@ const BulkBlogModal = ({ closeFnc }) => {
                         type="text"
                         value={formData.keywordInput}
                         onChange={handleKeywordInputChange}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && (e.preventDefault(), handleAddKeyword())
-                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            handleAddKeyword()
+                          }
+                        }}
                         onPaste={(e) => handlePasteItems(e, "keywords")}
                         className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                           errors.keywords ? "border-red-500" : "border-gray-300"
@@ -1031,6 +1037,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         placeholder="Enter keywords (comma, tab, or newline separated)"
                       />
                       <button
+                        type="button"
                         onClick={handleAddKeyword}
                         className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] font-bold transition-all"
                       >
@@ -1074,7 +1081,8 @@ const BulkBlogModal = ({ closeFnc }) => {
                         )
                       })}
                       {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
-                        <span
+                        <button
+                          type="button"
                           onClick={() => setShowAllKeywords((prev) => !prev)}
                           className="cursor-pointer text-xs font-semibold text-blue-600 self-center flex items-center gap-1"
                         >
@@ -1088,7 +1096,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                                 ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                             </>
                           )}
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1096,10 +1104,11 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="tone" className="block text-sm font-semibold">
+                  <label htmlFor="bulk-tone" className="block text-sm font-semibold">
                     Tone of Voice
                   </label>
                   <select
+                    id="bulk-tone"
                     className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
                       errors.tone ? "select-error" : ""
                     }`}
@@ -1117,10 +1126,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="language" className="block text-sm font-semibold">
+                  <label htmlFor="bulk-language" className="block text-sm font-semibold">
                     Language <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="bulk-language"
                     className="select select-bordered w-full h-10 min-h-0 text-sm mt-3"
                     value={formData.languageToWrite}
                     onChange={(e) => {
@@ -1138,12 +1148,12 @@ const BulkBlogModal = ({ closeFnc }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <span className="block text-sm font-semibold mb-2">
                     Approx. Blog Length
                     <span className="text-sm ml-2 font-bold text-blue-600">
                       {formData.userDefinedLength} words
                     </span>
-                  </label>
+                  </span>
                   <div className="relative mt-5">
                     <Slider
                       min={BLOG_CONFIG.LENGTH.MIN}
@@ -1166,7 +1176,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <label className="block text-sm font-semibold">Add Image</label>
+                      <span className="block text-sm font-semibold">Add Image</span>
                       <p className="text-xs text-slate-500 font-medium">
                         Search and add relevant images to your blogs
                       </p>
@@ -1339,8 +1349,11 @@ const BulkBlogModal = ({ closeFnc }) => {
                   integrations?.integrations &&
                   Object.keys(integrations.integrations).length > 0 && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <label className="font-semibold text-sm">Publishing Platform</label>
+                      <label htmlFor="bulk-publishing-platform" className="font-semibold text-sm">
+                        Publishing Platform
+                      </label>
                       <select
+                        id="bulk-publishing-platform"
                         value={formData.postingType || ""}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, postingType: e.target.value }))
@@ -1405,6 +1418,7 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="flex gap-3 sm:justify-end">
               {currentStep > 0 && (
                 <button
+                  type="button"
                   onClick={handlePrev}
                   className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
@@ -1413,6 +1427,7 @@ const BulkBlogModal = ({ closeFnc }) => {
               )}
 
               <button
+                type="button"
                 onClick={
                   currentStep === (formData.enableAdvanced ? 3 : 2) ? handleSubmit : handleNext
                 }
@@ -1428,7 +1443,9 @@ const BulkBlogModal = ({ closeFnc }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

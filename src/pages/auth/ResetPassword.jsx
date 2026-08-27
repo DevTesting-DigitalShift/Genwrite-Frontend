@@ -261,12 +261,15 @@ const ResetPassword = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* New Password */}
             <div>
-              <label className="block text-sm font-semibold  mb-2">New Password</label>
+              <label htmlFor="reset-new-password" className="block text-sm font-semibold  mb-2">
+                New Password
+              </label>
               <div className="relative">
                 <div className="absolute top-4 left-4 text-gray-400 z-10">
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
+                  id="reset-new-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter new password"
                   value={password}
@@ -336,12 +339,15 @@ const ResetPassword = () => {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-semibold  mb-2">Confirm Password</label>
+              <label htmlFor="reset-confirm-password" className="block text-sm font-semibold  mb-2">
+                Confirm Password
+              </label>
               <div className="relative">
                 <div className="absolute top-4 left-4 text-gray-400 z-10">
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
+                  id="reset-confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={confirmPassword}

@@ -85,13 +85,32 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
     return cost
   }, [
-    formData.performKeywordResearch,
-    formData.humanisation,
-    formData.addImages,
-    formData.imageSource,
-    formData.costCutter,
-    formData.aiModel,
+    formData.performKeywordResearch, 
+    formData.humanisation, 
+    formData.addImages, 
+    formData.imageSource, 
+    formData.costCutter, 
+    formData.aiModel, formData.numberOfImages
   ])
+
+  // Validate the fields that live on the details step (step 1)
+  const validateDetailsStep = () => ({
+    topic: !formData.topic.trim() ? "Please enter a topic." : "",
+    focusKeywords:
+      !formData.performKeywordResearch && formData.focusKeywords.length === 0
+        ? "Please add at least one focus keyword."
+        : "",
+    keywords:
+      !formData.performKeywordResearch && formData.keywords.length === 0
+        ? "Please add at least one secondary keyword."
+        : "",
+    otherLinks:
+      type === "yt" && otherLinks.length === 0
+        ? "Please add at least one valid link."
+        : otherLinks.length > 3
+          ? "You can only add up to 3 links."
+          : "",
+  })
 
   // Handle navigation to the next step
   const handleNext = () => {
@@ -102,8 +121,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       }
       setErrors((prev) => ({ ...prev, template: "" }))
       setCurrentStep(1)
-    } else if (currentStep === 1 && formData.enableAdvanced) {
-      setCurrentStep(2)
+    } else if (currentStep === 1) {
+      // Don't let the user move on with missing fields - the errors would render
+      // on a step they can no longer see.
+      const newErrors = validateDetailsStep()
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+
+      if (Object.values(newErrors).some((error) => error)) {
+        toast.error("Please fill all required fields correctly.")
+        return
+      }
+
+      if (formData.enableAdvanced) {
+        setCurrentStep(2)
+      }
     }
   }
 
@@ -123,30 +154,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle form submission
   const handleSubmit = () => {
-    const newErrors = {
-      topic: !formData.topic.trim() ? "Please enter a topic." : "",
-      focusKeywords:
-        !formData.performKeywordResearch && formData.focusKeywords.length === 0
-          ? "Please add at least one focus keyword."
-          : "",
-      keywords:
-        !formData.performKeywordResearch && formData.keywords.length === 0
-          ? "Please add at least one secondary keyword."
-          : "",
-      otherLinks:
-        otherLinks.length === 0 && type === "yt" ? "Please add at least one valid link." : "",
-    }
+    const newErrors = validateDetailsStep()
 
-    setErrors(newErrors)
+    setErrors((prev) => ({ ...prev, ...newErrors }))
 
     if (Object.values(newErrors).some((error) => error)) {
+      // These fields all live on step 1 - go back so the user can see them.
+      setCurrentStep(1)
       toast.error("Please fill all required fields correctly.")
-      return
-    }
-
-    if (otherLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
-      toast.error("You can only add up to 3 links.")
       return
     }
 
@@ -427,7 +442,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       <div className="modal-box w-full max-w-3xl p-0 overflow-hidden bg-white">
         <div className="flex items-center justify-between p-4 px-6">
           <h3 className="font-bold text-md">{`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}</h3>
-          <button onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
+          <button type="button" onClick={handleClose} className="btn btn-sm btn-circle btn-ghost">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -488,13 +503,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 />
               </div>
               <div className="form-control w-full">
-                <label className="label pb-1">
+                <label htmlFor="quick-language" className="label pb-1">
                   <span className="text-black text-sm font-semibold">
                     Language <span className="text-error">*</span>
                   </span>
                 </label>
 
                 <select
+                  id="quick-language"
                   name="languageToWrite"
                   value={formData.languageToWrite}
                   onChange={handleChange}
@@ -550,6 +566,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         aria-label="Focus keywords"
                       />
                       <button
+                        type="button"
                         onClick={() => handleAddKeyword("focusKeywords")}
                         className="px-4 py-2 bg-[#4C5BD6] text-white rounded-md text-sm flex items-center hover:bg-[#3B4BB8] transition-all"
                         aria-label="Add focus keywords"
@@ -563,11 +580,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.focusKeywords.map((keyword, index) => (
                         <span
-                          key={index}
+                          key={keyword}
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                         >
                           {keyword}
                           <button
+                            type="button"
                             onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                             className="ml-1 text-blue-400 hover:text-blue-600"
                             aria-label={`Remove ${keyword}`}
@@ -599,6 +617,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         aria-label="Secondary keywords"
                       />
                       <button
+                        type="button"
                         onClick={() => handleAddKeyword("keywords")}
                         className="px-4 py-2 bg-[#4C5BD6] text-white rounded-md text-sm flex items-center hover:bg-[#3B4BB8] transition-all"
                         aria-label="Add secondary keywords"
@@ -612,11 +631,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.keywords.map((keyword, index) => (
                         <span
-                          key={index}
+                          key={keyword}
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                         >
                           {keyword}
                           <button
+                            type="button"
                             onClick={() => handleRemoveKeyword(index, "keywords")}
                             className="ml-1 text-blue-400 hover:text-blue-600"
                             aria-label={`Remove ${keyword}`}
@@ -634,7 +654,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 {/* Add Images & Source Selection */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <label className="block text-sm font-semibold">Add Images</label>
+                    <span className="block text-sm font-semibold">Add Images</span>
                     <p className="text-xs text-gray-500">
                       Search and add relevant images to your blog
                     </p>
@@ -703,24 +723,28 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
               {/* Reference Links Section */}
               <div>
-                <label className="block text-sm font-semibold  mb-2">
+                <label htmlFor="quick-reference-links" className="block text-sm font-semibold  mb-2">
                   {type === "yt" ? "YouTube Video Links " : "Reference Links "} (Max 3 links){" "}
                   {type === "yt" && <span className="text-red-500">*</span>}
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
+                      id="quick-reference-links"
                       type="url"
                       value={formData.otherLinkInput}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
                       }
                       onKeyDown={(e) => handleKeyDown(e)}
-                      className={`flex-1 px-3 py-2 border rounded-md text-sm border-gray-200 bg-gray-50`}
+                      className={`flex-1 px-3 py-2 border ${
+                        errors.otherLinks ? "border-red-500" : "border-gray-200"
+                      } rounded-md text-sm bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
                     />
                     <button
+                      type="button"
                       onClick={() => handleAddLink()}
                       className="px-4 py-2 bg-[#4C5BD6] text-white rounded-md text-sm flex items-center hover:bg-[#3B4BB8] transition-all"
                       aria-label="Add reference/video links"
@@ -734,11 +758,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <div className="flex flex-wrap gap-2">
                     {otherLinks.map((link, index) => (
                       <span
-                        key={index}
+                        key={link}
                         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
                       >
                         {link}
                         <button
+                          type="button"
                           onClick={() => handleRemoveLink(index)}
                           className="ml-1 text-blue-400 hover:text-blue-600"
                           aria-label={`Remove ${link}`}
@@ -823,6 +848,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           {currentStep === 0 ? (
             <div className="flex justify-end">
               <button
+                type="button"
                 onClick={handleNext}
                 className="w-full sm:w-auto px-8 py-2 text-sm font-bold text-white bg-[#4C5BD6] rounded-md hover:bg-[#3B4BB8] transition"
               >
@@ -843,6 +869,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {/* Buttons */}
               <div className="flex gap-3 w-full justify-end">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep((prev) => prev - 1)}
                   className="w-full sm:w-auto px-6 py-2 text-sm font-bold bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
@@ -850,6 +877,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </button>
 
                 <button
+                  type="button"
                   onClick={
                     currentStep === (formData.enableAdvanced ? 2 : 1) ? handleSubmit : handleNext
                   }
@@ -863,7 +891,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   )

@@ -7,6 +7,8 @@ import useAuthStore from "@store/useAuthStore"
 import useVerificationStore from "@store/useVerificationStore"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
+import { getActiveToken } from "@utils/sessionStore"
 
 const Onboarding = () => {
   const navigate = useNavigate()
@@ -17,7 +19,7 @@ const Onboarding = () => {
 
   // Load authenticated user on mount
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    const token = getActiveToken()
     if (!token) {
       navigate("/login", { replace: true })
       return
@@ -41,7 +43,7 @@ const Onboarding = () => {
         useVerificationStore.getState().setEmail(user.email)
         navigate(`/email-verify`, { replace: true })
       } else {
-        navigate("/dashboard", { replace: true })
+        navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
       }
     }
   }, [user, navigate])
@@ -159,7 +161,7 @@ const Onboarding = () => {
       }
       sessionStorage.setItem("justCompletedOnboarding", "true")
 
-      navigate("/dashboard", { replace: true })
+      navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })
     } catch (error) {
       toast.error(error.toast || "Failed to create brand voice")
     } finally {
@@ -172,7 +174,7 @@ const Onboarding = () => {
       localStorage.setItem(`hasCompletedOnboarding_${user._id}`, "true")
     }
     sessionStorage.setItem("justCompletedOnboarding", "true")
-    navigate("/dashboard")
+    navigate(consumePostAuthRedirect() || "/dashboard")
   }
 
   const steps = [
@@ -184,7 +186,7 @@ const Onboarding = () => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6 relative">
       <button
-        type="text"
+        type="button"
         onClick={handleSkip}
         disabled={!user?._id}
         className="absolute top-6 right-6 text-gray-500 hover:text-gray-900"
@@ -202,6 +204,7 @@ const Onboarding = () => {
         <div className="flex items-center justify-center gap-2 mb-12">
           {steps.map((_, index) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: progress dot N always represents step N
               key={index}
               className={`h-2 rounded-full transition-all ${
                 index === currentStep
@@ -233,10 +236,14 @@ const Onboarding = () => {
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-company"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Company Name
                   </label>
                   <input
+                    id="onboarding-company"
                     placeholder="Digital Shift"
                     value={formData.nameOfVoice}
                     onChange={(e) =>
@@ -247,9 +254,7 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Website URL
-                  </label>
+                  <span className="block text-sm font-medium text-gray-900 mb-2">Website URL</span>
 
                   <div className="join w-full">
                     <select
@@ -272,10 +277,14 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-sitemap"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Sitemap URL <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <input
+                    id="onboarding-sitemap"
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
                     onChange={(e) => setFormData((prev) => ({ ...prev, sitemap: e.target.value }))}
@@ -285,7 +294,7 @@ const Onboarding = () => {
               </div>
 
               <button
-                type="primary"
+                type="button"
                 size="large"
                 block
                 onClick={handleFetchSiteInfo}
@@ -315,10 +324,14 @@ const Onboarding = () => {
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-description"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Brand Description
                   </label>
                   <textarea
+                    id="onboarding-description"
                     rows={4}
                     placeholder="Describe what your company does..."
                     value={formData.describeBrand}
@@ -330,10 +343,14 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <label
+                    htmlFor="onboarding-persona"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
                     Author Persona
                   </label>
                   <textarea
+                    id="onboarding-persona"
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
@@ -343,9 +360,15 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Keywords</label>
+                  <label
+                    htmlFor="onboarding-keywords"
+                    className="block text-sm font-medium text-gray-900 mb-2"
+                  >
+                    Keywords
+                  </label>
                   <div className="flex gap-2 mb-3">
                     <input
+                      id="onboarding-keywords"
                       placeholder="Add keywords (comma-separated)"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
@@ -354,6 +377,7 @@ const Onboarding = () => {
                       className="input outline-0 flex-1 rounded-lg"
                     />
                     <button
+                      type="button"
                       onClick={addKeyword}
                       className="btn bg-gray-100 border broder-gray-300 hover:bg-gray-200 rounded-lg text-gray-800"
                     >
@@ -362,13 +386,14 @@ const Onboarding = () => {
                   </div>
                   {formData.keywords.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword, index) => (
+                      {formData.keywords.map((keyword) => (
                         <span
-                          key={index}
+                          key={keyword}
                           className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100  rounded-full text-sm"
                         >
                           {keyword}
                           <button
+                            type="button"
                             onClick={() => removeKeyword(keyword)}
                             className="hover:text-gray-900"
                           >
@@ -383,12 +408,14 @@ const Onboarding = () => {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(0)}
                   className="btn flex-1 border border-gray-200 rounded-lg"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={handleStep1Continue}
                   className="btn flex-1 text-white! bg-gray-900 border-none hover:bg-gray-800 rounded-lg font-medium"
                 >
@@ -455,8 +482,8 @@ const Onboarding = () => {
                       Keywords
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {formData.keywords.map((keyword, index) => (
-                        <span key={index} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
+                      {formData.keywords.map((keyword) => (
+                        <span key={keyword} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
                           {keyword}
                         </span>
                       ))}
@@ -467,12 +494,14 @@ const Onboarding = () => {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(1)}
                   className="btn flex-1 rounded-lg border border-gray-200"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={loading}
                   className="btn flex-1 bg-gray-900 border-none hover:bg-gray-800 text-white rounded-lg font-medium"

@@ -22,6 +22,9 @@ const useContentStore = create(
       clearContentData: () => set({ data: null }),
       resetCategories: () => set({ categories: [], error: null }),
 
+      // Cleared on account switch.
+      reset: () => set({ data: null, metadata: null, categories: [], loading: false, error: null }),
+
       // Async Actions
       fetchCategories: async (type = "WORDPRESS") => {
         set({ loading: true, error: null })

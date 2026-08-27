@@ -112,6 +112,22 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/**
+ * Tailwind v4 changed the default border colour from gray-200 to `currentColor`, so
+ * every `border` utility written without an explicit colour started painting in the
+ * element's text colour — near-black on popovers, dialogs, cards and selects. This
+ * restores the v3 behaviour by pointing the default at the theme's `--border` token,
+ * which is what all of those components were designed against.
+ * Remove only if every bare `border` in the app has been given an explicit colour.
+ */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border, currentColor);
+  }
+}
+
 body {
   font-family: "Lato", sans-serif;
   background-color: #fff;
@@ -523,4 +539,27 @@ input[type="range"]::-moz-range-thumb {
 .field-label-tip:hover::before {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
+}
+
+/* ---------------------------------------------------------------------------
+ * daisyUI token repair
+ *
+ * The `@theme` block above maps Tailwind's colour utilities onto the GenWrite
+ * palette (`--color-accent: var(--accent)`, etc). daisyUI then re-declares the
+ * same `--color-*` names on `:root` with its own default theme — teal for
+ * accent, magenta for secondary, its own violet for primary — and, being later
+ * in the cascade at equal specificity, it wins. That is why `hover:bg-accent`
+ * rendered teal and `variant="secondary"` rendered pink all over the app.
+ *
+ * Re-pointing them at the palette variables restores the intended colours
+ * without inventing new ones, and keeps working in dark mode because `.dark`
+ * redefines `--accent` / `--secondary` / `--primary` at the source.
+ *
+ * `:root:root` is deliberate — it outranks daisyUI's own `:root` and
+ * `[data-theme=light]` selectors regardless of source order.
+ * ------------------------------------------------------------------------- */
+:root:root {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
 }

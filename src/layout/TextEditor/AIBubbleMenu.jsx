@@ -1,26 +1,23 @@
 import { useEffect, useState, useRef } from "react"
 import axiosInstance from "@/api"
-import { Sparkles, Loader2, X } from "lucide-react"
+import { Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { marked } from "marked"
 import { DOMSerializer } from "@tiptap/pm/model"
 import TurndownService from "turndown"
-import ContentDiffViewer from "../Editor/ContentDiffViewer"
+import useAiReviewStore from "@/store/useAiReviewStore"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
-const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, children }) => {
+const AIBubbleMenu = ({ editor, blogId, isArchived, onContentUpdate, children }) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showMenu, setShowMenu] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef(null)
 
-  // AI Result modal state
-  const [aiResultModalOpen, setAiResultModalOpen] = useState(false)
-  const [originalContent, setOriginalContent] = useState("")
-  const [newContent, setNewContent] = useState("")
-  const [currentOperation, setCurrentOperation] = useState("")
-  const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
+  // The result is reviewed inside the editor, so this only needs to raise it.
+  const openReview = useAiReviewStore((s) => s.openReview)
+  const hasPendingReview = useAiReviewStore((s) => s.review !== null)
 
   // Track selection changes and position the menu
   useEffect(() => {
@@ -37,8 +34,6 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
       const text = editor.state.doc.textBetween(from, to, " ")
 
       if (text.trim().length > 0) {
-        setSelectionRange({ from, to })
-
         // Get selection coordinates
         const selection = window.getSelection()
         if (selection && selection.rangeCount > 0) {
@@ -99,8 +94,6 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
       }
     }
 
-    setSelectionRange({ from: expandFrom, to: expandTo })
-
     // Extract HTML content comprehensively from TipTap
     const selectedFragment = editor.state.doc.slice(expandFrom, expandTo)
     const tempDiv = document.createElement("div")
@@ -139,11 +132,28 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
             : response.data.content || response.data.message || ""
         const htmlResponse = await marked.parse(markdownResponse)
 
-        setOriginalContent(selectedHtmlContent)
-        setNewContent(htmlResponse)
-        setCurrentOperation(operation)
-        setAiResultModalOpen(true)
         setShowMenu(false)
+        // Reviewed in place in the editor. The range is captured here because
+        // the selection is gone by the time the user decides.
+        openReview({
+          title: "Review AI Changes",
+          task: `Operation: ${operation}`,
+          original: selectedHtmlContent,
+          refined: htmlResponse,
+          acceptLabel: "Accept & Apply",
+          rejectLabel: "Keep Original",
+          onAccept: () => {
+            editor
+              .chain()
+              .focus()
+              .deleteRange({ from: expandFrom, to: expandTo })
+              .insertContent(htmlResponse)
+              .run()
+            if (onContentUpdate) onContentUpdate(editor.getHTML())
+            toast.success("Changes applied successfully!")
+          },
+          onReject: () => toast.info("Changes discarded"),
+        })
         toast.success(`${operation} completed! Review the changes.`)
       }
     } catch (error) {
@@ -161,33 +171,16 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
     }
   }
 
-  const handleAcceptAIChanges = () => {
-    const { from, to } = selectionRange
-    editor.chain().focus().deleteRange({ from, to }).insertContent(newContent).run()
-    if (onContentUpdate) onContentUpdate(editor.getHTML())
-    setAiResultModalOpen(false)
-    toast.success("Changes applied successfully!")
-    resetState()
-  }
-
-  const handleDeclineAIChanges = () => {
-    setAiResultModalOpen(false)
-    toast.info("Changes discarded")
-    resetState()
-  }
-
-  const resetState = () => {
-    setOriginalContent("")
-    setNewContent("")
-    setCurrentOperation("")
-  }
-
   return (
     <>
       {/* Floating Bubble Menu */}
-      {showMenu && !aiResultModalOpen && (
+      {showMenu && !hasPendingReview && (
         <div
           ref={menuRef}
+          // A toolbar of buttons. The mousedown handler only stops the editor selection
+          // being lost on click — it is not an activation affordance of its own.
+          role="toolbar"
+          aria-label="AI text actions"
           className="fixed z-9999 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1"
           style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
           onMouseDown={(e) => e.preventDefault()}
@@ -207,6 +200,7 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
               )}
               <div className="tooltip tooltip-bottom" data-tip="Rewrite selected text with AI">
                 <button
+                  type="button"
                   onClick={() => handleAIOperation("rewrite")}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
                   disabled={isProcessing}
@@ -217,55 +211,6 @@ const AIBubbleMenu = ({ editor, blogId, isArchived, sectionId, onContentUpdate, 
               </div>
             </>
           )}
-        </div>
-      )}
-
-      {/* AI Result Comparison Modal */}
-      {aiResultModalOpen && (
-        <div className="modal modal-open z-9999">
-          <div className="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-gray-100 shadow-2xl bg-white">
-            <div className="flex items-center justify-between p-5 px-8 border-b border-gray-200 bg-white sticky top-0 z-20">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-xl tracking-tight">
-                    Review AI Changes
-                  </h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                      Processing: {currentOperation}
-                    </span>
-                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest">
-                      AI GENERATED
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button
-                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                onClick={handleDeclineAIChanges}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-hidden p-0 pb-6 sm:p-0 sm:pb-6 bg-slate-50/50">
-              <ContentDiffViewer
-                oldMarkdown={originalContent}
-                newMarkdown={newContent}
-                onAccept={handleAcceptAIChanges}
-                onReject={handleDeclineAIChanges}
-                acceptLabel="Accept & Apply"
-                rejectLabel="Decline Changes"
-              />
-            </div>
-          </div>
-          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-md">
-            <button onClick={handleDeclineAIChanges}>close</button>
-          </form>
         </div>
       )}
     </>

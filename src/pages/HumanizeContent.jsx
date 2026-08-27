@@ -32,7 +32,7 @@ const HumanizeContent = () => {
       resetHumanizeState()
       setInputContent("")
     }
-  }, [])
+  }, [resetHumanizeState])
 
   // Calculate word count
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
@@ -173,6 +173,7 @@ const HumanizeContent = () => {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleReset}
               className="shrink-0 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-300 transition-colors"
               title="Reset all content"
@@ -217,6 +218,7 @@ const HumanizeContent = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleMagicWandClick}
               disabled={isPending || !inputContent.trim() || wordCount < 100 || wordCount > 1000}
               className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-primary text-white font-bold rounded-xl transition-all duration-300 border-none ${
@@ -239,6 +241,7 @@ const HumanizeContent = () => {
                 Processing Results
               </h2>
               <button
+                type="button"
                 onClick={() => setIsDiffView(!isDiffView)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300 font-medium ${
                   isDiffView
@@ -309,6 +312,7 @@ const HumanizeContent = () => {
                       )}
                     </div>
                     <button
+                      type="button"
                       onClick={() => handleCopy(inputContent, "original")}
                       className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors"
                       title="Copy original content"
@@ -337,6 +341,7 @@ const HumanizeContent = () => {
                     </div>
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
                         disabled={!outputContent?.rewrittenContent}
                         className="p-2 text-gray-500 hover: hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -345,6 +350,7 @@ const HumanizeContent = () => {
                         <Copy className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
                         }

@@ -310,6 +310,7 @@ const Transactions = () => {
               {/* Action Row */}
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
+                  type="button"
                   onClick={() => navigate("/pricing")}
                   className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-lg hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-12 transition-all duration-300"
                 >
@@ -318,6 +319,7 @@ const Transactions = () => {
                 </button>
                 {user?.subscription?.plan && user.subscription.plan !== "free" && (
                   <button
+                    type="button"
                     onClick={handleManageSubscription}
                     className="flex-1 px-6 bg-[#4C5BD6] text-white font-bold rounded-lg hover:bg-[#3B4BB8] flex items-center justify-center gap-2 h-12 transition-all duration-300"
                   >
@@ -326,6 +328,7 @@ const Transactions = () => {
                   </button>
                 )}
                 <button
+                  type="button"
                   disabled={showTrialMessage}
                   onClick={() => navigate("/cancel-subscription")}
                   className="flex-1 px-6 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-lg h-12 font-bold transition-all duration-200 disabled:opacity-50 flex items-center justify-center"
@@ -346,6 +349,7 @@ const Transactions = () => {
                 <h2 className="text-lg font-bold text-slate-800">Recent Transactions</h2>
               </div>
               <button
+                type="button"
                 onClick={() => refetch()}
                 className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 transition-colors"
                 title="Refresh history"

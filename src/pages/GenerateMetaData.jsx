@@ -106,6 +106,7 @@ const GenerateMetaData = () => {
         </div>
 
         <button
+          type="button"
           onClick={handleReset}
           className="flex items-center justify-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors py-2 px-4 border border-gray-300 rounded-md"
         >
@@ -141,6 +142,7 @@ const GenerateMetaData = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleGenerateMetadata}
               disabled={
                 isGenerating ||
@@ -172,6 +174,7 @@ const GenerateMetaData = () => {
               {/* Title Result */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
                 <button
+                  type="button"
                   onClick={() => copyToClipboard(metadata.title, "Meta Title")}
                   className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
                 >
@@ -188,6 +191,7 @@ const GenerateMetaData = () => {
               {/* Description Result */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative group">
                 <button
+                  type="button"
                   onClick={() => copyToClipboard(metadata.description, "Meta Description")}
                   className="absolute top-4 right-4 p-2 text-gray-300 hover:text-[#4f46e5] transition-colors"
                 >
@@ -207,6 +211,7 @@ const GenerateMetaData = () => {
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-sm font-bold text-gray-400 uppercase">Keywords & Tags</p>
                     <button
+                      type="button"
                       onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
                       className="text-[#4f46e5] font-bold uppercase text-sm hover:underline"
                     >
@@ -214,9 +219,9 @@ const GenerateMetaData = () => {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {metadata.tags.map((tag, idx) => (
+                    {metadata.tags.map((tag) => (
                       <span
-                        key={idx}
+                        key={tag}
                         className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-100"
                       >
                         {tag}

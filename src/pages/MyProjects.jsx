@@ -35,13 +35,20 @@ const MyProjects = () => {
   const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()
 
-  const initialBlogFilter = {
-    start: DATE_PRESETS[0].range[0].toISOString(),
-    end: DATE_PRESETS[0].range[1].toISOString(),
-    q: "",
-    status: BLOG_STATUS.ALL,
-    sort: SORT_OPTIONS[0].value,
-  }
+  // Memoized because three hooks below take it as a dependency: as a bare object literal
+  // it was a new reference every render, so those memos/callbacks never actually memoized.
+  // DATE_PRESETS is evaluated once at module load, so freezing this at mount changes
+  // nothing about the values.
+  const initialBlogFilter = useMemo(
+    () => ({
+      start: DATE_PRESETS[0].range[0].toISOString(),
+      end: DATE_PRESETS[0].range[1].toISOString(),
+      q: "",
+      status: BLOG_STATUS.ALL,
+      sort: SORT_OPTIONS[0].value,
+    }),
+    []
+  )
   // Initialize filters from sessionStorage or default to "All" preset
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
@@ -55,7 +62,7 @@ const MyProjects = () => {
     } else {
       setBlogFilters((prev) => ({ ...prev, start: user?.createdAt }))
     }
-  }, [user?.createdAt])
+  }, [user?.createdAt, user?._id])
 
   const { isLoading, isRefetching, data, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
     useInfiniteQuery({
@@ -113,7 +120,7 @@ const MyProjects = () => {
     setBlogFilters((_prev) => ({ ...initialBlogFilter, start: user?.createdAt }))
     if (inputRef?.current?.input?.value) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
-  }, [user])
+  }, [user, initialBlogFilter, userId])
 
   const hasActiveDates = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -123,7 +130,7 @@ const MyProjects = () => {
     const sameEnd = blogFilters.end === initialBlogFilter.end
 
     return !sameStart || !sameEnd
-  }, [blogFilters, user?.createdAt])
+  }, [blogFilters, user?.createdAt, initialBlogFilter])
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
@@ -134,7 +141,7 @@ const MyProjects = () => {
     })
 
     return hasActiveDates || isOtherChanged
-  }, [blogFilters, user?.createdAt])
+  }, [blogFilters, initialBlogFilter, hasActiveDates])
 
   // Socket for real-time updates
   useEffect(() => {
@@ -195,7 +202,7 @@ const MyProjects = () => {
       socket.off("blog:created", handleBlogCreated)
       socket.off("blog:jobRetry", handleBlogJobRetry)
     }
-  }, [user, userId, queryClient])
+  }, [user, queryClient])
 
   const handleBlogClick = useCallback(
     (blog) => {
@@ -219,7 +226,7 @@ const MyProjects = () => {
     } catch (_err) {
       toast.error("Failed to retry blog")
     }
-  }, [])
+  }, [refetch])
 
   const handleArchive = useCallback(async (id) => {
     try {
@@ -229,7 +236,21 @@ const MyProjects = () => {
     } catch (_err) {
       toast.error("Failed to archive")
     }
-  }, [])
+  }, [refetch])
+
+  // Declared before the memos below: they list it as a dependency, and a dependency array
+  // is evaluated during render — reading it any earlier hits the temporal dead zone and
+  // throws "Cannot access 'updateBlogFilters' before initialization".
+  const updateBlogFilters = useCallback(
+    (updates) => {
+      setBlogFilters((prev) => {
+        const newValue = { ...prev, ...updates }
+        sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
+        return newValue
+      })
+    },
+    [userId]
+  )
 
   // Menu options
   const menuOptions = useMemo(
@@ -240,7 +261,7 @@ const MyProjects = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    []
+    [updateBlogFilters]
   )
 
   // Funnel menu options
@@ -252,18 +273,7 @@ const MyProjects = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    []
-  )
-
-  const updateBlogFilters = useCallback(
-    (updates) => {
-      setBlogFilters((prev) => {
-        const newValue = { ...prev, ...updates }
-        sessionStorage.setItem(`user_${userId}_blog_filters`, JSON.stringify(newValue))
-        return newValue
-      })
-    },
-    [blogFilters, userId]
+    [updateBlogFilters]
   )
 
   // -------------------------------------------------
@@ -346,7 +356,8 @@ const MyProjects = () => {
           </motion.p>
         </div>
         <div className="flex gap-3">
-          <div
+          <button
+            type="button"
             onClick={() => {
               handleProAction(() => {
                 navigate("/blog-editor")
@@ -356,8 +367,9 @@ const MyProjects = () => {
           >
             <Plus className="w-5 h-5" />
             New Blog
-          </div>
+          </button>
           <button
+            type="button"
             onClick={() =>
               queryClient.invalidateQueries({
                 queryKey: ["blogs", userId, blogFilters],
@@ -386,9 +398,8 @@ const MyProjects = () => {
 
         <div className="flex flex-wrap items-center justify-center gap-3 flex-1">
           <div className="dropdown dropdown-bottom dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
+            <button
+              type="button"
               className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.sort !== SORT_OPTIONS[0].value
                   ? "border-blue-300 bg-blue-50/50 text-blue-600 ring-4 ring-blue-500/10"
@@ -399,11 +410,12 @@ const MyProjects = () => {
               <span className="font-bold">
                 Sort: {menuOptions.find((t) => t.value === blogFilters.sort).label}
               </span>
-            </div>
+            </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {menuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
+                    type="button"
                     onClick={onClick}
                     className="rounded-2xl py-3 px-4 hover:bg-indigo-50 hover:text-indigo-600 transition-all gap-3"
                   >
@@ -416,9 +428,8 @@ const MyProjects = () => {
           </div>
 
           <div className="dropdown dropdown-bottom dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
+            <button
+              type="button"
               className={`btn btn-ghost h-12 px-5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3 normal-case ${
                 blogFilters.status !== BLOG_STATUS.ALL
                   ? "border-emerald-300 bg-emerald-50/50 text-emerald-600 ring-4 ring-emerald-500/10"
@@ -429,11 +440,12 @@ const MyProjects = () => {
               <span className="font-bold">
                 Filter: {funnelMenuOptions.find((t) => t.value === blogFilters.status).label}
               </span>
-            </div>
+            </button>
             <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-white rounded-3xl w-56 mt-2 border border-slate-100 animate-in fade-in slide-in-from-top-2">
               {funnelMenuOptions.map(({ label, icon, onClick }) => (
                 <li key={label}>
                   <button
+                    type="button"
                     onClick={onClick}
                     className="rounded-2xl py-3 px-4 hover:bg-emerald-50 hover:text-emerald-600 transition-all gap-3"
                   >
@@ -446,6 +458,7 @@ const MyProjects = () => {
           </div>
 
           <button
+            type="button"
             onClick={resetFilters}
             className={`btn btn-ghost h-12 px-6 rounded-2xl border transition-all normal-case font-bold flex items-center gap-2 ${
               hasActiveFilters
@@ -480,7 +493,11 @@ const MyProjects = () => {
         {isLoading || isRefetching ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {[...Array(ITEMS_PER_PAGE)].map((_, index) => (
-              <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
+                key={index}
+                className="bg-white shadow-md rounded-lg p-4 sm:p-6"
+              >
                 <SkeletonLoader />
               </div>
             ))}
@@ -517,6 +534,7 @@ const MyProjects = () => {
                   Showing {allBlogs.length} of {totalItems} projects
                 </div>
                 <button
+                  type="button"
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
                   className="btn btn-primary h-14 px-12 rounded-[24px] font-black text-lg bg-linear-to-r from-blue-600 to-indigo-600 border-none text-white shadow-2xl shadow-blue-200 normal-case hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"

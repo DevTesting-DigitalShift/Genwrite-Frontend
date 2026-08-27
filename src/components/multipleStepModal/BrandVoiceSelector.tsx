@@ -84,9 +84,12 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
 
       {state.isCheckedBrand && (
         <div className="flex flex-col gap-2 transition-all py-4 rounded-lg">
-          <label className={clsx(labelClass, "text-sm font-semibold")}>Select Brand Voice</label>
+          <label htmlFor="brand-voice-select" className={clsx(labelClass, "text-sm font-semibold")}>
+            Select Brand Voice
+          </label>
 
           <select
+            id="brand-voice-select"
             className="select select-bordered w-full rounded-[10px] text-sm h-10 min-h-0 focus:outline-none"
             value={state.brandId || ""}
             onChange={(e) => handleUpdate({ brandId: e.target.value })}

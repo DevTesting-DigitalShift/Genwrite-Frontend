@@ -8,53 +8,81 @@ import { IMAGE_SOURCE, TONES } from "@/data/blogData"
 import { validateJobData } from "@/types/forms.schemas"
 import { toast } from "sonner"
 
+// Static default job shape — module scope so it's a stable reference across renders
+// (was previously recreated every render, which broke effect-dependency stability).
+const initialJob = {
+  name: "",
+  schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
+  blogs: {
+    numberOfBlogs: 1,
+    topics: [],
+    keywords: [],
+    references: [],
+    templates: [],
+    tone: TONES[0],
+    userDefinedLength: 1000,
+    imageSource: IMAGE_SOURCE.STOCK,
+    aiModel: "gemini",
+    brandId: null,
+    useBrandVoice: false,
+    isCheckedGeneratedImages: true,
+    addCTA: true,
+    numberOfImages: 0,
+    blogImages: [],
+    postingType: null,
+    languageToWrite: "English",
+    costCutter: true,
+    createBrandedImages: false,
+    enableAdvanced: false,
+  },
+  options: {
+    wordpressPosting: false,
+    includeFaqs: false,
+    includeCompetitorResearch: false,
+    includeInterlinks: false,
+    performKeywordResearch: false,
+    includeTableOfContents: false,
+    addOutBoundLinks: false,
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
+    extendedThinking: false,
+    deepResearch: false,
+    humanisation: false,
+  },
+  status: "active",
+  templateIds: [],
+}
+
+// Older jobs never persisted `enableAdvanced` even though advanced-section fields
+// were saved, so derive it from those fields when the flag itself is falsy. Pure
+// function of its argument — module scope so it's a stable reference.
+const hasAdvancedOptionsEnabled = (job) => {
+  if (!job) return false
+  const { blogs = {}, options = {} } = job
+  return Boolean(
+    options.wordpressPosting ||
+      options.includeFaqs ||
+      options.includeCompetitorResearch ||
+      options.includeInterlinks ||
+      options.addOutBoundLinks ||
+      options.easyToUnderstand ||
+      options.embedYouTubeVideos ||
+      options.extendedThinking ||
+      options.deepResearch ||
+      options.humanisation ||
+      options.includeTableOfContents ||
+      blogs.useBrandVoice ||
+      blogs.brandId ||
+      blogs.createBrandedImages ||
+      (blogs.aiModel && blogs.aiModel !== "gemini")
+  )
+}
+
 const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const scrollableRef = React.useRef(null)
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()
   const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } =
     useAnalysisStore()
-  const initialJob = {
-    name: "",
-    schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
-    blogs: {
-      numberOfBlogs: 1,
-      topics: [],
-      keywords: [],
-      references: [],
-      templates: [],
-      tone: TONES[0],
-      userDefinedLength: 1000,
-      imageSource: IMAGE_SOURCE.STOCK,
-      aiModel: "gemini",
-      brandId: null,
-      useBrandVoice: false,
-      isCheckedGeneratedImages: true,
-      addCTA: true,
-      numberOfImages: 0,
-      blogImages: [],
-      postingType: null,
-      languageToWrite: "English",
-      costCutter: true,
-      createBrandedImages: false,
-      enableAdvanced: false,
-    },
-    options: {
-      wordpressPosting: false,
-      includeFaqs: false,
-      includeCompetitorResearch: false,
-      includeInterlinks: false,
-      performKeywordResearch: false,
-      includeTableOfContents: false,
-      addOutBoundLinks: false,
-      easyToUnderstand: false,
-      embedYouTubeVideos: false,
-      extendedThinking: false,
-      deepResearch: false,
-      humanisation: false,
-    },
-    status: "active",
-    templateIds: [],
-  }
   const { mutate: createJobMutate, isPending: isCreating } = useCreateJobMutation()
   const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
 
@@ -72,30 +100,6 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
   const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
-
-  // Older jobs never persisted `enableAdvanced` even though advanced-section
-  // fields were saved, so derive it from those fields when the flag itself is falsy.
-  const hasAdvancedOptionsEnabled = (job) => {
-    if (!job) return false
-    const { blogs = {}, options = {} } = job
-    return Boolean(
-      options.wordpressPosting ||
-        options.includeFaqs ||
-        options.includeCompetitorResearch ||
-        options.includeInterlinks ||
-        options.addOutBoundLinks ||
-        options.easyToUnderstand ||
-        options.embedYouTubeVideos ||
-        options.extendedThinking ||
-        options.deepResearch ||
-        options.humanisation ||
-        options.includeTableOfContents ||
-        blogs.useBrandVoice ||
-        blogs.brandId ||
-        blogs.createBrandedImages ||
-        (blogs.aiModel && blogs.aiModel !== "gemini")
-    )
-  }
 
   const MAX_BLOGS = 10
   const MAX_IMAGES = 15
@@ -326,7 +330,11 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
                   ? "Schedule Settings"
                   : "Blog Options"}
           </h3>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={() => closeJobModal()}>
+          <button
+            type="button"
+            className="btn btn-sm btn-circle btn-ghost"
+            onClick={() => closeJobModal()}
+          >
             ✕
           </button>
         </div>
@@ -363,6 +371,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         <div className="modal-action p-4 border-t border-gray-300 mt-0 bg-gray-50 flex justify-end gap-2">
           {currentStep > 1 && (
             <button
+              type="button"
               key="previous"
               onClick={() => setCurrentStep(currentStep - 1)}
               className="min-h-auto h-auto font-normal text-base px-6 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 rounded-md transition-all"
@@ -373,6 +382,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
           )}
           {currentStep < (newJob.blogs.enableAdvanced ? 4 : 3) ? (
             <button
+              type="button"
               key="next"
               onClick={() => {
                 if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
@@ -384,6 +394,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
             </button>
           ) : (
             <button
+              type="button"
               key="submit"
               onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
               className="btn min-h-auto h-auto font-bold text-base normal-case px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
@@ -400,7 +411,9 @@ const JobModal = ({ user, userPlan, isUserLoaded }) => {
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
-        <button onClick={() => closeJobModal()}>close</button>
+        <button type="button" onClick={() => closeJobModal()}>
+          close
+        </button>
       </form>
     </div>
   )

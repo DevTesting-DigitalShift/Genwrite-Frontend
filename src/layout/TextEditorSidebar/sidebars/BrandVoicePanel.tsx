@@ -136,9 +136,9 @@ const BrandVoicePanel: React.FC<BrandVoicePanelProps> = ({ blog, onRegenerateWit
                 Core Keywords
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {brandKeywords.map((kw, i) => (
+                {brandKeywords.map((kw) => (
                   <span
-                    key={i}
+                    key={kw}
                     className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
                   >
                     {kw}

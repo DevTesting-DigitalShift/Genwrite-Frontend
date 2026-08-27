@@ -16,16 +16,13 @@ import useVerificationStore from "@store/useVerificationStore"
 
 const PricingCard = ({
   plan,
-  index,
   onBuy,
   billingPeriod,
   userPlan,
   userStatus,
-  userStartDate,
   userSubscription,
   user,
   currency,
-  onManage,
 }) => {
   const [customCredits, setCustomCredits] = useState(500)
 
@@ -264,6 +261,7 @@ const PricingCard = ({
         {/* CTA Button */}
         <div className="px-6 pb-6">
           <button
+            type="button"
             className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
               isDisabled
                 ? "bg-slate-300 text-slate-600 cursor-not-allowed opacity-80"
@@ -283,8 +281,8 @@ const PricingCard = ({
 
         {/* Features */}
         <div className="px-6 pb-6 space-y-2.5 grow">
-          {plan.features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-2">
+          {plan.features.map((feature) => (
+            <div key={feature} className="flex items-start gap-2">
               <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0 mt-0.5">
                 <Check className="w-2.5 h-2.5 text-white stroke-3" />
               </div>
@@ -531,10 +529,6 @@ const Upgrade = () => {
     return null
   }
 
-  const handleManageSubscription = () => {
-    navigate("/transactions")
-  }
-
   const handleBuy = async (plan, credits, billingPeriod) => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
@@ -709,6 +703,7 @@ const Upgrade = () => {
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
               {["monthly", "annual"].map((period) => (
                 <button
+                  type="button"
                   key={period}
                   onClick={() => setBillingPeriod(period)}
                   className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
@@ -738,7 +733,7 @@ const Upgrade = () => {
           <div className="flex justify-end">
             <div className="inline-flex items-center bg-white rounded-lg p-0.5 border border-gray-200 shadow-sm">
               {["USD", "INR"].map(curr => (
-                <button
+                <button type="button"
                   key={curr}
                   onClick={() => setCurrency(curr)}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 ${
@@ -758,21 +753,19 @@ const Upgrade = () => {
         <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-0 md:px-4 mt-20">
           <AnimatePresence>
             {loading
-              ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
-              : plans.map((plan, index) => (
+              ? // biome-ignore lint/suspicious/noArrayIndexKey: fixed-count skeleton placeholder, no content
+                Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
+              : plans.map((plan) => (
                   <PricingCard
                     user={user}
                     key={plan.name}
                     plan={plan}
-                    index={index}
                     onBuy={handleBuy}
                     billingPeriod={billingPeriod}
                     currency={currency}
                     userPlan={user?.subscription?.plan}
                     userStatus={user?.subscription?.status}
-                    userStartDate={user?.subscription?.startDate}
                     userSubscription={user?.subscription}
-                    onManage={handleManageSubscription}
                   />
                 ))}
           </AnimatePresence>
@@ -821,11 +814,13 @@ const Upgrade = () => {
           >
             {/* Close button */}
             <button
+              type="button"
               onClick={() => setShowCreditBlockModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
               aria-label="Close"
             >
               <svg
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 className="w-5 h-5"
                 viewBox="0 0 24 24"
@@ -843,6 +838,7 @@ const Upgrade = () => {
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-red-50 rounded-full">
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-8 h-8 text-red-500"
                   viewBox="0 0 24 24"
@@ -867,12 +863,14 @@ const Upgrade = () => {
 
             <div className="flex flex-col gap-3">
               <button
+                type="button"
                 onClick={() => handleBuyAnnualPlan("basic")}
                 className="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-teal-600 hover:bg-teal-700 transition-colors text-sm"
               >
                 Buy Basic Plan
               </button>
               <button
+                type="button"
                 onClick={() => handleBuyAnnualPlan("pro")}
                 className="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors text-sm"
               >

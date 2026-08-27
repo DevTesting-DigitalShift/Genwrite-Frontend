@@ -34,6 +34,7 @@ const SortableHeader = ({ column, title }) => {
   const sorted = column.getIsSorted()
   return (
     <button
+      type="button"
       className="flex items-center gap-1.5 group select-none"
       onClick={column.getToggleSortingHandler()}
       title={`Sort by ${title}`}
@@ -162,9 +163,13 @@ export default function GSCAnalyticsTabs({
           cell: ({ row }) => (
             <div className="flex justify-end">
               <div className="dropdown dropdown-left dropdown-end">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-xs rounded-lg">
+                <button
+                  type="button"
+                  aria-label="Row actions"
+                  className="btn btn-ghost btn-xs rounded-lg"
+                >
                   <MoreHorizontal className="size-4 text-gray-600" />
-                </div>
+                </button>
                 <ul className="dropdown-content z-50 menu p-2 shadow-sm bg-white rounded-box w-40 border border-gray-100">
                   <li>
                     <a
@@ -222,6 +227,7 @@ export default function GSCAnalyticsTabs({
         <div className="flex gap-4 sm:gap-8 px-2 sm:px-4 min-w-max">
           {items.map((item) => (
             <button
+              type="button"
               key={item.key}
               onClick={() => {
                 handleTabChange(item.key)
@@ -317,16 +323,21 @@ export default function GSCAnalyticsTabs({
           <div className="flex items-center gap-3 order-1 sm:order-2">
             <div className="join border border-gray-100">
               <button
+                type="button"
                 className="join-item btn btn-xs sm:btn-sm bg-white border-gray-200 hover:bg-gray-50"
                 disabled={!table.getCanPreviousPage()}
                 onClick={() => table.previousPage()}
               >
                 Prev
               </button>
-              <button className="join-item btn btn-xs sm:btn-sm bg-white border-gray-200 no-animation text-xs">
+              <button
+                type="button"
+                className="join-item btn btn-xs sm:btn-sm bg-white border-gray-200 no-animation text-xs"
+              >
                 {pageIndex + 1} / {table.getPageCount() || 1}
               </button>
               <button
+                type="button"
                 className="join-item btn btn-xs sm:btn-sm bg-white border-gray-200 hover:bg-gray-50"
                 disabled={!table.getCanNextPage()}
                 onClick={() => table.nextPage()}

@@ -32,12 +32,13 @@ const CancelPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => navigate("/dashboard"), 5000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-gray-100 to-red-50 relative overflow-hidden">
       {/* Background Wave Pattern */}
       <svg
+        aria-hidden="true"
         className="absolute bottom-0 left-0 w-full h-1/3 opacity-20"
         viewBox="0 0 1440 320"
         preserveAspectRatio="none"

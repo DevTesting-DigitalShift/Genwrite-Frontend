@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Bot, User } from "lucide-react"
 
@@ -27,13 +27,13 @@ const ChatBox = ({ isOpen, onClose }) => {
     },
   ]
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, showQuestions])
+  }, [scrollToBottom])
 
   const handleQuestionClick = (question, answer) => {
     const userMsg = { id: Date.now(), text: question, sender: "user", timestamp: new Date() }
@@ -71,6 +71,7 @@ const ChatBox = ({ isOpen, onClose }) => {
                 <h3 className="font-semibold text-lg">AI Assistant</h3>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-1.5 rounded-full hover:bg-indigo-400/30 transition-colors"
               >
@@ -129,9 +130,10 @@ const ChatBox = ({ isOpen, onClose }) => {
 
             {showQuestions && (
               <div className="flex flex-col gap-2">
-                {qna.map((item, index) => (
+                {qna.map((item) => (
                   <button
-                    key={index}
+                    type="button"
+                    key={item.question}
                     onClick={() => handleQuestionClick(item.question, item.answer)}
                     className="text-left text-sm px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl transition"
                   >

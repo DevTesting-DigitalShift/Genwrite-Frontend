@@ -83,6 +83,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
               Metadata Core
             </span>
             <button
+              type="button"
               onClick={onMetadataGenerate}
               disabled={isGeneratingMetadata}
               className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-30 disabled:grayscale transition-all"
@@ -107,6 +108,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
             />
           </div>
           <button
+            type="button"
             onClick={onMetadataSave}
             className="w-full h-11 text-xs font-black uppercase tracking-widest rounded-xl bg-slate-950 text-white shadow-xl shadow-slate-900/10 hover:shadow-blue-600/10 hover:bg-slate-800 transition-all active:scale-95"
           >
@@ -176,6 +178,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
           <div className="grid gap-4 grid-cols-1">
             {/* Markdown */}
             <button
+              type="button"
               onClick={onExportMarkdown}
               disabled={userPlan === "free"}
               className={`
@@ -202,6 +205,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
 
             {/* HTML */}
             <button
+              type="button"
               onClick={onExportHTML}
               disabled={userPlan === "free"}
               className={`
@@ -228,6 +232,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
 
             {/* PDF */}
             <button
+              type="button"
               onClick={onExportPDF}
               disabled={userPlan === "free"}
               className={`
@@ -329,7 +334,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                   <div className="space-y-3 max-h-80 overflow-y-auto custom-scroll pr-2">
                     {analysisResult.insights.suggestions.map((suggestion, idx) => (
                       <motion.div
-                        key={idx}
+                        key={suggestion}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}

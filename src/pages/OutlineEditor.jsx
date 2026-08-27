@@ -51,7 +51,7 @@ const OutlineEditor = () => {
   const [markdownContent, setMarkdownContent] = useState(null)
   const [activeTab, setActiveTab] = useState("edit")
 
-  const { data: brands = [], isLoading: loadingBrands, error: brandError } = brandsQuery.useList()
+  const { data: brands = [] } = brandsQuery.useList()
 
   const handleClose = () => {
     setIsOpen(false)
@@ -299,7 +299,12 @@ const OutlineEditor = () => {
       <div className="px-6">
         {isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div onClick={handleClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={handleClose}
+              className="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm"
+            />
             <div className="relative gap-2 w-full max-w-4xl bg-white rounded-md flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-4 px-8 border-b border-slate-50 flex items-center justify-between">
@@ -311,6 +316,7 @@ const OutlineEditor = () => {
                       : "Brand Voice & Resources"}
                 </h2>
                 <button
+                  type="button"
                   onClick={handleClose}
                   className="p-2 hover:bg-slate-50 rounded-md transition-colors text-slate-400 hover:text-slate-600"
                 >
@@ -338,12 +344,13 @@ const OutlineEditor = () => {
                 {currentStep === 1 && (
                   <div className="space-y-5">
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-topic" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Blog Topic <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <input
+                        id="outline-topic"
                         type="text"
                         value={formData.topic}
                         onChange={(e) => handleInputChange(e, "topic")}
@@ -356,10 +363,11 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-tone" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">Writing Tone</span>
                       </label>
                       <select
+                        id="outline-tone"
                         value={formData.tone}
                         onChange={(e) => handleSelectChange(e.target.value)}
                         className={`select select-bordered w-full rounded-md focus:ring ${errors.tone ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
@@ -373,13 +381,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-focus-keywords" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Focus Keywords (Max 3) <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-focus-keywords"
                           type="text"
                           value={formData.focusKeywordInput}
                           onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
@@ -389,6 +398,7 @@ const OutlineEditor = () => {
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.focusKeywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
+                          type="button"
                           onClick={() => handleAddKeyword("focusKeywords")}
                           className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
@@ -398,7 +408,7 @@ const OutlineEditor = () => {
                       <div className="flex flex-wrap gap-2 mt-3">
                         {formData.focusKeywords.map((keyword, index) => (
                           <span
-                            key={index}
+                            key={keyword}
                             className="badge bg-blue-50 text-blue-700 border-blue-100 py-3 px-3 rounded-md gap-2 text-xs font-bold"
                           >
                             {keyword}
@@ -418,13 +428,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-secondary-keywords" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Secondary Keywords <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-secondary-keywords"
                           type="text"
                           value={formData.keywordInput}
                           onChange={(e) => handleKeywordInputChange(e, "keywords")}
@@ -434,6 +445,7 @@ const OutlineEditor = () => {
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.keywords ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
+                          type="button"
                           onClick={() => handleAddKeyword("keywords")}
                           className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
@@ -443,7 +455,7 @@ const OutlineEditor = () => {
                       <div className="flex flex-wrap gap-2 mt-3">
                         {visibleKeywords.map((keyword, index) => (
                           <span
-                            key={index}
+                            key={keyword}
                             className="badge bg-slate-50 text-slate-600 border-slate-100 py-3 px-3 rounded-md gap-2 text-xs font-bold"
                           >
                             {keyword}
@@ -457,6 +469,7 @@ const OutlineEditor = () => {
                         {formData.keywords.length >
                           BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS && (
                           <button
+                            type="button"
                             onClick={() => setShowAllKeywords(!showAllKeywords)}
                             className="text-xs font-bold text-primary hover:text-primary/80 ml-1"
                           >
@@ -472,12 +485,13 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-title" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Suggested Title <span className="text-rose-500">*</span>
                         </span>
                       </label>
                       <input
+                        id="outline-title"
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange(e, "title")}
@@ -490,9 +504,9 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="w-full">
-                      <label className="block mb-3 text-sm font-semibold text-slate-700">
+                      <span className="block mb-3 text-sm font-semibold text-slate-700">
                         Choose length of Blog <span className="text-red-500">*</span>
-                      </label>
+                      </span>
 
                       <div className="flex items-center gap-6">
                         <div className="relative flex-1">
@@ -520,11 +534,12 @@ const OutlineEditor = () => {
                   <div className="space-y-6">
                     <div className="form-control w-full">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="label text-sm p-0">
+                        <span className="label text-sm p-0">
                           <span className="label-text font-bold text-slate-700">Brand Voice</span>
-                        </label>
+                        </span>
                         {formData.brandId && (
                           <button
+                            type="button"
                             onClick={() => handleBrandSelect(formData.brandId)}
                             className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
                           >
@@ -536,6 +551,9 @@ const OutlineEditor = () => {
                         {brands?.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                             {brands.map((voice) => (
+                              // Selection is driven by the radio's own onChange rather than a
+                              // click handler on the label, so keyboard users get the native
+                              // radio-group behaviour (arrow keys, Space).
                               <label
                                 key={voice._id}
                                 className={`flex items-start gap-3 p-4 rounded-md cursor-pointer transition-all border ${
@@ -543,16 +561,13 @@ const OutlineEditor = () => {
                                     ? "bg-primary/10 border-primary/20 shadow-none"
                                     : "bg-white border-slate-100 hover:border-slate-200"
                                 }`}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  handleBrandSelect(voice._id)
-                                }}
                               >
                                 <input
                                   type="radio"
+                                  name="outline-brand-voice"
                                   className="radio radio-primary radio-xs"
                                   checked={formData.brandId === voice._id}
-                                  readOnly
+                                  onChange={() => handleBrandSelect(voice._id)}
                                 />
                                 <div>
                                   <div className="font-bold text-slate-700 text-sm">
@@ -577,13 +592,14 @@ const OutlineEditor = () => {
                     </div>
 
                     <div className="form-control w-full">
-                      <label className="label text-sm mb-2">
+                      <label htmlFor="outline-resources" className="label text-sm mb-2">
                         <span className="label-text font-bold text-slate-700">
                           Resource Links (Max {BLOG_CONFIG.CONSTRAINTS.MAX_REFERENCE_LINKS})
                         </span>
                       </label>
                       <div className="relative flex gap-2">
                         <input
+                          id="outline-resources"
                           type="text"
                           value={formData.resourceInput}
                           onChange={(e) => handleKeywordInputChange(e, "resources")}
@@ -593,6 +609,7 @@ const OutlineEditor = () => {
                           className={`input outline-0 w-full pr-2 rounded-md ${errors.resources ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
                         />
                         <button
+                          type="button"
                           onClick={() => handleAddKeyword("resources")}
                           className="w-10 p-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all font-bold shadow-none"
                         >
@@ -602,7 +619,7 @@ const OutlineEditor = () => {
                       <div className="flex flex-wrap gap-2 mt-3">
                         {formData.resources.map((resource, index) => (
                           <div
-                            key={index}
+                            key={resource}
                             className="badge h-auto py-2 bg-slate-50 text-primary border-slate-100 rounded-md gap-2 text-xs font-bold flex items-center"
                           >
                             <span className="max-w-[150px] truncate">{resource}</span>
@@ -628,6 +645,7 @@ const OutlineEditor = () => {
               <div className="px-8 py-6 border-t border-gray-300 flex items-center justify-between gap-3 bg-slate-50/10">
                 {currentStep > 0 ? (
                   <button
+                    type="button"
                     onClick={handlePrev}
                     className="px-6 py-2 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-colors font-medium"
                   >
@@ -640,6 +658,7 @@ const OutlineEditor = () => {
                 <div className="flex gap-3">
                   {currentStep < 2 && (
                     <button
+                      type="button"
                       onClick={handleNext}
                       className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
                     >
@@ -649,6 +668,7 @@ const OutlineEditor = () => {
 
                   {currentStep === 2 && (
                     <button
+                      type="button"
                       onClick={handleSubmit}
                       disabled={isSubmitting}
                       className="px-8 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-all shadow-none font-bold"
@@ -674,11 +694,13 @@ const OutlineEditor = () => {
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
+                type="button"
                 onClick={handleExportMarkdown}
                 className="flex-1 sm:flex-none px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-all text-sm sm:text-base font-bold flex justify-center items-center gap-2"
                 aria-label="Export as Markdown"
               >
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 sm:h-5 w-4 sm:w-5"
                   fill="none"
@@ -701,6 +723,7 @@ const OutlineEditor = () => {
             {/* Tabs Header */}
             <div className="bg-slate-50/50 border-b border-gray-200 flex items-center p-1 gap-1">
               <button
+                type="button"
                 onClick={() => setActiveTab("edit")}
                 className={clsx(
                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
@@ -712,6 +735,7 @@ const OutlineEditor = () => {
                 Edit Mode
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("preview")}
                 className={clsx(
                   "flex-1 sm:flex-none px-6 py-2.5 rounded-md text-sm font-bold transition-all",
@@ -748,6 +772,7 @@ const OutlineEditor = () => {
                 <p className="text-gray-500 text-sm italic">
                   No content generated yet.{" "}
                   <button
+                    type="button"
                     onClick={() => setIsOpen(true)}
                     className="text-primary font-bold hover:underline"
                   >
