@@ -67,10 +67,9 @@ export default function CampaignsListPage() {
         await deleteMutation.mutateAsync(campaign._id)
       },
       confirmProps: {
-        type: "text",
-        className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+        className:
+          "border-red-200 bg-red-50 text-red-600 hover:border-red-500 hover:bg-red-500 hover:text-white",
       },
-      cancelProps: { danger: false },
     })
   }
 

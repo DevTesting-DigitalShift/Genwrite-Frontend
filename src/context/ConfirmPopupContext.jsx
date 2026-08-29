@@ -1,6 +1,16 @@
 import { createContext, useCallback, useContext, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+// These are native buttons, but call sites still pass antd-shaped props left over
+// from the old modal: `danger`, and `type="text"`. Translate `danger`, drop the
+// rest so they never reach the DOM, and merge `className` with the base classes
+// instead of letting it replace them (which stripped the button styling entirely).
+const buttonProps = ({ className, danger, type: _antdType, ...rest } = {}) => ({
+  ...rest,
+  className: cn("btn rounded-md", danger && "btn-error", className),
+})
 
 const ConfirmPopupContext = createContext()
 
@@ -62,17 +72,15 @@ export const ConfirmPopupProvider = ({ children }) => {
                 <button
                   type="button"
                   onClick={() => handleClose({ source: "button" })}
-                  className="btn rounded-md"
-                  {...cancelProps}
+                  {...buttonProps(cancelProps)}
                 >
                   {cancelText}
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="btn rounded-md"
                   disabled={loading}
-                  {...confirmProps}
+                  {...buttonProps(confirmProps)}
                 >
                   {loading && <span className="loading loading-spinner"></span>}
                   {confirmText}

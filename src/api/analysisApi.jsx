@@ -1,12 +1,31 @@
 import axiosInstance from "./index"
 
-export const runCompetitiveAnalysis = async ({ blogId, title, content, keywords }) => {
+// The API validates contentType against an uppercase enum, so map the lowercase
+// values used across the UI onto it before sending.
+const CONTENT_TYPES = {
+  markdown: "MARKDOWN",
+  html: "HTML",
+  plain_text: "PLAIN_TEXT",
+  "plain text": "PLAIN_TEXT",
+  text: "PLAIN_TEXT",
+}
+
+const toContentType = (value) =>
+  CONTENT_TYPES[String(value ?? "").trim().toLowerCase()] ?? "MARKDOWN"
+
+export const runCompetitiveAnalysis = async ({
+  blogId,
+  title,
+  content,
+  keywords,
+  contentType,
+}) => {
   const response = await axiosInstance.post("/analysis/run", {
     blogId,
     title,
     content,
     keywords,
-    contentType: "markdown",
+    contentType: toContentType(contentType),
   })
   return response.data
 }

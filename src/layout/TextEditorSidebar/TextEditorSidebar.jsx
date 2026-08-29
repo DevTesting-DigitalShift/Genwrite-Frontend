@@ -55,6 +55,7 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { fetchCategories, generateMetadata } from "@api/otherApi"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
+import { brandsQuery } from "@api/Brand/Brand.query"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE, COSTS } from "@/data/blogData"
@@ -370,6 +371,12 @@ const TextEditorSidebar = ({
   const applyInsightMutation = useApplyInsightMutation()
   const confirmInsightMutation = useConfirmInsightMutation()
   const { data: fetchedInsight } = useBlogInsightQuery(blog?._id)
+
+  // The blog only carries a brandId string unless the API populated it, so the
+  // brand list is fetched to resolve the details the Brand Voice panel shows.
+  const rawBrandId = typeof blog?.brandId === "object" ? blog?.brandId?._id : blog?.brandId
+  const needsBrandLookup = Boolean(rawBrandId) && typeof blog?.brandId !== "object"
+  const { data: brandList = [] } = brandsQuery.useList({ enabled: needsBrandLookup })
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -1706,11 +1713,25 @@ const TextEditorSidebar = ({
 
   // ========== PANELS ==========
   const renderBrandPanel = () => {
-    // If brandId is an object, use it. Otherwise look for flattened properties in blog.
+    // brandId may arrive populated, as a bare id, or not at all (older blogs keep
+    // the voice flattened onto the blog). Merge all three so the panel has data
+    // instead of rendering just its header.
     const isBrandPopulated = blog?.brandId && typeof blog.brandId === "object"
-    const brand = isBrandPopulated ? blog.brandId : {}
+    const resolvedBrand = isBrandPopulated
+      ? blog.brandId
+      : (Array.isArray(brandList) ? brandList : []).find((b) => b._id === rawBrandId) || {}
+    const brand = {
+      nameOfVoice: resolvedBrand.nameOfVoice || resolvedBrand.name || blog?.nameOfVoice,
+      persona: resolvedBrand.persona || blog?.persona,
+      describeBrand: resolvedBrand.describeBrand || blog?.describeBrand,
+      postLink: resolvedBrand.postLink || blog?.postLink,
+      sitemap: resolvedBrand.sitemap || blog?.sitemap,
+      keywords: resolvedBrand.keywords?.length ? resolvedBrand.keywords : blog?.brandKeywords,
+    }
 
-    const _nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
+    const hasBrandDetails = Boolean(
+      brand.persona || brand.describeBrand || brand.postLink || brand.sitemap || brand.keywords?.length
+    )
 
     if (!blog?.brandId && !blog?.nameOfVoice) {
       return (
@@ -1755,7 +1776,7 @@ const TextEditorSidebar = ({
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 line-clamp-1">
-                  {brand.nameOfVoice || brand.name || "Brand Voice"}
+                  {brand.nameOfVoice || "Brand Voice"}
                 </h3>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
                   Brand Identity
@@ -1775,6 +1796,28 @@ const TextEditorSidebar = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+          {!hasBrandDetails && (
+            <p className="text-xs text-gray-500 leading-relaxed text-center py-8">
+              No details saved for this brand voice yet. Add a description, persona or keywords on
+              the Brand Voice page and they'll show up here.
+            </p>
+          )}
+
+          {/* Description */}
+          {brand.describeBrand && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Crown className="w-3.5 h-3.5 text-purple-500" />
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  About the Brand
+                </h4>
+              </div>
+              <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 text-xs leading-relaxed">
+                {brand.describeBrand}
+              </div>
+            </div>
+          )}
+
           {/* Persona */}
           {brand.persona && (
             <div className="space-y-2">
@@ -1805,6 +1848,25 @@ const TextEditorSidebar = ({
                 >
                   <span className="text-xs font-semibold text-blue-600 truncate mr-2">
                     {brand.postLink}
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                </a>
+              </div>
+            )}
+
+            {brand.sitemap && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Sitemap
+                </h4>
+                <a
+                  href={brand.sitemap}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-200 transition-all group"
+                >
+                  <span className="text-xs font-semibold text-blue-600 truncate mr-2">
+                    {brand.sitemap}
                   </span>
                   <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                 </a>
