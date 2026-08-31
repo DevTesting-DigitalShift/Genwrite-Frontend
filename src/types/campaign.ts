@@ -167,6 +167,7 @@ export interface CampaignWeeklyTrendPoint {
   clicks: number
   impressions: number
   avgPosition: number
+  ctr: number
 }
 
 export interface CampaignBlogBreakdownRow {
@@ -175,6 +176,7 @@ export interface CampaignBlogBreakdownRow {
   clicks: number
   impressions: number
   avgPosition: number
+  ctr: number
 }
 
 export interface CampaignReportBreakdown {

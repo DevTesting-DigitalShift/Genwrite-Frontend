@@ -2,6 +2,9 @@ import { Link } from "react-router-dom"
 import type { CampaignBlogBreakdownRow } from "@/types/campaign"
 
 const formatNumber = (value: number) => value.toLocaleString("en-US")
+// Guards against a stale/older API response that predates this field (e.g. ctr) — a
+// dash reads honestly as "no data" instead of "NaN%".
+const formatCtr = (value: number) => (Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "—")
 
 export function CampaignBlogBreakdownTable({ rows }: { rows: CampaignBlogBreakdownRow[] }) {
   return (
@@ -13,6 +16,7 @@ export function CampaignBlogBreakdownTable({ rows }: { rows: CampaignBlogBreakdo
             <th className="px-4 py-3 text-right">Clicks</th>
             <th className="px-4 py-3 text-right">Impressions</th>
             <th className="px-4 py-3 text-right">Avg. position</th>
+            <th className="px-4 py-3 text-right">CTR</th>
           </tr>
         </thead>
         <tbody>
@@ -30,6 +34,7 @@ export function CampaignBlogBreakdownTable({ rows }: { rows: CampaignBlogBreakdo
               <td className="px-4 py-3 text-right">{formatNumber(row.clicks)}</td>
               <td className="px-4 py-3 text-right">{formatNumber(row.impressions)}</td>
               <td className="px-4 py-3 text-right">{row.avgPosition || "—"}</td>
+              <td className="px-4 py-3 text-right">{formatCtr(row.ctr)}</td>
             </tr>
           ))}
         </tbody>
