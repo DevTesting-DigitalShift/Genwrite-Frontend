@@ -20,7 +20,7 @@ export function CreateUserForm({ onSubmit, onCancel, isLoading }: CreateUserForm
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [role, setRole] = useState<"user" | "admin">("user")
+  const [role, setRole] = useState<"user" | "tester" | "admin">("user")
   const [plan, setPlan] = useState<"free" | "basic" | "pro">("free")
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,13 +93,14 @@ export function CreateUserForm({ onSubmit, onCancel, isLoading }: CreateUserForm
           </label>
           <Select
             value={role}
-            onValueChange={(value: string) => setRole(value as "user" | "admin")}
+            onValueChange={(value: string) => setRole(value as "user" | "tester" | "admin")}
           >
             <SelectTrigger id="create-user-role" className="w-full">
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="user">User</SelectItem>
+              <SelectItem value="tester">Tester</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>

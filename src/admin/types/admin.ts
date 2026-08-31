@@ -80,7 +80,7 @@ export interface UserDetailsResponse {
   _id: string
   name: string
   email: string
-  role: "user" | "admin"
+  role: "user" | "tester" | "admin"
   credits: { base: number; extra: number }
   subscription: {
     plan: string
@@ -225,7 +225,7 @@ export interface AdminCreateUserInput {
   name: string
   email: string
   password: string
-  role?: "user" | "admin"
+  role?: "user" | "tester" | "admin"
   plan?: "free" | "basic" | "pro"
 }
 
@@ -238,7 +238,7 @@ export interface UpdateUserInput {
     plan?: "free" | "basic" | "pro"
     status?: "active" | "cancelled" | "expired" | "trialing"
   }
-  role?: "user" | "admin"
+  role?: "user" | "tester" | "admin"
   usage?: { blogs?: number; images?: number }
   usageLimits?: { blogs?: number; images?: number }
 }
