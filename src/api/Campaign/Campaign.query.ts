@@ -5,6 +5,7 @@ import { CampaignAPI } from "./Campaign.api"
 import type {
   Campaign,
   CampaignReport,
+  CampaignReportBreakdown,
   CampaignStatusType,
   CampaignAnalyzeQueued,
   CampaignLiveMetrics,
@@ -31,6 +32,18 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     this.useFetchQuery<CampaignReport>(
       `report-${campaignId}-${reportId}`,
       () => this.api.getReport(campaignId, reportId),
+      { enabled: !!campaignId && !!reportId, ...options }
+    )
+
+  /** Per-week and per-blog breakdown of a report's period, for the trend chart and table. */
+  useReportBreakdown = (
+    campaignId: string,
+    reportId: string,
+    options?: AnyUseQueryOptions<CampaignReportBreakdown, Error>
+  ) =>
+    this.useFetchQuery<CampaignReportBreakdown>(
+      `report-breakdown-${campaignId}-${reportId}`,
+      () => this.api.getReportBreakdown(campaignId, reportId),
       { enabled: !!campaignId && !!reportId, ...options }
     )
 

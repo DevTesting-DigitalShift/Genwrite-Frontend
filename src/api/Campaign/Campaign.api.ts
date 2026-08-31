@@ -3,6 +3,7 @@ import axiosInstance from "@/api"
 import type {
   Campaign,
   CampaignReport,
+  CampaignReportBreakdown,
   CampaignStatusType,
   CampaignAnalyzeQueued,
   CampaignLiveMetrics,
@@ -42,6 +43,14 @@ export const CampaignAPI = {
 
   getReport: async (campaignId: string, reportId: string): Promise<CampaignReport> => {
     const res = await axiosInstance.get(`/campaigns/${campaignId}/reports/${reportId}`)
+    return res.data
+  },
+
+  getReportBreakdown: async (
+    campaignId: string,
+    reportId: string
+  ): Promise<CampaignReportBreakdown> => {
+    const res = await axiosInstance.get(`/campaigns/${campaignId}/reports/${reportId}/breakdown`)
     return res.data
   },
 

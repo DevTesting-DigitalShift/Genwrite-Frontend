@@ -6,6 +6,8 @@ import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError } from "@/features/campaigns/CampaignStates"
+import { CampaignTrendChart } from "@/features/campaigns/CampaignTrendChart"
+import { CampaignBlogBreakdownTable } from "@/features/campaigns/CampaignBlogBreakdownTable"
 import { getFriendlyError } from "@utils/friendlyError"
 import type { ProgressStatusType, SuggestionPriorityType } from "@/types/campaign"
 
@@ -124,6 +126,7 @@ export default function CampaignReportDetailPage() {
   const navigate = useNavigate()
   const { data: campaign } = campaignsQuery.useDetail(id)
   const { data: report, isLoading, isError, error, refetch } = campaignsQuery.useReport(id, reportId)
+  const { data: breakdown } = campaignsQuery.useReportBreakdown(id, reportId)
 
   if (isLoading) {
     return (
@@ -207,6 +210,35 @@ export default function CampaignReportDetailPage() {
           />
         </div>
       </Section>
+
+      {breakdown && breakdown.weeklyTrend.length > 0 && (
+        <Section title="Trend" description="Weekly totals across every blog in this campaign.">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <CampaignTrendChart data={breakdown.weeklyTrend} dataKey="clicks" label="Clicks" />
+            <CampaignTrendChart
+              data={breakdown.weeklyTrend}
+              dataKey="impressions"
+              label="Impressions"
+              color="#0EA5E9"
+            />
+            <CampaignTrendChart
+              data={breakdown.weeklyTrend}
+              dataKey="avgPosition"
+              label="Avg. position"
+              color="#F59E0B"
+            />
+          </div>
+        </Section>
+      )}
+
+      {breakdown && breakdown.blogBreakdown.length > 0 && (
+        <Section
+          title="Per-blog performance"
+          description="How each blog in this campaign performed this period."
+        >
+          <CampaignBlogBreakdownTable rows={breakdown.blogBreakdown} />
+        </Section>
+      )}
 
       <Section
         title="Top suggestions"

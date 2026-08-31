@@ -162,6 +162,26 @@ export interface CampaignLiveSuggestion {
   priority: SuggestionPriorityType
 }
 
+export interface CampaignWeeklyTrendPoint {
+  weekStart: string
+  clicks: number
+  impressions: number
+  avgPosition: number
+}
+
+export interface CampaignBlogBreakdownRow {
+  blogId: string
+  title: string
+  clicks: number
+  impressions: number
+  avgPosition: number
+}
+
+export interface CampaignReportBreakdown {
+  weeklyTrend: CampaignWeeklyTrendPoint[]
+  blogBreakdown: CampaignBlogBreakdownRow[]
+}
+
 export interface CampaignReport {
   _id: string
   campaignId: string
