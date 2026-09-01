@@ -7,8 +7,7 @@ import {
   hasAnySession,
   SESSION_EXPIRED_EVENT,
 } from "@utils/sessionStore"
-import { getAccessToken, setAccessToken } from "@utils/accessTokenStore"
-import { refreshSession } from "./authApi.jsx"
+import { getAccessToken, setAccessToken, getCsrfToken, setCsrfToken } from "@utils/accessTokenStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -17,15 +16,12 @@ const axiosInstance = axios.create({
   withCredentials: true,
 })
 
-function readCsrfCookie() {
-  const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-// Endpoints that establish a *new* identity. While adding a second account the previous
-// account is still the active session, so attaching its Bearer token (or its shared
-// workspace scope) to these calls would authenticate the request as the wrong user.
-const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin"]
+// Endpoints that establish a *new* identity (or re-authenticate via the refresh cookie).
+// While adding a second account the previous account is still the active session, so
+// attaching its Bearer token (or its shared workspace scope) to these calls would
+// authenticate the request as the wrong user. /auth/refresh is cookie-authenticated, not
+// Bearer-authenticated, and must never re-enter the 401 handler on its own failure.
+const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin", "/auth/refresh"]
 
 const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => url.includes(r))
 
@@ -43,7 +39,7 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    const csrfToken = readCsrfCookie()
+    const csrfToken = getCsrfToken()
     if (csrfToken) {
       config.headers["x-csrf-token"] = csrfToken
     }
@@ -68,9 +64,15 @@ async function refreshActiveSession() {
   const active = getActiveSession()
   if (!active) throw new Error("No active session to refresh")
   if (!refreshPromise) {
-    refreshPromise = refreshSession(active.userId).finally(() => {
-      refreshPromise = null
-    })
+    // Inline axios call (not authApi.jsx's refreshSession) — importing authApi.jsx here
+    // would reintroduce the index.jsx -> authApi.jsx -> index.jsx cycle that
+    // accessTokenStore.js was built to avoid.
+    refreshPromise = axiosInstance
+      .post("/auth/refresh", { userId: active.userId })
+      .then((res) => res.data)
+      .finally(() => {
+        refreshPromise = null
+      })
   }
   return refreshPromise
 }
@@ -127,8 +129,9 @@ axiosInstance.interceptors.response.use(
       const expiredSession = getActiveSession()
       if (expiredSession) {
         try {
-          const { accessToken } = await refreshActiveSession()
+          const { accessToken, csrfToken } = await refreshActiveSession()
           setAccessToken(accessToken)
+          setCsrfToken(csrfToken)
           const retryConfig = { ...error.config, _refreshRetried: true }
           retryConfig.headers = { ...retryConfig.headers, Authorization: `Bearer ${accessToken}` }
           return axiosInstance(retryConfig)

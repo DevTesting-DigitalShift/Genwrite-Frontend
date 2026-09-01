@@ -22,7 +22,7 @@ import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
-import { setAccessToken } from "@utils/accessTokenStore"
+import { setAccessToken, setCsrfToken } from "@utils/accessTokenStore"
 
 const removeToken = () => {
   const active = sessionStore.getActiveSession()
@@ -53,6 +53,8 @@ const useAuthStore = create(
 
       clearAuth: () => {
         removeToken()
+        setAccessToken(null)
+        setCsrfToken(null)
         set({
           user: null,
           token: null,
@@ -93,8 +95,8 @@ const useAuthStore = create(
       loginUser: async ({ email, password, captchaToken }) => {
         set({ loading: true, error: null })
         try {
-          const { user, token } = await login({ email, password, captchaToken })
-          if (token && user) {
+          const { user, accessToken, csrfToken } = await login({ email, password, captchaToken })
+          if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
               event: "login_attempt",
@@ -103,8 +105,10 @@ const useAuthStore = create(
               user_id: user._id,
               user_subscription: user.subscription.plan,
             })
-            set({ user, token, isAuthenticated: true, loading: false })
-            return { user, token }
+            get().setToken(accessToken)
+            setCsrfToken(csrfToken)
+            set({ user, loading: false })
+            return { user, token: accessToken }
           }
           throw new Error("Invalid login response")
         } catch (err) {
@@ -123,8 +127,8 @@ const useAuthStore = create(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, token } = await signup({ email, password, name, captchaToken, referralId })
-          if (token && user) {
+          const { user, accessToken, csrfToken } = await signup({ email, password, name, captchaToken, referralId })
+          if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
               event: "sign_up_attempt",
@@ -133,8 +137,10 @@ const useAuthStore = create(
               user_id: user._id,
               user_subscription: user.subscription.plan,
             })
-            set({ user, token, isAuthenticated: true, loading: false })
-            return { user, token }
+            get().setToken(accessToken)
+            setCsrfToken(csrfToken)
+            set({ user, loading: false })
+            return { user, token: accessToken }
           }
           throw new Error("Invalid signup response")
         } catch (err) {
@@ -154,7 +160,7 @@ const useAuthStore = create(
         set({ loading: true, error: null })
         try {
           const response = await loginWithGoogle({ access_token, referralId })
-          if (!response.success || !response.token || !response.user) {
+          if (!response.success || !response.accessToken || !response.user) {
             throw new Error("Invalid Google login response")
           }
 
@@ -171,7 +177,9 @@ const useAuthStore = create(
             user_subscription: user.subscription.plan,
           })
 
-          set({ user, token: response.token, isAuthenticated: true, loading: false })
+          get().setToken(response.accessToken)
+          setCsrfToken(response.csrfToken)
+          set({ user, loading: false })
           return response
         } catch (error) {
           pushToDataLayer({
@@ -195,8 +203,9 @@ const useAuthStore = create(
 
         set({ loading: true })
         try {
-          const { accessToken } = await refreshSessionAPI(active.userId)
+          const { accessToken, csrfToken } = await refreshSessionAPI(active.userId)
           setAccessToken(accessToken)
+          setCsrfToken(csrfToken)
           set({ token: accessToken })
 
           const data = await loadUserAPI()
@@ -218,8 +227,9 @@ const useAuthStore = create(
       switchAccount: async (userId) => {
         set({ loading: true, error: null })
         try {
-          const { accessToken } = await refreshSessionAPI(userId)
+          const { accessToken, csrfToken } = await refreshSessionAPI(userId)
           setAccessToken(accessToken)
+          setCsrfToken(csrfToken)
           sessionStore.setActiveUserId(userId)
           set({ token: accessToken, loading: false })
 
@@ -243,6 +253,8 @@ const useAuthStore = create(
           console.warn("Logout API failed", err)
         }
         const currentUserId = sessionStore.getActiveSession()?.userId
+        setAccessToken(null)
+        setCsrfToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
         if (currentUserId) {
           // Removes this session and, if another logged-in account remains in this
@@ -257,7 +269,7 @@ const useAuthStore = create(
       logoutAllAccounts: async () => {
         for (const session of sessionStore.getSessions()) {
           try {
-            sessionStore.setActiveUserId(session.userId)
+            await get().switchAccount(session.userId)
             await UserLogout()
           } catch (err) {
             console.warn(`Logout API failed for ${session.email}`, err)
@@ -268,6 +280,8 @@ const useAuthStore = create(
         // do it itself, or the socket stays connected and the query cache survives into
         // whoever logs in next.
         clearAllAccountState()
+        setAccessToken(null)
+        setCsrfToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
       },
 
