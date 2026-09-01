@@ -113,25 +113,8 @@ function detachTab() {
 function migrateLegacyToken() {
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY)
   if (!legacyToken) return null
-
-  const data = {
-    version: 2,
-    sessions: [
-      {
-        userId: "pending",
-        email: "",
-        name: "",
-        avatar: "",
-        token: legacyToken,
-        addedAt: Date.now(),
-        lastActiveAt: Date.now(),
-      },
-    ],
-    lastActiveUserId: "pending",
-  }
-  writeRaw(data)
   localStorage.removeItem(LEGACY_TOKEN_KEY)
-  return data
+  return null
 }
 
 function getStore() {
@@ -183,10 +166,6 @@ export function getActiveSession() {
   return store.sessions.find((s) => s.userId === activeUserId) || null
 }
 
-export function getActiveToken() {
-  return getActiveSession()?.token || null
-}
-
 export function hasAnySession() {
   return getStore().sessions.length > 0
 }
@@ -218,7 +197,7 @@ export function isSessionLimitError(err) {
  *   to check isAtSessionLimit() first and never get here; this is the backstop that keeps
  *   an over-limit token out of storage (check with isSessionLimitError).
  */
-export function upsertSession({ user, token }) {
+export function upsertSession({ user }) {
   const store = getStore()
   const userId = user._id
   const existingIndex = store.sessions.findIndex((s) => s.userId === userId)
@@ -229,7 +208,6 @@ export function upsertSession({ user, token }) {
     email: user.email || "",
     name: user.name || "",
     avatar: user.avatar || "",
-    token,
     addedAt: Date.now(),
     lastActiveAt: Date.now(),
   }
@@ -263,15 +241,6 @@ export function upsertSession({ user, token }) {
   if (claimTab) writeTabActiveUserId(userId)
 
   return snapshot
-}
-
-/** Updates this tab's active session's token in place (no user snapshot change). */
-export function updateActiveSessionToken(token) {
-  const store = getStore()
-  const activeUserId = resolveActiveUserId(store)
-  if (!activeUserId) return
-  const sessions = store.sessions.map((s) => (s.userId === activeUserId ? { ...s, token } : s))
-  writeRaw({ ...store, sessions })
 }
 
 /**
