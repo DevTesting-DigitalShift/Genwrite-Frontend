@@ -106,10 +106,10 @@ function detachTab() {
   window.dispatchEvent(new CustomEvent(SESSIONS_CHANGED_EVENT))
 }
 
-// One-time upgrade path: wrap a pre-multi-account single token into a session so
-// existing logged-in users aren't logged out when this ships. The real userId isn't
-// known yet — upsertSession() patches this placeholder in once loadAuthenticatedUser
-// resolves.
+// One-time cleanup of the pre-multi-account single localStorage token key. There's no
+// way to turn an old-format token into a valid new-format session (no refresh cookie
+// exists for it), so this just clears the stale key — the user will need to log in
+// again.
 function migrateLegacyToken() {
   const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY)
   if (!legacyToken) return null
@@ -192,7 +192,7 @@ export function isSessionLimitError(err) {
 /**
  * Adds a new session or refreshes an existing one (matched by userId), then makes it
  * active. Used on login/signup/googleLogin and on re-authenticating an expired session.
- * @param {{user: {_id: string, email: string, name: string, avatar?: string}, token: string}} params
+ * @param {{user: {_id: string, email: string, name: string, avatar?: string}}} params
  * @throws when adding a brand-new account would exceed MAX_SESSIONS. Callers are expected
  *   to check isAtSessionLimit() first and never get here; this is the backstop that keeps
  *   an over-limit token out of storage (check with isSessionLimitError).
