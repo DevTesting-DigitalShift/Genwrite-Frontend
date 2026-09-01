@@ -7,7 +7,7 @@ import {
   hasAnySession,
   SESSION_EXPIRED_EVENT,
 } from "@utils/sessionStore"
-import { getAccessToken, setAccessToken, getCsrfToken, setCsrfToken } from "@utils/accessTokenStore"
+import { getAccessToken, setAccessToken } from "@utils/accessTokenStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -38,10 +38,6 @@ axiosInstance.interceptors.request.use(
     const token = getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-    }
-    const csrfToken = getCsrfToken()
-    if (csrfToken) {
-      config.headers["x-csrf-token"] = csrfToken
     }
     // Scope reads to a shared workspace, if one is currently active
     const { activeWorkspace } = useWorkspaceStore.getState()
@@ -129,9 +125,8 @@ axiosInstance.interceptors.response.use(
       const expiredSession = getActiveSession()
       if (expiredSession) {
         try {
-          const { accessToken, csrfToken } = await refreshActiveSession()
+          const { accessToken } = await refreshActiveSession()
           setAccessToken(accessToken)
-          setCsrfToken(csrfToken)
           const retryConfig = { ...error.config, _refreshRetried: true }
           retryConfig.headers = { ...retryConfig.headers, Authorization: `Bearer ${accessToken}` }
           return axiosInstance(retryConfig)

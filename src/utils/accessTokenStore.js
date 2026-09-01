@@ -13,13 +13,3 @@ export function getAccessToken() {
 export function setAccessToken(token) {
   currentAccessToken = token
 }
-
-let currentCsrfToken = null
-
-export function getCsrfToken() {
-  return currentCsrfToken
-}
-
-export function setCsrfToken(token) {
-  currentCsrfToken = token
-}

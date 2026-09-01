@@ -36,6 +36,11 @@ const PrivateRoutesLayout = () => {
   const { needsUpgrade } = useProAction()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
+  // Tracks whether the mount-time auth check (loadAuthenticatedUser's cookie-based
+  // refresh) is still in flight, for accounts that have a session but no in-memory
+  // access token yet. Starts true only when there's a session worth checking —
+  // otherwise there's nothing to wait for.
+  const [checkingAuth, setCheckingAuth] = useState(!!getActiveSession())
 
   const isPublicPath = location.pathname.startsWith("/blog/")
 
@@ -65,8 +70,17 @@ const PrivateRoutesLayout = () => {
     return () => window.removeEventListener("storage", handleStorage)
   }, [])
 
-  // Load authenticated user on mount
+  // Load authenticated user on mount. Gated on whether a session EXISTS, not on
+  // already having an access token — loadAuthenticatedUser is what obtains the token
+  // in the first place (via the cookie-based refresh), so gating on `token` here
+  // would mean it never runs and every session bounces straight to /login.
   useEffect(() => {
+    if (!getActiveSession()) {
+      setIsSocketConnected(true)
+      setCheckingAuth(false)
+      return
+    }
+
     const init = async () => {
       try {
         await loadAuthenticatedUser()
@@ -78,17 +92,22 @@ const PrivateRoutesLayout = () => {
         if (!isPublicPath) {
           navigate("/login")
         }
+      } finally {
+        setCheckingAuth(false)
       }
     }
 
+    init()
+  }, [navigate, loadAuthenticatedUser, isPublicPath])
+
+  // Connect the socket once a live access token is available — set by the refresh
+  // above, by login, or by switching accounts.
+  useEffect(() => {
     if (token) {
       connectSocket(token)
       setIsSocketConnected(true)
-      init()
-    } else {
-      setIsSocketConnected(true)
     }
-  }, [token, navigate, loadAuthenticatedUser, isPublicPath])
+  }, [token])
 
   const isAllowed =
     ALLOWED_ROUTES.some((path) => location.pathname.startsWith(path)) || isPublicPath
@@ -112,7 +131,7 @@ const PrivateRoutesLayout = () => {
   }
 
   // Show loading screen while authenticating or connecting socket
-  if ((loading && !user) || (token && !isSocketConnected)) {
+  if (checkingAuth || (loading && !user) || (token && !isSocketConnected)) {
     return <LoadingScreen message="Authenticating..." />
   }
 

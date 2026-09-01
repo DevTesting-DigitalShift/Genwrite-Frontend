@@ -22,12 +22,21 @@ import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
-import { setAccessToken, setCsrfToken } from "@utils/accessTokenStore"
+import { setAccessToken } from "@utils/accessTokenStore"
 
 const removeToken = () => {
   const active = sessionStore.getActiveSession()
   if (active) sessionStore.removeSession(active.userId)
 }
+
+// Several independent components (PrivateRoutesLayout, Dashboard, SideBar_Header,
+// Profile, Transactions, Onboarding, PublicBlogReader) each call
+// loadAuthenticatedUser() from their own mount effect. That was harmless when it was
+// a synchronous local read, but it now performs a single-use refresh-token rotation
+// over the network — concurrent calls race for the same one-time cookie, and the
+// server's reuse-detection revokes the whole session on the losers. Dedup so any
+// number of simultaneous callers share one in-flight refresh.
+let loadAuthPromise = null
 
 const useAuthStore = create(
   devtools(
@@ -54,7 +63,6 @@ const useAuthStore = create(
       clearAuth: () => {
         removeToken()
         setAccessToken(null)
-        setCsrfToken(null)
         set({
           user: null,
           token: null,
@@ -95,7 +103,7 @@ const useAuthStore = create(
       loginUser: async ({ email, password, captchaToken }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken, csrfToken } = await login({ email, password, captchaToken })
+          const { user, accessToken } = await login({ email, password, captchaToken })
           if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
@@ -106,7 +114,6 @@ const useAuthStore = create(
               user_subscription: user.subscription.plan,
             })
             get().setToken(accessToken)
-            setCsrfToken(csrfToken)
             set({ user, loading: false })
             return { user, token: accessToken }
           }
@@ -127,7 +134,7 @@ const useAuthStore = create(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken, csrfToken } = await signup({ email, password, name, captchaToken, referralId })
+          const { user, accessToken } = await signup({ email, password, name, captchaToken, referralId })
           if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
@@ -138,7 +145,6 @@ const useAuthStore = create(
               user_subscription: user.subscription.plan,
             })
             get().setToken(accessToken)
-            setCsrfToken(csrfToken)
             set({ user, loading: false })
             return { user, token: accessToken }
           }
@@ -178,7 +184,6 @@ const useAuthStore = create(
           })
 
           get().setToken(response.accessToken)
-          setCsrfToken(response.csrfToken)
           set({ user, loading: false })
           return response
         } catch (error) {
@@ -195,6 +200,8 @@ const useAuthStore = create(
       },
 
       loadAuthenticatedUser: async () => {
+        if (loadAuthPromise) return loadAuthPromise
+
         const active = sessionStore.getActiveSession()
         if (!active) {
           set({ user: null, token: null, isAuthenticated: false })
@@ -202,34 +209,38 @@ const useAuthStore = create(
         }
 
         set({ loading: true })
-        try {
-          const { accessToken, csrfToken } = await refreshSessionAPI(active.userId)
-          setAccessToken(accessToken)
-          setCsrfToken(csrfToken)
-          set({ token: accessToken })
+        loadAuthPromise = (async () => {
+          try {
+            const { accessToken } = await refreshSessionAPI(active.userId)
+            setAccessToken(accessToken)
+            set({ token: accessToken })
 
-          const data = await loadUserAPI()
-          if (data?.success && data?.user) {
-            sessionStore.upsertSession({ user: data.user })
-            set({ user: data.user, token: accessToken, isAuthenticated: true, loading: false })
-            return { user: data.user, token: accessToken }
-          } else {
-            throw new Error("Failed to load user")
+            const data = await loadUserAPI()
+            if (data?.success && data?.user) {
+              sessionStore.upsertSession({ user: data.user })
+              set({ user: data.user, token: accessToken, isAuthenticated: true, loading: false })
+              return { user: data.user, token: accessToken }
+            } else {
+              throw new Error("Failed to load user")
+            }
+          } catch (err) {
+            // Token invalid/expired — clear auth silently, no error state needed
+            removeToken()
+            set({ user: null, token: null, isAuthenticated: false, loading: false, error: null })
+            throw err
+          } finally {
+            loadAuthPromise = null
           }
-        } catch (err) {
-          // Token invalid/expired — clear auth silently, no error state needed
-          removeToken()
-          set({ user: null, token: null, isAuthenticated: false, loading: false, error: null })
-          throw err
-        }
+        })()
+
+        return loadAuthPromise
       },
 
       switchAccount: async (userId) => {
         set({ loading: true, error: null })
         try {
-          const { accessToken, csrfToken } = await refreshSessionAPI(userId)
+          const { accessToken } = await refreshSessionAPI(userId)
           setAccessToken(accessToken)
-          setCsrfToken(csrfToken)
           sessionStore.setActiveUserId(userId)
           set({ token: accessToken, loading: false })
 
@@ -254,7 +265,6 @@ const useAuthStore = create(
         }
         const currentUserId = sessionStore.getActiveSession()?.userId
         setAccessToken(null)
-        setCsrfToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
         if (currentUserId) {
           // Removes this session and, if another logged-in account remains in this
@@ -281,7 +291,6 @@ const useAuthStore = create(
         // whoever logs in next.
         clearAllAccountState()
         setAccessToken(null)
-        setCsrfToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
       },
 
