@@ -1,5 +1,5 @@
 import axiosInstance from "."
-import { getActiveToken, getActiveSession, removeSession } from "@utils/sessionStore"
+import { getActiveSession, removeSession } from "@utils/sessionStore"
 
 const removeActiveSession = () => {
   const active = getActiveSession()
@@ -58,9 +58,11 @@ export const UserLogout = async () => {
 }
 
 export const loadUser = async (navigate) => {
-  // Check if token exists before making API call
-  const token = getActiveToken()
-  if (!token) {
+  // Check if a session exists before making the API call — the access token itself
+  // now lives only in memory and is refreshed separately; this just checks there's
+  // an account to try authenticating.
+  const session = getActiveSession()
+  if (!session) {
     navigate("/login")
     throw new Error("No authentication token found")
   }
@@ -107,4 +109,14 @@ export const loginWithGoogle = async (body) => {
   } catch (error) {
     throw new Error(error.response?.data?.message || "Google login failed")
   }
+}
+
+export const refreshSession = async (userId) => {
+  const response = await axiosInstance.post("/auth/refresh", { userId })
+  return response.data
+}
+
+export const logoutAllDevicesAPI = async () => {
+  const response = await axiosInstance.post(`/auth/logout-all`)
+  return response.data
 }

@@ -2,18 +2,24 @@ import axios from "axios"
 import { toast } from "sonner"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import {
-  getActiveToken,
   getActiveSession,
   removeSession,
   hasAnySession,
   SESSION_EXPIRED_EVENT,
 } from "@utils/sessionStore"
+import { getAccessToken } from "@utils/accessTokenStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`, // Replace with your API base URL
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 })
+
+function readCsrfCookie() {
+  const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
+  return match ? decodeURIComponent(match[1]) : null
+}
 
 // Endpoints that establish a *new* identity. While adding a second account the previous
 // account is still the active session, so attaching its Bearer token (or its shared
@@ -32,9 +38,13 @@ axiosInstance.interceptors.request.use(
       return config
     }
     // Add JWT token if available
-    const token = getActiveToken()
+    const token = getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    const csrfToken = readCsrfCookie()
+    if (csrfToken) {
+      config.headers["x-csrf-token"] = csrfToken
     }
     // Scope reads to a shared workspace, if one is currently active
     const { activeWorkspace } = useWorkspaceStore.getState()

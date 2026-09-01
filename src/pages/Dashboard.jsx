@@ -15,7 +15,7 @@ import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
-import { getActiveToken } from "@utils/sessionStore"
+import { getActiveSession } from "@utils/sessionStore"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
@@ -155,8 +155,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const initUser = async () => {
-      const token = getActiveToken()
-      if (!token) {
+      const session = getActiveSession()
+      if (!session) {
         navigate("/login")
         return
       }
