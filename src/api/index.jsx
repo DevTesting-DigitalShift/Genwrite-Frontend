@@ -7,7 +7,8 @@ import {
   hasAnySession,
   SESSION_EXPIRED_EVENT,
 } from "@utils/sessionStore"
-import { getAccessToken } from "@utils/accessTokenStore"
+import { getAccessToken, setAccessToken } from "@utils/accessTokenStore"
+import { refreshSession } from "./authApi.jsx"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -61,6 +62,19 @@ axiosInstance.interceptors.request.use(
 // Local state for toast throttling
 let last429Toast = 0
 
+let refreshPromise = null
+
+async function refreshActiveSession() {
+  const active = getActiveSession()
+  if (!active) throw new Error("No active session to refresh")
+  if (!refreshPromise) {
+    refreshPromise = refreshSession(active.userId).finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
 // Add response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -108,7 +122,23 @@ axiosInstance.interceptors.response.use(
       toast.error(error.response.data.message)
     }
 
-    // 4. Only delete token for 401 Unauthorized
+    // 4. On 401, try one silent refresh for the active account before giving up.
+    if (status === 401 && !error.config?._refreshRetried && !isUnauthenticatedRoute(error.config?.url)) {
+      const expiredSession = getActiveSession()
+      if (expiredSession) {
+        try {
+          const { accessToken } = await refreshActiveSession()
+          setAccessToken(accessToken)
+          const retryConfig = { ...error.config, _refreshRetried: true }
+          retryConfig.headers = { ...retryConfig.headers, Authorization: `Bearer ${accessToken}` }
+          return axiosInstance(retryConfig)
+        } catch (_refreshErr) {
+          // fall through to the existing expiry handling below
+        }
+      }
+    }
+
+    // 5. Only delete token for 401 Unauthorized (refresh above already failed or wasn't possible)
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       const expiredSession = getActiveSession()
