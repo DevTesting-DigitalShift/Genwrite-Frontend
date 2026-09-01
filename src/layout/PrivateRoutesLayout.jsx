@@ -11,7 +11,6 @@ import UpgradeModal from "@components/UpgradeModal"
 import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 import SessionExpiredModal from "@components/SessionExpiredModal"
 import {
-  getActiveToken,
   removeSession,
   getActiveSession,
   getSessions,
@@ -31,10 +30,9 @@ const ALLOWED_ROUTES = [
 ]
 
 const PrivateRoutesLayout = () => {
-  const token = getActiveToken()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, loading, loadAuthenticatedUser } = useAuthStore()
+  const { user, token, loading, loadAuthenticatedUser } = useAuthStore()
   const { needsUpgrade } = useProAction()
 
   const [isSocketConnected, setIsSocketConnected] = useState(false)
@@ -109,7 +107,7 @@ const PrivateRoutesLayout = () => {
   // every hook above has run unconditionally (rules-of-hooks) — isPublicPath can flip
   // within the same mounted layout instance via client-side navigation (e.g. a public
   // blog page -> a private route) without this component unmounting.
-  if (!token && isPublicPath) {
+  if (!getActiveSession() && isPublicPath) {
     return <Outlet />
   }
 

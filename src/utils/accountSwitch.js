@@ -54,11 +54,7 @@ export async function switchToAccount(userId, { navigate, redirectTo = "/dashboa
   disconnectSocket()
   clearAccountScopedState()
 
-  sessionStore.setActiveUserId(userId)
-  const token = sessionStore.getActiveToken()
-
-  useAuthStore.getState().setToken(token)
-  await useAuthStore.getState().loadAuthenticatedUser()
+  const { token } = await useAuthStore.getState().switchAccount(userId)
 
   connectSocket(token)
 
@@ -79,9 +75,7 @@ export async function switchToNextOrNull(removedUserId, { navigate } = {}) {
 
   if (!nextUserId) return null
 
-  const token = sessionStore.getActiveToken()
-  useAuthStore.getState().setToken(token)
-  await useAuthStore.getState().loadAuthenticatedUser()
+  const { token } = await useAuthStore.getState().switchAccount(nextUserId)
   connectSocket(token)
 
   if (navigate) navigate("/dashboard")
