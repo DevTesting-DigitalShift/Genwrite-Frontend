@@ -4,11 +4,13 @@
 //
 // Storage is split deliberately across two scopes:
 //
-//   localStorage["gw_sessions"]      the shared *pool* of logged-in accounts and their
-//                                    tokens, plus `lastActiveUserId` used only as the
-//                                    opening default for a brand-new tab. Shared so that
-//                                    adding an account in one tab makes it available to
-//                                    switch into from any other.
+//   localStorage["gw_sessions"]      the shared *pool* of logged-in accounts, in the
+//                                    order they were added. Shared so that adding an
+//                                    account in one tab makes it available to switch
+//                                    into from any other. A brand-new tab defaults to
+//                                    sessions[0] — the first account still logged into
+//                                    this browser — falling through in add-order if that
+//                                    one signs out.
 //
 //   sessionStorage["gw_active_user"] which account THIS TAB is acting as. sessionStorage
 //                                    is per-tab and survives reloads, which is what lets
@@ -49,14 +51,10 @@ function readRaw() {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed?.sessions)) return null
 
-    // v1 kept a single browser-wide `activeUserId` here. Carry it over as this browser's
-    // default starting account; per-tab selection now lives in sessionStorage.
+    // v1 kept a single browser-wide `activeUserId` here; per-tab selection now lives in
+    // sessionStorage and the default for a fresh tab is simply sessions[0].
     if (parsed.version === 1) {
-      const upgraded = {
-        version: 2,
-        sessions: parsed.sessions,
-        lastActiveUserId: parsed.activeUserId ?? null,
-      }
+      const upgraded = { version: 2, sessions: parsed.sessions }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded))
       return upgraded
     }
@@ -118,15 +116,16 @@ function migrateLegacyToken() {
 }
 
 function getStore() {
-  return readRaw() || migrateLegacyToken() || { version: 2, sessions: [], lastActiveUserId: null }
+  return readRaw() || migrateLegacyToken() || { version: 2, sessions: [] }
 }
 
 /**
  * Resolves which account this tab is acting as, pinning the choice on first use.
  *
- * A fresh tab has no pinned account, so it opens on the browser's last-used one. The
- * moment it resolves, it is written to sessionStorage — that pin is what stops the tab
- * from drifting to a different account later when another tab switches.
+ * A fresh tab has no pinned account, so it opens on sessions[0] — the first account
+ * still logged into this browser, in the order accounts were added. The moment it
+ * resolves, it is written to sessionStorage — that pin is what stops the tab from
+ * drifting to a different account later when another tab switches or a new one logs in.
  */
 function resolveActiveUserId(store) {
   const isValid = (id) => !!id && store.sessions.some((s) => s.userId === id)
@@ -136,9 +135,7 @@ function resolveActiveUserId(store) {
   // Signed out here on purpose — stay signed out rather than adopting another account.
   if (pinned === TAB_DETACHED) return null
 
-  const fallback = isValid(store.lastActiveUserId)
-    ? store.lastActiveUserId
-    : (store.sessions[0]?.userId ?? null)
+  const fallback = store.sessions[0]?.userId ?? null
 
   // Pin it without re-broadcasting; this is resolution, not a user-initiated switch.
   if (fallback) {
@@ -233,11 +230,7 @@ export function upsertSession({ user }) {
   const pinnedStillExists = !!pinned && pinned !== "pending" && sessions.some((s) => s.userId === pinned)
   const claimTab = !pinnedStillExists
 
-  writeRaw({
-    version: 2,
-    sessions,
-    lastActiveUserId: claimTab ? userId : (store.lastActiveUserId ?? userId),
-  })
+  writeRaw({ version: 2, sessions })
   if (claimTab) writeTabActiveUserId(userId)
 
   return snapshot
@@ -253,8 +246,7 @@ export function setActiveUserId(userId) {
   const sessions = store.sessions.map((s) =>
     s.userId === userId ? { ...s, lastActiveAt: Date.now() } : s
   )
-  // lastActiveUserId only seeds future new tabs; it never repoints existing ones.
-  writeRaw({ ...store, lastActiveUserId: userId, sessions })
+  writeRaw({ ...store, sessions })
   writeTabActiveUserId(userId)
 }
 
@@ -285,14 +277,7 @@ export function removeSession(userId, { adoptNext = true } = {}) {
     nextForThisTab = null
   }
 
-  writeRaw({
-    version: 2,
-    sessions,
-    lastActiveUserId:
-      store.lastActiveUserId === userId
-        ? (nextForThisTab ?? sessions[0]?.userId ?? null)
-        : store.lastActiveUserId,
-  })
+  writeRaw({ version: 2, sessions })
 
   if (wasActiveHere) {
     if (nextForThisTab) writeTabActiveUserId(nextForThisTab)
@@ -303,6 +288,6 @@ export function removeSession(userId, { adoptNext = true } = {}) {
 }
 
 export function removeAllSessions() {
-  writeRaw({ version: 2, sessions: [], lastActiveUserId: null })
+  writeRaw({ version: 2, sessions: [] })
   writeTabActiveUserId(null)
 }

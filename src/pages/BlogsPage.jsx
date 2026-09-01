@@ -717,7 +717,15 @@ const BlogsPage = () => {
                     <Calendar size={14} className="text-slate-400" /> DATE RANGE
                   </span>
                   <DateRangePicker
-                    value={[dayjs(blogFilters.start), dayjs(blogFilters.end)]}
+                    // start/end are "" when filters were auto-widened to "no date bound"
+                    // (e.g. an empty trash within the default window) — dayjs("") is an
+                    // Invalid Date, which the picker would otherwise render as literal
+                    // "Invalid date" text instead of its normal "Select date range" fallback.
+                    value={
+                      blogFilters.start && blogFilters.end
+                        ? [dayjs(blogFilters.start), dayjs(blogFilters.end)]
+                        : [null, null]
+                    }
                     minDate={
                       !activeWorkspace && user?.createdAt ? dayjs(user.createdAt) : undefined
                     }
