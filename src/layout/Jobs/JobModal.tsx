@@ -4,54 +4,21 @@ import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
 import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
-import { IMAGE_SOURCE, TONES } from "@/data/blogData"
-import { validateJobData } from "@/types/forms.schemas"
+import { useZodForm } from "@/lib/forms"
+import {
+  JOB_STEP_FIELDS,
+  type JobFormValues,
+  jobFormDefaults,
+  jobStepOfField,
+  jobToFormValues,
+  jobFormSchema,
+  toJobPayload,
+} from "@/forms/jobForm"
 import { toast } from "sonner"
+import type { Path } from "react-hook-form"
 
-// Static default job shape — module scope so it's a stable reference across renders
-// (was previously recreated every render, which broke effect-dependency stability).
-const initialJob = {
-  name: "",
-  schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
-  blogs: {
-    numberOfBlogs: 1,
-    topics: [],
-    keywords: [],
-    references: [],
-    templates: [],
-    tone: TONES[0],
-    userDefinedLength: 1000,
-    imageSource: IMAGE_SOURCE.STOCK,
-    aiModel: "gemini",
-    brandId: null,
-    useBrandVoice: false,
-    isCheckedGeneratedImages: true,
-    addCTA: true,
-    numberOfImages: 0,
-    blogImages: [],
-    postingType: null,
-    languageToWrite: "English",
-    costCutter: true,
-    createBrandedImages: false,
-    enableAdvanced: false,
-  },
-  options: {
-    wordpressPosting: false,
-    includeFaqs: false,
-    includeCompetitorResearch: false,
-    includeInterlinks: false,
-    performKeywordResearch: false,
-    includeTableOfContents: false,
-    addOutBoundLinks: false,
-    easyToUnderstand: false,
-    embedYouTubeVideos: false,
-    extendedThinking: false,
-    deepResearch: false,
-    humanisation: false,
-  },
-  status: "active",
-  templateIds: [],
-}
+/** Any addressable field on the job form, nested paths included. */
+type JobFieldName = Path<JobFormValues>
 
 // Older jobs never persisted `enableAdvanced` even though advanced-section fields
 // were saved, so derive it from those fields when the flag itself is falsy. Pure
@@ -93,232 +60,130 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
   const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
 
   const [currentStep, setCurrentStep] = useState(1)
-  const [newJob, setNewJob] = useState<any>(initialJob)
-  const [formData, setFormData] = useState<any>({
-    keywords: initialJob.blogs.keywords || [],
-    keywordInput: "",
-    performKeywordResearch: initialJob.options.performKeywordResearch,
-    aiModel: initialJob.blogs.aiModel,
-    postingType: initialJob.blogs.postingType,
-  })
-  const [errors, setErrors] = useState<any>({})
+
+  // One form holds the whole job: `jobFormSchema` owns its shape and its rules, and
+  // `toJobPayload` owns the request body — so the raw text boxes and the selected
+  // template ids can live here without ever reaching the API.
+  const {
+    watch,
+    setValue,
+    getValues,
+    reset,
+    trigger,
+    clearErrors,
+    handleSubmit: submitForm,
+    formState: { errors },
+  } = useZodForm(jobFormSchema, jobFormDefaults)
+
+  const newJob = watch()
+
+  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  const setField = React.useCallback(
+    (name: JobFieldName, value: unknown) =>
+      setValue(name, value as never, { shouldValidate: true, shouldDirty: true }),
+    [setValue]
+  )
+
   const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState<any>(null)
   const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState<any>(null)
   const [showAllTopics, setShowAllTopics] = useState<any>(false)
   const [showAllKeywords, setShowAllKeywords] = useState<any>(false)
 
-  const MAX_BLOGS = 10
-  const MAX_IMAGES = 15
-
   // Clear Job Modules and it's states on close
   useEffect(() => {
     if (!showJobModal) {
-      setNewJob((_prev: any) => initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: null,
-        aiModel: "gemini",
-      })
+      reset(jobFormDefaults)
       setCurrentStep(1)
-      setErrors({})
       clearSelectedKeywords()
     }
-  }, [showJobModal, clearSelectedKeywords])
+  }, [showJobModal, clearSelectedKeywords, reset])
 
   useEffect(() => {
     if (selectedJob) {
-      setFormData((prev: any) => ({
-        ...prev,
-        aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
-        performKeywordResearch:
-          selectedJob.options?.performKeywordResearch ?? initialJob.options.performKeywordResearch,
-        keywords: selectedJob.blogs?.keywords ?? initialJob.blogs.keywords,
-        postingType: selectedJob.blogs?.postingType || initialJob.blogs.postingType,
-        templates: selectedJob.blogs?.templates || initialJob.blogs.templates,
-      }))
-      setNewJob({
-        ...selectedJob,
+      const values = jobToFormValues(selectedJob)
+      reset({
+        ...values,
         blogs: {
-          ...selectedJob.blogs,
+          ...values.blogs,
           enableAdvanced:
             Boolean(selectedJob.blogs?.enableAdvanced) || hasAdvancedOptionsEnabled(selectedJob),
         },
       })
     } else {
-      setNewJob(initialJob)
+      reset(jobFormDefaults)
     }
-  }, [selectedJob])
+  }, [selectedJob, reset])
 
   useEffect(() => {
     if (pendingImport === "job" && selectedKeywords) {
-      const baseJob = selectedJob ? { ...selectedJob } : initialJob
-      const mergedTopics = [
-        ...(baseJob.blogs.topics || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]
-      const mergedKeywords = [
-        ...(baseJob.blogs.keywords || []),
-        ...(selectedKeywords?.focusKeywords || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]
-
-      setNewJob({
-        ...baseJob,
-        blogs: {
-          ...baseJob.blogs,
-          topics: [...new Set(mergedTopics)],
-          keywords: [...new Set(mergedKeywords)],
-          numberOfBlogs: selectedKeywords?.numberOfBlogs || baseJob.blogs.numberOfBlogs,
-        },
-      })
-
-      setFormData((prev: any) => ({
-        ...prev,
-        keywords: [
-          ...new Set([
-            ...(prev.keywords || []),
-            ...(selectedKeywords?.focusKeywords || []),
-            ...(selectedKeywords?.allKeywords || []),
-          ]),
-        ],
-      }))
+      const blogs = getValues("blogs")
+      setField("blogs.topics", [
+        ...new Set([...(blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]),
+      ])
+      setField("blogs.keywords", [
+        ...new Set([
+          ...(blogs.keywords || []),
+          ...(selectedKeywords?.focusKeywords || []),
+          ...(selectedKeywords?.allKeywords || []),
+        ]),
+      ])
+      if (selectedKeywords?.numberOfBlogs) {
+        setField("blogs.numberOfBlogs", selectedKeywords.numberOfBlogs)
+      }
       setPendingImport(null)
     }
-  }, [selectedKeywords, selectedJob, pendingImport, setPendingImport])
+  }, [selectedKeywords, pendingImport, setPendingImport, getValues, setField])
 
-  const validateSteps = (step: number | "all") => {
-    const newErrors: Record<string, string> = {}
-    if (step === 1 || step === "all") {
-      if (newJob.blogs.templates.length === 0) {
-        newErrors.templates = "Please select at least one template."
-      } else if (newJob.blogs.templates.length > 7) {
-        newErrors.templates = "You can select a maximum of 7 templates."
-      }
-    }
-    if (step === 2 || step === "all") {
-      if (!newJob.name) newErrors.name = "Please enter a job name."
-      if (newJob.blogs.topics.length === 0) newErrors.topics = "Please add at least one topic."
-      if (!formData.performKeywordResearch && formData.keywords.length === 0) {
-        newErrors.keywords = "Please add at least one keyword or enable keyword research."
-      }
-    }
-    if (step === 3 || step === "all") {
-      if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
-        newErrors.numberOfBlogs = `Number of blogs must be between 1 and ${MAX_BLOGS}.`
-      }
-      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_IMAGES) {
-        newErrors.numberOfImages = `Number of images must be between 0 and ${MAX_IMAGES}.`
-      }
-      if (newJob.schedule.type === "weekly" && newJob.schedule.daysOfWeek.length === 0) {
-        newErrors.daysOfWeek = "Please select at least one day of the week."
-      }
-      if (newJob.schedule.type === "monthly" && newJob.schedule.daysOfMonth.length === 0) {
-        newErrors.daysOfMonth = "Please select at least one day of the month."
-      }
-      if (newJob.schedule.type === "custom" && newJob.schedule.customDates.length === 0) {
-        newErrors.customDates = "Please select at least one custom date."
-      }
-      if (newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.imageSource) {
-        newErrors.imageSource = "Please select an image source."
-      }
-    }
-    if ((step === 4 && newJob.blogs.enableAdvanced) || step === "all") {
-      if (newJob.blogs.enableAdvanced && newJob.options.wordpressPosting && !formData.postingType) {
-        newErrors.postingType = "Please select a posting platform."
-      }
-    }
-    setErrors(newErrors)
-    if (Object.keys(newErrors).length > 0) {
-      if (scrollableRef.current) {
-        scrollableRef.current.scrollTo({ top: 0, behavior: "smooth" })
-      }
-    }
-    return Object.keys(newErrors).length === 0
+  /** Validates only the fields shown on the given step. */
+  const validateStep = async (step: number) => {
+    const fields = (JOB_STEP_FIELDS[step as keyof typeof JOB_STEP_FIELDS] ??
+      []) as unknown as JobFieldName[]
+    const valid = await trigger(fields)
+    if (!valid) scrollableRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+    return valid
   }
 
   const resetModal = () => {
     closeJobModal()
-    setNewJob(initialJob)
-    setFormData({
-      keywords: [],
-      keywordInput: "",
-      performKeywordResearch: false,
-      postingType: null,
-      aiModel: "gemini",
-    })
+    reset(jobFormDefaults)
     setCurrentStep(1)
-    setErrors({})
     clearSelectedKeywords()
   }
 
-  const handleCreateJob = async () => {
-    if (!validateSteps("all")) return
-    const jobPayload = {
-      ...newJob,
-      blogs: {
-        ...newJob.blogs,
-        keywords: formData.keywords,
-        aiModel: formData.aiModel,
-        postingType: formData.postingType,
-        imageSource: newJob.blogs.isCheckedGeneratedImages
-          ? newJob.blogs.imageSource
-          : IMAGE_SOURCE.NONE,
-        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
-      },
-      options: {
-        ...newJob.options,
-        performKeywordResearch: formData.performKeywordResearch,
-        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
-      },
-    }
-
-    const validatedPayload = validateJobData(jobPayload)
-    if (debugPayload("Job (Create)", validatedPayload)) return
-    createJobMutate(validatedPayload, {
-      onSuccess: () => {
-        resetModal()
-      },
-    })
-  }
-
-  const handleUpdateJob = async (jobId: string) => {
-    if (!isUserLoaded) {
-      toast.error("User data is still loading. Please try again.")
-      return
-    }
-    if (!validateSteps("all")) return
-    const jobPayload = {
-      ...newJob,
-      blogs: {
-        ...newJob.blogs,
-        keywords: formData.keywords,
-        aiModel: formData.aiModel,
-        postingType: formData.postingType,
-        imageSource: newJob.blogs.isCheckedGeneratedImages
-          ? newJob.blogs.imageSource
-          : IMAGE_SOURCE.NONE,
-        brandId: newJob.blogs.useBrandVoice && newJob.blogs.brandId ? newJob.blogs.brandId : null,
-      },
-      options: {
-        ...newJob.options,
-        performKeywordResearch: formData.performKeywordResearch,
-        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
-      },
-    }
-
-    const validatedPayload = validateJobData(jobPayload)
-    if (debugPayload("Job (Update)", validatedPayload)) return
-    updateJobMutate(
-      { jobId, jobPayload: validatedPayload },
-      {
-        onSuccess: () => {
-          resetModal()
-        },
+  /** Every failing field path, flattened to the dotted names the step map uses. */
+  const failingPaths = (invalid: Record<string, any>, prefix = ""): string[] =>
+    Object.entries(invalid).flatMap(([key, value]) => {
+      const path = prefix ? `${prefix}.${key}` : key
+      if (value && typeof value === "object" && !("message" in value)) {
+        return failingPaths(value, path)
       }
-    )
+      return [path]
+    })
+
+  const onInvalid = (invalid: Record<string, any>) => {
+    const steps = failingPaths(invalid).map(jobStepOfField)
+    if (steps.length) setCurrentStep(Math.min(...steps))
+    scrollableRef.current?.scrollTo({ top: 0, behavior: "smooth" })
   }
+
+  // The schema is checked before either of these runs, so `values` is complete;
+  // `toJobPayload` is the only thing that decides what the request carries.
+  const handleCreateJob = submitForm(async (values) => {
+    const payload = toJobPayload(values)
+    if (debugPayload("Job (Create)", payload)) return
+    createJobMutate(payload, { onSuccess: () => resetModal() })
+  }, onInvalid)
+
+  const handleUpdateJob = (jobId: string) =>
+    submitForm(async (values) => {
+      if (!isUserLoaded) {
+        toast.error("User data is still loading. Please try again.")
+        return
+      }
+      const payload = toJobPayload(values)
+      if (debugPayload("Job (Update)", payload)) return
+      updateJobMutate({ jobId, jobPayload: payload }, { onSuccess: () => resetModal() })
+    }, onInvalid)
 
   if (!showJobModal) return null
 
@@ -356,11 +221,10 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
           <StepContent
             currentStep={currentStep}
             newJob={newJob}
-            setNewJob={setNewJob}
-            formData={formData}
-            setFormData={setFormData}
+            setField={setField}
+            getValues={getValues}
+            clearErrors={clearErrors}
             errors={errors}
-            setErrors={setErrors}
             recentlyUploadedTopicsCount={recentlyUploadedTopicsCount}
             setRecentlyUploadedTopicsCount={setRecentlyUploadedTopicsCount}
             recentlyUploadedKeywordsCount={recentlyUploadedKeywordsCount}
@@ -390,8 +254,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
             <button
               type="button"
               key="next"
-              onClick={() => {
-                if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
+              onClick={async () => {
+                if (await validateStep(currentStep)) setCurrentStep(currentStep + 1)
               }}
               className="btn min-h-auto h-auto font-bold text-base px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label="Next step"
@@ -402,7 +266,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
             <button
               type="button"
               key="submit"
-              onClick={selectedJob ? () => handleUpdateJob(selectedJob._id ?? "") : handleCreateJob}
+              onClick={selectedJob ? handleUpdateJob(selectedJob._id ?? "") : handleCreateJob}
               className="btn min-h-auto h-auto font-bold text-base normal-case px-8 py-2.5 text-white bg-[#4C5BD6] hover:bg-[#3B4BB8] border-none rounded-md transition-all"
               aria-label={selectedJob ? "Update job" : "Create job"}
               disabled={isCreating || isUpdating}

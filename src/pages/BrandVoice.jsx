@@ -15,6 +15,12 @@ import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
 import { uploadImage } from "@api/imageGalleryApi"
+import { useZodForm } from "@/lib/forms"
+import {
+  brandVoiceFormDefaults,
+  brandVoiceFormSchema,
+  toBrandVoicePayload,
+} from "@/forms/brandVoiceForm"
 
 // Stable reference for the "no brands yet" case. An inline `= []` default would build a
 // fresh array on every render, changing `resetForm`'s identity each time, which made the
@@ -28,18 +34,33 @@ const BrandVoice = () => {
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
-  const [formData, setFormData] = useState({
-    nameOfVoice: "",
-    postLink: "",
-    keywords: [],
-    describeBrand: "",
-    sitemapUrl: "",
-    persona: "",
-    selectedVoice: null,
-    logoUrl: "",
-    _id: undefined,
-  })
-  const [errors, setErrors] = useState({})
+  // Form state and its validation both live in `brandVoiceFormSchema`; the request
+  // body comes from `toBrandVoicePayload`, so page state (`_id`, `selectedVoice`)
+  // cannot leak into it.
+  const {
+    watch,
+    setValue,
+    getValues,
+    reset,
+    setError,
+    clearErrors,
+    handleSubmit: submitForm,
+    formState: { errors },
+  } = useZodForm(brandVoiceFormSchema, brandVoiceFormDefaults)
+
+  const formData = watch()
+
+  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  const setField = useCallback(
+    (name, value) => setValue(name, value, { shouldValidate: true, shouldDirty: true }),
+    [setValue]
+  )
+
+  /** Sets or clears one message — an empty string means "this is fine now". */
+  const setFieldError = useCallback(
+    (name, message) => (message ? setError(name, { message }) : clearErrors(name)),
+    [setError, clearErrors]
+  )
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -57,24 +78,16 @@ const BrandVoice = () => {
   const { data: brands = NO_BRANDS, isLoading } = brandsQuery.useList()
 
   const resetForm = useCallback(() => {
-    setFormData({
-      nameOfVoice: "",
-      postLink: "",
-      keywords: [],
-      describeBrand: "",
-      sitemapUrl: "",
-      persona: "",
-      logoUrl: "",
+    reset({
+      ...brandVoiceFormDefaults,
       selectedVoice: brands && brands.length > 0 ? brands[0] : null,
-      _id: undefined,
     })
     setInputValue("")
-    setErrors({})
     setLastScrapedUrl("")
     setIsFormReset(true)
     setShowAllKeywords(false)
     resetSiteInfo()
-  }, [brands, resetSiteInfo])
+  }, [brands, resetSiteInfo, reset])
 
   // Held in a ref so the effect below keys off the *editing state* only. Depending on
   // `resetForm` directly re-fired it on every identity change of `brands` — on mount that
@@ -91,76 +104,30 @@ const BrandVoice = () => {
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
-      setFormData((prev) => ({
-        ...prev,
-        nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
-        describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
-        keywords: siteInfo.data.keywords || prev.keywords,
-        postLink: siteInfo.data.postLink || prev.postLink,
-        sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
-        logoUrl: siteInfo.data.logoUrl || prev.logoUrl,
-        persona: siteInfo.data.persona || prev.persona,
-      }))
-      setErrors((prev) => ({
-        ...prev,
-        nameOfVoice: undefined,
-        describeBrand: undefined,
-        keywords: undefined,
-        postLink: undefined,
-        sitemapUrl: undefined,
-        persona: undefined,
-      }))
-      setLastScrapedUrl(formData.postLink)
+      const current = getValues()
+      setField("nameOfVoice", siteInfo.data.nameOfVoice || current.nameOfVoice)
+      setField("describeBrand", siteInfo.data.describeBrand || current.describeBrand)
+      setField("keywords", siteInfo.data.keywords || current.keywords)
+      setField("postLink", siteInfo.data.postLink || current.postLink)
+      setField("sitemapUrl", siteInfo.data.sitemap || current.sitemapUrl)
+      setField("logoUrl", siteInfo.data.logoUrl || current.logoUrl)
+      setField("persona", siteInfo.data.persona || current.persona)
+      clearErrors(["nameOfVoice", "describeBrand", "keywords", "postLink", "sitemapUrl", "persona"])
+      setLastScrapedUrl(current.postLink)
     }
-  }, [siteInfo, formData.postLink, isFormReset])
-
-  const validateForm = useCallback(() => {
-    const newErrors = {}
-    if (!formData.nameOfVoice.trim()) {
-      newErrors.nameOfVoice = "Name of Voice is required."
-    }
-    if (!formData.postLink.trim()) {
-      newErrors.postLink = "Post link is required."
-    } else {
-      try {
-        new URL(formData.postLink)
-      } catch {
-        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com)."
-      }
-    }
-    if (formData.keywords.length === 0) {
-      newErrors.keywords = "At least one keyword is required."
-    }
-    if (!formData.describeBrand.trim()) {
-      newErrors.describeBrand = "Brand description is required."
-    }
-    if (!formData.sitemapUrl.trim()) {
-      newErrors.sitemapUrl = "Sitemap URL is required."
-    } else {
-      try {
-        new URL(formData.sitemapUrl)
-      } catch {
-        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml)."
-      }
-    }
-    if (!formData.persona.trim()) {
-      newErrors.persona = "Persona is required."
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }, [formData])
+  }, [siteInfo, isFormReset, getValues, setField, clearErrors])
 
   const handleInputChange = useCallback(
     (e) => {
       const { name, value } = e.target
-      setFormData((prev) => ({ ...prev, [name]: value }))
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
+      setField(name, value)
+      clearErrors(name)
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
       setIsFormReset(false)
     },
-    [lastScrapedUrl]
+    [lastScrapedUrl, setField, clearErrors]
   )
 
   const handleKeyDown = useCallback(
@@ -179,13 +146,13 @@ const BrandVoice = () => {
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+        setField("keywords", [...formData.keywords, ...newKeywords])
         setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        clearErrors("keywords")
         setIsFormReset(false)
       }
     },
-    [inputValue, formData.keywords]
+    [inputValue, formData.keywords, setField, clearErrors]
   )
 
   const handlePasteKeywords = useCallback(
@@ -206,20 +173,26 @@ const BrandVoice = () => {
 
           if (newKeywords.length === 0) return
 
-          setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
+          setField("keywords", [...formData.keywords, ...newKeywords])
           setInputValue("")
-          setErrors((prev) => ({ ...prev, keywords: undefined }))
+          clearErrors("keywords")
           setIsFormReset(false)
         },
       })
     },
-    [formData.keywords]
+    [formData.keywords, setField, clearErrors]
   )
 
-  const removeKeyword = useCallback((keyword) => {
-    setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== keyword) }))
-    setIsFormReset(false)
-  }, [])
+  const removeKeyword = useCallback(
+    (keyword) => {
+      setField(
+        "keywords",
+        getValues("keywords").filter((k) => k !== keyword)
+      )
+      setIsFormReset(false)
+    },
+    [setField, getValues]
+  )
 
   const handleFileChange = useCallback((event) => {
     const file = event.target.files[0]
@@ -247,14 +220,14 @@ const BrandVoice = () => {
         .split(/,|\n|;/)
         .map((kw) => kw.trim())
         .filter((kw) => kw.length > 0)
-      setFormData((prev) => ({ ...prev, keywords: [...new Set([...prev.keywords, ...keywords])] }))
-      setErrors((prev) => ({ ...prev, keywords: undefined }))
+      setField("keywords", [...new Set([...getValues("keywords"), ...keywords])])
+      clearErrors("keywords")
       setIsFormReset(false)
     }
     reader.onerror = () => toast.error("Error reading CSV file.")
     reader.readAsText(file)
     event.target.value = null
-  }, [])
+  }, [setField, clearErrors, getValues])
 
   const handleLogoUpload = useCallback(async (event) => {
     const file = event.target.files[0]
@@ -280,10 +253,10 @@ const BrandVoice = () => {
 
     try {
       setIsUploading(true)
-      const res = await uploadImage(formDataUpload, formData.logoUrl?.split("?")[0] || null)
+      const res = await uploadImage(formDataUpload, getValues("logoUrl")?.split("?")[0] || null)
       if (res?.url) {
         const bustedUrl = `${res.url}?t=${Date.now()}`
-        setFormData((prev) => ({ ...prev, logoUrl: bustedUrl }))
+        setField("logoUrl", bustedUrl)
         toast.success("Logo uploaded successfully.")
       }
     } catch (err) {
@@ -292,28 +265,21 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData.logoUrl])
+  }, [setField, getValues])
 
-  const handleSave = useCallback(async () => {
+  // The schema validates first, so `values` is complete by the time this runs and
+  // `toBrandVoicePayload` is the only thing that shapes the request body.
+  const handleSave = submitForm(async (values) => {
     if (isReadOnlyWorkspace) {
       toast.error("This workspace is read-only — exit to your own workspace to make changes.")
       return
     }
-    if (!validateForm()) return
     setIsUploading(true)
-    const payload = {
-      nameOfVoice: formData.nameOfVoice.trim(),
-      postLink: formData.postLink.trim(),
-      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
-      describeBrand: formData.describeBrand.trim(),
-      sitemap: formData.sitemapUrl.trim(),
-      persona: formData.persona.trim(),
-      logoUrl: formData.logoUrl?.split("?")[0].trim() || "",
-    }
+    const payload = toBrandVoicePayload(values)
 
     const isDuplicate = brands.some(
       (brand) =>
-        brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
+        brand.postLink === payload.postLink && (values._id ? brand._id !== values._id : true)
     )
 
     if (isDuplicate) {
@@ -323,37 +289,38 @@ const BrandVoice = () => {
     }
 
     try {
-      if (formData._id) {
-        await brandVoiceMutations.update.mutateAsync({ id: formData._id, data: payload })
+      if (values._id) {
+        await brandVoiceMutations.update.mutateAsync({ id: values._id, data: payload })
       } else {
         await brandVoiceMutations.create.mutateAsync(payload)
       }
       resetForm()
-      // queryClient.invalidateQueries(["brands"])
     } catch (error) {
       console.error("Error saving brand voice:", error)
     } finally {
       setIsUploading(false)
     }
-  }, [formData, validateForm, resetForm, brands, brandVoiceMutations, isReadOnlyWorkspace])
+  })
 
-  const handleEdit = useCallback((brand) => {
-    setFormData({
-      nameOfVoice: brand.nameOfVoice || "",
-      postLink: brand.postLink || "",
-      keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
-      describeBrand: brand.describeBrand || "",
-      sitemapUrl: brand.sitemap || "",
-      persona: brand.persona || "",
-      logoUrl: brand.logoUrl || "",
-      selectedVoice: brand,
-      _id: brand._id,
-    })
-    setErrors({})
-    setLastScrapedUrl(brand.postLink || "")
-    setIsFormReset(false)
-    setShowAllKeywords(false)
-  }, [])
+  const handleEdit = useCallback(
+    (brand) => {
+      reset({
+        nameOfVoice: brand.nameOfVoice || "",
+        postLink: brand.postLink || "",
+        keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
+        describeBrand: brand.describeBrand || "",
+        sitemapUrl: brand.sitemap || "",
+        persona: brand.persona || "",
+        logoUrl: brand.logoUrl || "",
+        selectedVoice: brand,
+        _id: brand._id,
+      })
+      setLastScrapedUrl(brand.postLink || "")
+      setIsFormReset(false)
+      setShowAllKeywords(false)
+    },
+    [reset]
+  )
 
   const handleDelete = useCallback(
     (brand) => {
@@ -385,15 +352,18 @@ const BrandVoice = () => {
     [brandVoiceMutations, formData.selectedVoice, resetForm, handlePopup]
   )
 
-  const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
-    setIsFormReset(false)
-  }, [])
+  const handleSelect = useCallback(
+    (voice) => {
+      setField("selectedVoice", voice)
+      setIsFormReset(false)
+    },
+    [setField]
+  )
 
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors((prev) => ({ ...prev, postLink: "Post link is required to fetch site info." }))
+      setFieldError("postLink", "Post link is required to fetch site info.")
       return
     }
     if (url === lastScrapedUrl) {
@@ -408,12 +378,9 @@ const BrandVoice = () => {
         })
         .catch(() => toast.error("Failed to fetch site info. Please try a different URL."))
     } catch {
-      setErrors((prev) => ({
-        ...prev,
-        postLink: "Please enter a valid URL (e.g., https://example.com).",
-      }))
+      setFieldError("postLink", "Please enter a valid URL (e.g., https://example.com).")
     }
-  }, [formData.postLink, lastScrapedUrl, fetchSiteInfo])
+  }, [formData.postLink, lastScrapedUrl, fetchSiteInfo, setFieldError])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])
@@ -525,11 +492,11 @@ const BrandVoice = () => {
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
                 className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 flex-1 ${
-                  errors.postLink ? "input-error" : "focus:border-indigo-500"
+                  errors.postLink?.message ? "input-error" : "focus:border-indigo-500"
                 }`}
                 whileFocus={{ scale: 1.01 }}
                 aria-invalid={!!errors.postLink}
-                aria-describedby={errors.postLink ? "postLink-error" : undefined}
+                aria-describedby={errors.postLink?.message ? "postLink-error" : undefined}
               />
               <button
                 type="button"
@@ -551,9 +518,9 @@ const BrandVoice = () => {
                 )}
               </button>
             </div>
-            {errors.postLink && (
+            {errors.postLink?.message && (
               <p id="postLink-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.postLink}
+                {errors.postLink.message}
               </p>
             )}
           </div>
@@ -570,15 +537,15 @@ const BrandVoice = () => {
               onChange={handleInputChange}
               placeholder="e.g., Friendly Tech"
               className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
-                errors.nameOfVoice ? "input-error" : "focus:border-indigo-500"
+                errors.nameOfVoice?.message ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.nameOfVoice}
-              aria-describedby={errors.nameOfVoice ? "nameOfVoice-error" : undefined}
+              aria-describedby={errors.nameOfVoice?.message ? "nameOfVoice-error" : undefined}
             />
-            {errors.nameOfVoice && (
+            {errors.nameOfVoice?.message && (
               <p id="nameOfVoice-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.nameOfVoice}
+                {errors.nameOfVoice.message}
               </p>
             )}
           </div>
@@ -611,7 +578,7 @@ const BrandVoice = () => {
                   <button
                     type="button"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                    onClick={() => setFormData((prev) => ({ ...prev, logoUrl: "" }))}
+                    onClick={() => setField("logoUrl", "")}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -657,7 +624,7 @@ const BrandVoice = () => {
             </label>
             <motion.div
               className={`flex bg-white border rounded-md p-3 flex-col gap-2 ${
-                errors.keywords ? "border-red-500" : "border-gray-300"
+                errors.keywords?.message ? "border-red-500" : "border-gray-300"
               }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
             >
@@ -672,7 +639,7 @@ const BrandVoice = () => {
                   onPaste={handlePasteKeywords}
                   className="grow bg-transparent border-none text-black outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
-                  aria-describedby={errors.keywords ? "keywords-error" : undefined}
+                  aria-describedby={errors.keywords?.message ? "keywords-error" : undefined}
                 />
                 <label htmlFor="file-upload" className="flex items-center cursor-pointer">
                   <motion.div
@@ -693,9 +660,9 @@ const BrandVoice = () => {
                 />
               </div>
             </motion.div>
-            {errors.keywords && (
+            {errors.keywords?.message && (
               <p id="keywords-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.keywords}
+                {errors.keywords.message}
               </p>
             )}
           </div>
@@ -720,15 +687,15 @@ const BrandVoice = () => {
               onChange={handleInputChange}
               placeholder="e.g., https://example.com/sitemap.xml"
               className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full ${
-                errors.sitemapUrl ? "input-error" : "focus:border-indigo-500"
+                errors.sitemapUrl?.message ? "input-error" : "focus:border-indigo-500"
               }`}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.sitemapUrl}
-              aria-describedby={errors.sitemapUrl ? "sitemapUrl-error" : undefined}
+              aria-describedby={errors.sitemapUrl?.message ? "sitemapUrl-error" : undefined}
             />
-            {errors.sitemapUrl && (
+            {errors.sitemapUrl?.message && (
               <p id="sitemapUrl-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.sitemapUrl}
+                {errors.sitemapUrl.message}
               </p>
             )}
           </div>
@@ -744,16 +711,16 @@ const BrandVoice = () => {
               onChange={handleInputChange}
               placeholder="Describe your brand's tone and personality"
               className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
-                errors.describeBrand ? "textarea-error" : "focus:border-indigo-500"
+                errors.describeBrand?.message ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={4}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.describeBrand}
-              aria-describedby={errors.describeBrand ? "describeBrand-error" : undefined}
+              aria-describedby={errors.describeBrand?.message ? "describeBrand-error" : undefined}
             />
-            {errors.describeBrand && (
+            {errors.describeBrand?.message && (
               <p id="describeBrand-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.describeBrand}
+                {errors.describeBrand.message}
               </p>
             )}
           </div>
@@ -777,16 +744,16 @@ const BrandVoice = () => {
               onChange={handleInputChange}
               placeholder="e.g., A seasoned tech blogger with a friendly, conversational tone. Writes for developers and startup founders. Uses American English with occasional technical jargon."
               className={`textarea border border-gray-300 w-full text-black bg-white focus:outline-none focus:ring-0 rounded-md text-sm sm:text-base p-4 ${
-                errors.persona ? "textarea-error" : "focus:border-indigo-500"
+                errors.persona?.message ? "textarea-error" : "focus:border-indigo-500"
               }`}
               rows={3}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.persona}
-              aria-describedby={errors.persona ? "persona-error" : undefined}
+              aria-describedby={errors.persona?.message ? "persona-error" : undefined}
             />
-            {errors.persona && (
+            {errors.persona?.message && (
               <p id="persona-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.persona}
+                {errors.persona.message}
               </p>
             )}
           </div>

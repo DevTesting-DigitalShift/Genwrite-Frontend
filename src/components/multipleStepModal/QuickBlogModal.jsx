@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
 import useAuthStore from "@store/useAuthStore"
@@ -16,44 +16,50 @@ import AiModelSelector from "@components/AiModelSelector"
 import { Switch } from "@components/ui/switch"
 import FieldLabel from "@components/ui/FieldLabel"
 import { useQueryClient } from "@tanstack/react-query"
-import { validateQuickBlogData } from "@/types/forms.schemas"
+import { useZodForm } from "@/lib/forms"
+import {
+  QUICK_BLOG_MAX_LINKS,
+  QUICK_BLOG_STEP_FIELDS,
+  quickBlogFormDefaults,
+  quickBlogFormSchema,
+  toQuickBlogPayload,
+} from "@/forms/quickBlogForm"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
-  const [otherLinks, setOtherLinks] = useState([])
 
-  const initialFormData = {
-    topic: "",
-    exactTitle: false,
-    performKeywordResearch: false,
-    addImages: false,
-    imageSource: IMAGE_SOURCE.NONE,
-    numberOfImages: 0,
-    template: null,
-    templateIds: [],
-    keywords: [],
-    focusKeywords: [],
-    otherLinkInput: "",
-    focusKeywordInput: "",
-    keywordInput: "",
-    languageToWrite: "English",
-    costCutter: true,
-    easyToUnderstand: false,
-    embedYouTubeVideos: false,
-    humanisation: false,
-    aiModel: "gemini",
-    enableAdvanced: false,
-  }
+  // Form state and its validation both live in `quickBlogFormSchema`; the payload is
+  // derived from it by `toQuickBlogPayload`, so UI-only fields (the raw tag inputs,
+  // the template ids, the advanced-options switch) can never leak into the request.
+  const {
+    watch,
+    setValue,
+    trigger,
+    reset,
+    setError,
+    clearErrors,
+    handleSubmit: submitForm,
+    formState: { errors },
+  } = useZodForm(quickBlogFormSchema, quickBlogFormDefaults(type))
 
-  const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
+  const formData = watch()
+  const otherLinks = formData.otherLinks
 
-  const [formData, setFormData] = useState({
-    ...initialFormData,
-    embedYouTubeVideos: type === "yt" ? true : initialFormData.embedYouTubeVideos,
-  })
-  const [errors, setErrors] = useState(initialErrors)
+  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  const setField = useCallback(
+    (name, value) => setValue(name, value, { shouldValidate: true, shouldDirty: true }),
+    [setValue]
+  )
+
+  /** Writes several fields at once — the shape `AdvancedOptions` expects. */
+  const applyUpdates = useCallback(
+    (updates) => {
+      for (const [name, value] of Object.entries(updates)) setField(name, value)
+    },
+    [setField]
+  )
 
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -93,41 +99,15 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     formData.aiModel, formData.numberOfImages
   ])
 
-  // Validate the fields that live on the details step (step 1)
-  const validateDetailsStep = () => ({
-    topic: !formData.topic.trim() ? "Please enter a topic." : "",
-    focusKeywords:
-      !formData.performKeywordResearch && formData.focusKeywords.length === 0
-        ? "Please add at least one focus keyword."
-        : "",
-    keywords:
-      !formData.performKeywordResearch && formData.keywords.length === 0
-        ? "Please add at least one secondary keyword."
-        : "",
-    otherLinks:
-      type === "yt" && otherLinks.length === 0
-        ? "Please add at least one valid link."
-        : otherLinks.length > 3
-          ? "You can only add up to 3 links."
-          : "",
-  })
-
   // Handle navigation to the next step
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 0) {
-      if (!formData.template) {
-        setErrors((prev) => ({ ...prev, template: "Please select a template." }))
-        return
-      }
-      setErrors((prev) => ({ ...prev, template: "" }))
+      if (!(await trigger(QUICK_BLOG_STEP_FIELDS[0]))) return
       setCurrentStep(1)
     } else if (currentStep === 1) {
       // Don't let the user move on with missing fields - the errors would render
       // on a step they can no longer see.
-      const newErrors = validateDetailsStep()
-      setErrors((prev) => ({ ...prev, ...newErrors }))
-
-      if (Object.values(newErrors).some((error) => error)) {
+      if (!(await trigger(QUICK_BLOG_STEP_FIELDS[1]))) {
         toast.error("Please fill all required fields correctly.")
         return
       }
@@ -140,76 +120,56 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle modal close
   const handleClose = () => {
-    setFormData(initialFormData)
-    setOtherLinks([])
-    setErrors(initialErrors)
+    reset(quickBlogFormDefaults(type))
+    setCurrentStep(0)
     closeFnc()
   }
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setErrors((prev) => ({ ...prev, [name]: "" }))
+    setField(name, value)
   }
 
-  // Handle form submission
-  const handleSubmit = () => {
-    const newErrors = validateDetailsStep()
+  // Handle form submission. react-hook-form validates against the schema first, so
+  // `values` is complete and checked by the time this runs, and `toQuickBlogPayload`
+  // is the only thing that decides what actually goes on the wire.
+  const handleSubmit = submitForm(
+    async (values) => {
+      // Check if user has sufficient credits
+      const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-    setErrors((prev) => ({ ...prev, ...newErrors }))
+      if (userCredits < estimatedCost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to generate this blog.</p>
+              <p className="mt-1">
+                <strong>Required:</strong> {estimatedCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {userCredits} credits
+              </p>
+            </div>
+          ),
+          confirmText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+            handleClose()
+          },
+        })
+        return
+      }
 
-    if (Object.values(newErrors).some((error) => error)) {
-      // These fields all live on step 1 - go back so the user can see them.
-      setCurrentStep(1)
-      toast.error("Please fill all required fields correctly.")
-      return
-    }
-
-    // Check if user has sufficient credits
-    const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-
-    if (userCredits < estimatedCost) {
-      handlePopup({
-        title: "Insufficient Credits",
-        description: (
-          <div>
-            <p>You don't have enough credits to generate this blog.</p>
-            <p className="mt-1">
-              <strong>Required:</strong> {estimatedCost} credits
-            </p>
-            <p>
-              <strong>Available:</strong> {userCredits} credits
-            </p>
-          </div>
-        ),
-        confirmText: "Buy Credits",
-        onConfirm: () => {
-          navigate("/pricing")
-          handleClose()
-        },
-      })
-      return
-    }
-
-    const finalData = {
-      ...formData,
-      type,
-      otherLinks,
-      // Set imageSource to "none" if images are disabled
-      imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
-    }
-
-    const submitBlog = async () => {
       const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
 
       try {
-        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-        const validatedData = validateQuickBlogData(finalData)
-        if (debugPayload(type === "yt" ? "YouTubeBlog" : "QuickBlog", validatedData)) return
+        const payload = toQuickBlogPayload(values)
+        if (debugPayload(type === "yt" ? "YouTubeBlog" : "QuickBlog", payload)) return
 
         // Dispatch and await the result
         const { createNewQuickBlog } = useBlogStore.getState()
-        await createNewQuickBlog({ blogData: validatedData, navigate, type, queryClient })
+        await createNewQuickBlog({ blogData: payload, navigate, type, queryClient })
 
         // ✅ Only close modal on success
         handleClose()
@@ -219,26 +179,29 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       } finally {
         hideLoading(loadingId)
       }
+    },
+    (invalid) => {
+      // Send the user back to the step that holds the first failing field, otherwise
+      // the message renders on a screen they cannot see.
+      setCurrentStep(invalid.template ? 0 : 1)
+      toast.error("Please fill all required fields correctly.")
     }
-
-    submitBlog()
-  }
+  )
 
   // Handle template selection
-  const handlePackageSelect = useCallback((templates) => {
-    setFormData((prev) => ({
-      ...prev,
-      template: templates?.[0]?.name ?? null,
-      templateIds: templates?.map((t) => t.id),
-    }))
-    setErrors((prev) => ({ ...prev, template: "" }))
-  }, [])
+  const handlePackageSelect = useCallback(
+    (templates) => {
+      setField("template", templates?.[0]?.name ?? null)
+      setField("templateIds", templates?.map((t) => t.id) ?? [])
+    },
+    [setField]
+  )
 
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [type]: "" }))
+    setField(key, e.target.value)
+    clearErrors(type)
   }
 
   // Add keywords to the form data
@@ -253,8 +216,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       .filter((k) => k !== "" && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
 
     if (items.length === 0) {
-      if (forcedValue === null)
-        setErrors((prev) => ({ ...prev, [type]: "Please enter a keyword." }))
+      if (forcedValue === null) setError(type, { message: "Please enter a keyword." })
       return
     }
 
@@ -263,7 +225,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
     if (newKeywords.length === 0) {
       if (forcedValue === null) {
-        setErrors((prev) => ({ ...prev, [type]: "Please enter valid, non-duplicate keywords." }))
+        setError(type, { message: "Please enter valid, non-duplicate keywords." })
       }
       return
     }
@@ -271,18 +233,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
       const availableSlots = 3 - formData[type].length
       if (availableSlots > 0) {
-        const toAdd = newKeywords.slice(0, availableSlots)
-        setFormData((prev) => ({ ...prev, [type]: [...prev[type], ...toAdd], [inputKey]: "" }))
-        setErrors((prev) => ({ ...prev, [type]: "" }))
+        setField(type, [...formData[type], ...newKeywords.slice(0, availableSlots)])
+        setField(inputKey, "")
       } else {
-        setErrors((prev) => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
+        setError(type, { message: "You can only add up to 3 focus keywords." })
       }
       toast.warning("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData((prev) => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
-    setErrors((prev) => ({ ...prev, [type]: "" }))
+    setField(type, [...formData[type], ...newKeywords])
+    setField(inputKey, "")
   }
 
   // Handle Clipboard Paste for Keywords
@@ -297,8 +258,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const handleRemoveKeyword = (index, type) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
-    setFormData({ ...formData, [type]: updatedKeywords })
-    setErrors((prev) => ({ ...prev, [type]: "" }))
+    setField(type, updatedKeywords)
   }
 
   // Handle Enter key for keywords
@@ -369,13 +329,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   // Add reference links
   const handleAddLink = () => {
     const input = formData.otherLinkInput?.trim()
-    const maxLinks = 3
+    const maxLinks = QUICK_BLOG_MAX_LINKS
 
     if (!input) {
-      setErrors((prev) => ({
-        ...prev,
-        otherLinks: `Please enter valid ${type === "yt" ? "youtube" : "reference"} links.`,
-      }))
+      setError("otherLinks", {
+        message: `Please enter valid ${type === "yt" ? "youtube" : "reference"} links.`,
+      })
       return
     }
 
@@ -393,7 +352,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
       const validation = validateUrl(link)
       if (!validation.valid) {
-        setErrors((prev) => ({ ...prev, otherLinks: validation.error }))
+        setError("otherLinks", { message: validation.error })
         toast.error(validation.error)
         return
       }
@@ -402,18 +361,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (validNewLinks.length === 0) {
-      setErrors((prev) => ({ ...prev, otherLinks: "No valid, unique links found." }))
+      setError("otherLinks", { message: "No valid, unique links found." })
       return
     }
 
     if (otherLinks.length + validNewLinks.length > maxLinks) {
-      setErrors((prev) => ({ ...prev, otherLinks: `You can only add up to ${maxLinks} links.` }))
+      setError("otherLinks", { message: `You can only add up to ${maxLinks} links.` })
       return
     }
 
-    setOtherLinks([...otherLinks, ...validNewLinks])
-    setFormData((prev) => ({ ...prev, otherLinkInput: "" }))
-    setErrors((prev) => ({ ...prev, otherLinks: "" }))
+    setField("otherLinks", [...otherLinks, ...validNewLinks])
+    setField("otherLinkInput", "")
   }
 
   // Handle Enter key for links
@@ -428,8 +386,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const handleRemoveLink = (index) => {
     const updatedLinks = [...otherLinks]
     updatedLinks.splice(index, 1)
-    setOtherLinks(updatedLinks)
-    setErrors((prev) => ({ ...prev, otherLinks: "" }))
+    setField("otherLinks", updatedLinks)
   }
 
   const _imageSources = [
@@ -457,14 +414,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           {currentStep === 0 && (
             <div
               className={`rounded-xl transition-all duration-200 ${
-                errors.template ? "border-2 border-red-500 p-1 pb-0" : "border-0"
+                errors.template?.message ? "border-2 border-red-500 p-1 pb-0" : "border-0"
               }`}
             >
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan ?? "free"}
                 onClick={handlePackageSelect}
                 preSelectedIds={formData.templateIds}
-                error={errors.template}
+                error={errors.template?.message}
               />
             </div>
           )}
@@ -483,12 +440,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   value={formData.topic}
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border ${
-                    errors.topic ? "border-red-500" : "border-gray-200"
+                    errors.topic?.message ? "border-red-500" : "border-gray-200"
                   } rounded-md text-sm bg`}
                   placeholder="Enter the blog topic"
                   aria-label="Blog topic"
                 />
-                {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
+                {errors.topic?.message && <p className="text-red-500 text-sm mt-1">{errors.topic.message}</p>}
               </div>
               <div className="flex items-center justify-between mb-4">
                 <FieldLabel tip="Ensures the generated blog uses your exact topic string as its main H1 title.">
@@ -497,7 +454,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.exactTitle}
                   onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, exactTitle: checked }))
+                    setField("exactTitle", checked)
                   }
                   size="large"
                 />
@@ -531,14 +488,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <Switch
                   checked={formData.performKeywordResearch}
                   onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      performKeywordResearch: checked,
-                      focusKeywords: checked ? [] : prev.focusKeywords,
-                      keywords: checked ? [] : prev.keywords,
-                      focusKeywordInput: "",
-                      keywordInput: "",
-                    }))
+                    {
+                      setField("performKeywordResearch", checked)
+                      if (checked) {
+                        setField("focusKeywords", [])
+                        setField("keywords", [])
+                        // The lists are no longer required, so their errors go with them.
+                        clearErrors(["focusKeywords", "keywords"])
+                      }
+                      setField("focusKeywordInput", "")
+                      setField("keywordInput", "")
+                    }
                   }
                   size="large"
                 />
@@ -560,7 +520,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
                         onPaste={(e) => handlePasteKeywords(e, "focusKeywords")}
                         className={`flex-1 px-3 py-2 border ${
-                          errors.focusKeywords ? "border-red-500" : "border-gray-200"
+                          errors.focusKeywords?.message ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
                         placeholder="Enter keywords (comma, tab, or newline separated)"
                         aria-label="Focus keywords"
@@ -574,8 +534,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         <Plus size={16} />
                       </button>
                     </div>
-                    {errors.focusKeywords && (
-                      <p className="text-red-500 text-sm mt-1">{errors.focusKeywords}</p>
+                    {errors.focusKeywords?.message && (
+                      <p className="text-red-500 text-sm mt-1">{errors.focusKeywords.message}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.focusKeywords.map((keyword, index) => (
@@ -611,7 +571,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         onKeyDown={(e) => handleKeyPress(e, "keywords")}
                         onPaste={(e) => handlePasteKeywords(e, "keywords")}
                         className={`flex-1 px-3 py-2 border ${
-                          errors.keywords ? "border-red-500" : "border-gray-200"
+                          errors.keywords?.message ? "border-red-500" : "border-gray-200"
                         } rounded-md text-sm bg-gray-50`}
                         placeholder="Enter keywords (comma, tab, or newline separated)"
                         aria-label="Secondary keywords"
@@ -625,8 +585,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         <Plus size={16} />
                       </button>
                     </div>
-                    {errors.keywords && (
-                      <p className="text-red-500 text-sm mt-1">{errors.keywords}</p>
+                    {errors.keywords?.message && (
+                      <p className="text-red-500 text-sm mt-1">{errors.keywords.message}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.keywords.map((keyword, index) => (
@@ -663,16 +623,15 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     <Switch
                       checked={formData.addImages}
                       onCheckedChange={(checked) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          addImages: checked,
-                          imageSource: checked
-                            ? prev.imageSource === "none" || !prev.imageSource
+                        setField("addImages", checked)
+                        setField(
+                          "imageSource",
+                          checked
+                            ? formData.imageSource === "none" || !formData.imageSource
                               ? "stock"
-                              : prev.imageSource
-                            : "none",
-                        }))
-                        setErrors((prev) => ({ ...prev, imageSource: "" }))
+                              : formData.imageSource
+                            : "none"
+                        )
                       }}
                       size="large"
                     />
@@ -682,11 +641,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <ImageSourceSelector
                     value={formData.imageSource}
                     onChange={(sourceId) =>
-                      setFormData((prev) => ({ ...prev, imageSource: sourceId }))
+                      setField("imageSource", sourceId)
                     }
                     numberOfImages={formData.numberOfImages}
                     onNumberChange={(val) =>
-                      setFormData((prev) => ({ ...prev, numberOfImages: val }))
+                      setField("numberOfImages", val)
                     }
                     showUpload={false}
                   />
@@ -700,7 +659,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <Switch
                     checked={formData.enableAdvanced}
                     onCheckedChange={(checked) =>
-                      setFormData((prev) => ({ ...prev, enableAdvanced: checked }))
+                      setField("enableAdvanced", checked)
                     }
                     size="large"
                   />
@@ -710,11 +669,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <AiModelSelector
                       value={formData.aiModel}
-                      onChange={(modelId) => setFormData((prev) => ({ ...prev, aiModel: modelId }))}
+                      onChange={(modelId) => setField("aiModel", modelId)}
                       showCostCutter={true}
                       costCutterValue={formData.costCutter}
                       onCostCutterChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, costCutter: checked }))
+                        setField("costCutter", checked)
                       }
                     />
                   </div>
@@ -734,11 +693,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       type="url"
                       value={formData.otherLinkInput}
                       onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
+                        setField("otherLinkInput", e.target.value)
                       }
                       onKeyDown={(e) => handleKeyDown(e)}
                       className={`flex-1 px-3 py-2 border ${
-                        errors.otherLinks ? "border-red-500" : "border-gray-200"
+                        errors.otherLinks?.message ? "border-red-500" : "border-gray-200"
                       } rounded-md text-sm bg-gray-50`}
                       placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Reference/Video links"
@@ -752,8 +711,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       <Plus size={16} />
                     </button>
                   </div>
-                  {errors.otherLinks && (
-                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
+                  {errors.otherLinks?.message && (
+                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2">
                     {otherLinks.map((link, index) => (
@@ -786,7 +745,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <Switch
                     checked={formData.costCutter}
                     onCheckedChange={(checked) =>
-                      setFormData((prev) => ({ ...prev, costCutter: checked }))
+                      setField("costCutter", checked)
                     }
                     className="data-[state=checked]:bg-green-500"
                     size="large"
@@ -836,7 +795,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             <div className="space-y-6 p-4 pt-4">
               <AdvancedOptions
                 formData={formData}
-                updateFormData={(updates) => setFormData((prev) => ({ ...prev, ...updates }))}
+                updateFormData={applyUpdates}
                 isNestedOptions={false}
                 showFields={["easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
               />

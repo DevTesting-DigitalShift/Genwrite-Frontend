@@ -1,10 +1,16 @@
 import axiosInstance from "./index"
 
+// The backend validates contentType against a case-sensitive enum
+// (analysis.validator.js: z.enum(["MARKDOWN", "HTML", "PLAIN_TEXT"])), so callers
+// passing a lowercase value are normalized here rather than at every call site.
+export type ContentType = "MARKDOWN" | "HTML" | "PLAIN_TEXT"
+
 interface CompetitiveAnalysisPayload {
   blogId: string
   title?: string
   content?: string
   keywords?: string[]
+  contentType?: string
 }
 
 export const runCompetitiveAnalysis = async ({
@@ -12,13 +18,14 @@ export const runCompetitiveAnalysis = async ({
   title,
   content,
   keywords,
+  contentType = "MARKDOWN",
 }: CompetitiveAnalysisPayload) => {
   const response = await axiosInstance.post("/analysis/run", {
     blogId,
     title,
     content,
     keywords,
-    contentType: "markdown",
+    contentType: String(contentType).toUpperCase() as ContentType,
   })
   return response.data
 }

@@ -70,7 +70,7 @@ const BrandVoicesComponent = ({
         {!readOnly && (
           <div className="flex space-x-2">
             <motion.button
-              className="text-indigo-500 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded"
+              className="text-indigo-500 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 rounded"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={onEdit}

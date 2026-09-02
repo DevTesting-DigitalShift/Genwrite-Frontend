@@ -10,8 +10,9 @@ export const useCompetitiveAnalysisMutation = () => {
       title,
       content,
       keywords,
+      contentType,
     }: Parameters<typeof runCompetitiveAnalysis>[0]) =>
-      runCompetitiveAnalysis({ blogId, title, content, keywords }),
+      runCompetitiveAnalysis({ blogId, title, content, keywords, contentType }),
     onSuccess: () => {
       toast.success("Competitive analysis completed successfully!")
     },

@@ -22,12 +22,14 @@ import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const StepContent = ({
   currentStep,
+  /** The whole job form value, as react-hook-form currently holds it. */
   newJob,
-  setNewJob,
-  formData,
-  setFormData,
+  /** Writes one field by its dotted path, e.g. `setField("blogs.tone", "Casual")`. */
+  setField,
+  /** Reads the live form values — needed inside async callbacks, where `newJob` is stale. */
+  getValues,
+  clearErrors,
   errors,
-  setErrors,
   recentlyUploadedTopicsCount,
   setRecentlyUploadedTopicsCount,
   recentlyUploadedKeywordsCount,
@@ -55,11 +57,11 @@ const StepContent = ({
 
   useEffect(() => {
     if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
-      if (!formData.postingType) {
-        setFormData((prev) => ({ ...prev, postingType: Object.keys(integrations.integrations)[0] }))
+      if (!newJob.blogs.postingType) {
+        setField("blogs.postingType", Object.keys(integrations.integrations)[0])
       }
     }
-  }, [integrations, formData.postingType, setFormData])
+  }, [integrations, newJob.blogs.postingType, setField])
 
   const _wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = BLOG_CONFIG.BULK.MAX_BLOGS
@@ -78,8 +80,8 @@ const StepContent = ({
   }, [newJob.blogs.blogImages])
 
   const handleIntegrationChange = (platform) => {
-    setFormData((prev) => ({ ...prev, postingType: platform }))
-    setErrors((prev) => ({ ...prev, postingType: false })) // Clear error on change
+    setField("blogs.postingType", platform)
+    clearErrors("blogs.postingType") // Clear error on change
   }
 
   const handleAddItems = (input, type) => {
@@ -97,7 +99,7 @@ const StepContent = ({
     const existing =
       type === "topics"
         ? (newJob.blogs?.topics || []).map((t) => t.toLowerCase().trim())
-        : (formData?.keywords || []).map((k) => k.toLowerCase().trim())
+        : (newJob.blogs.keywords || []).map((k) => k.toLowerCase().trim())
 
     const seen = new Set()
     const newItems = items
@@ -112,23 +114,13 @@ const StepContent = ({
     if (newItems.length === 0) return
 
     if (type === "topics") {
-      setFormData((prev) => ({ ...prev, topicInput: "" }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },
-      }))
-      setErrors((prev) => ({ ...prev, topics: false }))
+      setField("topicInput", "")
+      setField("blogs.topics", [...newJob.blogs.topics, ...newItems])
+      clearErrors("blogs.topics")
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...prev.keywords, ...newItems],
-        keywordInput: "",
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...newItems] },
-      }))
-      setErrors((prev) => ({ ...prev, keywords: false }))
+      setField("keywordInput", "")
+      setField("blogs.keywords", [...newJob.blogs.keywords, ...newItems])
+      clearErrors("blogs.keywords")
     }
   }
 
@@ -150,7 +142,7 @@ const StepContent = ({
     }
 
     // Update state
-    setNewJob((prev) => ({ ...prev, blogs: { ...prev.blogs, [name]: val } }))
+    setField(`blogs.${name}`, val)
   }
 
   const handleCSVUpload = (e, type) => {
@@ -210,8 +202,8 @@ const StepContent = ({
       // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
-          ? (newJob.blogs?.topics || []).map((t) => t.toLowerCase().trim())
-          : (formData?.keywords || []).map((k) => k.toLowerCase().trim())
+          ? (getValues("blogs.topics") || []).map((t) => t.toLowerCase().trim())
+          : (getValues("blogs.keywords") || []).map((k) => k.toLowerCase().trim())
       const seen = new Set()
       const uniqueNewItems = items.filter((item) => {
         const lower = item.toLowerCase().trim()
@@ -229,18 +221,11 @@ const StepContent = ({
 
       // Update state with new items
       if (type === "topics") {
-        setNewJob((prev) => ({
-          ...prev,
-          blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...uniqueNewItems] },
-        }))
-        setErrors((prev) => ({ ...prev, topics: false }))
+        setField("blogs.topics", [...getValues("blogs.topics"), ...uniqueNewItems])
+        clearErrors("blogs.topics")
       } else {
-        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, ...uniqueNewItems] }))
-        setNewJob((prev) => ({
-          ...prev,
-          blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...uniqueNewItems] },
-        }))
-        setErrors((prev) => ({ ...prev, keywords: false }))
+        setField("blogs.keywords", [...getValues("blogs.keywords"), ...uniqueNewItems])
+        clearErrors("blogs.keywords")
       }
 
       // Notify user of successful upload
@@ -274,18 +259,18 @@ const StepContent = ({
         return
       }
     }
-    setNewJob((prev) => ({ ...prev, options: { ...prev.options, [name]: checked } }))
+    setField(`options.${name}`, checked)
     if (name === "wordpressPosting") {
-      setFormData((prev) => ({
-        ...prev,
-        postingType: checked
-          ? prev.postingType || Object.keys(integrations?.integrations || {})[0]
-          : null,
-      }))
+      setField(
+        "blogs.postingType",
+        checked
+          ? newJob.blogs.postingType || Object.keys(integrations?.integrations || {})[0]
+          : null
+      )
     }
     if (name === "performKeywordResearch") {
-      setFormData((prev) => ({ ...prev, performKeywordResearch: checked }))
-      setErrors((prev) => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
+      setField("options.performKeywordResearch", checked)
+      clearErrors("blogs.keywords") // Clear keyword error if enabling research
     }
   }
 
@@ -302,32 +287,29 @@ const StepContent = ({
       if (numberValue < 0) numberValue = 0 // optional: clamp to min
     }
 
-    setNewJob((prev) => ({ ...prev, blogs: { ...prev.blogs, numberOfBlogs: numberValue } }))
+    setField("blogs.numberOfBlogs", numberValue)
 
-    setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
+    clearErrors("blogs.numberOfBlogs")
   }
 
   const keywordsToShow = showAllKeywords
-    ? (formData?.keywords || []).slice().reverse()
-    : (formData?.keywords || []).slice().reverse().slice(0, 18)
+    ? (newJob.blogs.keywords || []).slice().reverse()
+    : (newJob.blogs.keywords || []).slice().reverse().slice(0, 18)
 
   const topicsToShow = showAllTopics
     ? (newJob.blogs?.topics || []).slice().reverse()
     : (newJob.blogs?.topics || []).slice().reverse().slice(0, 18)
 
   const handleImageSourceChange = (source) => {
-    setNewJob((prev) => ({ ...prev, blogs: { ...prev.blogs, imageSource: source } }))
-    setErrors((prev) => ({ ...prev, imageSource: false })) // Clear error
+    setField("blogs.imageSource", source)
+    clearErrors("blogs.imageSource") // Clear error
   }
 
   const handleTemplateSelection = useCallback((temps) => {
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: { ...prev.blogs, templates: temps.map((t) => t.name) },
-      templateIds: temps.map((t) => t.id),
-    }))
-    setErrors((prev) => ({ ...prev, templates: false }))
-  }, [setNewJob, setErrors])
+    setField("blogs.templates", temps.map((t) => t.name))
+    setField("templateIds", temps.map((t) => t.id))
+    clearErrors("blogs.templates")
+  }, [setField, clearErrors])
 
   switch (currentStep) {
     case 1:
@@ -336,12 +318,12 @@ const StepContent = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className={`space-y-4 sm:space-y-6 ${clsx(
-            errors.templates && "border-2 border-red-500 rounded-lg"
+            errors.blogs?.templates?.message && "border-2 border-red-500 rounded-lg"
           )}`}
         >
           <p className={`text-sm ${errors?.templates ? "text-red-500" : "text-gray-600"} mb-4`}>
             {errors?.templates
-              ? errors.templates
+              ? errors.blogs?.templates?.message
               : `Select up to 7 templates for the types of blogs you want to generate. (${newJob.blogs.templates.length}/7 selected)`}
           </p>
           <TemplateSelection
@@ -366,15 +348,17 @@ const StepContent = ({
                 value={newJob.name}
                 placeholder="Enter job name"
                 onChange={(e) => {
-                  setNewJob({ ...newJob, name: e.target.value })
-                  setErrors((prev) => ({ ...prev, name: false }))
+                  setField("name", e.target.value)
+                  clearErrors("name")
                 }}
                 className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
-                  errors.name ? "input-error" : ""
+                  errors.name?.message ? "input-error" : ""
                 }`}
                 aria-label="Job name"
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              {errors.name?.message && (
+                <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+              )}
             </div>
             <div>
               <FieldLabel tip="The main subject/topic for each blog in this job. Add one per blog you want to generate. Supports bulk CSV upload.">
@@ -383,16 +367,16 @@ const StepContent = ({
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
-                  value={formData.topicInput || ""}
+                  value={newJob.topicInput || ""}
                   onKeyDown={(e) =>
-                    e.key === "Enter" && handleAddItems(formData.topicInput, "topics")
+                    e.key === "Enter" && handleAddItems(newJob.topicInput, "topics")
                   }
-                  onChange={(e) => setFormData((prev) => ({ ...prev, topicInput: e.target.value }))}
+                  onChange={(e) => setField("topicInput", e.target.value)}
                   onPaste={(e) => {
                     extractKeywordsFromClipboard(e, { type: "topics", cb: handleAddItems })
                   }}
                   className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
-                    errors.topics ? "input-error" : ""
+                    errors.blogs?.topics?.message ? "input-error" : ""
                   }`}
                   placeholder="Enter topics (comma, tab, or newline separated)"
                   aria-label="Add topic"
@@ -400,7 +384,7 @@ const StepContent = ({
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAddItems(formData.topicInput, "topics")}
+                  onClick={() => handleAddItems(newJob.topicInput, "topics")}
                   className="px-6 py-2 bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white rounded-md btn border-none min-h-auto h-auto transition-all"
                   aria-label="Add topic"
                 >
@@ -417,7 +401,9 @@ const StepContent = ({
                   <span className="sr-only">Upload CSV for topics</span>
                 </label>
               </div>
-              {errors.topics && <p className="text-red-500 text-xs mt-1">{errors.topics}</p>}
+              {errors.blogs?.topics?.message && (
+                <p className="text-red-500 text-xs mt-1">{errors.blogs.topics.message}</p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {topicsToShow.map((topic, reversedIndex) => {
                   const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
@@ -430,15 +416,9 @@ const StepContent = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setNewJob((prev) => ({
-                            ...prev,
-                            blogs: {
-                              ...prev.blogs,
-                              topics: (prev.blogs?.topics || []).filter(
+                          setField("blogs.topics", (newJob.blogs?.topics || []).filter(
                                 (_, i) => i !== actualIndex
-                              ),
-                            },
-                          }))
+                              ))
                         }
                         className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         aria-label={`Remove topic ${topic}`}
@@ -474,14 +454,14 @@ const StepContent = ({
               </FieldLabel>
               <span className="relative inline-flex items-center cursor-pointer">
                 <Switch
-                  checked={formData.performKeywordResearch}
+                  checked={newJob.options.performKeywordResearch}
                   onCheckedChange={(checked) =>
                     handleCheckboxChange({ target: { name: "performKeywordResearch", checked } })
                   }
                 />
               </span>
             </div>
-            {!formData.performKeywordResearch && (
+            {!newJob.options.performKeywordResearch && (
               <div>
                 <FieldLabel tip="Secondary keywords to weave throughout all blog articles in this job. Supports CSV upload for bulk entry.">
                   Keywords
@@ -489,24 +469,24 @@ const StepContent = ({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={formData.keywordInput}
+                    value={newJob.keywordInput}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+                      setField("keywordInput", e.target.value)
                     }
                     onKeyDown={(e) =>
-                      e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
+                      e.key === "Enter" && handleAddItems(newJob.keywordInput, "keywords")
                     }
                     onPaste={(e) => {
                       extractKeywordsFromClipboard(e, { type: "keywords", cb: handleAddItems })
                     }}
                     className={`flex-1 px-3 py-2 border rounded-md text-sm input input-bordered focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] ${
-                      errors.keywords ? "input-error" : "border-gray-300"
+                      errors.blogs?.keywords?.message ? "input-error" : "border-gray-300"
                     }`}
                     placeholder="Enter keywords (comma, tab, or newline separated)"
                   />
                   <button
                     type="button"
-                    onClick={() => handleAddItems(formData.keywordInput, "keywords")}
+                    onClick={() => handleAddItems(newJob.keywordInput, "keywords")}
                     className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                   >
                     <Plus />
@@ -522,10 +502,12 @@ const StepContent = ({
                     <span className="sr-only">Upload CSV</span>
                   </label>
                 </div>
-                {errors.keywords && <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>}
+                {errors.blogs?.keywords?.message && (
+                  <p className="text-red-500 text-xs mt-1">{errors.blogs.keywords.message}</p>
+                )}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {keywordsToShow.map((keyword, reversedIndex) => {
-                    const actualIndex = (formData?.keywords?.length || 0) - 1 - reversedIndex
+                    const actualIndex = (newJob.blogs.keywords?.length || 0) - 1 - reversedIndex
                     return (
                       <span
                         key={`${keyword}-${actualIndex}`}
@@ -535,13 +517,9 @@ const StepContent = ({
                         <button
                           type="button"
                           onClick={() => {
-                            const updatedKeywords = [...(formData?.keywords || [])]
+                            const updatedKeywords = [...(newJob.blogs.keywords || [])]
                             updatedKeywords.splice(actualIndex, 1)
-                            setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
-                            setNewJob((prev) => ({
-                              ...prev,
-                              blogs: { ...prev.blogs, keywords: updatedKeywords },
-                            }))
+                            setField("blogs.keywords", updatedKeywords)
                           }}
                           className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         >
@@ -550,7 +528,7 @@ const StepContent = ({
                       </span>
                     )
                   })}
-                  {((formData?.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
+                  {((newJob.blogs.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
                     <button
                       type="button"
                       onClick={() => setShowAllKeywords((prev) => !prev)}
@@ -560,8 +538,8 @@ const StepContent = ({
                         <>Show less</>
                       ) : (
                         <>
-                          {(formData?.keywords?.length || 0) > 18 &&
-                            `+${(formData?.keywords?.length || 0) - 18} more`}
+                          {(newJob.blogs.keywords?.length || 0) > 18 &&
+                            `+${(newJob.blogs.keywords?.length || 0) - 18} more`}
                           {recentlyUploadedKeywordsCount &&
                             ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
@@ -578,14 +556,14 @@ const StepContent = ({
               <div className="flex gap-2">
                 <input
                   type="url"
-                  value={formData.referenceInput || ""}
+                  value={newJob.referenceInput || ""}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, referenceInput: e.target.value }))
+                    setField("referenceInput", e.target.value)
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
-                      const val = formData.referenceInput?.trim()
+                      const val = newJob.referenceInput?.trim()
                       if (!val) return
                       if ((newJob.blogs?.references?.length || 0) >= 3) {
                         toast.error("Maximum 3 references allowed.")
@@ -595,20 +573,12 @@ const StepContent = ({
                         toast.error("Please enter a valid URL.")
                         return
                       }
-                      setNewJob((prev) => {
-                        if ((prev.blogs?.references || []).includes(val)) {
-                          toast.error("This reference link is already added.")
-                          return prev
-                        }
-                        return {
-                          ...prev,
-                          blogs: {
-                            ...prev.blogs,
-                            references: [...(prev.blogs?.references || []), val],
-                          },
-                        }
-                      })
-                      setFormData((prev) => ({ ...prev, referenceInput: "" }))
+                      if ((newJob.blogs?.references || []).includes(val)) {
+                        toast.error("This reference link is already added.")
+                        return
+                      }
+                      setField("blogs.references", [...(newJob.blogs?.references || []), val])
+                      setField("referenceInput", "")
                     }
                   }}
                   className="flex-1 px-3 py-2 border rounded-md text-sm border-gray-300 focus:outline-none focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6]"
@@ -617,7 +587,7 @@ const StepContent = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const val = formData.referenceInput?.trim()
+                    const val = newJob.referenceInput?.trim()
                     if (!val) return
                     if ((newJob.blogs?.references?.length || 0) >= 3) {
                       toast.error("Maximum 3 references allowed.")
@@ -627,20 +597,12 @@ const StepContent = ({
                       toast.error("Please enter a valid URL.")
                       return
                     }
-                    setNewJob((prev) => {
-                      if ((prev.blogs?.references || []).includes(val)) {
-                        toast.error("This reference link is already added.")
-                        return prev
-                      }
-                      return {
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          references: [...(prev.blogs?.references || []), val],
-                        },
-                      }
-                    })
-                    setFormData((prev) => ({ ...prev, referenceInput: "" }))
+                    if ((newJob.blogs?.references || []).includes(val)) {
+                      toast.error("This reference link is already added.")
+                      return
+                    }
+                    setField("blogs.references", [...(newJob.blogs?.references || []), val])
+                    setField("referenceInput", "")
                   }}
                   className="px-6 py-2 bg-[#4C5BD6] text-white rounded-md text-sm hover:bg-[#3B4BB8] btn border-none min-h-auto h-auto transition-all"
                 >
@@ -657,13 +619,7 @@ const StepContent = ({
                     <button
                       type="button"
                       onClick={() =>
-                        setNewJob((prev) => ({
-                          ...prev,
-                          blogs: {
-                            ...prev.blogs,
-                            references: (prev.blogs?.references || []).filter((_, i) => i !== idx),
-                          },
-                        }))
+                        setField("blogs.references", (newJob.blogs?.references || []).filter((_, i) => i !== idx))
                       }
                       className="ml-2 text-red-400 hover:text-red-600"
                     >
@@ -680,11 +636,13 @@ const StepContent = ({
                 </label>
                 <select
                   id="tone"
-                  className={`select select-bordered w-full h-10 min-h-0 text-sm ${errors.tone ? "select-error" : ""}`}
+                  className={`select select-bordered w-full h-10 min-h-0 text-sm ${
+                    errors.blogs?.tone?.message ? "select-error" : ""
+                  }`}
                   value={newJob.blogs.tone}
                   onChange={(e) => {
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: e.target.value } })
-                    setErrors((prev) => ({ ...prev, tone: false }))
+                    setField("blogs.tone", e.target.value)
+                    clearErrors("blogs.tone")
                   }}
                 >
                   {TONES.map((t) => (
@@ -703,10 +661,7 @@ const StepContent = ({
                   className="select select-bordered w-full h-10 min-h-0 text-sm"
                   value={newJob.blogs.languageToWrite}
                   onChange={(e) => {
-                    setNewJob({
-                      ...newJob,
-                      blogs: { ...newJob.blogs, languageToWrite: e.target.value },
-                    })
+                    setField("blogs.languageToWrite", e.target.value)
                   }}
                 >
                   <option value="English">English</option>
@@ -732,10 +687,7 @@ const StepContent = ({
                     step={BLOG_CONFIG.LENGTH.STEP}
                     value={[newJob.blogs.userDefinedLength]}
                     onValueChange={(vals) =>
-                      setNewJob({
-                        ...newJob,
-                        blogs: { ...newJob.blogs, userDefinedLength: vals[0] },
-                      })
+                      setField("blogs.userDefinedLength", vals[0])
                     }
                     className="w-full"
                   />
@@ -758,18 +710,12 @@ const StepContent = ({
               <Switch
                 checked={newJob.blogs.isCheckedGeneratedImages}
                 onCheckedChange={(checked) => {
-                  setNewJob((prev) => ({
-                    ...prev,
-                    blogs: {
-                      ...prev.blogs,
-                      isCheckedGeneratedImages: checked,
-                      imageSource: checked
-                        ? prev.blogs.imageSource === "none"
+                  setField("blogs.isCheckedGeneratedImages", checked)
+                  setField("blogs.imageSource", checked
+                        ? newJob.blogs.imageSource === "none"
                           ? "stock"
-                          : prev.blogs.imageSource
-                        : "none",
-                    },
-                  }))
+                          : newJob.blogs.imageSource
+                        : "none")
                 }}
               />
             </div>
@@ -779,15 +725,15 @@ const StepContent = ({
               <ImageSourceSelector
                 value={newJob.blogs.imageSource}
                 onChange={handleImageSourceChange}
-                error={errors.imageSource}
+                error={errors.blogs?.imageSource?.message}
                 showUpload={false}
                 numberOfImages={newJob.blogs.numberOfImages}
                 onNumberChange={(val) =>
-                  setNewJob((prev) => ({ ...prev, blogs: { ...prev.blogs, numberOfImages: val } }))
+                  setField("blogs.numberOfImages", val)
                 }
               />
-              {errors.numberOfImages && (
-                <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+              {errors.blogs?.numberOfImages?.message && (
+                <p className="text-red-500 text-xs mt-1">{errors.blogs?.numberOfImages?.message}</p>
               )}
             </div>
           )}
@@ -802,28 +748,17 @@ const StepContent = ({
                 value={newJob.schedule.type}
                 onChange={(e) => {
                   const value = e.target.value
-                  setNewJob({
-                    ...newJob,
-                    schedule: {
-                      ...newJob.schedule,
-                      type: value,
-                      daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
-                      daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
-                      customDates: value === "custom" ? [] : newJob.schedule.customDates,
-                    },
-                  })
-                  setErrors((prev) => ({
-                    ...prev,
-                    daysOfWeek: false,
-                    daysOfMonth: false,
-                    customDates: false,
-                  }))
+                  setField("schedule.type", value)
+                  if (value === "weekly") setField("schedule.daysOfWeek", [])
+                  if (value === "monthdays") setField("schedule.daysOfMonth", [])
+                  if (value === "custom") setField("schedule.customDates", [])
+                  clearErrors(["schedule.daysOfWeek", "schedule.daysOfMonth", "schedule.customDates"])
                 }}
                 className="select select-bordered w-full h-10 min-h-0 text-sm"
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="monthdays">Monthly</option>
                 <option value="custom">Custom</option>
               </select>
             </div>
@@ -832,7 +767,7 @@ const StepContent = ({
                 <span className="block text-sm font-semibold  mb-2">Select Days of Week</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
-                    errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
+                    errors.schedule?.daysOfWeek?.message ? "border-red-500 border-2 p-2 rounded" : ""
                   }`}
                 >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
@@ -845,30 +780,30 @@ const StepContent = ({
                           : "bg-gray-200 "
                       }`}
                       onClick={() => {
-                        setNewJob((prev) => {
-                          const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                            ? prev.schedule.daysOfWeek.filter((day) => day !== i)
-                            : [...(prev.schedule.daysOfWeek || []), i]
-                          return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
-                        })
-                        setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                        setField(
+                          "schedule.daysOfWeek",
+                          newJob.schedule.daysOfWeek?.includes(i)
+                            ? newJob.schedule.daysOfWeek.filter((day) => day !== i)
+                            : [...(newJob.schedule.daysOfWeek || []), i]
+                        )
+                        clearErrors("schedule.daysOfWeek")
                       }}
                     >
                       {d}
                     </button>
                   ))}
                 </div>
-                {errors.daysOfWeek && (
-                  <p className="text-red-500 text-xs mt-1">{errors.daysOfWeek}</p>
+                {errors.schedule?.daysOfWeek?.message && (
+                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.daysOfWeek?.message}</p>
                 )}
               </div>
             )}
-            {newJob.schedule.type === "monthly" && (
+            {newJob.schedule.type === "monthdays" && (
               <div>
                 <span className="block text-sm font-semibold  mb-2">Select Dates of Month</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
-                    errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
+                    errors.schedule?.daysOfMonth?.message ? "border-red-500 border-2 p-2 rounded" : ""
                   }`}
                 >
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
@@ -881,41 +816,39 @@ const StepContent = ({
                           : "bg-gray-200 "
                       }`}
                       onClick={() => {
-                        setNewJob((prev) => {
-                          const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                            ? prev.schedule.daysOfMonth.filter((d) => d !== date)
-                            : [...(prev.schedule.daysOfMonth || []), date]
-                          return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
-                        })
-                        setErrors((prev) => ({ ...prev, daysOfMonth: false }))
+                        setField(
+                          "schedule.daysOfMonth",
+                          newJob.schedule.daysOfMonth?.includes(date)
+                            ? newJob.schedule.daysOfMonth.filter((d) => d !== date)
+                            : [...(newJob.schedule.daysOfMonth || []), date]
+                        )
+                        clearErrors("schedule.daysOfMonth")
                       }}
                     >
                       {date}
                     </button>
                   ))}
                 </div>
-                {errors.daysOfMonth && (
-                  <p className="text-red-500 text-xs mt-1">{errors.daysOfMonth}</p>
+                {errors.schedule?.daysOfMonth?.message && (
+                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.daysOfMonth?.message}</p>
                 )}
               </div>
             )}
             {newJob.schedule.type === "custom" && (
               <div>
                 <span className="block text-sm font-semibold  mb-2">Select Dates</span>
-                <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
+                <div
+                  className={
+                    errors.schedule?.customDates?.message ? "border-2 border-red-500 rounded-lg" : ""
+                  }
+                >
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
                     onChange={(dates) => {
-                      setNewJob({
-                        ...newJob,
-                        schedule: {
-                          ...newJob.schedule,
-                          customDates: dates,
-                          daysOfWeek: [],
-                          daysOfMonth: [],
-                        },
-                      })
-                      setErrors((prev) => ({ ...prev, customDates: false }))
+                      setField("schedule.customDates", dates)
+                      setField("schedule.daysOfWeek", [])
+                      setField("schedule.daysOfMonth", [])
+                      clearErrors("schedule.customDates")
                     }}
                     multiple
                     format="YYYY-MM-DD"
@@ -923,8 +856,8 @@ const StepContent = ({
                     inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                {errors.customDates && (
-                  <p className="text-red-500 text-xs mt-1">{errors.customDates}</p>
+                {errors.schedule?.customDates?.message && (
+                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.customDates?.message}</p>
                 )}
               </div>
             )}
@@ -943,12 +876,12 @@ const StepContent = ({
                 onChange={handleNumberOfBlogsChange}
                 onWheel={(e) => e.currentTarget.blur()}
                 className={`input input-bordered w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.numberOfBlogs ? "input-error" : ""
+                  errors.blogs?.numberOfBlogs?.message ? "input-error" : ""
                 }`}
                 placeholder="Enter the number of blogs"
               />
-              {errors.numberOfBlogs && (
-                <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
+              {errors.blogs?.numberOfBlogs?.message && (
+                <p className="text-red-500 text-xs mt-1">{errors.blogs?.numberOfBlogs?.message}</p>
               )}
             </div>
           </div>
@@ -963,58 +896,44 @@ const StepContent = ({
                 checked={newJob.blogs.enableAdvanced}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setNewJob((prev) => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, enableAdvanced: true },
-                    }))
+                    setField("blogs.enableAdvanced", true)
                     return
                   }
                   // Turning advanced mode off resets every advanced-section field
                   // back to its default so stale values don't linger hidden.
-                  setNewJob((prev) => ({
-                    ...prev,
-                    blogs: {
-                      ...prev.blogs,
-                      enableAdvanced: false,
-                      useBrandVoice: false,
-                      brandId: null,
-                      addCTA: true,
-                      createBrandedImages: false,
-                      postingType: null,
-                    },
-                    options: {
-                      ...prev.options,
-                      wordpressPosting: false,
-                      includeFaqs: false,
-                      includeCompetitorResearch: false,
-                      includeInterlinks: false,
-                      addOutBoundLinks: false,
-                      easyToUnderstand: false,
-                      embedYouTubeVideos: false,
-                      extendedThinking: false,
-                      deepResearch: false,
-                      humanisation: false,
-                      includeTableOfContents: false,
-                    },
-                  }))
-                  setFormData((prev) => ({ ...prev, aiModel: "gemini", postingType: null }))
+                  setField("blogs.enableAdvanced", false)
+                  setField("blogs.useBrandVoice", false)
+                  setField("blogs.brandId", null)
+                  setField("blogs.addCTA", true)
+                  setField("blogs.createBrandedImages", false)
+                  setField("blogs.postingType", null)
+                  setField("options.wordpressPosting", false)
+                  setField("options.includeFaqs", false)
+                  setField("options.includeCompetitorResearch", false)
+                  setField("options.includeInterlinks", false)
+                  setField("options.addOutBoundLinks", false)
+                  setField("options.easyToUnderstand", false)
+                  setField("options.embedYouTubeVideos", false)
+                  setField("options.extendedThinking", false)
+                  setField("options.deepResearch", false)
+                  setField("options.humanisation", false)
+                  setField("options.includeTableOfContents", false)
+                  setField("blogs.aiModel", "gemini")
+                  setField("blogs.postingType", null)
                 }}
               />
             </div>
             {newJob.blogs.enableAdvanced && (
               <div className="mt-2 border-t border-dashed border-slate-100 pt-4">
                 <AiModelSelector
-                  value={formData.aiModel}
-                  onChange={(modelId) => setFormData((prev) => ({ ...prev, aiModel: modelId }))}
+                  value={newJob.blogs.aiModel}
+                  onChange={(modelId) => setField("blogs.aiModel", modelId)}
                   showCostCutter={true}
                   costCutterValue={newJob.blogs.costCutter || false}
                   onCostCutterChange={(checked) => {
-                    setNewJob((prev) => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, costCutter: checked },
-                    }))
+                    setField("blogs.costCutter", checked)
                   }}
-                  error={errors.aiModel}
+                  error={errors.blogs?.aiModel?.message}
                 />
               </div>
             )}
@@ -1030,14 +949,10 @@ const StepContent = ({
             <AdvancedOptions
               formData={newJob}
               updateFormData={(updates) => {
-                if (updates.options) {
-                  setNewJob((prev) => ({
-                    ...prev,
-                    options: { ...prev.options, ...updates.options },
-                  }))
-                } else {
-                  setNewJob((prev) => ({ ...prev, ...updates }))
-                }
+                const flat = updates.options
+                  ? Object.entries(updates.options).map(([key, value]) => ["options." + key, value])
+                  : Object.entries(updates)
+                for (const [name, value] of flat) setField(name, value)
               }}
               isNestedOptions={true}
               showFields={[
@@ -1065,16 +980,10 @@ const StepContent = ({
               }}
               imageSource={newJob.blogs.imageSource}
               onChange={(val) => {
-                setNewJob((prev) => ({
-                  ...prev,
-                  blogs: {
-                    ...prev.blogs,
-                    useBrandVoice: val.isCheckedBrand,
-                    brandId: val.brandId,
-                    addCTA: val.addCTA,
-                    createBrandedImages: val.createBrandedImages,
-                  },
-                }))
+                setField("blogs.useBrandVoice", val.isCheckedBrand)
+                setField("blogs.brandId", val.brandId)
+                setField("blogs.addCTA", val.addCTA)
+                setField("blogs.createBrandedImages", val.createBrandedImages)
               }}
             />
 
@@ -1099,7 +1008,9 @@ const StepContent = ({
               {newJob.options.wordpressPosting && (
                 <div
                   className={`pt-2 ${
-                    errors.postingType ? "border border-red-500 rounded-lg p-3 bg-red-50/50" : ""
+                    errors.blogs?.postingType?.message
+                      ? "border border-red-500 rounded-lg p-3 bg-red-50/50"
+                      : ""
                   }`}
                 >
                   <span className="block text-sm font-semibold ">
@@ -1111,9 +1022,9 @@ const StepContent = ({
 
                   <select
                     className={`select select-bordered w-full h-10 min-h-0 text-sm mt-3 ${
-                      errors.postingType ? "select-error" : ""
+                      errors.blogs?.postingType?.message ? "select-error" : ""
                     }`}
-                    value={formData.postingType || ""}
+                    value={newJob.blogs.postingType || ""}
                     onChange={(e) => handleIntegrationChange(e.target.value)}
                   >
                     <option value="" disabled>
@@ -1126,8 +1037,8 @@ const StepContent = ({
                         </option>
                       ))}
                   </select>
-                  {errors.postingType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
+                  {errors.blogs?.postingType?.message && (
+                    <p className="text-red-500 text-xs mt-1">{errors.blogs?.postingType?.message}</p>
                   )}
                 </div>
               )}
@@ -1142,10 +1053,7 @@ const StepContent = ({
                     size="large"
                     checked={newJob.options.includeTableOfContents}
                     onCheckedChange={(checked) =>
-                      setNewJob((prev) => ({
-                        ...prev,
-                        options: { ...prev.options, includeTableOfContents: checked },
-                      }))
+                      setField("options.includeTableOfContents", checked)
                     }
                   />
                 </div>

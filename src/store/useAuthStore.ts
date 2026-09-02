@@ -173,7 +173,7 @@ const useAuthStore = create<AuthState>()(
       loginUser: async ({ email, password, captchaToken }) => {
         set({ loading: true, error: null })
         try {
-          const { user, token } = await login({ email, password, captchaToken })
+          const { user, accessToken: token } = await login({ email, password, captchaToken })
           if (token && user) {
             sessionStore.upsertSession({ user, token })
             pushToDataLayer({
@@ -203,7 +203,7 @@ const useAuthStore = create<AuthState>()(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, token } = await signup({ email, password, name, captchaToken, referralId })
+          const { user, accessToken: token } = await signup({ email, password, name, captchaToken, referralId })
           if (token && user) {
             sessionStore.upsertSession({ user, token })
             pushToDataLayer({
@@ -234,11 +234,14 @@ const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null })
         try {
           const response = await loginWithGoogle({ access_token, referralId })
-          if (!response.success || !response.token || !response.user) {
+          // The backend names this field `accessToken` (auth.controller.js#googleSignIn);
+          // `token` is the client-side name used by sessionStore and this store's state.
+          const token = response.accessToken
+          if (!response.success || !token || !response.user) {
             throw new Error("Invalid Google login response")
           }
 
-          sessionStore.upsertSession({ user: response.user, token: response.token })
+          sessionStore.upsertSession({ user: response.user, token })
           const { user, authStatus } = response
 
           pushToDataLayer({
@@ -251,7 +254,7 @@ const useAuthStore = create<AuthState>()(
             user_subscription: user.subscription.plan,
           })
 
-          set({ user, token: response.token, isAuthenticated: true, loading: false })
+          set({ user, token, isAuthenticated: true, loading: false })
           return response
         } catch (error) {
           pushToDataLayer({

@@ -1,16 +1,23 @@
 import { asApiError } from "@/types/api"
 import { type FC, useCallback, useEffect, useMemo, useState } from "react"
+import type { Path } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { debugPayload } from "@utils/debugPayload"
-import { setValueByPath } from "@utils/ObjectPath"
-import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
+import { TONES, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import AdvancedOptions from "@components/AdvancedOptions"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
-import { validateAdvancedBlogData } from "@/types/forms.schemas"
+import { useZodForm } from "@/lib/forms"
+import {
+  ADVANCED_BLOG_STEP_FIELDS,
+  type AdvancedBlogFormValues,
+  advancedBlogFormDefaults,
+  advancedBlogFormSchema,
+  toAdvancedBlogPayload,
+} from "@/forms/advancedBlogForm"
 import { useQueryClient } from "@tanstack/react-query"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
@@ -34,52 +41,19 @@ interface AdvancedBlogModalProps {
   closeFnc: () => void
 }
 
+/** Any addressable field on the form, nested option paths included. */
+type FormFieldName = Path<AdvancedBlogFormValues>
+
+/** The step a field belongs to, so a failed submit lands on the right screen. */
+const stepOfField = (name: string): number => {
+  const entry = Object.entries(ADVANCED_BLOG_STEP_FIELDS).find(([, fields]) =>
+    (fields as readonly string[]).includes(name)
+  )
+  return entry ? Number(entry[0]) : 1
+}
+
 // Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
-  const initialData = {
-    templateIds: [] as number[],
-    template: "" as string,
-    topic: "" as string,
-    focusKeywords: [] as string[],
-    keywords: [] as string[],
-    title: "" as string,
-    tone: TONES[0] as string,
-    userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT as number,
-    brief: "" as string,
-    aiModel: AI_MODELS[0].id as string,
-    isCheckedGeneratedImages: false as boolean,
-    imageSource: IMAGE_OPTIONS[0].id as any,
-    numberOfImages: 0 as number,
-    blogImages: [] as any[],
-    referenceLinks: [] as string[],
-    isCheckedQuick: false as boolean,
-    isCheckedBrand: false as boolean,
-    brandId: "" as string,
-    languageToWrite: "English" as string,
-    costCutter: true as boolean,
-    wordpressPostStatus: false as boolean,
-    postingType: null as string | null,
-    enableAdvanced: false as boolean,
-    options: {
-      exactTitle: false as boolean,
-      performKeywordResearch: false as boolean,
-      includeFaqs: false as boolean,
-      includeInterlinks: false as boolean,
-      includeCompetitorResearch: false as boolean,
-      addOutBoundLinks: false as boolean,
-      addCTA: false as boolean,
-      easyToUnderstand: false as boolean,
-      embedYouTubeVideos: false as boolean,
-      includeTableOfContents: false as boolean,
-      extendedThinking: false as boolean,
-      deepResearch: false as boolean,
-      humanisation: false as boolean,
-      createBrandedImages: false as boolean,
-    },
-  }
-
-  type FormError = Partial<Record<keyof typeof initialData, string>>
-
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -88,22 +62,35 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const { integrations, fetchIntegrations } = useIntegrationStore()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
-  const [formData, setFormData] = useState<typeof initialData>(initialData)
-  const [errors, setErrors] = useState<FormError>({})
+
+  // Form state and its validation both live in `advancedBlogFormSchema`; the request
+  // body is derived from it by `toAdvancedBlogPayload`, so UI-only state (template
+  // ids, the advanced-options switch) can never leak into the request, and a field
+  // stops being sent by removing one line from the mapper.
+  const {
+    watch,
+    setValue,
+    getValues,
+    trigger,
+    reset,
+    setError,
+    clearErrors,
+    handleSubmit: submitForm,
+    formState: { errors },
+  } = useZodForm(advancedBlogFormSchema, advancedBlogFormDefaults)
+
+  const formData = watch()
 
   useEffect(() => {
     fetchIntegrations()
   }, [fetchIntegrations])
 
   useEffect(() => {
-    // Hoisted so the narrowing survives into the setFormData callback.
     const connected = integrations?.integrations
-    if (connected && Object.keys(connected).length > 0) {
-      if (!formData.postingType) {
-        setFormData((prev) => ({ ...prev, postingType: Object.keys(connected)[0] }))
-      }
+    if (connected && Object.keys(connected).length > 0 && !formData.postingType) {
+      setValue("postingType", Object.keys(connected)[0])
     }
-  }, [integrations, formData.postingType])
+  }, [integrations, formData.postingType, setValue])
 
   const STEP_TITLES = formData.enableAdvanced
     ? [
@@ -158,14 +145,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const { selectedKeywords, pendingImport, setPendingImport } = useAnalysisStore()
   useEffect(() => {
     if (pendingImport === "blog" && selectedKeywords) {
-      setFormData((prev) => ({
-        ...prev,
-        focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
-        keywords: selectedKeywords.keywords || prev.keywords,
-      }))
+      setValue("focusKeywords", selectedKeywords.focusKeywords || getValues("focusKeywords"))
+      setValue("keywords", selectedKeywords.keywords || getValues("keywords"))
       setPendingImport(null)
     }
-  }, [selectedKeywords, pendingImport, setPendingImport])
+  }, [selectedKeywords, pendingImport, setPendingImport, setValue, getValues])
 
   const handleAddKeywordItems = (
     inputValue: string | string[],
@@ -251,56 +235,46 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     formData.costCutter, formData.wordpressPostStatus
   ])
 
-  const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
-    setFormData((prev) => ({ ...prev, ...newData }))
-  }, [])
+  /** Writes one or more fields, re-checking each so a fixed field drops its error. */
+  const updateFormData = useCallback(
+    (newData: Partial<AdvancedBlogFormValues> | Record<string, unknown>) => {
+      for (const [name, value] of Object.entries(newData)) {
+        setValue(name as FormFieldName, value as never, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    },
+    [setValue]
+  )
 
-  const updateErrors = useCallback((error: FormError) => {
-    setErrors((prev) => ({ ...prev, ...error }))
-  }, [])
+  /**
+   * Ad-hoc error control for the handful of messages that are not schema rules
+   * (an empty keyword box, a rejected upload). An empty string clears the field,
+   * which is how the existing call sites already expressed "this is fine now".
+   */
+  const updateErrors = useCallback(
+    (error: Record<string, string | undefined>) => {
+      for (const [name, message] of Object.entries(error)) {
+        if (message) setError(name as FormFieldName, { message })
+        else clearErrors(name as FormFieldName)
+      }
+    },
+    [setError, clearErrors]
+  )
 
-  const validateFields = useCallback(() => {
-    const errors: FormError = {}
-    switch (currentStep) {
-      case 0:
-        if (formData.templateIds.length === 0)
-          errors.template = "Please select a template to continue."
-        else if (formData.templateIds.length > 1) errors.template = "Please select only 1 template."
-        break
-      case 1:
-        if (!formData.topic.length) errors.topic = "Please enter a topic name"
+  /** Validates only the fields shown on the current step. */
+  const validateFields = useCallback(
+    () =>
+      trigger(
+        (ADVANCED_BLOG_STEP_FIELDS[currentStep as keyof typeof ADVANCED_BLOG_STEP_FIELDS] ??
+          []) as unknown as FormFieldName[]
+      ),
+    [trigger, currentStep]
+  )
 
-        if (!formData.options.performKeywordResearch) {
-          if (!formData.focusKeywords.length)
-            errors.focusKeywords = "Please enter at least 1 focus keyword"
-
-          if (!formData.keywords.length) errors.keywords = "Please enter at least 1 keyword"
-
-          if (!formData.title.length) errors.title = "Please enter a title"
-        }
-        break
-      case 2:
-        if (
-          formData.isCheckedGeneratedImages &&
-          formData.imageSource === IMAGE_SOURCE.UPLOAD &&
-          formData.blogImages.length === 0
-        )
-          errors.blogImages = "Please upload at least 1 image."
-        break
-      case 3:
-        if (formData.wordpressPostStatus && !formData.postingType)
-          errors.postingType = "Please select a Publishing Platform"
-        break
-    }
-    if (Object.keys(errors).length) {
-      updateErrors(errors)
-      return false
-    }
-    return true
-  }, [formData, currentStep, updateErrors])
-
-  const handleNext = useCallback(() => {
-    if (validateFields()) {
+  const handleNext = useCallback(async () => {
+    if (await validateFields()) {
       setCurrentStep((prev) => prev + 1)
     }
   }, [validateFields])
@@ -308,16 +282,17 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const handlePrev = useCallback(() => setCurrentStep((prev) => prev - 1), [])
 
   const handleClose = () => {
-    setFormData(initialData)
-    setErrors({})
+    reset(advancedBlogFormDefaults)
     setCurrentStep(0)
     closeFnc?.()
   }
 
-  const handleSubmit = async () => {
-    if (validateFields()) {
-      // Check if user has sufficient credits
-      // Use memoized estimated cost
+  // react-hook-form validates the whole schema before this runs, so `values` is
+  // complete and checked; `toAdvancedBlogPayload` is the single place that decides
+  // what actually goes on the wire.
+  const handleSubmit = submitForm(
+    async (values) => {
+      // Check if user has sufficient credits — use the memoized estimate
       const finalCost = estimatedCost
 
       const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -345,35 +320,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         return
       }
 
-      console.debug("Advanced Modal Form Data : ", formData)
-      const data = { ...formData, options: { ...formData.options } } as Partial<typeof initialData>
-
-      // Set imageSource to "none" if images are disabled
-      if (!formData.isCheckedGeneratedImages) {
-        data.imageSource = IMAGE_SOURCE.NONE
-      }
-
-      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_SOURCE.UPLOAD) {
-        delete data.blogImages
-      }
-      if (!formData.isCheckedBrand) {
-        delete data.brandId
-      }
-      if (formData.options.performKeywordResearch) {
-        delete data.title
-        delete data.keywords
-        delete data.focusKeywords
-      }
-      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-      const validatedData = validateAdvancedBlogData(data)
-      if (debugPayload("AdvancedBlog", validatedData)) return
-
       const loadingId = showLoading("Creating your blog...")
 
       try {
+        const payload = toAdvancedBlogPayload(values)
+        if (debugPayload("AdvancedBlog", payload)) return
+
         const { createNewBlog } = useBlogStore.getState()
 
-        await createNewBlog({ blogData: validatedData, navigate, queryClient } as any)
+        await createNewBlog({ blogData: payload, navigate, queryClient } as any)
 
         // ✅ Only close modal on success
         handleClose()
@@ -383,8 +338,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       } finally {
         hideLoading(loadingId)
       }
+    },
+    (invalid) => {
+      // Jump to the earliest step holding a failing field so its message is visible.
+      const steps = Object.keys(invalid).map(stepOfField)
+      setCurrentStep(steps.length ? Math.min(...steps) : currentStep)
     }
-  }
+  )
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
     updateFormData({
@@ -407,32 +367,26 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
 
       if (!name) throw new Error("Advanced blog form component error")
 
-      const keys = name.split(".")
-
-      if (keys.length > 1) {
-        setFormData((prev) => setValueByPath(prev, keys, value))
-      } else {
-        // Special handling for image toggle
-        if (name === "isCheckedGeneratedImages") {
-          setFormData((prev) => ({
-            ...prev,
-            isCheckedGeneratedImages: value as boolean,
-            imageSource: value
-              ? prev.imageSource === IMAGE_SOURCE.NONE
-                ? IMAGE_SOURCE.STOCK
-                : prev.imageSource
-              : IMAGE_SOURCE.NONE,
-          }))
-          updateErrors({ isCheckedGeneratedImages: "", imageSource: "" } as any)
-          return
-        }
-
-        updateFormData({ [name]: value } as unknown as Partial<typeof initialData>)
-
-        updateErrors({ [name]: "" })
+      // Turning images off also resets the source, and turning them back on picks a
+      // usable one — the two fields are never allowed to disagree.
+      if (name === "isCheckedGeneratedImages") {
+        const enabled = value as boolean
+        updateFormData({
+          isCheckedGeneratedImages: enabled,
+          imageSource: enabled
+            ? getValues("imageSource") === IMAGE_SOURCE.NONE
+              ? IMAGE_SOURCE.STOCK
+              : getValues("imageSource")
+            : IMAGE_SOURCE.NONE,
+        })
+        updateErrors({ isCheckedGeneratedImages: "", imageSource: "" })
+        return
       }
+
+      // Dotted names ("options.includeFaqs") address nested fields directly.
+      updateFormData({ [name]: value })
     },
-    [updateFormData, updateErrors]
+    [updateFormData, updateErrors, getValues]
   )
 
   const renderSteps = () => {
@@ -457,14 +411,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div
               className={clsx(
                 "rounded-xl transition-all duration-200",
-                errors?.template ? "border-2 border-red-500 p-1" : "p-1"
+                errors?.template?.message ? "border-2 border-red-500 p-1" : "p-1"
               )}
             >
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handleTemplateSelection}
-                error={errors?.template}
+                error={errors?.template?.message}
               />
             </div>
 
@@ -489,9 +443,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 onChange={handleInputChange}
                 className={`w-full mt-2 p-2 rounded-md border bg-white text-sm 
         focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600
-        ${errors.topic ? "border-red-500" : "border-slate-300"}`}
+        ${errors.topic?.message ? "border-red-500" : "border-slate-300"}`}
               />
-              {errors.topic && <p className="text-xs mt-1 text-red-500">{errors.topic}</p>}
+              {errors.topic?.message && <p className="text-xs mt-1 text-red-500">{errors.topic.message}</p>}
             </div>
 
             {/* Language */}
@@ -547,7 +501,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
             focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-              errors.focusKeywords ? "border-red-500" : "border-slate-300"
+              errors.focusKeywords?.message ? "border-red-500" : "border-slate-300"
             }`}
                     onKeyDown={(e) => {
                       if (e.key === "," || e.key === "Enter") {
@@ -564,8 +518,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       })
                     }}
                   />
-                  {errors.focusKeywords && (
-                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords}</p>
+                  {errors.focusKeywords?.message && (
+                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.focusKeywords.map((kw) => (
@@ -606,7 +560,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     placeholder="Type and press comma"
                     className={`w-full mt-2 p-2 rounded-md border bg-white text-sm
             focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-              errors.keywords ? "border-red-500" : "border-slate-300"
+              errors.keywords?.message ? "border-red-500" : "border-slate-300"
             }`}
                     onKeyDown={(e) => {
                       if (e.key === "," || e.key === "Enter") {
@@ -623,8 +577,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       })
                     }}
                   />
-                  {errors.keywords && (
-                    <p className="text-xs mt-1 text-red-500">{errors.keywords}</p>
+                  {errors.keywords?.message && (
+                    <p className="text-xs mt-1 text-red-500">{errors.keywords.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.keywords.map((kw) => (
@@ -669,7 +623,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       onChange={handleInputChange}
                       className={`flex-1 mt-2 p-2 rounded-md border bg-white text-sm
               focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 ${
-                errors.title ? "border-red-500" : "border-slate-300"
+                errors.title?.message ? "border-red-500" : "border-slate-300"
               }`}
                     />
                     <button
@@ -682,7 +636,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       {isGenerating ? "Generating..." : "Generate"}
                     </button>
                   </div>
-                  {errors.title && <p className="text-xs mt-1 text-red-500">{errors.title}</p>}
+                  {errors.title?.message && <p className="text-xs mt-1 text-red-500">{errors.title.message}</p>}
 
                   {generatedTitles.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -735,7 +689,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     handleInputChange({ target: { name: "tone", value: e.target.value } })
                   }
                   className={`select select-bordered w-full rounded-lg mt-3 ${
-                    errors.tone ? "border-red-500" : ""
+                    errors.tone?.message ? "border-red-500" : ""
                   }`}
                 >
                   {TONES.map((t) => (
@@ -817,7 +771,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     handleInputChange({ target: { name: "imageSource", value: sourceId } })
                   }}
                   showUpload={true}
-                  error={errors.imageSource}
+                  error={errors.imageSource?.message}
                   numberOfImages={formData.numberOfImages}
                   onNumberChange={(val: number) => {
                     handleInputChange({ target: { name: "numberOfImages", value: val } })
@@ -966,8 +920,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       </div>
                     </div>
 
-                    {errors.blogImages && (
-                      <p className="text-xs text-red-500 font-medium">{errors.blogImages}</p>
+                    {errors.blogImages?.message && (
+                      <p className="text-xs text-red-500 font-medium">{errors.blogImages.message}</p>
                     )}
 
                     {/* Preview grid */}
@@ -1223,9 +1177,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                         </option>
                       ))}
                     </select>
-                    {errors.postingType && (
+                    {errors.postingType?.message && (
                       <p className="text-red-500 text-[10px] mt-1 font-bold italic">
-                        {errors.postingType}
+                        {errors.postingType.message}
                       </p>
                     )}
 
