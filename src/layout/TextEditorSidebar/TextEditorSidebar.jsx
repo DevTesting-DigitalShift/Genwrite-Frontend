@@ -323,6 +323,7 @@ const TextEditorSidebar = ({
   const {
     watch: watchRegen,
     setValue: setRegenValue,
+    getFieldState: getRegenFieldState,
     reset: resetRegenForm,
     handleSubmit: submitRegenForm,
   } = useZodForm(regenerateBlogFormSchema, regenerateBlogFormDefaults)
@@ -874,8 +875,12 @@ const TextEditorSidebar = ({
   // Update regen form field. Dotted names ("options.includeFaqs") address nested
   // fields directly, which is how the modal already calls this.
   const updateRegenField = useCallback(
-    (field, value) => setRegenValue(field, value, { shouldValidate: true, shouldDirty: true }),
-    [setRegenValue]
+    (field, value) =>
+      setRegenValue(field, value, {
+        shouldValidate: !!getRegenFieldState(field).error,
+        shouldDirty: true,
+      }),
+    [setRegenValue, getRegenFieldState]
   )
 
   // Calculate regenerate cost using pricing config

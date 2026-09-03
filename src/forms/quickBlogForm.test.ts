@@ -66,13 +66,20 @@ describe("toQuickBlogPayload", () => {
     expect(payload.imageSource).toBe("none")
   })
 
-  it("keeps the chosen image source when images are on", () => {
+  it("keeps the chosen image source and count when images are on", () => {
     const payload = toQuickBlogPayload({
       ...validValues(),
       addImages: true,
       imageSource: "ai",
+      numberOfImages: 4,
     })
     expect(payload.imageSource).toBe("ai")
+    expect(payload.numberOfImages).toBe(4)
+  })
+
+  it("zeroes the image count when images are switched off", () => {
+    const payload = toQuickBlogPayload({ ...validValues(), numberOfImages: 4 })
+    expect(payload.numberOfImages).toBe(0)
   })
 
   it("marks a YouTube blog with its type and links", () => {

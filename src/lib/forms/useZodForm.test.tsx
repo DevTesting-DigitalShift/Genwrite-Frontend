@@ -81,6 +81,29 @@ describe("useZodForm", () => {
     expect(result.current.formState.errors.tags).toBeUndefined()
   })
 
+  it("reports a field's error state by name, registered or not", async () => {
+    const { result } = renderForm()
+
+    expect(result.current.getFieldState("topic").error).toBeUndefined()
+
+    await act(async () => {
+      await result.current.trigger(["topic"])
+    })
+    expect(result.current.getFieldState("topic").error?.message).toBe("Topic is required")
+  })
+
+  it("writing a field does not raise an error until something asks for validation", () => {
+    // A child component can write a default on mount (the template grid does); that
+    // must not light the field up red before the user has done anything.
+    const { result } = renderForm()
+
+    act(() => {
+      result.current.setValue("topic", "", { shouldValidate: false })
+    })
+
+    expect(result.current.formState.errors.topic).toBeUndefined()
+  })
+
   it("hands the submit handler the complete values, UI-only fields included", async () => {
     const { result } = renderForm()
     const seen: unknown[] = []

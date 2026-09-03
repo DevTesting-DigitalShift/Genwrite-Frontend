@@ -15,6 +15,13 @@ import { BLOG_CONFIG } from "@/data/blogConfig"
  */
 
 export const JOB_MAX_TEMPLATES = 7
+
+/**
+ * The blog-count box may sit empty while the user retypes it, so the field accepts
+ * `""` and the range rule below reports the same message it always did instead of
+ * zod's raw "expected number" complaint.
+ */
+const editableNumber = z.union([z.number(), z.literal("")])
 export const JOB_MAX_BLOGS = 10
 export const JOB_MAX_REFERENCES = 3
 
@@ -37,7 +44,7 @@ export const jobBlogsFormSchema = z.object({
   keywords: z.array(z.string()),
   references: z.array(z.string()).max(JOB_MAX_REFERENCES, "Maximum 3 references allowed"),
 
-  numberOfBlogs: z.number(),
+  numberOfBlogs: editableNumber,
   numberOfImages: z.number(),
   userDefinedLength: z.number().min(BLOG_CONFIG.LENGTH.MIN).max(BLOG_CONFIG.LENGTH.MAX),
 
@@ -123,7 +130,8 @@ export const jobFormSchema = z
       })
     }
 
-    if (blogs.numberOfBlogs < 1 || blogs.numberOfBlogs > JOB_MAX_BLOGS) {
+    const blogCount = blogs.numberOfBlogs === "" ? Number.NaN : blogs.numberOfBlogs
+    if (Number.isNaN(blogCount) || blogCount < 1 || blogCount > JOB_MAX_BLOGS) {
       ctx.addIssue({
         path: ["blogs", "numberOfBlogs"],
         code: "custom",
@@ -308,7 +316,8 @@ export function toJobPayload(values: JobFormValues) {
       topics: blogs.topics,
       keywords: blogs.keywords,
       references: blogs.references,
-      numberOfBlogs: blogs.numberOfBlogs,
+      // Validation blocks an empty box, so this only guards a payload built by hand.
+      numberOfBlogs: blogs.numberOfBlogs === "" ? 1 : blogs.numberOfBlogs,
       numberOfImages: blogs.numberOfImages,
       userDefinedLength: blogs.userDefinedLength,
       tone: blogs.tone,

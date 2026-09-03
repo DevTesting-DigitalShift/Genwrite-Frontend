@@ -68,6 +68,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
     watch,
     setValue,
     getValues,
+    getFieldState,
     reset,
     trigger,
     clearErrors,
@@ -77,11 +78,18 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
 
   const newJob = watch()
 
-  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  /**
+   * Writes one field. Validation only re-runs for a field that is *already* showing
+   * an error, so messages appear on Next/Submit and then clear as the user fixes
+   * them — they never pop up while the form is still being filled in.
+   */
   const setField = React.useCallback(
     (name: JobFieldName, value: unknown) =>
-      setValue(name, value as never, { shouldValidate: true, shouldDirty: true }),
-    [setValue]
+      setValue(name, value as never, {
+        shouldValidate: !!getFieldState(name).error,
+        shouldDirty: true,
+      }),
+    [setValue, getFieldState]
   )
 
   const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState<any>(null)

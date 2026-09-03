@@ -71,6 +71,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     watch,
     setValue,
     getValues,
+    getFieldState,
     trigger,
     reset,
     setError,
@@ -235,17 +236,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     formData.costCutter, formData.wordpressPostStatus
   ])
 
-  /** Writes one or more fields, re-checking each so a fixed field drops its error. */
+  /**
+   * Writes one or more fields. Validation only re-runs for a field that is *already*
+   * showing an error, so messages appear on Next/Submit and then clear as the user
+   * fixes them — they never pop up while the form is still being filled in.
+   */
   const updateFormData = useCallback(
     (newData: Partial<AdvancedBlogFormValues> | Record<string, unknown>) => {
       for (const [name, value] of Object.entries(newData)) {
         setValue(name as FormFieldName, value as never, {
-          shouldValidate: true,
+          shouldValidate: !!getFieldState(name as FormFieldName).error,
           shouldDirty: true,
         })
       }
     },
-    [setValue]
+    [setValue, getFieldState]
   )
 
   /**
@@ -411,14 +416,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             <div
               className={clsx(
                 "rounded-xl transition-all duration-200",
-                errors?.template?.message ? "border-2 border-red-500 p-1" : "p-1"
+                errors.template?.message ? "border-2 border-red-500 p-1" : "p-1"
               )}
             >
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handleTemplateSelection}
-                error={errors?.template?.message}
+                error={errors.template?.message}
               />
             </div>
 
@@ -445,7 +450,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600
         ${errors.topic?.message ? "border-red-500" : "border-slate-300"}`}
               />
-              {errors.topic?.message && <p className="text-xs mt-1 text-red-500">{errors.topic.message}</p>}
+              {errors.topic?.message && <p className="text-xs mt-1 text-red-500">{errors.topic?.message}</p>}
             </div>
 
             {/* Language */}
@@ -519,7 +524,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     }}
                   />
                   {errors.focusKeywords?.message && (
-                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords.message}</p>
+                    <p className="text-xs mt-1 text-red-500">{errors.focusKeywords?.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.focusKeywords.map((kw) => (
@@ -578,7 +583,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     }}
                   />
                   {errors.keywords?.message && (
-                    <p className="text-xs mt-1 text-red-500">{errors.keywords.message}</p>
+                    <p className="text-xs mt-1 text-red-500">{errors.keywords?.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.keywords.map((kw) => (
@@ -636,7 +641,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       {isGenerating ? "Generating..." : "Generate"}
                     </button>
                   </div>
-                  {errors.title?.message && <p className="text-xs mt-1 text-red-500">{errors.title.message}</p>}
+                  {errors.title?.message && <p className="text-xs mt-1 text-red-500">{errors.title?.message}</p>}
 
                   {generatedTitles.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -921,7 +926,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     </div>
 
                     {errors.blogImages?.message && (
-                      <p className="text-xs text-red-500 font-medium">{errors.blogImages.message}</p>
+                      <p className="text-xs text-red-500 font-medium">{errors.blogImages?.message}</p>
                     )}
 
                     {/* Preview grid */}
@@ -1179,7 +1184,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                     </select>
                     {errors.postingType?.message && (
                       <p className="text-red-500 text-[10px] mt-1 font-bold italic">
-                        {errors.postingType.message}
+                        {errors.postingType?.message}
                       </p>
                     )}
 

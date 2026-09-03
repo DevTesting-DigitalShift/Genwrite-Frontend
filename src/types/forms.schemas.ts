@@ -110,6 +110,13 @@ export const quickBlogFinalDataSchema = z.object({
     .default(ImageSource.NONE)
     .describe("Source of images when addImages is true"),
 
+  numberOfImages: z
+    .number()
+    .min(0)
+    .max(15)
+    .default(0)
+    .describe("Number of images to add (0 = AI decides); 0 whenever addImages is off"),
+
   template: z.string().nullable().describe("Selected blog template name"),
 
   keywords: z.array(z.string()).default([]).describe("Secondary keywords for SEO optimization"),

@@ -136,10 +136,9 @@ export function quickBlogFormDefaults(type: "quick" | "yt"): QuickBlogFormValues
 /**
  * Form state → request body.
  *
- * Not sent, deliberately: `aiModel` and `numberOfImages`. Both are collected by
- * the advanced step and both feed the credit estimate, but `/blogs/quick` and
- * `/blogs/yt` do not accept them today — add them to `quickBlogFinalDataSchema`
- * and to the object below on the day the backend does.
+ * Not sent, deliberately: `aiModel`. The advanced step collects it and the credit
+ * estimate uses it, but `/blogs/quick` and `/blogs/yt` do not accept it today —
+ * add it to `quickBlogFinalDataSchema` and to the object below on the day they do.
  */
 export function toQuickBlogPayload(values: QuickBlogFormValues) {
   return buildPayload("QuickBlog", quickBlogFinalDataSchema, {
@@ -152,8 +151,9 @@ export function toQuickBlogPayload(values: QuickBlogFormValues) {
     focusKeywords: values.focusKeywords,
     otherLinks: values.otherLinks,
     addImages: values.addImages,
-    // Turning images off wins over whatever source was picked earlier.
+    // Turning images off wins over whatever source and count were picked earlier.
     imageSource: values.addImages ? values.imageSource : IMAGE_SOURCE.NONE,
+    numberOfImages: values.addImages ? values.numberOfImages : 0,
     languageToWrite: values.languageToWrite,
     costCutter: values.costCutter,
     easyToUnderstand: values.easyToUnderstand,

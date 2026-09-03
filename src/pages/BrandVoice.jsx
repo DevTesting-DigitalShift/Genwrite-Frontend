@@ -41,6 +41,7 @@ const BrandVoice = () => {
     watch,
     setValue,
     getValues,
+    getFieldState,
     reset,
     setError,
     clearErrors,
@@ -50,10 +51,18 @@ const BrandVoice = () => {
 
   const formData = watch()
 
-  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  /**
+   * Writes one field. Validation only re-runs for a field that is *already* showing
+   * an error, so messages appear on Next/Submit and then clear as the user fixes
+   * them — they never pop up while the form is still being filled in.
+   */
   const setField = useCallback(
-    (name, value) => setValue(name, value, { shouldValidate: true, shouldDirty: true }),
-    [setValue]
+    (name, value) =>
+      setValue(name, value, {
+        shouldValidate: !!getFieldState(name).error,
+        shouldDirty: true,
+      }),
+    [setValue, getFieldState]
   )
 
   /** Sets or clears one message — an empty string means "this is fine now". */
@@ -296,9 +305,21 @@ const BrandVoice = () => {
       }
       resetForm()
     } catch (error) {
+      // The mutation already toasts what the server said; this only stops the
+      // rejection from escaping and leaves a trace for debugging.
       console.error("Error saving brand voice:", error)
     } finally {
       setIsUploading(false)
+    }
+  },
+  (invalid) => {
+    // Each message renders inline beside its field, which is easy to miss when Save
+    // sits well below them — pull the first failing field into view.
+    const [firstField] = Object.keys(invalid)
+    const field = firstField && document.getElementById(firstField)
+    if (field) {
+      field.scrollIntoView({ behavior: "smooth", block: "center" })
+      field.focus({ preventScroll: true })
     }
   })
 
@@ -520,7 +541,7 @@ const BrandVoice = () => {
             </div>
             {errors.postLink?.message && (
               <p id="postLink-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.postLink.message}
+                {errors.postLink?.message}
               </p>
             )}
           </div>
@@ -545,7 +566,7 @@ const BrandVoice = () => {
             />
             {errors.nameOfVoice?.message && (
               <p id="nameOfVoice-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.nameOfVoice.message}
+                {errors.nameOfVoice?.message}
               </p>
             )}
           </div>
@@ -662,7 +683,7 @@ const BrandVoice = () => {
             </motion.div>
             {errors.keywords?.message && (
               <p id="keywords-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.keywords.message}
+                {errors.keywords?.message}
               </p>
             )}
           </div>
@@ -695,7 +716,7 @@ const BrandVoice = () => {
             />
             {errors.sitemapUrl?.message && (
               <p id="sitemapUrl-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.sitemapUrl.message}
+                {errors.sitemapUrl?.message}
               </p>
             )}
           </div>
@@ -720,7 +741,7 @@ const BrandVoice = () => {
             />
             {errors.describeBrand?.message && (
               <p id="describeBrand-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.describeBrand.message}
+                {errors.describeBrand?.message}
               </p>
             )}
           </div>
@@ -753,7 +774,7 @@ const BrandVoice = () => {
             />
             {errors.persona?.message && (
               <p id="persona-error" className="text-red-500 text-xs sm:text-sm mt-1">
-                {errors.persona.message}
+                {errors.persona?.message}
               </p>
             )}
           </div>

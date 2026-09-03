@@ -45,6 +45,23 @@ describe("jobFormSchema", () => {
     expect(jobFormSchema.safeParse(monthly).success).toBe(false)
   })
 
+  it("reports the range message for a blog count that is empty or out of range", () => {
+    for (const numberOfBlogs of ["", 0, 11]) {
+      const result = jobFormSchema.safeParse(
+        jobValues({ blogs: { ...jobValues().blogs, numberOfBlogs } })
+      )
+      const message = result.success
+        ? ""
+        : result.error.issues.find((i) => i.path.join(".") === "blogs.numberOfBlogs")?.message
+      expect(message).toBe("Number of blogs must be between 1 and 10.")
+    }
+
+    expect(
+      jobFormSchema.safeParse(jobValues({ blogs: { ...jobValues().blogs, numberOfBlogs: 4 } }))
+        .success
+    ).toBe(true)
+  })
+
   it("only wants a posting platform on an advanced job that posts automatically", () => {
     const posting = jobValues({
       blogs: { ...jobFormDefaults.blogs, templates: ["Classic"], topics: ["t"], enableAdvanced: true },

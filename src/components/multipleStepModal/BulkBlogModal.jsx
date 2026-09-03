@@ -65,10 +65,18 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const formData = watch()
 
-  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  /**
+   * Writes one field. Validation only re-runs for a field that is *already* showing
+   * an error, so messages appear on Next/Submit and then clear as the user fixes
+   * them — they never pop up while the form is still being filled in.
+   */
   const setField = useCallback(
-    (name, value) => setValue(name, value, { shouldValidate: true, shouldDirty: true }),
-    [setValue]
+    (name, value) =>
+      setValue(name, value, {
+        shouldValidate: !!getFieldState(name).error,
+        shouldDirty: true,
+      }),
+    [setValue, getFieldState]
   )
 
   /** Sets or clears one message — an empty string means "this is fine now". */
@@ -713,7 +721,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 userSubscriptionPlan={user?.subscription?.plan ?? "free"}
                 preSelectedIds={formData.templateIds}
                 onClick={handlePackageSelect}
-                error={errors.templates.message}
+                error={errors.templates?.message}
               />
             </div>
           )}
@@ -744,7 +752,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                 />
                 {errors.numberOfBlogs?.message && (
                   <p className="text-red-500 text-xs mt-1 font-bold italic">
-                    {errors.numberOfBlogs.message}
+                    {errors.numberOfBlogs?.message}
                   </p>
                 )}
               </div>
@@ -788,9 +796,9 @@ const BulkBlogModal = ({ closeFnc }) => {
                     <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
                   </label>
                 </div>
-                {errors.topics?.message && <p className="text-red-500 text-xs mt-1">{errors.topics.message}</p>}
+                {errors.topics?.message && <p className="text-red-500 text-xs mt-1">{errors.topics?.message}</p>}
                 {errors.topicsCSV?.message && (
-                  <p className="text-red-500 text-xs mt-1">{errors.topicsCSV.message}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.topicsCSV?.message}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {(showAllTopics
@@ -889,10 +897,10 @@ const BulkBlogModal = ({ closeFnc }) => {
                       </label>
                     </div>
                     {errors.keywords?.message && (
-                      <p className="text-red-500 text-xs mt-1">{errors.keywords.message}</p>
+                      <p className="text-red-500 text-xs mt-1">{errors.keywords?.message}</p>
                     )}
                     {errors.keywordsCSV?.message && (
-                      <p className="text-red-500 text-xs mt-1">{errors.keywordsCSV.message}</p>
+                      <p className="text-red-500 text-xs mt-1">{errors.keywordsCSV?.message}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                       {(showAllKeywords
@@ -1042,7 +1050,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       <ImageSourceSelector
                         value={formData.imageSource}
                         onChange={handleImageSourceChange}
-                        error={errors.blogImages.message}
+                        error={errors.blogImages?.message}
                         showUpload={false}
                         numberOfImages={formData.numberOfImages}
                         onNumberChange={(val) =>
@@ -1051,7 +1059,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       />
                       {errors.numberOfImages?.message && (
                         <p className="text-red-500 text-xs mt-1 font-bold italic">
-                          {errors.numberOfImages.message}
+                          {errors.numberOfImages?.message}
                         </p>
                       )}
                     </div>
@@ -1084,7 +1092,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       onCostCutterChange={(checked) => {
                         setField("costCutter", checked)
                       }}
-                      error={errors.aiModel.message}
+                      error={errors.aiModel?.message}
                     />
                   </div>
                 )}

@@ -321,8 +321,8 @@ const StepContent = ({
             errors.blogs?.templates?.message && "border-2 border-red-500 rounded-lg"
           )}`}
         >
-          <p className={`text-sm ${errors?.templates ? "text-red-500" : "text-gray-600"} mb-4`}>
-            {errors?.templates
+          <p className={`text-sm ${errors.templates ? "text-red-500" : "text-gray-600"} mb-4`}>
+            {errors.templates
               ? errors.blogs?.templates?.message
               : `Select up to 7 templates for the types of blogs you want to generate. (${newJob.blogs.templates.length}/7 selected)`}
           </p>
@@ -357,7 +357,7 @@ const StepContent = ({
                 aria-label="Job name"
               />
               {errors.name?.message && (
-                <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+                <p className="text-red-500 text-xs mt-1">{errors.name?.message}</p>
               )}
             </div>
             <div>
@@ -402,7 +402,7 @@ const StepContent = ({
                 </label>
               </div>
               {errors.blogs?.topics?.message && (
-                <p className="text-red-500 text-xs mt-1">{errors.blogs.topics.message}</p>
+                <p className="text-red-500 text-xs mt-1">{errors.blogs?.topics?.message}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {topicsToShow.map((topic, reversedIndex) => {
@@ -503,7 +503,7 @@ const StepContent = ({
                   </label>
                 </div>
                 {errors.blogs?.keywords?.message && (
-                  <p className="text-red-500 text-xs mt-1">{errors.blogs.keywords.message}</p>
+                  <p className="text-red-500 text-xs mt-1">{errors.blogs?.keywords?.message}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {keywordsToShow.map((keyword, reversedIndex) => {

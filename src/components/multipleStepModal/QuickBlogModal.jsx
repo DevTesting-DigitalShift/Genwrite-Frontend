@@ -36,6 +36,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const {
     watch,
     setValue,
+    getFieldState,
     trigger,
     reset,
     setError,
@@ -47,10 +48,18 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const formData = watch()
   const otherLinks = formData.otherLinks
 
-  /** Writes one field and re-checks it, so a fixed field drops its error as you type. */
+  /**
+   * Writes one field. Validation only re-runs for a field that is *already* showing
+   * an error, so messages appear on Next/Submit and then clear as the user fixes
+   * them — they never pop up while the form is still being filled in.
+   */
   const setField = useCallback(
-    (name, value) => setValue(name, value, { shouldValidate: true, shouldDirty: true }),
-    [setValue]
+    (name, value) =>
+      setValue(name, value, {
+        shouldValidate: !!getFieldState(name).error,
+        shouldDirty: true,
+      }),
+    [setValue, getFieldState]
   )
 
   /** Writes several fields at once — the shape `AdvancedOptions` expects. */
@@ -445,7 +454,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   placeholder="Enter the blog topic"
                   aria-label="Blog topic"
                 />
-                {errors.topic?.message && <p className="text-red-500 text-sm mt-1">{errors.topic.message}</p>}
+                {errors.topic?.message && <p className="text-red-500 text-sm mt-1">{errors.topic?.message}</p>}
               </div>
               <div className="flex items-center justify-between mb-4">
                 <FieldLabel tip="Ensures the generated blog uses your exact topic string as its main H1 title.">
@@ -535,7 +544,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       </button>
                     </div>
                     {errors.focusKeywords?.message && (
-                      <p className="text-red-500 text-sm mt-1">{errors.focusKeywords.message}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.focusKeywords?.message}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.focusKeywords.map((keyword, index) => (
@@ -586,7 +595,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       </button>
                     </div>
                     {errors.keywords?.message && (
-                      <p className="text-red-500 text-sm mt-1">{errors.keywords.message}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.keywords?.message}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.keywords.map((keyword, index) => (
@@ -712,7 +721,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </button>
                   </div>
                   {errors.otherLinks?.message && (
-                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks?.message}</p>
                   )}
                   <div className="flex flex-wrap gap-2">
                     {otherLinks.map((link, index) => (
