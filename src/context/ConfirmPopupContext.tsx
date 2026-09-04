@@ -8,6 +8,26 @@ import {
   useContext,
   useState,
 } from "react"
+import { cn } from "@/lib/utils"
+
+/** Antd-shaped props some call sites still pass to these native buttons. */
+interface LegacyButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  danger?: boolean
+}
+
+// These are native buttons, but call sites still pass antd-shaped props left over
+// from the old modal: `danger`, and `type="text"`. Translate `danger`, drop the
+// rest so they never reach the DOM, and merge `className` with the base classes
+// instead of letting it replace them (which stripped the button styling entirely).
+const buttonProps = ({
+  className,
+  danger,
+  type: _antdType,
+  ...rest
+}: LegacyButtonProps = {}) => ({
+  ...rest,
+  className: cn("btn rounded-md", danger && "btn-error", className),
+})
 
 /** Why the popup closed — `handleClose` passes this to `onCancel`/`onClose`. */
 export interface CloseReason {
@@ -93,17 +113,15 @@ export const ConfirmPopupProvider = ({ children }: { children: ReactNode }) => {
                 <button
                   type="button"
                   onClick={() => handleClose({ source: "button" })}
-                  className="btn rounded-md"
-                  {...cancelProps}
+                  {...buttonProps(cancelProps)}
                 >
                   {cancelText}
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="btn rounded-md"
                   disabled={loading}
-                  {...confirmProps}
+                  {...buttonProps(confirmProps)}
                 >
                   {loading && <span className="loading loading-spinner"></span>}
                   {confirmText}

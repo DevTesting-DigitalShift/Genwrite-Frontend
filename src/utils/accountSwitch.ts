@@ -66,11 +66,7 @@ export async function switchToAccount(
   disconnectSocket()
   clearAccountScopedState()
 
-  sessionStore.setActiveUserId(userId)
-  const token = sessionStore.getActiveToken()
-
-  useAuthStore.getState().setToken(token)
-  await useAuthStore.getState().loadAuthenticatedUser()
+  const { token } = await useAuthStore.getState().switchAccount(userId)
 
   connectSocket(token)
 
@@ -95,9 +91,7 @@ export async function switchToNextOrNull(
 
   if (!nextUserId) return null
 
-  const token = sessionStore.getActiveToken()
-  useAuthStore.getState().setToken(token)
-  await useAuthStore.getState().loadAuthenticatedUser()
+  const { token } = await useAuthStore.getState().switchAccount(nextUserId)
   connectSocket(token)
 
   if (navigate) navigate("/dashboard")

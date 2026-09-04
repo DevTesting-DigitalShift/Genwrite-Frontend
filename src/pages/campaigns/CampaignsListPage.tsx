@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react"
+import { useEffect } from "react"
 import { Helmet } from "react-helmet"
 import { useNavigate } from "react-router-dom"
 import { Plus, Target, Calendar, FileStack, Loader2, Trash2, Pencil } from "lucide-react"
@@ -9,16 +10,11 @@ import { toast } from "sonner"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { PanelError } from "@/features/campaigns/CampaignStates"
+import { CampaignStatusControl } from "@/features/campaigns/CampaignStatusControl"
 import { getFriendlyError } from "@utils/friendlyError"
+import { getSocket } from "@utils/socket"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
-
-// Matches the pill on the detail page. No green — brand indigo carries "active".
-const STATUS_PILL: Record<CampaignStatusType, string> = {
-  active: "bg-primary/10 text-primary",
-  paused: "bg-amber-100 text-amber-700",
-  completed: "bg-slate-100 text-slate-600",
-}
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
@@ -34,6 +30,29 @@ export default function CampaignsListPage() {
     onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
+  // The weekly job auto-completes campaigns past their endDate, so a status here can
+  // change with no request from this tab to hang a cache update off.
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+
+    const handleStatusChanged = ({
+      campaignId,
+      status,
+    }: {
+      campaignId: string
+      status: CampaignStatusType
+    }) => {
+      if (!campaignId) return
+      campaignsQuery.applyStatusChange(campaignId, status)
+    }
+
+    socket.on("campaign:statusChanged", handleStatusChanged)
+    return () => {
+      socket.off("campaign:statusChanged", handleStatusChanged)
+    }
+  }, [])
+
   const handleDelete = (campaign: Campaign) => {
     handlePopup({
       title: "Delete campaign?",
@@ -47,8 +66,8 @@ export default function CampaignsListPage() {
         await deleteMutation.mutateAsync(campaign._id)
       },
       confirmProps: {
-        type: "button",
-        className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+        className:
+          "border-red-200 bg-red-50 text-red-600 hover:border-red-500 hover:bg-red-500 hover:text-white",
       },
     })
   }
@@ -111,11 +130,7 @@ export default function CampaignsListPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_PILL[campaign.status]}`}
-                  >
-                    {campaign.status}
-                  </span>
+                  <CampaignStatusControl status={campaign.status} readOnly />
                 </div>
                 {campaign.description && (
                   <CardDescription className="line-clamp-2">{campaign.description}</CardDescription>

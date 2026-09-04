@@ -11,6 +11,7 @@ import {
   getGeneratedTitles,
   getBlogStatus,
   getBlogs,
+  getAllBlogPostings,
   getBlogStatsById,
   toggleBlogVisibility,
   analyzeBlogPerformance,
@@ -19,6 +20,7 @@ import {
   confirmBlogInsight,
 } from "@api/blogApi"
 import { toast } from "sonner"
+import type { CampaignBlogRef } from "@/types/campaign"
 
 // ----------------------- Queries -----------------------
 
@@ -28,6 +30,48 @@ export const useBlogsQuery = (params: Record<string, unknown>) => {
 
 export const useAllBlogsQuery = () => {
   return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
+}
+
+interface BlogPosting {
+  blogId?: { _id: string; title?: string } | string
+  integrationType?: string
+  postedOn?: string
+}
+
+/**
+ * The blogs that are actually live somewhere, one entry per blog rather than one per
+ * posting — a blog published to two platforms comes back from /blogs/postings twice.
+ * Anything that reads Search Console performance (campaigns, most of all) can only
+ * work with these, since an unpublished blog has no URL for GSC to report on.
+ */
+export const usePostedBlogsQuery = () => {
+  return useQuery({
+    queryKey: ["postedBlogs"],
+    queryFn: () => getAllBlogPostings(),
+    select: (postings: BlogPosting[]): CampaignBlogRef[] => {
+      const byBlogId = new Map<string, CampaignBlogRef>()
+      for (const posting of postings ?? []) {
+        // `blogId` is populated server-side, but falls back to a bare id string if
+        // the blog was deleted after it was posted — skip those, they can't be shown.
+        const blog = posting?.blogId
+        if (!blog || typeof blog !== "object" || !blog._id) continue
+        const existing = byBlogId.get(blog._id)
+        if (existing) {
+          if (posting.integrationType && !existing.platforms?.includes(posting.integrationType)) {
+            existing.platforms = [...(existing.platforms ?? []), posting.integrationType]
+          }
+          continue
+        }
+        byBlogId.set(blog._id, {
+          _id: blog._id,
+          title: blog.title || "Untitled blog",
+          postedOn: posting.postedOn,
+          platforms: [posting.integrationType].filter((p): p is string => !!p),
+        })
+      }
+      return [...byBlogId.values()]
+    },
+  })
 }
 
 export const useBlogDetailsQuery = (id: string) => {

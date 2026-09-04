@@ -16,7 +16,7 @@ import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
-import { getActiveToken } from "@utils/sessionStore"
+import { getActiveSession } from "@utils/sessionStore"
 import { getAllBlogs } from "@/api/blogApi"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
@@ -110,7 +110,11 @@ const Dashboard = () => {
   // Fetch Recent Successful Blogs
   const { data: recentBlogsData } = useQuery({
     queryKey: ["recentBlogs", activeWorkspace?.id],
-    queryFn: () => getAllBlogs({ limit: 20, sort: "createdAt:desc" }), // Fetch more to ensure we find successful ones
+    queryFn: () => {
+      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      // Fetch more than we need (limit: 20) to ensure we find enough "complete" ones
+      return getAllBlogs({ limit: 20, sort: "createdAt:desc", start })
+    },
     enabled: !!user,
   })
 
@@ -147,8 +151,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const initUser = async () => {
-      const token = getActiveToken()
-      if (!token) {
+      const session = getActiveSession()
+      if (!session) {
         navigate("/login")
         return
       }

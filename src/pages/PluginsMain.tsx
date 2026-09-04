@@ -13,6 +13,8 @@ import {
   PlayCircle,
   Info,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
@@ -21,10 +23,19 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
 import { toast } from "sonner"
 import clsx from "clsx"
+import { asApiError, apiErrorMessage } from "@/types/api"
+
+type Plugin = ReturnType<typeof pluginsData>[number]
+
+interface PluginStatus {
+  status?: string | number
+  message?: string
+  success?: boolean
+}
 
 const PluginsMain = () => {
-  const [wordpressStatus, setWordpressStatus] = useState({})
-  const [activeTab, setActiveTab] = useState(null)
+  const [wordpressStatus, setWordpressStatus] = useState<Record<number, PluginStatus>>({})
+  const [activeTab, setActiveTab] = useState<string | null>(null)
   const { integrations, loading, fetchIntegrations, createIntegration, pingIntegration } =
     useIntegrationStore()
 
@@ -35,7 +46,7 @@ const PluginsMain = () => {
   }, [plugins])
 
   const checkPlugin = useCallback(
-    async plugin => {
+    async (plugin: Plugin) => {
       if (wordpressStatus[plugin.id]?.success) return
 
       try {
@@ -44,7 +55,8 @@ const PluginsMain = () => {
           ...prev,
           [plugin.id]: { status: result.status, message: result.message, success: result.success },
         }))
-      } catch (err) {
+      } catch (rawErr) {
+        const err = asApiError(rawErr)
         console.error(`Error checking plugin ${plugin.pluginName}:`, err)
         setWordpressStatus(prev => ({
           ...prev,
@@ -76,7 +88,7 @@ const PluginsMain = () => {
     }
   }, [fetchIntegrations, activeTab, extendedPlugins])
 
-  const handleTabChange = key => {
+  const handleTabChange = (key: string) => {
     setActiveTab(key)
     const plugin = plugins.find(p => p.id.toString() === key)
     if (plugin) {
@@ -87,10 +99,13 @@ const PluginsMain = () => {
     }
   }
 
-  const PluginTabContent = ({ plugin }) => {
-    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS, [])
-    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT, [])
-    const sanityInt = useMemo(() => integrations?.integrations?.SANITY, [])
+  const PluginTabContent = ({ plugin }: { plugin: Plugin }) => {
+    const wordpressInt = useMemo(
+      () => integrations?.integrations?.WORDPRESS as any,
+      []
+    )
+    const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT as any, [])
+    const sanityInt = useMemo(() => integrations?.integrations?.SANITY as any, [])
 
     // States for inputs
     const [url, setUrl] = useState(
@@ -122,6 +137,7 @@ const PluginsMain = () => {
     )
     const [isEditing, setIsEditing] = useState(false)
     const [localLoading, setLocalLoading] = useState(false)
+    const [showAuthToken, setShowAuthToken] = useState(false)
 
     // WordPress credentials — username isn't a secret (WP's own REST API exposes author
     // names publicly), so it's stored in plain `settings` and shown for real, not masked.
@@ -135,12 +151,12 @@ const PluginsMain = () => {
     // component instance is re-rendered with different plugin.id values across tab
     // switches, so a conditional hook here previously crashed on switch).
     const isShopify = plugin.id === 113
-    const wixInt = integrations?.integrations?.WIX
-    const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
+    const wixInt = integrations?.integrations?.WIX as any
+    const savedDomain = (integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"] as any)?.url
     const [domain, setDomain] = useState(savedDomain ?? "")
     const [isValidDomain, setIsValidDomain] = useState(true)
-    const installWindowRef = useRef(null)
-    const pollTimerRef = useRef(null)
+    const installWindowRef = useRef<Window | null>(null)
+    const pollTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
     // Wix-only: whether GenWrite should push its own SEO meta tags / JSON-LD structured
     // data, or leave it to Wix's built-in AI-generated SEO for blog posts (default).
@@ -152,7 +168,7 @@ const PluginsMain = () => {
     }, [wixInt?.settings?.useCustomSeo])
 
     const validateDomain = useCallback(
-      val => {
+      (val: string) => {
         if (!val) return false
         if (isShopify) {
           try {
@@ -257,8 +273,8 @@ const PluginsMain = () => {
         }))
         if (result.success) toast.success(result.message)
         else toast.error(result.message)
-      } catch (err) {
-        toast.error(err.message || "Heath check failed")
+      } catch (rawErr) {
+        toast.error(apiErrorMessage(rawErr, "Heath check failed"))
       } finally {
         setLocalLoading(false)
       }
@@ -272,7 +288,7 @@ const PluginsMain = () => {
       }
     }, [hasPinged, handlePing])
 
-    const handleUrlChange = e => {
+    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value
       setUrl(val)
       try {
@@ -298,7 +314,7 @@ const PluginsMain = () => {
       }
       setLocalLoading(true)
       try {
-        let payload
+        let payload: Record<string, unknown>
         if (plugin.id === 112) {
           const isTokenMasked = authToken === "*".repeat(10)
           payload = {
@@ -338,8 +354,8 @@ const PluginsMain = () => {
         await fetchIntegrations()
         setIsEditing(false)
         toast.success(`${plugin.pluginName} Linked!`)
-      } catch (err) {
-        toast.error(err.message || "Integration upgrade failed")
+      } catch (rawErr) {
+        toast.error(apiErrorMessage(rawErr, "Integration upgrade failed"))
       } finally {
         setLocalLoading(false)
       }
@@ -370,14 +386,14 @@ const PluginsMain = () => {
               }
             }, 1200)
           }
-        } catch (err) {
-          toast.error(err.message || "Installer bootstrap failed")
+        } catch (rawErr) {
+          toast.error(apiErrorMessage(rawErr, "Installer bootstrap failed"))
         } finally {
           setLocalLoading(false)
         }
       }
 
-      const handleSeoToggle = async checked => {
+      const handleSeoToggle = async (checked: boolean) => {
         setUseCustomSeo(checked)
         setSeoSaving(true)
         try {
@@ -392,9 +408,9 @@ const PluginsMain = () => {
               ? "GenWrite will now push custom SEO tags & structured data to Wix."
               : "Wix's built-in AI-generated SEO/structured data will be used."
           )
-        } catch (err) {
+        } catch (rawErr) {
           setUseCustomSeo(!checked)
-          toast.error(err.message || "Failed to update SEO preference")
+          toast.error(apiErrorMessage(rawErr, "Failed to update SEO preference"))
         } finally {
           setSeoSaving(false)
         }
@@ -603,6 +619,12 @@ const PluginsMain = () => {
                         setUrl(val)
                         setIsValidUrl(!!val)
                       }
+                      try {
+                        new URL(val)
+                        setIsValidFrontend(true)
+                      } catch {
+                        setIsValidFrontend(false)
+                      }
                     }}
                     disabled={!isEditing}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -706,21 +728,43 @@ const PluginsMain = () => {
                     </span>
                   )}
                 </div>
-                <input
-                  id={`plugin-${plugin.id}-credential`}
-                  type={plugin.id === 112 || plugin.id === 115 ? "password" : "text"}
-                  value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                  onChange={e =>
-                    plugin.id === 112 || plugin.id === 115
-                      ? setAuthToken(e.target.value)
-                      : setWpUsername(e.target.value)
-                  }
-                  disabled={!isEditing}
-                  onFocus={e => {
-                    if (isEditing) e.target.value = ""
-                  }}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                />
+                <div className="relative">
+                  <input
+                    id={`plugin-${plugin.id}-credential`}
+                    type={
+                      plugin.id === 112 || plugin.id === 115
+                        ? showAuthToken
+                          ? "text"
+                          : "password"
+                        : "text"
+                    }
+                    value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
+                    onChange={e =>
+                      plugin.id === 112 || plugin.id === 115
+                        ? setAuthToken(e.target.value)
+                        : setWpUsername(e.target.value)
+                    }
+                    disabled={!isEditing}
+                    onFocus={e => {
+                      if (isEditing) e.target.value = ""
+                    }}
+                    className={clsx(
+                      "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+                      (plugin.id === 112 || plugin.id === 115) && "pr-11"
+                    )}
+                  />
+                  {(plugin.id === 112 || plugin.id === 115) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthToken(prev => !prev)}
+                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      title={showAuthToken ? "Hide token" : "Show token"}
+                    >
+                      {showAuthToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {plugin.id === 111 && (
@@ -925,7 +969,7 @@ const PluginsMain = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
-                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab)}
+                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab) as Plugin}
                   />
                 </motion.div>
               )}
@@ -937,7 +981,7 @@ const PluginsMain = () => {
   )
 }
 
-const PluginHeader = ({ plugin }) => (
+const PluginHeader = ({ plugin }: { plugin: Plugin; status?: PluginStatus }) => (
   <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6">
     <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
       <img

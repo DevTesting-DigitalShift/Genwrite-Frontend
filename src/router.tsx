@@ -9,6 +9,7 @@ const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
 const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
+const TesterProtectedRoute = lazy(() => import("./layout/TesterProtectedRoute"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
 const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
@@ -128,9 +129,14 @@ const router = createBrowserRouter([
           { path: "profile", element: r(Profile) },
           { path: "collaboration", element: r(Collaboration) },
           { path: "brand-voice", element: r(BrandVoice) },
-          { path: "campaigns", element: r(CampaignsListPage) },
-          { path: "campaigns/:id", element: r(CampaignDetailPage) },
-          { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
+          {
+            element: withLayoutSuspense(TesterProtectedRoute),
+            children: [
+              { path: "campaigns", element: r(CampaignsListPage) },
+              { path: "campaigns/:id", element: r(CampaignDetailPage) },
+              { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
+            ],
+          },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },

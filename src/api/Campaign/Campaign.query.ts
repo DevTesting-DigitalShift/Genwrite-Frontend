@@ -5,8 +5,9 @@ import { CampaignAPI } from "./Campaign.api"
 import type {
   Campaign,
   CampaignReport,
+  CampaignReportBreakdown,
   CampaignStatusType,
-  CampaignAnalyzeResult,
+  CampaignAnalyzeQueued,
   CampaignLiveMetrics,
   CampaignLiveSuggestion,
   CampaignActionLogEntry,
@@ -31,6 +32,18 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     this.useFetchQuery<CampaignReport>(
       `report-${campaignId}-${reportId}`,
       () => this.api.getReport(campaignId, reportId),
+      { enabled: !!campaignId && !!reportId, ...options }
+    )
+
+  /** Per-week and per-blog breakdown of a report's period, for the trend chart and table. */
+  useReportBreakdown = (
+    campaignId: string,
+    reportId: string,
+    options?: AnyUseQueryOptions<CampaignReportBreakdown, Error>
+  ) =>
+    this.useFetchQuery<CampaignReportBreakdown>(
+      `report-breakdown-${campaignId}-${reportId}`,
+      () => this.api.getReportBreakdown(campaignId, reportId),
       { enabled: !!campaignId && !!reportId, ...options }
     )
 
@@ -63,18 +76,36 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
       { enabled: !!campaignId, ...options }
     )
 
-  /** Runs AI analysis for every campaign blog now, instead of waiting for the weekly job. */
+  /** Queues AI analysis for every campaign blog, instead of waiting for the weekly job.
+   * Resolving means only that the job was accepted — nothing has been analyzed yet, so
+   * this deliberately does NOT refresh suggestions (that would just refetch pre-analysis
+   * data). Call `onAnalyzed` when the `campaign:analyzed` socket event lands. */
   useAnalyze = (options?: {
-    onSuccess?: (data: CampaignAnalyzeResult, campaignId: string) => void
+    onSuccess?: (data: CampaignAnalyzeQueued, campaignId: string) => void
     onError?: (err: Error) => void
   }) =>
-    this.useMutate<CampaignAnalyzeResult, string>((campaignId) => this.api.analyze(campaignId), {
-      ...options,
-      onSuccess: (data, campaignId) => {
-        this.invalidate(`suggestions-${campaignId}`)
-        options?.onSuccess?.(data, campaignId)
-      },
-    })
+    this.useMutate<CampaignAnalyzeQueued, string>(
+      (campaignId) => this.api.analyze(campaignId),
+      options
+    )
+
+  /** Pulls in the results of a finished background analysis. Call from the
+   * `campaign:analyzed` socket handler. */
+  onAnalyzed = (campaignId: string) => {
+    this.invalidate(`suggestions-${campaignId}`)
+  }
+
+  /** Patches a status the server changed on its own — the weekly job auto-completes
+   * campaigns past their endDate. Call from the `campaign:statusChanged` socket handler.
+   * Patches rather than invalidates: the event already carries the only changed field. */
+  applyStatusChange = (campaignId: string, status: CampaignStatusType) => {
+    this.queryClient.setQueryData<Campaign[]>([...this.baseKey, "list"], (old = []) =>
+      old.map((c) => (c._id === campaignId ? { ...c, status } : c))
+    )
+    this.queryClient.setQueryData<Campaign>([...this.baseKey, `detail-${campaignId}`], (old) =>
+      old ? { ...old, status } : old
+    )
+  }
 
   /** Builds (and by default emails) a report for an arbitrary period, instead of waiting for the monthly cron. */
   useGenerateReport = (options?: {

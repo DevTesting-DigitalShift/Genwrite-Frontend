@@ -8,6 +8,7 @@ import {
   forgotPasswordAPI,
   resetPasswordAPI,
   loginWithGoogle,
+  refreshSession as refreshSessionAPI,
 } from "@api/authApi"
 import {
   getProfile,
@@ -22,12 +23,8 @@ import { apiErrorMessage, asApiError } from "@/types/api"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
+import { setAccessToken } from "@utils/accessTokenStore"
 
-// Utils — delegate to the multi-account session layer instead of a single
-// localStorage["token"]. loginUser/signupUser/googleLogin call sessionStore.upsertSession
-// directly (they already have the user object), so this generic helper only covers the
-// token-only cases (setToken action, loadAuthenticatedUser's silent refresh).
-const getToken = () => sessionStore.getActiveToken()
 const removeToken = () => {
   const active = sessionStore.getActiveSession()
   if (active) sessionStore.removeSession(active.userId)
@@ -99,6 +96,7 @@ interface AuthState {
   }) => Promise<unknown>
   googleLogin: (args: { access_token: string; referralId?: string }) => Promise<unknown>
   loadAuthenticatedUser: () => Promise<unknown>
+  switchAccount: (userId: string) => Promise<{ user: AuthUser; token: string }>
   logoutUser: () => Promise<unknown>
   logoutAllAccounts: () => Promise<unknown>
   forgotPassword: (email: string) => Promise<unknown>
@@ -109,14 +107,24 @@ interface AuthState {
   updateProfile: (payload: unknown) => Promise<unknown>
   unsubscribeAction: (email: string) => Promise<unknown>
 }
+
+// Several independent components (PrivateRoutesLayout, Dashboard, SideBar_Header,
+// Profile, Transactions, Onboarding, PublicBlogReader) each call
+// loadAuthenticatedUser() from their own mount effect. That was harmless when it was
+// a synchronous local read, but it now performs a single-use refresh-token rotation
+// over the network — concurrent calls race for the same one-time cookie, and the
+// server's reuse-detection revokes the whole session on the losers. Dedup so any
+// number of simultaneous callers share one in-flight refresh.
+let loadAuthPromise: Promise<unknown> | null = null
+
 const useAuthStore = create<AuthState>()(
   devtools(
     (set, get) => ({
       user: null,
-      token: getToken(),
+      token: null,
       loading: false,
       error: null,
-      isAuthenticated: !!getToken(),
+      isAuthenticated: false,
       forgotMessage: null,
       resetMessage: null,
       transactions: [],
@@ -127,12 +135,13 @@ const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
       setToken: (token) => {
-        if (token) sessionStore.updateActiveSessionToken(token)
+        setAccessToken(token)
         set({ token, isAuthenticated: true })
       },
 
       clearAuth: () => {
         removeToken()
+        setAccessToken(null)
         set({
           user: null,
           token: null,
@@ -173,9 +182,9 @@ const useAuthStore = create<AuthState>()(
       loginUser: async ({ email, password, captchaToken }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken: token } = await login({ email, password, captchaToken })
-          if (token && user) {
-            sessionStore.upsertSession({ user, token })
+          const { user, accessToken } = await login({ email, password, captchaToken })
+          if (accessToken && user) {
+            sessionStore.upsertSession({ user })
             pushToDataLayer({
               event: "login_attempt",
               event_status: "success",
@@ -183,8 +192,9 @@ const useAuthStore = create<AuthState>()(
               user_id: user._id,
               user_subscription: user.subscription.plan,
             })
-            set({ user, token, isAuthenticated: true, loading: false })
-            return { user, token }
+            get().setToken(accessToken)
+            set({ user, loading: false })
+            return { user, token: accessToken }
           }
           throw new Error("Invalid login response")
         } catch (err) {
@@ -203,9 +213,9 @@ const useAuthStore = create<AuthState>()(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken: token } = await signup({ email, password, name, captchaToken, referralId })
-          if (token && user) {
-            sessionStore.upsertSession({ user, token })
+          const { user, accessToken } = await signup({ email, password, name, captchaToken, referralId })
+          if (accessToken && user) {
+            sessionStore.upsertSession({ user })
             pushToDataLayer({
               event: "sign_up_attempt",
               event_status: "success",
@@ -213,8 +223,9 @@ const useAuthStore = create<AuthState>()(
               user_id: user._id,
               user_subscription: user.subscription.plan,
             })
-            set({ user, token, isAuthenticated: true, loading: false })
-            return { user, token }
+            get().setToken(accessToken)
+            set({ user, loading: false })
+            return { user, token: accessToken }
           }
           throw new Error("Invalid signup response")
         } catch (err) {
@@ -234,14 +245,11 @@ const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null })
         try {
           const response = await loginWithGoogle({ access_token, referralId })
-          // The backend names this field `accessToken` (auth.controller.js#googleSignIn);
-          // `token` is the client-side name used by sessionStore and this store's state.
-          const token = response.accessToken
-          if (!response.success || !token || !response.user) {
+          if (!response.success || !response.accessToken || !response.user) {
             throw new Error("Invalid Google login response")
           }
 
-          sessionStore.upsertSession({ user: response.user, token })
+          sessionStore.upsertSession({ user: response.user })
           const { user, authStatus } = response
 
           pushToDataLayer({
@@ -254,7 +262,8 @@ const useAuthStore = create<AuthState>()(
             user_subscription: user.subscription.plan,
           })
 
-          set({ user, token, isAuthenticated: true, loading: false })
+          get().setToken(response.accessToken)
+          set({ user, loading: false })
           return response
         } catch (error) {
           pushToDataLayer({
@@ -270,29 +279,59 @@ const useAuthStore = create<AuthState>()(
       },
 
       loadAuthenticatedUser: async () => {
-        const token = getToken()
-        if (!token) {
+        if (loadAuthPromise) return loadAuthPromise
+
+        const active = sessionStore.getActiveSession()
+        if (!active) {
           set({ user: null, token: null, isAuthenticated: false })
           return
         }
 
-        set({ loading: true }) // Don't reset error here potentially to keep previous error visible? Or yes reset.
+        set({ loading: true })
+        loadAuthPromise = (async () => {
+          try {
+            const { accessToken } = await refreshSessionAPI(active.userId)
+            setAccessToken(accessToken)
+            set({ token: accessToken })
+
+            const data = await loadUserAPI()
+            if (data?.success && data?.user) {
+              sessionStore.upsertSession({ user: data.user })
+              set({ user: data.user, token: accessToken, isAuthenticated: true, loading: false })
+              return { user: data.user, token: accessToken }
+            } else {
+              throw new Error("Failed to load user")
+            }
+          } catch (err) {
+            // Token invalid/expired — clear auth silently, no error state needed
+            removeToken()
+            set({ user: null, token: null, isAuthenticated: false, loading: false, error: null })
+            throw err
+          } finally {
+            loadAuthPromise = null
+          }
+        })()
+
+        return loadAuthPromise
+      },
+
+      switchAccount: async (userId) => {
+        set({ loading: true, error: null })
         try {
+          const { accessToken } = await refreshSessionAPI(userId)
+          setAccessToken(accessToken)
+          sessionStore.setActiveUserId(userId)
+          set({ token: accessToken, loading: false })
+
           const data = await loadUserAPI()
           if (data?.success && data?.user) {
-            // Patches the placeholder "pending" session left by the legacy-token
-            // migration, and keeps the session list's name/avatar/email fresh for the
-            // account switcher UI.
-            sessionStore.upsertSession({ user: data.user, token })
-            set({ user: data.user, token, isAuthenticated: true, loading: false })
-            return { user: data.user, token }
-          } else {
-            throw new Error("Failed to load user")
+            sessionStore.upsertSession({ user: data.user })
+            set({ user: data.user, isAuthenticated: true })
+            return { user: data.user, token: accessToken }
           }
+          throw new Error("Failed to load user after switching accounts")
         } catch (err) {
-          // Token invalid/expired — clear auth silently, no error state needed
-          removeToken()
-          set({ user: null, token: null, isAuthenticated: false, loading: false, error: null })
+          set({ loading: false, error: getFriendlyError(err, "general") })
           throw err
         }
       },
@@ -304,6 +343,7 @@ const useAuthStore = create<AuthState>()(
           console.warn("Logout API failed", err)
         }
         const currentUserId = sessionStore.getActiveSession()?.userId
+        setAccessToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
         if (currentUserId) {
           // Removes this session and, if another logged-in account remains in this
@@ -318,7 +358,7 @@ const useAuthStore = create<AuthState>()(
       logoutAllAccounts: async () => {
         for (const session of sessionStore.getSessions()) {
           try {
-            sessionStore.setActiveUserId(session.userId)
+            await get().switchAccount(session.userId)
             await UserLogout()
           } catch (err) {
             console.warn(`Logout API failed for ${session.email}`, err)
@@ -329,6 +369,7 @@ const useAuthStore = create<AuthState>()(
         // do it itself, or the socket stays connected and the query cache survives into
         // whoever logs in next.
         clearAllAccountState()
+        setAccessToken(null)
         set({ user: null, token: null, isAuthenticated: false, error: null })
       },
 

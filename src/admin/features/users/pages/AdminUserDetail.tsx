@@ -87,7 +87,7 @@ export default function AdminUserDetail() {
   const [editMode, setEditMode] = useState<EditMode>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const [editRole, setEditRole] = useState<"user" | "admin">("user")
+  const [editRole, setEditRole] = useState<"user" | "tester" | "admin">("user")
   const [editCreditsAction, setEditCreditsAction] = useState<"add" | "deduct" | "set">("add")
   const [editCreditsAmount, setEditCreditsAmount] = useState("")
   const [editSubPlan, setEditSubPlan] = useState<"free" | "basic" | "pro">("free")
@@ -181,7 +181,7 @@ export default function AdminUserDetail() {
 
   const startEditRole = () => {
     if (!user) return
-    setEditRole(user.role as "user" | "admin")
+    setEditRole(user.role as "user" | "tester" | "admin")
     setEditMode("role")
   }
 
@@ -290,13 +290,14 @@ export default function AdminUserDetail() {
               <div className="flex items-center gap-2 bg-white/40 rounded-lg p-2">
                 <Select
                   value={editRole}
-                  onValueChange={(v: string) => setEditRole(v as "user" | "admin")}
+                  onValueChange={(v: string) => setEditRole(v as "user" | "tester" | "admin")}
                 >
                   <SelectTrigger className="w-32 h-8 bg-white text-slate-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="tester">Tester</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>

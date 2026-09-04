@@ -43,10 +43,16 @@ export interface CampaignAutomation {
   maxAutoActionsPerWeek: number
 }
 
-/** Minimal shape needed to render a blog in a picker/list — not the full Blog record. */
+/** Minimal shape needed to render a blog in a picker/list — not the full Blog record.
+ * `platforms`/`postedOn` come from the blog's postings and are what make a blog
+ * eligible for a campaign at all, so the picker shows them alongside the title. */
 export interface CampaignBlogRef {
   _id: string
   title: string
+  /** Integration types the blog is live on, e.g. ["WORDPRESS"]. */
+  platforms?: string[]
+  /** When it was first published, ISO. */
+  postedOn?: string
 }
 
 export interface Campaign {
@@ -117,7 +123,20 @@ export interface CampaignAnalyzeResultItem {
   error?: string
 }
 
-export interface CampaignAnalyzeResult {
+/** 202 response from POST /campaigns/:id/analyze. The analysis itself runs as the
+ * "analyze-campaign" background job — one AI call per blog would otherwise exceed a
+ * typical HTTP timeout — so this only confirms the job was queued. The results arrive
+ * later over the socket as `campaign:analyzed` (see CampaignAnalyzedEvent). */
+export interface CampaignAnalyzeQueued {
+  status: "queued"
+  campaignId: string
+  blogCount: number
+}
+
+/** Payload of the `campaign:analyzed` socket event, emitted once the background job
+ * has finished every blog in the campaign. */
+export interface CampaignAnalyzedEvent {
+  campaignId: string
   analyzed: number
   total: number
   results: CampaignAnalyzeResultItem[]
@@ -141,6 +160,28 @@ export interface CampaignLiveSuggestion {
   issue: string
   recommendation: string
   priority: SuggestionPriorityType
+}
+
+export interface CampaignWeeklyTrendPoint {
+  weekStart: string
+  clicks: number
+  impressions: number
+  avgPosition: number
+  ctr: number
+}
+
+export interface CampaignBlogBreakdownRow {
+  blogId: string
+  title: string
+  clicks: number
+  impressions: number
+  avgPosition: number
+  ctr: number
+}
+
+export interface CampaignReportBreakdown {
+  weeklyTrend: CampaignWeeklyTrendPoint[]
+  blogBreakdown: CampaignBlogBreakdownRow[]
 }
 
 export interface CampaignReport {

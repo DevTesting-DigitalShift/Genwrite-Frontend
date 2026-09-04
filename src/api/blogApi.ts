@@ -289,6 +289,16 @@ export const getBlogs = async () => {
   }
 }
 
+export const getAllBlogPostings = async (params: Record<string, unknown> = {}) => {
+  try {
+    const response = await axiosInstance.get("/blogs/postings", { params })
+    return response.data.postings || []
+  } catch (rawError) {
+    const error = asApiError(rawError)
+    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+  }
+}
+
 export const getBlogPrompt = async (id: string, prompt: string) => {
   try {
     const response = await axiosInstance.post(`/blogs/${id}/prompt`, { prompt })

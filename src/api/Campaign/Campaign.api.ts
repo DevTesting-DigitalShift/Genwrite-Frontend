@@ -3,8 +3,9 @@ import axiosInstance from "@/api"
 import type {
   Campaign,
   CampaignReport,
+  CampaignReportBreakdown,
   CampaignStatusType,
-  CampaignAnalyzeResult,
+  CampaignAnalyzeQueued,
   CampaignLiveMetrics,
   CampaignLiveSuggestion,
   CampaignActionLogEntry,
@@ -45,7 +46,17 @@ export const CampaignAPI = {
     return res.data
   },
 
-  analyze: async (campaignId: string): Promise<CampaignAnalyzeResult> => {
+  getReportBreakdown: async (
+    campaignId: string,
+    reportId: string
+  ): Promise<CampaignReportBreakdown> => {
+    const res = await axiosInstance.get(`/campaigns/${campaignId}/reports/${reportId}/breakdown`)
+    return res.data
+  },
+
+  /** Queues analysis (202) — it does not wait for it. Listen for the `campaign:analyzed`
+   * socket event for the actual results. */
+  analyze: async (campaignId: string): Promise<CampaignAnalyzeQueued> => {
     const res = await axiosInstance.post(`/campaigns/${campaignId}/analyze`)
     return res.data
   },

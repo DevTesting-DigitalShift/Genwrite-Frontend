@@ -2,23 +2,26 @@ import axios from "axios"
 import { toast } from "sonner"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import {
-  getActiveToken,
   getActiveSession,
   removeSession,
   hasAnySession,
   SESSION_EXPIRED_EVENT,
 } from "@utils/sessionStore"
+import { getAccessToken, setAccessToken } from "@utils/accessTokenStore"
 
 // Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`, // Replace with your API base URL
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 })
 
-// Endpoints that establish a *new* identity. While adding a second account the previous
-// account is still the active session, so attaching its Bearer token (or its shared
-// workspace scope) to these calls would authenticate the request as the wrong user.
-const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin"]
+// Endpoints that establish a *new* identity (or re-authenticate via the refresh cookie).
+// While adding a second account the previous account is still the active session, so
+// attaching its Bearer token (or its shared workspace scope) to these calls would
+// authenticate the request as the wrong user. /auth/refresh is cookie-authenticated, not
+// Bearer-authenticated, and must never re-enter the 401 handler on its own failure.
+const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin", "/auth/refresh"]
 
 const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => url.includes(r))
 
@@ -32,7 +35,7 @@ axiosInstance.interceptors.request.use(
       return config
     }
     // Add JWT token if available
-    const token = getActiveToken()
+    const token = getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -50,6 +53,25 @@ axiosInstance.interceptors.request.use(
 
 // Local state for toast throttling
 let last429Toast = 0
+
+let refreshPromise: Promise<{ accessToken: string }> | null = null
+
+async function refreshActiveSession(): Promise<{ accessToken: string }> {
+  const active = getActiveSession()
+  if (!active) throw new Error("No active session to refresh")
+  if (!refreshPromise) {
+    // Inline axios call (not authApi.ts's refreshSession) — importing authApi.ts here
+    // would reintroduce the index.ts -> authApi.ts -> index.ts cycle that
+    // accessTokenStore.ts was built to avoid.
+    refreshPromise = axiosInstance
+      .post("/auth/refresh", { userId: active.userId })
+      .then((res) => res.data)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
 
 // Add response interceptor
 axiosInstance.interceptors.response.use(
@@ -98,7 +120,23 @@ axiosInstance.interceptors.response.use(
       toast.error(error.response.data.message)
     }
 
-    // 4. Only delete token for 401 Unauthorized
+    // 4. On 401, try one silent refresh for the active account before giving up.
+    if (status === 401 && !error.config?._refreshRetried && !isUnauthenticatedRoute(error.config?.url)) {
+      const expiredSession = getActiveSession()
+      if (expiredSession) {
+        try {
+          const { accessToken } = await refreshActiveSession()
+          setAccessToken(accessToken)
+          const retryConfig = { ...error.config, _refreshRetried: true }
+          retryConfig.headers = { ...retryConfig.headers, Authorization: `Bearer ${accessToken}` }
+          return axiosInstance(retryConfig)
+        } catch (_refreshErr) {
+          // fall through to the existing expiry handling below
+        }
+      }
+    }
+
+    // 5. Only delete token for 401 Unauthorized (refresh above already failed or wasn't possible)
     if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       const expiredSession = getActiveSession()

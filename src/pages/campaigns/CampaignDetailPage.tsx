@@ -1,10 +1,9 @@
 import type { ReactNode } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Helmet } from "react-helmet"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
-  ArrowLeft,
   Calendar,
   ChevronRight,
   FileStack,
@@ -29,7 +28,8 @@ import { CampaignActivityLog } from "@/features/campaigns/CampaignActivityLog"
 import { PanelEmpty, PanelError, PanelLoading } from "@/features/campaigns/CampaignStates"
 import { useCreditConfirm } from "@/features/campaigns/useCreditConfirm"
 import { getFriendlyError } from "@utils/friendlyError"
-import type { CampaignStatusType } from "@/types/campaign"
+import { getSocket } from "@utils/socket"
+import type { CampaignAnalyzedEvent, CampaignStatusType } from "@/types/campaign"
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
@@ -145,13 +145,69 @@ export default function CampaignDetailPage() {
     [allBlogs]
   )
 
+  // POST /analyze only queues the "analyze-campaign" background job, so the mutation
+  // resolves long before any blog has actually been analyzed. Track the in-flight run
+  // here and close it out on the `campaign:analyzed` socket event below.
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
   const analyzeMutation = campaignsQuery.useAnalyze({
-    onSuccess: (result) => {
-      toast.success(`Analyzed ${result.analyzed} of ${result.total} blogs`)
+    onSuccess: (queued) => {
+      const plural = queued.blogCount === 1 ? "" : "s"
+      // Only enter the pending state when a socket can actually deliver the completion
+      // event — otherwise the spinner would never clear and the button stay disabled.
+      if (getSocket()) {
+        setIsAnalyzing(true)
+        toast.success(
+          `Analyzing ${queued.blogCount} blog${plural} — this page updates when it's done.`
+        )
+      } else {
+        toast.success(`Analyzing ${queued.blogCount} blog${plural} — refresh shortly to see results.`)
+      }
       setTab("suggestions")
     },
-    onError: (err) => toast.error(getFriendlyError(err, "campaign")),
+    onError: (err) => {
+      setIsAnalyzing(false)
+      toast.error(getFriendlyError(err, "campaign"))
+    },
   })
+
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !id) return
+
+    const handleAnalyzed = (payload: CampaignAnalyzedEvent) => {
+      // The event is emitted to the user's room, so it covers every campaign they own.
+      if (payload?.campaignId !== id) return
+
+      setIsAnalyzing(false)
+      campaignsQuery.onAnalyzed(id)
+
+      const failed = payload.total - payload.analyzed
+      if (failed > 0) {
+        toast.warning(`Analyzed ${payload.analyzed} of ${payload.total} blogs — ${failed} failed.`)
+      } else {
+        toast.success(`Analyzed ${payload.analyzed} of ${payload.total} blogs`)
+      }
+    }
+
+    const handleStatusChanged = ({
+      campaignId,
+      status,
+    }: {
+      campaignId: string
+      status: CampaignStatusType
+    }) => {
+      if (!campaignId) return
+      campaignsQuery.applyStatusChange(campaignId, status)
+    }
+
+    socket.on("campaign:analyzed", handleAnalyzed)
+    socket.on("campaign:statusChanged", handleStatusChanged)
+    return () => {
+      socket.off("campaign:analyzed", handleAnalyzed)
+      socket.off("campaign:statusChanged", handleStatusChanged)
+    }
+  }, [id])
 
   const reportMutation = campaignsQuery.useGenerateReport({
     onSuccess: () => toast.success("Report generated"),
@@ -264,9 +320,9 @@ export default function CampaignDetailPage() {
             <Button
               className="flex-1 sm:flex-none"
               onClick={handleAnalyze}
-              disabled={analyzeMutation.isPending}
+              disabled={isAnalyzing || analyzeMutation.isPending}
             >
-              {analyzeMutation.isPending ? (
+              {isAnalyzing || analyzeMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <Sparkles className="size-4" />
@@ -454,7 +510,7 @@ export default function CampaignDetailPage() {
               campaignId={campaign._id}
               blogTitles={blogTitles}
               onAnalyze={handleAnalyze}
-              isAnalyzing={analyzeMutation.isPending}
+              isAnalyzing={isAnalyzing || analyzeMutation.isPending}
             />
           </Section>
         </TabsContent>

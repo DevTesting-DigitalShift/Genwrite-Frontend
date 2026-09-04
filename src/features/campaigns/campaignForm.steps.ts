@@ -21,9 +21,11 @@ export const CAMPAIGN_STEPS: CampaignStep[] = [
     fields: ["name", "description", "startDate", "endDate"],
   },
   {
+    // The whole subtree, not the four leaves: the "set at least one target" rule
+    // fails at `targets` itself, and a leaf-by-leaf list would step straight past it.
     id: "targets",
     label: "Targets",
-    fields: ["targets.clicks", "targets.impressions", "targets.avgPosition", "targets.keywords"],
+    fields: ["targets"],
   },
   {
     id: "blogs",
@@ -31,14 +33,11 @@ export const CAMPAIGN_STEPS: CampaignStep[] = [
     fields: ["blogIds"],
   },
   {
+    // Likewise `automation` rather than its switches — the auto-apply/auto-repost
+    // dependency rules report against the group.
     id: "automation",
     label: "Automation",
-    fields: [
-      "automation.autoSuggest",
-      "automation.autoApply",
-      "automation.autoRepost",
-      "automation.maxAutoActionsPerWeek",
-    ],
+    fields: ["automation"],
   },
 ]
 

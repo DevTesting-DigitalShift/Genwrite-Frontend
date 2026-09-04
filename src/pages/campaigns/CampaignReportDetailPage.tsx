@@ -6,8 +6,28 @@ import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError } from "@/features/campaigns/CampaignStates"
+import { CampaignTrendChart } from "@/features/campaigns/CampaignTrendChart"
+import { CampaignBlogBreakdownTable } from "@/features/campaigns/CampaignBlogBreakdownTable"
 import { getFriendlyError } from "@utils/friendlyError"
-import type { ProgressStatusType, SuggestionPriorityType } from "@/types/campaign"
+import type {
+  ProgressStatusType,
+  SuggestionPriorityType,
+  CampaignWeeklyTrendPoint,
+} from "@/types/campaign"
+
+type TrendDataKey = "clicks" | "impressions" | "avgPosition" | "ctr"
+
+const TREND_CHART_DEFS: Array<{ dataKey: TrendDataKey; label: string; color?: string }> = [
+  { dataKey: "clicks", label: "Clicks" },
+  { dataKey: "impressions", label: "Impressions", color: "#0EA5E9" },
+  { dataKey: "avgPosition", label: "Avg. position", color: "#F59E0B" },
+  { dataKey: "ctr", label: "CTR", color: "#A855F7" },
+]
+
+// Skip a metric's chart entirely when it's flat zero across every week — a graph with
+// nothing but a line along the x-axis isn't information, it's noise.
+const hasSignal = (data: CampaignWeeklyTrendPoint[], key: TrendDataKey) =>
+  data.some((point) => point[key] > 0)
 
 const PROGRESS_LABEL: Record<ProgressStatusType, string> = {
   on_track: "On track",
@@ -124,6 +144,9 @@ export default function CampaignReportDetailPage() {
   const navigate = useNavigate()
   const { data: campaign } = campaignsQuery.useDetail(id)
   const { data: report, isLoading, isError, error, refetch } = campaignsQuery.useReport(id, reportId)
+  const { data: breakdown } = campaignsQuery.useReportBreakdown(id, reportId)
+  const weeklyTrend = breakdown?.weeklyTrend ?? []
+  const visibleTrendCharts = TREND_CHART_DEFS.filter((chart) => hasSignal(weeklyTrend, chart.dataKey))
 
   if (isLoading) {
     return (
@@ -207,6 +230,31 @@ export default function CampaignReportDetailPage() {
           />
         </div>
       </Section>
+
+      {visibleTrendCharts.length > 0 && (
+        <Section title="Trend" description="Weekly totals across every blog in this campaign.">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {visibleTrendCharts.map((chart) => (
+              <CampaignTrendChart
+                key={chart.dataKey}
+                data={weeklyTrend}
+                dataKey={chart.dataKey}
+                label={chart.label}
+                color={chart.color}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {breakdown && breakdown.blogBreakdown.length > 0 && (
+        <Section
+          title="Per-blog performance"
+          description="How each blog in this campaign performed this period."
+        >
+          <CampaignBlogBreakdownTable rows={breakdown.blogBreakdown} />
+        </Section>
+      )}
 
       <Section
         title="Top suggestions"

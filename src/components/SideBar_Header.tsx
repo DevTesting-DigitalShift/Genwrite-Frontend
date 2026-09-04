@@ -2,6 +2,7 @@ import { asApiError } from "@/types/api"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import useAuthStore from "../store/useAuthStore"
+import useWorkspaceStore from "../store/useWorkspaceStore"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
 import {
@@ -199,7 +200,7 @@ const SideBar_Header = () => {
     { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
     { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
-    { title: "Campaigns", icon: Target, path: "/campaigns" },
+    { title: "Campaigns", icon: Target, path: "/campaigns", testerOnly: true },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
@@ -208,6 +209,10 @@ const SideBar_Header = () => {
   ]
 
   const path = location.pathname
+  const { activeWorkspace } = useWorkspaceStore()
+  const canAccessTesterFeatures =
+    !!activeWorkspace || user?.role === "tester" || user?.role === "admin"
+  const visibleMenus = Menus.filter((menu) => !menu.testerOnly || canAccessTesterFeatures)
 
   const handleSignOutCurrent = async () => {
     try {
@@ -294,7 +299,7 @@ const SideBar_Header = () => {
         {/* Navigation Menu */}
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
           <ul className="space-y-1">
-            {Menus.map((Menu) => {
+            {visibleMenus.map((Menu) => {
               // Special case: highlight /blogs when on /blog/:id (blog editor)
               const isActive =
                 location.pathname.startsWith(Menu.path) ||

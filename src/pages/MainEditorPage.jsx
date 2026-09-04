@@ -281,6 +281,23 @@ const MainEditorPage = () => {
 
     setIsSaving(true)
     try {
+      // No blog yet (fresh manual blog opened via /blog-editor with no :id) —
+      // create it first instead of PUTing to /blogs/update/undefined.
+      if (!blog?._id) {
+        const created = await createSimpleBlog({
+          title: editorTitle,
+          content: editorContent,
+          keywords,
+          template: "Classic",
+        })
+        setSelectedBlog(created)
+        setUnsavedChanges(false)
+        toast.success("Blog created successfully")
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        navigate(`/blog-editor/${created._id}`, { replace: true })
+        return created
+      }
+
       const payload = {
         title: editorTitle,
         content: editorContent,
@@ -299,8 +316,12 @@ const MainEditorPage = () => {
       toast.success("Blog updated successfully")
       setUnsavedChanges(false) // Reset unsavedChanges after save
 
-      // Refresh query data
-      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+      // Keep the Zustand store and the react-query cache in sync with the
+      // saved content — without this, reopening the same blog after
+      // navigating away reused the pre-save cached/store object (since both
+      // short-circuit the query's `enabled` check) and showed stale content.
+      setSelectedBlog(response)
+      queryClient.setQueryData(["blog", id], response)
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
 
       return response
@@ -329,7 +350,9 @@ const MainEditorPage = () => {
           ? { title: metadata.title, description: metadata.description }
           : blog?.seoMetadata || { title: "", description: "" },
       }
-      await updateBlog(blog._id, payload)
+      const updated = await updateBlog(blog._id, payload)
+      setSelectedBlog(updated)
+      queryClient.setQueryData(["blog", id], updated)
       const res = await sendRetryLines(blog._id)
       if (res.data) {
         setSaveContent(res.data)
@@ -339,7 +362,7 @@ const MainEditorPage = () => {
         toast.error("No content received from retry.")
       }
       setUnsavedChanges(false) // Reset unsavedChanges after save
-      queryClient.invalidateQueries({ queryKey: ["blog", id] })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
     } catch (error) {
       console.error("Error updating the blog:", error)
       toast.error("Failed to save blog.")
