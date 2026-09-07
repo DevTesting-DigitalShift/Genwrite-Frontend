@@ -313,7 +313,7 @@ const Jobs = () => {
   const _totalBlogsGenerated = useMemo(() => {
     return queryJobs
       .filter((j) => !j.isArchived)
-      .reduce((acc, job) => acc + (job.createdBlogs?.length || 0), 0)
+      .reduce((acc, job) => acc + (job.blogStats?.totalCreated ?? 0), 0)
   }, [queryJobs])
 
   const usage = user?.usage?.createdJobs || 0

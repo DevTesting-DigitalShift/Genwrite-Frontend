@@ -242,7 +242,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }: JobCardPro
             </span>
           </div>
           <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
-            {job?.createdBlogs?.length || 0} GENERATED
+            {job?.blogStats?.totalCreated ?? 0} GENERATED
           </div>
         </div>
 
