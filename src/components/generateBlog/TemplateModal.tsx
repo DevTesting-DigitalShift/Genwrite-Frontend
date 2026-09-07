@@ -216,10 +216,8 @@ const TemplateModal = ({
                 userSubscriptionPlan={user?.subscription?.plan || "free"}
                 preSelectedIds={selectedTemplate?.map((t) => t?.id || "")}
                 onClick={handlePackageSelect}
+                error={errors.template ? "Please select a template." : ""}
               />
-              {errors.template && (
-                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-              )}
             </div>
           )}
 

@@ -28,7 +28,6 @@ import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { getGeneratedTitles } from "@api/blogApi"
-import clsx from "clsx"
 import { Switch } from "@components/ui/switch"
 import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
@@ -412,22 +411,13 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
               )}
             </div>
 
-            {/* Template grid with error highlight */}
-            <div
-              className={clsx(
-                "rounded-xl transition-all duration-200",
-                errors.template?.message ? "border-2 border-red-500 p-1" : "p-1"
-              )}
-            >
-              <TemplateSelection
-                userSubscriptionPlan={user?.subscription?.plan || "free"}
-                preSelectedIds={formData.templateIds}
-                onClick={handleTemplateSelection}
-                error={errors.template?.message}
-              />
-            </div>
-
-            {/* Inline error message handled by TemplateSelection internally */}
+            {/* TemplateSelection owns the inline error banner in its sticky header. */}
+            <TemplateSelection
+              userSubscriptionPlan={user?.subscription?.plan || "free"}
+              preSelectedIds={formData.templateIds}
+              onClick={handleTemplateSelection}
+              error={errors.template?.message}
+            />
           </div>
         )
       case 1:
@@ -1183,7 +1173,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                       ))}
                     </select>
                     {errors.postingType?.message && (
-                      <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                      <p className="text-red-500 text-xs mt-1">
                         {errors.postingType?.message}
                       </p>
                     )}

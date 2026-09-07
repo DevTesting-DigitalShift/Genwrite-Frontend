@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { fetchIntegrations } from "@api/otherApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import clsx from "clsx"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { toast } from "sonner"
@@ -317,20 +316,18 @@ const StepContent = ({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className={`space-y-4 sm:space-y-6 ${clsx(
-            errors.blogs?.templates?.message && "border-2 border-red-500 rounded-lg"
-          )}`}
+          className="space-y-4 sm:space-y-6"
         >
-          <p className={`text-sm ${errors.templates ? "text-red-500" : "text-gray-600"} mb-4`}>
-            {errors.templates
-              ? errors.blogs?.templates?.message
-              : `Select up to 7 templates for the types of blogs you want to generate. (${newJob.blogs.templates.length}/7 selected)`}
+          <p className="text-sm text-gray-600">
+            Select up to 7 templates for the types of blogs you want to generate. (
+            {newJob.blogs.templates.length}/7 selected)
           </p>
           <TemplateSelection
             numberOfSelection={7}
             userSubscriptionPlan={userPlan ?? "free"}
             preSelectedIds={newJob?.blogs?.templates ?? []}
             onClick={handleTemplateSelection}
+            error={errors.blogs?.templates?.message}
           />
         </motion.div>
       )

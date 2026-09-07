@@ -421,18 +421,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </div>
         <div className="p-4 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
-            <div
-              className={`rounded-xl transition-all duration-200 ${
-                errors.template?.message ? "border-2 border-red-500 p-1 pb-0" : "border-0"
-              }`}
-            >
-              <TemplateSelection
-                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                onClick={handlePackageSelect}
-                preSelectedIds={formData.templateIds}
-                error={errors.template?.message}
-              />
-            </div>
+            <TemplateSelection
+              userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+              onClick={handlePackageSelect}
+              preSelectedIds={formData.templateIds}
+              error={errors.template?.message}
+            />
           )}
           {currentStep === 1 && (
             <div className="space-y-5 p-3 pt-4">

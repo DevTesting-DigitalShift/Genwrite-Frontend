@@ -711,19 +711,13 @@ const BulkBlogModal = ({ closeFnc }) => {
         </div>
         <div className="p-6 pt-2 max-h-[70vh] overflow-y-auto custom-scroll space-y-4">
           {currentStep === 0 && (
-            <div
-              className={`transition-all duration-200 ${
-                errors.templates?.message ? "border-2 border-red-500 rounded-xl p-1 pb-0" : ""
-              }`}
-            >
-              <TemplateSelection
-                numberOfSelection={3}
-                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
-                preSelectedIds={formData.templateIds}
-                onClick={handlePackageSelect}
-                error={errors.templates?.message}
-              />
-            </div>
+            <TemplateSelection
+              numberOfSelection={3}
+              userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+              preSelectedIds={formData.templateIds}
+              onClick={handlePackageSelect}
+              error={errors.templates?.message}
+            />
           )}
           {currentStep === 1 && (
             <div className="space-y-6 pt-2">
@@ -751,7 +745,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   placeholder="e.g., 5"
                 />
                 {errors.numberOfBlogs?.message && (
-                  <p className="text-red-500 text-xs mt-1 font-bold italic">
+                  <p className="text-red-500 text-xs mt-1">
                     {errors.numberOfBlogs?.message}
                   </p>
                 )}
@@ -1058,7 +1052,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         }
                       />
                       {errors.numberOfImages?.message && (
-                        <p className="text-red-500 text-xs mt-1 font-bold italic">
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.numberOfImages?.message}
                         </p>
                       )}
