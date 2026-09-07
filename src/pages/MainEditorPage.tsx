@@ -54,16 +54,16 @@ const MainEditorPage = () => {
   const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
   const [activeTab, _setActiveTab] = useState("Normal")
   // isLoading is now derived from isBlogFetching
-  const [keywords, setKeywords] = useState([])
+  const [keywords, setKeywords] = useState<any[]>([])
   const [editorContent, setEditorContent] = useState("")
   const resetAiReview = useAiReviewStore((s) => s.reset)
   const aiReview = useAiReviewStore((s) => s.review)
   const [editorTitle, setEditorTitle] = useState("")
-  const [proofreadingResults, setProofreadingResults] = useState([])
+  const [proofreadingResults, setProofreadingResults] = useState<any[]>([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
-  const [saveContent, setSaveContent] = useState(null)
+  const [saveContent, setSaveContent] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [isPosted, setIsPosted] = useState(null)
+  const [isPosted, setIsPosted] = useState<any>(null)
   const [isPosting, setIsPosting] = useState(false)
   const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
   const [showTemplateModal, setShowTemplateModal] = useState(!id)
@@ -99,7 +99,7 @@ const MainEditorPage = () => {
   })
 
   useEffect(() => {
-    const handleBeforeUnload = (event) => {
+    const handleBeforeUnload = (event: any) => {
       if (unsavedChanges) {
         event.preventDefault()
         event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
@@ -178,12 +178,12 @@ const MainEditorPage = () => {
   const hasMatchingBlog = !id || blog?._id === id
 
   // Store the section-aware replace function from TextEditor
-  const sectionReplaceRef = useRef(null)
-  const handleReplaceReady = useCallback((replaceFn) => {
+  const sectionReplaceRef = useRef<any>(null)
+  const handleReplaceReady = useCallback((replaceFn: any) => {
     sectionReplaceRef.current = replaceFn
   }, [])
 
-  const handleReplace = useCallback((original, change) => {
+  const handleReplace = useCallback((original: any, change: any) => {
     if (typeof original !== "string" || typeof change !== "string") {
       toast.error("Invalid suggestion format.")
       return
@@ -202,7 +202,7 @@ const MainEditorPage = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }, [])
 
-  const handlePostToWordPress = async (postData) => {
+  const handlePostToWordPress = async (postData: any) => {
     setIsPosting(true)
 
     if (!editorTitle) {
@@ -243,7 +243,7 @@ const MainEditorPage = () => {
         : await axiosInstance.post("/integrations/post", requestData)
 
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
-      setIsPosted((prev) => ({ ...(prev || {}), [postData.type.platform]: postedData }))
+      setIsPosted((prev: any) => ({ ...(prev || {}), [postData.type.platform]: postedData }))
       toast.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )
@@ -256,7 +256,7 @@ const MainEditorPage = () => {
     }
   }
 
-  const getWordCount = (text) => {
+  const getWordCount = (text: any) => {
     if (!text) return 0
     // Strip HTML tags first
     const strippedText = text.replace(/<[^>]*>/g, " ")
@@ -264,7 +264,7 @@ const MainEditorPage = () => {
     return strippedText
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0).length
+      .filter((word: any) => word.length > 0).length
   }
 
   const handleSave = async (updateData = {}) => {
@@ -445,7 +445,7 @@ const MainEditorPage = () => {
     }
   }
 
-  const handleTitleChange = (e) => {
+  const handleTitleChange = (e: any) => {
     if (isReadOnlyWorkspace) return
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")

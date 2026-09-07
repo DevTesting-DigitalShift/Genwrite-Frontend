@@ -20,10 +20,16 @@ import { switchToAccount } from "@utils/accountSwitch"
 const SessionExpiredModal = () => {
   const navigate = useNavigate()
   const [expiredEmail, setExpiredEmail] = useState<string | null>(null)
+  // What /auth/refresh reported, when it is what failed. Null when the session simply
+  // lapsed with nothing more specific to say.
+  const [reason, setReason] = useState<string | null>(null)
 
   useEffect(() => {
-    const handler = (event: Event) =>
-      setExpiredEmail((event as CustomEvent<{ email?: string }>).detail?.email || "your account")
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ email?: string; reason?: string | null }>).detail
+      setExpiredEmail(detail?.email || "your account")
+      setReason(detail?.reason || null)
+    }
     window.addEventListener(sessionStore.SESSION_EXPIRED_EVENT, handler)
     return () => window.removeEventListener(sessionStore.SESSION_EXPIRED_EVENT, handler)
   }, [])
@@ -54,6 +60,11 @@ const SessionExpiredModal = () => {
             Your session for <span className="font-semibold">{expiredEmail}</span> has expired. Sign
             back in, or switch to another account you're already logged into.
           </DialogDescription>
+          {reason && (
+            <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              {reason}
+            </p>
+          )}
         </DialogHeader>
 
         <div className="flex flex-col gap-2 mt-2">

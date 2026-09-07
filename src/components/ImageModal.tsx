@@ -6,6 +6,7 @@ import { generateImage, generateAltText, enhanceImage, uploadImage } from "@api/
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { COSTS, VALID_IMAGE_CONFIG } from "@/data/blogData"
+import { apiErrorMessage } from "@/types/api"
 
 // View Constants
 const VIEWS = {
@@ -19,21 +20,41 @@ const VIEWS = {
   ENHANCING: "enhancing",
 }
 
+/** An AI-generated image held for preview before the user accepts it. */
+interface GeneratedImage {
+  url: string
+  prompt?: string
+  [key: string]: unknown
+}
+
+interface ImageModalProps {
+  open: boolean
+  onCancel: () => void
+  onSave: (url: string, alt: string) => void
+  initialUrl?: string
+  initialAlt?: string
+  title?: string
+  /** Lets a caller hide the enhance flow where it doesn't apply. */
+  allowEnhance?: boolean
+  /** Context only: 'url' | 'data'. */
+  imageSourceType?: string
+}
+
 const ImageModal = ({
   open,
   onCancel,
-  onSave, // (url, alt) => void
+  onSave,
   initialUrl = "",
   initialAlt = "",
   title = "Add Image",
-  allowEnhance = true, // To optionally disable enhance feature if not desired
-  imageSourceType = "url", // 'url' | 'data' - context if needed
-}) => {
+  allowEnhance = true,
+  imageSourceType = "url",
+}: ImageModalProps) => {
   // Internal State
   const [view, setView] = useState(VIEWS.MAIN)
   const [url, setUrl] = useState("")
   const [alt, setAlt] = useState("")
-  const [generatedImageTemp, setGeneratedImageTemp] = useState(null)
+  const [generatedImageTemp, setGeneratedImageTemp] = useState<GeneratedImage | null>(null)
 
   // Forms
   const [genForm, setGenForm] = useState({
@@ -67,7 +88,7 @@ const ImageModal = ({
   }, [open, initialUrl, initialAlt])
 
   // Helper: Check Credits
-  const checkCredits = (cost) => {
+  const checkCredits = (cost: number) => {
     const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
     // Also check limits if applicable
     if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
@@ -84,7 +105,7 @@ const ImageModal = ({
   // Handlers
   const handleAutoAlt = async () => {
     if (!url) return
-    if (!checkCredits(COSTS.ALT_TEXT)) return
+    if (!checkCredits(COSTS.IMAGE.ALT_TEXT)) return
 
     try {
       // Manual loading handling since message.loading isn't in toast utils usually
@@ -109,7 +130,7 @@ const ImageModal = ({
       toast.error("Please enter a prompt")
       return
     }
-    if (!checkCredits(COSTS.GENERATE)) return
+    if (!checkCredits(COSTS.IMAGE.GENERATE)) return
 
     setView(VIEWS.GENERATING)
     try {
@@ -134,7 +155,7 @@ const ImageModal = ({
       toast.error("Please enter instructions")
       return
     }
-    if (!checkCredits(COSTS.ENHANCE)) return
+    if (!checkCredits(COSTS.IMAGE.ENHANCE)) return
 
     setView(VIEWS.ENHANCING)
     try {
@@ -213,7 +234,7 @@ const ImageModal = ({
                     <button
                       type="button"
                       className="btn btn-outline h-auto py-2 flex flex-col items-center justify-center gap-1 border-emerald-300 text-emerald-600 bg-emerald-50"
-                      onClick={() => document.getElementById("local-image-upload").click()}
+                      onClick={() => document.getElementById("local-image-upload")?.click()}
                     >
                       <ImageIcon className="w-4 h-4" />
                       <span className="text-xs font-normal">Upload</span>
@@ -228,7 +249,7 @@ const ImageModal = ({
 
                           // Validation
                           const { types: validTypes, max_size: maxSize } = VALID_IMAGE_CONFIG
-                          if (!validTypes.includes(file.mimetype || file.type)) {
+                          if (!validTypes.includes(file.type)) {
                             toast.error(
                               "Invalid file type. Only JPG, JPEG, WEBP, and PNG are allowed."
                             )
@@ -268,7 +289,7 @@ const ImageModal = ({
                             }
                           } catch (err) {
                             console.error("Upload error:", err)
-                            toast.error(err.response?.data?.message || "Failed to upload image", {
+                            toast.error(apiErrorMessage(err, "Failed to upload image"), {
                               id: toastId,
                             })
                           } finally {
@@ -591,7 +612,7 @@ const ImageModal = ({
                   onClick={handleGenerate}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate ({COSTS.GENERATE}c)
+                  Generate ({COSTS.IMAGE.GENERATE}c)
                 </button>
               </>
             )}
@@ -607,7 +628,7 @@ const ImageModal = ({
                   onClick={handleEnhance}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Enhance ({COSTS.ENHANCE}c)
+                  Enhance ({COSTS.IMAGE.ENHANCE}c)
                 </button>
               </>
             )}
@@ -625,8 +646,8 @@ const ImageModal = ({
                   type="button"
                   className="btn btn-primary"
                   onClick={() => {
-                    setUrl(generatedImageTemp.url)
-                    setAlt(generatedImageTemp.prompt)
+                    setUrl(generatedImageTemp?.url ?? "")
+                    setAlt(generatedImageTemp?.prompt ?? "")
                     setGeneratedImageTemp(null)
                     setView(VIEWS.MAIN)
                   }}

@@ -57,7 +57,7 @@ const BrandVoice = () => {
    * them — they never pop up while the form is still being filled in.
    */
   const setField = useCallback(
-    (name, value) =>
+    (name: any, value: any) =>
       setValue(name, value, {
         shouldValidate: !!getFieldState(name).error,
         shouldDirty: true,
@@ -67,7 +67,7 @@ const BrandVoice = () => {
 
   /** Sets or clears one message — an empty string means "this is fine now". */
   const setFieldError = useCallback(
-    (name, message) => (message ? setError(name, { message }) : clearErrors(name)),
+    (name: any, message: any) => (message ? setError(name, { message }) : clearErrors(name)),
     [setError, clearErrors]
   )
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
@@ -127,7 +127,7 @@ const BrandVoice = () => {
   }, [siteInfo, isFormReset, getValues, setField, clearErrors])
 
   const handleInputChange = useCallback(
-    (e) => {
+    (e: any) => {
       const { name, value } = e.target
       setField(name, value)
       clearErrors(name)
@@ -140,7 +140,7 @@ const BrandVoice = () => {
   )
 
   const handleKeyDown = useCallback(
-    (event) => {
+    (event: any) => {
       if (event.key === "Enter" && inputValue.trim()) {
         event.preventDefault()
         const existing = formData.keywords.map((k) => k.toLowerCase())
@@ -165,7 +165,7 @@ const BrandVoice = () => {
   )
 
   const handlePasteKeywords = useCallback(
-    (event) => {
+    (event: any) => {
       extractKeywordsFromClipboard(event, {
         type: "keywords",
         cb: (items) => {
@@ -193,7 +193,7 @@ const BrandVoice = () => {
   )
 
   const removeKeyword = useCallback(
-    (keyword) => {
+    (keyword: any) => {
       setField(
         "keywords",
         getValues("keywords").filter((k) => k !== keyword)
@@ -203,7 +203,7 @@ const BrandVoice = () => {
     [setField, getValues]
   )
 
-  const handleFileChange = useCallback((event) => {
+  const handleFileChange = useCallback((event: any) => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -227,8 +227,8 @@ const BrandVoice = () => {
       const text = e.target.result
       const keywords = text
         .split(/,|\n|;/)
-        .map((kw) => kw.trim())
-        .filter((kw) => kw.length > 0)
+        .map((kw: any) => kw.trim())
+        .filter((kw: any) => kw.length > 0)
       setField("keywords", [...new Set([...getValues("keywords"), ...keywords])])
       clearErrors("keywords")
       setIsFormReset(false)
@@ -238,7 +238,7 @@ const BrandVoice = () => {
     event.target.value = null
   }, [setField, clearErrors, getValues])
 
-  const handleLogoUpload = useCallback(async (event) => {
+  const handleLogoUpload = useCallback(async (event: any) => {
     const file = event.target.files[0]
     if (!file) return
 
@@ -324,7 +324,7 @@ const BrandVoice = () => {
   })
 
   const handleEdit = useCallback(
-    (brand) => {
+    (brand: any) => {
       reset({
         nameOfVoice: brand.nameOfVoice || "",
         postLink: brand.postLink || "",
@@ -344,7 +344,7 @@ const BrandVoice = () => {
   )
 
   const handleDelete = useCallback(
-    (brand) => {
+    (brand: any) => {
       handlePopup({
         title: "Delete Brand Voice?",
         description: (
@@ -374,7 +374,7 @@ const BrandVoice = () => {
   )
 
   const handleSelect = useCallback(
-    (voice) => {
+    (voice: any) => {
       setField("selectedVoice", voice)
       setIsFormReset(false)
     },
@@ -848,11 +848,11 @@ const BrandVoice = () => {
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
                 readOnly={isReadOnlyWorkspace}
-                onEdit={(e) => {
+                onEdit={(e: any) => {
                   e.stopPropagation()
                   handleEdit(item)
                 }}
-                onDelete={(e) => {
+                onDelete={(e: any) => {
                   e.stopPropagation()
                   handleDelete(item)
                 }}

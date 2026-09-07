@@ -54,8 +54,8 @@ const CompetitiveAnalysis = () => {
     selectedProject: null,
     generatedMetadata: null,
   })
-  const [analysisResults, setAnalysisResults] = useState(null)
-  const [id, setId] = useState(null)
+  const [analysisResults, setAnalysisResults] = useState<any>(null)
+  const [id, setId] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("results")
 
@@ -76,7 +76,7 @@ const CompetitiveAnalysis = () => {
   const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
 
   // --- 1. Utilities ---
-  const cleanMarkdown = (text) => {
+  const cleanMarkdown = (text: any) => {
     if (!text) return ""
     return text
       .replace(/#{1,3}\s/g, "")
@@ -85,12 +85,12 @@ const CompetitiveAnalysis = () => {
       .trim()
   }
 
-  const parseSummary = (text) => {
+  const parseSummary = (text: any) => {
     if (!text) return []
     return cleanMarkdown(text)
       .split("\n")
-      .filter((line) => line.trim() !== "")
-      .map((line) => (
+      .filter((line: any) => line.trim() !== "")
+      .map((line: any) => (
         <p key={line} className="mb-2 text-sm leading-relaxed">
           <span
             // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
@@ -189,8 +189,8 @@ const CompetitiveAnalysis = () => {
   ])
 
   // --- 4. Handlers ---
-  const handleProjectSelect = (value) => {
-    const foundProject = blogs?.find((p) => p._id === value)
+  const handleProjectSelect = (value: any) => {
+    const foundProject = blogs?.find((p: any) => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
       setAnalysisResults(null)
@@ -266,7 +266,7 @@ const CompetitiveAnalysis = () => {
     toast.info("Content reset")
   }
 
-  const CircularProgress = ({ score }) => {
+  const CircularProgress = ({ score }: { score: number }) => {
     const radius = 45
     const circumference = 2 * Math.PI * radius
     const offset = circumference - (score / 100) * circumference
@@ -301,9 +301,9 @@ const CompetitiveAnalysis = () => {
     )
   }
 
-  const renderCompetitorsList = (competitors) => (
+  const renderCompetitorsList = (competitors: any) => (
     <Accordion type="single" collapsible className="w-full space-y-2">
-      {competitors.map((competitor, idx) => (
+      {competitors.map((competitor: any, idx: any) => (
         <AccordionItem
           key={competitor.link || competitor.url || competitor.title}
           value={`item-${idx}`}
@@ -350,7 +350,7 @@ const CompetitiveAnalysis = () => {
     </Accordion>
   )
 
-  const renderLinksSection = (links, title, icon) => {
+  const renderLinksSection = (links: any, title: any, icon: any) => {
     if (!links || links.length === 0) return null
     return (
       <Card className="border-none shadow-none bg-slate-50/50">
@@ -362,7 +362,7 @@ const CompetitiveAnalysis = () => {
         </CardHeader>
         <CardContent className="px-0">
           <Accordion type="single" collapsible className="space-y-2">
-            {links.map((link, idx) => (
+            {links.map((link: any, idx: any) => (
               <AccordionItem
                 key={link.link || link.url || link.title}
                 value={`link-${idx}`}
@@ -400,7 +400,7 @@ const CompetitiveAnalysis = () => {
     )
   }
 
-  const renderAnalysisBreakdown = (analysisData) => {
+  const renderAnalysisBreakdown = (analysisData: any) => {
     if (!analysisData?.analysis) return null
     return (
       <Accordion type="single" collapsible className="w-full space-y-2">
@@ -486,7 +486,7 @@ const CompetitiveAnalysis = () => {
               <SelectValue placeholder="Select a blog from your library..." />
             </SelectTrigger>
             <SelectContent className="max-h-[300px] border-gray-200 rounded-xl">
-              {blogs.map((blog) => (
+              {blogs.map((blog: any) => (
                 <SelectItem
                   key={blog._id}
                   value={blog._id}
@@ -646,7 +646,7 @@ const CompetitiveAnalysis = () => {
                                   : analysisResults.insights?.suggestions?.split?.(/(?:\d+\.\s)/)
                                 )
                                   ?.filter(Boolean)
-                                  .map((s, idx) => (
+                                  .map((s: any, idx: any) => (
                                     <div
                                       key={s}
                                       className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
@@ -708,7 +708,7 @@ const CompetitiveAnalysis = () => {
                                   )
                               )
                                 ?.filter(Boolean)
-                                .map((s) => (
+                                .map((s: any) => (
                                   <li
                                     key={s}
                                     className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"

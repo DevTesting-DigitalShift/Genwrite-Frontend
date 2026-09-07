@@ -114,7 +114,7 @@ describe("useZodForm", () => {
     })
 
     await act(async () => {
-      await result.current.handleSubmit((values) => {
+      await result.current.handleSubmit((values: any) => {
         seen.push(values)
       })()
     })

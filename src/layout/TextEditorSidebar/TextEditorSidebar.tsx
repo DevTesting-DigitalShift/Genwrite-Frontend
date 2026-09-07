@@ -71,7 +71,7 @@ import TurndownService from "turndown"
 import { Switch } from "@components/ui/switch"
 
 const renderer = {
-  heading({ text, depth: level }) {
+  heading({ text, depth: level }: { text: string; depth: number }) {
     const slug = String(text)
       .toLowerCase()
       .replace(/[^\w]+/g, "-")
@@ -83,8 +83,16 @@ const renderer = {
 marked.use({ renderer })
 
 // Platform Categories Component (Supports WP, Sanity, Shopify, Server)
-const PlatformCategories = ({ onSelect, currentCategory, platform }) => {
-  const [categories, setCategories] = useState([])
+const PlatformCategories = ({
+  onSelect,
+  currentCategory,
+  platform,
+}: {
+  onSelect: (category: any) => void
+  currentCategory?: any
+  platform?: string
+}) => {
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -226,7 +234,7 @@ const SECTION_TASK_LABELS = {
  * Sections are unwrapped innermost-first so unwrapping an outer one cannot
  * re-introduce a nested one.
  */
-const unwrapSectionMarkup = (html, parser) => {
+const unwrapSectionMarkup = (html: any, parser: any) => {
   if (!html || !/<section[\s>]/i.test(html)) return html || ""
 
   const doc = parser.parseFromString(html, "text/html")
@@ -235,6 +243,27 @@ const unwrapSectionMarkup = (html, parser) => {
     section.replaceWith(...Array.from(inner.childNodes))
   }
   return doc.body.innerHTML
+}
+
+interface TextEditorSidebarProps {
+  blog?: any
+  keywords?: string[]
+  setKeywords: (keywords: string[]) => void
+  onPost?: (...args: any[]) => void
+  handleSave?: (...args: any[]) => void
+  posted?: boolean
+  isPosting?: boolean
+  formData?: any
+  editorContent?: string
+  handleSubmit?: (...args: any[]) => void
+  setIsHumanizing: (value: boolean) => void
+  setHumanizedContent: (content: any) => void
+  setIsHumanizeModalOpen: (open: boolean) => void
+  setIsSidebarOpen: (open: boolean) => void
+  unsavedChanges?: boolean
+  activeEditorVersion?: any
+  setEditorContent: (content: string) => void
+  isPublicMode?: boolean
 }
 
 const TextEditorSidebar = ({
@@ -253,10 +282,10 @@ const TextEditorSidebar = ({
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
   unsavedChanges,
-  activeEditorVersion, // NEW PROP
+  activeEditorVersion,
   setEditorContent,
   isPublicMode = false,
-}) => {
+}: TextEditorSidebarProps) => {
   // Two flavours of view-only. `isPublicMode` (the public blog reader) keeps controls
   // visible but locked, because the reader may still sign in and get them. A read-only
   // *workspace* removes them outright: a collaborator watching someone else's workspace
@@ -284,7 +313,7 @@ const TextEditorSidebar = ({
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
 
   // Blog postings state
-  const [blogPostings, setBlogPostings] = useState([])
+  const [blogPostings, setBlogPostings] = useState<any[]>([])
   const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
   // Blog slug editor state
@@ -293,7 +322,7 @@ const TextEditorSidebar = ({
 
   // Posting State (Migrated from CategoriesModal)
   const [selectedCategory, setSelectedCategory] = useState("")
-  const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const [selectedIntegration, setSelectedIntegration] = useState<any>(null)
   const [includeTableOfContents, setIncludeTableOfContents] = useState(false)
   const [isCategoryLocked, setIsCategoryLocked] = useState(false)
   const [categoryError, setCategoryError] = useState(false)
@@ -307,14 +336,14 @@ const TextEditorSidebar = ({
 
   // Generated metadata accept/reject modal state
   const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
-  const [generatedMetadata, setGeneratedMetadata] = useState(null)
+  const [generatedMetadata, setGeneratedMetadata] = useState<any>(null)
 
   // Export with images toggle
   const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
   const [_isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
 
   // Content enhancement editable options state
-  const [enhancementOptions, setEnhancementOptions] = useState({})
+  const [enhancementOptions, setEnhancementOptions] = useState<any>({})
   const [_hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
   const [_isSavingEnhancement, setIsSavingEnhancement] = useState(false)
 
@@ -338,7 +367,7 @@ const TextEditorSidebar = ({
     instructions: "",
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
-  const [availableSections, setAvailableSections] = useState([])
+  const [availableSections, setAvailableSections] = useState<any[]>([])
   const [_isAnalyzingProofreading, _setIsAnalyzingProofreading] = useState(false)
 
   // AI rewrites are reviewed inside the editor, not in a dialog here.
@@ -348,8 +377,8 @@ const TextEditorSidebar = ({
   // last generated insight is fetched once via useBlogInsightQuery and then
   // mirrored into local state — leaving the editor and coming back (or a full
   // reload) restores it instead of silently discarding it.
-  const [insight, setInsight] = useState(null)
-  const [applyingSuggestionId, setApplyingSuggestionId] = useState(null)
+  const [insight, setInsight] = useState<any>(null)
+  const [applyingSuggestionId, setApplyingSuggestionId] = useState<any>(null)
   const analyzeBlogMutation = useAnalyzeBlogMutation()
   const applyInsightMutation = useApplyInsightMutation()
   const confirmInsightMutation = useConfirmInsightMutation()
@@ -492,7 +521,7 @@ const TextEditorSidebar = ({
         let newSectionContent = response.data.markdown || response.data.content || ""
 
         // Helper to normalize slugs similar to how TipTap/Marked does
-        const getSlug = (text) =>
+        const getSlug = (text: any) =>
           text
             .toLowerCase()
             .replace(/[^\w]+/g, "-")
@@ -675,7 +704,7 @@ const TextEditorSidebar = ({
   }
 
   // UI State for categories to prevent flickering or disappearing on re-renders
-  const [_uiCategories, setUiCategories] = useState([])
+  const [_uiCategories, setUiCategories] = useState<any[]>([])
 
   const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
@@ -761,8 +790,8 @@ const TextEditorSidebar = ({
 
   // Single writer for insight state — keeps the cached copy and local copy in step.
   const persistInsight = useCallback(
-    (next) => {
-      setInsight((prev) => {
+    (next: any) => {
+      setInsight((prev: any) => {
         const value = typeof next === "function" ? next(prev) : next
         if (blog?._id) queryClient.setQueryData(["blogInsight", blog._id], value)
         return value
@@ -844,7 +873,7 @@ const TextEditorSidebar = ({
     }
   }, [blog?.options])
 
-  const getWordCount = (text) => {
+  const getWordCount = (text: any) => {
     if (!text) return 0
 
     // Plain text case (heuristic check for HTML tags)
@@ -882,7 +911,7 @@ const TextEditorSidebar = ({
   // Update regen form field. Dotted names ("options.includeFaqs") address nested
   // fields directly, which is how the modal already calls this.
   const updateRegenField = useCallback(
-    (field, value) =>
+    (field: any, value: any) =>
       setRegenValue(field, value, {
         shouldValidate: !!getRegenFieldState(field).error,
         shouldDirty: true,
@@ -997,7 +1026,7 @@ const TextEditorSidebar = ({
   // Guard shared by both insight actions: archived blogs are read-only, and both
   // calls spend credits, so bail out before the request if the balance is short.
   const guardCreditedAction = useCallback(
-    (cost) => {
+    (cost: any) => {
       if (blog?.isArchived) {
         toast.error("This blog is archived. Please restore it to perform this action.")
         return false
@@ -1048,7 +1077,15 @@ const TextEditorSidebar = ({
   // suggestion and content explicitly rather than reading them back out of
   // state, since the review that triggers it can outlive the render that raised it.
   const handleConfirmSuggestion = useCallback(
-    async ({ suggestionId, republish, content }) => {
+    async ({
+      suggestionId,
+      republish,
+      content,
+    }: {
+      suggestionId?: string
+      republish?: boolean
+      content?: string
+    }) => {
       if (!suggestionId || !blog?._id) return
 
       const loadingId = showLoading("Applying changes...")
@@ -1064,11 +1101,11 @@ const TextEditorSidebar = ({
           setEditorContent(result?.content ?? content)
         }
 
-        persistInsight((prev) =>
+        persistInsight((prev: any) =>
           prev
             ? {
                 ...prev,
-                suggestions: prev.suggestions.map((s) =>
+                suggestions: prev.suggestions.map((s: any) =>
                   s._id === suggestionId ? { ...s, status: "applied" } : s
                 ),
               }
@@ -1097,7 +1134,7 @@ const TextEditorSidebar = ({
   )
 
   const handleApplySuggestion = useCallback(
-    async (suggestion, { scope, republish }) => {
+    async (suggestion: any, { scope, republish }: { scope?: string; republish?: boolean }) => {
       if (!blog?._id) return toast.error("Blog ID missing")
       if (!guardCreditedAction(COSTS.BLOG_INSIGHT.APPLY)) return
 
@@ -1224,8 +1261,8 @@ const TextEditorSidebar = ({
   }, [])
 
   // Enhancement option toggle handler
-  const _handleEnhancementToggle = useCallback((key, value) => {
-    setEnhancementOptions((prev) => ({ ...prev, [key]: value }))
+  const _handleEnhancementToggle = useCallback((key: any, value: any) => {
+    setEnhancementOptions((prev: any) => ({ ...prev, [key]: value }))
     setHasEnhancementChanges(true)
   }, [])
 
@@ -1351,7 +1388,7 @@ const TextEditorSidebar = ({
   }, [handlePopup, handleSave, blog?.isArchived])
 
   // --- Posting Helpers ---
-  const openRepostModal = (posting) => {
+  const openRepostModal = (posting: any) => {
     // Use metadata from the posting object as the primary source of truth
     const metadata = posting.metadata || {}
     setRepostSettings({
@@ -1389,7 +1426,7 @@ const TextEditorSidebar = ({
   }
 
   const handleIntegrationChange = useCallback(
-    (platform, url) => {
+    (platform: any, url: any) => {
       setSelectedIntegration({ platform: platform.toLowerCase(), rawPlatform: platform, url })
       setPlatformError(false)
       setErrors((prev) => ({ ...prev, platform: "" }))
@@ -1404,7 +1441,7 @@ const TextEditorSidebar = ({
     [posted]
   )
 
-  const handleCategoryAdd = useCallback((category) => {
+  const handleCategoryAdd = useCallback((category: any) => {
     // Remove restriction to allow explicit selection change even if something is selected
     setSelectedCategory(category)
     setCategoryError(false)
@@ -1417,7 +1454,7 @@ const TextEditorSidebar = ({
     setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
-  const handleCategoryChange = useCallback((value) => {
+  const handleCategoryChange = useCallback((value: any) => {
     // If multiple values selected (mode='tags'), take the last one to allow switching
     const newCategory = value.length > 0 ? value[value.length - 1] : ""
     setSelectedCategory(newCategory)
@@ -1639,15 +1676,15 @@ const TextEditorSidebar = ({
       const newKws = newKeyword
         .split(",")
         .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
-      if (newKws.length > 0) setKeywords((prev) => [...prev, ...newKws])
+        .filter((k) => k && !keywords.map((kw: any) => kw.toLowerCase()).includes(k))
+      if (newKws.length > 0) setKeywords((prev: any) => [...prev, ...newKws])
       setNewKeyword("")
     }
   }, [newKeyword, keywords, setKeywords])
 
   const _removeKeyword = useCallback(
-    (keyword) => {
-      setKeywords((prev) => prev.filter((k) => k !== keyword))
+    (keyword: any) => {
+      setKeywords((prev: any) => prev.filter((k: any) => k !== keyword))
     },
     [setKeywords]
   )
@@ -1823,7 +1860,7 @@ const TextEditorSidebar = ({
                   Core Keywords
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {brand.keywords.map((kw) => (
+                  {brand.keywords.map((kw: any) => (
                     <span
                       key={kw}
                       className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
@@ -2366,7 +2403,7 @@ const TextEditorSidebar = ({
                   </span>
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
-                  {result.insights.suggestions.map((suggestion, idx) => (
+                  {result.insights.suggestions.map((suggestion: any, idx: any) => (
                     <motion.div
                       key={suggestion}
                       initial={{ opacity: 0, x: -10 }}
@@ -2540,7 +2577,7 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.tags.map((tag) => (
+              {blog.tags.map((tag: any) => (
                 <span
                   key={tag}
                   className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
@@ -2558,7 +2595,7 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.keywords.map((kw) => (
+              {blog.keywords.map((kw: any) => (
                 <span key={kw} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
                   {kw}
                 </span>
@@ -2572,7 +2609,7 @@ const TextEditorSidebar = ({
           <div className="p-3 bg-white border border-gray-300 rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
             <div className="flex flex-wrap gap-1.5">
-              {blog.focusKeywords.map((kw) => (
+              {blog.focusKeywords.map((kw: any) => (
                 <span
                   key={kw}
                   className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
@@ -3539,7 +3576,7 @@ const TextEditorSidebar = ({
 
             {repostSettings.platform && (
               <PlatformCategories
-                onSelect={(cat) => setRepostSettings({ ...repostSettings, category: cat })}
+                onSelect={(cat: any) => setRepostSettings({ ...repostSettings, category: cat })}
                 currentCategory={repostSettings.category}
                 platform={repostSettings.platform}
               />
@@ -3647,8 +3684,6 @@ const TextEditorSidebar = ({
         isRegenerating={isRegenerating}
         regenForm={regenForm}
         updateRegenField={updateRegenField}
-        userPlan={userPlan}
-        user={user}
         integrations={integrations}
       />
 

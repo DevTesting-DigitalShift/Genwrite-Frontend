@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react"
+import { useState, useEffect, useId, type InputHTMLAttributes } from "react"
 import { motion } from "framer-motion"
 import {
   CreditCard,
@@ -70,7 +70,7 @@ const Profile = () => {
     subscription: { plan: "free", status: "active" },
     emailVerified: false,
   })
-  const [initialProfileData, setInitialProfileData] = useState(null)
+  const [initialProfileData, setInitialProfileData] = useState<any>(null)
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
   const [referralStats, setReferralStats] = useState({ totalJoined: 0, converted: 0 })
   const [referralCode, setReferralCode] = useState("")
@@ -79,7 +79,7 @@ const Profile = () => {
     newFeatureUpdates: false,
     accountAlerts: false,
   })
-  const [subscriptionDetails, setSubscriptionDetails] = useState(null)
+  const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null)
 
   useEffect(() => {
     loadAuthenticatedUser()
@@ -158,7 +158,7 @@ const Profile = () => {
     }
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     if (name === "personalDetails.phone") {
       const numericValue = value.replace(/[^0-9]/g, "").slice(0, 15)
@@ -174,7 +174,7 @@ const Profile = () => {
     }
   }
 
-  const toggleInterest = (val) => {
+  const toggleInterest = (val: any) => {
     setProfileData((prev) => {
       const current = prev.personalDetails.interests
       const updated = current.includes(val) ? current.filter((i) => i !== val) : [...current, val]
@@ -182,7 +182,7 @@ const Profile = () => {
     })
   }
 
-  const handlePasswordSubmit = async (values) => {
+  const handlePasswordSubmit = async (values: any) => {
     const payload = user?.hasPassword
       ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
       : { newPassword: values.newPassword }
@@ -210,7 +210,7 @@ const Profile = () => {
     toast.success("Affiliate link copied!")
   }
 
-  const handleEmailPreferenceChange = async (key, checked) => {
+  const handleEmailPreferenceChange = async (key: any, checked: any) => {
     const newPrefs = { ...emailPreferences, [key]: checked }
     setEmailPreferences(newPrefs)
     try {
@@ -372,7 +372,7 @@ const Profile = () => {
             <DatePickerField
               label="Date of Birth"
               value={profileData.personalDetails.dob}
-              onChange={(dateStr) =>
+              onChange={(dateStr: any) =>
                 setProfileData((prev) => ({
                   ...prev,
                   personalDetails: { ...prev.personalDetails, dob: dateStr },
@@ -548,13 +548,13 @@ const Profile = () => {
                 label="Marketing"
                 desc="Promotions & tips."
                 checked={emailPreferences.promotionalEmails}
-                onChange={(c) => handleEmailPreferenceChange("promotionalEmails", c)}
+                onChange={(c: any) => handleEmailPreferenceChange("promotionalEmails", c)}
               />
               <MinimalToggle
                 label="Feature Updates"
                 desc="New tools & protocols."
                 checked={emailPreferences.newFeatureUpdates}
-                onChange={(c) => handleEmailPreferenceChange("newFeatureUpdates", c)}
+                onChange={(c: any) => handleEmailPreferenceChange("newFeatureUpdates", c)}
               />
             </div>
           </motion.div>
@@ -655,7 +655,10 @@ const Profile = () => {
   )
 }
 
-const ProfileInput = ({ label, ...props }) => {
+const ProfileInput = ({
+  label,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { label: string }) => {
   // Generated so each rendered instance gets a unique, stable label/input pairing —
   // a hardcoded id would collide across the several fields on this page.
   const generatedId = useId()
@@ -675,12 +678,18 @@ const ProfileInput = ({ label, ...props }) => {
   )
 }
 
-const DatePickerField = ({ label, value, onChange }) => {
+interface DatePickerFieldProps {
+  label: string
+  value?: string | Date | null
+  onChange: (value: string | null) => void
+}
+
+const DatePickerField = ({ label, value, onChange }: DatePickerFieldProps) => {
   const [open, setOpen] = useState(false)
 
   const selected = value ? dayjs(value).toDate() : undefined
 
-  const handleSelect = (date) => {
+  const handleSelect = (date: any) => {
     onChange(date ? dayjs(date).format("YYYY-MM-DD") : "")
     setOpen(false)
   }
@@ -722,7 +731,15 @@ const DatePickerField = ({ label, value, onChange }) => {
   )
 }
 
-const MinimalToggle = ({ label, desc, checked, onChange, disabled }) => (
+interface MinimalToggleProps {
+  label: string
+  desc?: string
+  checked?: boolean
+  onChange?: (checked: boolean) => void
+  disabled?: boolean
+}
+
+const MinimalToggle = ({ label, desc, checked, onChange, disabled }: MinimalToggleProps) => (
   <div className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all">
     <div className="pr-4">
       <h4 className="font-semibold text-sm text-slate-800">{label}</h4>

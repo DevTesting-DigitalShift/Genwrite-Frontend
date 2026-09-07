@@ -54,6 +54,19 @@ axiosInstance.interceptors.request.use(
 // Local state for toast throttling
 let last429Toast = 0
 
+/**
+ * The message the server sent when /auth/refresh itself failed. The refresh is the
+ * only call the user never made, so when it is what broke, the generic "session
+ * expired" copy hides the actual reason (revoked token, reuse detected, server down).
+ */
+const refreshFailureMessage = (err: unknown): string | null => {
+  const err_ = err as { response?: { data?: { message?: unknown } }; message?: unknown }
+  const fromBody = err_?.response?.data?.message
+  if (typeof fromBody === "string" && fromBody.trim()) return fromBody
+  if (typeof err_?.message === "string" && err_.message.trim()) return err_.message
+  return null
+}
+
 let refreshPromise: Promise<{ accessToken: string }> | null = null
 
 async function refreshActiveSession(): Promise<{ accessToken: string }> {
@@ -121,6 +134,9 @@ axiosInstance.interceptors.response.use(
     }
 
     // 4. On 401, try one silent refresh for the active account before giving up.
+    //    Roughly every 15 minutes the access token lapses and some request lands here,
+    //    so this is the path a user actually hits — keep why it failed.
+    let refreshError: string | null = null
     if (status === 401 && !error.config?._refreshRetried && !isUnauthenticatedRoute(error.config?.url)) {
       const expiredSession = getActiveSession()
       if (expiredSession) {
@@ -130,8 +146,10 @@ axiosInstance.interceptors.response.use(
           const retryConfig = { ...error.config, _refreshRetried: true }
           retryConfig.headers = { ...retryConfig.headers, Authorization: `Bearer ${accessToken}` }
           return axiosInstance(retryConfig)
-        } catch (_refreshErr) {
-          // fall through to the existing expiry handling below
+        } catch (refreshErr) {
+          // Keep the refresh's own message; the expiry handling below reports it
+          // instead of the generic copy, which otherwise hides the real cause.
+          refreshError = refreshFailureMessage(refreshErr)
         }
       }
     }
@@ -154,10 +172,12 @@ axiosInstance.interceptors.response.use(
           // Another account is still logged in — let SessionExpiredModal (mounted at
           // the app root) offer re-authenticate/switch instead of nuking the page.
           window.dispatchEvent(
-            new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { email: expiredSession?.email } })
+            new CustomEvent(SESSION_EXPIRED_EVENT, {
+              detail: { email: expiredSession?.email, reason: refreshError },
+            })
           )
         } else if (window.location.pathname !== "/login") {
-          toast.error("Session expired. Please login again.")
+          toast.error(refreshError || "Session expired. Please login again.")
           setTimeout(() => {
             window.location.href = "/login"
           }, 1500)

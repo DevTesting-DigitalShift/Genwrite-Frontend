@@ -59,8 +59,8 @@ const ImageGallery = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(40)
   const [minScore, _setMinScore] = useState(0)
-  const [selectedTags, _setSelectedTags] = useState([])
-  const [previewImage, setPreviewImage] = useState(null)
+  const [selectedTags, _setSelectedTags] = useState<any[]>([])
+  const [previewImage, setPreviewImage] = useState<any>(null)
 
   // New Features State
   const [isGenerating, setIsGenerating] = useState(false)
@@ -134,7 +134,7 @@ const ImageGallery = () => {
     loadImages()
   }, [loadImages])
 
-  const checkCredits = (required) => {
+  const checkCredits = (required: any) => {
     if (userCredits < required) {
       handlePopup({
         title: "Insufficient Credits",
@@ -155,17 +155,17 @@ const ImageGallery = () => {
     return true
   }
 
-  const countWords = (str) => {
+  const countWords = (str: any) => {
     return str
       .trim()
       .split(/\s+/)
-      .filter((n) => n !== "").length
+      .filter((n: any) => n !== "").length
   }
 
   const handleGenerateImage = async () => {
     setShowErrors(true)
     if (!checkQuota()) return
-    if (!checkCredits(COSTS.GENERATE)) return
+    if (!checkCredits(COSTS.IMAGE.GENERATE)) return
 
     if (!genForm.prompt.trim()) {
       toast.error("Please enter a prompt")
@@ -203,7 +203,7 @@ const ImageGallery = () => {
 
   const handleEnhanceImage = async () => {
     if (!checkQuota()) return
-    if (!checkCredits(COSTS.ENHANCE)) return
+    if (!checkCredits(COSTS.IMAGE.ENHANCE)) return
     if (!enhanceForm.prompt.trim()) return toast.error("Please describe how to enhance")
 
     setIsEnhancing(true)
@@ -233,13 +233,13 @@ const ImageGallery = () => {
 
         // Merge with previous image to strictly preserve metadata (description, tags)
         // while overwriting URL and ID
-        setPreviewImage((prev) => ({ ...prev, ...newImage, url: urlWithCacheBust }))
+        setPreviewImage((prev: any) => ({ ...prev, ...newImage, url: urlWithCacheBust }))
       } else {
         // Fallback
         console.warn("Unexpected enhance response structure:", response)
         if (response?.url) {
           const timestamp = Date.now()
-          setPreviewImage((prev) => ({
+          setPreviewImage((prev: any) => ({
             ...prev,
             ...response,
             url: `${response.url}?t=${timestamp}`,
@@ -258,7 +258,7 @@ const ImageGallery = () => {
   }
 
   const handleGenerateAltText = async () => {
-    if (!checkCredits(COSTS.ALT_TEXT)) return
+    if (!checkCredits(COSTS.IMAGE.ALT_TEXT)) return
 
     setIsGeneratingAlt(true)
     try {
@@ -278,11 +278,11 @@ const ImageGallery = () => {
    * Check if image is valid for enhancement.
    * Now strictly permissive: if it has an ID and URL, we allow it.
    */
-  const canEnhance = (img) => {
+  const canEnhance = (img: any) => {
     return img?._id && img.url
   }
 
-  const handleCopyLink = async (image, e) => {
+  const handleCopyLink = async (image: any, e: any) => {
     if (e) e.stopPropagation()
     try {
       await navigator.clipboard.writeText(image.url)
@@ -293,7 +293,7 @@ const ImageGallery = () => {
     }
   }
 
-  const handleDownload = async (image, e) => {
+  const handleDownload = async (image: any, e: any) => {
     if (e) e.stopPropagation()
     try {
       const response = await fetch(image.url)
@@ -313,7 +313,7 @@ const ImageGallery = () => {
     }
   }
 
-  const handleImageClick = (image) => {
+  const handleImageClick = (image: any) => {
     setPreviewImage(image)
     setGeneratedAltText("") // Reset alt text
     // Clear enhance prompt
@@ -795,7 +795,7 @@ const ImageGallery = () => {
                             </span>
                           </div>
                           <span className="px-2 lg:px-3 py-1 bg-white rounded-lg text-[10px] lg:text-xs font-black text-purple-600 border border-purple-200 shadow-sm">
-                            {COSTS.ENHANCE} Credits
+                            {COSTS.IMAGE.ENHANCE} Credits
                           </span>
                         </div>
                       </div>

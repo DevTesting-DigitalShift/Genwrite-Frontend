@@ -94,8 +94,8 @@ const BlogsPage = () => {
   const [tempGscImpressions, setTempGscImpressions] = useState(blogFilters.gscImpressions)
 
   const updateBlogFilters = useCallback(
-    (updates) => {
-      setBlogFilters((prev) => {
+    (updates: any) => {
+      setBlogFilters((prev: any) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
           `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`,
@@ -118,12 +118,12 @@ const BlogsPage = () => {
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters((prev) => ({ ...prev, ...parsedFilters }))
+      setBlogFilters((prev: any) => ({ ...prev, ...parsedFilters }))
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
       const isSharedWorkspace = !!activeWorkspace
-      setBlogFilters((prev) => ({
+      setBlogFilters((prev: any) => ({
         ...prev,
         start: getDefaultFilterStart(user, { isSharedWorkspace }),
       }))
@@ -239,8 +239,8 @@ const BlogsPage = () => {
 
   // Both hold the scope they last widened for, rather than a bare flag, so switching
   // workspace or hopping to the trashcan re-arms this for that view's own blogs.
-  const widenedScopeRef = useRef(null)
-  const [widenedScope, setWidenedScope] = useState(null)
+  const widenedScopeRef = useRef<any>(null)
+  const [widenedScope, setWidenedScope] = useState<any>(null)
   const didWiden = widenedScope === filterScope
 
   const resetFilters = useCallback(() => {
@@ -308,15 +308,15 @@ const BlogsPage = () => {
 
     const activeQueryKey = isTrashcan ? ["trashedBlogs"] : ["blogs"]
 
-    const patchBlogInCache = (blogId, patcher) => {
+    const patchBlogInCache = (blogId: any, patcher: any) => {
       if (!blogId) return
       queryClient.setQueriesData({ queryKey: activeQueryKey }, (oldData) => {
         if (!oldData?.pages) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map((page) => ({
+          pages: oldData.pages.map((page: any) => ({
             ...page,
-            data: page.data.map((blog) => (blog._id === blogId ? patcher(blog) : blog)),
+            data: page.data.map((blog: any) => (blog._id === blogId ? patcher(blog) : blog)),
           })),
         }
       })
@@ -324,7 +324,7 @@ const BlogsPage = () => {
 
     const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
       if (blogId && taskStatus) {
-        patchBlogInCache(blogId, (blog) => ({ ...blog, taskStatus }))
+        patchBlogInCache(blogId, (blog: any) => ({ ...blog, taskStatus }))
       }
     }
 
@@ -334,15 +334,15 @@ const BlogsPage = () => {
         queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
       } else if (blogId && newStatus) {
         // Transitional state (e.g. pending → in-progress) — patch status immediately, skip API round-trip
-        patchBlogInCache(blogId, (blog) => ({ ...blog, status: newStatus }))
+        patchBlogInCache(blogId, (blog: any) => ({ ...blog, status: newStatus }))
       }
     }
 
-    const handleBlogMutation = (_) => {
+    const handleBlogMutation = (_: any) => {
       queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
     }
 
-    const handleBlogCreated = (_) => {
+    const handleBlogCreated = (_: any) => {
       if (!isTrashcan) {
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "active" })
       }
@@ -350,7 +350,7 @@ const BlogsPage = () => {
 
     const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
       if (!blogId) return
-      patchBlogInCache(blogId, (blog) => ({ ...blog, agendaNextRun: retryTime }))
+      patchBlogInCache(blogId, (blog: any) => ({ ...blog, agendaNextRun: retryTime }))
     }
 
     socket.on("blog:progressUpdated", handleProgressUpdated)
@@ -371,21 +371,21 @@ const BlogsPage = () => {
   }, [user, queryClient, isTrashcan])
 
   const handleBlogClick = useCallback(
-    (blog) => {
+    (blog: any) => {
       navigate(`/editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    (blog) => {
+    (blog: any) => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleRetry = useCallback(
-    async (id) => {
+    async (id: any) => {
       try {
         await retryBlogById(id)
         toast.success("Synthesis recalibrated. Retrying...")
@@ -398,15 +398,15 @@ const BlogsPage = () => {
   )
 
   const handleArchive = useCallback(
-    async (id) => {
+    async (id: any) => {
       // Optimistic UI Update
       queryClient.setQueryData(["blogs", userId, blogFilters], (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map((page) => ({
+          pages: oldData.pages.map((page: any) => ({
             ...page,
-            data: page.data.filter((blog) => blog._id !== id),
+            data: page.data.filter((blog: any) => blog._id !== id),
             totalItems: Math.max(0, page.totalItems - 1),
           })),
         }
@@ -424,15 +424,15 @@ const BlogsPage = () => {
   )
 
   const handleRestore = useCallback(
-    async (id) => {
+    async (id: any) => {
       // Optimistic UI Update
       queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
         if (!oldData) return oldData
         return {
           ...oldData,
-          pages: oldData.pages.map((page) => ({
+          pages: oldData.pages.map((page: any) => ({
             ...page,
-            data: page.data.filter((blog) => blog._id !== id),
+            data: page.data.filter((blog: any) => blog._id !== id),
             totalItems: Math.max(0, page.totalItems - 1),
           })),
         }
@@ -458,7 +458,7 @@ const BlogsPage = () => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
+        pages: oldData.pages.map((page: any) => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("All articles are restored. Check My Projects", {
@@ -480,7 +480,7 @@ const BlogsPage = () => {
       if (!oldData) return oldData
       return {
         ...oldData,
-        pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
+        pages: oldData.pages.map((page: any) => ({ ...page, data: [], totalItems: 0 })),
       }
     })
     toast.success("Trash emptied. Permanent deletion complete.")

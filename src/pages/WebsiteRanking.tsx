@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   Search,
@@ -34,7 +34,7 @@ import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
 import { COSTS } from "@/data/blogData"
 
-const Card = ({ children, className = "" }) => (
+const Card = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
   <div
     className={`bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden ${className}`}
   >
@@ -42,7 +42,15 @@ const Card = ({ children, className = "" }) => (
   </div>
 )
 
-const Tag = ({ children, color, className = "" }) => {
+const Tag = ({
+  children,
+  color,
+  className = "",
+}: {
+  children?: ReactNode
+  color?: string
+  className?: string
+}) => {
   const colorMap = {
     blue: "bg-blue-50/50 text-blue-600 border-blue-100/50",
     cyan: "bg-cyan-50/50 text-cyan-600 border-cyan-100/50",
@@ -60,7 +68,7 @@ const Tag = ({ children, color, className = "" }) => {
   )
 }
 
-const Steps = ({ current, items = [] }) => {
+const Steps = ({ current, items = [] }: { current: number; items?: any[] }) => {
   return (
     <div className="flex items-center justify-between w-full mb-12 relative px-2">
       <div className="absolute top-5 left-0 w-full h-px bg-gray-200 z-0" />
@@ -95,11 +103,19 @@ const Steps = ({ current, items = [] }) => {
   )
 }
 
-const CustomTabs = ({ items, activeKey, onChange }) => {
+const CustomTabs = ({
+  items,
+  activeKey,
+  onChange,
+}: {
+  items: any[]
+  activeKey: string
+  onChange: (key: string) => void
+}) => {
   return (
     <div className="space-y-6">
       <div className="flex gap-1 p-1 bg-gray-100/40 rounded-2xl w-fit border border-gray-200/50 backdrop-blur-sm">
-        {items.map((item) => (
+        {items.map((item: any) => (
           <button
             type="button"
             key={item.key}
@@ -114,24 +130,36 @@ const CustomTabs = ({ items, activeKey, onChange }) => {
           </button>
         ))}
       </div>
-      <div>{items.find((item) => item.key === activeKey)?.children}</div>
+      <div>{items.find((item: any) => item.key === activeKey)?.children}</div>
     </div>
   )
 }
 
-const NumberStepper = ({ value, onChange, min = 1, max = 25, label }) => {
+const NumberStepper = ({
+  value,
+  onChange,
+  min = 1,
+  max = 25,
+  label,
+}: {
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  label?: ReactNode
+}) => {
   const [direction, setDirection] = useState(1) // 1 for up, -1 for down
 
-  const handleUpdate = (newValue) => {
+  const handleUpdate = (newValue: any) => {
     if (newValue > value) setDirection(1)
     else if (newValue < value) setDirection(-1)
     onChange(newValue)
   }
 
   const variants = {
-    initial: (d) => ({ y: d > 0 ? 15 : -15, opacity: 0 }),
+    initial: (d: any) => ({ y: d > 0 ? 15 : -15, opacity: 0 }),
     animate: { y: 0, opacity: 1 },
-    exit: (d) => ({ y: d > 0 ? -15 : 15, opacity: 0 }),
+    exit: (d: any) => ({ y: d > 0 ? -15 : 15, opacity: 0 }),
   }
 
   return (
@@ -184,15 +212,15 @@ const WebsiteRanking = () => {
   const [url, setUrl] = useState(location.state?.transferValue || "")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
-  const [selectedExpertise, setSelectedExpertise] = useState([])
+  const [selectedExpertise, setSelectedExpertise] = useState<any[]>([])
   const [manualTopic, setManualTopic] = useState("")
 
   // Individual tool states (for Manual Mode)
   const [manualStep, setManualStep] = useState(0)
   const [activeTab, setActiveTab] = useState("1")
-  const [generatedPrompts, setGeneratedPrompts] = useState([])
-  const [analysisResult, setAnalysisResult] = useState(null)
-  const [rankingsResult, setRankingsResult] = useState(null)
+  const [generatedPrompts, setGeneratedPrompts] = useState<any[]>([])
+  const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [rankingsResult, setRankingsResult] = useState<any>(null)
 
   const { websiteRanking, resetWebsiteRanking } = useToolsStore()
   const { advancedComp, orchestrator } = websiteRanking
@@ -253,7 +281,7 @@ const WebsiteRanking = () => {
     }
   }, [isLoading])
 
-  const handleExportMD = (data) => {
+  const handleExportMD = (data: any) => {
     if (!data) return
     const { url: auditUrl, analysis, rankings, advancedReport } = data
     let markdownContent =
@@ -282,7 +310,7 @@ const WebsiteRanking = () => {
     const recs = data.recommendations || advancedReport?.strategicRecommendations || []
     if (recs.length > 0) {
       fullMD += `## Strategic Recommendations\n`
-      recs.forEach((r, i) => {
+      recs.forEach((r: any, i: any) => {
         fullMD += `${i + 1}. ${r}\n`
       })
       fullMD += `\n`
@@ -292,7 +320,7 @@ const WebsiteRanking = () => {
       fullMD += `## Keyword Rankings\n`
       fullMD += `| Keyword | Rank | Top Competitors |\n`
       fullMD += `|---------|------|----------------|\n`
-      rankings.results.forEach((r) => {
+      rankings.results.forEach((r: any) => {
         const rank = r.rank && r.rank > 0 ? `#${r.rank}` : "Not listed"
         const comps = r.topCompanies?.slice(0, 3).join(", ") || ""
         fullMD += `| ${r.prompt} | ${rank} | ${comps} |\n`
@@ -311,7 +339,7 @@ const WebsiteRanking = () => {
     toast.success(`Report exported as ${fileName}`)
   }
 
-  const handleCreateJobFromAudit = async (data) => {
+  const handleCreateJobFromAudit = async (data: any) => {
     if (!data?.analysis && !data?.rankings) {
       return toast.error("Run an audit first")
     }
@@ -384,7 +412,7 @@ const WebsiteRanking = () => {
     setManualTopic("")
   }
 
-  const toggleExpertise = (area) => {
+  const toggleExpertise = (area: any) => {
     setSelectedExpertise((prev) => {
       if (prev.includes(area)) {
         return prev.filter((a) => a !== area)
@@ -413,7 +441,7 @@ const WebsiteRanking = () => {
     }
   }
 
-  const handleKeywordEdit = (index, value) => {
+  const handleKeywordEdit = (index: any, value: any) => {
     const updated = [...generatedPrompts]
     updated[index] = value
     setGeneratedPrompts(updated)
@@ -443,7 +471,7 @@ const WebsiteRanking = () => {
 
   // --- Renders ---
 
-  const FullReportView = ({ data }) => {
+  const FullReportView = ({ data }: { data: any }) => {
     if (!data) return null
 
     // Helper to safely access nested report data
@@ -602,7 +630,7 @@ const WebsiteRanking = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {rankings.top10.slice(0, 5).map((comp, idx) => (
+                    {rankings.top10.slice(0, 5).map((comp: any, idx: any) => (
                       <tr key={comp.domain} className="hover:bg-gray-50/30 transition-colors group">
                         <td className="px-8 py-5">
                           <div
@@ -751,7 +779,7 @@ const WebsiteRanking = () => {
                   </div>
                   <div className="p-6 bg-emerald-50/5">
                     <ul className="space-y-4">
-                      {recommendations.map((rec, i) => (
+                      {recommendations.map((rec: any, i: any) => (
                         <li key={rec} className="flex gap-3 items-start">
                           <div className="mt-1 min-w-[20px]">
                             <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">
@@ -771,7 +799,7 @@ const WebsiteRanking = () => {
                   <h3 className="font-bold ">Analyzed Keywords</h3>
                 </div>
                 <div className="p-4 flex flex-wrap gap-2">
-                  {rankings?.results?.map((r) => (
+                  {rankings?.results?.map((r: any) => (
                     <Tag key={r.prompt} className="m-0 bg-gray-50 border-gray-200 text-gray-600">
                       {r.prompt}
                     </Tag>
@@ -802,7 +830,7 @@ const WebsiteRanking = () => {
     return <FullReportView data={orchestrator.result} />
   }
 
-  const StrategyResultsTable = ({ results }) => {
+  const StrategyResultsTable = ({ results }: { results: any }) => {
     if (!results?.length)
       return <p className="p-8 text-center text-gray-400 font-bold">No ranking data available.</p>
     return (
@@ -816,7 +844,7 @@ const WebsiteRanking = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {results.map((r) => (
+            {results.map((r: any) => (
               <tr key={r.prompt} className="bg-white hover:bg-gray-50/40 transition-colors group">
                 <td className="px-8 py-5">
                   <div className="flex flex-col">
@@ -839,7 +867,7 @@ const WebsiteRanking = () => {
                 </td>
                 <td className="px-8 py-5 text-right pr-12">
                   <div className="flex flex-wrap gap-2">
-                    {r.topCompanies?.slice(0, 3).map((c) => (
+                    {r.topCompanies?.slice(0, 3).map((c: any) => (
                       <span
                         key={c}
                         className="bg-gray-50 text-gray-600 text-xs px-3 py-1 rounded-lg border border-gray-100 font-semibold"
@@ -1152,8 +1180,8 @@ const WebsiteRanking = () => {
                             </motion.button>
                           ))}
                           {analysisResult?.expertiseAreas
-                            ?.filter((area) => !selectedExpertise.includes(area))
-                            .map((area) => (
+                            ?.filter((area: any) => !selectedExpertise.includes(area))
+                            .map((area: any) => (
                               <motion.button
                                 layout
                                 initial={{ opacity: 0 }}

@@ -14,6 +14,17 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import useVerificationStore from "@store/useVerificationStore"
 
+interface PricingCardProps {
+  plan: any
+  onBuy: (plan: any, credits?: number) => void
+  billingPeriod: string
+  userPlan?: string
+  userStatus?: string
+  userSubscription?: any
+  user?: any
+  currency?: string
+}
+
 const PricingCard = ({
   plan,
   onBuy,
@@ -23,13 +34,13 @@ const PricingCard = ({
   userSubscription,
   user,
   currency,
-}) => {
+}: PricingCardProps) => {
   const [customCredits, setCustomCredits] = useState(500)
 
   // USD to INR conversion rate
   const _CREDIT_CONVERSION_RATE = 90
 
-  const handleCustomCreditsChange = (e) => {
+  const handleCustomCreditsChange = (e: any) => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
@@ -146,7 +157,7 @@ const PricingCard = ({
     proceedToBuy(plan)
   }
 
-  const proceedToBuy = (planToBuy) => {
+  const proceedToBuy = (planToBuy: any) => {
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, customCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
@@ -281,7 +292,7 @@ const PricingCard = ({
 
         {/* Features */}
         <div className="px-6 pb-6 space-y-2.5 grow">
-          {plan.features.map((feature) => (
+          {plan.features.map((feature: any) => (
             <div key={feature} className="flex items-start gap-2">
               <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0 mt-0.5">
                 <Check className="w-2.5 h-2.5 text-white stroke-3" />
@@ -306,7 +317,7 @@ const PricingCard = ({
 
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
-  const [apiPlans, setApiPlans] = useState([])
+  const [apiPlans, setApiPlans] = useState<any[]>([])
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, _setShowComparisonTable] = useState(true)
@@ -346,11 +357,11 @@ const Upgrade = () => {
     return () => clearTimeout(timer)
   }, [])
 
-  const getPlans = (billingPeriod, userPlan) => {
+  const getPlans = (billingPeriod: any, userPlan: any) => {
     const isProUser = userPlan === "pro"
 
     // Helper to find plan in API
-    const getApiPlan = (tier, freq) => {
+    const getApiPlan = (tier: any, freq: any) => {
       return apiPlans.find(
         (p) =>
           p.tier === tier &&
@@ -364,12 +375,12 @@ const Upgrade = () => {
     const proAnnual = getApiPlan("pro", "year")
     const creditsPlan = getApiPlan("credits", "one-time") || getApiPlan("credits", "month")
 
-    const getPrice = (plan, fallbackUSD, fallbackINR) => {
+    const getPrice = (plan: any, fallbackUSD: any, fallbackINR: any) => {
       if (plan) return plan.price
       return currency === "INR" ? fallbackINR : fallbackUSD
     }
 
-    const getCredits = (plan, fallback) => {
+    const getCredits = (plan: any, fallback: any) => {
       if (plan) return plan.credits
       return fallback
     }
@@ -529,7 +540,7 @@ const Upgrade = () => {
     return null
   }
 
-  const handleBuy = async (plan, credits, billingPeriod) => {
+  const handleBuy = async (plan: any, credits: any, billingPeriod: any) => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
       toast.warning("Please verify your email before purchasing a plan.")
@@ -636,7 +647,7 @@ const Upgrade = () => {
     }
   }
 
-  const handleBuyAnnualPlan = (tier) => {
+  const handleBuyAnnualPlan = (tier: any) => {
     const annualPlan = apiPlans.find((p) => p.tier === tier && p.frequency === "year")
     if (!annualPlan) {
       toast.error("Plan not available. Please try again.")

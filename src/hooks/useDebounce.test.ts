@@ -76,7 +76,7 @@ describe("useDebounce", () => {
   it("invokes the latest callback, not the one captured at mount", () => {
     const first = vi.fn()
     const second = vi.fn()
-    const { result, rerender } = renderHook(({ cb }) => useDebounce(cb, 500), {
+    const { result, rerender } = renderHook(({ cb }: { cb: (...args: any[]) => void }) => useDebounce(cb, 500), {
       initialProps: { cb: first },
     })
 

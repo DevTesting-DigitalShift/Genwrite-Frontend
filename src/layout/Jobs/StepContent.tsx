@@ -19,13 +19,32 @@ import { BLOG_CONFIG } from "@/data/blogConfig"
 import AdvancedOptions from "@components/AdvancedOptions"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
+interface StepContentProps {
+  currentStep: number
+  /** The whole job form value, as react-hook-form currently holds it. */
+  newJob: any
+  /** Writes one field by its dotted path, e.g. `setField("blogs.tone", "Casual")`. */
+  setField: (path: any, value: any) => void
+  /** Reads the live form values — needed inside async callbacks, where `newJob` is stale. */
+  getValues: () => any
+  clearErrors: (name?: any) => void
+  errors: Record<string, any>
+  recentlyUploadedTopicsCount: number
+  setRecentlyUploadedTopicsCount: (count: number) => void
+  recentlyUploadedKeywordsCount: number
+  setRecentlyUploadedKeywordsCount: (count: number) => void
+  showAllTopics: boolean
+  setShowAllTopics: (show: boolean) => void
+  showAllKeywords: boolean
+  setShowAllKeywords: (show: boolean) => void
+  user: any
+  userPlan?: string
+}
+
 const StepContent = ({
   currentStep,
-  /** The whole job form value, as react-hook-form currently holds it. */
   newJob,
-  /** Writes one field by its dotted path, e.g. `setField("blogs.tone", "Casual")`. */
   setField,
-  /** Reads the live form values — needed inside async callbacks, where `newJob` is stale. */
   getValues,
   clearErrors,
   errors,
@@ -39,9 +58,9 @@ const StepContent = ({
   setShowAllKeywords,
   user,
   userPlan,
-}) => {
+}: StepContentProps) => {
   const _navigate = useNavigate()
-  const _fileInputRef = useRef(null)
+  const _fileInputRef = useRef<any>(null)
   const _isProUser = user?.subscription?.plan === "pro"
 
   const { data: integrations } = useQuery({
@@ -70,7 +89,7 @@ const StepContent = ({
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
     return () => {
-      newJob?.blogs?.blogImages?.forEach((image) => {
+      newJob?.blogs?.blogImages?.forEach((image: any) => {
         if (image instanceof File) {
           URL.revokeObjectURL(URL.createObjectURL(image))
         }
@@ -78,12 +97,12 @@ const StepContent = ({
     }
   }, [newJob.blogs.blogImages])
 
-  const handleIntegrationChange = (platform) => {
+  const handleIntegrationChange = (platform: any) => {
     setField("blogs.postingType", platform)
     clearErrors("blogs.postingType") // Clear error on change
   }
 
-  const handleAddItems = (input, type) => {
+  const handleAddItems = (input: any, type: any) => {
     const items = Array.isArray(input)
       ? input
       : typeof input === "string"
@@ -97,8 +116,8 @@ const StepContent = ({
 
     const existing =
       type === "topics"
-        ? (newJob.blogs?.topics || []).map((t) => t.toLowerCase().trim())
-        : (newJob.blogs.keywords || []).map((k) => k.toLowerCase().trim())
+        ? (newJob.blogs?.topics || []).map((t: any) => t.toLowerCase().trim())
+        : (newJob.blogs.keywords || []).map((k: any) => k.toLowerCase().trim())
 
     const seen = new Set()
     const newItems = items
@@ -123,7 +142,7 @@ const StepContent = ({
     }
   }
 
-  const _handleInputChange = (e) => {
+  const _handleInputChange = (e: any) => {
     const { name, value, type } = e.target
 
     // Determine the value for number inputs
@@ -144,7 +163,7 @@ const StepContent = ({
     setField(`blogs.${name}`, val)
   }
 
-  const handleCSVUpload = (e, type) => {
+  const handleCSVUpload = (e: any, type: any) => {
     const file = e.target.files?.[0]
     if (!file) {
       toast.error("No file selected. Please choose a valid CSV file.")
@@ -201,8 +220,8 @@ const StepContent = ({
       // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
-          ? (getValues("blogs.topics") || []).map((t) => t.toLowerCase().trim())
-          : (getValues("blogs.keywords") || []).map((k) => k.toLowerCase().trim())
+          ? (getValues("blogs.topics") || []).map((t: any) => t.toLowerCase().trim())
+          : (getValues("blogs.keywords") || []).map((k: any) => k.toLowerCase().trim())
       const seen = new Set()
       const uniqueNewItems = items.filter((item) => {
         const lower = item.toLowerCase().trim()
@@ -248,7 +267,7 @@ const StepContent = ({
     e.target.value = null
   }
 
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = (e: any) => {
     const { name, checked } = e.target
     if (name === "wordpressPosting" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
@@ -273,7 +292,7 @@ const StepContent = ({
     }
   }
 
-  const handleNumberOfBlogsChange = (e) => {
+  const handleNumberOfBlogsChange = (e: any) => {
     const { value } = e.target
 
     let numberValue
@@ -299,14 +318,14 @@ const StepContent = ({
     ? (newJob.blogs?.topics || []).slice().reverse()
     : (newJob.blogs?.topics || []).slice().reverse().slice(0, 18)
 
-  const handleImageSourceChange = (source) => {
+  const handleImageSourceChange = (source: any) => {
     setField("blogs.imageSource", source)
     clearErrors("blogs.imageSource") // Clear error
   }
 
-  const handleTemplateSelection = useCallback((temps) => {
-    setField("blogs.templates", temps.map((t) => t.name))
-    setField("templateIds", temps.map((t) => t.id))
+  const handleTemplateSelection = useCallback((temps: any) => {
+    setField("blogs.templates", temps.map((t: any) => t.name))
+    setField("templateIds", temps.map((t: any) => t.id))
     clearErrors("blogs.templates")
   }, [setField, clearErrors])
 
@@ -402,7 +421,7 @@ const StepContent = ({
                 <p className="text-red-500 text-xs mt-1">{errors.blogs?.topics?.message}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
-                {topicsToShow.map((topic, reversedIndex) => {
+                {topicsToShow.map((topic: any, reversedIndex: any) => {
                   const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
                   return (
                     <span
@@ -414,7 +433,7 @@ const StepContent = ({
                         type="button"
                         onClick={() =>
                           setField("blogs.topics", (newJob.blogs?.topics || []).filter(
-                                (_, i) => i !== actualIndex
+                                (_: any, i: any) => i !== actualIndex
                               ))
                         }
                         className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
@@ -428,7 +447,7 @@ const StepContent = ({
                 {(newJob.blogs?.topics?.length > 18 || recentlyUploadedTopicsCount) && (
                   <button
                     type="button"
-                    onClick={() => setShowAllTopics((prev) => !prev)}
+                    onClick={() => setShowAllTopics((prev: any) => !prev)}
                     className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
                     {showAllTopics ? (
@@ -503,7 +522,7 @@ const StepContent = ({
                   <p className="text-red-500 text-xs mt-1">{errors.blogs?.keywords?.message}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                  {keywordsToShow.map((keyword, reversedIndex) => {
+                  {keywordsToShow.map((keyword: any, reversedIndex: any) => {
                     const actualIndex = (newJob.blogs.keywords?.length || 0) - 1 - reversedIndex
                     return (
                       <span
@@ -528,7 +547,7 @@ const StepContent = ({
                   {((newJob.blogs.keywords?.length || 0) > 18 || recentlyUploadedKeywordsCount) && (
                     <button
                       type="button"
-                      onClick={() => setShowAllKeywords((prev) => !prev)}
+                      onClick={() => setShowAllKeywords((prev: any) => !prev)}
                       className="text-xs font-semibold text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
@@ -607,7 +626,7 @@ const StepContent = ({
                 </button>
               </div>
               <div className="flex flex-col gap-2 mt-2">
-                {newJob.blogs?.references?.map((ref, idx) => (
+                {newJob.blogs?.references?.map((ref: any, idx: any) => (
                   <div
                     key={ref}
                     className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded text-xs text-blue-600 truncate"
@@ -616,7 +635,7 @@ const StepContent = ({
                     <button
                       type="button"
                       onClick={() =>
-                        setField("blogs.references", (newJob.blogs?.references || []).filter((_, i) => i !== idx))
+                        setField("blogs.references", (newJob.blogs?.references || []).filter((_: any, i: any) => i !== idx))
                       }
                       className="ml-2 text-red-400 hover:text-red-600"
                     >
@@ -780,7 +799,7 @@ const StepContent = ({
                         setField(
                           "schedule.daysOfWeek",
                           newJob.schedule.daysOfWeek?.includes(i)
-                            ? newJob.schedule.daysOfWeek.filter((day) => day !== i)
+                            ? newJob.schedule.daysOfWeek.filter((day: any) => day !== i)
                             : [...(newJob.schedule.daysOfWeek || []), i]
                         )
                         clearErrors("schedule.daysOfWeek")
@@ -816,7 +835,7 @@ const StepContent = ({
                         setField(
                           "schedule.daysOfMonth",
                           newJob.schedule.daysOfMonth?.includes(date)
-                            ? newJob.schedule.daysOfMonth.filter((d) => d !== date)
+                            ? newJob.schedule.daysOfMonth.filter((d: any) => d !== date)
                             : [...(newJob.schedule.daysOfMonth || []), date]
                         )
                         clearErrors("schedule.daysOfMonth")

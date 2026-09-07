@@ -65,7 +65,7 @@ const KeywordResearch = () => {
       ...new Set(
         initial
           .split(/[,\t\n\r;]+/)
-          .map((k) => k.trim())
+          .map((k: any) => k.trim())
           .filter(Boolean)
       ),
     ].slice(0, KEYWORD_LIMIT)
@@ -74,8 +74,8 @@ const KeywordResearch = () => {
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [autoSelectVisible, setAutoSelectVisible] = useState(false)
   const [showAdvancedBlogModal, setShowAdvancedBlogModal] = useState(false)
-  const [sorting, setSorting] = useState([])
-  const [rowSelection, setRowSelection] = useState({})
+  const [sorting, setSorting] = useState<any[]>([])
+  const [rowSelection, setRowSelection] = useState<any>({})
 
   const navigate = useNavigate()
   const { openJobModal } = useJobStore()
@@ -108,7 +108,7 @@ const KeywordResearch = () => {
       ...new Set(
         initial
           .split(/[,\t\n\r;]+/)
-          .map((k) => k.trim())
+          .map((k: any) => k.trim())
           .filter(Boolean)
       ),
     ]
@@ -117,7 +117,7 @@ const KeywordResearch = () => {
     }
   }, [location.state?.transferValue])
 
-  const mergeKeywordsWithLimit = (incomingKeywords) => {
+  const mergeKeywordsWithLimit = (incomingKeywords: any) => {
     const seen = new Set()
     const mergedKeywords = [...keywords, ...incomingKeywords].filter((keyword) => {
       const normalizedKeyword = keyword.toLowerCase()
@@ -134,7 +134,7 @@ const KeywordResearch = () => {
     return mergedKeywords
   }
 
-  const addKeyword = (forcedValue) => {
+  const addKeyword = (forcedValue: any) => {
     const input = typeof forcedValue === "string" ? forcedValue.trim() : newKeyword.trim()
     if (!input) return
 
@@ -158,7 +158,7 @@ const KeywordResearch = () => {
     }
   }
 
-  const handlePasteKeywords = (e) => {
+  const handlePasteKeywords = (e: any) => {
     extractKeywordsFromClipboard(e, {
       type: "keywords",
       cb: (items) => {
@@ -168,7 +168,7 @@ const KeywordResearch = () => {
     })
   }
 
-  const removeKeyword = (index) => {
+  const removeKeyword = (index: any) => {
     const keywordToRemove = keywords[index]
     const updatedKeywords = keywords.filter((_, i) => i !== index)
     setKeywords(updatedKeywords)
@@ -188,7 +188,7 @@ const KeywordResearch = () => {
     }
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: any) => {
     if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
@@ -286,7 +286,7 @@ const KeywordResearch = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  const proceedWithSelectedKeywords = async (type) => {
+  const proceedWithSelectedKeywords = async (type: any) => {
     const finalKeywords = selectedKeywords?.allKeywords || []
     setSelectedKeywords({
       focusKeywords: finalKeywords.slice(0, 3),
@@ -336,8 +336,8 @@ const KeywordResearch = () => {
             (currentPage - 1) * REAL_PAGE_SIZE,
             currentPage * REAL_PAGE_SIZE
           )
-          const pageKeywords = pageRows.map((r) => r.id)
-          const selectedOnPage = pageKeywords.filter((k) => stateSelection[k])
+          const pageKeywords = pageRows.map((r: any) => r.id)
+          const selectedOnPage = pageKeywords.filter((k: any) => stateSelection[k])
           const isAllPageSelected =
             pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
           const isSomePageSelected =
@@ -350,7 +350,7 @@ const KeywordResearch = () => {
                 if (value) {
                   // Select only current page keywords
                   const nextSelection = { ...stateSelection }
-                  pageKeywords.forEach((k) => {
+                  pageKeywords.forEach((k: any) => {
                     nextSelection[k] = true
                   })
                   table.setRowSelection(nextSelection)
@@ -374,7 +374,7 @@ const KeywordResearch = () => {
       {
         accessorKey: "competition",
         header: "Difficulty",
-        sortingFn: (rowA, rowB, columnId) => {
+        sortingFn: (rowA: any, rowB: any, columnId: any) => {
           const order = { low: 1, medium: 2, high: 3, hard: 3 }
           const valA = order[String(rowA.getValue(columnId)).toLowerCase()] || 0
           const valB = order[String(rowB.getValue(columnId)).toLowerCase()] || 0
@@ -458,7 +458,7 @@ const KeywordResearch = () => {
     .getSortedRowModel()
     .rows.slice((currentPage - 1) * REAL_PAGE_SIZE, currentPage * REAL_PAGE_SIZE)
 
-  const handlePageChange = (page) => setCurrentPage(page)
+  const handlePageChange = (page: any) => setCurrentPage(page)
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {

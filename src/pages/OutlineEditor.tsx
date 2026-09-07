@@ -21,7 +21,7 @@ const OutlineEditor = () => {
   const { user } = useAuthStore()
   const { createOutline } = useContentStore()
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState([])
+  const [selectedTemplate, setSelectedTemplate] = useState<any[]>([])
   const [showAllKeywords, setShowAllKeywords] = useState(false)
   const [isOpen, setIsOpen] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,7 +48,7 @@ const OutlineEditor = () => {
     template: false,
     resources: false,
   })
-  const [markdownContent, setMarkdownContent] = useState(null)
+  const [markdownContent, setMarkdownContent] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("edit")
 
   const { data: brands = [] } = brandsQuery.useList()
@@ -92,23 +92,23 @@ const OutlineEditor = () => {
     setCurrentStep((prev) => prev + 1)
   }
 
-  const handlePackageSelect = useCallback((temps) => {
+  const handlePackageSelect = useCallback((temps: any) => {
     setSelectedTemplate(temps)
     setFormData((prev) => ({ ...prev, template: temps?.[0]?.name || "" }))
     setErrors((prev) => ({ ...prev, template: false }))
   }, [])
 
-  const handleInputChange = (e, key) => {
+  const handleInputChange = (e: any, key: any) => {
     setFormData((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = (value) => {
+  const handleSelectChange = (value: any) => {
     setFormData((prev) => ({ ...prev, tone: value }))
     setErrors((prev) => ({ ...prev, tone: false }))
   }
 
-  const handleKeywordInputChange = (e, type) => {
+  const handleKeywordInputChange = (e: any, type: any) => {
     const key =
       type === "keywords"
         ? "keywordInput"
@@ -119,7 +119,7 @@ const OutlineEditor = () => {
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = (type, forcedValue = null) => {
+  const handleAddKeyword = (type: any, forcedValue = null) => {
     const inputKey =
       type === "keywords"
         ? "keywordInput"
@@ -139,7 +139,7 @@ const OutlineEditor = () => {
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map((k: any) => k.trim().toLowerCase()))
     const newItems = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) {
@@ -190,20 +190,20 @@ const OutlineEditor = () => {
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
-  const handleRemoveKeyword = (index, type) => {
+  const handleRemoveKeyword = (index: any, type: any) => {
     const updatedItems = [...formData[type]]
     updatedItems.splice(index, 1)
     setFormData({ ...formData, [type]: updatedItems })
   }
 
-  const handleKeyPress = (e, type) => {
+  const handleKeyPress = (e: any, type: any) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
     }
   }
 
-  const handlePasteKeywords = (event, type) => {
+  const handlePasteKeywords = (event: any, type: any) => {
     extractKeywordsFromClipboard(event, {
       type,
       cb: (items) => {
@@ -212,7 +212,7 @@ const OutlineEditor = () => {
     })
   }
 
-  const handleBrandSelect = (brandId) => {
+  const handleBrandSelect = (brandId: any) => {
     setFormData((prev) => ({ ...prev, brandId: prev.brandId === brandId ? null : brandId }))
   }
 
@@ -276,7 +276,7 @@ const OutlineEditor = () => {
     URL.revokeObjectURL(url)
   }
 
-  const handleContentChange = (e) => {
+  const handleContentChange = (e: any) => {
     setMarkdownContent(e.target.value)
   }
 

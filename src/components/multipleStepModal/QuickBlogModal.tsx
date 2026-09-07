@@ -27,7 +27,13 @@ import {
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 // Quick Blog Modal Component - Updated pricing calculation
-const QuickBlogModal = ({ type = "quick", closeFnc }) => {
+const QuickBlogModal = ({
+  type = "quick",
+  closeFnc,
+}: {
+  type?: string
+  closeFnc: () => void
+}) => {
   const [currentStep, setCurrentStep] = useState(0)
 
   // Form state and its validation both live in `quickBlogFormSchema`; the payload is
@@ -54,7 +60,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
    * them — they never pop up while the form is still being filled in.
    */
   const setField = useCallback(
-    (name, value) =>
+    (name: any, value: any) =>
       setValue(name, value, {
         shouldValidate: !!getFieldState(name).error,
         shouldDirty: true,
@@ -64,7 +70,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   /** Writes several fields at once — the shape `AdvancedOptions` expects. */
   const applyUpdates = useCallback(
-    (updates) => {
+    (updates: any) => {
       for (const [name, value] of Object.entries(updates)) setField(name, value)
     },
     [setField]
@@ -134,7 +140,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     closeFnc()
   }
 
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     const { name, value } = e.target
     setField(name, value)
   }
@@ -199,22 +205,22 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle template selection
   const handlePackageSelect = useCallback(
-    (templates) => {
+    (templates: any) => {
       setField("template", templates?.[0]?.name ?? null)
-      setField("templateIds", templates?.map((t) => t.id) ?? [])
+      setField("templateIds", templates?.map((t: any) => t.id) ?? [])
     },
     [setField]
   )
 
   // Handle keyword input changes
-  const handleKeywordInputChange = (e, type) => {
+  const handleKeywordInputChange = (e: any, type: any) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     setField(key, e.target.value)
     clearErrors(type)
   }
 
   // Add keywords to the form data
-  const handleAddKeyword = (type, forcedValue = null) => {
+  const handleAddKeyword = (type: any, forcedValue = null) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     const seen = new Set()
     const rawItems = Array.isArray(forcedValue)
@@ -229,7 +235,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map((k: any) => k.trim().toLowerCase()))
     const newKeywords = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
@@ -256,7 +262,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle Clipboard Paste for Keywords
-  const handlePasteKeywords = (e, type) => {
+  const handlePasteKeywords = (e: any, type: any) => {
     extractKeywordsFromClipboard(e, {
       type,
       cb: (items, fieldType) => handleAddKeyword(fieldType, items),
@@ -264,14 +270,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Remove a keyword
-  const handleRemoveKeyword = (index, type) => {
+  const handleRemoveKeyword = (index: any, type: any) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setField(type, updatedKeywords)
   }
 
   // Handle Enter key for keywords
-  const handleKeyPress = (e, type) => {
+  const handleKeyPress = (e: any, type: any) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
@@ -279,7 +285,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Extract YouTube video ID from URL
-  const getVideoId = (url) => {
+  const getVideoId = (url: any) => {
     try {
       const parsed = new URL(url)
       const hostname = parsed.hostname.toLowerCase().replace("www.", "")
@@ -312,7 +318,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Validate URL for reference links
-  const validateUrl = (url) => {
+  const validateUrl = (url: any) => {
     switch (type) {
       case "yt": {
         const videoId = getVideoId(url)
@@ -384,7 +390,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle Enter key for links
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: any) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddLink()
@@ -392,7 +398,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Remove a reference link
-  const handleRemoveLink = (index) => {
+  const handleRemoveLink = (index: any) => {
     const updatedLinks = [...otherLinks]
     updatedLinks.splice(index, 1)
     setField("otherLinks", updatedLinks)

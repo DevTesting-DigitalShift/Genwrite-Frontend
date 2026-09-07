@@ -11,6 +11,26 @@ import { computeCost } from "@/data/pricingConfig"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+import type { IntegrationsPayload } from "@store/useIntegrationStore"
+
+/** The regenerate form is assembled by the caller and indexed by field name here
+ *  (keywords / focusKeywords), so it keeps an index signature. */
+interface RegenerateForm {
+  keywords: string[]
+  focusKeywords: string[]
+  options: Record<string, any>
+  [key: string]: any
+}
+
+interface RegenerateModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: () => void
+  isRegenerating: boolean
+  regenForm: RegenerateForm
+  updateRegenField: (field: string, value: unknown) => void
+  integrations?: IntegrationsPayload
+}
 
 const RegenerateModal = ({
   isOpen,
@@ -20,7 +40,7 @@ const RegenerateModal = ({
   regenForm,
   updateRegenField,
   integrations,
-}) => {
+}: RegenerateModalProps) => {
   const _navigate = useNavigate()
   const [regenerateStep, setRegenerateStep] = useState(1)
   const [keywordInput, setKeywordInput] = useState("")
@@ -44,15 +64,15 @@ const RegenerateModal = ({
     })
   }, [regenForm])
 
-  const addRegenKeyword = (type) => {
+  const addRegenKeyword = (type: string) => {
     const input = type === "focus" ? focusKeywordInput : keywordInput
     const field = type === "focus" ? "focusKeywords" : "keywords"
     if (!input.trim()) return
-    const existing = regenForm[field].map((k) => k.toLowerCase())
+    const existing = regenForm[field].map((k: string) => k.toLowerCase())
     const newKws = input
       .split(",")
-      .map((k) => k.trim().toLowerCase())
-      .filter((k) => k && !existing.includes(k))
+      .map((k: string) => k.trim().toLowerCase())
+      .filter((k: string) => k && !existing.includes(k))
     if (type === "focus" && regenForm.focusKeywords.length + newKws.length > 3) {
       return toast.warning("Max 3 focus keywords")
     }
@@ -60,15 +80,18 @@ const RegenerateModal = ({
     type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
   }
 
-  const handlePasteKeywords = (event, type) => {
+  const handlePasteKeywords = (
+    event: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    type: string
+  ) => {
     extractKeywordsFromClipboard(event, {
       type,
-      cb: (items) => {
+      cb: (items: string[]) => {
         const field = type === "focus" ? "focusKeywords" : "keywords"
-        const existing = new Set(regenForm[field].map((keyword) => keyword.toLowerCase()))
+        const existing = new Set(regenForm[field].map((keyword: string) => keyword.toLowerCase()))
         const newKeywords = items
-          .map((keyword) => keyword.trim().toLowerCase())
-          .filter((keyword) => keyword && !existing.has(keyword))
+          .map((keyword: string) => keyword.trim().toLowerCase())
+          .filter((keyword: string) => keyword && !existing.has(keyword))
 
         if (newKeywords.length === 0) return
 
@@ -88,11 +111,11 @@ const RegenerateModal = ({
     })
   }
 
-  const removeRegenKeyword = (type, index) => {
+  const removeRegenKeyword = (type: string, index: number) => {
     const field = type === "focus" ? "focusKeywords" : "keywords"
     updateRegenField(
       field,
-      regenForm[field].filter((_, i) => i !== index)
+      regenForm[field].filter((_: string, i: number) => i !== index)
     )
   }
 
@@ -378,7 +401,6 @@ const RegenerateModal = ({
               {/* Brand Voice - Moved to Step 2 */}
               <BrandVoiceSelector
                 label="Write with Brand Voice"
-                size="large"
                 labelClass="text-sm font-semibold "
                 value={{
                   isCheckedBrand: regenForm.isCheckedBrand,

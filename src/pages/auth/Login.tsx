@@ -31,15 +31,15 @@ import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
 
-const Auth = ({ path }) => {
+const Auth = ({ path }: { path?: string }) => {
   const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState<any>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [recaptchaValue, setRecaptchaValue] = useState(null)
-  const recaptchaRef = useRef(null)
+  const [recaptchaValue, setRecaptchaValue] = useState<any>(null)
+  const recaptchaRef = useRef<any>(null)
 
   const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
@@ -90,22 +90,22 @@ const Auth = ({ path }) => {
   }, [formData, isSignup, termsAccepted, recaptchaValue])
 
   // Handle input changes with debounced validation
-  const handleInputChange = useCallback((e) => {
+  const handleInputChange = useCallback((e: any) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear specific error when user starts typing
-    setErrors((prev) => ({ ...prev, [name]: undefined }))
+    setErrors((prev: any) => ({ ...prev, [name]: undefined }))
   }, [])
 
   // Handle terms checkbox
   const handleTermsChange = useCallback(() => {
     setTermsAccepted((prev) => !prev)
-    setErrors((prev) => ({ ...prev, terms: undefined }))
+    setErrors((prev: any) => ({ ...prev, terms: undefined }))
   }, [])
 
-  const onRecaptchaChange = (value) => {
+  const onRecaptchaChange = (value: any) => {
     setRecaptchaValue(value)
-    setErrors((prev) => ({ ...prev, recaptcha: undefined }))
+    setErrors((prev: any) => ({ ...prev, recaptcha: undefined }))
   }
 
   const handleGoogleLogin = useGoogleLogin({
@@ -156,7 +156,7 @@ const Auth = ({ path }) => {
   })
 
   const handleSubmit = useCallback(
-    async (e) => {
+    async (e: any) => {
       e.preventDefault()
       if (atSessionLimit) {
         toast.error(SESSION_LIMIT_MESSAGE)

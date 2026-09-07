@@ -37,11 +37,25 @@ import { toast } from "sonner"
 const PAGE_SIZE = 12
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => {
+interface JobListViewProps {
+  data?: any[]
+  onEdit: (job: any) => void
+  onToggleStatus: (job: any) => void
+  onDelete: (job: any) => void
+  isToggling?: boolean
+}
+
+const JobListView = ({
+  data,
+  onEdit,
+  onToggleStatus,
+  onDelete,
+  isToggling,
+}: JobListViewProps) => {
   const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [expandedRows, setExpandedRows] = useState(new Set())
 
-  const toggleExpand = (id) => {
+  const toggleExpand = (id: any) => {
     setExpandedRows((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -49,13 +63,13 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     })
   }
 
-  const renderTags = (arr, jobId, limit = 2) => {
+  const renderTags = (arr: any, jobId: any, limit = 2) => {
     if (!arr?.length) return <span className="text-slate-300 text-xs">—</span>
     const display = arr.slice(0, limit)
     const remaining = arr.length - limit
     return (
       <div className="flex flex-wrap gap-1">
-        {display.map((item) => (
+        {display.map((item: any) => (
           <span
             key={item}
             className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-medium border border-indigo-100 wrap-break-word max-w-[150px]"
@@ -79,7 +93,7 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
     )
   }
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: any) => {
     if (!dateStr) return <span className="text-slate-300 italic text-[11px]">Never</span>
     try {
       const d = new Date(dateStr)
@@ -129,12 +143,12 @@ const JobListView = ({ data, onEdit, onToggleStatus, onDelete, isToggling }) => 
             </tr>
           </thead>
           <tbody>
-            {data.map((job) => {
+            {(data ?? []).map((job: any) => {
               const isExpanded = expandedRows.has(job._id)
               const schedule = job.schedule || {}
               const scheduleDayStr =
                 schedule.type === "weekly" && schedule.daysOfWeek?.length
-                  ? schedule.daysOfWeek.map((d) => DAY_NAMES[d]).join(", ")
+                  ? schedule.daysOfWeek.map((d: any) => DAY_NAMES[d]).join(", ")
                   : null
 
               return (
@@ -312,8 +326,8 @@ const Jobs = () => {
   const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
   const _totalBlogsGenerated = useMemo(() => {
     return queryJobs
-      .filter((j) => !j.isArchived)
-      .reduce((acc, job) => acc + (job.blogStats?.totalCreated ?? 0), 0)
+      .filter((j: any) => !j.isArchived)
+      .reduce((acc: any, job: any) => acc + (job.blogStats?.totalCreated ?? 0), 0)
   }, [queryJobs])
 
   const usage = user?.usage?.createdJobs || 0
@@ -324,7 +338,7 @@ const Jobs = () => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    const handleJobChange = (data, _eventType) => {
+    const handleJobChange = (data: any, _eventType: any) => {
       if (
         (data?.status === "stop" || data?.status === "stopped") &&
         data?.reason?.toLowerCase().includes("insufficient credits")
@@ -335,7 +349,7 @@ const Jobs = () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     }
 
-    const handleUsageUpdate = (data) => {
+    const handleUsageUpdate = (data: any) => {
       if (data?.usage) {
         updateUserPartial({ usage: data.usage })
       }
@@ -382,7 +396,7 @@ const Jobs = () => {
   }, [checkJobLimit, openJobModal, guardWrite])
 
   const handleEditJob = useCallback(
-    (job) => {
+    (job: any) => {
       openJobModal(job)
     },
     [openJobModal]
@@ -393,12 +407,12 @@ const Jobs = () => {
     toast.success("Jobs list refreshed")
   }
 
-  const activeJobsCount = queryJobs.filter((j) => j.status === "active").length
-  const stoppedJobsCount = queryJobs.filter((j) => j.status !== "active").length
+  const activeJobsCount = queryJobs.filter((j: any) => j.status === "active").length
+  const stoppedJobsCount = queryJobs.filter((j: any) => j.status !== "active").length
 
   const filteredJobs = useMemo(() => {
     return queryJobs.filter(
-      (job) =>
+      (job: any) =>
         job.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         job._id?.toString().includes(searchQuery)
     )
@@ -618,7 +632,7 @@ const Jobs = () => {
               </div>
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {paginatedJobs.map((job) => (
+                {paginatedJobs.map((job: any) => (
                   <JobCard
                     key={job._id}
                     job={job}
@@ -633,10 +647,10 @@ const Jobs = () => {
                 data={paginatedJobs}
                 onEdit={handleEditJob}
                 isToggling={isToggling}
-                onToggleStatus={(job) => {
+                onToggleStatus={(job: any) => {
                   toggleStatus({ jobId: job._id, currentStatus: job.status })
                 }}
-                onDelete={(job) => {
+                onDelete={(job: any) => {
                   handlePopup({
                     title: "Terminate Job",
                     description: `This action will permanently remove the pipeline "${job.name}". Are you sure?`,

@@ -57,7 +57,7 @@ import { Node } from "@tiptap/core"
 import useAuthStore from "@store/useAuthStore"
 
 const renderer = {
-  heading({ text, depth: level }) {
+  heading({ text, depth: level }: { text: string; depth: number }) {
     const slug = String(text)
       .toLowerCase()
       .replace(/[^\w]+/g, "-")
@@ -75,7 +75,21 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMode = false }) => {
+interface TipTapEditorProps {
+  blog?: any
+  content?: string
+  setContent: (content: string) => void
+  setUnsavedChanges: (unsaved: boolean) => void
+  isPublicMode?: boolean
+}
+
+const TipTapEditor = ({
+  blog,
+  content,
+  setContent,
+  setUnsavedChanges,
+  isPublicMode = false,
+}: TipTapEditorProps) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -84,11 +98,11 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
   const [tableOptionsOpen, setTableOptionsOpen] = useState(false)
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
-  const tableButtonRef = useRef(null)
+  const tableButtonRef = useRef<any>(null)
   const [linkUrl, setLinkUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
-  const [editingImageSrc, setEditingImageSrc] = useState(null)
+  const [editingImageSrc, setEditingImageSrc] = useState<any>(null)
 
   // Unified Image Modal State
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -107,13 +121,13 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   })
 
   const [editorReady, setEditorReady] = useState(false)
-  const [linkPreview, setLinkPreview] = useState(null)
-  const [linkPreviewPos, setLinkPreviewPos] = useState(null)
-  const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
-  const [linkPreviewElement, setLinkPreviewElement] = useState(null)
-  const hideTimeout = useRef(null)
+  const [linkPreview, setLinkPreview] = useState<any>(null)
+  const [linkPreviewPos, setLinkPreviewPos] = useState<any>(null)
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState<any>(null)
+  const [linkPreviewElement, setLinkPreviewElement] = useState<any>(null)
+  const hideTimeout = useRef<any>(null)
   const previewCache = useRef({})
-  const previewRef = useRef(null)
+  const previewRef = useRef<any>(null)
   const [lastSavedContent, setLastSavedContent] = useState("")
   const lastSavedContentRef = useRef(lastSavedContent)
   // Force re-render on editor state changes (selection, formatting, etc.)
@@ -132,7 +146,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
     lastSavedContentRef.current = lastSavedContent
   }, [lastSavedContent])
 
-  const normalizeContent = useCallback((str) => str.replace(/\s+/g, " ").trim(), [])
+  const normalizeContent = useCallback((str: any) => str.replace(/\s+/g, " ").trim(), [])
   const _safeContent = content ?? blog?.content ?? ""
 
   // ... (markdownToHtml and htmlToMarkdown unchanged - lines 104-142 in original file logic but we are skipping context for brevity in thought, ensuring we only replace what effectively changes or include surrounding lines if needed for context match)
@@ -141,7 +155,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   // Let's rewrite the `useEditor` call and the new Ref setup.
   // I will just perform the specific edits.
 
-  const markdownToHtml = useCallback((markdown) => {
+  const markdownToHtml = useCallback((markdown: any) => {
     if (!markdown) return "<p></p>"
     const trimmed = markdown.trim()
 
@@ -161,7 +175,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
       ? markdown
       : marked.parse(
           markdown
-            .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
+            .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_: any, alt: any, url: any) => `![${alt}](${url})`)
             .replace(/'/g, "'"),
           { gfm: true, breaks: true }
         )
@@ -192,7 +206,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
     })
   }, [])
 
-  const htmlToMarkdown = useCallback((html) => {
+  const htmlToMarkdown = useCallback((html: any) => {
     if (!html) return ""
     const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
     turndownService.keep([
@@ -212,7 +226,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   }, [])
 
   const handleLinkHover = useCallback(
-    (event) => {
+    (event: any) => {
       const link = event.target.closest("a")
       if (!link) return
 
@@ -231,14 +245,14 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
       // Initial position (will be refined by useLayoutEffect)
       setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
 
-      setLinkPreviewUrl((currentUrl) => {
+      setLinkPreviewUrl((currentUrl: any) => {
         if (currentUrl === url) return currentUrl
         return url
       })
       setLinkPreviewElement(link)
 
       if (previewCache.current[url]) {
-        setLinkPreview((prev) =>
+        setLinkPreview((prev: any) =>
           prev === previewCache.current[url] ? prev : previewCache.current[url]
         )
         if (previewCache.current[url].loading) return
@@ -254,7 +268,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
         .then((data) => {
           previewCache.current[url] = data
           // Check if we are still looking for THIS url
-          setLinkPreviewUrl((current) => {
+          setLinkPreviewUrl((current: any) => {
             if (current === url) {
               setLinkPreview(data)
             }
@@ -264,7 +278,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
         .catch((err) => {
           console.error("Link preview error:", err)
           previewCache.current[url] = { error: true, url }
-          setLinkPreviewUrl((current) => {
+          setLinkPreviewUrl((current: any) => {
             if (current === url) {
               setLinkPreview({ error: true, url })
             }
@@ -450,7 +464,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   }, [])
 
   const handleEditLinkAction = useCallback(
-    (e) => {
+    (e: any) => {
       e.preventDefault()
       e.stopPropagation()
       if (!normalEditor || !linkPreviewElement) return
@@ -479,7 +493,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   )
 
   const handleRemoveLinkAction = useCallback(
-    (e) => {
+    (e: any) => {
       e.preventDefault()
       e.stopPropagation()
       if (!normalEditor || !linkPreviewElement) return
@@ -558,7 +572,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   }, [linkPreview, linkPreviewElement, linkPreviewPos])
 
   const safeEditorAction = useCallback(
-    (action) => {
+    (action: any) => {
       if (blog?.isArchived) {
         toast.error("This blog is archived. Please restore it to perform this action.")
         return
@@ -588,7 +602,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
     })
   }, [safeEditorAction])
 
-  const _handleSelectFromGallery = useCallback((url, alt) => {
+  const _handleSelectFromGallery = useCallback((url: any, alt: any) => {
     setImageUrl(url)
     setImageAlt(alt)
     setShowGalleryPicker(false)
@@ -690,7 +704,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   }
 
   const handleImageClick = useCallback(
-    (event) => {
+    (event: any) => {
       if (blog?.isArchived || isPublicMode) return
       if (event.target.tagName === "IMG") {
         const { src, alt } = event.target
@@ -713,7 +727,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
   }, [safeEditorAction])
 
   const handleTableSelect = useCallback(
-    (rows, cols) => {
+    (rows: any, cols: any) => {
       if (blog?.isArchived) {
         toast.error("This blog is archived. Please restore it to perform this action.")
         return
@@ -763,7 +777,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: any) => {
       if (
         tableDropdownOpen &&
         tableButtonRef.current &&
@@ -859,7 +873,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
 
   // Listen for Highlight Section events from Sidebar
   useEffect(() => {
-    const handleHighlight = (event) => {
+    const handleHighlight = (event: any) => {
       const sectionId = event.detail
       if (!normalEditor) return
 
@@ -1479,7 +1493,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                   >
                     <Sparkles className="w-3 h-3" /> Enhance Image
                     <span className="text-[10px] bg-purple-200 px-1 rounded ml-1 text-purple-700">
-                      {COSTS.ENHANCE} credits
+                      {COSTS.IMAGE.ENHANCE} credits
                     </span>
                   </button>
                 )}
@@ -1590,8 +1604,8 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                             return
                           }
                           const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.GENERATE) {
-                            toast.error(`Insufficient credits. Need ${COSTS.GENERATE} credits.`)
+                          if (credits < COSTS.IMAGE.GENERATE) {
+                            toast.error(`Insufficient credits. Need ${COSTS.IMAGE.GENERATE} credits.`)
                             return
                           }
                           if (!genForm.prompt.trim()) {
@@ -1614,7 +1628,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                           }
                         }}
                       >
-                        <Sparkles className="w-3 h-3 mr-1" /> Generate ({COSTS.GENERATE}c)
+                        <Sparkles className="w-3 h-3 mr-1" /> Generate ({COSTS.IMAGE.GENERATE}c)
                       </button>
                     </div>
                   </div>
@@ -1629,7 +1643,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                         <Sparkles className="w-4 h-4 text-purple-600" /> Enhance Settings
                       </h3>
                       <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
-                        {COSTS.ENHANCE} credits
+                        {COSTS.IMAGE.ENHANCE} credits
                       </span>
                     </div>
                     <div>
@@ -1718,8 +1732,8 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                             return
                           }
                           const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.ENHANCE) {
-                            toast.error(`Insufficient credits. Need ${COSTS.ENHANCE} credits.`)
+                          if (credits < COSTS.IMAGE.ENHANCE) {
+                            toast.error(`Insufficient credits. Need ${COSTS.IMAGE.ENHANCE} credits.`)
                             return
                           }
                           if (!enhanceForm.prompt.trim()) {
@@ -1783,9 +1797,9 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                               onClick={async () => {
                                 const credits =
                                   (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                                if (credits < COSTS.ALT_TEXT) {
+                                if (credits < COSTS.IMAGE.ALT_TEXT) {
                                   toast.error(
-                                    `Insufficient credits. Need ${COSTS.ALT_TEXT} credits.`
+                                    `Insufficient credits. Need ${COSTS.IMAGE.ALT_TEXT} credits.`
                                   )
                                   return
                                 }
@@ -1805,7 +1819,7 @@ const TipTapEditor = ({ blog, content, setContent, setUnsavedChanges, isPublicMo
                             >
                               <Sparkles className="w-3 h-3" /> Generate
                               <span className="text-[10px] bg-gray-100 px-1 rounded text-gray-500">
-                                {COSTS.ALT_TEXT} credits
+                                {COSTS.IMAGE.ALT_TEXT} credits
                               </span>
                             </button>
                           </div>

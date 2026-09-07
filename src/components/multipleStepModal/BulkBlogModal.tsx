@@ -30,7 +30,7 @@ import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
-const BulkBlogModal = ({ closeFnc }) => {
+const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   const { user } = useAuthStore()
   const { integrations, fetchIntegrations } = useIntegrationStore()
   const navigate = useNavigate()
@@ -41,11 +41,11 @@ const BulkBlogModal = ({ closeFnc }) => {
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
   const _isAiImagesLimitReached = (user?.usage?.aiImages || 0) >= (user?.usageLimits?.aiImages || 0)
-  const fileInputRef = useRef(null)
+  const fileInputRef = useRef<any>(null)
 
   const [currentStep, setCurrentStep] = useState(0)
-  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
-  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
+  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState<any>(null)
+  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState<any>(null)
 
   // Form state and its validation both live in `bulkBlogFormSchema`; the request body
   // is derived from it by `toBulkBlogPayload`, so UI-only state (the raw topic and
@@ -71,7 +71,7 @@ const BulkBlogModal = ({ closeFnc }) => {
    * them — they never pop up while the form is still being filled in.
    */
   const setField = useCallback(
-    (name, value) =>
+    (name: any, value: any) =>
       setValue(name, value, {
         shouldValidate: !!getFieldState(name).error,
         shouldDirty: true,
@@ -81,13 +81,13 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   /** Sets or clears one message — an empty string means "this is fine now". */
   const setFieldError = useCallback(
-    (name, message) => (message ? setError(name, { message }) : clearErrors(name)),
+    (name: any, message: any) => (message ? setError(name, { message }) : clearErrors(name)),
     [setError, clearErrors]
   )
 
   /** Writes several fields at once — the shape `AdvancedOptions` expects. */
   const applyUpdates = useCallback(
-    (updates) => {
+    (updates: any) => {
       for (const [name, value] of Object.entries(updates)) setField(name, value)
     },
     [setField]
@@ -247,20 +247,20 @@ const BulkBlogModal = ({ closeFnc }) => {
   )
 
   const handlePackageSelect = useCallback(
-    (templates) => {
+    (templates: any) => {
       setField(
         "templates",
-        templates.map((t) => t.name)
+        templates.map((t: any) => t.name)
       )
       setField(
         "templateIds",
-        templates.map((t) => t.id)
+        templates.map((t: any) => t.id)
       )
     },
     [setField]
   )
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
 
     let val
@@ -297,7 +297,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = (e: any) => {
     const { name, checked } = e.target
     setField(name, checked)
     if (name === "performKeywordResearch") {
@@ -305,17 +305,17 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const handleTopicInputChange = (e) => {
+  const handleTopicInputChange = (e: any) => {
     setField("topicInput", e.target.value)
     clearErrors(["topics", "topicsCSV"])
   }
 
-  const handleKeywordInputChange = (e) => {
+  const handleKeywordInputChange = (e: any) => {
     setField("keywordInput", e.target.value)
     clearErrors(["keywords", "keywordsCSV"])
   }
 
-  const handlePasteItems = (e, type) => {
+  const handlePasteItems = (e: any, type: any) => {
     extractKeywordsFromClipboard(e, {
       type,
       cb: (items) => {
@@ -328,7 +328,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     })
   }
 
-  const handleAddTopic = (inputValueOrItems) => {
+  const handleAddTopic = (inputValueOrItems: any) => {
     const seen = new Set()
     const rawItems = Array.isArray(inputValueOrItems)
       ? inputValueOrItems
@@ -382,7 +382,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     return true
   }
 
-  const handleRemoveTopic = (index) => {
+  const handleRemoveTopic = (index: any) => {
     setField(
       "topics",
       formData.topics.filter((_, i) => i !== index)
@@ -390,7 +390,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     clearErrors(["topics", "topicsCSV"])
   }
 
-  const handleAddKeyword = (inputValueOrItems) => {
+  const handleAddKeyword = (inputValueOrItems: any) => {
     const seen = new Set()
     const rawItems = Array.isArray(inputValueOrItems)
       ? inputValueOrItems
@@ -422,7 +422,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     return true
   }
 
-  const handleRemoveKeyword = (index) => {
+  const handleRemoveKeyword = (index: any) => {
     setField(
       "keywords",
       formData.keywords.filter((_, i) => i !== index)
@@ -430,7 +430,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     clearErrors(["keywords", "keywordsCSV"])
   }
 
-  const handleTopicKeyPress = (e) => {
+  const handleTopicKeyPress = (e: any) => {
     if (e.key === "Enter") {
       e.preventDefault()
       const topicAdded = handleAddTopic()
@@ -440,17 +440,17 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const handleImageSourceChange = (source) => {
+  const handleImageSourceChange = (source: any) => {
     setField("imageSource", source)
     clearErrors(["blogImages", "numberOfImages"])
   }
 
-  const _handleIntegrationChange = (platform) => {
+  const _handleIntegrationChange = (platform: any) => {
     setField("postingType", platform)
     clearErrors("integration")
   }
 
-  const handleCSVUpload = (e) => {
+  const handleCSVUpload = (e: any) => {
     const file = e.target.files?.[0]
     if (!file) {
       setFieldError("topicsCSV", "No file selected. Please choose a valid CSV file.")
@@ -552,7 +552,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const handleCSVKeywordUpload = (e) => {
+  const handleCSVKeywordUpload = (e: any) => {
     const file = e.target.files?.[0]
     if (!file) {
       setFieldError("keywordsCSV", "No file selected. Please choose a valid CSV file.")
@@ -640,7 +640,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const validateImages = (files) => {
+  const validateImages = (files: any) => {
     const { types: allowedTypes, max_size: maxSize, max_files: maxImages } = VALID_IMAGE_CONFIG
 
     if (!files || files.length === 0) {
@@ -672,7 +672,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     return validFiles
   }
 
-  const _handleFileChange = (e) => {
+  const _handleFileChange = (e: any) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
