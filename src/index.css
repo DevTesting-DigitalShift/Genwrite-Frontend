@@ -134,6 +134,22 @@ body {
   color: #000;
 }
 
+/**
+ * Tailwind v4 changed the default border colour from gray-200 to `currentColor`, so
+ * every `border` utility written without an explicit colour started painting in the
+ * element's text colour — near-black on popovers, dialogs, cards and selects. This
+ * restores the v3 behaviour by pointing the default at the theme's `--border` token,
+ * which is what all of those components were designed against.
+ * Remove only if every bare `border` in the app has been given an explicit colour.
+ */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border, currentColor);
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }

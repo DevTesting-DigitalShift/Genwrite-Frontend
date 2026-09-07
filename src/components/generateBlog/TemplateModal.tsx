@@ -1,0 +1,509 @@
+import { asApiError } from "@/types/api"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
+import { TONES } from "@/data/blogData"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { Slider } from "@/components/ui/slider"
+import { BLOG_CONFIG } from "@/data/blogConfig"
+import useAuthStore from "@store/useAuthStore"
+import { getGeneratedTitles } from "@api/blogApi"
+import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+
+interface TemplateModalProps {
+  closeFnc?: any
+  isOpen?: boolean
+  handleSubmit?: (...args: any[]) => void
+  errors?: any
+  setErrors?: (...args: any[]) => void
+  formData?: any
+  setFormData?: (...args: any[]) => void
+}
+
+const TemplateModal = ({
+  closeFnc,
+  isOpen,
+  handleSubmit,
+  errors,
+  setErrors,
+  formData,
+  setFormData,
+}: TemplateModalProps) => {
+  const { user } = useAuthStore()
+  const [currentStep, setCurrentStep] = useState(0)
+  const [selectedTemplate, setSelectedTemplate] = useState<any[]>([])
+  const [isGeneratingTitles, setIsGeneratingTitles] = useState<any>(false)
+  const [generatedTitles, setGeneratedTitles] = useState<any[]>([])
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState<any>(false)
+  const [showAllKeywords, setShowAllKeywords] = useState<any>(false)
+
+  const visibleKeywords = showAllKeywords
+    ? formData.keywords
+    : formData.keywords.slice(0, BLOG_CONFIG.CONSTRAINTS.MAX_SECONDARY_KEYWORDS)
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [isOpen])
+
+  const handleNext = () => {
+    if (currentStep === 0 && (!selectedTemplate || selectedTemplate.length === 0)) {
+      setErrors?.((prev: any) => ({ ...prev, template: true }))
+      toast.error("Please select a template before proceeding.")
+      return
+    }
+    setErrors?.((prev: any) => ({ ...prev, template: false }))
+    setCurrentStep(1)
+  }
+
+  const handlePrev = () => setCurrentStep(0)
+
+  const handleClose = () => closeFnc()
+
+  const handlePackageSelect = useCallback((temp: any) => {
+    setSelectedTemplate(temp)
+    setFormData?.((prev: any) => ({ ...prev, template: temp?.[0]?.name || "" }))
+    setErrors?.((prev: any) => ({ ...prev, template: false }))
+  }, [setFormData, setErrors])
+
+  const handleInputChange = (e: any, key: string) => {
+    setFormData?.((prev: any) => ({ ...prev, [key]: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, [key]: false }))
+  }
+
+  const handleSelectChange = (e: any) => {
+    setFormData?.((prev: any) => ({ ...prev, tone: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, tone: false }))
+  }
+
+  const handleKeywordInputChange = (e: any, type: string) => {
+    const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
+    setFormData?.((prev: any) => ({ ...prev, [key]: e.target.value }))
+    setErrors?.((prev: any) => ({ ...prev, [type]: false }))
+  }
+
+  const handleAddKeyword = (type: string, forcedValue: string[] | null = null) => {
+    const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
+    const seen = new Set()
+    const rawItems = Array.isArray(forcedValue)
+      ? forcedValue
+      : formData[inputKey].split(/[,\t\n\r;]+/)
+    const items = rawItems
+      .map((k: any) => k.trim())
+      .filter((k: any) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+
+    if (items.length === 0) {
+      setErrors?.((prev: any) => ({ ...prev, [type]: true }))
+      toast.error("Please enter a keyword.")
+      return
+    }
+
+    const existingSet = new Set(formData[type].map((k: any) => k.trim().toLowerCase()))
+    const filteredKeywords = items.filter((k: any) => !existingSet.has(k.toLowerCase()))
+
+    if (filteredKeywords.length === 0) {
+      setErrors?.((prev: any) => ({ ...prev, [type]: true }))
+      toast.error("Please enter valid, non-duplicate keywords separated by commas.")
+      return
+    }
+
+    if (type === "focusKeywords" && formData[type].length + filteredKeywords.length > 3) {
+      const availableSlots = 3 - formData[type].length
+      if (availableSlots > 0) {
+        setFormData?.((prev: any) => ({
+          ...prev,
+          [type]: [...prev[type], ...filteredKeywords.slice(0, availableSlots)],
+          [inputKey]: "",
+        }))
+      }
+      setErrors?.((prev: any) => ({ ...prev, [type]: false }))
+      toast.error("You can only add up to 3 focus keywords.")
+      return
+    }
+
+    setFormData?.((prev: any) => ({
+      ...prev,
+      [type]: [...prev[type], ...filteredKeywords],
+      [inputKey]: "",
+    }))
+    setErrors?.((prev: any) => ({ ...prev, [type]: false }))
+  }
+
+  const handleRemoveKeyword = (index: number, type: string) => {
+    const updatedKeywords = [...formData[type]]
+    updatedKeywords.splice(index, 1)
+    setFormData?.({ ...formData, [type]: updatedKeywords })
+  }
+
+  const handleKeyPress = (e: any, type: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAddKeyword(type)
+    }
+  }
+
+  const handlePasteKeywords = (event: any, type: "keywords" | "focusKeywords") => {
+    extractKeywordsFromClipboard(event, {
+      type,
+      cb: (items: string[]) => {
+        handleAddKeyword(type, items)
+      },
+    })
+  }
+
+  const handleGenerateTitles = async () => {
+    if (!formData.topic.trim()) {
+      setErrors?.((prev: any) => ({ ...prev, topic: true }))
+      toast.error("Please enter a topic before generating titles.")
+      return
+    }
+    if (formData.focusKeywords.length < 1 && formData.keywords.length < 1) {
+      setErrors?.((prev: any) => ({ ...prev, focusKeywords: true, keywords: true }))
+      toast.error("Please add at least one focus keyword or secondary keyword.")
+      return
+    }
+
+    setIsGeneratingTitles(true)
+    try {
+      const result = await getGeneratedTitles({
+        focusKeywords: formData.focusKeywords,
+        keywords: formData.keywords,
+        topic: formData.topic,
+        template: formData.template,
+        ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
+      })
+      setGeneratedTitles(result)
+      setHasGeneratedTitles(true)
+      toast.success("Titles generated successfully!")
+    } catch (rawError) {
+      const error = asApiError(rawError)
+      console.error("Failed to generate titles:", error)
+      toast.error(error?.message || "Failed to generate titles. Please try again.")
+    } finally {
+      setIsGeneratingTitles(false)
+    }
+  }
+
+  useEffect(() => {
+    setHasGeneratedTitles(false)
+    setGeneratedTitles([])
+  }, [])
+
+  return (
+    <dialog className={`modal ${isOpen ? "modal-open" : ""} backdrop-blur-xs`}>
+      <div className="modal-box w-11/12 max-w-3xl p-4 bg-white">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 mt-2 px-2">
+          <h3 className="text-xl font-bold">
+            {currentStep === 0 ? "Select Template" : "Create Simple Blog"}
+          </h3>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={handleClose}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-2">
+          {currentStep === 0 && (
+            <div className="p-3">
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan || "free"}
+                preSelectedIds={selectedTemplate?.map((t) => t?.id || "")}
+                onClick={handlePackageSelect}
+                error={errors.template ? "Please select a template." : ""}
+              />
+            </div>
+          )}
+
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="template-topic" className="block text-sm font-medium  mb-1">
+                  Topic <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="template-topic"
+                  type="text"
+                  value={formData.topic}
+                  onChange={(e) => handleInputChange(e, "topic")}
+                  placeholder="Enter blog topic..."
+                  className={`input input-bordered w-full ${
+                    errors.topic ? "input-error" : ""
+                  } focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
+                  aria-label="Blog topic"
+                />
+                {errors.topic && (
+                  <p className="text-red-500 text-sm mt-1">Topic cannot be empty.</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="template-tone" className="block text-sm font-medium  mb-1">
+                  Tone
+                </label>
+                <select
+                  id="template-tone"
+                  value={formData.tone}
+                  onChange={handleSelectChange}
+                  className={`select select-bordered w-full ${errors.tone ? "select-error" : ""} focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
+                  aria-label="Blog tone"
+                >
+                  {TONES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="template-focus-keywords" className="block text-sm font-medium  mb-1">
+                  Focus Keywords (max 3) <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="template-focus-keywords"
+                    type="text"
+                    value={formData.focusKeywordInput}
+                    onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
+                    onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                    onPaste={(e) => handlePasteKeywords(e, "focusKeywords")}
+                    placeholder="Enter focus keywords, separated by commas"
+                    className={`input input-bordered flex-1 ${
+                      errors.focusKeywords ? "input-error" : ""
+                    } focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
+                    aria-label="Focus keywords"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddKeyword("focusKeywords")}
+                    className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
+                    aria-label="Add focus keyword"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.focusKeywords.map((keyword: string, index: number) => (
+                    <span
+                      key={keyword}
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyword(index, "focusKeywords")}
+                        className="ml-1 text-blue-400 hover:text-blue-600"
+                        aria-label={`Remove focus keyword ${keyword}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {errors.focusKeywords && formData.focusKeywords.length === 0 && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Please add at least one focus keyword.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="template-keywords" className="block text-sm font-medium  mb-1">
+                  Keywords <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="template-keywords"
+                    type="text"
+                    value={formData.keywordInput}
+                    onChange={(e) => handleKeywordInputChange(e, "keywords")}
+                    onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                    onPaste={(e) => handlePasteKeywords(e, "keywords")}
+                    placeholder="Enter secondary keywords, separated by commas"
+                    className={`input input-bordered flex-1 ${
+                      errors.keywords ? "input-error" : ""
+                    } focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
+                    aria-label="Secondary keywords"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddKeyword("keywords")}
+                    className="w-full sm:w-auto px-6 py-2 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] transition-all"
+                    aria-label="Add keyword"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {visibleKeywords.map((keyword: string, index: number) => (
+                    <span
+                      key={keyword}
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyword(index, "keywords")}
+                        className="ml-1 text-blue-400 hover:text-blue-600"
+                        aria-label={`Remove keyword ${keyword}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    </span>
+                  ))}
+                  {formData.keywords.length > 18 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllKeywords((prev: any) => !prev)}
+                      className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                    >
+                      {showAllKeywords ? (
+                        <>Show less</>
+                      ) : (
+                        <>+{formData.keywords.length - 18} more</>
+                      )}
+                    </button>
+                  )}
+                </div>
+                {errors.keywords && formData.keywords.length === 0 && (
+                  <p className="text-red-500 text-xs mt-1">Please add secondary keywords.</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="template-title" className="block text-sm font-medium  mb-1">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-4">
+                  <input
+                    id="template-title"
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange(e, "title")}
+                    placeholder="Enter blog title..."
+                    className={`input input-bordered flex-1 ${
+                      errors.title ? "input-error" : ""
+                    } focus:ring-2 focus:ring-[#4C5BD6]/20 focus:border-[#4C5BD6] focus:outline-none`}
+                    aria-label="Blog title"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateTitles}
+                    disabled={isGeneratingTitles}
+                    className={`btn btn-primary bg-[#4C5BD6] text-white border-none rounded-md px-6 hover:bg-[#3B4BB8] transition-colors ${
+                      isGeneratingTitles ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {isGeneratingTitles ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : hasGeneratedTitles ? (
+                      <>
+                        <RefreshCcw size={16} className="mr-2" />
+                        Generate More
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} className="mr-2" />
+                        Generate Titles
+                      </>
+                    )}
+                  </button>
+                </div>
+                {generatedTitles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {generatedTitles.map((generatedTitle) => {
+                      const isSelected = generatedTitle === formData.title
+                      return (
+                        <div key={generatedTitle} className="relative group">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData?.((prev: any) => ({ ...prev, title: generatedTitle }))
+                              setErrors?.((prev: any) => ({ ...prev, title: false }))
+                            }}
+                            className={`px-3 py-1 rounded-lg text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
+                              isSelected
+                                ? "bg-[#4C5BD6] text-white border-[#4C5BD6] shadow-sm"
+                                : "bg-gray-100  border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
+                            }`}
+                            aria-label={`Select title: ${generatedTitle}`}
+                          >
+                            {generatedTitle}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              <div>
+                <span className="block text-sm font-medium  mb-1">
+                  Choose length of Blog <span className="text-red-500">*</span>
+                </span>
+                <Slider
+                  min={BLOG_CONFIG.LENGTH.MIN}
+                  max={BLOG_CONFIG.LENGTH.MAX}
+                  step={BLOG_CONFIG.LENGTH.STEP}
+                  value={[formData.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT]}
+                  onValueChange={(vals) =>
+                    handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
+                  }
+                  className="w-full"
+                />
+                <span className="mt-2 text-sm text-gray-600 block">
+                  {formData?.userDefinedLength ?? BLOG_CONFIG.LENGTH.DEFAULT} words
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="modal-action flex items-center justify-end gap-3">
+          {currentStep === 0 ? (
+            <button
+              type="button"
+              key="next"
+              onClick={handleNext}
+              className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
+              aria-label="Proceed to next step"
+            >
+              Next
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                key="previous"
+                onClick={handlePrev}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-bold transition-all border border-gray-200"
+                aria-label="Go to previous step"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                key="submit"
+                onClick={handleSubmit}
+                className="w-full sm:w-auto px-8 py-2.5 bg-[#4C5BD6] text-white rounded-md hover:bg-[#3B4BB8] font-bold transition-all"
+                aria-label="Submit blog"
+              >
+                Submit
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
+      </form>
+    </dialog>
+  )
+}
+
+export default TemplateModal

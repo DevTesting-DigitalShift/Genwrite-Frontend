@@ -7,6 +7,15 @@ export const imageSourceSchema = z
     "Source of images for the blog: none (no images), stock (Pexels/Unsplash), or ai (AI-generated)"
   )
 
+/**
+ * The advanced blog modal also lets the user upload their own images, which the
+ * other modals do not offer — so only its payload accepts `upload`. Keeping this
+ * separate is what stops a stray "upload" from silently failing validation.
+ */
+export const imageSourceWithUploadSchema = z
+  .enum([ImageSource.NONE, ImageSource.STOCK, ImageSource.AI, "upload"])
+  .describe("Image source, including user-uploaded images")
+
 export const aiModelSchema = z
   .enum([AiModel.GEMINI, AiModel.OPENAI, AiModel.CLAUDE])
   .describe(
@@ -59,6 +68,23 @@ export const postingTypeSchema = z
   .describe("Publishing platform for automatic posting")
 
 // ============================================================================
+// BRAND VOICE PAYLOAD SCHEMA
+// ============================================================================
+
+/** Wire contract for `POST /brand/addBrand` and `PUT /brand/:id`. */
+export const brandVoicePayloadSchema = z.object({
+  nameOfVoice: z.string().min(1).describe("Display name of the brand voice"),
+  postLink: z.string().min(1).describe("A representative page on the brand's site"),
+  describeBrand: z.string().min(1).describe("What the brand is and how it sounds"),
+  sitemap: z.string().min(1).describe("Sitemap URL used to crawl the brand's content"),
+  persona: z.string().min(1).describe("Who the brand is writing for"),
+  keywords: z.array(z.string()).describe("Keywords that characterise the brand"),
+  logoUrl: z.string().describe("Uploaded logo, without its cache-busting query"),
+})
+
+export type BrandVoicePayload = z.infer<typeof brandVoicePayloadSchema>
+
+// ============================================================================
 // QUICK BLOG FINAL DATA SCHEMA
 // ============================================================================
 
@@ -83,6 +109,13 @@ export const quickBlogFinalDataSchema = z.object({
   imageSource: imageSourceSchema
     .default(ImageSource.NONE)
     .describe("Source of images when addImages is true"),
+
+  numberOfImages: z
+    .number()
+    .min(0)
+    .max(15)
+    .default(0)
+    .describe("Number of images to add (0 = AI decides); 0 whenever addImages is off"),
 
   template: z.string().nullable().describe("Selected blog template name"),
 
@@ -351,6 +384,11 @@ export const jobBlogConfigSchema = z.object({
     .boolean()
     .default(false)
     .describe("Create AI images with brand voice characteristics"),
+
+  enableAdvanced: z
+    .boolean()
+    .default(false)
+    .describe("Whether the job was configured through the advanced step; persisted so that reopening the job restores that step"),
 })
 
 export const jobOptionsSchema = z.object({
@@ -405,10 +443,7 @@ export const jobFinalDataSchema = z
     options: jobOptionsSchema.describe("Additional job options"),
 
     status: z.enum(["active", "stop"]).default("stop").describe("Current job status"),
-
-    templateIds: z.array(z.number()).default([]).describe("Selected template IDs"),
   })
-  .transform(({ templateIds: _, ...cleanData }) => cleanData)
 
 export type JobFinalDataSchemaType = z.infer<typeof jobFinalDataSchema>
 
@@ -457,11 +492,6 @@ export const advancedBlogOptionsSchema = z.object({
 
 export const advancedBlogFinalDataSchema = z
   .object({
-    templateIds: z
-      .array(z.number())
-      .length(1, "Exactly one template is required")
-      .describe("Selected template ID (single selection)"),
-
     template: z.string().min(1, "Template is required").describe("Selected template name"),
 
     topic: z.string().min(1, "Topic is required").describe("Blog topic/subject"),
@@ -494,7 +524,9 @@ export const advancedBlogFinalDataSchema = z
 
     isCheckedGeneratedImages: z.boolean().default(false).describe("Enable image generation"),
 
-    imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Image source type"),
+    imageSource: imageSourceWithUploadSchema
+      .default(ImageSource.STOCK)
+      .describe("Image source type"),
 
     numberOfImages: z
       .number()
@@ -521,60 +553,14 @@ export const advancedBlogFinalDataSchema = z
 
     wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
 
+    postingType: postingTypeSchema
+      .optional()
+      .describe("Publishing platform, only sent when automatic posting is on"),
+
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })
-  .transform(({ templateIds: _, ...cleanData }) => cleanData)
 
 export type AdvancedBlogFinalDataSchemaType = z.infer<typeof advancedBlogFinalDataSchema>
-
-// ============================================================================
-// VALIDATION UTILITY
-// ============================================================================
-
-/**
- * Validates form data against a Zod schema when VITE_VALIDATE_FORMS=true
- * Logs validation results to console for debugging
- *
- * @param schemaName - Name of the schema for logging
- * @param schema - Zod schema to validate against
- * @param data - Data to validate
- * @returns Parsed data if valid, original data if validation disabled or failed
- */
-export function validateFormData<T extends z.ZodSchema>(
-  schemaName: string,
-  schema: T,
-  data: unknown
-): z.infer<T> | unknown {
-  console.group(`🔍 [Zod Validation] ${schemaName}`)
-
-  const result = schema.safeParse(data)
-
-  if (result.success) {
-    console.groupEnd()
-    return result.data
-  } else {
-    console.error("❌ Validation FAILED")
-    console.error("🚨 Errors:", result.error.format())
-    console.error("📋 Flat Errors:", result.error.flatten())
-    console.groupEnd()
-    return data
-  }
-}
-
-/**
- * Type-safe validation wrapper functions for each modal
- */
-export const validateQuickBlogData = (data: unknown) =>
-  validateFormData("QuickBlogFinalData", quickBlogFinalDataSchema, data)
-
-export const validateBulkBlogData = (data: unknown) =>
-  validateFormData("BulkBlogFinalData", bulkBlogFinalDataSchema, data)
-
-export const validateJobData = (data: unknown) =>
-  validateFormData("JobFinalData", jobFinalDataSchema, data)
-
-export const validateAdvancedBlogData = (data: unknown) =>
-  validateFormData("AdvancedBlogFinalData", advancedBlogFinalDataSchema, data)
 
 // ============================================================================
 // REGENERATE BLOG SCHEMA
@@ -615,85 +601,33 @@ export const regenerateBlogOptionsSchema = z.object({
     .describe("Create AI images with brand voice characteristics"),
 })
 
-export const regenerateBlogSchema = z
-  .object({
-    createNew: z.boolean().describe("Whether to create new content from scratch"),
-    topic: z.string().min(1, "Topic cannot be empty").optional(),
-    title: z.string().optional(),
-    focusKeywords: z.array(z.string()).max(3).optional(),
-    keywords: z.array(z.string()).optional(),
-    tone: z.string().optional(),
-    userDefinedLength: z.number().min(500).max(5000).optional(),
-    aiModel: aiModelSchema.optional(),
-    isCheckedGeneratedImages: z.boolean().optional(),
-    imageSource: imageSourceSchema.optional(),
-    numberOfImages: z.number().min(0).max(15).default(0),
-    isCheckedBrand: z.boolean().optional(),
-    brandId: z.string().optional(),
-    addCTA: z.boolean().optional(),
-    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
-    isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
-    postingDefaultType: postingTypeSchema
-      .optional()
-      .describe("Publishing platform for automatic posting"),
-    options: regenerateBlogOptionsSchema,
-  })
-  .superRefine((data, ctx) => {
-    // When createNew is true, require essential fields (mirroring backend logic)
-    if (data.createNew) {
-      if (!data.topic) {
-        ctx.addIssue({
-          path: ["topic"],
-          code: z.ZodIssueCode.custom,
-          message: "Topic is required when creating new content",
-        })
-      }
-
-      if (!data.tone) {
-        ctx.addIssue({
-          path: ["tone"],
-          code: z.ZodIssueCode.custom,
-          message: "Tone is required when creating new content",
-        })
-      }
-
-      if (data.options?.automaticPosting && !data.postingDefaultType) {
-        ctx.addIssue({
-          path: ["postingDefaultType"],
-          code: z.ZodIssueCode.custom,
-          message: "Posting default type is required when automatic posting is enabled",
-        })
-      }
-
-      // Require valid brandId when isCheckedBrand is true
-      if (data.isCheckedBrand) {
-        if (!data.brandId?.trim() || !/^[a-fA-F0-9]{24}$/.test(data.brandId)) {
-          ctx.addIssue({
-            path: ["brandId"],
-            code: z.ZodIssueCode.custom,
-            message: "A valid Brand ID is required when using brand voice",
-          })
-        }
-      }
-    }
-  })
-  .transform((data) => {
-    if (data.createNew) {
-      // Clean up brandId if not checked
-      if (!data.isCheckedBrand) {
-        delete data.brandId
-      }
-
-      // Merge top-level addCTA into options for consistency (legacy support)
-      if (data.addCTA !== undefined) {
-        data.options = { ...data.options, addCTA: data.addCTA }
-      }
-    }
-    delete data.addCTA
-    return data
-  })
+/**
+ * Wire contract for `POST /blogs/:id/retry`.
+ *
+ * Cross-field rules (what is required once `createNew` is on, when a brand id is
+ * needed) live on the *form* schema in `forms/regenerateBlogForm.ts`; this one
+ * only describes the body, so building a payload cannot silently rewrite it.
+ */
+export const regenerateBlogSchema = z.object({
+  createNew: z.boolean().describe("Whether to create new content from scratch"),
+  topic: z.string().optional(),
+  title: z.string().optional(),
+  focusKeywords: z.array(z.string()).max(3).optional(),
+  keywords: z.array(z.string()).optional(),
+  tone: z.string().optional(),
+  userDefinedLength: z.number().min(500).max(5000).optional(),
+  aiModel: aiModelSchema.optional(),
+  isCheckedGeneratedImages: z.boolean().optional(),
+  imageSource: imageSourceSchema.optional(),
+  numberOfImages: z.number().min(0).max(15).default(0),
+  isCheckedBrand: z.boolean().optional(),
+  brandId: z.string().optional(),
+  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+  isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
+  postingDefaultType: postingTypeSchema
+    .optional()
+    .describe("Publishing platform for automatic posting"),
+  options: regenerateBlogOptionsSchema,
+})
 
 export type RegenerateBlogSchemaType = z.infer<typeof regenerateBlogSchema>
-
-export const validateRegenerateBlogData = (data: unknown) =>
-  validateFormData("RegenerateBlogData", regenerateBlogSchema, data)

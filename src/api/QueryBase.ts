@@ -1,3 +1,4 @@
+import { asApiError } from "@/types/api"
 // src/api/base/QueryBase.ts
 import {
   useQuery,
@@ -109,7 +110,8 @@ export abstract class QueryBase<TEntity, TError = Error> {
         ...options,
       })
       return true
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       console.warn(`Prefetch error [${this.baseKey}]:`, err)
       return false
     }
@@ -128,7 +130,8 @@ export abstract class QueryBase<TEntity, TError = Error> {
         ...options,
       })
       return true
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       console.warn(`Prefetch error [${this.baseKey}]:`, err)
       return false
     }

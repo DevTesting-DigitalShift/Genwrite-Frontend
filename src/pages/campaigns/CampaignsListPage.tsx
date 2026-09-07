@@ -16,7 +16,6 @@ import { getSocket } from "@utils/socket"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
-
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
 
