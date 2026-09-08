@@ -30,7 +30,7 @@ export const jobScheduleFormSchema = z.object({
     ScheduleType.DAILY,
     ScheduleType.WEEKLY,
     ScheduleType.WEEKDAYS,
-    ScheduleType.MONTHDAYS,
+    ScheduleType.MONTHLY,
     ScheduleType.CUSTOM,
   ]),
   customDates: z.array(z.string()),
@@ -163,7 +163,7 @@ export const jobFormSchema = z
         message: "Please select at least one day of the week.",
       })
     }
-    if (schedule.type === ScheduleType.MONTHDAYS && schedule.daysOfMonth.length === 0) {
+    if (schedule.type === ScheduleType.MONTHLY && schedule.daysOfMonth.length === 0) {
       ctx.addIssue({
         path: ["schedule", "daysOfMonth"],
         code: "custom",

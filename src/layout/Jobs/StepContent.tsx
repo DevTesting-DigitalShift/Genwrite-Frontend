@@ -766,7 +766,7 @@ const StepContent = ({
                   const value = e.target.value
                   setField("schedule.type", value)
                   if (value === "weekly") setField("schedule.daysOfWeek", [])
-                  if (value === "monthdays") setField("schedule.daysOfMonth", [])
+                  if (value === "monthly") setField("schedule.daysOfMonth", [])
                   if (value === "custom") setField("schedule.customDates", [])
                   clearErrors(["schedule.daysOfWeek", "schedule.daysOfMonth", "schedule.customDates"])
                 }}
@@ -774,7 +774,7 @@ const StepContent = ({
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
-                <option value="monthdays">Monthly</option>
+                <option value="monthly">Monthly</option>
                 <option value="custom">Custom</option>
               </select>
             </div>
@@ -814,7 +814,7 @@ const StepContent = ({
                 )}
               </div>
             )}
-            {newJob.schedule.type === "monthdays" && (
+            {newJob.schedule.type === "monthly" && (
               <div>
                 <span className="block text-sm font-semibold  mb-2">Select Dates of Month</span>
                 <div

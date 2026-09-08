@@ -57,10 +57,10 @@ export const scheduleTypeSchema = z
     ScheduleType.DAILY,
     ScheduleType.WEEKLY,
     ScheduleType.WEEKDAYS,
-    ScheduleType.MONTHDAYS,
+    ScheduleType.MONTHLY,
     ScheduleType.CUSTOM,
   ])
-  .describe("Type of job schedule: daily, weekly, weekdays, monthdays, or custom dates")
+  .describe("Type of job schedule: daily, weekly, weekdays, monthly, or custom dates")
 
 export const postingTypeSchema = z
   .enum(["WORDPRESS", "SHOPIFY", "SERVERENDPOINT", "WIX"])

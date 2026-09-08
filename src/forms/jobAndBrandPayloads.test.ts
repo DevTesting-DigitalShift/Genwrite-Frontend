@@ -40,7 +40,7 @@ describe("jobFormSchema", () => {
     expect(jobFormSchema.safeParse(withDays).success).toBe(true)
 
     const monthly = jobValues({
-      schedule: { ...jobFormDefaults.schedule, type: "monthdays" },
+      schedule: { ...jobFormDefaults.schedule, type: "monthly" },
     })
     expect(jobFormSchema.safeParse(monthly).success).toBe(false)
   })
