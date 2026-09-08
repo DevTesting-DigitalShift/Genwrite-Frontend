@@ -2,7 +2,6 @@ import { asApiError } from "@/types/api"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import useAuthStore from "../store/useAuthStore"
-import useWorkspaceStore from "../store/useWorkspaceStore"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
 import {
@@ -200,7 +199,7 @@ const SideBar_Header = () => {
     { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
     { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
-    { title: "Campaigns", icon: Target, path: "/campaigns", testerOnly: true },
+    { title: "Campaigns", icon: Target, path: "/campaigns" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
@@ -209,10 +208,7 @@ const SideBar_Header = () => {
   ]
 
   const path = location.pathname
-  const { activeWorkspace } = useWorkspaceStore()
-  const canAccessTesterFeatures =
-    !!activeWorkspace || user?.role === "tester" || user?.role === "admin"
-  const visibleMenus = Menus.filter((menu) => !menu.testerOnly || canAccessTesterFeatures)
+  const visibleMenus = Menus
 
   const handleSignOutCurrent = async () => {
     try {
