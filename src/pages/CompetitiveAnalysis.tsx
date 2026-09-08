@@ -21,7 +21,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { useAllBlogsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
 
 import {

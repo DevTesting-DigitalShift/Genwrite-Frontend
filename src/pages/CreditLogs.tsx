@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import dayjs from "dayjs"
 import useCreditLogStore from "@store/useCreditLogStore"
 import { useCreditLogsQuery } from "@api/queries/creditLogsQueries"

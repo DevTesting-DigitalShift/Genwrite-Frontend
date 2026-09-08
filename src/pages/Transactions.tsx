@@ -14,7 +14,7 @@ import {
   FileText,
   TrendingUp,
 } from "lucide-react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
 import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"

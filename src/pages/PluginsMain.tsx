@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import useIntegrationStore from "@store/useIntegrationStore"
 import axiosInstance from "@api/index"
 import { toast } from "sonner"

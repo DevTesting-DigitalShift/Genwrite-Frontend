@@ -1,7 +1,7 @@
 import { asApiError } from "@/types/api"
 import { useState, useEffect, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import useJobStore from "@store/useJobStore"

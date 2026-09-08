@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import dayjs from "dayjs"

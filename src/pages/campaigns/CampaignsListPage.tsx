@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react"
 import { useEffect } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { useNavigate } from "react-router-dom"
 import { Plus, Target, Calendar, FileStack, Loader2, Trash2, Pencil } from "lucide-react"
 import { Button } from "@components/ui/button"

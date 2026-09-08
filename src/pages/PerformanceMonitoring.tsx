@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Tag, Tags, Activity, Info, Loader2, FileText, Sparkles, RefreshCw } from "lucide-react"
 import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
 
 const PerformanceMonitoring = () => {

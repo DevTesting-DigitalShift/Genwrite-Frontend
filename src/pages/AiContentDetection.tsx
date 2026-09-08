@@ -15,7 +15,7 @@ import useToolsStore from "@store/useToolsStore"
 import { useAiDetectionMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
 
 const AiContentDetection = () => {

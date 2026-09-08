@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import {

@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import useAuthStore from "@store/useAuthStore"
 import useImageStore from "@store/useImageStore"

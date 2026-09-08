@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { Link, useSearchParams } from "react-router-dom"
 import { Button } from "@components/ui/button"
 import useAdminAuthStore from "@admin/auth/adminAuthStore"

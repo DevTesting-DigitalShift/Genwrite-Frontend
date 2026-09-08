@@ -5,7 +5,7 @@ import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
 
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { SkeletonCard } from "@components/ui/SkeletonLoader"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import useAuthStore from "@store/useAuthStore"

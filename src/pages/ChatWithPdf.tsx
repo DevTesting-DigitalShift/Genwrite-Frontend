@@ -16,7 +16,7 @@ import {
 import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
 import { usePdfChatMutation } from "@api/queries/toolsQueries"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"

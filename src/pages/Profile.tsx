@@ -22,7 +22,7 @@ import { isEqual } from "@/lib/utils"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import dayjs from "dayjs"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import PasswordModal from "@components/PasswordModal"
 import {
   updatePasswordAPI,

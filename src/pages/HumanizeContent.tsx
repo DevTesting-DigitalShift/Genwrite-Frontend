@@ -8,7 +8,7 @@ import useHumanizeStore from "@store/useHumanizeStore"
 import useAuthStore from "@store/useAuthStore"
 import { useHumanizeMutation } from "@api/queries/humanizeQueries"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
 
 const HumanizeContent = () => {

@@ -37,7 +37,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import useJobStore from "@store/useJobStore"
 import { useQueryClient } from "@tanstack/react-query"
 import LoadingScreen from "@/components/ui/LoadingScreen"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 
 import {
   useReactTable,

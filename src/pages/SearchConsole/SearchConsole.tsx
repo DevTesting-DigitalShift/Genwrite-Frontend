@@ -1,6 +1,6 @@
 import { asApiError } from "@/types/api"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
 import useGscStore from "@store/useGscStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"

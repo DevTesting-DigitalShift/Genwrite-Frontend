@@ -11,7 +11,7 @@ import {
   ListChecks,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 
 import useToolsStore from "@store/useToolsStore"
 import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"

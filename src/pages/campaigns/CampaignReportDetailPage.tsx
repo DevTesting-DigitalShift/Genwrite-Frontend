@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Lightbulb, Loader2, Mail, Minus, TrendingDown, TrendingUp, Zap } from "lucide-react"
 import { Button } from "@components/ui/button"

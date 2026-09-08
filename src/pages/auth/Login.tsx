@@ -24,7 +24,7 @@ import {
   RefreshCcw,
   AlertCircle,
 } from "lucide-react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import { toast } from "sonner"

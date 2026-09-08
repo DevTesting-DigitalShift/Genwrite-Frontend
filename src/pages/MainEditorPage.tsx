@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useBlocker } from "react-router-do
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
 import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet-async"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"

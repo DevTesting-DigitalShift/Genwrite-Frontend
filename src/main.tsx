@@ -5,6 +5,7 @@ import { QueryProvider } from "./utils/queryClient"
 import { RouterProvider } from "react-router-dom"
 import router from "./router"
 import { Toaster } from "@components/ui/sonner"
+import { HelmetProvider } from "react-helmet-async"
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -24,10 +25,12 @@ const rootElement = document.getElementById("root")
 if (!rootElement) throw new Error("Root element #root not found")
 
 ReactDOM.createRoot(rootElement).render(
-  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-    <QueryProvider>
-      <RouterProvider router={router} />
-      <Toaster position="top-center" />
-    </QueryProvider>
-  </GoogleOAuthProvider>
+  <HelmetProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <QueryProvider>
+        <RouterProvider router={router} />
+        <Toaster position="top-center" />
+      </QueryProvider>
+    </GoogleOAuthProvider>
+  </HelmetProvider>
 )
