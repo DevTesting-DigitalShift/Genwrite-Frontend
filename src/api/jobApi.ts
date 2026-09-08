@@ -15,6 +15,12 @@ export const getJobs = async () => {
   return response.data
 }
 
+/** Jobs with a posting destination configured — the only jobs a campaign can usefully link to. */
+export const getEligibleJobsForCampaign = async () => {
+  const response = await axiosInstance.get("/jobs", { params: { eligibleForCampaign: true } })
+  return response.data
+}
+
 export const updateJob = async (jobId: string, jobPayload: unknown) => {
   const response = await axiosInstance.put(`/jobs/${jobId}`, jobPayload)
   return response.data

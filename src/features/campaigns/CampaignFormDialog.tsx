@@ -26,8 +26,10 @@ import { CAMPAIGN_STEPS, stepIndexOf } from "./campaignForm.steps"
 import { CampaignStepper } from "./CampaignStepper"
 import { KeywordTargetsField } from "./KeywordTargetsField"
 import { BlogMultiSelectField } from "./BlogMultiSelectField"
+import { JobMultiSelectField } from "./JobMultiSelectField"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { usePostedBlogsQuery } from "@api/queries/blogQueries"
+import { useEligibleJobsForCampaignQuery } from "@api/queries/jobQueries"
 import type { Campaign, CampaignBlogRef } from "@/types/campaign"
 import type { CampaignFormUIState } from "./campaignForm.types"
 import { getValueByPath } from "@utils/ObjectPath"
@@ -45,6 +47,7 @@ function toFormValues(campaign?: Campaign): CampaignFormValues {
     startDate: campaign.startDate.slice(0, 10),
     endDate: campaign.endDate.slice(0, 10),
     blogIds: campaign.blogIds,
+    jobIds: campaign.jobIds ?? [],
     targets: campaign.targets,
     automation: campaign.automation,
   }
@@ -75,6 +78,10 @@ export function CampaignFormDialog({
   // user build a campaign that can never report a number.
   const { data: postedBlogs = [], isLoading: isBlogsLoading } = usePostedBlogsQuery()
   const blogRefs: CampaignBlogRef[] = postedBlogs
+
+  // Only jobs with a posting destination configured — see JobMultiSelectField's own
+  // description for why (mirrors the server-side eligibility check on submit).
+  const { data: eligibleJobs = [], isLoading: isJobsLoading } = useEligibleJobsForCampaignQuery()
 
   const {
     control,
@@ -346,7 +353,7 @@ export function CampaignFormDialog({
             )}
 
             {uiState.activeTab === "blogs" && (
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-5">
                 <BlogMultiSelectField
                   control={control}
                   name="blogIds"
@@ -354,6 +361,12 @@ export function CampaignFormDialog({
                   isLoading={isBlogsLoading}
                   search={uiState.blogSearch}
                   onSearchChange={onBlogSearchChange}
+                />
+                <JobMultiSelectField
+                  control={control}
+                  name="jobIds"
+                  jobs={eligibleJobs}
+                  isLoading={isJobsLoading}
                 />
               </div>
             )}

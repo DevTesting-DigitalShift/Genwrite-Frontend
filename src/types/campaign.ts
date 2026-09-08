@@ -55,6 +55,21 @@ export interface CampaignBlogRef {
   postedOn?: string
 }
 
+/** Minimal shape needed to render a job in the campaign job picker. */
+export interface CampaignJobRef {
+  _id: string
+  name: string
+}
+
+/** A job linked to a campaign, with its *current* eligibility — not whatever was true
+ * when it was linked. `eligible: false` means the job stopped posting (or was paused)
+ * since being linked, so its new blogs aren't being synced into this campaign right now. */
+export interface LinkedJob {
+  _id: string
+  name: string
+  eligible: boolean
+}
+
 export interface Campaign {
   _id: string
   userId: string
@@ -64,6 +79,9 @@ export interface Campaign {
   startDate: string
   endDate: string
   blogIds: string[]
+  jobIds: string[]
+  /** Only present on the single-campaign fetch (GET /campaigns/:id), not the list endpoint. */
+  linkedJobs?: LinkedJob[]
   targets: CampaignTargets
   automation: CampaignAutomation
   createdAt: string

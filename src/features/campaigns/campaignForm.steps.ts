@@ -29,8 +29,8 @@ export const CAMPAIGN_STEPS: CampaignStep[] = [
   },
   {
     id: "blogs",
-    label: "Blogs",
-    fields: ["blogIds"],
+    label: "Blogs & Jobs",
+    fields: ["blogIds", "jobIds"],
   },
   {
     // Likewise `automation` rather than its switches — the auto-apply/auto-repost

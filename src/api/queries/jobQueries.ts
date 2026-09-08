@@ -2,6 +2,7 @@ import { apiErrorMessage } from "@/types/api"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getJobs,
+  getEligibleJobsForCampaign,
   createJob,
   createJobFromRanking,
   updateJob,
@@ -14,6 +15,15 @@ import { pushJobAgentCreationEvent } from "@utils/creationEvents"
 
 export const useJobsQuery = (enabled: boolean = true) => {
   return useQuery({ queryKey: ["jobs"], queryFn: getJobs, enabled })
+}
+
+/** Jobs with a posting destination configured — for the campaign form's job picker. */
+export const useEligibleJobsForCampaignQuery = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ["jobs", "eligible-for-campaign"],
+    queryFn: getEligibleJobsForCampaign,
+    enabled,
+  })
 }
 
 export const useCreateJobMutation = () => {
