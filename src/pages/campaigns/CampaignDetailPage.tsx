@@ -23,6 +23,7 @@ import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import { CampaignStatusControl } from "@/features/campaigns/CampaignStatusControl"
 import { LiveMetricsWidget } from "@/features/campaigns/LiveMetricsWidget"
+import { LinkedJobsNotice } from "@/features/campaigns/LinkedJobsNotice"
 import { CampaignSuggestionsPanel } from "@/features/campaigns/CampaignSuggestionsPanel"
 import { CampaignActivityLog } from "@/features/campaigns/CampaignActivityLog"
 import { PanelEmpty, PanelError, PanelLoading } from "@/features/campaigns/CampaignStates"
@@ -349,6 +350,8 @@ export default function CampaignDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-6">
+          <LinkedJobsNotice linkedJobs={campaign.linkedJobs} />
+
           <Section title="Live performance" description="Current Search Console data for this campaign's blogs.">
             <LiveMetricsWidget campaignId={campaign._id} />
           </Section>
