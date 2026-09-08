@@ -1,4 +1,5 @@
 import { useState, useEffect, useId, type InputHTMLAttributes } from "react"
+import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   CreditCard,
@@ -52,6 +53,7 @@ const SUBSCRIPTION_STATUS_CONFIG = {
 }
 
 const Profile = () => {
+  const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
 
@@ -260,8 +262,17 @@ const Profile = () => {
                   <h1 className="text-2xl sm:text-3xl font-semibold">
                     {profileData.personalDetails.name || "Set your name"}
                   </h1>
-                  {profileData.emailVerified && (
+                  {profileData.emailVerified ? (
                     <ShieldCheck className="size-6 text-blue-500 fill-blue-50" />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/email-verify")}
+                      className="flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-semibold hover:bg-amber-100 transition-colors"
+                    >
+                      <ShieldCheck size={13} />
+                      Verify email
+                    </button>
                   )}
                 </div>
                 <button type="button" className="font-semibold text-gray-500">

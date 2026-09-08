@@ -26,7 +26,6 @@ const ALLOWED_ROUTES = [
   "/contact",
   "/onboarding",
   "/email-verify",
-  "/verify-email",
 ]
 
 const PrivateRoutesLayout = () => {
@@ -135,7 +134,7 @@ const PrivateRoutesLayout = () => {
     return <LoadingScreen message="Authenticating..." />
   }
 
-  const bareRoutes = ["/onboarding", "/email-verify", "/verify-email"]
+  const bareRoutes = ["/onboarding", "/email-verify"]
   const isBareRoute = bareRoutes.some((path) => location.pathname.startsWith(path))
 
   if (isBareRoute) {

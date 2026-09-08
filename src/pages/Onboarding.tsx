@@ -6,7 +6,6 @@ import { Building2, Target, Check } from "lucide-react"
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
-import useVerificationStore from "@store/useVerificationStore"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
@@ -42,7 +41,6 @@ const Onboarding = () => {
     // If user has lastLogin OR has completed onboarding, redirect to dashboard
     if (user.lastLogin || hasCompletedOnboarding) {
       if (user.emailVerified === false) {
-        useVerificationStore.getState().setEmail(user.email ?? "")
         navigate(`/email-verify`, { replace: true })
       } else {
         navigate(consumePostAuthRedirect() || "/dashboard", { replace: true })

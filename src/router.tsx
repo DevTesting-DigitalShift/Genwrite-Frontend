@@ -4,7 +4,6 @@ import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import App from "./App"
 import ErrorBoundary from "./layout/error/ErrorBoundary"
-import VerifiedEmail from "@pages/VerifiedEmail"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
 const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
@@ -163,7 +162,6 @@ const router = createBrowserRouter([
           { path: "keyword-research", element: r(KeywordResearch) },
           { path: "onboarding", element: r(Onboarding) },
           { path: "email-verify", element: r(EmailVerification) },
-          { path: "verify-email", element: <VerifiedEmail /> },
         ],
       },
       {

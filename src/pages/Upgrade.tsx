@@ -12,7 +12,6 @@ import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import useVerificationStore from "@store/useVerificationStore"
 
 interface PricingCardProps {
   plan: any
@@ -544,8 +543,6 @@ const Upgrade = () => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
       toast.warning("Please verify your email before purchasing a plan.")
-      // Use verification store instead of URL param
-      useVerificationStore.getState().setEmail(user.email)
       navigate(`/email-verify`, { replace: true })
       return
     }
