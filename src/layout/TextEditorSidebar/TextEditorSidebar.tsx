@@ -1471,7 +1471,12 @@ const TextEditorSidebar = ({
     }
   }, [selectedIntegration?.platform])
 
-  // Initialize posting form based on Blog Data & History
+  // Initialize posting form based on Blog Data & History.
+  // selectedCategory is read only to decide whether to auto-fill from blog/history data, not
+  // something this effect should react to — including it as a dependency re-runs this sync on
+  // every keystroke and snaps a cleared field straight back to blog.category, making it
+  // impossible to type a new category.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (activePanel !== "posting") return
 
@@ -1560,7 +1565,7 @@ const TextEditorSidebar = ({
       }
       return
     }
-  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings, selectedCategory])
+  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings])
 
   const handlePostClick = useCallback(() => {
     if (blog?.isArchived) {

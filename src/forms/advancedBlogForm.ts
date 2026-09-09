@@ -228,9 +228,13 @@ export function toAdvancedBlogPayload(values: AdvancedBlogFormValues) {
     isCheckedBrand: values.isCheckedBrand,
     brandId: includeIf(values.isCheckedBrand, values.brandId),
 
-    wordpressPostStatus: values.wordpressPostStatus,
-    postingType: includeIf(values.wordpressPostStatus, values.postingType),
-
-    options: values.options,
+    // POST /blogs (createBlog.schema.js) has no top-level wordpressPostStatus/postingType
+    // fields — it only recognizes options.automaticPosting, and picks the user's first
+    // connected integration when no specific type is requested. There is currently no way
+    // to send a specific postingType through this endpoint.
+    options: {
+      ...values.options,
+      automaticPosting: values.wordpressPostStatus,
+    },
   })
 }

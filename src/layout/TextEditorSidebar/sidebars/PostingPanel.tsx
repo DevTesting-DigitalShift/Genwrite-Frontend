@@ -128,87 +128,6 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
         variants={stagger}
         className="flex-1 overflow-y-auto p-4 space-y-10 custom-scroll pb-24"
       >
-        {/* === POST HISTORY SECTION === */}
-        <motion.div variants={item} className="space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <RefreshCw className="w-4 h-4 text-slate-400" />
-              </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Deployment Logs
-              </span>
-            </div>
-          </div>
-
-          {isLoadingPostings ? (
-            <div className="p-10 text-center bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
-              <RefreshCw className="w-6 h-6 animate-spin text-slate-300 mx-auto mb-4" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Syncing History...
-              </p>
-            </div>
-          ) : hasPublishedLinks ? (
-            <div className="space-y-4">
-              {blogPostings.map((posting) => (
-                <div
-                  key={posting.link || posting.postedOn}
-                  className="p-6 bg-white rounded-[24px] border border-slate-100 shadow-sm hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                      {(posting.integrationType &&
-                        PLATFORM_LABELS[posting.integrationType as keyof typeof PLATFORM_LABELS]) ||
-                        (posting.platform &&
-                          PLATFORM_LABELS[posting.platform as keyof typeof PLATFORM_LABELS]) ||
-                        posting.integrationType ||
-                        posting.platform ||
-                        "Unknown"}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-300">
-                      {new Date(posting.postedOn).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between items-center bg-slate-50/50 p-2 rounded-xl border border-slate-100/50">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Tag:
-                      </span>
-                      <span className="text-xs font-bold text-slate-700 truncate max-w-[140px]">
-                        {blog.category}
-                      </span>
-                    </div>
-                    {posting.link && (
-                      <a
-                        href={posting.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-transform"
-                      >
-                        Source View <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRepost(posting)}
-                    disabled={isPosting}
-                    className="w-full h-10 text-[10px] font-black uppercase tracking-widest rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-30"
-                  >
-                    Re-Sync Node
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-10 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-                Logs Empty
-              </p>
-            </div>
-          )}
-        </motion.div>
-
         {/* === NEW POST SECTION === */}
         <motion.div variants={item} className="space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -339,6 +258,87 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
               />
             </div>
           </div>
+        </motion.div>
+
+        {/* === POST HISTORY SECTION === */}
+        <motion.div variants={item} className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                <RefreshCw className="w-4 h-4 text-slate-400" />
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Deployment Logs
+              </span>
+            </div>
+          </div>
+
+          {isLoadingPostings ? (
+            <div className="p-10 text-center bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
+              <RefreshCw className="w-6 h-6 animate-spin text-slate-300 mx-auto mb-4" />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Syncing History...
+              </p>
+            </div>
+          ) : hasPublishedLinks ? (
+            <div className="space-y-4">
+              {blogPostings.map((posting) => (
+                <div
+                  key={posting.link || posting.postedOn}
+                  className="p-6 bg-white rounded-[24px] border border-slate-100 shadow-sm hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                      {(posting.integrationType &&
+                        PLATFORM_LABELS[posting.integrationType as keyof typeof PLATFORM_LABELS]) ||
+                        (posting.platform &&
+                          PLATFORM_LABELS[posting.platform as keyof typeof PLATFORM_LABELS]) ||
+                        posting.integrationType ||
+                        posting.platform ||
+                        "Unknown"}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300">
+                      {new Date(posting.postedOn).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between items-center bg-slate-50/50 p-2 rounded-xl border border-slate-100/50">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Tag:
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 truncate max-w-[140px]">
+                        {blog.category}
+                      </span>
+                    </div>
+                    {posting.link && (
+                      <a
+                        href={posting.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-transform"
+                      >
+                        Source View <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRepost(posting)}
+                    disabled={isPosting}
+                    className="w-full h-10 text-[10px] font-black uppercase tracking-widest rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-30"
+                  >
+                    Re-Sync Node
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-10 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
+                Logs Empty
+              </p>
+            </div>
+          )}
         </motion.div>
       </motion.div>
 
