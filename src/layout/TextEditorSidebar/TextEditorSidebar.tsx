@@ -1471,7 +1471,12 @@ const TextEditorSidebar = ({
     }
   }, [selectedIntegration?.platform])
 
-  // Initialize posting form based on Blog Data & History
+  // Initialize posting form based on Blog Data & History.
+  // selectedCategory is read only to decide whether to auto-fill from blog/history data, not
+  // something this effect should react to — including it as a dependency re-runs this sync on
+  // every keystroke and snaps a cleared field straight back to blog.category, making it
+  // impossible to type a new category.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (activePanel !== "posting") return
 
@@ -1560,7 +1565,7 @@ const TextEditorSidebar = ({
       }
       return
     }
-  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings, selectedCategory])
+  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings])
 
   const handlePostClick = useCallback(() => {
     if (blog?.isArchived) {
@@ -3033,121 +3038,7 @@ const TextEditorSidebar = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll pb-20">
-        {/* === POST HISTORY SECTION === */}
-        <div>
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Post History
-              </span>
-            </div>
-          </div>
-
-          {isLoadingPostings ? (
-            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">Loading history...</p>
-            </div>
-          ) : hasPublishedLinks ? (
-            <div className="space-y-3">
-              {blogPostings.map((posting) => (
-                <div
-                  key={posting.link || posting.postedOn}
-                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold ">
-                      {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
-                        posting.integrationType ||
-                        posting.platform}
-                    </span>
-                    <span className="text-[12px] text-gray-400">
-                      {new Date(posting.postedOn).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="space-y-1 mb-2">
-                    <div className="flex justify-between">
-                      <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium  text-right truncate max-w-30">
-                        {posting.metadata?.category || posting.category || blog.category}
-                      </span>
-                    </div>
-                    {posting.link && (
-                      <a
-                        href={posting.link}
-                        target="_blank"
-                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
-                        rel="noopener"
-                      >
-                        View Live <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
-
-                    {/* Live Search Console index status + best-effort indexing request */}
-                    <IndexingStatus
-                      blogId={blog?._id}
-                      pageUrl={posting.link}
-                      indexing={posting.indexing}
-                      hasGscAccess={hasGscAccess}
-                      canRequest={!isLocked}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="tooltip" data-tip="Edit settings and repost">
-                      <button
-                        type="button"
-                        className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
-                        onClick={() => {
-                          if (blog?.isArchived) {
-                            toast.error(
-                              "This blog is archived. Please restore it to perform this action."
-                            )
-                            return
-                          }
-                          openRepostModal(posting)
-                        }}
-                        disabled={isPosting || blog?.isArchived}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
-                      onClick={() => {
-                        if (blog?.isArchived) {
-                          toast.error(
-                            "This blog is archived. Please restore it to perform this action."
-                          )
-                          return
-                        }
-                        onPost({
-                          ...formData,
-                          categories:
-                            posting.metadata?.category || posting.category || blog.category,
-                          includeTableOfContents:
-                            posting.metadata?.includeTableOfContents ??
-                            posting.includeTableOfContents,
-                          type: { platform: posting.integrationType || posting.platform },
-                        })
-                      }}
-                      disabled={isPosting || blog?.isArchived}
-                    >
-                      Repost Same Settings
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
-              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
-            </div>
-          )}
-        </div>
-
+      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll">
         {/* === NEW POST SECTION === */}
         <div>
           <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
@@ -3265,35 +3156,146 @@ const TextEditorSidebar = ({
                 disabled={blog?.isArchived}
               />
             </div>
-            <div className="h-4" /> {/* Spacer */}
+
+            {/* Main Post Action */}
+            <button
+              type="button"
+              onClick={handlePostClick}
+              disabled={isPosting || blog?.isArchived || isLocked}
+              className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
+                isPosting || blog?.isArchived || isLocked
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
+              }`}
+            >
+              {isPosting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Publishing...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>{isPublicMode ? "Publishing Locked" : "Publish Now"}</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Main Post Action */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
-        <button
-          type="button"
-          onClick={handlePostClick}
-          disabled={isPosting || blog?.isArchived || isLocked}
-          className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
-            isPosting || blog?.isArchived || isLocked
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-              : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
-          }`}
-        >
-          {isPosting ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Publishing...</span>
-            </>
+        {/* === POST HISTORY SECTION === */}
+        <div>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Post History
+              </span>
+            </div>
+          </div>
+
+          {isLoadingPostings ? (
+            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">Loading history...</p>
+            </div>
+          ) : hasPublishedLinks ? (
+            <div className="space-y-3">
+              {blogPostings.map((posting) => (
+                <div
+                  key={posting.link || posting.postedOn}
+                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-bold ">
+                      {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
+                        posting.integrationType ||
+                        posting.platform}
+                    </span>
+                    <span className="text-[12px] text-gray-400">
+                      {new Date(posting.postedOn).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between">
+                      <span className="text-[12px] text-gray-400">Category:</span>
+                      <span className="text-[12px] font-medium  text-right truncate max-w-30">
+                        {posting.metadata?.category || posting.category || blog.category}
+                      </span>
+                    </div>
+                    {posting.link && (
+                      <a
+                        href={posting.link}
+                        target="_blank"
+                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
+                        rel="noopener"
+                      >
+                        View Live <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+
+                    {/* Live Search Console index status + best-effort indexing request */}
+                    <IndexingStatus
+                      blogId={blog?._id}
+                      pageUrl={posting.link}
+                      indexing={posting.indexing}
+                      hasGscAccess={hasGscAccess}
+                      canRequest={!isLocked}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="tooltip" data-tip="Edit settings and repost">
+                      <button
+                        type="button"
+                        className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => {
+                          if (blog?.isArchived) {
+                            toast.error(
+                              "This blog is archived. Please restore it to perform this action."
+                            )
+                            return
+                          }
+                          openRepostModal(posting)
+                        }}
+                        disabled={isPosting || blog?.isArchived}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
+                      onClick={() => {
+                        if (blog?.isArchived) {
+                          toast.error(
+                            "This blog is archived. Please restore it to perform this action."
+                          )
+                          return
+                        }
+                        onPost({
+                          ...formData,
+                          categories:
+                            posting.metadata?.category || posting.category || blog.category,
+                          includeTableOfContents:
+                            posting.metadata?.includeTableOfContents ??
+                            posting.includeTableOfContents,
+                          type: { platform: posting.integrationType || posting.platform },
+                        })
+                      }}
+                      disabled={isPosting || blog?.isArchived}
+                    >
+                      Repost Same Settings
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <>
-              <Send className="w-4 h-4" />
-              <span>{isPublicMode ? "Publishing Locked" : "Publish Now"}</span>
-            </>
+            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
+              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </div>
   )

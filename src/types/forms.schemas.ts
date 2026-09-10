@@ -488,6 +488,10 @@ export const advancedBlogOptionsSchema = z.object({
     .boolean()
     .default(false)
     .describe("Create AI images with brand voice characteristics"),
+
+  // POST /blogs (createBlog.schema.js) only recognizes automatic-posting on/off here —
+  // there is no top-level wordpressPostStatus/postingType on that endpoint.
+  automaticPosting: z.boolean().default(false).describe("Enable automatic posting"),
 })
 
 export const advancedBlogFinalDataSchema = z
@@ -550,12 +554,6 @@ export const advancedBlogFinalDataSchema = z
       .describe("Target language for content"),
 
     costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
-
-    wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
-
-    postingType: postingTypeSchema
-      .optional()
-      .describe("Publishing platform, only sent when automatic posting is on"),
 
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })

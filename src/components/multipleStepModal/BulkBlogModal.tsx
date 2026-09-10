@@ -263,7 +263,7 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
 
-    let val
+    let val: string | number
     if (type === "tel" || type === "range") {
       if (value === "") {
         val = ""

@@ -146,7 +146,7 @@ const StepContent = ({
     const { name, value, type } = e.target
 
     // Determine the value for number inputs
-    let val
+    let val: string | number
     if (type === "tel" || type === "range") {
       if (value === "") {
         val = "" // allow clearing
@@ -295,7 +295,7 @@ const StepContent = ({
   const handleNumberOfBlogsChange = (e: any) => {
     const { value } = e.target
 
-    let numberValue
+    let numberValue: string | number
     if (value === "") {
       numberValue = "" // allow clearing
     } else {

@@ -111,15 +111,18 @@ describe("toAdvancedBlogPayload", () => {
     expect(payload).not.toHaveProperty("focusKeywords")
   })
 
-  it("sends the posting platform only with automatic posting on", () => {
-    expect(toAdvancedBlogPayload(advancedValues({ postingType: "WORDPRESS" }))).not.toHaveProperty(
-      "postingType"
-    )
+  it("maps wordpressPostStatus to options.automaticPosting (POST /blogs has no top-level postingType)", () => {
+    const off = toAdvancedBlogPayload(advancedValues({ wordpressPostStatus: false }))
+    expect(off).not.toHaveProperty("wordpressPostStatus")
+    expect(off).not.toHaveProperty("postingType")
+    expect(off.options.automaticPosting).toBe(false)
 
-    const posting = toAdvancedBlogPayload(
+    const on = toAdvancedBlogPayload(
       advancedValues({ wordpressPostStatus: true, postingType: "WORDPRESS" })
     )
-    expect(posting.postingType).toBe("WORDPRESS")
+    expect(on).not.toHaveProperty("wordpressPostStatus")
+    expect(on).not.toHaveProperty("postingType")
+    expect(on.options.automaticPosting).toBe(true)
   })
 })
 
