@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen:api-types": "node scripts/generate-api-types.mjs"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
@@ -111,6 +112,7 @@
     "daisyui": "^5.7.20",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.26",
     "rollup-plugin-visualizer": "^6.0.11",
     "tailwindcss": "^4.3.3",
