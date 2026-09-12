@@ -1,82 +1,77 @@
+import { apiGet, apiPost, ApiRequestError } from "./typedClient"
 import axiosInstance from "./index"
+import type { components } from "@/types/apiSchema"
 
-/**
- * Get all images with pagination and filtering
- * @param {Object} [params] - Query parameters
- * @param {number} [params.page] - Page number
- * @param {number} [params.limit] - Items per page
- * @param {string[]} [params.tags] - Filter by tags
- * @param {number} [params.minScore] - Minimum score filter
- * @returns {Promise} Response with images and pagination
- */
+const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
+
+/** GET /image-gallery documents a union response: the paginated list, or (only when a `url`
+ * query param is sent) a single raw image doc instead — see imageGallery.response.js's own
+ * comment. This wrapper never sends `url`, so it's always the list shape. */
+type ImageGalleryListResponse = components["schemas"]["ImageGalleryListResponse"]
+
+/** Get all images with pagination and filtering. */
 export const getImages = async (params: Record<string, unknown> = {}) => {
-  const { page = 1, limit = 20, tags, minScore } = params
-  const queryParams = new URLSearchParams()
-
-  queryParams.append("page", String(page))
-  queryParams.append("limit", String(limit))
-
-  if (tags && Array.isArray(tags) && tags.length > 0) {
-    tags.forEach((tag) => queryParams.append("tags", tag))
+  try {
+    const { page = 1, limit = 20, tags, minScore } = params
+    const result = await apiGet("/api/v1/image-gallery", {
+      query: {
+        page,
+        limit,
+        ...(Array.isArray(tags) && tags.length > 0 ? { tags } : {}),
+        ...(minScore !== undefined && minScore !== null ? { minScore } : {}),
+      } as never,
+    })
+    return result as ImageGalleryListResponse
+  } catch (err) {
+    return rethrow(err, "Failed to fetch images")
   }
-
-  if (minScore !== undefined && minScore !== null) {
-    queryParams.append("minScore", String(minScore))
-  }
-
-  const response = await axiosInstance.get(`/image-gallery?${queryParams.toString()}`)
-  return response.data
 }
 
-/**
- * Get single image by ID
- * @param {string} id - Image ID
- * @returns {Promise} Image data
- */
+/** Get single image by ID. */
 export const getImageById = async (id: string) => {
-  const response = await axiosInstance.get(`/image-gallery/${id}`)
-  return response.data
-}
-
-/**
- * Search images by query
- * @param {Object} [params] - Search parameters
- * @param {string} [params.q] - Search query
- * @param {number} [params.page] - Page number
- * @param {number} [params.limit] - Items per page
- * @param {number} [params.minScore] - Minimum score filter
- * @returns {Promise} Response with search results and pagination
- */
-export const searchImages = async (params: Record<string, unknown> = {}) => {
-  const { q, page = 1, limit = 20, minScore } = params
-  const queryParams = new URLSearchParams()
-
-  if (q) queryParams.append("q", String(q))
-  queryParams.append("page", String(page))
-  queryParams.append("limit", String(limit))
-
-  if (minScore !== undefined && minScore !== null) {
-    queryParams.append("minScore", String(minScore))
+  try {
+    return await apiGet("/api/v1/image-gallery/{id}", { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch image")
   }
+}
 
-  const response = await axiosInstance.get(`/image-gallery/search?${queryParams.toString()}`)
-  return response.data
+/** Search images by query. */
+export const searchImages = async (params: Record<string, unknown> = {}) => {
+  try {
+    const { q, page = 1, limit = 20, minScore } = params
+    return await apiGet("/api/v1/image-gallery/search", {
+      query: {
+        ...(q ? { q } : {}),
+        page,
+        limit,
+        ...(minScore !== undefined && minScore !== null ? { minScore } : {}),
+      } as never,
+    })
+  } catch (err) {
+    return rethrow(err, "Failed to search images")
+  }
 }
 
 /**
- * Generate a new image
- * POST /api/v1/user/images/generate
- * @param {Object} data - { prompt, style, imageSize, aspectRatio }
+ * Generate a new image.
+ * @param data - { prompt, style, imageSize, aspectRatio }
  */
 export const generateImage = async (data: unknown) => {
-  const response = await axiosInstance.post(`/user/images/generate`, data)
-  return response.data
+  try {
+    return await apiPost("/api/v1/user/images/generate", data as never)
+  } catch (err) {
+    return rethrow(err, "Failed to generate image")
+  }
 }
 
 /**
- * Enhance an existing image
- * POST /api/v1/user/images/enhance
- * @param {FormData} formData - FormData containing image (optional), prompt, etc.
+ * Enhance an existing image. Multipart upload — not expressible as an OpenAPI JSON
+ * requestBody, so this stays on plain axios rather than the typed client.
+ * @param formData - FormData containing image (optional), prompt, etc.
  */
 export const enhanceImage = async (formData: FormData) => {
   // Content-Type header is usually auto-set by browser for FormData,
@@ -88,20 +83,21 @@ export const enhanceImage = async (formData: FormData) => {
 }
 
 /**
- * Generate Alt Text for an image
- * POST /api/v1/user/images/alt-text
- * @param {Object} data - { imageUrl, context }
+ * Generate Alt Text for an image.
+ * @param data - { imageUrl, context }
  */
 export const generateAltText = async (data: unknown) => {
-  const response = await axiosInstance.post(`/user/images/alt-text`, data)
-  return response.data
+  try {
+    return await apiPost("/api/v1/user/images/alt-text", data as never)
+  } catch (err) {
+    return rethrow(err, "Failed to generate alt text")
+  }
 }
 
 /**
- * Upload a local image
- * POST /api/v1/user/images/upload
- * @param {FormData} formData - { image: File }
- * @param {string} overwriteUrl - Optional URL to overwrite on re-upload (same URL, file replaced)
+ * Upload a local image. Multipart — stays on plain axios, see enhanceImage above.
+ * @param formData - { image: File }
+ * @param overwriteUrl - Optional URL to overwrite on re-upload (same URL, file replaced)
  */
 export const uploadImage = async (formData: FormData, overwriteUrl: string | null = null) => {
   if (overwriteUrl) {

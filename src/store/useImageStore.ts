@@ -25,8 +25,8 @@ export interface ImageQueryParams extends Record<string, unknown> {
 }
 
 interface ImageListResponse {
-  data?: GalleryImage[]
-  pagination?: { total?: number }
+  data: GalleryImage[]
+  pagination: { total: number; page: number; limit: number; totalPages: number }
 }
 
 interface ImageState {

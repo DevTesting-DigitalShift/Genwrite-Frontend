@@ -112,7 +112,7 @@ const ImageModal = ({
       toast.loading("Generating alt text...")
 
       const response = await generateAltText({ imageUrl: url })
-      const generatedAlt = response.altText || response.data?.altText
+      const generatedAlt = response.altText
       if (generatedAlt) {
         setAlt(generatedAlt)
         toast.dismiss()
@@ -134,8 +134,7 @@ const ImageModal = ({
 
     setView(VIEWS.GENERATING)
     try {
-      const res = await generateImage(genForm)
-      const img = res.image || res.data || res
+      const img = await generateImage(genForm)
       if (img?.url) {
         setGeneratedImageTemp({ ...img, prompt: genForm.prompt })
         setView(VIEWS.PREVIEW_GENERATE)
@@ -277,7 +276,7 @@ const ImageModal = ({
                               // Auto-generate Alt Text
                               try {
                                 const altRes = await generateAltText({ imageUrl: response.url })
-                                const generatedAlt = altRes.altText || altRes.data?.altText
+                                const generatedAlt = altRes.altText
                                 if (generatedAlt) {
                                   setAlt(generatedAlt)
                                   toast.success("Alt text generated automatically!")
@@ -493,7 +492,10 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label htmlFor="enhance-instruction" className="block text-sm font-medium  mb-1">
+                    <label
+                      htmlFor="enhance-instruction"
+                      className="block text-sm font-medium  mb-1"
+                    >
                       Instruction
                     </label>
                     <textarea

@@ -84,7 +84,7 @@ const ImageGalleryPicker = ({
         // Check if there are more pages
         setHasMore(pagination.page < pagination.totalPages)
       } catch (rawError) {
-    const error = asApiError(rawError)
+        const error = asApiError(rawError)
         console.error("Error fetching images:", error)
         toast.error("Failed to load images")
       } finally {
