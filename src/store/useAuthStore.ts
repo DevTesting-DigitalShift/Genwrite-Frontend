@@ -425,8 +425,9 @@ const useAuthStore = create<AuthState>()(
       markAllNotificationsAsRead: async () => {
         set({ loading: true })
         try {
-          const response = await markNotificationsAsRead()
-          const updatedNotifications = response.updatedNotifications || []
+          // 204 No Content — the backend confirms success but sends nothing back, so
+          // "mark every notification read" has to happen locally.
+          await markNotificationsAsRead()
           const user = get().user
           if (user) {
             set({
@@ -440,7 +441,6 @@ const useAuthStore = create<AuthState>()(
             })
           }
           set({ loading: false })
-          return updatedNotifications
         } catch (error) {
           toast.error("Failed to update notification status. Please try again.")
           set({ loading: false, error: "Failed to mark notifications as read." })

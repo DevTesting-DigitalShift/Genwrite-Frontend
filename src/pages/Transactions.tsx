@@ -73,16 +73,18 @@ const Transactions = () => {
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
-      let aVal = a[sortConfig.key]
-      let bVal = b[sortConfig.key]
+      let aVal = (a as Record<string, unknown>)[sortConfig.key]
+      let bVal = (b as Record<string, unknown>)[sortConfig.key]
 
       if (sortConfig.key === "createdAt") {
-        aVal = new Date(a.createdAt).getTime()
-        bVal = new Date(b.createdAt).getTime()
+        aVal = new Date(a.createdAt ?? 0).getTime()
+        bVal = new Date(b.createdAt ?? 0).getTime()
       }
 
-      if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1
-      if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1
+      // Sortable columns are always string/number/Date-derived — safe to compare loosely
+      // across the mixed unknown/number union `aVal`/`bVal` end up as above.
+      if ((aVal as never) < (bVal as never)) return sortConfig.direction === "asc" ? -1 : 1
+      if ((aVal as never) > (bVal as never)) return sortConfig.direction === "asc" ? 1 : -1
       return 0
     })
   }, [filteredTransactions, sortConfig])
@@ -409,7 +411,7 @@ const Transactions = () => {
                         className="hover:bg-slate-50/50 transition-colors border-b border-slate-50"
                       >
                         <TableCell className="py-4 pl-8 text-sm font-semibold text-slate-700 whitespace-nowrap">
-                          {new Date(t.createdAt).toLocaleDateString("en-US", {
+                          {new Date(t.createdAt ?? 0).toLocaleDateString("en-US", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
