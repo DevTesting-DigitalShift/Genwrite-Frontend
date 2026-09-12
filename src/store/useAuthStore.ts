@@ -36,29 +36,32 @@ export interface AuthUser {
   email?: string
   name?: string
   avatar?: string
-  createdAt?: string
+  // Generated coerced-date fields come through the openapi pipeline as `string | null`,
+  // not just `string` — same quirk as BlogPosting.postedOn elsewhere in this codebase.
+  createdAt?: string | null
   plan?: string
   trialOpted?: boolean
   credits?: { base?: number; extra?: number }
   subscription?: {
     plan?: string
     status?: string
-    startDate?: string
-    renewalDate?: string
+    // Same nullable-coerced-date quirk as createdAt above.
+    startDate?: string | null
+    renewalDate?: string | null
     /** A future date when the subscription will be cancelled. */
-    cancelAt?: string
+    cancelAt?: string | null
     /** A past date when the user cancelled. */
-    canceledAt?: string
+    canceledAt?: string | null
     trialOpted?: boolean
     stripeSubscriptionId?: string
     stripeCustomerId?: string
     discountApplied?: number
     billingPeriod?: string
-    paymentFailedSince?: string
+    paymentFailedSince?: string | null
     scheduledPlanChange?: {
       newPlan?: string
       newBillingPeriod?: string
-      effectiveDate?: string
+      effectiveDate?: string | null
     }
   }
   notifications?: unknown[]
@@ -190,7 +193,7 @@ const useAuthStore = create<AuthState>()(
               event_status: "success",
               auth_method: "email_password",
               user_id: user._id,
-              user_subscription: user.subscription.plan,
+              user_subscription: user.subscription?.plan,
             })
             get().setToken(accessToken)
             set({ user, loading: false })
@@ -213,7 +216,13 @@ const useAuthStore = create<AuthState>()(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken } = await signup({ email, password, name, captchaToken, referralId })
+          const { user, accessToken } = await signup({
+            email,
+            password,
+            name,
+            captchaToken,
+            referralId,
+          })
           if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
@@ -221,7 +230,7 @@ const useAuthStore = create<AuthState>()(
               event_status: "success",
               auth_method: "email_password",
               user_id: user._id,
-              user_subscription: user.subscription.plan,
+              user_subscription: user.subscription?.plan,
             })
             get().setToken(accessToken)
             set({ user, loading: false })
@@ -259,7 +268,7 @@ const useAuthStore = create<AuthState>()(
             event_status: "success",
             auth_method: "google_oauth",
             user_id: user._id,
-            user_subscription: user.subscription.plan,
+            user_subscription: user.subscription?.plan,
           })
 
           get().setToken(response.accessToken)
@@ -377,7 +386,7 @@ const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null, forgotMessage: null })
         try {
           const data = await forgotPasswordAPI(email)
-          set({ loading: false, forgotMessage: data })
+          set({ loading: false, forgotMessage: data.message })
           return data
         } catch (err) {
           const errorMsg = getFriendlyError(err, "general")

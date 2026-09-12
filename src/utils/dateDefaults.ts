@@ -5,7 +5,7 @@
 export const SITE_LAUNCH_DATE = "2025-08-01T00:00:00.000Z"
 
 interface FilterStartUser {
-  createdAt?: string
+  createdAt?: string | null
 }
 
 interface FilterStartOptions {

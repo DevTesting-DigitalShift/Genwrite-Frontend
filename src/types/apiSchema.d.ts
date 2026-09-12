@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-12T05:46:04.297Z
+             * @default 2026-09-12T05:58:00.534Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T05:46:04.391Z
+                 * @default 2026-09-12T05:58:00.623Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T05:46:04.393Z
+                 * @default 2026-09-12T05:58:00.625Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-12T05:46:04.403Z
+             * @default 2026-09-12T05:58:00.636Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6172,6 +6172,416 @@ export interface components {
         GscRequestIndexingResponse: {
             [key: string]: unknown;
         };
+        UserResponse: {
+            /**
+             * @description Unique identifier of the document
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            _id: string;
+            /**
+             * @description Alias of _id, sent alongside it per this repo's toJSON convention
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            id?: string;
+            /**
+             * Format: date-time
+             * @description ISO timestamp of creation
+             * @example 2024-01-01T12:00:00.000Z
+             */
+            createdAt: string | null;
+            /**
+             * Format: date-time
+             * @description ISO timestamp of last update
+             * @example 2024-01-02T12:00:00.000Z
+             */
+            updatedAt: string | null;
+            /**
+             * @description User's full name
+             * @example Jane Doe
+             */
+            name: string;
+            /**
+             * @description User's unique, lowercase email address, used for login and communication
+             * @example jane.doe@example.com
+             */
+            email: string;
+            /**
+             * @description User's phone number
+             * @example +1-555-123-4567
+             */
+            phone?: string;
+            /**
+             * @description Short biography or description provided by the user
+             * @example Content marketer and SEO enthusiast.
+             */
+            bio?: string;
+            /**
+             * @description Country the user resides in
+             * @example United States
+             */
+            country?: string;
+            /**
+             * @description ISO country code for the user's country
+             * @example US
+             */
+            countryCode?: string;
+            /**
+             * Format: date-time
+             * @description User's date of birth
+             * @example 1990-05-20T00:00:00.000Z
+             */
+            dob?: string | null;
+            /**
+             * @description Topics the user is interested in, used for content personalization
+             * @default [
+             *       "other"
+             *     ]
+             * @example [
+             *       "technology",
+             *       "music"
+             *     ]
+             */
+            interests: ("technology" | "sports" | "music" | "art" | "other")[];
+            /**
+             * @description Company or organization the user belongs to
+             * @example Acme Corp
+             */
+            company?: string;
+            /**
+             * @description User's job title
+             * @example Content Manager
+             */
+            jobTitle?: string;
+            /**
+             * @description URL of the user's avatar/profile image
+             * @example https://cdn.example.com/avatars/jane.png
+             */
+            avatar?: string;
+            /**
+             * @description Google account ID used for Google OAuth login; unique when present, allows multiple users without one
+             * @example 104852374619283746192
+             */
+            googleId?: string;
+            /** @description User's subscription plan and billing state */
+            subscription?: {
+                /**
+                 * @description Subscription plan tier the user is currently on
+                 * @default free
+                 * @example pro
+                 * @enum {string}
+                 */
+                plan: "free" | "basic" | "pro" | "enterprise";
+                /**
+                 * Format: date-time
+                 * @description Date the current subscription started
+                 * @example 2024-01-01T00:00:00.000Z
+                 */
+                startDate?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Date the subscription is next due to renew; changing it triggers a usage/limits reset
+                 * @example 2024-02-01T00:00:00.000Z
+                 */
+                renewalDate?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Future date on which the subscription is scheduled to be canceled
+                 * @example 2024-03-01T00:00:00.000Z
+                 */
+                cancelAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Past date on which the user canceled the subscription
+                 * @example 2024-01-20T00:00:00.000Z
+                 */
+                canceledAt?: string | null;
+                /**
+                 * @description Whether the user has opted into a trial at any point
+                 * @default false
+                 * @example true
+                 */
+                trialOpted: boolean;
+                /**
+                 * @description Stripe subscription ID used for recurring payments
+                 * @example sub_1PabcDEfghIJklmn
+                 */
+                stripeSubscriptionId?: string;
+                /**
+                 * @description Stripe customer ID associated with this user
+                 * @example cus_PabcDEfghIJklmn
+                 */
+                stripeCustomerId?: string;
+                /**
+                 * @description Discount percentage applied to the subscription
+                 * @default 0
+                 * @example 10
+                 */
+                discountApplied: number;
+                /**
+                 * @description Current Stripe subscription status (e.g. active, trialing, past_due, unpaid, canceled)
+                 * @default unpaid
+                 * @example active
+                 */
+                status: string;
+                /**
+                 * @description Billing cadence for the subscription
+                 * @example monthly
+                 */
+                billingPeriod?: string;
+                /**
+                 * Format: date-time
+                 * @description Timestamp since which payment has been failing, used for dunning emails
+                 * @example 2024-01-18T00:00:00.000Z
+                 */
+                paymentFailedSince?: string | null;
+                /**
+                 * @description Pending plan/billing-period change scheduled to apply on a future date
+                 * @default {}
+                 */
+                scheduledPlanChange: {
+                    /**
+                     * @description Plan the subscription will change to on the effective date
+                     * @example pro
+                     */
+                    newPlan?: string;
+                    /**
+                     * @description Billing period the subscription will change to on the effective date
+                     * @example yearly
+                     */
+                    newBillingPeriod?: string;
+                    /**
+                     * Format: date-time
+                     * @description Date the scheduled plan change will take effect
+                     * @example 2024-02-01T00:00:00.000Z
+                     */
+                    effectiveDate?: string | null;
+                };
+            };
+            /** @description User's available credits (base + extra) */
+            credits?: {
+                /**
+                 * @description Recurring credits granted by the user's subscription plan (e.g. monthly allotment)
+                 * @default 0
+                 * @example 100
+                 */
+                base: number;
+                /**
+                 * @description Additional purchased or bonus credits, consumed after base credits are exhausted
+                 * @default 0
+                 * @example 25
+                 */
+                extra: number;
+            };
+            /**
+             * @description In-app notifications for the user, capped to the most recent 50
+             * @default []
+             */
+            notifications: {
+                /**
+                 * @description Category of the notification event that triggered this entry
+                 * @example BLOG_GENERATED
+                 * @enum {string}
+                 */
+                type: "BLOG_GENERATION" | "BLOG_GENERATED" | "BLOG_TRASHED" | "BLOG_RESTORED" | "BLOG_DELETED" | "BLOG_GENERATION_ERROR" | "BLOG_GENERATION_FAILED" | "SUBSCRIPTION_PAST_DUE" | "INSUFFICIENT_CREDITS" | "JOB_STARTED" | "JOB_HALTED" | "JOB_COMPLETED" | "JOB_FAILED_CREDITS" | "JOB_ERROR" | "OTHER";
+                /**
+                 * @description Human-readable notification message shown to the user
+                 * @example Your blog 'Top 10 SEO Tips' has been generated.
+                 */
+                message: string;
+                /**
+                 * @description Whether the user has read this notification
+                 * @default false
+                 * @example false
+                 */
+                read: boolean;
+                /**
+                 * Format: date-time
+                 * @description Timestamp when the notification was created
+                 * @default 2026-09-12T05:58:00.656Z
+                 * @example 2024-01-15T10:30:00.000Z
+                 */
+                createdAt: string | null;
+            }[];
+            /**
+             * @description Google Search Console site/property associated with the user
+             * @example https://www.example.com/
+             */
+            gsc?: string;
+            /**
+             * @description Whether the user has verified their email address
+             * @default false
+             * @example false
+             */
+            emailVerified: boolean;
+            /** @description Timestamps tracking which lifecycle/marketing emails have been sent to the user */
+            emailTracking?: {
+                /**
+                 * Format: date-time
+                 * @description Timestamp the welcome email was sent
+                 * @example 2024-01-01T10:00:00.000Z
+                 */
+                welcomeSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the low-credit warning email was sent
+                 * @example 2024-01-10T10:00:00.000Z
+                 */
+                lowCreditSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the subscription renewal reminder email was sent
+                 * @example 2024-01-25T10:00:00.000Z
+                 */
+                renewalReminderSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the inactivity re-engagement email was sent
+                 * @example 2024-02-01T10:00:00.000Z
+                 */
+                inactivityEmailSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the plan-upgrade promotion email was sent
+                 * @example 2024-01-15T10:00:00.000Z
+                 */
+                upgradeEmailSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the trial-opt-in confirmation email was sent
+                 * @example 2024-01-05T10:00:00.000Z
+                 */
+                trialOptedSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the trial-ending-soon reminder email was sent
+                 * @example 2024-01-12T10:00:00.000Z
+                 */
+                trialEndReminderSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the trial-has-ended email was sent
+                 * @example 2024-01-15T10:00:00.000Z
+                 */
+                trialEndedSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the failed-payment dunning email was sent
+                 * @example 2024-01-19T10:00:00.000Z
+                 */
+                paymentDunningSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the Black Friday promotional email was sent
+                 * @example 2023-11-24T10:00:00.000Z
+                 */
+                blackFridaySentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the New Year sale promotional email was sent
+                 * @example 2024-01-01T10:00:00.000Z
+                 */
+                newYearSaleSentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the 30%-discount trial-user offer email was sent
+                 * @example 2024-01-08T10:00:00.000Z
+                 */
+                trial_user_discount_30SentAt?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the abandoned-checkout recovery email was sent
+                 * @example 2024-01-11T10:00:00.000Z
+                 */
+                abandonedCheckoutEmailSentAt?: string | null;
+            };
+            /** @description User's email notification opt-in preferences */
+            emailPreference?: {
+                /**
+                 * @description Whether the user has opted in to receive promotional/marketing emails
+                 * @default true
+                 * @example true
+                 */
+                promotionalEmails: boolean;
+                /**
+                 * @description Whether the user has opted in to receive new-feature announcement emails
+                 * @default true
+                 * @example true
+                 */
+                newFeatureUpdates: boolean;
+                /**
+                 * @description Whether the user has opted in to receive account/security alert emails
+                 * @default true
+                 * @example true
+                 */
+                accountAlerts: boolean;
+            };
+            /**
+             * Format: date-time
+             * @description Timestamp of the user's last successful login
+             * @example 2024-01-15T09:00:00.000Z
+             */
+            lastLogin?: string | null;
+            /** @description User's current usage counters for the billing cycle */
+            usage?: {
+                /**
+                 * @description Number of AI-generated images the user has used in the current billing cycle
+                 * @default 0
+                 * @example 12
+                 */
+                aiImages: number;
+                /**
+                 * @description Number of scheduled jobs the user has created in the current billing cycle
+                 * @default 0
+                 * @example 2
+                 */
+                createdJobs: number;
+            };
+            /** @description Usage limits allotted to the user for the billing cycle, based on plan */
+            usageLimits?: {
+                /**
+                 * @description Maximum number of AI-generated images allowed per billing cycle, based on plan
+                 * @example 200
+                 */
+                aiImages: number;
+                /**
+                 * @description Maximum number of scheduled jobs allowed per billing cycle, based on plan
+                 * @example 5
+                 */
+                createdJobs: number;
+            };
+            /**
+             * @description User's role for RBAC purposes: 'user' (standard), 'tester' (internal QA), or 'admin' (elevated access)
+             * @default user
+             * @example user
+             * @enum {string}
+             */
+            role: "user" | "tester" | "admin";
+            /** @description Referral program data for this user */
+            referral?: {
+                /**
+                 * @description Unique referral code belonging to this user, shared with others to refer them
+                 * @example REF-9F3K2A
+                 */
+                referralId?: string;
+                /**
+                 * @description The referralId of the user who referred this user (immutable once set)
+                 * @example REF-1B7Q9Z
+                 */
+                referredBy?: string;
+                /**
+                 * Format: date-time
+                 * @description Timestamp the referral record was created
+                 * @default 2026-09-12T05:58:00.657Z
+                 * @example 2024-01-01T10:00:00.000Z
+                 */
+                createdAt: string | null;
+            };
+            /**
+             * @description Virtual field: total available credits (base + extra); present on populated documents, not stored
+             * @example 125
+             */
+            totalCredits?: number;
+        };
         LogoutResponse: {
             /**
              * @example true
@@ -6187,96 +6597,7 @@ export interface components {
              * @enum {boolean}
              */
             success: true;
-            user: {
-                /** @example 64e2b90a... */
-                _id: string;
-                /** @example John Doe */
-                name: string;
-                /**
-                 * Format: email
-                 * @example user@genwrite.com
-                 */
-                email: string;
-                /** @example 1234567890 */
-                phone?: string;
-                /** @example I am a writer */
-                bio?: string;
-                /** @example 2000-01-01 */
-                dob?: string;
-                /**
-                 * @example [
-                 *       "technology"
-                 *     ]
-                 */
-                interests?: ("technology" | "sports" | "music" | "art" | "other")[];
-                /** @example Genwrite */
-                company?: string;
-                /** @example Content Writer */
-                jobTitle?: string;
-                /** @example https://example.com/avatar.png */
-                avatar?: string;
-                /** @example google_id */
-                googleId?: string;
-                subscription?: {
-                    /**
-                     * @example free
-                     * @enum {string}
-                     */
-                    plan?: "free" | "basic" | "pro" | "enterprise";
-                    /** @example 2025-01-01 */
-                    startDate?: string;
-                    /** @example 2026-01-01 */
-                    renewalDate?: string;
-                    billing?: {
-                        company?: string;
-                        address?: {
-                            line1?: string;
-                            line2?: string;
-                            city?: string;
-                            state?: string;
-                            country?: string;
-                            postalCode?: string;
-                        };
-                        gstOrTaxId?: string;
-                    };
-                };
-                credits?: {
-                    /** @example 100 */
-                    base?: number;
-                    /** @example 0 */
-                    extra?: number;
-                };
-                notifications?: {
-                    /** @enum {string} */
-                    type?: "BLOG_GENERATION" | "BLOG_GENERATED" | "BLOG_TRASHED" | "BLOG_RESTORED" | "BLOG_DELETED" | "BLOG_GENERATION_ERROR" | "BLOG_GENERATION_FAILED" | "INSUFFICIENT_CREDITS" | "JOB_STARTED" | "JOB_HALTED" | "JOB_COMPLETED" | "JOB_FAILED_CREDITS" | "JOB_ERROR" | "OTHER";
-                    message?: string;
-                    read?: boolean;
-                    createdAt?: string;
-                }[];
-                api?: {
-                    key?: string;
-                    limits?: {
-                        daily?: number;
-                        currentUsage?: number;
-                    };
-                };
-                gsc?: string;
-                emailVerified?: boolean;
-                emailTracking?: {
-                    welcomeSentAt?: string;
-                    lowCreditSentAt?: string;
-                    renewalReminderSentAt?: string;
-                };
-                usage?: {
-                    aiImages?: number;
-                    createdJobs?: number;
-                };
-                usageLimits?: {
-                    aiImages?: number;
-                    createdJobs?: number;
-                };
-                totalCredits?: number;
-            };
+            user: components["schemas"]["UserResponse"];
             /** @description The user's integration doc, or null if none exists yet */
             integration: {
                 /**
@@ -6422,96 +6743,7 @@ export interface components {
             success: true;
             /** @example jwt_access_token_here */
             accessToken: string;
-            user: {
-                /** @example 64e2b90a... */
-                _id: string;
-                /** @example John Doe */
-                name: string;
-                /**
-                 * Format: email
-                 * @example user@genwrite.com
-                 */
-                email: string;
-                /** @example 1234567890 */
-                phone?: string;
-                /** @example I am a writer */
-                bio?: string;
-                /** @example 2000-01-01 */
-                dob?: string;
-                /**
-                 * @example [
-                 *       "technology"
-                 *     ]
-                 */
-                interests?: ("technology" | "sports" | "music" | "art" | "other")[];
-                /** @example Genwrite */
-                company?: string;
-                /** @example Content Writer */
-                jobTitle?: string;
-                /** @example https://example.com/avatar.png */
-                avatar?: string;
-                /** @example google_id */
-                googleId?: string;
-                subscription?: {
-                    /**
-                     * @example free
-                     * @enum {string}
-                     */
-                    plan?: "free" | "basic" | "pro" | "enterprise";
-                    /** @example 2025-01-01 */
-                    startDate?: string;
-                    /** @example 2026-01-01 */
-                    renewalDate?: string;
-                    billing?: {
-                        company?: string;
-                        address?: {
-                            line1?: string;
-                            line2?: string;
-                            city?: string;
-                            state?: string;
-                            country?: string;
-                            postalCode?: string;
-                        };
-                        gstOrTaxId?: string;
-                    };
-                };
-                credits?: {
-                    /** @example 100 */
-                    base?: number;
-                    /** @example 0 */
-                    extra?: number;
-                };
-                notifications?: {
-                    /** @enum {string} */
-                    type?: "BLOG_GENERATION" | "BLOG_GENERATED" | "BLOG_TRASHED" | "BLOG_RESTORED" | "BLOG_DELETED" | "BLOG_GENERATION_ERROR" | "BLOG_GENERATION_FAILED" | "INSUFFICIENT_CREDITS" | "JOB_STARTED" | "JOB_HALTED" | "JOB_COMPLETED" | "JOB_FAILED_CREDITS" | "JOB_ERROR" | "OTHER";
-                    message?: string;
-                    read?: boolean;
-                    createdAt?: string;
-                }[];
-                api?: {
-                    key?: string;
-                    limits?: {
-                        daily?: number;
-                        currentUsage?: number;
-                    };
-                };
-                gsc?: string;
-                emailVerified?: boolean;
-                emailTracking?: {
-                    welcomeSentAt?: string;
-                    lowCreditSentAt?: string;
-                    renewalReminderSentAt?: string;
-                };
-                usage?: {
-                    aiImages?: number;
-                    createdJobs?: number;
-                };
-                usageLimits?: {
-                    aiImages?: number;
-                    createdJobs?: number;
-                };
-                totalCredits?: number;
-            };
+            user: components["schemas"]["UserResponse"];
             /**
              * @description Whether this call created a new user or signed in an existing one
              * @example sign_up
@@ -6771,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-12T05:46:04.482Z
+             * @default 2026-09-12T05:58:00.672Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -10545,7 +10777,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T05:46:04.241Z
+                             * @default 2026-09-12T05:58:00.473Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -10692,7 +10924,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T05:46:04.245Z
+                             * @default 2026-09-12T05:58:00.477Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -13092,96 +13324,7 @@ export interface operations {
                         message: string;
                         /** @example jwt_access_token_here */
                         accessToken: string;
-                        user: {
-                            /** @example 64e2b90a... */
-                            _id: string;
-                            /** @example John Doe */
-                            name: string;
-                            /**
-                             * Format: email
-                             * @example user@genwrite.com
-                             */
-                            email: string;
-                            /** @example 1234567890 */
-                            phone?: string;
-                            /** @example I am a writer */
-                            bio?: string;
-                            /** @example 2000-01-01 */
-                            dob?: string;
-                            /**
-                             * @example [
-                             *       "technology"
-                             *     ]
-                             */
-                            interests?: ("technology" | "sports" | "music" | "art" | "other")[];
-                            /** @example Genwrite */
-                            company?: string;
-                            /** @example Content Writer */
-                            jobTitle?: string;
-                            /** @example https://example.com/avatar.png */
-                            avatar?: string;
-                            /** @example google_id */
-                            googleId?: string;
-                            subscription?: {
-                                /**
-                                 * @example free
-                                 * @enum {string}
-                                 */
-                                plan?: "free" | "basic" | "pro" | "enterprise";
-                                /** @example 2025-01-01 */
-                                startDate?: string;
-                                /** @example 2026-01-01 */
-                                renewalDate?: string;
-                                billing?: {
-                                    company?: string;
-                                    address?: {
-                                        line1?: string;
-                                        line2?: string;
-                                        city?: string;
-                                        state?: string;
-                                        country?: string;
-                                        postalCode?: string;
-                                    };
-                                    gstOrTaxId?: string;
-                                };
-                            };
-                            credits?: {
-                                /** @example 100 */
-                                base?: number;
-                                /** @example 0 */
-                                extra?: number;
-                            };
-                            notifications?: {
-                                /** @enum {string} */
-                                type?: "BLOG_GENERATION" | "BLOG_GENERATED" | "BLOG_TRASHED" | "BLOG_RESTORED" | "BLOG_DELETED" | "BLOG_GENERATION_ERROR" | "BLOG_GENERATION_FAILED" | "INSUFFICIENT_CREDITS" | "JOB_STARTED" | "JOB_HALTED" | "JOB_COMPLETED" | "JOB_FAILED_CREDITS" | "JOB_ERROR" | "OTHER";
-                                message?: string;
-                                read?: boolean;
-                                createdAt?: string;
-                            }[];
-                            api?: {
-                                key?: string;
-                                limits?: {
-                                    daily?: number;
-                                    currentUsage?: number;
-                                };
-                            };
-                            gsc?: string;
-                            emailVerified?: boolean;
-                            emailTracking?: {
-                                welcomeSentAt?: string;
-                                lowCreditSentAt?: string;
-                                renewalReminderSentAt?: string;
-                            };
-                            usage?: {
-                                aiImages?: number;
-                                createdJobs?: number;
-                            };
-                            usageLimits?: {
-                                aiImages?: number;
-                                createdJobs?: number;
-                            };
-                            totalCredits?: number;
-                        };
+                        user: components["schemas"]["UserResponse"];
                     };
                 };
             };
@@ -13237,96 +13380,7 @@ export interface operations {
                         message: string;
                         /** @example jwt_access_token_here */
                         accessToken: string;
-                        user: {
-                            /** @example 64e2b90a... */
-                            _id: string;
-                            /** @example John Doe */
-                            name: string;
-                            /**
-                             * Format: email
-                             * @example user@genwrite.com
-                             */
-                            email: string;
-                            /** @example 1234567890 */
-                            phone?: string;
-                            /** @example I am a writer */
-                            bio?: string;
-                            /** @example 2000-01-01 */
-                            dob?: string;
-                            /**
-                             * @example [
-                             *       "technology"
-                             *     ]
-                             */
-                            interests?: ("technology" | "sports" | "music" | "art" | "other")[];
-                            /** @example Genwrite */
-                            company?: string;
-                            /** @example Content Writer */
-                            jobTitle?: string;
-                            /** @example https://example.com/avatar.png */
-                            avatar?: string;
-                            /** @example google_id */
-                            googleId?: string;
-                            subscription?: {
-                                /**
-                                 * @example free
-                                 * @enum {string}
-                                 */
-                                plan?: "free" | "basic" | "pro" | "enterprise";
-                                /** @example 2025-01-01 */
-                                startDate?: string;
-                                /** @example 2026-01-01 */
-                                renewalDate?: string;
-                                billing?: {
-                                    company?: string;
-                                    address?: {
-                                        line1?: string;
-                                        line2?: string;
-                                        city?: string;
-                                        state?: string;
-                                        country?: string;
-                                        postalCode?: string;
-                                    };
-                                    gstOrTaxId?: string;
-                                };
-                            };
-                            credits?: {
-                                /** @example 100 */
-                                base?: number;
-                                /** @example 0 */
-                                extra?: number;
-                            };
-                            notifications?: {
-                                /** @enum {string} */
-                                type?: "BLOG_GENERATION" | "BLOG_GENERATED" | "BLOG_TRASHED" | "BLOG_RESTORED" | "BLOG_DELETED" | "BLOG_GENERATION_ERROR" | "BLOG_GENERATION_FAILED" | "INSUFFICIENT_CREDITS" | "JOB_STARTED" | "JOB_HALTED" | "JOB_COMPLETED" | "JOB_FAILED_CREDITS" | "JOB_ERROR" | "OTHER";
-                                message?: string;
-                                read?: boolean;
-                                createdAt?: string;
-                            }[];
-                            api?: {
-                                key?: string;
-                                limits?: {
-                                    daily?: number;
-                                    currentUsage?: number;
-                                };
-                            };
-                            gsc?: string;
-                            emailVerified?: boolean;
-                            emailTracking?: {
-                                welcomeSentAt?: string;
-                                lowCreditSentAt?: string;
-                                renewalReminderSentAt?: string;
-                            };
-                            usage?: {
-                                aiImages?: number;
-                                createdJobs?: number;
-                            };
-                            usageLimits?: {
-                                aiImages?: number;
-                                createdJobs?: number;
-                            };
-                            totalCredits?: number;
-                        };
+                        user: components["schemas"]["UserResponse"];
                     };
                 };
             };

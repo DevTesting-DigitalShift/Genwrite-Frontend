@@ -58,11 +58,7 @@ export function sendStripeGTMEvent(
 
 interface CancellationUser {
   _id?: string
-  subscription?: {
-    plan?: string
-    startDate?: string
-    renewalDate?: string
-  }
+  subscription?: { plan?: string; startDate?: string | null; renewalDate?: string | null }
 }
 
 export function sendCancellationRelatedEvent(
