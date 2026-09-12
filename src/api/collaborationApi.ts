@@ -1,26 +1,46 @@
-import axiosInstance from "."
+import { apiDelete, apiGet, apiPost, ApiRequestError } from "./typedClient"
+
+const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
 
 export const createInvite = async (payload: unknown) => {
-  const response = await axiosInstance.post("/collaboration/invites", payload)
-  return response.data
+  try {
+    return await apiPost("/api/v1/collaboration/invites", payload as never)
+  } catch (err) {
+    return rethrow(err, "Failed to create invite")
+  }
 }
 
 export const listInvites = async () => {
-  const response = await axiosInstance.get("/collaboration/invites")
-  return response.data
+  try {
+    return await apiGet("/api/v1/collaboration/invites")
+  } catch (err) {
+    return rethrow(err, "Failed to fetch invites")
+  }
 }
 
 export const revokeInvite = async (inviteId: string) => {
-  const response = await axiosInstance.delete(`/collaboration/invites/${inviteId}`)
-  return response.data
+  try {
+    return await apiDelete("/api/v1/collaboration/invites/{id}", { params: { id: inviteId } })
+  } catch (err) {
+    return rethrow(err, "Failed to revoke invite")
+  }
 }
 
 export const acceptInvite = async (token: string) => {
-  const response = await axiosInstance.post("/collaboration/invites/accept", { token })
-  return response.data
+  try {
+    return await apiPost("/api/v1/collaboration/invites/accept", { token })
+  } catch (err) {
+    return rethrow(err, "Failed to accept invite")
+  }
 }
 
 export const listWorkspacesSharedWithMe = async () => {
-  const response = await axiosInstance.get("/collaboration/watching")
-  return response.data
+  try {
+    return await apiGet("/api/v1/collaboration/watching")
+  } catch (err) {
+    return rethrow(err, "Failed to fetch shared workspaces")
+  }
 }
