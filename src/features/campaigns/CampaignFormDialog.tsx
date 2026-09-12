@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import type { FieldErrors } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@components/ui/dialog"
 import { Button } from "@components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import {
   RHFTextField,
@@ -76,12 +77,20 @@ export function CampaignFormDialog({
   // Published blogs only. A campaign is scored against Search Console data, which
   // exists only for blogs that are live at a URL — offering the rest would let the
   // user build a campaign that can never report a number.
-  const { data: postedBlogs = [], isLoading: isBlogsLoading } = usePostedBlogsQuery()
+  //
+  // This dialog is always mounted (CampaignsListPage renders it unconditionally and
+  // just toggles `uiState.isOpen`), so both queries are gated on `isOpen` — otherwise
+  // landing on the campaigns page alone would eagerly fetch and dedupe every posting
+  // across every blog (500+ for an active account) before the user ever opens "New
+  // campaign".
+  const { data: postedBlogs = [], isLoading: isBlogsLoading } = usePostedBlogsQuery(uiState.isOpen)
   const blogRefs: CampaignBlogRef[] = postedBlogs
 
   // Only jobs with a posting destination configured — see JobMultiSelectField's own
   // description for why (mirrors the server-side eligibility check on submit).
-  const { data: eligibleJobs = [], isLoading: isJobsLoading } = useEligibleJobsForCampaignQuery()
+  const { data: eligibleJobs = [], isLoading: isJobsLoading } = useEligibleJobsForCampaignQuery(
+    uiState.isOpen
+  )
 
   const {
     control,
@@ -147,6 +156,13 @@ export function CampaignFormDialog({
   const autoApply = useWatch({ control, name: "automation.autoApply" })
   const maxActions = useWatch({ control, name: "automation.maxAutoActionsPerWeek" })
   const startDate = useWatch({ control, name: "startDate" })
+  const watchedBlogIds = useWatch({ control, name: "blogIds" })
+  const watchedJobIds = useWatch({ control, name: "jobIds" })
+
+  // Sub-tab within the "blogs" step: only one of the two lists is mounted at a time,
+  // so a 500+ blog account doesn't pay for rendering every checkbox row up front just
+  // to look at the (usually much shorter) job list, or vice versa.
+  const [blogsSubTab, setBlogsSubTab] = useState<"blogs" | "jobs">("blogs")
 
   // A campaign can't start in the past, and it must end strictly after it starts —
   // so the end-date calendar opens the day after whatever start date is chosen.
@@ -353,21 +369,50 @@ export function CampaignFormDialog({
             )}
 
             {uiState.activeTab === "blogs" && (
-              <div className="min-w-0 space-y-5">
-                <BlogMultiSelectField
-                  control={control}
-                  name="blogIds"
-                  blogs={blogRefs}
-                  isLoading={isBlogsLoading}
-                  search={uiState.blogSearch}
-                  onSearchChange={onBlogSearchChange}
-                />
-                <JobMultiSelectField
-                  control={control}
-                  name="jobIds"
-                  jobs={eligibleJobs}
-                  isLoading={isJobsLoading}
-                />
+              <div className="min-w-0 space-y-3">
+                <Tabs
+                  value={blogsSubTab}
+                  onValueChange={(v: string) => setBlogsSubTab(v as "blogs" | "jobs")}
+                >
+                  <TabsList>
+                    <TabsTrigger value="blogs">
+                      Blogs{watchedBlogIds?.length ? ` (${watchedBlogIds.length})` : ""}
+                    </TabsTrigger>
+                    <TabsTrigger value="jobs">
+                      Jobs{watchedJobIds?.length ? ` (${watchedJobIds.length})` : ""}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* A campaign needs at least one blog OR one job — that rule fails
+                      against `blogIds` as a group (see campaignForm.schema.ts), so it
+                      would otherwise only ever render inside the Blogs tab and stay
+                      invisible to someone who left "Next" while on the Jobs tab. */}
+                  {errors.blogIds?.message && (
+                    <p className="flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="size-3.5 shrink-0" />
+                      {errors.blogIds.message}
+                    </p>
+                  )}
+
+                  <TabsContent value="blogs">
+                    <BlogMultiSelectField
+                      control={control}
+                      name="blogIds"
+                      blogs={blogRefs}
+                      isLoading={isBlogsLoading}
+                      search={uiState.blogSearch}
+                      onSearchChange={onBlogSearchChange}
+                    />
+                  </TabsContent>
+                  <TabsContent value="jobs">
+                    <JobMultiSelectField
+                      control={control}
+                      name="jobIds"
+                      jobs={eligibleJobs}
+                      isLoading={isJobsLoading}
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
 

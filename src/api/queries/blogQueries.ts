@@ -32,11 +32,7 @@ export const useAllBlogsQuery = () => {
   return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
 }
 
-interface BlogPosting {
-  blogId?: { _id: string; title?: string } | string
-  integrationType?: string
-  postedOn?: string
-}
+type BlogPosting = Awaited<ReturnType<typeof getAllBlogPostings>>[number]
 
 /**
  * The blogs that are actually live somewhere, one entry per blog rather than one per
@@ -44,10 +40,11 @@ interface BlogPosting {
  * Anything that reads Search Console performance (campaigns, most of all) can only
  * work with these, since an unpublished blog has no URL for GSC to report on.
  */
-export const usePostedBlogsQuery = () => {
+export const usePostedBlogsQuery = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["postedBlogs"],
     queryFn: () => getAllBlogPostings(),
+    enabled,
     select: (postings: BlogPosting[]): CampaignBlogRef[] => {
       const byBlogId = new Map<string, CampaignBlogRef>()
       for (const posting of postings ?? []) {
@@ -65,8 +62,8 @@ export const usePostedBlogsQuery = () => {
         byBlogId.set(blog._id, {
           _id: blog._id,
           title: blog.title || "Untitled blog",
-          postedOn: posting.postedOn,
-          platforms: [posting.integrationType].filter((p): p is string => !!p),
+          postedOn: posting.postedOn ?? undefined,
+          platforms: [posting.integrationType].filter((p): p is NonNullable<typeof p> => !!p),
         })
       }
       return [...byBlogId.values()]
@@ -157,8 +154,7 @@ export const useArchiveBlogMutation = () => {
 export const useRetryBlogMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload?: unknown }) =>
-      retryBlogById(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => retryBlogById(id, payload),
     onSuccess: (result) => {
       toast.success(result?.message || "Blog regenerated successfully")
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
@@ -246,8 +242,11 @@ export const useApplyInsightMutation = () => {
       id,
       suggestionId,
       scope,
-    }: { id: string; suggestionId: string; scope?: string }) =>
-      applyBlogInsight(id, { suggestionId, scope }),
+    }: {
+      id: string
+      suggestionId: string
+      scope?: string
+    }) => applyBlogInsight(id, { suggestionId, scope }),
     onSuccess: () => {
       // The generation spends credits, so the header balance is now stale.
       queryClient.invalidateQueries({ queryKey: ["user"] })
@@ -271,8 +270,12 @@ export const useConfirmInsightMutation = () => {
       suggestionId,
       content,
       republish,
-    }: { id: string; suggestionId: string; content?: string; republish?: boolean }) =>
-      confirmBlogInsight(id, { suggestionId, content, republish }),
+    }: {
+      id: string
+      suggestionId: string
+      content?: string
+      republish?: boolean
+    }) => confirmBlogInsight(id, { suggestionId, content, republish }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["blog", variables.id] })
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
