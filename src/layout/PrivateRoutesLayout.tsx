@@ -10,12 +10,7 @@ import { useProAction } from "@/hooks/useProAction"
 import UpgradeModal from "@components/UpgradeModal"
 import WorkspaceAccessBanner from "@components/WorkspaceAccessBanner"
 import SessionExpiredModal from "@components/SessionExpiredModal"
-import {
-  removeSession,
-  getActiveSession,
-  getSessions,
-  getActiveUserId,
-} from "@utils/sessionStore"
+import { removeSession, getActiveSession, getSessions, getActiveUserId } from "@utils/sessionStore"
 import { toast } from "sonner"
 
 // Routes that needsUpgrade users are allowed to visit freely
@@ -42,6 +37,13 @@ const PrivateRoutesLayout = () => {
   const [checkingAuth, setCheckingAuth] = useState(!!getActiveSession())
 
   const isPublicPath = location.pathname.startsWith("/blog/")
+  // The blog editor's right-hand panel rail runs the full viewport height and claims
+  // this exact corner (bottom-right) once the viewport is short enough — a maximized
+  // browser on a 1366x768 laptop screen included, since browser chrome eats into the
+  // available height. The fixed WhatsApp bubble then sits on top of it, hiding and
+  // intercepting clicks on the rail's last nav icon. Suppress it on editor routes.
+  const isEditorPath =
+    location.pathname.startsWith("/editor/") || location.pathname.startsWith("/blog-editor/")
 
   // Each tab pins its own account (sessionStorage), so another tab switching accounts is
   // none of this tab's business — it keeps running its own. The one cross-tab change that
@@ -152,14 +154,16 @@ const PrivateRoutesLayout = () => {
             <Outlet />
           </main>
         </div>
-        <WhatsAppFloatButton
-          phoneNumber="917530003383"
-          message="Hi! I'm interested in learning more about GenWrite."
-          tooltipText="Chat with us on WhatsApp"
-          position="bottom-right"
-          size="medium"
-          showPulse={true}
-        />
+        {!isEditorPath && (
+          <WhatsAppFloatButton
+            phoneNumber="917530003383"
+            message="Hi! I'm interested in learning more about GenWrite."
+            tooltipText="Chat with us on WhatsApp"
+            position="bottom-right"
+            size="medium"
+            showPulse={true}
+          />
+        )}
       </div>
 
       <PaymentPendingModal user={user} />
