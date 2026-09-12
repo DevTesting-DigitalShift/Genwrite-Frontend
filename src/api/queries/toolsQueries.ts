@@ -12,7 +12,7 @@ import {
   checkWebsiteRankingsApi,
   generateAdvancedAnalysisApi,
   websiteRankingOrchestratorApi,
-} from "../toolsApi"
+} from "../generateApi"
 
 /* ================== AI Content Detection ================== */
 export const useAiDetectionMutation = () => {

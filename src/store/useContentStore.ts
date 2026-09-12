@@ -1,4 +1,4 @@
-import { createOutline, generateMetadata, generatePromptContent } from "@api/otherApi"
+import { createOutline, generateMetadata, generatePromptContent } from "@api/generateApi"
 import { fetchCategories } from "@api/integrationApi"
 import { apiErrorMessage } from "@/types/api"
 import { toast } from "sonner"

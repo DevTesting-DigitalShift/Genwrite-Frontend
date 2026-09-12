@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-12T11:12:56.742Z
+             * @default 2026-09-12T11:34:39.085Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:12:56.798Z
+                 * @default 2026-09-12T11:34:39.150Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:12:56.799Z
+                 * @default 2026-09-12T11:34:39.151Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-12T11:12:56.806Z
+             * @default 2026-09-12T11:34:39.159Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:12:56.821Z
+                 * @default 2026-09-12T11:34:39.182Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:12:56.822Z
+                 * @default 2026-09-12T11:34:39.183Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-12T11:12:56.832Z
+             * @default 2026-09-12T11:34:39.194Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -10777,7 +10777,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:12:56.708Z
+                             * @default 2026-09-12T11:34:39.037Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -10924,7 +10924,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:12:56.711Z
+                             * @default 2026-09-12T11:34:39.039Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

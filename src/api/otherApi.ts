@@ -18,40 +18,6 @@ export const createPortalSession = async (returnUrl: unknown) => {
   return response.data
 }
 
-export const humanizeContentGenerator = async (payload: unknown) => {
-  const response = await axiosInstance.post("/generate/humanised-content", payload)
-  return response.data
-}
-
-export const createOutline = async (payload: unknown) => {
-  const response = await axiosInstance.post("/generate/outline", payload)
-  return response.data
-}
-
-export const generateMetadata = async (payload: unknown) => {
-  const response = await axiosInstance.post("/generate/metadata", payload)
-  return response.data
-}
-
-// Generate blog content with custom prompt
-export const generatePromptContent = async ({
-  prompt,
-  content,
-}: {
-  prompt: string
-  content?: string
-}) => {
-  try {
-    const response = await axiosInstance.post("/generate/prompt-content", { prompt, content })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(
-      error.response?.data?.message || error.message || "Failed to generate prompt content"
-    )
-  }
-}
-
 // Unsubscribe API
 export const unsubscribeUser = async (email: string) => {
   try {
