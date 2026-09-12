@@ -45,8 +45,8 @@ function toFormValues(campaign?: Campaign): CampaignFormValues {
   return {
     name: campaign.name,
     description: campaign.description ?? "",
-    startDate: campaign.startDate.slice(0, 10),
-    endDate: campaign.endDate.slice(0, 10),
+    startDate: (campaign.startDate ?? "").slice(0, 10),
+    endDate: (campaign.endDate ?? "").slice(0, 10),
     blogIds: campaign.blogIds,
     jobIds: campaign.jobIds ?? [],
     targets: campaign.targets,

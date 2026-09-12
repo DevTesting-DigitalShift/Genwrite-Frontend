@@ -4,8 +4,8 @@ import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { PanelEmpty, PanelError, PanelLoading } from "./CampaignStates"
 import { getFriendlyError } from "@utils/friendlyError"
 
-const formatDateTime = (date: string) =>
-  new Date(date).toLocaleString("en-US", {
+const formatDateTime = (date: string | null) =>
+  new Date(date ?? 0).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -25,7 +25,13 @@ interface CampaignActivityLogProps {
 
 /** Audit trail of automated rewrites and reposts — successes and failures alike. */
 export function CampaignActivityLog({ campaignId, blogTitles }: CampaignActivityLogProps) {
-  const { data: actions = [], isLoading, isError, error, refetch } = campaignsQuery.useActions(campaignId)
+  const {
+    data: actions = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = campaignsQuery.useActions(campaignId)
 
   if (isLoading) return <PanelLoading label="Loading activity…" />
 
@@ -65,9 +71,7 @@ export function CampaignActivityLog({ campaignId, blogTitles }: CampaignActivity
             />
             <div className="min-w-0 flex-1 space-y-0.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="text-sm font-medium">
-                  {ACTION_LABEL[entry.action] ?? entry.action}
-                </p>
+                <p className="text-sm font-medium">{ACTION_LABEL[entry.action] ?? entry.action}</p>
                 <p className="shrink-0 text-xs text-muted-foreground">
                   {formatDateTime(entry.createdAt)}
                 </p>
@@ -76,9 +80,7 @@ export function CampaignActivityLog({ campaignId, blogTitles }: CampaignActivity
                 {blogTitles[entry.blogId] ?? "Untitled blog"}
                 {entry.creditsCost > 0 && ` · ${entry.creditsCost} credits`}
               </p>
-              {failed && entry.error && (
-                <p className="text-xs text-destructive">{entry.error}</p>
-              )}
+              {failed && entry.error && <p className="text-xs text-destructive">{entry.error}</p>}
             </div>
           </div>
         )

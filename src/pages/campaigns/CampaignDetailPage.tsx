@@ -32,8 +32,12 @@ import { getFriendlyError } from "@utils/friendlyError"
 import { getSocket } from "@utils/socket"
 import type { CampaignAnalyzedEvent, CampaignStatusType } from "@/types/campaign"
 
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+const formatDate = (date: string | null) =>
+  new Date(date ?? 0).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 
 const formatNumber = (value: number) => value.toLocaleString("en-US")
 
@@ -141,7 +145,10 @@ export default function CampaignDetailPage() {
   const blogTitles = useMemo(
     () =>
       Object.fromEntries(
-        (allBlogs as { _id: string; title?: string }[]).map((b) => [b._id, b.title ?? "Untitled blog"])
+        (allBlogs as { _id: string; title?: string }[]).map((b) => [
+          b._id,
+          b.title ?? "Untitled blog",
+        ])
       ) as Record<string, string>,
     [allBlogs]
   )
@@ -162,7 +169,9 @@ export default function CampaignDetailPage() {
           `Analyzing ${queued.blogCount} blog${plural} — this page updates when it's done.`
         )
       } else {
-        toast.success(`Analyzing ${queued.blogCount} blog${plural} — refresh shortly to see results.`)
+        toast.success(
+          `Analyzing ${queued.blogCount} blog${plural} — refresh shortly to see results.`
+        )
       }
       setTab("suggestions")
     },
@@ -352,7 +361,10 @@ export default function CampaignDetailPage() {
         <TabsContent value="overview" className="mt-4 space-y-6">
           <LinkedJobsNotice linkedJobs={campaign.linkedJobs} />
 
-          <Section title="Live performance" description="Current Search Console data for this campaign's blogs.">
+          <Section
+            title="Live performance"
+            description="Current Search Console data for this campaign's blogs."
+          >
             <LiveMetricsWidget campaignId={campaign._id} />
           </Section>
 
@@ -361,7 +373,9 @@ export default function CampaignDetailPage() {
             description="Progress compares the latest monthly report against the goals set for this campaign."
           >
             {!hasAggregateTargets && targets.keywords.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">No targets set for this campaign.</p>
+              <p className="py-2 text-sm text-muted-foreground">
+                No targets set for this campaign.
+              </p>
             ) : (
               <div className="space-y-5">
                 {hasAggregateTargets && (
