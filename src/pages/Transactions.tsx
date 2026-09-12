@@ -20,7 +20,7 @@ import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"
 import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
-import { createPortalSession } from "@api/otherApi"
+import { createPortalSession } from "@api/stripeApi"
 import { toast } from "sonner"
 import { getCurrencySymbol } from "@/data/transactionData"
 

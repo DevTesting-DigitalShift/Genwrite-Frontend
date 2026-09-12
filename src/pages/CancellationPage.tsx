@@ -17,7 +17,7 @@ import {
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { cancelStripeSubscription } from "@api/otherApi"
+import { cancelStripeSubscription } from "@api/stripeApi"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
