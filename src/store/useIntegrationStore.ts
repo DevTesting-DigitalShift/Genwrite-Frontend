@@ -5,7 +5,7 @@ import {
   fetchIntegrations as fetchIntegrationsAPI,
   pingIntegration as pingIntegrationAPI,
   updateIntegration as updateIntegrationAPI,
-} from "@api/otherApi"
+} from "@api/integrationApi"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 

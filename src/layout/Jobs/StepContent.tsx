@@ -4,7 +4,7 @@ import MultiDatePicker from "react-multi-date-picker"
 import { Plus, Upload, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { fetchIntegrations } from "@api/otherApi"
+import { fetchIntegrations } from "@api/integrationApi"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -323,11 +323,20 @@ const StepContent = ({
     clearErrors("blogs.imageSource") // Clear error
   }
 
-  const handleTemplateSelection = useCallback((temps: any) => {
-    setField("blogs.templates", temps.map((t: any) => t.name))
-    setField("templateIds", temps.map((t: any) => t.id))
-    clearErrors("blogs.templates")
-  }, [setField, clearErrors])
+  const handleTemplateSelection = useCallback(
+    (temps: any) => {
+      setField(
+        "blogs.templates",
+        temps.map((t: any) => t.name)
+      )
+      setField(
+        "templateIds",
+        temps.map((t: any) => t.id)
+      )
+      clearErrors("blogs.templates")
+    },
+    [setField, clearErrors]
+  )
 
   switch (currentStep) {
     case 1:
@@ -432,9 +441,12 @@ const StepContent = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setField("blogs.topics", (newJob.blogs?.topics || []).filter(
-                                (_: any, i: any) => i !== actualIndex
-                              ))
+                          setField(
+                            "blogs.topics",
+                            (newJob.blogs?.topics || []).filter(
+                              (_: any, i: any) => i !== actualIndex
+                            )
+                          )
                         }
                         className="ml-1.5 shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         aria-label={`Remove topic ${topic}`}
@@ -486,9 +498,7 @@ const StepContent = ({
                   <input
                     type="text"
                     value={newJob.keywordInput}
-                    onChange={(e) =>
-                      setField("keywordInput", e.target.value)
-                    }
+                    onChange={(e) => setField("keywordInput", e.target.value)}
                     onKeyDown={(e) =>
                       e.key === "Enter" && handleAddItems(newJob.keywordInput, "keywords")
                     }
@@ -573,9 +583,7 @@ const StepContent = ({
                 <input
                   type="url"
                   value={newJob.referenceInput || ""}
-                  onChange={(e) =>
-                    setField("referenceInput", e.target.value)
-                  }
+                  onChange={(e) => setField("referenceInput", e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
@@ -635,7 +643,10 @@ const StepContent = ({
                     <button
                       type="button"
                       onClick={() =>
-                        setField("blogs.references", (newJob.blogs?.references || []).filter((_: any, i: any) => i !== idx))
+                        setField(
+                          "blogs.references",
+                          (newJob.blogs?.references || []).filter((_: any, i: any) => i !== idx)
+                        )
                       }
                       className="ml-2 text-red-400 hover:text-red-600"
                     >
@@ -702,9 +713,7 @@ const StepContent = ({
                     max={BLOG_CONFIG.LENGTH.MAX}
                     step={BLOG_CONFIG.LENGTH.STEP}
                     value={[newJob.blogs.userDefinedLength]}
-                    onValueChange={(vals) =>
-                      setField("blogs.userDefinedLength", vals[0])
-                    }
+                    onValueChange={(vals) => setField("blogs.userDefinedLength", vals[0])}
                     className="w-full"
                   />
                   <span className="mt-2 text-sm text-gray-600 block">
@@ -727,11 +736,14 @@ const StepContent = ({
                 checked={newJob.blogs.isCheckedGeneratedImages}
                 onCheckedChange={(checked) => {
                   setField("blogs.isCheckedGeneratedImages", checked)
-                  setField("blogs.imageSource", checked
-                        ? newJob.blogs.imageSource === "none"
-                          ? "stock"
-                          : newJob.blogs.imageSource
-                        : "none")
+                  setField(
+                    "blogs.imageSource",
+                    checked
+                      ? newJob.blogs.imageSource === "none"
+                        ? "stock"
+                        : newJob.blogs.imageSource
+                      : "none"
+                  )
                 }}
               />
             </div>
@@ -744,9 +756,7 @@ const StepContent = ({
                 error={errors.blogs?.imageSource?.message}
                 showUpload={false}
                 numberOfImages={newJob.blogs.numberOfImages}
-                onNumberChange={(val) =>
-                  setField("blogs.numberOfImages", val)
-                }
+                onNumberChange={(val) => setField("blogs.numberOfImages", val)}
               />
               {errors.blogs?.numberOfImages?.message && (
                 <p className="text-red-500 text-xs mt-1">{errors.blogs?.numberOfImages?.message}</p>
@@ -768,7 +778,11 @@ const StepContent = ({
                   if (value === "weekly") setField("schedule.daysOfWeek", [])
                   if (value === "monthly") setField("schedule.daysOfMonth", [])
                   if (value === "custom") setField("schedule.customDates", [])
-                  clearErrors(["schedule.daysOfWeek", "schedule.daysOfMonth", "schedule.customDates"])
+                  clearErrors([
+                    "schedule.daysOfWeek",
+                    "schedule.daysOfMonth",
+                    "schedule.customDates",
+                  ])
                 }}
                 className="select select-bordered w-full h-10 min-h-0 text-sm"
               >
@@ -783,7 +797,9 @@ const StepContent = ({
                 <span className="block text-sm font-semibold  mb-2">Select Days of Week</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
-                    errors.schedule?.daysOfWeek?.message ? "border-red-500 border-2 p-2 rounded" : ""
+                    errors.schedule?.daysOfWeek?.message
+                      ? "border-red-500 border-2 p-2 rounded"
+                      : ""
                   }`}
                 >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
@@ -810,7 +826,9 @@ const StepContent = ({
                   ))}
                 </div>
                 {errors.schedule?.daysOfWeek?.message && (
-                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.daysOfWeek?.message}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.schedule?.daysOfWeek?.message}
+                  </p>
                 )}
               </div>
             )}
@@ -819,7 +837,9 @@ const StepContent = ({
                 <span className="block text-sm font-semibold  mb-2">Select Dates of Month</span>
                 <div
                   className={`flex gap-2 flex-wrap ${
-                    errors.schedule?.daysOfMonth?.message ? "border-red-500 border-2 p-2 rounded" : ""
+                    errors.schedule?.daysOfMonth?.message
+                      ? "border-red-500 border-2 p-2 rounded"
+                      : ""
                   }`}
                 >
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
@@ -846,7 +866,9 @@ const StepContent = ({
                   ))}
                 </div>
                 {errors.schedule?.daysOfMonth?.message && (
-                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.daysOfMonth?.message}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.schedule?.daysOfMonth?.message}
+                  </p>
                 )}
               </div>
             )}
@@ -855,7 +877,9 @@ const StepContent = ({
                 <span className="block text-sm font-semibold  mb-2">Select Dates</span>
                 <div
                   className={
-                    errors.schedule?.customDates?.message ? "border-2 border-red-500 rounded-lg" : ""
+                    errors.schedule?.customDates?.message
+                      ? "border-2 border-red-500 rounded-lg"
+                      : ""
                   }
                 >
                   <MultiDatePicker
@@ -873,7 +897,9 @@ const StepContent = ({
                   />
                 </div>
                 {errors.schedule?.customDates?.message && (
-                  <p className="text-red-500 text-xs mt-1">{errors.schedule?.customDates?.message}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.schedule?.customDates?.message}
+                  </p>
                 )}
               </div>
             )}
@@ -1054,7 +1080,9 @@ const StepContent = ({
                       ))}
                   </select>
                   {errors.blogs?.postingType?.message && (
-                    <p className="text-red-500 text-xs mt-1">{errors.blogs?.postingType?.message}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.blogs?.postingType?.message}
+                    </p>
                   )}
                 </div>
               )}

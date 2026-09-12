@@ -23,26 +23,6 @@ export const humanizeContentGenerator = async (payload: unknown) => {
   return response.data
 }
 
-export const fetchCategories = async (type: string) => {
-  const response = await axiosInstance.get(`/integrations/category?type=${type}`)
-  return response.data
-}
-
-export const fetchIntegrations = async () => {
-  const res = await axiosInstance.get("/integrations")
-  return res.data
-}
-
-export const pingIntegration = async (type: string) => {
-  const res = await axiosInstance.get(`/integrations/ping?type=${type}`)
-  return res.data
-}
-
-export const createIntegration = async (payload: unknown) => {
-  const res = await axiosInstance.post("/integrations", payload)
-  return res.data
-}
-
 export const createOutline = async (payload: unknown) => {
   const response = await axiosInstance.post("/generate/outline", payload)
   return response.data
@@ -54,13 +34,21 @@ export const generateMetadata = async (payload: unknown) => {
 }
 
 // Generate blog content with custom prompt
-export const generatePromptContent = async ({ prompt, content }: { prompt: string; content?: string }) => {
+export const generatePromptContent = async ({
+  prompt,
+  content,
+}: {
+  prompt: string
+  content?: string
+}) => {
   try {
     const response = await axiosInstance.post("/generate/prompt-content", { prompt, content })
     return response.data
   } catch (rawError) {
     const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || error.message || "Failed to generate prompt content")
+    throw new Error(
+      error.response?.data?.message || error.message || "Failed to generate prompt content"
+    )
   }
 }
 
@@ -73,9 +61,4 @@ export const unsubscribeUser = async (email: string) => {
     const error = asApiError(rawError)
     throw new Error(error.response?.data?.message || error.message || "Failed to unsubscribe")
   }
-}
-
-export const updateIntegration = async (payload: unknown) => {
-  const response = await axiosInstance.put("/integrations/post", payload)
-  return response.data
 }
