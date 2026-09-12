@@ -1,27 +1,47 @@
-import axiosInstance from "."
+import { apiDelete, apiGet, apiPost, apiPut, ApiRequestError } from "./typedClient"
+
+const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
 
 export const getBrands = async () => {
-  const res = await axiosInstance.get("/brand")
-  const data = res.data
-  return Array.isArray(data) ? data : data ? [data] : []
+  try {
+    const data = await apiGet("/api/v1/brand")
+    return Array.isArray(data) ? data : data ? [data] : []
+  } catch (err) {
+    return rethrow(err, "Failed to fetch brands")
+  }
 }
 
 export const createBrandVoice = async (payload: unknown) => {
-  const res = await axiosInstance.post("/brand/addBrand", payload)
-  return res.data
+  try {
+    return await apiPost("/api/v1/brand/addBrand", payload as never)
+  } catch (err) {
+    return rethrow(err, "Failed to create brand voice")
+  }
 }
 
 export const updateBrandVoice = async (id: string, payload: unknown) => {
-  const res = await axiosInstance.put(`/brand/${id}`, payload)
-  return res.data
+  try {
+    return await apiPut("/api/v1/brand/{id}", payload as never, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to update brand voice")
+  }
 }
 
 export const deleteBrandVoice = async (id: string) => {
-  const res = await axiosInstance.delete(`/brand/${id}`)
-  return res.data
+  try {
+    return await apiDelete("/api/v1/brand/{id}", { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to delete brand voice")
+  }
 }
 
 export const getSiteInfo = async (url: string) => {
-  const res = await axiosInstance.get("/brand/site-info", { params: { url } })
-  return res.data
+  try {
+    return await apiGet("/api/v1/brand/site-info", { query: { url } as never })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch site info")
+  }
 }

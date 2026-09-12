@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-12T05:28:32.724Z
+             * @default 2026-09-12T05:46:04.297Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T05:28:32.776Z
+                 * @default 2026-09-12T05:46:04.391Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T05:28:32.777Z
+                 * @default 2026-09-12T05:46:04.393Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-12T05:28:32.786Z
+             * @default 2026-09-12T05:46:04.403Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6771,7 +6771,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-12T05:28:32.829Z
+             * @default 2026-09-12T05:46:04.482Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -10545,7 +10545,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T05:28:32.654Z
+                             * @default 2026-09-12T05:46:04.241Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -10692,7 +10692,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T05:28:32.658Z
+                             * @default 2026-09-12T05:46:04.245Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
