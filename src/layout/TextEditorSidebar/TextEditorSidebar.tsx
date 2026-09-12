@@ -20,7 +20,6 @@ import {
   Download,
   FileCode,
   Lock,
-  Globe,
   Info,
   User,
   ImageIcon,
@@ -32,7 +31,7 @@ import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { useNavigate } from "react-router-dom"
-import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
+import { retryBlogById, exportBlog } from "@api/blogApi"
 import { useZodForm } from "@/lib/forms"
 import {
   regenerateBlogFormDefaults,
@@ -40,6 +39,7 @@ import {
   toRegenerateBlogPayload,
 } from "@/forms/regenerateBlogForm"
 import { debugPayload } from "@utils/debugPayload"
+import { asApiError } from "@/types/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import InsightsPanel from "./sidebars/InsightsPanel"
@@ -54,6 +54,7 @@ import useWorkspaceStore from "@store/useWorkspaceStore"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import useAiReviewStore from "@/store/useAiReviewStore"
+import useEditorStore from "@/store/useEditorStore"
 import axiosInstance from "@/api"
 import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
@@ -215,7 +216,7 @@ const POPULAR_CATEGORIES = [
 ]
 
 // Labels for the AI section tasks, used in the in-editor review header.
-const SECTION_TASK_LABELS = {
+const SECTION_TASK_LABELS: Record<string, string> = {
   rewrite: "Rewrite",
   proofread: "Proofread",
   promptChanges: "Custom Prompt",
@@ -234,7 +235,7 @@ const SECTION_TASK_LABELS = {
  * Sections are unwrapped innermost-first so unwrapping an outer one cannot
  * re-introduce a nested one.
  */
-const unwrapSectionMarkup = (html: any, parser: any) => {
+const unwrapSectionMarkup = (html: string | null | undefined, parser: DOMParser) => {
   if (!html || !/<section[\s>]/i.test(html)) return html || ""
 
   const doc = parser.parseFromString(html, "text/html")
@@ -248,10 +249,9 @@ const unwrapSectionMarkup = (html: any, parser: any) => {
 interface TextEditorSidebarProps {
   blog?: any
   keywords?: string[]
-  setKeywords: (keywords: string[]) => void
   onPost?: (...args: any[]) => void
-  handleSave?: (...args: any[]) => void
-  posted?: boolean
+  /** Posting status per platform (e.g. `posted.SHOPIFY?.link`) — not a boolean, despite the name. */
+  posted?: Record<string, any>
   isPosting?: boolean
   formData?: any
   editorContent?: string
@@ -259,7 +259,7 @@ interface TextEditorSidebarProps {
   setIsHumanizing: (value: boolean) => void
   setHumanizedContent: (content: any) => void
   setIsHumanizeModalOpen: (open: boolean) => void
-  setIsSidebarOpen: (open: boolean) => void
+  setIsSidebarOpen?: (open: boolean) => void
   unsavedChanges?: boolean
   activeEditorVersion?: any
   setEditorContent: (content: string) => void
@@ -269,9 +269,7 @@ interface TextEditorSidebarProps {
 const TextEditorSidebar = ({
   blog,
   keywords,
-  setKeywords,
   onPost,
-  handleSave,
   posted,
   isPosting,
   formData,
@@ -296,9 +294,6 @@ const TextEditorSidebar = ({
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-  const [choosePlatformOpen, setChoosePlatformOpen] = useState(false)
-  const [customPrompt, setCustomPrompt] = useState("")
-  const [newKeyword, setNewKeyword] = useState("")
   const [isRegenerating, setIsRegenerating] = useState(false)
 
   // Repost Modal State
@@ -310,11 +305,13 @@ const TextEditorSidebar = ({
   })
 
   // 2-step regenerate modal state
-  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
+  const isRegenerateModalOpen = useEditorStore((s) => s.isRegenerateModalOpen)
+  const setIsRegenerateModalOpen = useEditorStore((s) => s.setIsRegenerateModalOpen)
 
   // Blog postings state
-  const [blogPostings, setBlogPostings] = useState<any[]>([])
-  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
+  const blogPostings = useEditorStore((s) => s.blogPostings)
+  const isLoadingPostings = useEditorStore((s) => s.isLoadingPostings)
+  const fetchPostings = useEditorStore((s) => s.fetchPostings)
 
   // Blog slug editor state
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
@@ -368,17 +365,16 @@ const TextEditorSidebar = ({
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
   const [availableSections, setAvailableSections] = useState<any[]>([])
-  const [_isAnalyzingProofreading, _setIsAnalyzingProofreading] = useState(false)
 
   // AI rewrites are reviewed inside the editor, not in a dialog here.
   const openReview = useAiReviewStore((s) => s.openReview)
 
   // Performance Insights State. Re-running the analysis costs credits, so the
   // last generated insight is fetched once via useBlogInsightQuery and then
-  // mirrored into local state — leaving the editor and coming back (or a full
-  // reload) restores it instead of silently discarding it.
-  const [insight, setInsight] = useState<any>(null)
-  const [applyingSuggestionId, setApplyingSuggestionId] = useState<any>(null)
+  // mirrored into the editor store — leaving the editor and coming back (or a
+  // full reload) restores it instead of silently discarding it.
+  const persistInsight = useEditorStore((s) => s.persistInsight)
+  const setApplyingSuggestionId = useEditorStore((s) => s.setApplyingSuggestionId)
   const analyzeBlogMutation = useAnalyzeBlogMutation()
   const applyInsightMutation = useApplyInsightMutation()
   const confirmInsightMutation = useConfirmInsightMutation()
@@ -423,7 +419,7 @@ const TextEditorSidebar = ({
     }
 
     try {
-      const sections = []
+      const sections: { id: string; title: string; preview: string }[] = []
       // ... (rest of parsing logic will remain, just inserting the hook before it)
 
       const parser = new DOMParser()
@@ -467,9 +463,9 @@ const TextEditorSidebar = ({
           // Drop every copy of the section's own heading rather than just the first.
           // Content rewritten before the duplicate-id fix can still carry it twice,
           // and a leftover copy runs straight into the body text in the preview.
-          const clone = contentEl.cloneNode(true)
+          const clone = contentEl.cloneNode(true) as Element
           for (const h of Array.from(clone.querySelectorAll("h1, h2, h3, h4, h5, h6"))) {
-            if (h.textContent.trim() === title) h.remove()
+            if (h.textContent?.trim() === title) h.remove()
           }
           const text = (clone.textContent || "").replace(/\s+/g, " ").trim()
 
@@ -545,7 +541,7 @@ const TextEditorSidebar = ({
         // STRATEGY 1: DOMParser (HTML Content)
         // Only works if editorContent contains actual HTML tags with IDs
         const parser = new DOMParser()
-        const doc = parser.parseFromString(editorContent, "text/html")
+        const doc = parser.parseFromString(editorContent || "", "text/html")
         const sectionEl = doc.getElementById(sectionToolState.sectionId)
 
         if (sectionEl) {
@@ -608,7 +604,7 @@ const TextEditorSidebar = ({
           // STRATEGY 2: Markdown Content (Fallback)
           // Parse markdown line-by-line to find the header matching the sectionId
           // Then replace content until next header
-          const lines = editorContent.split("\n")
+          const lines = (editorContent || "").split("\n")
           let startLine = -1
           let endLine = -1
           let _foundHeaderLevel = 0
@@ -695,16 +691,14 @@ const TextEditorSidebar = ({
       } else {
         toast.warning("No content returned from AI")
       }
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Section task failed:", error)
       toast.error(error.response?.data?.message || "Failed to process section task")
     } finally {
       setIsProcessingSection(false)
     }
   }
-
-  // UI State for categories to prevent flickering or disappearing on re-renders
-  const [_uiCategories, setUiCategories] = useState<any[]>([])
 
   const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
@@ -714,20 +708,8 @@ const TextEditorSidebar = ({
   const { showLoading, hideLoading } = useLoading()
 
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
-  const { integrations, categories, fetchIntegrations } = useIntegrationStore()
+  const { integrations, fetchIntegrations } = useIntegrationStore()
   const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
-
-  // Sync UI categories with Store, preserving data during re-renders
-  useEffect(() => {
-    if (categories?.length > 0) {
-      setUiCategories(categories)
-    }
-  }, [categories])
-
-  // Clear UI categories only when actual platform changes
-  useEffect(() => {
-    setUiCategories([])
-  }, [])
 
   const result = analysisResult?.[blog?._id]
 
@@ -736,23 +718,12 @@ const TextEditorSidebar = ({
   const _isDisabled = isPosting || !hasAnyIntegration
   const isPro = ["free", "basic"].includes(userPlan)
 
-  const PLATFORM_LABELS = {
+  const PLATFORM_LABELS: Record<string, string> = {
     WORDPRESS: "WordPress",
     SHOPIFY: "Shopify",
     SERVERENDPOINT: "Server",
     WIX: "Wix",
   }
-
-  // Extract integration links from integrations API data
-  const integrationLinks = integrations?.integrations
-    ? Object.entries(integrations.integrations)
-        .filter(([_, data]) => data?.url || data?.frontend)
-        .map(([platform, data]) => ({
-          platform,
-          link: platform === "SERVERENDPOINT" ? data.frontend || data.url : data.url,
-          label: PLATFORM_LABELS[platform] || platform,
-        }))
-    : []
 
   // Use blog postings from API instead of posted object
   const hasPublishedLinks = blogPostings.length > 0
@@ -761,44 +732,20 @@ const TextEditorSidebar = ({
   // watched, so the invitee's own `user.gsc` says nothing about access here.
   const hasGscAccess = !!activeWorkspace || !!user?.gsc
 
-  // Fetch blog postings when blog changes
-  const fetchPostings = useCallback(async () => {
-    if (!blog?._id) return
-
-    setIsLoadingPostings(true)
-    try {
-      const postings = await getBlogPostings(blog._id)
-      setBlogPostings(postings)
-    } catch (error) {
-      console.error("Failed to fetch blog postings:", error)
-      // Don't show error message to user, just log it
-    } finally {
-      setIsLoadingPostings(false)
-    }
-  }, [blog?._id])
-
+  // Fetch blog postings when blog changes. fetchPostings itself is a stable store
+  // action (reads the current blog id fresh each call, not from this closure), so
+  // blog?._id must be listed explicitly to re-fire this on blog switch.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     fetchPostings()
-  }, [fetchPostings]) // Re-fetch when blog changes or when new post is made
+  }, [blog?._id, fetchPostings])
 
   // Restore a previously generated insight for this blog, so re-opening the editor
   // (or a full page reload) shows the analysis the user already paid for instead
   // of an empty state.
   useEffect(() => {
-    setInsight(blog?._id ? (fetchedInsight ?? null) : null)
-  }, [blog?._id, fetchedInsight])
-
-  // Single writer for insight state — keeps the cached copy and local copy in step.
-  const persistInsight = useCallback(
-    (next: any) => {
-      setInsight((prev: any) => {
-        const value = typeof next === "function" ? next(prev) : next
-        if (blog?._id) queryClient.setQueryData(["blogInsight", blog._id], value)
-        return value
-      })
-    },
-    [blog?._id, queryClient]
-  )
+    persistInsight(blog?._id ? (fetchedInsight ?? null) : null)
+  }, [blog?._id, fetchedInsight, persistInsight])
 
   // Initialize data
   useEffect(() => {
@@ -813,8 +760,7 @@ const TextEditorSidebar = ({
     if (blog) {
       // Determine if images are enabled based on imageSource
       const savedImageSource = blog.imageSource || DEFAULT_IMAGE_SOURCE
-      const isImagesEnabled =
-        savedImageSource !== IMAGE_SOURCE.NONE && savedImageSource !== "none"
+      const isImagesEnabled = savedImageSource !== IMAGE_SOURCE.NONE && savedImageSource !== "none"
       // The regenerate modal only offers stock and AI images, so a blog saved with
       // uploaded images restarts from stock rather than a source it cannot show.
       const imageSource =
@@ -947,18 +893,6 @@ const TextEditorSidebar = ({
     })
   }, [regenForm])
 
-  // Handlers
-  const _handleRegenerate = async () => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    if (!blog?._id) return toast.error("Blog ID missing")
-
-    // Open the regenerate modal
-    setIsRegenerateModalOpen(true)
-  }
-
   // Handle regenerate modal submission. The schema is checked first, so `values` is
   // complete; `toRegenerateBlogPayload` is the only thing that shapes the request.
   const handleRegenerateSubmit = submitRegenForm(
@@ -988,7 +922,8 @@ const TextEditorSidebar = ({
         toast.success("Blog regeneration started!")
         setIsRegenerateModalOpen(false)
         navigate("/blogs")
-      } catch (error) {
+      } catch (rawError) {
+        const error = asApiError(rawError)
         toast.error(error.message || "Failed to regenerate")
       } finally {
         setIsRegenerating(false)
@@ -1015,7 +950,8 @@ const TextEditorSidebar = ({
       })
       setAnalysisResult(blog._id, result)
       setActivePanel("seo")
-    } catch (err) {
+    } catch (rawErr) {
+      const err = asApiError(rawErr)
       setError(err.message)
       toast.error("Analysis failed")
     } finally {
@@ -1153,12 +1089,12 @@ const TextEditorSidebar = ({
         })
 
         if (result?.content) {
-          let original = editorContent
+          let original = editorContent || ""
           let refined = result.content
 
           if (scope === "section" && suggestion.sectionId) {
             const parser = new DOMParser()
-            const oldDoc = parser.parseFromString(editorContent, "text/html")
+            const oldDoc = parser.parseFromString(editorContent || "", "text/html")
             const oldSectionEl = oldDoc.getElementById(suggestion.sectionId)
             const newDoc = parser.parseFromString(result.content, "text/html")
             const newSectionEl = newDoc.getElementById(suggestion.sectionId)
@@ -1260,71 +1196,6 @@ const TextEditorSidebar = ({
     toast.info("Metadata discarded")
   }, [])
 
-  // Enhancement option toggle handler
-  const _handleEnhancementToggle = useCallback((key: any, value: any) => {
-    setEnhancementOptions((prev: any) => ({ ...prev, [key]: value }))
-    setHasEnhancementChanges(true)
-  }, [])
-
-  // Save enhancement options
-  const _handleSaveEnhancement = useCallback(async () => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    setIsSavingEnhancement(true)
-    try {
-      await handleSubmit({ options: enhancementOptions })
-      setHasEnhancementChanges(false)
-      toast.success("Enhancement settings saved!")
-    } catch {
-      toast.error("Failed to save settings")
-    } finally {
-      setIsSavingEnhancement(false)
-    }
-  }, [enhancementOptions, handleSubmit, blog?.isArchived])
-
-  const _handleCustomPromptBlog = useCallback(async () => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    if (isPro) return navigate("/pricing")
-    if (!customPrompt.trim()) return toast.error("Enter a prompt")
-    handlePopup({
-      title: "Apply Custom Prompt",
-      description: (
-        <>
-          Modify content? <span className="font-bold">5 credits</span>
-        </>
-      ),
-      onConfirm: async () => {
-        setIsHumanizing(true)
-        try {
-          const { getBlogPrompt } = await import("@api/blogApi")
-          const res = await getBlogPrompt(blog._id, customPrompt)
-          setHumanizedContent(res.data)
-          setIsHumanizeModalOpen(true)
-          setCustomPrompt("")
-          toast.success("Prompt applied!")
-        } catch {
-          toast.error("Failed")
-        } finally {
-          setIsHumanizing(false)
-        }
-      },
-    })
-  }, [
-    isPro,
-    navigate,
-    handlePopup,
-    blog,
-    customPrompt,
-    setHumanizedContent,
-    setIsHumanizing,
-    setIsHumanizeModalOpen,
-  ])
-
   const handleMetadataSave = useCallback(async () => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
@@ -1332,7 +1203,7 @@ const TextEditorSidebar = ({
     }
     if (!metadata.title && !metadata.description) return toast.error("Enter metadata")
     try {
-      await handleSubmit({ metadata })
+      await handleSubmit?.({ metadata })
       toast.success("Saved!")
     } catch {
       toast.error("Save failed")
@@ -1369,23 +1240,12 @@ const TextEditorSidebar = ({
         ? "PDF with images downloaded as ZIP!"
         : "PDF downloaded successfully!"
       toast.success(successMsg, { id: "pdf-export" })
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("PDF Export Error:", error)
       toast.error(error.message || "Failed to export PDF", { id: "pdf-export" })
     }
   }, [blog, editorContent, includeImagesInExport])
-
-  const _handleKeywordRewrite = useCallback(() => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    handlePopup({
-      title: "Rewrite Keywords",
-      description: "Rewrite content with keywords? (3 times max)",
-      onConfirm: handleSave,
-    })
-  }, [handlePopup, handleSave, blog?.isArchived])
 
   // --- Posting Helpers ---
   const openRepostModal = (posting: any) => {
@@ -1410,7 +1270,7 @@ const TextEditorSidebar = ({
     }
 
     try {
-      await onPost({
+      await onPost?.({
         ...formData,
         categories: repostSettings.category,
         includeTableOfContents: repostSettings.includeTableOfContents,
@@ -1495,20 +1355,18 @@ const TextEditorSidebar = ({
     // PRIORITY 1: Check blogPostings (New API Source)
     if (blogPostings.length > 0) {
       // Find Shopify posting if exists to lock category
-      const shopifyPosting = blogPostings.find(
-        (p) => (p.integrationType || p.platform) === "SHOPIFY"
-      )
+      const shopifyPosting = blogPostings.find((p) => p.integrationType === "SHOPIFY")
 
       if (shopifyPosting) {
         const meta = shopifyPosting.metadata || {}
         setIsCategoryLocked(true)
         // Use metadata category if available
-        setSelectedCategory(meta.category || shopifyPosting.category || "")
+        setSelectedCategory((meta.category as string) || "")
         if (!selectedIntegration) {
           setSelectedIntegration({
             platform: "shopify",
             rawPlatform: "SHOPIFY",
-            url: integrations?.integrations?.SHOPIFY?.url || "",
+            url: (integrations?.integrations?.SHOPIFY as { url?: string } | undefined)?.url || "",
           })
         }
         return
@@ -1518,19 +1376,19 @@ const TextEditorSidebar = ({
       if (!selectedIntegration && blogPostings[0]) {
         const lastPost = blogPostings[0]
         const meta = lastPost.metadata || {}
-        const rawPlatform = lastPost.integrationType || lastPost.platform
+        const rawPlatform = lastPost.integrationType
 
         if (rawPlatform && integrations?.integrations?.[rawPlatform]) {
           setSelectedIntegration({
             platform: rawPlatform.toLowerCase(),
             rawPlatform: rawPlatform,
-            url: integrations.integrations[rawPlatform].url,
+            url: (integrations.integrations[rawPlatform] as { url?: string })?.url || "",
           })
 
           // Pre-fill category and ToC from last post metadata
-          if (meta.category) setSelectedCategory(meta.category)
+          if (meta.category) setSelectedCategory(meta.category as string)
           if (meta.includeTableOfContents !== undefined)
-            setIncludeTableOfContents(meta.includeTableOfContents)
+            setIncludeTableOfContents(meta.includeTableOfContents as boolean)
 
           return
         }
@@ -1610,7 +1468,7 @@ const TextEditorSidebar = ({
     // 3. Execution
     const executePost = async () => {
       try {
-        await onPost({
+        await onPost?.({
           ...formData,
           categories: selectedCategory, // Use the selected category from sidebar
           includeTableOfContents,
@@ -1619,13 +1477,14 @@ const TextEditorSidebar = ({
         // Clean Refresh "Everything" related to postings
         await fetchPostings()
         queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      } catch (error) {
+      } catch (rawError) {
+        const error = asApiError(rawError)
         console.error("Posting failed:", error)
         // Handle 400 Invalid Credentials specifically
         if (
-          error?.response?.status === 400 &&
-          (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
-            error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
+          error.response?.status === 400 &&
+          (error.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
+            error.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
         ) {
           toast.error("WordPress API has changed. Kindly update your WordPress credentials.", {
             duration: 5000,
@@ -1642,7 +1501,7 @@ const TextEditorSidebar = ({
         cancelText: "Post Without Saving",
         onConfirm: async () => {
           try {
-            await handleSubmit({ metadata })
+            await handleSubmit?.({ metadata })
             executePost()
           } catch (_error) {
             toast.error("Failed to save changes")
@@ -1676,24 +1535,6 @@ const TextEditorSidebar = ({
     blog?.isArchived,
   ])
 
-  const _addKeyword = useCallback(() => {
-    if (newKeyword.trim()) {
-      const newKws = newKeyword
-        .split(",")
-        .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw: any) => kw.toLowerCase()).includes(k))
-      if (newKws.length > 0) setKeywords((prev: any) => [...prev, ...newKws])
-      setNewKeyword("")
-    }
-  }, [newKeyword, keywords, setKeywords])
-
-  const _removeKeyword = useCallback(
-    (keyword: any) => {
-      setKeywords((prev: any) => prev.filter((k: any) => k !== keyword))
-    },
-    [setKeywords]
-  )
-
   const seoScore = result?.insights?.blogScore || blog?.seoScore || 0
   const contentScore = blog?.blogScore || 0
 
@@ -1716,7 +1557,11 @@ const TextEditorSidebar = ({
     }
 
     const hasBrandDetails = Boolean(
-      brand.persona || brand.describeBrand || brand.postLink || brand.sitemap || brand.keywords?.length
+      brand.persona ||
+        brand.describeBrand ||
+        brand.postLink ||
+        brand.sitemap ||
+        brand.keywords?.length
     )
 
     if (!blog?.brandId && !blog?.nameOfVoice) {
@@ -2051,7 +1896,8 @@ const TextEditorSidebar = ({
         ? "Markdown with images downloaded as ZIP!"
         : "Markdown downloaded successfully!"
       toast.success(successMsg, { id: "md-export" })
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("Markdown export error:", error)
       toast.error(error.message || "Failed to export Markdown", { id: "md-export" })
     }
@@ -2099,7 +1945,8 @@ const TextEditorSidebar = ({
         ? "HTML with images downloaded as ZIP!"
         : "HTML downloaded successfully!"
       toast.success(successMsg, { id: "html-export" })
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       console.error("HTML export error:", error)
       toast.error(error.message || "Failed to export HTML", { id: "html-export" })
     }
@@ -2372,23 +2219,21 @@ const TextEditorSidebar = ({
                   <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
                 </div>
                 <div className="space-y-2">
+                  {/* Each criterion is one AI-written sentence (score is embedded in the
+                      text itself, e.g. "...(15/20 points)"), not a separate {score,
+                      maxScore, feedback} breakdown. */}
                   {Object.entries(result.insights.analysis).map(([category, data]) => (
                     <div
                       key={category}
                       className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
                     >
                       <input type="checkbox" className="peer" />
-                      <div className="collapse-title flex items-center justify-between pr-8">
-                        <span className="font-medium text-gray-800 text-sm">
-                          {category.replace(/([A-Z])/g, " $1").trim()}
-                        </span>
-                        <span className="text-xs font-bold text-indigo-600">
-                          {data.score}/{data.maxScore}
-                        </span>
+                      <div className="collapse-title flex items-center pr-8">
+                        <span className="font-medium text-gray-800 text-sm">{category}</span>
                       </div>
                       <div className="collapse-content">
                         <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          {data.feedback}
+                          {data}
                         </p>
                       </div>
                     </div>
@@ -2397,31 +2242,17 @@ const TextEditorSidebar = ({
               </div>
             )}
 
-            {/* Actionable Suggestions */}
-            {result.insights?.suggestions && result.insights.suggestions.length > 0 && (
+            {/* Actionable Suggestions — the API returns this as one AI-written paragraph, not a list */}
+            {result.insights?.suggestions && (
               <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Lightbulb className="w-4 h-4 text-amber-600" />
                   <span className="text-sm font-semibold text-gray-900">Suggestions</span>
-                  <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    {result.insights.suggestions.length}
-                  </span>
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
-                  {result.insights.suggestions.map((suggestion: any, idx: any) => (
-                    <motion.div
-                      key={suggestion}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
-                    >
-                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
-                      </div>
-                      <p className="text-xs text-amber-900 leading-relaxed flex-1">{suggestion}</p>
-                    </motion.div>
-                  ))}
+                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll">
+                  <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-line">
+                    {result.insights.suggestions}
+                  </p>
                 </div>
               </div>
             )}
@@ -2518,7 +2349,7 @@ const TextEditorSidebar = ({
                     return toast.error("Slug cannot be empty")
                   }
                   try {
-                    await handleSubmit({ slug: blogSlug })
+                    await handleSubmit?.({ slug: blogSlug })
                     setIsEditingSlug(false)
                     toast.success("Slug updated successfully")
                   } catch (error) {
@@ -3071,7 +2902,7 @@ const TextEditorSidebar = ({
                   disabled={blog?.isArchived}
                   onChange={(e) => {
                     const v = e.target.value
-                    const d = integrations.integrations[v]
+                    const d = integrations?.integrations?.[v] as { url?: string } | undefined
                     handleIntegrationChange(v, d?.url)
                   }}
                 >
@@ -3208,19 +3039,17 @@ const TextEditorSidebar = ({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12px] font-bold ">
-                      {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
-                        posting.integrationType ||
-                        posting.platform}
+                      {PLATFORM_LABELS[posting.integrationType] || posting.integrationType}
                     </span>
                     <span className="text-[12px] text-gray-400">
-                      {new Date(posting.postedOn).toLocaleDateString()}
+                      {posting.postedOn ? new Date(posting.postedOn).toLocaleDateString() : "—"}
                     </span>
                   </div>
                   <div className="space-y-1 mb-2">
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
                       <span className="text-[12px] font-medium  text-right truncate max-w-30">
-                        {posting.metadata?.category || posting.category || blog.category}
+                        {(posting.metadata?.category as string) || blog.category}
                       </span>
                     </div>
                     {posting.link && (
@@ -3272,14 +3101,13 @@ const TextEditorSidebar = ({
                           )
                           return
                         }
-                        onPost({
+                        onPost?.({
                           ...formData,
-                          categories:
-                            posting.metadata?.category || posting.category || blog.category,
-                          includeTableOfContents:
-                            posting.metadata?.includeTableOfContents ??
-                            posting.includeTableOfContents,
-                          type: { platform: posting.integrationType || posting.platform },
+                          categories: (posting.metadata?.category as string) || blog.category,
+                          includeTableOfContents: posting.metadata?.includeTableOfContents as
+                            | boolean
+                            | undefined,
+                          type: { platform: posting.integrationType },
                         })
                       }}
                       disabled={isPosting || blog?.isArchived}
@@ -3319,11 +3147,9 @@ const TextEditorSidebar = ({
             user={user}
             userPlan={userPlan}
             isPro={isPro}
-            insight={insight}
             isAnalyzing={analyzeBlogMutation.isPending}
             onAnalyze={handleAnalyzeInsights}
             onApplySuggestion={handleApplySuggestion}
-            applyingSuggestionId={applyingSuggestionId}
             hasPublishedLinks={hasPublishedLinks}
             setIsSidebarOpen={setIsSidebarOpen}
           />
@@ -3419,7 +3245,7 @@ const TextEditorSidebar = ({
             <div className="md:hidden">
               <button
                 type="button"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={() => setIsSidebarOpen?.(false)}
                 className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
               >
                 <X className="w-5 h-5" />
@@ -3488,42 +3314,6 @@ const TextEditorSidebar = ({
       </div>
 
       {/* Modals */}
-      <div className={`modal ${choosePlatformOpen ? "modal-open" : ""}`}>
-        <div className="modal-box max-w-xs">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-lg">Published Platforms</h3>
-          </div>
-          <div className="space-y-2">
-            {integrationLinks.map(({ platform, link, label }) => (
-              <button
-                type="button"
-                key={platform}
-                onClick={() => window.open(link, "_blank")}
-                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
-              >
-                {label} <ExternalLink className="w-4 h-4" />
-              </button>
-            ))}
-          </div>
-          <div className="modal-action">
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setChoosePlatformOpen(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label="Close"
-          className="modal-backdrop"
-          onClick={() => setChoosePlatformOpen(false)}
-        />
-      </div>
-
       {/* Edit & Repost Modal */}
       <div className={`modal ${isRepostModalOpen ? "modal-open" : ""}`}>
         <div className="modal-box">

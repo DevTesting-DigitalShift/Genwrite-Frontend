@@ -2,41 +2,14 @@
  * Shared TypeScript types for TextEditorSidebar
  */
 
-export interface Blog {
-  _id: string
-  title?: string
-  topic?: string
-  content?: string
-  slug?: string
-  category?: string
-  template?: string
-  tone?: string
-  userDefinedLength?: number
-  aiModel?: string
-  imageSource?: string
-  numberOfImages?: number
-  tags?: string[]
-  keywords?: string[]
-  focusKeywords?: string[]
-  seoMetadata?: { title?: string; description?: string }
-  brandId?: BrandVoice | string
-  nameOfVoice?: string
-  describeBrand?: string
-  description?: string
-  persona?: string
-  postLink?: string
-  options?: BlogOptions
-  seoScore?: number
-  blogScore?: number
-  isCheckedBrand?: boolean
-  costCutter?: boolean
-  easyToUnderstand?: boolean
-  embedYouTubeVideos?: boolean
-  isCheckedQuick?: boolean
-  isCheckedGeneratedImages?: boolean
-  wordpressPostStatus?: boolean
-  postingDefaultType?: string | null
-}
+// The single canonical Blog type (derived from the backend's OpenAPI response schema,
+// see useBlogStore.ts) — re-exported here so existing imports from this module keep
+// working. Don't redeclare it; this file used to have its own drifting copy.
+import type { Blog } from "@store/useBlogStore"
+export type { Blog }
+import type { components } from "@/types/apiSchema"
+
+export type CompetitorAnalysisResponse = components["schemas"]["CompetitorAnalysisResponse"]
 
 export interface BrandVoice {
   _id?: string
@@ -88,15 +61,6 @@ export interface BlogPosting {
   category?: string
   includeTableOfContents?: boolean
   postedOn: string
-}
-
-export interface AnalysisResult {
-  insights?: {
-    blogScore?: number
-    analysis?: Record<string, { score: number; maxScore: number; feedback: string }>
-    suggestions?: string[]
-  }
-  competitors?: Array<{ title: string; url: string; score?: number }>
 }
 
 export interface ProofreadingSuggestion {
@@ -167,7 +131,7 @@ export interface SeoPanelProps extends BasePanelProps {
   onMetadataGenerate: () => void
   onMetadataSave: () => void
   isGeneratingMetadata: boolean
-  analysisResult?: AnalysisResult
+  analysisResult?: CompetitorAnalysisResponse
   editorContent: string
   includeImagesInExport: boolean
   setIncludeImagesInExport: (value: boolean) => void
@@ -218,51 +182,22 @@ export interface RegeneratePanelProps extends BasePanelProps {
 }
 
 /**
- * A single AI-generated rewrite suggestion from a blog performance review.
- * Mirrors the suggestion subdocument of the backend BlogInsight model.
+ * Result of POST /blogs/:id/analyze / GET /blogs/:id/insight — a persisted BlogInsight
+ * document, or null if none has been generated yet. Derived from the backend's OpenAPI
+ * schema (regenerate via `npm run gen:api-types`) rather than hand-mirrored.
  */
-export interface InsightSuggestion {
-  _id: string
-  sectionId: string | null
-  sectionTitle: string
-  issue: string
-  recommendation: string
-  targetKeywords: string[]
-  priority: "high" | "medium" | "low"
-  status: "pending" | "applied" | "dismissed"
-}
+export type BlogInsight = NonNullable<components["schemas"]["BlogInsight"]>
 
-/**
- * Result of POST /blogs/:id/analyze — a persisted BlogInsight document.
- */
-export interface BlogInsight {
-  _id: string
-  blogId: string
-  userId: string
-  generatedAt: string
-  rangeFrom: string | null
-  rangeTo: string | null
-  metricsSnapshot: {
-    totalClicks: number
-    totalImpressions: number
-    avgPosition: number
-    trend: "up" | "down" | "flat" | "unknown"
-  }
-  /** Set when there was no search data yet, explaining why (from URL inspection) */
-  indexingNote: string | null
-  overallSummary: string
-  suggestions: InsightSuggestion[]
-}
+/** A single AI-generated rewrite suggestion — one entry of `BlogInsight["suggestions"]`. */
+export type InsightSuggestion = BlogInsight["suggestions"][number]
 
 export interface InsightsPanelProps extends BasePanelProps {
-  insight: BlogInsight | null
   isAnalyzing: boolean
   onAnalyze: () => void
   onApplySuggestion: (
     suggestion: InsightSuggestion,
     options: { scope: "section" | "whole"; republish: boolean }
   ) => void
-  applyingSuggestionId: string | null
   hasPublishedLinks: boolean
   setIsSidebarOpen?: (open: boolean) => void
 }

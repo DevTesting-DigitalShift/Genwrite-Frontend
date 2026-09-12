@@ -4,13 +4,20 @@ import { pushBlogCreationEvent } from "@utils/creationEvents"
 import { toast } from "sonner"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
+import type { components } from "@/types/apiSchema"
 
-/** A blog document as returned by the blogs API. */
-export interface Blog {
-  _id?: string
-  title?: string
-  [key: string]: any
-}
+/**
+ * A blog document as returned by the blogs API — the real fields come from the
+ * backend's documented response shape (regenerate via `npm run gen:api-types`), so
+ * `.title`/`.status`/`.options`/etc are typed and autocomplete instead of `any`.
+ *
+ * `blogResponseSchema` (GenWrite-Backend src/modules/blog/blog.response.js) doesn't yet
+ * document every field the real Mongoose model carries (isPublic, slug, seoMetadata,
+ * posting, brand-voice fields, generation option flags, …) — the index signature below
+ * covers those until that response schema is completed to match the full model. Prefer
+ * adding a real field there over reading through the index signature when you can.
+ */
+export type Blog = components["schemas"]["BlogResponse"] & { [key: string]: any }
 
 type NavigateFn = (path: string) => void
 
