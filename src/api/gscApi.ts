@@ -1,67 +1,65 @@
-import { asApiError } from "@/types/api"
-import axiosInstance from "."
+import { apiGet, apiPost, ApiRequestError } from "./typedClient"
 
+const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
+
+// GET /gsc/data has a single real shape regardless of query params — one controller
+// (GSCService#getBlogsData) handles it — { integrationType, totalBlogs, totalLinks,
+// totalVerifiedSites, totalSitesQueried, gscData }. getVerifiedSites used to treat this as a
+// bare array (`response.data || []`), which was never true; it just hit the same endpoint
+// getGscAnalytics does. There is no dedicated "list of verified sites" endpoint today.
 export const getVerifiedSites = async () => {
   try {
-    const response = await axiosInstance.get("/gsc/data")
-    return response.data || []
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || error.message || "Failed to fetch verified sites")
+    return await apiGet("/api/v1/gsc/data")
+  } catch (err) {
+    return rethrow(err, "Failed to fetch verified sites")
   }
 }
 
 export const getGscAnalytics = async (params: Record<string, unknown>) => {
   try {
-    const response = await axiosInstance.get("/gsc/data", { params })
-    return response.data // Backend returns array of objects directly
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    const message = error?.response?.data?.message || error?.message || "Something went wrong"
-    throw new Error(message)
+    return await apiGet("/api/v1/gsc/data", { query: params as never })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch GSC analytics")
   }
 }
 
 export const connectGsc = async ({ code, state }: { code: string; state?: string }) => {
   try {
-    const response = await axiosInstance.get("/gsc/callback", { params: { code, state } })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || error.message || "Failed to connect GSC")
+    return await apiGet("/api/v1/gsc/callback", { query: { code, state } as never })
+  } catch (err) {
+    return rethrow(err, "Failed to connect GSC")
   }
 }
 
 export const getGscAuthUrl = async () => {
   try {
-    const response = await axiosInstance.get("/gsc/auth")
-    return response.data.url
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || error.message || "Failed to get auth URL")
+    const result = await apiGet("/api/v1/gsc/auth")
+    return result.url
+  } catch (err) {
+    return rethrow(err, "Failed to get auth URL")
   }
 }
 
 /**
  * Check a published URL's live indexing status via Search Console URL Inspection.
  * Pass either a blogId (resolved to its posted link server-side) or an explicit pageUrl.
- * @param {{ blogId?: string, pageUrl?: string }} params
- * @returns {Promise<{coverageState?: string, verdict?: string, lastCrawlTime?: string,
- *   indexingState?: string, pageFetchState?: string, raw?: Object}>}
  */
-export const inspectIndexing = async (
-  { blogId, pageUrl }: { blogId?: string; pageUrl?: string } = {}
-) => {
+export const inspectIndexing = async ({
+  blogId,
+  pageUrl,
+}: {
+  blogId?: string
+  pageUrl?: string
+} = {}) => {
   try {
-    const response = await axiosInstance.get("/gsc/indexing/inspect", {
-      params: pageUrl ? { pageUrl } : { blogId },
+    return await apiGet("/api/v1/gsc/indexing/inspect", {
+      query: (pageUrl ? { pageUrl } : { blogId }) as never,
     })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    const message =
-      error?.response?.data?.message || error?.message || "Failed to check indexing status"
-    throw new Error(message)
+  } catch (err) {
+    return rethrow(err, "Failed to check indexing status")
   }
 }
 
@@ -69,21 +67,20 @@ export const inspectIndexing = async (
  * Ask Google to (re)crawl a published URL via the Indexing API.
  * Best-effort only — Google decides if and when it actually crawls, and the
  * daily quota is shared across the whole project, so never call this in a loop.
- * @param {{ blogId?: string, pageUrl?: string }} payload
  */
-export const requestIndexing = async (
-  { blogId, pageUrl }: { blogId?: string; pageUrl?: string } = {}
-) => {
+export const requestIndexing = async ({
+  blogId,
+  pageUrl,
+}: {
+  blogId?: string
+  pageUrl?: string
+} = {}) => {
   try {
-    const response = await axiosInstance.post(
-      "/gsc/indexing/request",
-      pageUrl ? { pageUrl } : { blogId }
+    return await apiPost(
+      "/api/v1/gsc/indexing/request",
+      (pageUrl ? { pageUrl } : { blogId }) as never
     )
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    const message =
-      error?.response?.data?.message || error?.message || "Failed to request indexing"
-    throw new Error(message)
+  } catch (err) {
+    return rethrow(err, "Failed to request indexing")
   }
 }

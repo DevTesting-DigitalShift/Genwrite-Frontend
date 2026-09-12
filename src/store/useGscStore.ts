@@ -50,7 +50,9 @@ const useGscStore = create<GscState>()(
         set({ loading: true, error: null })
         try {
           const data = await getVerifiedSites()
-          set({ verifiedSites: data || [], loading: false })
+          // GET /gsc/data has no dedicated "list of sites" shape — see gscApi.ts's own
+          // comment. gscData is the closest real analog: one row per matched result.
+          set({ verifiedSites: data.gscData ?? [], loading: false })
           return data
         } catch (error) {
           set({ error: apiErrorMessage(error, "Failed to fetch verified sites"), loading: false })
@@ -62,7 +64,7 @@ const useGscStore = create<GscState>()(
         set({ loading: true, error: null })
         try {
           const data = await getGscAnalytics(params)
-          set({ analyticsData: data || [], loading: false })
+          set({ analyticsData: data.gscData ?? [], loading: false })
           return data
         } catch (error) {
           set({ error: apiErrorMessage(error, "Failed to fetch GSC analytics"), loading: false })
