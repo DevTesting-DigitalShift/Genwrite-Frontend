@@ -3,12 +3,15 @@ import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from 
 import { toast } from "sonner"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
+import type { components } from "@/types/apiSchema"
+
+type CompetitorAnalysisResponse = components["schemas"]["CompetitorAnalysisResponse"]
 
 interface CompetitiveAnalysisArgs {
   blogId: string
-  title?: string
-  content?: string
-  keywords?: string[]
+  title: string
+  content: string
+  keywords: string[]
 }
 
 /** Keyword selection carried between the analysis tools and the blog modals. */
@@ -24,13 +27,13 @@ interface AnalysisState {
   suggestions: any[]
   loading: boolean
   /** Keyed by blogId. */
-  analysisResult: Record<string, unknown>
+  analysisResult: Record<string, CompetitorAnalysisResponse>
   error: string | null
   selectedKeywords: SelectedKeywords
   pendingImport: string | null
 
   setPendingImport: (type: string | null) => void
-  setAnalysisResult: (blogId: string, data: unknown) => void
+  setAnalysisResult: (blogId: string, data: CompetitorAnalysisResponse) => void
   setSelectedKeywords: (selectedKeywords: SelectedKeywords) => void
   clearSelectedKeywords: () => void
   clearKeywordAnalysis: () => void
@@ -39,7 +42,7 @@ interface AnalysisState {
   setError: (error: string | null) => void
   reset: () => void
 
-  fetchCompetitiveAnalysis: (args: CompetitiveAnalysisArgs) => Promise<any>
+  fetchCompetitiveAnalysis: (args: CompetitiveAnalysisArgs) => Promise<CompetitorAnalysisResponse>
   analyzeKeywords: (keywords: string[]) => Promise<any>
   fetchSuggestions: (query: string) => Promise<any>
 }

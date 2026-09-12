@@ -1,4 +1,5 @@
 import axiosInstance from "./index"
+import { apiPost } from "./typedClient"
 
 // The backend validates contentType against a case-sensitive enum
 // (analysis.validator.js: z.enum(["MARKDOWN", "HTML", "PLAIN_TEXT"])), so callers
@@ -21,28 +22,27 @@ const toContentType = (value: unknown): ContentType =>
 
 interface CompetitiveAnalysisPayload {
   blogId: string
-  title?: string
-  content?: string
-  keywords?: string[]
+  // Backend requires these (AnalyzeCompetitorsBody) — always send real values.
+  title: string
+  content: string
+  keywords: string[]
   contentType?: string
 }
 
-export const runCompetitiveAnalysis = async ({
+export const runCompetitiveAnalysis = ({
   blogId,
   title,
   content,
   keywords,
   contentType,
-}: CompetitiveAnalysisPayload) => {
-  const response = await axiosInstance.post("/analysis/run", {
+}: CompetitiveAnalysisPayload) =>
+  apiPost("/api/v1/analysis/run", {
     blogId,
     title,
     content,
     keywords,
     contentType: toContentType(contentType),
   })
-  return response.data
-}
 
 export const analyzeKeywords = async (keywords: string[]) => {
   const response = await axiosInstance.post("/analysis/keywords", { keywords })

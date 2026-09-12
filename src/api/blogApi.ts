@@ -11,49 +11,53 @@ export interface BlogFormData extends Record<string, unknown> {
 }
 
 import { asApiError, creditError } from "@/types/api"
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut, ApiRequestError } from "./typedClient"
 import axiosInstance from "."
+
+/**
+ * `apiGet`/`apiPost`/etc already resolve to the bare payload (no `.data` unwrap needed)
+ * and reject with `ApiRequestError` (`.message`/`.code`/`.status`/`.details`, no
+ * `.response` nesting — see typedClient.ts). This rethrows a plain `Error` carrying the
+ * real backend message (falling back to `fallback` only if the backend didn't send one),
+ * for callers that don't need the 402-credit special case below.
+ */
+const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
+
+/**
+ * Same idea as `rethrow`, but for the create-blog endpoints: a 402 means the backend's
+ * `authMiddleware` rejected the request for insufficient credits, with the amount needed
+ * in `details.neededCredits` (see GenWrite-Backend auth.middleware.js).
+ */
+const rethrowWithCreditCheck = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError && err.status === 402) {
+    const neededCredits = (err.details as { neededCredits?: number } | undefined)?.neededCredits
+    const message = neededCredits
+      ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
+      : err.message || "Insufficient credits to create blog"
+    throw creditError(message, neededCredits)
+  }
+  return rethrow(err, fallback)
+}
 
 export const createQuickBlog = async (blogData: unknown, type?: string) => {
   try {
-    const endpoint = type === "yt" ? "/blogs/yt" : "/blogs/quick"
-    const response = await axiosInstance.post(endpoint, blogData)
-    return response.data.blog
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    console.error("Blog creation API error:", error)
-
-    // Handle 402 Insufficient Credits error
-    if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits as number | undefined
-      const errorMsg = neededCredits
-        ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
-        : error.response?.data?.message || "Insufficient credits to create blog"
-      throw creditError(errorMsg, neededCredits)
-    }
-
-    const msg = error.response?.data?.message || "Failed to create blog"
-    throw new Error(msg)
+    const path = type === "yt" ? ("/api/v1/blogs/yt" as const) : ("/api/v1/blogs/quick" as const)
+    const result = await apiPost(path, blogData as never)
+    return result.blog
+  } catch (err) {
+    return rethrowWithCreditCheck(err, "Failed to create blog")
   }
 }
 
 export const createTopicOnlyBlog = async ({ topic }: { topic: string }) => {
   try {
-    const response = await axiosInstance.post("/blogs/topic", { topic })
-    return response.data.blog || response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    console.error("createTopicOnlyBlog error", error.response?.data || error)
-
-    // Handle 402 Insufficient Credits error
-    if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits as number | undefined
-      const errorMsg = neededCredits
-        ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
-        : error.response?.data?.message || "Insufficient credits to create blog"
-      throw creditError(errorMsg, neededCredits)
-    }
-
-    throw new Error(error.response?.data?.message || "Failed to create blog")
+    const result = await apiPost("/api/v1/blogs/topic", { topic })
+    return result.blog || result
+  } catch (err) {
+    return rethrowWithCreditCheck(err, "Failed to create blog")
   }
 }
 
@@ -77,7 +81,8 @@ export const createBlog = async (blogData: BlogFormData) => {
       })
     }
 
-    // Send request
+    // Multipart upload — not expressible as an OpenAPI JSON requestBody, so this one
+    // stays on plain axios rather than the typed client.
     const response = await axiosInstance.postForm("/blogs", formData)
 
     return response.data.blog || response.data
@@ -100,192 +105,144 @@ export const createBlog = async (blogData: BlogFormData) => {
 
 export const createBlogMultiple = async (blogData: BlogFormData) => {
   try {
-    const response = await axiosInstance.post("/blogs/xyz", blogData)
-    return response.data.insertedBlogs
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    console.error("createBlogMultiple", error)
-
-    // Handle 402 Insufficient Credits error
-    if (error.response?.status === 402) {
-      const neededCredits = error.response?.data?.neededCredits as number | undefined
-      const errorMsg = neededCredits
-        ? `Insufficient credits. You need ${neededCredits} credits to create these blogs.`
-        : error.response?.data?.message || "Insufficient credits to create blogs"
-      throw creditError(errorMsg, neededCredits)
-    }
-
-    throw new Error(error.response?.data?.message || "Failed to create blog")
+    const result = await apiPost("/api/v1/blogs/xyz", blogData as never)
+    return result.bulkBlogs
+  } catch (err) {
+    return rethrowWithCreditCheck(err, "Failed to create blog")
   }
 }
 
 export const getAllBlogs = async (params: Record<string, unknown> = {}) => {
   try {
-    const response = await axiosInstance.get("/blogs", { params })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blogs")
+    return await apiGet("/api/v1/blogs", { query: params as never })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blogs")
   }
 }
 
 export const getBlogById = async (id: string) => {
   try {
-    const response = await axiosInstance.get(`/blogs/${id}`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog")
+    return await apiGet("/api/v1/blogs/{id}", { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog")
   }
 }
 
 export const updateBlog = async (id: string, updatedData: unknown) => {
   try {
-    const response = await axiosInstance.put(`/blogs/update/${id}`, updatedData)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to update blog")
+    return await apiPut("/api/v1/blogs/update/{id}", updatedData as never, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to update blog")
   }
 }
 
 export const deleteBlog = async (id: string) => {
   try {
-    const response = await axiosInstance.delete(`/blogs/${id}`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to delete blog")
+    return await apiDelete("/api/v1/blogs/{id}", { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to delete blog")
   }
 }
 
 export const getBlogsByAuthor = async () => {
   try {
-    const response = await axiosInstance.get(`/blogs`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blogs")
+    return await apiGet("/api/v1/blogs")
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blogs")
   }
 }
 
 export const sendBrand = async (formData: unknown) => {
   try {
-    const _response = await axiosInstance.post("/brand/addBrand", formData)
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to create blog")
+    await apiPost("/api/v1/brand/addBrand", formData as never)
+  } catch (err) {
+    return rethrow(err, "Failed to create blog")
   }
 }
 
-export const sendRetryLines = async (id: string, payload: unknown) => {
+export const sendRetryLines = async (id: string, payload?: unknown) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/rewrite`, payload)
-    return response
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    console.error(error)
-    throw new Error(error.response?.data?.message || error.message || "Failed to retry")
+    return await apiPost("/api/v1/blogs/{id}/rewrite", payload as never, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to retry")
   }
 }
 
 export const deleteAllBlogs = async () => {
   try {
-    const response = await axiosInstance.delete("/blogs")
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to delete blogs")
+    return await apiDelete("/api/v1/blogs")
+  } catch (err) {
+    return rethrow(err, "Failed to delete blogs")
   }
 }
 
 export const restoreBlogById = async (id: string) => {
   try {
-    const response = await axiosInstance.patch(`/blogs/restore/${id}`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to restore blog")
+    return await apiPatch("/api/v1/blogs/restore/{id}", undefined, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to restore blog")
   }
 }
 
 export const restoreAllBlogs = async () => {
   try {
-    const response = await axiosInstance.patch("/blogs/restore")
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to restore blogs")
+    return await apiPatch("/api/v1/blogs/restore")
+  } catch (err) {
+    return rethrow(err, "Failed to restore blogs")
   }
 }
 
 export const archiveBlogById = async (id: string) => {
   try {
-    const response = await axiosInstance.patch(`/blogs/archive/${id}`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to archive blog")
+    return await apiPatch("/api/v1/blogs/archive/{id}", undefined, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to archive blog")
   }
 }
 
 export const retryBlogById = async (id: string, payload: unknown = { createNew: false }) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/retry`, payload)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to retry blog")
+    return await apiPost("/api/v1/blogs/{id}/retry", payload as never, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to retry blog")
   }
 }
 
 export const proofreadBlogContent = async ({ id }: { id: string }) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/proofread`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to get proofreading suggestions")
+    return await apiPost("/api/v1/blogs/{id}/proofread", undefined, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to get proofreading suggestions")
   }
 }
 
-export const getBlogStatsById = async (id: string) => {
-  const response = await axiosInstance.get(`/blogs/${id}/stats`)
-  return response.data
-}
+export const getBlogStatsById = (id: string) =>
+  apiGet("/api/v1/blogs/{id}/stats", { params: { id } })
 
-export const getGeneratedTitles = async (data: unknown) => {
-  const response = await axiosInstance.post(`/generate/title`, data)
-  return response.data
-}
+export const getGeneratedTitles = (data: unknown) =>
+  apiPost("/api/v1/generate/title", data as never)
 
 export const createSimpleBlog = async (data: unknown) => {
   try {
-    const response = await axiosInstance.post("/blogs/new", data)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to create blog")
+    return await apiPost("/api/v1/blogs/new", data as never)
+  } catch (err) {
+    return rethrow(err, "Failed to create blog")
   }
 }
 
 export const getBlogStatus = async (params: Record<string, unknown> = {}) => {
   try {
-    const response = await axiosInstance.get("/blogs/status", { params })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog status")
+    return await apiGet("/api/v1/blogs/status", { query: params as never })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog status")
   }
 }
 
 export const getBlogs = async () => {
   try {
-    const response = await axiosInstance.get("/blogs/all")
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || error.message || "Failed to fetch blogs")
+    return await apiGet("/api/v1/blogs/all")
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blogs")
   }
 }
 
@@ -297,21 +254,18 @@ export const getBlogs = async () => {
  */
 export const getAllBlogPostings = async (params: Record<string, unknown> = {}) => {
   try {
-    const response = await axiosInstance.get("/blogs/postings", { params })
-    return response.data.postings || []
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+    const result = await apiGet("/api/v1/blogs/postings", { query: params as never })
+    return result.postings || []
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog postings")
   }
 }
 
 export const getBlogPrompt = async (id: string, prompt: string) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/prompt`, { prompt })
-    return response
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
+    return await apiPost("/api/v1/blogs/{id}/prompt", { prompt }, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog prompt")
   }
 }
 
@@ -322,14 +276,15 @@ export const getBlogPrompt = async (id: string, prompt: string) => {
  */
 export const getBlogPostings = async (blogId: string) => {
   try {
-    const response = await axiosInstance.get(`/blogs/postings/${blogId}`)
-    return response.data.postings || []
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+    const result = await apiGet("/api/v1/blogs/postings/{id}", { params: { id: blogId } })
+    return result.postings || []
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog postings")
   }
 }
 
+// Not documented in the backend's OpenAPI spec (blob response), so these two stay on
+// plain axios rather than the typed client.
 export const exportBlog = async (
   id: string,
   { type = "pdf", withImages = false }: { type?: string; withImages?: boolean } = {}
@@ -366,11 +321,11 @@ export const exportBlogAsPdf = async (id: string) => {
 
 export const toggleBlogVisibility = async (id: string, isPublic: unknown) => {
   try {
-    const response = await axiosInstance.patch(`/blogs/${id}/visibility`, { isPublic })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to toggle blog visibility")
+    return await apiPatch("/api/v1/blogs/{id}/visibility", { isPublic } as never, {
+      params: { id },
+    })
+  } catch (err) {
+    return rethrow(err, "Failed to toggle blog visibility")
   }
 }
 
@@ -392,11 +347,9 @@ export const getBlogPublicly = async (id: string) => {
  */
 export const analyzeBlogPerformance = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/analyze`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to analyze blog performance")
+    return await apiPost("/api/v1/blogs/{id}/analyze", undefined, { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to analyze blog performance")
   }
 }
 
@@ -408,11 +361,9 @@ export const analyzeBlogPerformance = async (id: string) => {
  */
 export const getBlogInsight = async (id: string) => {
   try {
-    const response = await axiosInstance.get(`/blogs/${id}/insight`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to fetch blog insight")
+    return await apiGet("/api/v1/blogs/{id}/insight", { params: { id } })
+  } catch (err) {
+    return rethrow(err, "Failed to fetch blog insight")
   }
 }
 
@@ -431,14 +382,11 @@ export const applyBlogInsight = async (
   { suggestionId, scope = "section" }: { suggestionId: string; scope?: string }
 ) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/apply-insight`, {
-      suggestionId,
-      scope,
+    return await apiPost("/api/v1/blogs/{id}/apply-insight", { suggestionId, scope } as never, {
+      params: { id },
     })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to generate suggestion rewrite")
+  } catch (err) {
+    return rethrow(err, "Failed to generate suggestion rewrite")
   }
 }
 
@@ -461,14 +409,12 @@ export const confirmBlogInsight = async (
   }: { suggestionId: string; content?: string; republish?: boolean }
 ) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/confirm-insight`, {
-      suggestionId,
-      content,
-      republish,
-    })
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Failed to apply suggestion")
+    return await apiPost(
+      "/api/v1/blogs/{id}/confirm-insight",
+      { suggestionId, content, republish } as never,
+      { params: { id } }
+    )
+  } catch (err) {
+    return rethrow(err, "Failed to apply suggestion")
   }
 }
