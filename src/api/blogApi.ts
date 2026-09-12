@@ -283,8 +283,8 @@ export const getBlogPostings = async (blogId: string) => {
   }
 }
 
-// Not documented in the backend's OpenAPI spec (blob response), so these two stay on
-// plain axios rather than the typed client.
+// Returns a raw file blob, not a JSON body documented in the OpenAPI spec, so this one
+// stays on plain axios rather than the typed client.
 export const exportBlog = async (
   id: string,
   { type = "pdf", withImages = false }: { type?: string; withImages?: boolean } = {}
@@ -331,11 +331,9 @@ export const toggleBlogVisibility = async (id: string, isPublic: unknown) => {
 
 export const getBlogPublicly = async (id: string) => {
   try {
-    const response = await axiosInstance.get(`/public/blog/${id}`)
-    return response.data
-  } catch (rawError) {
-    const error = asApiError(rawError)
-    throw new Error(error.response?.data?.message || "Public blog not found")
+    return await apiGet("/api/v1/public/blog/{blogId}", { params: { blogId: id } })
+  } catch (err) {
+    return rethrow(err, "Public blog not found")
   }
 }
 

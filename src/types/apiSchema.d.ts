@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-12T11:40:44.471Z
+             * @default 2026-09-12T11:52:19.661Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:40:44.545Z
+                 * @default 2026-09-12T11:52:19.934Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:40:44.546Z
+                 * @default 2026-09-12T11:52:19.939Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-12T11:40:44.554Z
+             * @default 2026-09-12T11:52:19.996Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:40:44.574Z
+                 * @default 2026-09-12T11:52:20.076Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:40:44.576Z
+                 * @default 2026-09-12T11:52:20.079Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-12T11:40:44.589Z
+             * @default 2026-09-12T11:52:20.118Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8115,105 +8115,374 @@ export interface components {
         };
         PublicBlogResponse: {
             /**
-             * @description Unique identifier of the blog
-             * @example 507f1f77bcf86cd799439011
+             * @description Unique identifier of the document
+             * @example 662f1a2b8c9d4e0012a3b4c5
              */
             _id: string;
             /**
-             * @description Blog title
-             * @example The Ultimate Guide to AI-Powered Content Creation
+             * @description Alias of _id, sent alongside it per this repo's toJSON convention
+             * @example 662f1a2b8c9d4e0012a3b4c5
              */
-            title: string;
+            id?: string;
             /**
-             * @description Blog content in markdown format
-             * @example # Introduction
-             *
-             *     Artificial Intelligence has revolutionized content creation...
+             * Format: date-time
+             * @description ISO timestamp of creation
+             * @example 2024-01-01T12:00:00.000Z
              */
-            content: string;
+            createdAt: string | null;
             /**
-             * @description Blog topic
-             * @example Artificial Intelligence
+             * Format: date-time
+             * @description ISO timestamp of last update
+             * @example 2024-01-02T12:00:00.000Z
+             */
+            updatedAt: string | null;
+            /**
+             * @description Title of the blog
+             * @example 10 Best Practices for SEO in 2024
+             */
+            title?: string;
+            /**
+             * @description Topic the blog is about
+             * @example SEO best practices
              */
             topic?: string;
             /**
-             * @description AI-generated summary of the blog
-             * @example This blog explores the latest AI-powered tools for content creation...
+             * @description Tone of voice to use when writing the blog
+             * @example professional
              */
-            summary?: string;
+            tone: string;
             /**
-             * @description SEO keywords
+             * @description Language the blog should be written in
+             * @default english
+             * @example english
+             */
+            languageToWrite: string;
+            /**
+             * @description Target word count for the blog as specified by the user
+             * @example 1500
+             */
+            userDefinedLength: number;
+            /**
+             * @description Whether the blog is associated with a specific brand
+             * @default false
+             * @example false
+             */
+            isCheckedBrand: boolean;
+            /**
+             * @description Target keywords for the blog
              * @example [
-             *       "AI",
-             *       "content creation",
-             *       "automation"
+             *       "seo",
+             *       "content marketing"
              *     ]
              */
-            keywords: string[];
+            keywords?: string[];
             /**
-             * @description Primary focus keywords
+             * @description Primary focus keywords the blog should be optimized for
              * @example [
-             *       "AI content creation",
-             *       "automated writing"
+             *       "seo best practices"
              *     ]
              */
-            focusKeywords: string[];
+            focusKeywords?: string[];
             /**
-             * @description Blog category
-             * @example Technology
+             * @description Reference URLs used as source material for the blog
+             * @example [
+             *       "https://example.com/article"
+             *     ]
+             */
+            referenceLinks?: string[];
+            /**
+             * @description Whether this blog was created using the quick generation flow
+             * @default false
+             * @example false
+             */
+            isCheckedQuick: boolean;
+            /**
+             * @description Source used for blog images (e.g. 'ai' for AI-generated, 'stock' for stock photos, 'upload' for user-uploaded)
+             * @default none
+             * @example none
+             * @enum {string}
+             */
+            imageSource: "none" | "stock" | "ai" | "upload";
+            /**
+             * @description Number of images to include in the blog; 0 lets the AI decide
+             * @default 0
+             * @example 3
+             */
+            numberOfImages: number;
+            /**
+             * @description Blog template used to structure the generated content
+             * @example Beginner's Guide
+             * @enum {string}
+             */
+            template: "Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is";
+            /**
+             * @description Brief/outline describing what the blog should cover
+             * @example Cover on-page SEO, backlinks, and content strategy.
+             */
+            brief?: string;
+            /**
+             * @description Full HTML/text content of the blog
+             * @default
+             * @example <p>SEO is essential for...</p>
+             */
+            content: string;
+            /**
+             * @description Category the blog belongs to
+             * @default other
+             * @example marketing
              */
             category: string;
-            /**
-             * @description Blog tags
-             * @example [
-             *       "AI",
-             *       "Technology",
-             *       "Content"
-             *     ]
-             */
-            tags: string[];
-            /**
-             * @description Blog images and media
-             * @example []
-             */
-            images?: unknown[];
-            /** @description WordPress posting information */
-            wordpress?: {
+            /** @description SEO metadata (title and description) for the blog */
+            seoMetadata?: {
                 /**
-                 * Format: uri
-                 * @description WordPress post URL
-                 * @example https://example.com/ai-content-creation-guide
+                 * @description SEO meta title for the blog
+                 * @example 10 Best Practices for SEO in 2024
                  */
-                link: string;
+                title?: string;
                 /**
-                 * @description WordPress post ID
-                 * @example 123
+                 * @description SEO meta description for the blog
+                 * @example Discover the top SEO strategies to boost your website's ranking in 2024.
                  */
-                postId?: number;
-                /**
-                 * @description Number of views on WordPress
-                 * @example 1250
-                 */
-                views?: number;
-                /**
-                 * Format: date-time
-                 * @description Date when posted to WordPress
-                 * @example 2024-01-15T10:00:00.000Z
-                 */
-                postedOn?: string;
+                description?: string;
             };
             /**
-             * Format: date-time
-             * @description Blog creation timestamp
-             * @example 2024-01-01T00:00:00.000Z
+             * @description Default integration type used when posting this blog (e.g. WordPress, Shopify)
+             * @example WORDPRESS
+             * @enum {string}
              */
-            createdAt: string;
+            postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY";
+            /**
+             * @description AI model used to generate the blog content
+             * @default gemini
+             * @example gemini
+             */
+            aiModel: string;
+            /**
+             * @description Whether cost-saving generation settings are enabled
+             * @default true
+             * @example true
+             */
+            costCutter: boolean;
+            /**
+             * @description Whether the blog has been archived
+             * @default false
+             * @example false
+             */
+            isArchived: boolean;
             /**
              * Format: date-time
-             * @description Last update timestamp
-             * @example 2024-01-15T10:00:00.000Z
+             * @description Timestamp when the blog was archived; required when isArchived is true. Archived blogs are auto-deleted 7 days after this date
+             * @example 2024-01-15T10:30:00.000Z
              */
-            updatedAt: string;
+            archiveDate?: string | null;
+            /** @description Generation options and feature toggles for this blog */
+            options?: {
+                /**
+                 * @description Use the exact provided title instead of letting AI generate one
+                 * @default false
+                 * @example false
+                 */
+                exactTitle: boolean;
+                /**
+                 * @description Whether to run keyword research before generating the blog
+                 * @default false
+                 * @example false
+                 */
+                performKeywordResearch: boolean;
+                /**
+                 * @description Whether to include internal links to other content
+                 * @default false
+                 * @example false
+                 */
+                includeInterlinks: boolean;
+                /**
+                 * @description Whether to research competitor content before generation
+                 * @default false
+                 * @example false
+                 */
+                includeCompetitorResearch: boolean;
+                /**
+                 * @description Whether to add outbound links to external sources
+                 * @default false
+                 * @example false
+                 */
+                addOutBoundLinks: boolean;
+                /**
+                 * @description Whether to include a FAQ section in the blog
+                 * @default false
+                 * @example false
+                 */
+                includeFaqs: boolean;
+                /**
+                 * @description Whether to add a call-to-action section to the blog
+                 * @default false
+                 * @example false
+                 */
+                addCTA: boolean;
+                /**
+                 * @description Whether to automatically post the blog to configured integrations once generated
+                 * @default false
+                 * @example false
+                 */
+                automaticPosting: boolean;
+                /**
+                 * @description Whether to automatically apply AI-suggested rewrites without manual approval
+                 * @default false
+                 * @example false
+                 */
+                autoApplyAIRewrites: boolean;
+                /**
+                 * @description Whether to include a table of contents in the blog
+                 * @default false
+                 * @example false
+                 */
+                includeTableOfContents: boolean;
+                /**
+                 * @description Whether to embed relevant YouTube videos in the blog
+                 * @default false
+                 * @example false
+                 */
+                embedYouTubeVideos: boolean;
+                /**
+                 * @description Whether to simplify the writing style for easier readability
+                 * @default false
+                 * @example false
+                 */
+                easyToUnderstand: boolean;
+                /**
+                 * @description Whether to apply humanisation processing to make the content sound less AI-generated
+                 * @default false
+                 * @example false
+                 */
+                humanisation: boolean;
+                /**
+                 * @description Whether to use extended AI thinking/reasoning during generation
+                 * @default false
+                 * @example false
+                 */
+                extendedThinking: boolean;
+                /**
+                 * @description Whether to perform deep research before generating the blog
+                 * @default false
+                 * @example false
+                 */
+                deepResearch: boolean;
+                /**
+                 * @description Whether to generate brand-styled images; only takes effect when a brandId is set and imageSource is 'ai' or 'upload'
+                 * @default false
+                 * @example false
+                 */
+                createBrandedImages: boolean;
+            };
+            /**
+             * @description Freeform tags associated with the blog
+             * @example [
+             *       "seo",
+             *       "marketing"
+             *     ]
+             */
+            tags?: string[];
+            /**
+             * @description Type of blog generation flow: 'single' (standard), 'quick' (fast/minimal), or 'yt' (from YouTube video)
+             * @default single
+             * @example single
+             * @enum {string}
+             */
+            type: "single" | "quick" | "yt";
+            /**
+             * @description Short summary of the blog, used for reuse and interlinking
+             * @example An overview of SEO best practices for 2024.
+             */
+            summary?: string;
+            /** @description Images attached to the blog, used for reuse and interlinking */
+            images?: unknown[];
+            /**
+             * @description Status/error information for the background generation task
+             * @example {
+             *       "error": ""
+             *     }
+             */
+            taskStatus?: unknown;
+            /**
+             * @description Global context text used to inform AI generation across the blog
+             * @default
+             */
+            globalContext: string;
+            /**
+             * @description Current generation status of the blog: pending, in-progress, complete, or failed
+             * @default pending
+             * @example pending
+             * @enum {string}
+             */
+            status: "pending" | "in-progress" | "complete" | "failed";
+            /**
+             * @description Whether the blog has been manually edited via the blog editor
+             * @default false
+             * @example false
+             */
+            isManuallyEdited: boolean;
+            /** @description Metadata about the AI product/model used to generate the blog */
+            aiInfo?: {
+                /**
+                 * @description Name of the AI product/service used to generate the blog
+                 * @example ChatGPT
+                 */
+                aiProduct?: string;
+                /**
+                 * @description Version of the AI model used to generate the blog
+                 * @example gpt-4o
+                 */
+                aiModelVer?: string;
+                /**
+                 * Format: date-time
+                 * @description Timestamp when the blog was generated by AI
+                 * @example 2024-01-15T10:30:00.000Z
+                 */
+                generationDate?: string | null;
+            };
+            /**
+             * @description Overall quality score assigned to the blog
+             * @example 87
+             */
+            blogScore?: number;
+            /**
+             * @description SEO score assigned to the blog
+             * @example 92
+             */
+            seoScore?: number;
+            /**
+             * @description URL slug for the blog; unique and immutable once the blog has been published
+             * @example 10-best-practices-for-seo-in-2024
+             */
+            slug?: string;
+            /**
+             * @description Whether the blog is publicly accessible via a shareable link
+             * @default false
+             * @example false
+             */
+            isPublic: boolean;
+            /** @description Populated author (bare id if population somehow failed) */
+            author?: {
+                /**
+                 * @description MongoDB ObjectId, serialized as a hex string
+                 * @example 662f1a2b8c9d4e0012a3b4c5
+                 */
+                _id: string;
+                name?: string;
+                email?: string;
+                avatar?: string | null;
+            };
+            /** @description Populated to {_id, name} — only the brand name, unlike other blog responses */
+            brandId?: string | {
+                /**
+                 * @description MongoDB ObjectId, serialized as a hex string
+                 * @example 662f1a2b8c9d4e0012a3b4c5
+                 */
+                _id: string;
+                name: string;
+            };
+            /** @description True when served to an anonymous (unauthenticated) viewer — content is truncated and images are omitted */
+            isPreview?: boolean;
         };
         GoogleAdsLinkResponse: {
             /**
@@ -10777,7 +11046,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:40:44.429Z
+                             * @default 2026-09-12T11:52:19.496Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -10924,7 +11193,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:40:44.431Z
+                             * @default 2026-09-12T11:52:19.500Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
