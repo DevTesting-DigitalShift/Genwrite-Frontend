@@ -1,13 +1,7 @@
-import { getSiteInfo } from "@api/brandApi"
+import { BrandAPI } from "@api/Brand/Brand.api"
 import { toast } from "sonner"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-
-/** Error shape thrown by the axios-based brand API. */
-interface ApiError {
-  response?: { data?: { message?: string } }
-  message?: string
-}
 
 interface SiteInfoSlice {
   data: any | null
@@ -46,12 +40,12 @@ const useBrandStore = create<BrandState>()(
       fetchSiteInfo: async (url) => {
         set((state) => ({ siteInfo: { ...state.siteInfo, loading: true, error: null } }))
         try {
-          const data = await getSiteInfo(url)
+          const data = await BrandAPI.getSiteInfo(url)
           toast.success("Site info fetched successfully.")
           set((state) => ({ siteInfo: { ...state.siteInfo, data, loading: false } }))
           return data
         } catch (error) {
-          const errorMsg = (error as ApiError)?.response?.data?.message || "Failed to fetch site info."
+          const errorMsg = error instanceof Error ? error.message : "Failed to fetch site info."
           toast.error(errorMsg)
           set((state) => ({ siteInfo: { ...state.siteInfo, loading: false, error: errorMsg } }))
           throw error

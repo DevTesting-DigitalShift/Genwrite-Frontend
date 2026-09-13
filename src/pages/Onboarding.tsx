@@ -3,7 +3,7 @@ import { asApiError } from "@/types/api"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Building2, Target, Check } from "lucide-react"
-import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
+import { BrandAPI } from "@api/Brand/Brand.api"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuthStore from "@store/useAuthStore"
 import { toast } from "sonner"
@@ -69,7 +69,7 @@ const Onboarding = () => {
     setFetchingInfo(true)
     try {
       const fullUrl = `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`
-      const siteInfo = await getSiteInfo(fullUrl)
+      const siteInfo = await BrandAPI.getSiteInfo(fullUrl)
 
       setFormData((prev: any) => ({
         ...prev,
@@ -114,7 +114,9 @@ const Onboarding = () => {
     extractKeywordsFromClipboard(e, {
       type: "keywords",
       cb: (items) => {
-        const existingKeywords = new Set(formData.keywords.map((keyword: string) => keyword.toLowerCase()))
+        const existingKeywords = new Set(
+          formData.keywords.map((keyword: string) => keyword.toLowerCase())
+        )
         const newKeywords = items.filter((keyword) => !existingKeywords.has(keyword.toLowerCase()))
 
         if (newKeywords.length === 0) return
@@ -126,7 +128,10 @@ const Onboarding = () => {
   }
 
   const removeKeyword = (keyword: string) => {
-    setFormData((prev: any) => ({ ...prev, keywords: prev.keywords.filter((k: any) => k !== keyword) }))
+    setFormData((prev: any) => ({
+      ...prev,
+      keywords: prev.keywords.filter((k: any) => k !== keyword),
+    }))
   }
 
   const handleStep1Continue = () => {
@@ -156,7 +161,7 @@ const Onboarding = () => {
         ...formData,
         postLink: `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`,
       }
-      await createBrandVoice(submissionData)
+      await BrandAPI.create(submissionData)
       toast.success("Brand voice created successfully!")
 
       if (user?._id) {
@@ -291,7 +296,9 @@ const Onboarding = () => {
                     id="onboarding-sitemap"
                     placeholder="https://www.example.com/sitemap.xml"
                     value={formData.sitemap}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, sitemap: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev: any) => ({ ...prev, sitemap: e.target.value }))
+                    }
                     className="input outline-0 w-full rounded-lg"
                   />
                 </div>
@@ -355,7 +362,9 @@ const Onboarding = () => {
                     rows={3}
                     placeholder="What is your Author Persona?"
                     value={formData.persona}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, persona: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev: any) => ({ ...prev, persona: e.target.value }))
+                    }
                     className="textarea outline-0 w-full rounded-lg text-base"
                   />
                 </div>
@@ -484,7 +493,10 @@ const Onboarding = () => {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {formData.keywords.map((keyword: string) => (
-                        <span key={keyword} className="px-3 py-1.5 bg-gray-100  rounded-full text-sm">
+                        <span
+                          key={keyword}
+                          className="px-3 py-1.5 bg-gray-100  rounded-full text-sm"
+                        >
                           {keyword}
                         </span>
                       ))}

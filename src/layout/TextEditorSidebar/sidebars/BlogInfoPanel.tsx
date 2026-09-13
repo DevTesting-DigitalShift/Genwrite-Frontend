@@ -122,7 +122,7 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
             </div>
             <div className="font-bold text-gray-900">
               {typeof blog.brandId === "object" && blog.brandId
-                ? blog.brandId.nameOfVoice || blog.brandId.name || "Brand Voice"
+                ? blog.brandId.nameOfVoice || "Brand Voice"
                 : blog.nameOfVoice || "Custom Brand"}
             </div>
             {((typeof blog.brandId === "object" && blog.brandId?.describeBrand) ||
