@@ -11,20 +11,16 @@ export interface BlogFormData extends Record<string, unknown> {
 }
 
 import { asApiError, creditError } from "@/types/api"
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut, ApiRequestError } from "./typedClient"
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+  ApiRequestError,
+  rethrow,
+} from "./typedClient"
 import axiosInstance from "."
-
-/**
- * `apiGet`/`apiPost`/etc already resolve to the bare payload (no `.data` unwrap needed)
- * and reject with `ApiRequestError` (`.message`/`.code`/`.status`/`.details`, no
- * `.response` nesting — see typedClient.ts). This rethrows a plain `Error` carrying the
- * real backend message (falling back to `fallback` only if the backend didn't send one),
- * for callers that don't need the 402-credit special case below.
- */
-const rethrow = (err: unknown, fallback: string): never => {
-  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
-  throw err instanceof Error ? err : new Error(fallback)
-}
 
 /**
  * Same idea as `rethrow`, but for the create-blog endpoints: a 402 means the backend's
@@ -44,7 +40,7 @@ const rethrowWithCreditCheck = (err: unknown, fallback: string): never => {
 
 export const createQuickBlog = async (blogData: unknown, type?: string) => {
   try {
-    const path = type === "yt" ? ("/api/v1/blogs/yt" as const) : ("/api/v1/blogs/quick" as const)
+    const path = type === "yt" ? ("/blogs/yt" as const) : ("/blogs/quick" as const)
     const result = await apiPost(path, blogData as never)
     return result.blog
   } catch (err) {
@@ -54,7 +50,7 @@ export const createQuickBlog = async (blogData: unknown, type?: string) => {
 
 export const createTopicOnlyBlog = async ({ topic }: { topic: string }) => {
   try {
-    const result = await apiPost("/api/v1/blogs/topic", { topic })
+    const result = await apiPost("/blogs/topic", { topic })
     return result.blog || result
   } catch (err) {
     return rethrowWithCreditCheck(err, "Failed to create blog")
@@ -105,7 +101,7 @@ export const createBlog = async (blogData: BlogFormData) => {
 
 export const createBlogMultiple = async (blogData: BlogFormData) => {
   try {
-    const result = await apiPost("/api/v1/blogs/xyz", blogData as never)
+    const result = await apiPost("/blogs/xyz", blogData as never)
     return result.bulkBlogs
   } catch (err) {
     return rethrowWithCreditCheck(err, "Failed to create blog")
@@ -114,7 +110,7 @@ export const createBlogMultiple = async (blogData: BlogFormData) => {
 
 export const getAllBlogs = async (params: Record<string, unknown> = {}) => {
   try {
-    return await apiGet("/api/v1/blogs", { query: params as never })
+    return await apiGet("/blogs", { query: params as never })
   } catch (err) {
     return rethrow(err, "Failed to fetch blogs")
   }
@@ -122,7 +118,7 @@ export const getAllBlogs = async (params: Record<string, unknown> = {}) => {
 
 export const getBlogById = async (id: string) => {
   try {
-    return await apiGet("/api/v1/blogs/{id}", { params: { id } })
+    return await apiGet("/blogs/{id}", { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to fetch blog")
   }
@@ -130,7 +126,7 @@ export const getBlogById = async (id: string) => {
 
 export const updateBlog = async (id: string, updatedData: unknown) => {
   try {
-    return await apiPut("/api/v1/blogs/update/{id}", updatedData as never, { params: { id } })
+    return await apiPut("/blogs/update/{id}", updatedData as never, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to update blog")
   }
@@ -138,7 +134,7 @@ export const updateBlog = async (id: string, updatedData: unknown) => {
 
 export const deleteBlog = async (id: string) => {
   try {
-    return await apiDelete("/api/v1/blogs/{id}", { params: { id } })
+    return await apiDelete("/blogs/{id}", { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to delete blog")
   }
@@ -146,7 +142,7 @@ export const deleteBlog = async (id: string) => {
 
 export const getBlogsByAuthor = async () => {
   try {
-    return await apiGet("/api/v1/blogs")
+    return await apiGet("/blogs")
   } catch (err) {
     return rethrow(err, "Failed to fetch blogs")
   }
@@ -154,7 +150,7 @@ export const getBlogsByAuthor = async () => {
 
 export const sendBrand = async (formData: unknown) => {
   try {
-    await apiPost("/api/v1/brand/addBrand", formData as never)
+    await apiPost("/brand/addBrand", formData as never)
   } catch (err) {
     return rethrow(err, "Failed to create blog")
   }
@@ -162,7 +158,7 @@ export const sendBrand = async (formData: unknown) => {
 
 export const sendRetryLines = async (id: string, payload?: unknown) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/rewrite", payload as never, { params: { id } })
+    return await apiPost("/blogs/{id}/rewrite", payload as never, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to retry")
   }
@@ -170,7 +166,7 @@ export const sendRetryLines = async (id: string, payload?: unknown) => {
 
 export const deleteAllBlogs = async () => {
   try {
-    return await apiDelete("/api/v1/blogs")
+    return await apiDelete("/blogs")
   } catch (err) {
     return rethrow(err, "Failed to delete blogs")
   }
@@ -178,7 +174,7 @@ export const deleteAllBlogs = async () => {
 
 export const restoreBlogById = async (id: string) => {
   try {
-    return await apiPatch("/api/v1/blogs/restore/{id}", undefined, { params: { id } })
+    return await apiPatch("/blogs/restore/{id}", undefined, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to restore blog")
   }
@@ -186,7 +182,7 @@ export const restoreBlogById = async (id: string) => {
 
 export const restoreAllBlogs = async () => {
   try {
-    return await apiPatch("/api/v1/blogs/restore")
+    return await apiPatch("/blogs/restore")
   } catch (err) {
     return rethrow(err, "Failed to restore blogs")
   }
@@ -194,7 +190,7 @@ export const restoreAllBlogs = async () => {
 
 export const archiveBlogById = async (id: string) => {
   try {
-    return await apiPatch("/api/v1/blogs/archive/{id}", undefined, { params: { id } })
+    return await apiPatch("/blogs/archive/{id}", undefined, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to archive blog")
   }
@@ -202,7 +198,7 @@ export const archiveBlogById = async (id: string) => {
 
 export const retryBlogById = async (id: string, payload: unknown = { createNew: false }) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/retry", payload as never, { params: { id } })
+    return await apiPost("/blogs/{id}/retry", payload as never, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to retry blog")
   }
@@ -210,21 +206,19 @@ export const retryBlogById = async (id: string, payload: unknown = { createNew: 
 
 export const proofreadBlogContent = async ({ id }: { id: string }) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/proofread", undefined, { params: { id } })
+    return await apiPost("/blogs/{id}/proofread", undefined, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to get proofreading suggestions")
   }
 }
 
-export const getBlogStatsById = (id: string) =>
-  apiGet("/api/v1/blogs/{id}/stats", { params: { id } })
+export const getBlogStatsById = (id: string) => apiGet("/blogs/{id}/stats", { params: { id } })
 
-export const getGeneratedTitles = (data: unknown) =>
-  apiPost("/api/v1/generate/title", data as never)
+export const getGeneratedTitles = (data: unknown) => apiPost("/generate/title", data as never)
 
 export const createSimpleBlog = async (data: unknown) => {
   try {
-    return await apiPost("/api/v1/blogs/new", data as never)
+    return await apiPost("/blogs/new", data as never)
   } catch (err) {
     return rethrow(err, "Failed to create blog")
   }
@@ -232,7 +226,7 @@ export const createSimpleBlog = async (data: unknown) => {
 
 export const getBlogStatus = async (params: Record<string, unknown> = {}) => {
   try {
-    return await apiGet("/api/v1/blogs/status", { query: params as never })
+    return await apiGet("/blogs/status", { query: params as never })
   } catch (err) {
     return rethrow(err, "Failed to fetch blog status")
   }
@@ -240,7 +234,7 @@ export const getBlogStatus = async (params: Record<string, unknown> = {}) => {
 
 export const getBlogs = async () => {
   try {
-    return await apiGet("/api/v1/blogs/all")
+    return await apiGet("/blogs/all")
   } catch (err) {
     return rethrow(err, "Failed to fetch blogs")
   }
@@ -254,7 +248,7 @@ export const getBlogs = async () => {
  */
 export const getAllBlogPostings = async (params: Record<string, unknown> = {}) => {
   try {
-    const result = await apiGet("/api/v1/blogs/postings", { query: params as never })
+    const result = await apiGet("/blogs/postings", { query: params as never })
     return result.postings || []
   } catch (err) {
     return rethrow(err, "Failed to fetch blog postings")
@@ -263,7 +257,7 @@ export const getAllBlogPostings = async (params: Record<string, unknown> = {}) =
 
 export const getBlogPrompt = async (id: string, prompt: string) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/prompt", { prompt }, { params: { id } })
+    return await apiPost("/blogs/{id}/prompt", { prompt }, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to fetch blog prompt")
   }
@@ -276,7 +270,7 @@ export const getBlogPrompt = async (id: string, prompt: string) => {
  */
 export const getBlogPostings = async (blogId: string) => {
   try {
-    const result = await apiGet("/api/v1/blogs/postings/{id}", { params: { id: blogId } })
+    const result = await apiGet("/blogs/postings/{id}", { params: { id: blogId } })
     return result.postings || []
   } catch (err) {
     return rethrow(err, "Failed to fetch blog postings")
@@ -321,9 +315,7 @@ export const exportBlogAsPdf = async (id: string) => {
 
 export const toggleBlogVisibility = async (id: string, isPublic: unknown) => {
   try {
-    return await apiPatch("/api/v1/blogs/{id}/visibility", { isPublic } as never, {
-      params: { id },
-    })
+    return await apiPatch("/blogs/{id}/visibility", { isPublic } as never, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to toggle blog visibility")
   }
@@ -331,7 +323,7 @@ export const toggleBlogVisibility = async (id: string, isPublic: unknown) => {
 
 export const getBlogPublicly = async (id: string) => {
   try {
-    return await apiGet("/api/v1/public/blog/{blogId}", { params: { blogId: id } })
+    return await apiGet("/public/blog/{blogId}", { params: { blogId: id } })
   } catch (err) {
     return rethrow(err, "Public blog not found")
   }
@@ -345,7 +337,7 @@ export const getBlogPublicly = async (id: string) => {
  */
 export const analyzeBlogPerformance = async (id: string) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/analyze", undefined, { params: { id } })
+    return await apiPost("/blogs/{id}/analyze", undefined, { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to analyze blog performance")
   }
@@ -359,7 +351,7 @@ export const analyzeBlogPerformance = async (id: string) => {
  */
 export const getBlogInsight = async (id: string) => {
   try {
-    return await apiGet("/api/v1/blogs/{id}/insight", { params: { id } })
+    return await apiGet("/blogs/{id}/insight", { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to fetch blog insight")
   }
@@ -380,7 +372,7 @@ export const applyBlogInsight = async (
   { suggestionId, scope = "section" }: { suggestionId: string; scope?: string }
 ) => {
   try {
-    return await apiPost("/api/v1/blogs/{id}/apply-insight", { suggestionId, scope } as never, {
+    return await apiPost("/blogs/{id}/apply-insight", { suggestionId, scope } as never, {
       params: { id },
     })
   } catch (err) {
@@ -408,7 +400,7 @@ export const confirmBlogInsight = async (
 ) => {
   try {
     return await apiPost(
-      "/api/v1/blogs/{id}/confirm-insight",
+      "/blogs/{id}/confirm-insight",
       { suggestionId, content, republish } as never,
       { params: { id } }
     )

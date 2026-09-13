@@ -18,7 +18,11 @@ const CONTENT_TYPES: Record<string, ContentType> = {
 }
 
 const toContentType = (value: unknown): ContentType =>
-  CONTENT_TYPES[String(value ?? "").trim().toLowerCase()] ?? "MARKDOWN"
+  CONTENT_TYPES[
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+  ] ?? "MARKDOWN"
 
 interface CompetitiveAnalysisPayload {
   blogId: string
@@ -36,7 +40,7 @@ export const runCompetitiveAnalysis = ({
   keywords,
   contentType,
 }: CompetitiveAnalysisPayload) =>
-  apiPost("/api/v1/analysis/run", {
+  apiPost("/analysis/run", {
     blogId,
     title,
     content,

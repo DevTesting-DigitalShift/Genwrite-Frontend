@@ -13,11 +13,11 @@ const rethrow = (err: unknown, fallback: string): never => {
  * /stripe/checkout (stripe.route.js) — fixed here.
  */
 export const createStripeSession = (payload: unknown) =>
-  apiPost("/api/v1/stripe/checkout", payload as never)
+  apiPost("/stripe/checkout", payload as never)
 
 export const cancelStripeSubscription = async () => {
   try {
-    return await apiPatch("/api/v1/stripe/cancel-subscription")
+    return await apiPatch("/stripe/cancel-subscription")
   } catch (err) {
     return rethrow(err, "Failed to cancel subscription")
   }
@@ -34,7 +34,7 @@ export const cancelStripeSubscription = async () => {
  */
 export const createPortalSession = async (returnUrl: unknown) => {
   try {
-    return await apiGet("/api/v1/stripe/portal", { query: { returnUrl } as never })
+    return await apiGet("/stripe/portal", { query: { returnUrl } as never })
   } catch (err) {
     return rethrow(err, "Failed to create portal session")
   }

@@ -1,9 +1,4 @@
-import { apiGet, apiPost, ApiRequestError } from "./typedClient"
-
-const rethrow = (err: unknown, fallback: string): never => {
-  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
-  throw err instanceof Error ? err : new Error(fallback)
-}
+import { apiGet, apiPost, rethrow } from "./typedClient"
 
 // GET /gsc/data has a single real shape regardless of query params — one controller
 // (GSCService#getBlogsData) handles it — { integrationType, totalBlogs, totalLinks,
@@ -12,7 +7,7 @@ const rethrow = (err: unknown, fallback: string): never => {
 // getGscAnalytics does. There is no dedicated "list of verified sites" endpoint today.
 export const getVerifiedSites = async () => {
   try {
-    return await apiGet("/api/v1/gsc/data")
+    return await apiGet("/gsc/data")
   } catch (err) {
     return rethrow(err, "Failed to fetch verified sites")
   }
@@ -20,7 +15,7 @@ export const getVerifiedSites = async () => {
 
 export const getGscAnalytics = async (params: Record<string, unknown>) => {
   try {
-    return await apiGet("/api/v1/gsc/data", { query: params as never })
+    return await apiGet("/gsc/data", { query: params as never })
   } catch (err) {
     return rethrow(err, "Failed to fetch GSC analytics")
   }
@@ -28,7 +23,7 @@ export const getGscAnalytics = async (params: Record<string, unknown>) => {
 
 export const connectGsc = async ({ code, state }: { code: string; state?: string }) => {
   try {
-    return await apiGet("/api/v1/gsc/callback", { query: { code, state } as never })
+    return await apiGet("/gsc/callback", { query: { code, state } as never })
   } catch (err) {
     return rethrow(err, "Failed to connect GSC")
   }
@@ -36,7 +31,7 @@ export const connectGsc = async ({ code, state }: { code: string; state?: string
 
 export const getGscAuthUrl = async () => {
   try {
-    const result = await apiGet("/api/v1/gsc/auth")
+    const result = await apiGet("/gsc/auth")
     return result.url
   } catch (err) {
     return rethrow(err, "Failed to get auth URL")
@@ -55,7 +50,7 @@ export const inspectIndexing = async ({
   pageUrl?: string
 } = {}) => {
   try {
-    return await apiGet("/api/v1/gsc/indexing/inspect", {
+    return await apiGet("/gsc/indexing/inspect", {
       query: (pageUrl ? { pageUrl } : { blogId }) as never,
     })
   } catch (err) {
@@ -76,10 +71,7 @@ export const requestIndexing = async ({
   pageUrl?: string
 } = {}) => {
   try {
-    return await apiPost(
-      "/api/v1/gsc/indexing/request",
-      (pageUrl ? { pageUrl } : { blogId }) as never
-    )
+    return await apiPost("/gsc/indexing/request", (pageUrl ? { pageUrl } : { blogId }) as never)
   } catch (err) {
     return rethrow(err, "Failed to request indexing")
   }

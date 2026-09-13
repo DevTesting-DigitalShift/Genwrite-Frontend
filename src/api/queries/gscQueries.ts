@@ -12,7 +12,10 @@ import { toast } from "sonner"
  * @param {string} [pageUrl] - The published URL to inspect
  * @param {{ enabled?: boolean }} [options]
  */
-export const useIndexingStatusQuery = (pageUrl?: string, { enabled = true }: { enabled?: boolean } = {}) => {
+export const useIndexingStatusQuery = (
+  pageUrl?: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) => {
   return useQuery({
     queryKey: ["indexingStatus", pageUrl],
     queryFn: () => inspectIndexing({ pageUrl }),

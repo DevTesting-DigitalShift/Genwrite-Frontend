@@ -1,21 +1,26 @@
 /**
- * Thin typed wrapper around axiosInstance: pass the OpenAPI path key (from
- * src/types/apiSchema.d.ts) as the single source of truth and the response type,
- * path-param substitution, query typing, response unwrapping, and error normalization
- * all come along for free — no separate `ApiResponse<Path, Method>` annotation, no
- * `response.data` unwrap, no `asApiError`/`.response.data` digging at the call site.
+ * Thin typed wrapper around axiosInstance: pass the OpenAPI path key (short form — see
+ * below) as the single source of truth and the response type, path-param substitution,
+ * query typing, response unwrapping, and error normalization all come along for free — no
+ * separate `ApiResponse<Path, Method>` annotation, no `response.data` unwrap, no
+ * `asApiError`/`.response.data` digging at the call site.
  *
- *   const blog = await apiGet("/api/v1/blogs/{id}", { params: { id } })
+ *   const blog = await apiGet("/blogs/{id}", { params: { id } })
  *   //    ^ typed as the real 200 JSON body for GET /blogs/{id} — not an AxiosResponse
  *
  *   try {
- *     await apiDelete("/api/v1/blogs/{id}", { params: { id } })
+ *     await apiDelete("/blogs/{id}", { params: { id } })
  *   } catch (err) {
  *     if (err instanceof ApiRequestError) console.log(err.code, err.message)
  *   }
  *
- * axiosInstance's baseURL already includes /api/v1, so that prefix is stripped before
- * the request goes out; `{param}` segments are substituted from `params`.
+ * Every path the backend registers is spelled "/api/v1/..." in the generated apiSchema.d.ts
+ * (that's how the OpenAPI spec documents it), and axiosInstance's own baseURL already
+ * includes that same prefix — so call sites here use the SHORT path ("/blogs/{id}", no
+ * "/api/v1"), and apiHelpers.ts's `FullPath` type re-adds the prefix purely at the type
+ * level to look each path up in the generated `paths` type. Neither this file's runtime
+ * code nor any call site ever needs to say "/api/v1" itself. `{param}` segments in the
+ * path are substituted from `params`.
  *
  * Whether a call succeeds or fails, axios always puts the JSON body at `.data` — a
  * success response's `.data` and a rejected request's `.response.data` are the same
@@ -36,12 +41,9 @@ import type {
 } from "@/types/apiHelpers"
 import axiosInstance from "."
 
-const API_PREFIX = "/api/v1"
-
 const buildUrl = (pathKey: string, params?: Record<string, string | number>): string => {
-  const relative = pathKey.startsWith(API_PREFIX) ? pathKey.slice(API_PREFIX.length) : pathKey
-  if (!params) return relative
-  return relative.replace(/\{(\w+)\}/g, (_, key) => encodeURIComponent(String(params[key])))
+  if (!params) return pathKey
+  return pathKey.replace(/\{(\w+)\}/g, (_, key) => encodeURIComponent(String(params[key])))
 }
 
 /** The real error body every failed request sends — see backend `schemas/common.js#ErrorResponseSchema`. */
@@ -74,12 +76,37 @@ export class ApiRequestError extends Error {
   }
 }
 
+/**
+ * Normalizes any caught error into a plain `Error` carrying the real backend message —
+ * `ApiRequestError`'s `.message` when there is one, `fallback` otherwise. Every `api*`
+ * call site used to paste its own copy of this; centralized here since it's always the
+ * same three lines. Only use this where the caller doesn't need `.status`/`.code`/
+ * `.details` afterward (e.g. to branch on a specific HTTP status) — those callers should
+ * let the real `ApiRequestError` propagate instead (see stripeApi.ts#createStripeSession).
+ */
+export const rethrow = (err: unknown, fallback: string): never => {
+  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  throw err instanceof Error ? err : new Error(fallback)
+}
+
 const request = async <T>(fn: () => Promise<AxiosResponse<T>>): Promise<T> => {
   try {
     const response = await fn()
+    console.debug(
+      "API request success:",
+      response.config.method?.toUpperCase(),
+      response.config.url,
+      response.status
+    )
     return response.data
   } catch (rawError) {
     const axiosErr = rawError as AxiosError<ErrorBody>
+    console.debug(
+      "API request failed:",
+      axiosErr.config?.method?.toUpperCase(),
+      axiosErr.config?.url,
+      axiosErr.response?.status
+    )
     throw new ApiRequestError(
       axiosErr.response?.data ?? {},
       axiosErr.response?.status,

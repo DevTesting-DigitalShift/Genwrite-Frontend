@@ -21,7 +21,12 @@ const axiosInstance = axios.create({
 // attaching its Bearer token (or its shared workspace scope) to these calls would
 // authenticate the request as the wrong user. /auth/refresh is cookie-authenticated, not
 // Bearer-authenticated, and must never re-enter the 401 handler on its own failure.
-const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin", "/auth/refresh"]
+const UNAUTHENTICATED_ROUTES = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/google-signin",
+  "/auth/refresh",
+]
 
 const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => url.includes(r))
 
@@ -31,7 +36,9 @@ const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => 
 // watch context, read-only access) by that code; the message check is a fallback in case
 // an older deployed backend hasn't picked up the code yet.
 const isExpiredTokenError = (error: unknown): boolean => {
-  const err = error as { response?: { status?: number; data?: { code?: unknown; message?: unknown } } }
+  const err = error as {
+    response?: { status?: number; data?: { code?: unknown; message?: unknown } }
+  }
   if (err?.response?.status !== 403) return false
   const { code, message } = err.response.data ?? {}
   return code === "ERR_TOKEN_EXPIRED" || message === "Invalid or expired token, please log in again"
@@ -151,7 +158,11 @@ axiosInstance.interceptors.response.use(
     //    path a user actually hits — keep why it failed.
     const isAuthFailure = status === 401 || isExpiredTokenError(error)
     let refreshError: string | null = null
-    if (isAuthFailure && !error.config?._refreshRetried && !isUnauthenticatedRoute(error.config?.url)) {
+    if (
+      isAuthFailure &&
+      !error.config?._refreshRetried &&
+      !isUnauthenticatedRoute(error.config?.url)
+    ) {
       const expiredSession = getActiveSession()
       if (expiredSession) {
         try {

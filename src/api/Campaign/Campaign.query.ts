@@ -61,7 +61,10 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     )
 
   /** Live pending suggestions across every blog in the campaign. */
-  useSuggestions = (campaignId: string, options?: AnyUseQueryOptions<CampaignLiveSuggestion[], Error>) =>
+  useSuggestions = (
+    campaignId: string,
+    options?: AnyUseQueryOptions<CampaignLiveSuggestion[], Error>
+  ) =>
     this.useFetchQuery<CampaignLiveSuggestion[]>(
       `suggestions-${campaignId}`,
       () => this.api.getSuggestions(campaignId),
@@ -69,7 +72,10 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     )
 
   /** Audit trail of auto-applied rewrite/repost actions. */
-  useActions = (campaignId: string, options?: AnyUseQueryOptions<CampaignActionLogEntry[], Error>) =>
+  useActions = (
+    campaignId: string,
+    options?: AnyUseQueryOptions<CampaignActionLogEntry[], Error>
+  ) =>
     this.useFetchQuery<CampaignActionLogEntry[]>(
       `actions-${campaignId}`,
       () => this.api.getActions(campaignId),
@@ -135,7 +141,10 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
           this.queryClient.setQueryData<Campaign[]>([...this.baseKey, "list"], (old = []) =>
             old.map((c) => (c._id === updated._id ? updated : c))
           )
-          this.queryClient.setQueryData<Campaign>([...this.baseKey, `detail-${updated._id}`], updated)
+          this.queryClient.setQueryData<Campaign>(
+            [...this.baseKey, `detail-${updated._id}`],
+            updated
+          )
           options?.onSuccess?.(updated)
         },
       }

@@ -1,11 +1,6 @@
-import { apiGet, apiPost, ApiRequestError } from "./typedClient"
+import { apiGet, apiPost, rethrow } from "./typedClient"
 import axiosInstance from "./index"
 import type { components } from "@/types/apiSchema"
-
-const rethrow = (err: unknown, fallback: string): never => {
-  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
-  throw err instanceof Error ? err : new Error(fallback)
-}
 
 /** GET /image-gallery documents a union response: the paginated list, or (only when a `url`
  * query param is sent) a single raw image doc instead — see imageGallery.response.js's own
@@ -16,7 +11,7 @@ type ImageGalleryListResponse = components["schemas"]["ImageGalleryListResponse"
 export const getImages = async (params: Record<string, unknown> = {}) => {
   try {
     const { page = 1, limit = 20, tags, minScore } = params
-    const result = await apiGet("/api/v1/image-gallery", {
+    const result = await apiGet("/image-gallery", {
       query: {
         page,
         limit,
@@ -33,7 +28,7 @@ export const getImages = async (params: Record<string, unknown> = {}) => {
 /** Get single image by ID. */
 export const getImageById = async (id: string) => {
   try {
-    return await apiGet("/api/v1/image-gallery/{id}", { params: { id } })
+    return await apiGet("/image-gallery/{id}", { params: { id } })
   } catch (err) {
     return rethrow(err, "Failed to fetch image")
   }
@@ -43,7 +38,7 @@ export const getImageById = async (id: string) => {
 export const searchImages = async (params: Record<string, unknown> = {}) => {
   try {
     const { q, page = 1, limit = 20, minScore } = params
-    return await apiGet("/api/v1/image-gallery/search", {
+    return await apiGet("/image-gallery/search", {
       query: {
         ...(q ? { q } : {}),
         page,
@@ -62,7 +57,7 @@ export const searchImages = async (params: Record<string, unknown> = {}) => {
  */
 export const generateImage = async (data: unknown) => {
   try {
-    return await apiPost("/api/v1/user/images/generate", data as never)
+    return await apiPost("/user/images/generate", data as never)
   } catch (err) {
     return rethrow(err, "Failed to generate image")
   }
@@ -88,7 +83,7 @@ export const enhanceImage = async (formData: FormData) => {
  */
 export const generateAltText = async (data: unknown) => {
   try {
-    return await apiPost("/api/v1/user/images/alt-text", data as never)
+    return await apiPost("/user/images/alt-text", data as never)
   } catch (err) {
     return rethrow(err, "Failed to generate alt text")
   }

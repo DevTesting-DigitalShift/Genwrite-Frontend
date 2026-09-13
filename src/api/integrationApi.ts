@@ -1,13 +1,8 @@
-import { apiGet, apiPost, apiPut, ApiRequestError } from "./typedClient"
-
-const rethrow = (err: unknown, fallback: string): never => {
-  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
-  throw err instanceof Error ? err : new Error(fallback)
-}
+import { apiGet, apiPost, apiPut, rethrow } from "./typedClient"
 
 export const fetchCategories = async (type: string) => {
   try {
-    return await apiGet("/api/v1/integrations/category", { query: { type } as never })
+    return await apiGet("/integrations/category", { query: { type } as never })
   } catch (err) {
     return rethrow(err, "Failed to fetch categories")
   }
@@ -15,7 +10,7 @@ export const fetchCategories = async (type: string) => {
 
 export const fetchIntegrations = async () => {
   try {
-    return await apiGet("/api/v1/integrations")
+    return await apiGet("/integrations")
   } catch (err) {
     return rethrow(err, "Failed to fetch integrations")
   }
@@ -23,7 +18,7 @@ export const fetchIntegrations = async () => {
 
 export const pingIntegration = async (type: string) => {
   try {
-    return await apiGet("/api/v1/integrations/ping", { query: { type } as never })
+    return await apiGet("/integrations/ping", { query: { type } as never })
   } catch (err) {
     return rethrow(err, "Failed to ping integration")
   }
@@ -31,7 +26,7 @@ export const pingIntegration = async (type: string) => {
 
 export const createIntegration = async (payload: unknown) => {
   try {
-    return await apiPost("/api/v1/integrations", payload as never)
+    return await apiPost("/integrations", payload as never)
   } catch (err) {
     return rethrow(err, "Failed to create integration")
   }
@@ -39,7 +34,7 @@ export const createIntegration = async (payload: unknown) => {
 
 export const createPost = async (payload: unknown) => {
   try {
-    return await apiPost("/api/v1/integrations/post", payload as never)
+    return await apiPost("/integrations/post", payload as never)
   } catch (err) {
     return rethrow(err, "Failed to create post")
   }
@@ -47,7 +42,7 @@ export const createPost = async (payload: unknown) => {
 
 export const updateIntegration = async (payload: unknown) => {
   try {
-    return await apiPut("/api/v1/integrations/post", payload as never)
+    return await apiPut("/integrations/post", payload as never)
   } catch (err) {
     return rethrow(err, "Failed to update integration")
   }
@@ -55,7 +50,7 @@ export const updateIntegration = async (payload: unknown) => {
 
 export const connectIntegration = async (payload: unknown) => {
   try {
-    return await apiPost("/api/v1/integrations/connect", payload as never)
+    return await apiPost("/integrations/connect", payload as never)
   } catch (err) {
     return rethrow(err, "Failed to connect integration")
   }

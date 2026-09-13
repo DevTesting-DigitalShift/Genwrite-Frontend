@@ -1,4 +1,4 @@
-import { apiGet, apiPost, ApiRequestError } from "./typedClient"
+import { apiGet, apiPost, ApiRequestError, rethrow } from "./typedClient"
 import { getActiveSession, removeSession } from "@utils/sessionStore"
 
 const removeActiveSession = () => {
@@ -36,27 +36,25 @@ const retry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promis
 export const login = async (reqBody: Record<string, unknown>) => {
   try {
     reqBody.ip = await getIP()
-    return await apiPost("/api/v1/auth/login", reqBody as never)
+    return await apiPost("/auth/login", reqBody as never)
   } catch (err) {
-    if (err instanceof ApiRequestError) throw new Error(err.message || "Login failed")
-    throw err instanceof Error ? err : new Error("Login failed")
+    return rethrow(err, "Login failed")
   }
 }
 
 export const signup = async (body: Record<string, unknown>) => {
   try {
     body.ip = await getIP()
-    return await apiPost("/api/v1/auth/register", body as never)
+    return await apiPost("/auth/register", body as never)
   } catch (err) {
-    if (err instanceof ApiRequestError) throw new Error(err.message || "Signup failed")
-    throw err instanceof Error ? err : new Error("Signup failed")
+    return rethrow(err, "Signup failed")
   }
 }
 
 export const UserLogout = async () => {
   // Session removal from storage is owned by useAuthStore.logoutUser (via
   // sessionStore), which calls this first — this function only hits the backend.
-  return await apiGet("/api/v1/auth/logout")
+  return await apiGet("/auth/logout")
 }
 
 export const loadUser = async (navigate?: (path: string) => void) => {
@@ -71,7 +69,7 @@ export const loadUser = async (navigate?: (path: string) => void) => {
 
   try {
     // Retry the API call up to 3 times with exponential backoff
-    return await retry(() => apiGet("/api/v1/auth/me"), 2, 250)
+    return await retry(() => apiGet("/auth/me"), 2, 250)
   } catch (rawError) {
     // `status` is undefined for any request that never got a response at all (network
     // failure, timeout, CORS, DNS) — a more complete check than axios's own ERR_NETWORK
@@ -97,26 +95,25 @@ export const loadUser = async (navigate?: (path: string) => void) => {
 }
 
 export const forgotPasswordAPI = async (email: string) => {
-  return await apiPost("/api/v1/auth/forgot-password", { email })
+  return await apiPost("/auth/forgot-password", { email })
 }
 
 export const resetPasswordAPI = async (token: string, newPassword: unknown) => {
-  return await apiPost("/api/v1/auth/reset-password", { token, newPassword } as never)
+  return await apiPost("/auth/reset-password", { token, newPassword } as never)
 }
 
 export const loginWithGoogle = async (body: Record<string, unknown>) => {
   try {
-    return await apiPost("/api/v1/auth/google-signin", body as never)
+    return await apiPost("/auth/google-signin", body as never)
   } catch (err) {
-    if (err instanceof ApiRequestError) throw new Error(err.message || "Google login failed")
-    throw err instanceof Error ? err : new Error("Google login failed")
+    return rethrow(err, "Google login failed")
   }
 }
 
 export const refreshSession = async (userId: string) => {
-  return await apiPost("/api/v1/auth/refresh", { userId })
+  return await apiPost("/auth/refresh", { userId })
 }
 
 export const logoutAllDevicesAPI = async () => {
-  return await apiPost("/api/v1/auth/logout-all")
+  return await apiPost("/auth/logout-all")
 }
