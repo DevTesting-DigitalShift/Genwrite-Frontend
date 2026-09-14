@@ -6,6 +6,7 @@ import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
 import {
   Briefcase,
+  Clapperboard,
   Crown,
   FileText,
   HelpCircle,
@@ -194,6 +195,10 @@ const SideBar_Header = () => {
     }
   }, [user])
 
+  // Media is still tester/admin-only (see TesterProtectedRoute on the /media route itself) —
+  // hidden from the sidebar for everyone else rather than shown as a dead link that redirects.
+  const canAccessMedia = user?.role === "tester" || user?.role === "admin"
+
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { title: "AEO Website Ranker", icon: Sparkles, path: "/website-ranking" },
@@ -204,6 +209,7 @@ const SideBar_Header = () => {
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
+    ...(canAccessMedia ? [{ title: "Media Studio", icon: Clapperboard, path: "/media" }] : []),
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
   ]
 

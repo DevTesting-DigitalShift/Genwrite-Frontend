@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-12T11:52:19.661Z
+             * @default 2026-09-14T04:40:53.153Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:52:19.934Z
+                 * @default 2026-09-14T04:40:53.205Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:52:19.939Z
+                 * @default 2026-09-14T04:40:53.208Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-12T11:52:19.996Z
+             * @default 2026-09-14T04:40:53.214Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-12T11:52:20.076Z
+                 * @default 2026-09-14T04:40:53.228Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-12T11:52:20.079Z
+                 * @default 2026-09-14T04:40:53.230Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-12T11:52:20.118Z
+             * @default 2026-09-14T04:40:53.239Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8870,6 +8870,35 @@ export interface components {
              * @example 2024-01-02T12:00:00.000Z
              */
             updatedAt: string;
+        };
+        MediaGenerateImageBody: {
+            /**
+             * @description Image generation prompt
+             * @example A futuristic city skyline at dusk
+             */
+            prompt: string;
+            /**
+             * @description fal image model id
+             * @example fal-ai/nano-banana
+             * @enum {string}
+             */
+            model: "fal-ai/nano-banana" | "fal-ai/seedream-v4" | "fal-ai/flux-kontext-pro" | "fal-ai/qwen-image";
+            /**
+             * @description Intended use of the generated asset
+             * @default other
+             * @enum {string}
+             */
+            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "other";
+            /** @description Optional linked brand */
+            brandId?: string;
+            /** @description Optional linked campaign */
+            campaignId?: string;
+            /**
+             * @description Expected output megapixels, used for cost calculation
+             * @default 1
+             * @example 1
+             */
+            megapixels: number;
         };
         GenerateVideoBody: {
             /**
@@ -11046,7 +11075,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:52:19.496Z
+                             * @default 2026-09-14T04:40:53.121Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11193,7 +11222,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-12T11:52:19.500Z
+                             * @default 2026-09-14T04:40:53.123Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -18049,7 +18078,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GenerateImageBody"];
+                "application/json": components["schemas"]["MediaGenerateImageBody"];
             };
         };
         responses: {
