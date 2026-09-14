@@ -1,29 +1,65 @@
 // src/api/Blog/Blog.query.ts
-import type { AnyUseQueryOptions } from "@api/QueryBase"
-import { BaseCRUDQuery } from "@api/BaseCRUDQuery"
+import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { BlogAPI, type BlogFormData } from "./Blog.api"
 import { toast } from "sonner"
 import type { CampaignBlogRef } from "@/types/campaign"
 
-/** Minimal shape the CRUD base class needs — the backend Blog document has many more
- * fields than are worth modeling here since most call sites treat blogs as `unknown`. */
-export type Blog = { _id?: string } & Record<string, unknown>
-
+// Every type below is pulled straight off BlogAPI's own inferred return types (which already
+// come from typedClient.ts's per-endpoint generics against apiSchema.d.ts) — never redeclared
+// or cast, since BlogAPI's methods are already correctly typed per their real OpenAPI schema.
+export type Blog = Awaited<ReturnType<typeof BlogAPI.get>>
+type BlogsListResponse = Awaited<ReturnType<typeof BlogAPI.list>>
+type BlogSummary = Awaited<ReturnType<typeof BlogAPI.getAll>>[number]
 type BlogPosting = Awaited<ReturnType<typeof BlogAPI.getAllPostings>>[number]
 
-class BlogsQuery extends BaseCRUDQuery<Blog> {
+class BlogsQuery extends QueryBase<Blog> {
   baseKey = ["blogs"]
-  api = {
-    list: (params?: Record<string, unknown>) =>
-      BlogAPI.list(params) as unknown as Promise<Blog[]>,
-    get: (id: string) => BlogAPI.get(id) as Promise<Blog>,
-    create: (data: Partial<Blog>) => BlogAPI.create(data as BlogFormData) as Promise<Blog>,
-    update: (id: string, data: Partial<Blog>) => BlogAPI.update(id, data) as Promise<Blog>,
-    delete: (id: string) => BlogAPI.delete(id),
-  }
+  api = BlogAPI
 
-  useAllBlogs = (options?: AnyUseQueryOptions<Blog[], Error>) =>
-    this.useFetchQuery<Blog[]>("allBlogs", () => BlogAPI.getAll() as Promise<Blog[]>, options)
+  /** GET /blogs is paginated — returns the full envelope, not a bare array (matches
+   * BlogsPage/Dashboard/MyProjects's real usage of `.data`/`.page`/`.totalPages`/etc). */
+  useList = (
+    params?: Record<string, unknown>,
+    options?: AnyUseQueryOptions<BlogsListResponse, Error>
+  ) => this.useParamQuery<BlogsListResponse>("list", (p) => this.api.list(p), params, options)
+
+  useDetail = (id: string, options?: AnyUseQueryOptions<Blog, Error>) =>
+    this.useFetchQuery<Blog>(`detail-${id}`, () => this.api.get(id), { enabled: !!id, ...options })
+
+  useCreate = (options?: { onSuccess?: (data: Blog) => void; onError?: (err: Error) => void }) =>
+    this.useMutate<Blog, BlogFormData>((payload) => this.api.create(payload), {
+      ...options,
+      onSuccess: (data) => {
+        this.invalidate("list")
+        options?.onSuccess?.(data)
+      },
+    })
+
+  useUpdate = (options?: { onSuccess?: (data: Blog) => void; onError?: (err: Error) => void }) =>
+    this.useMutate<Blog, { id: string; data: unknown }>(
+      ({ id, data }) => this.api.update(id, data),
+      {
+        ...options,
+        onSuccess: (updated) => {
+          this.queryClient.setQueryData<Blog>([...this.baseKey, `detail-${updated._id}`], updated)
+          this.invalidate("list")
+          options?.onSuccess?.(updated)
+        },
+      }
+    )
+
+  useDelete = (options?: { onSuccess?: (id: string) => void; onError?: (err: Error) => void }) =>
+    this.useMutate<void, string>((id) => this.api.delete(id), {
+      ...options,
+      onSuccess: (_, id) => {
+        this.queryClient.removeQueries({ queryKey: [...this.baseKey, `detail-${id}`] })
+        this.invalidate("list")
+        options?.onSuccess?.(id)
+      },
+    })
+
+  useAllBlogs = (options?: AnyUseQueryOptions<BlogSummary[], Error>) =>
+    this.useFetchQuery<BlogSummary[]>("allBlogs", () => BlogAPI.getAll(), options)
 
   /**
    * The blogs that are actually live somewhere, one entry per blog rather than one per
@@ -82,7 +118,7 @@ class BlogsQuery extends BaseCRUDQuery<Blog> {
       onSuccess: () => {
         toast.success("Blog restored successfully")
         this.invalidate("trashedBlogs")
-        this.invalidateList()
+        this.invalidate("list")
         options?.onSuccess?.()
       },
       onError: (error) => {
@@ -113,7 +149,7 @@ class BlogsQuery extends BaseCRUDQuery<Blog> {
       ...options,
       onSuccess: () => {
         toast.success("Blog deleted successfully")
-        this.invalidateList()
+        this.invalidate("list")
         this.invalidate("trashedBlogs")
         options?.onSuccess?.()
       },
@@ -133,7 +169,7 @@ class BlogsQuery extends BaseCRUDQuery<Blog> {
         ...options,
         onSuccess: (result) => {
           toast.success(result?.message || "Blog regenerated successfully")
-          this.invalidateList()
+          this.invalidate("list")
           options?.onSuccess?.(result)
         },
         onError: (error) => {
@@ -155,8 +191,8 @@ class BlogsQuery extends BaseCRUDQuery<Blog> {
       {
         onSuccess: (_data, variables) => {
           toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
-          this.invalidateDetail(variables.id)
-          this.invalidateList()
+          this.invalidate(`detail-${variables.id}`)
+          this.invalidate("list")
           options?.onSuccess?.(variables.isPublic)
         },
         onError: (error) => {
@@ -238,8 +274,8 @@ class BlogsQuery extends BaseCRUDQuery<Blog> {
         BlogAPI.confirmInsight(id, { suggestionId, content, republish }),
       {
         onSuccess: (_data, variables) => {
-          this.invalidateDetail(variables.id)
-          this.invalidateList()
+          this.invalidate(`detail-${variables.id}`)
+          this.invalidate("list")
           this.queryClient.invalidateQueries({ queryKey: ["user"] })
           options?.onSuccess?.()
         },
