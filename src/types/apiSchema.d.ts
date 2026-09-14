@@ -2743,7 +2743,7 @@ export interface paths {
         get: operations["getJobsById"];
         /**
          * Update a job
-         * @description Updates an existing job's configuration. The job must be in 'stop' status to be updated. You can modify the name, schedule, blogs configuration, and options. NOTE: this route has no request schema wired into job.route.js — updateJobBodySchema below documents the intended shape only; the real handler passes req.body straight to Job.findByIdAndUpdate unvalidated (a pre-existing gap, not introduced by this pass).
+         * @description Updates an existing job's configuration. The job must be in 'stop' status to be updated. You can modify the name, schedule, blogs configuration, and options.
          */
         put: operations["putJobsById"];
         post?: never;
@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-14T04:40:53.153Z
+             * @default 2026-09-14T12:45:02.893Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-14T04:40:53.205Z
+                 * @default 2026-09-14T12:45:02.946Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-14T04:40:53.208Z
+                 * @default 2026-09-14T12:45:02.947Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-14T04:40:53.214Z
+             * @default 2026-09-14T12:45:02.953Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-14T04:40:53.228Z
+                 * @default 2026-09-14T12:45:02.966Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-14T04:40:53.230Z
+                 * @default 2026-09-14T12:45:02.967Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-14T04:40:53.239Z
+             * @default 2026-09-14T12:45:02.976Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8105,6 +8105,7 @@ export interface components {
              * @example Job stopped successfully
              */
             message: string;
+            job: components["schemas"]["JobResponse"];
             /**
              * @description Number of pending blogs that were removed
              * @example 3
@@ -11075,7 +11076,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-14T04:40:53.121Z
+                             * @default 2026-09-14T12:45:02.859Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11222,7 +11223,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-14T04:40:53.123Z
+                             * @default 2026-09-14T12:45:02.862Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11485,20 +11486,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        _id: string;
-                        title: string;
-                        isPublic: boolean;
-                    };
+                    "application/json": components["schemas"]["BlogResponse"];
                 };
             };
-            /** @description isPublic must be a boolean */
+            /** @description Invalid request parameters */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
             /** @description Unauthorized - invalid or missing authentication token */
@@ -11905,7 +11902,7 @@ export interface operations {
                         /** @description Number of blogs matched */
                         archivedBlogs: number;
                         /** @description Number of blogs actually modified */
-                        restoredBlog: number;
+                        restoredCount: number;
                     };
                 };
             };
