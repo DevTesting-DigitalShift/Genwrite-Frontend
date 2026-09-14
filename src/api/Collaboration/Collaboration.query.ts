@@ -2,6 +2,7 @@
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { CollaborationAPI } from "./Collaboration.api"
 import { toast } from "sonner"
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 
 /** No single-entity get/update endpoints exist, and invites/watching are two distinct
  * list caches rather than one CRUD entity — hand-written hooks against QueryBase. */
@@ -9,29 +10,28 @@ class CollaborationQuery extends QueryBase<unknown> {
   baseKey = ["collaboration"]
   api = CollaborationAPI
 
-  useInvites = (
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof CollaborationAPI.listInvites>>, Error>
-  ) => this.useFetchQuery("invites", () => this.api.listInvites(), options)
+  useInvites = (options?: AnyUseQueryOptions<ApiResponse<"/collaboration/invites", "get">>) =>
+    this.useFetchQuery("invites", () => this.api.listInvites(), options)
 
   useCreateInvite = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof CollaborationAPI.createInvite>>, unknown>(
-      (payload) => this.api.createInvite(payload),
-      {
-        ...options,
-        onSuccess: () => {
-          toast.success("Invite sent!")
-          this.invalidate("invites")
-          options?.onSuccess?.()
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to send invite")
-          options?.onError?.(error)
-        },
-      }
-    )
+    this.useMutate<
+      ApiResponse<"/collaboration/invites", "post">,
+      ApiRequestBody<"/collaboration/invites", "post">
+    >((payload) => this.api.createInvite(payload), {
+      ...options,
+      onSuccess: () => {
+        toast.success("Invite sent!")
+        this.invalidate("invites")
+        options?.onSuccess?.()
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to send invite")
+        options?.onError?.(error)
+      },
+    })
 
   useRevokeInvite = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof CollaborationAPI.revokeInvite>>, string>(
+    this.useMutate<ApiResponse<"/collaboration/invites/{id}", "delete">, string>(
       (inviteId) => this.api.revokeInvite(inviteId),
       {
         ...options,
@@ -48,14 +48,11 @@ class CollaborationQuery extends QueryBase<unknown> {
     )
 
   useWorkspacesSharedWithMe = (
-    options?: AnyUseQueryOptions<
-      Awaited<ReturnType<typeof CollaborationAPI.listWorkspacesSharedWithMe>>,
-      Error
-    >
+    options?: AnyUseQueryOptions<ApiResponse<"/collaboration/watching", "get">>
   ) => this.useFetchQuery("watching", () => this.api.listWorkspacesSharedWithMe(), options)
 
   useAcceptInvite = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof CollaborationAPI.acceptInvite>>, string>(
+    this.useMutate<ApiResponse<"/collaboration/invites/accept", "post">, string>(
       (token) => this.api.acceptInvite(token),
       {
         ...options,

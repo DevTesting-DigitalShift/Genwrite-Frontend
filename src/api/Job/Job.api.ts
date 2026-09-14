@@ -1,5 +1,6 @@
 // src/api/Job/Job.api.ts
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut, rethrow } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 /** Minimal shape the CRUD base class needs — the backend Job document has many more
  * fields than are worth modeling here since most call sites treat jobs as `unknown`. */
@@ -46,7 +47,9 @@ export const JobAPI = {
     }
   },
 
-  createFromRanking: async (payload: unknown): Promise<Job> => {
+  createFromRanking: async (
+    payload: ApiRequestBody<"/jobs/create-from-ranking", "post">
+  ): Promise<Job> => {
     try {
       return (await apiPost("/jobs/create-from-ranking", payload as never)) as Job
     } catch (err) {

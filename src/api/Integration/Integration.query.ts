@@ -1,6 +1,7 @@
 // src/api/Integration/Integration.query.ts
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { IntegrationAPI } from "./Integration.api"
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 
 /** No single-entity get/update/delete-by-id endpoints exist for integrations (see
  * useIntegrationStore.ts, the pre-existing read-only reference this mirrors) — hand-written
@@ -9,13 +10,12 @@ class IntegrationQuery extends QueryBase<unknown> {
   baseKey = ["integrations"]
   api = IntegrationAPI
 
-  useList = (
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof IntegrationAPI.list>>, Error>
-  ) => this.useFetchQuery("list", () => this.api.list(), options)
+  useList = (options?: AnyUseQueryOptions<ApiResponse<"/integrations", "get">>) =>
+    this.useFetchQuery("list", () => this.api.list(), options)
 
   useCategories = (
     type: string,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof IntegrationAPI.getCategories>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/integrations/category", "get">>
   ) =>
     this.useFetchQuery(`categories-${type}`, () => this.api.getCategories(type), {
       enabled: !!type,
@@ -24,12 +24,12 @@ class IntegrationQuery extends QueryBase<unknown> {
 
   usePing = (
     type: string,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof IntegrationAPI.ping>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/integrations/ping", "get">>
   ) =>
     this.useFetchQuery(`ping-${type}`, () => this.api.ping(type), { enabled: !!type, ...options })
 
   useCreate = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof IntegrationAPI.create>>, unknown>(
+    this.useMutate<ApiResponse<"/integrations", "post">, ApiRequestBody<"/integrations", "post">>(
       (payload) => this.api.create(payload),
       {
         ...options,
@@ -41,33 +41,34 @@ class IntegrationQuery extends QueryBase<unknown> {
     )
 
   useCreatePost = () =>
-    this.useMutate<Awaited<ReturnType<typeof IntegrationAPI.createPost>>, unknown>((payload) =>
-      this.api.createPost(payload)
-    )
+    this.useMutate<
+      ApiResponse<"/integrations/post", "post">,
+      ApiRequestBody<"/integrations/post", "post">
+    >((payload) => this.api.createPost(payload))
 
   useUpdate = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof IntegrationAPI.update>>, unknown>(
-      (payload) => this.api.update(payload),
-      {
-        ...options,
-        onSuccess: () => {
-          this.invalidate("list")
-          options?.onSuccess?.()
-        },
-      }
-    )
+    this.useMutate<
+      ApiResponse<"/integrations/post", "put">,
+      ApiRequestBody<"/integrations/post", "put">
+    >((payload) => this.api.update(payload), {
+      ...options,
+      onSuccess: () => {
+        this.invalidate("list")
+        options?.onSuccess?.()
+      },
+    })
 
   useConnect = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof IntegrationAPI.connect>>, unknown>(
-      (payload) => this.api.connect(payload),
-      {
-        ...options,
-        onSuccess: () => {
-          this.invalidate("list")
-          options?.onSuccess?.()
-        },
-      }
-    )
+    this.useMutate<
+      ApiResponse<"/integrations/connect", "post">,
+      ApiRequestBody<"/integrations/connect", "post">
+    >((payload) => this.api.connect(payload), {
+      ...options,
+      onSuccess: () => {
+        this.invalidate("list")
+        options?.onSuccess?.()
+      },
+    })
 }
 
 export const integrationQuery = new IntegrationQuery() as IntegrationQuery

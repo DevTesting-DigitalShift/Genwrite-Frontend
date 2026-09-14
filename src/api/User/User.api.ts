@@ -1,5 +1,6 @@
 // src/api/User/User.api.ts
 import { apiGet, apiPatch, apiPost, apiPut, rethrow } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 export const UserAPI = {
   getProfile: async () => {
@@ -27,7 +28,7 @@ export const UserAPI = {
     }
   },
 
-  updateProfile: async (payload: unknown) => {
+  updateProfile: async (payload: ApiRequestBody<"/user/profile", "put">) => {
     try {
       return await apiPut("/user/profile", payload as never)
     } catch (err) {
@@ -35,7 +36,7 @@ export const UserAPI = {
     }
   },
 
-  updatePassword: async (payload: unknown) => {
+  updatePassword: async (payload: ApiRequestBody<"/user/update-password", "post">) => {
     try {
       return await apiPost("/user/update-password", payload as never)
     } catch (err) {
@@ -67,7 +68,7 @@ export const UserAPI = {
     }
   },
 
-  updateEmailPreferences: async (payload: unknown) => {
+  updateEmailPreferences: async (payload: ApiRequestBody<"/user/email-preferences", "put">) => {
     try {
       return await apiPut("/user/email-preferences", payload as never)
     } catch (err) {

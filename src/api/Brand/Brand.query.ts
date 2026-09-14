@@ -8,7 +8,7 @@ class BrandsQuery extends BaseCRUDQuery<Brand> {
   baseKey = ["brand"]
   api = BrandAPI
 
-  useSiteInfo = (url: string, options?: AnyUseQueryOptions<BrandSiteInfo, Error>) =>
+  useSiteInfo = (url: string, options?: AnyUseQueryOptions<BrandSiteInfo>) =>
     this.useFetchQuery<BrandSiteInfo>(`siteInfo-${url}`, () => this.api.getSiteInfo(url), options)
 }
 

@@ -1,8 +1,9 @@
 // src/api/Collaboration/Collaboration.api.ts
 import { apiDelete, apiGet, apiPost, rethrow } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 export const CollaborationAPI = {
-  createInvite: async (payload: unknown) => {
+  createInvite: async (payload: ApiRequestBody<"/collaboration/invites", "post">) => {
     try {
       return await apiPost("/collaboration/invites", payload as never)
     } catch (err) {

@@ -20,12 +20,10 @@ class BlogsQuery extends QueryBase<Blog> {
 
   /** GET /blogs is paginated — returns the full envelope, not a bare array (matches
    * BlogsPage/Dashboard/MyProjects's real usage of `.data`/`.page`/`.totalPages`/etc). */
-  useList = (
-    params?: Record<string, unknown>,
-    options?: AnyUseQueryOptions<BlogsListResponse, Error>
-  ) => this.useParamQuery<BlogsListResponse>("list", (p) => this.api.list(p), params, options)
+  useList = (params?: Record<string, unknown>, options?: AnyUseQueryOptions<BlogsListResponse>) =>
+    this.useParamQuery<BlogsListResponse>("list", (p) => this.api.list(p), params, options)
 
-  useDetail = (id: string, options?: AnyUseQueryOptions<Blog, Error>) =>
+  useDetail = (id: string, options?: AnyUseQueryOptions<Blog>) =>
     this.useFetchQuery<Blog>(`detail-${id}`, () => this.api.get(id), { enabled: !!id, ...options })
 
   useCreate = (options?: { onSuccess?: (data: Blog) => void; onError?: (err: Error) => void }) =>
@@ -60,7 +58,7 @@ class BlogsQuery extends QueryBase<Blog> {
       },
     })
 
-  useAllBlogs = (options?: AnyUseQueryOptions<BlogSummary[], Error>) =>
+  useAllBlogs = (options?: AnyUseQueryOptions<BlogSummary[]>) =>
     this.useFetchQuery<BlogSummary[]>("allBlogs", () => BlogAPI.getAll(), options)
 
   /**
@@ -69,7 +67,7 @@ class BlogsQuery extends QueryBase<Blog> {
    * Anything that reads Search Console performance (campaigns, most of all) can only
    * work with these, since an unpublished blog has no URL for GSC to report on.
    */
-  usePostedBlogs = (enabled = true, options?: AnyUseQueryOptions<CampaignBlogRef[], Error>) =>
+  usePostedBlogs = (enabled = true, options?: AnyUseQueryOptions<CampaignBlogRef[]>) =>
     this.useFetchQuery<CampaignBlogRef[]>(
       "postedBlogs",
       async () => {
@@ -82,10 +80,7 @@ class BlogsQuery extends QueryBase<Blog> {
           if (!blog || typeof blog !== "object" || !blog._id) continue
           const existing = byBlogId.get(blog._id)
           if (existing) {
-            if (
-              posting.integrationType &&
-              !existing.platforms?.includes(posting.integrationType)
-            ) {
+            if (posting.integrationType && !existing.platforms?.includes(posting.integrationType)) {
               existing.platforms = [...(existing.platforms ?? []), posting.integrationType]
             }
             continue
@@ -102,19 +97,17 @@ class BlogsQuery extends QueryBase<Blog> {
       { enabled, ...options }
     )
 
-  useStats = (
-    id: string,
-    options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/stats", "get">, Error>
-  ) => this.useFetchQuery(`stats-${id}`, () => BlogAPI.getStats(id), { enabled: !!id, ...options })
+  useStats = (id: string, options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/stats", "get">>) =>
+    this.useFetchQuery(`stats-${id}`, () => BlogAPI.getStats(id), { enabled: !!id, ...options })
 
   useStatus = (
     params: ApiRequestBody<"/blogs/status", "get">,
-    options?: AnyUseQueryOptions<ApiResponse<"/blogs/status", "get">, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/status", "get">>
   ) => this.useParamQuery("status", (p) => BlogAPI.getStatus(p), params, options)
 
   useGeneratedTitles = (
     payload: ApiRequestBody<"/generate/title", "post">,
-    options?: AnyUseQueryOptions<ApiResponse<"/generate/title", "post">, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/generate/title", "post">>
   ) =>
     this.useParamQuery("generatedTitles", (p) => BlogAPI.getGeneratedTitles(p), payload, {
       enabled: !!payload,
@@ -181,21 +174,18 @@ class BlogsQuery extends QueryBase<Blog> {
     this.useMutate<
       ApiResponse<"/blogs/{id}/retry", "post">,
       { id: string; payload?: ApiRequestBody<"/blogs/{id}/retry", "post"> }
-    >(
-      ({ id, payload }) => BlogAPI.retry(id, payload),
-      {
-        ...options,
-        onSuccess: (result) => {
-          toast.success(result?.message || "Blog regenerated successfully")
-          this.invalidate("list")
-          options?.onSuccess?.(result)
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to retry blog")
-          options?.onError?.(error)
-        },
-      }
-    )
+    >(({ id, payload }) => BlogAPI.retry(id, payload), {
+      ...options,
+      onSuccess: (result) => {
+        toast.success(result?.message || "Blog regenerated successfully")
+        this.invalidate("list")
+        options?.onSuccess?.(result)
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to retry blog")
+        options?.onError?.(error)
+      },
+    })
 
   useToggleVisibility = (options?: {
     onSuccess?: (isPublic: boolean) => void
@@ -204,21 +194,18 @@ class BlogsQuery extends QueryBase<Blog> {
     this.useMutate<
       ApiResponse<"/blogs/{id}/visibility", "patch">,
       { id: string; isPublic: boolean }
-    >(
-      ({ id, isPublic }) => BlogAPI.toggleVisibility(id, isPublic),
-      {
-        onSuccess: (_data, variables) => {
-          toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
-          this.invalidate(`detail-${variables.id}`)
-          this.invalidate("list")
-          options?.onSuccess?.(variables.isPublic)
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to update visibility")
-          options?.onError?.(error)
-        },
-      }
-    )
+    >(({ id, isPublic }) => BlogAPI.toggleVisibility(id, isPublic), {
+      onSuccess: (_data, variables) => {
+        toast.success(variables.isPublic ? "Blog is now public" : "Blog is now private")
+        this.invalidate(`detail-${variables.id}`)
+        this.invalidate("list")
+        options?.onSuccess?.(variables.isPublic)
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to update visibility")
+        options?.onError?.(error)
+      },
+    })
 
   /**
    * Run the AI performance review for a posted blog. Costs credits, so it is a
@@ -249,7 +236,7 @@ class BlogsQuery extends QueryBase<Blog> {
    */
   useInsight = (
     blogId: string,
-    options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/insight", "get">, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/insight", "get">>
   ) =>
     this.useFetchQuery(`insight-${blogId}`, () => BlogAPI.getInsight(blogId), {
       enabled: !!blogId,

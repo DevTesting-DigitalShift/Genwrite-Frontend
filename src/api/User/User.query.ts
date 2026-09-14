@@ -1,6 +1,7 @@
 // src/api/User/User.query.ts
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { UserAPI } from "./User.api"
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 import { apiErrorMessage } from "@/types/api"
 import { toast } from "sonner"
 
@@ -8,15 +9,14 @@ class UserQuery extends QueryBase<unknown> {
   baseKey = ["user"]
   api = UserAPI
 
-  useProfile = (options?: AnyUseQueryOptions<Awaited<ReturnType<typeof UserAPI.getProfile>>>) =>
+  useProfile = (options?: AnyUseQueryOptions<ApiResponse<"/user/profile", "get">["data"]>) =>
     this.useFetchQuery("profile", () => this.api.getProfile(), options)
 
-  useTransactions = (
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof UserAPI.getTransactions>>>
-  ) => this.useFetchQuery("transactions", () => this.api.getTransactions(), options)
+  useTransactions = (options?: AnyUseQueryOptions<ApiResponse<"/user/transactions", "get">>) =>
+    this.useFetchQuery("transactions", () => this.api.getTransactions(), options)
 
   useUpdateProfile = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof UserAPI.updateProfile>>, unknown>(
+    this.useMutate<ApiResponse<"/user/profile", "put">, ApiRequestBody<"/user/profile", "put">>(
       (payload) => this.api.updateProfile(payload),
       {
         onSuccess: () => {
@@ -32,7 +32,7 @@ class UserQuery extends QueryBase<unknown> {
     )
 
   useMarkNotificationsRead = () =>
-    this.useMutate<Awaited<ReturnType<typeof UserAPI.markNotificationsAsRead>>, void>(
+    this.useMutate<ApiResponse<"/user/notifications/read", "patch">, void>(
       () => this.api.markNotificationsAsRead(),
       {
         onSuccess: () => {

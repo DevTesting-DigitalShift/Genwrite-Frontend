@@ -1,6 +1,7 @@
 // src/api/Analysis/Analysis.query.ts
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { AnalysisAPI } from "./Analysis.api"
+import type { ApiResponse } from "@/types/apiHelpers"
 import { toast } from "sonner"
 
 class AnalysisQuery extends QueryBase<unknown> {
@@ -9,7 +10,7 @@ class AnalysisQuery extends QueryBase<unknown> {
 
   useCompetitiveAnalysis = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
     this.useMutate<
-      Awaited<ReturnType<typeof AnalysisAPI.runCompetitiveAnalysis>>,
+      ApiResponse<"/analysis/run", "post">,
       Parameters<typeof AnalysisAPI.runCompetitiveAnalysis>[0]
     >((payload) => this.api.runCompetitiveAnalysis(payload), {
       ...options,
@@ -24,7 +25,7 @@ class AnalysisQuery extends QueryBase<unknown> {
     })
 
   useAnalyzeKeywords = (options?: { onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof AnalysisAPI.analyzeKeywords>>, string[]>(
+    this.useMutate<ApiResponse<"/analysis/keywords", "post">, string[]>(
       (keywords) => this.api.analyzeKeywords(keywords),
       {
         onError: (error) => {
@@ -37,10 +38,7 @@ class AnalysisQuery extends QueryBase<unknown> {
   useKeywordSuggestions = (
     query: string,
     enabled = false,
-    options?: AnyUseQueryOptions<
-      Awaited<ReturnType<typeof AnalysisAPI.fetchGoogleSuggestions>>,
-      Error
-    >
+    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof AnalysisAPI.fetchGoogleSuggestions>>>
   ) =>
     this.useFetchQuery(
       `keywordSuggestions-${query}`,
@@ -50,7 +48,7 @@ class AnalysisQuery extends QueryBase<unknown> {
 
   useBlogStatus = (
     params?: Record<string, unknown>,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof AnalysisAPI.getBlogStatus>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/status", "get">>
   ) => this.useParamQuery("blogStatus", (p) => this.api.getBlogStatus(p), params, options)
 }
 

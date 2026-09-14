@@ -1,23 +1,25 @@
 // src/api/Payments/Payments.query.ts
 import { QueryBase } from "@api/QueryBase"
 import { PaymentsAPI } from "./Payments.api"
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 
 class PaymentsQuery extends QueryBase<unknown> {
   baseKey = ["payments"]
   api = PaymentsAPI
 
   useCreateCheckoutSession = () =>
-    this.useMutate<Awaited<ReturnType<typeof PaymentsAPI.createCheckoutSession>>, unknown>(
-      (payload) => this.api.createCheckoutSession(payload)
-    )
+    this.useMutate<
+      ApiResponse<"/stripe/checkout", "post">,
+      ApiRequestBody<"/stripe/checkout", "post">
+    >((payload) => this.api.createCheckoutSession(payload))
 
   useCreatePortalSession = () =>
-    this.useMutate<Awaited<ReturnType<typeof PaymentsAPI.createPortalSession>>, unknown>(
-      (returnUrl) => this.api.createPortalSession(returnUrl)
+    this.useMutate<ApiResponse<"/stripe/portal", "get">, string | undefined>((returnUrl) =>
+      this.api.createPortalSession(returnUrl)
     )
 
   useCancelSubscription = () =>
-    this.useMutate<Awaited<ReturnType<typeof PaymentsAPI.cancelSubscription>>, void>(() =>
+    this.useMutate<ApiResponse<"/stripe/cancel-subscription", "patch">, void>(() =>
       this.api.cancelSubscription()
     )
 }

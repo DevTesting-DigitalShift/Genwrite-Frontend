@@ -11,19 +11,22 @@ class GenerateQuery extends QueryBase<unknown> {
   api = GenerateAPI
 
   useHumanizeContent = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.humanizeContent>>, unknown>((payload) =>
-      this.api.humanizeContent(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.humanizeContent>>,
+      Parameters<typeof GenerateAPI.humanizeContent>[0]
+    >((payload) => this.api.humanizeContent(payload))
 
   useCreateOutline = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.createOutline>>, unknown>((payload) =>
-      this.api.createOutline(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.createOutline>>,
+      Parameters<typeof GenerateAPI.createOutline>[0]
+    >((payload) => this.api.createOutline(payload))
 
   useGenerateMetadata = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.generateMetadata>>, unknown>((payload) =>
-      this.api.generateMetadata(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.generateMetadata>>,
+      Parameters<typeof GenerateAPI.generateMetadata>[0]
+    >((payload) => this.api.generateMetadata(payload))
 
   useGeneratePromptContent = () =>
     this.useMutate<
@@ -32,54 +35,64 @@ class GenerateQuery extends QueryBase<unknown> {
     >((payload) => this.api.generatePromptContent(payload))
 
   useDetectAiContent = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.detectAiContent>>, unknown>((payload) =>
-      this.api.detectAiContent(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.detectAiContent>>,
+      Parameters<typeof GenerateAPI.detectAiContent>[0]
+    >((payload) => this.api.detectAiContent(payload))
 
   useScrapeKeywords = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.scrapeKeywords>>, unknown>((payload) =>
-      this.api.scrapeKeywords(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.scrapeKeywords>>,
+      Parameters<typeof GenerateAPI.scrapeKeywords>[0]
+    >((payload) => this.api.scrapeKeywords(payload))
 
   useSummarizeYoutube = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.summarizeYoutube>>, unknown>((payload) =>
-      this.api.summarizeYoutube(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.summarizeYoutube>>,
+      Parameters<typeof GenerateAPI.summarizeYoutube>[0]
+    >((payload) => this.api.summarizeYoutube(payload))
 
   usePdfChat = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.pdfChat>>, unknown>((payload) =>
-      this.api.pdfChat(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.pdfChat>>,
+      Parameters<typeof GenerateAPI.pdfChat>[0]
+    >((payload) => this.api.pdfChat(payload))
 
   useLikeCompetitor = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.likeCompetitor>>, unknown>((payload) =>
-      this.api.likeCompetitor(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.likeCompetitor>>,
+      Parameters<typeof GenerateAPI.likeCompetitor>[0]
+    >((payload) => this.api.likeCompetitor(payload))
 
   useAnalyseWebsite = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.analyseWebsite>>, unknown>((payload) =>
-      this.api.analyseWebsite(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.analyseWebsite>>,
+      Parameters<typeof GenerateAPI.analyseWebsite>[0]
+    >((payload) => this.api.analyseWebsite(payload))
 
   useCreateWebsitePrompts = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.createWebsitePrompts>>, unknown>(
-      (payload) => this.api.createWebsitePrompts(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.createWebsitePrompts>>,
+      Parameters<typeof GenerateAPI.createWebsitePrompts>[0]
+    >((payload) => this.api.createWebsitePrompts(payload))
 
   useCheckWebsiteRankings = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.checkWebsiteRankings>>, unknown>(
-      (payload) => this.api.checkWebsiteRankings(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.checkWebsiteRankings>>,
+      Parameters<typeof GenerateAPI.checkWebsiteRankings>[0]
+    >((payload) => this.api.checkWebsiteRankings(payload))
 
   useGenerateAdvancedAnalysis = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.generateAdvancedAnalysis>>, unknown>(
-      (payload) => this.api.generateAdvancedAnalysis(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.generateAdvancedAnalysis>>,
+      Parameters<typeof GenerateAPI.generateAdvancedAnalysis>[0]
+    >((payload) => this.api.generateAdvancedAnalysis(payload))
 
   useWebsiteRankingOrchestrator = () =>
-    this.useMutate<Awaited<ReturnType<typeof GenerateAPI.websiteRankingOrchestrator>>, unknown>(
-      (payload) => this.api.websiteRankingOrchestrator(payload)
-    )
+    this.useMutate<
+      Awaited<ReturnType<typeof GenerateAPI.websiteRankingOrchestrator>>,
+      Parameters<typeof GenerateAPI.websiteRankingOrchestrator>[0]
+    >((payload) => this.api.websiteRankingOrchestrator(payload))
 }
 
 export const generateQuery = new GenerateQuery() as GenerateQuery

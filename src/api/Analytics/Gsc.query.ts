@@ -1,19 +1,19 @@
 // src/api/Analytics/Gsc.query.ts
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { GscAPI } from "./Gsc.api"
+import type { ApiResponse } from "@/types/apiHelpers"
 import { toast } from "sonner"
 
 class GscQuery extends QueryBase<unknown> {
   baseKey = ["gsc"]
   api = GscAPI
 
-  useVerifiedSites = (
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof GscAPI.getVerifiedSites>>, Error>
-  ) => this.useFetchQuery("verifiedSites", () => this.api.getVerifiedSites(), options)
+  useVerifiedSites = (options?: AnyUseQueryOptions<ApiResponse<"/gsc/data", "get">>) =>
+    this.useFetchQuery("verifiedSites", () => this.api.getVerifiedSites(), options)
 
   useAnalytics = (
     params: Record<string, unknown>,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof GscAPI.getAnalytics>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/gsc/data", "get">>
   ) => this.useParamQuery("analytics", (p) => this.api.getAnalytics(p), params, options)
 
   /**
@@ -25,7 +25,7 @@ class GscQuery extends QueryBase<unknown> {
    */
   useIndexingStatus = (
     pageUrl?: string,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof GscAPI.inspectIndexing>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/gsc/indexing/inspect", "get">>
   ) =>
     this.useFetchQuery(`indexingStatus-${pageUrl}`, () => this.api.inspectIndexing({ pageUrl }), {
       enabled: !!pageUrl,
@@ -37,7 +37,7 @@ class GscQuery extends QueryBase<unknown> {
     })
 
   useConnect = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof GscAPI.connect>>, { code: string; state?: string }>(
+    this.useMutate<ApiResponse<"/gsc/callback", "get">, { code: string; state?: string }>(
       ({ code, state }) => this.api.connect({ code, state }),
       options
     )
@@ -52,7 +52,7 @@ class GscQuery extends QueryBase<unknown> {
    */
   useRequestIndexing = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
     this.useMutate<
-      Awaited<ReturnType<typeof GscAPI.requestIndexing>>,
+      ApiResponse<"/gsc/indexing/request", "post">,
       { blogId?: string; pageUrl?: string }
     >(({ blogId, pageUrl }) => this.api.requestIndexing({ blogId, pageUrl }), {
       ...options,

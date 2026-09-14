@@ -4,13 +4,14 @@ import { BaseCRUDQuery } from "@api/BaseCRUDQuery"
 import { JobAPI, type Job } from "./Job.api"
 import { toast } from "sonner"
 import { pushJobAgentCreationEvent } from "@utils/creationEvents"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 class JobsQuery extends BaseCRUDQuery<Job> {
   baseKey = ["jobs"]
   api = JobAPI
 
   /** Jobs with a posting destination configured — for the campaign form's job picker. */
-  useEligibleForCampaign = (options?: AnyUseQueryOptions<Job[], Error>) =>
+  useEligibleForCampaign = (options?: AnyUseQueryOptions<Job[]>) =>
     this.useFetchQuery<Job[]>(
       "eligible-for-campaign",
       () => this.api.getEligibleForCampaign(),
@@ -40,21 +41,24 @@ class JobsQuery extends BaseCRUDQuery<Job> {
     onSuccess?: (data: Job) => void
     onError?: (err: Error) => void
   }) =>
-    this.useMutate<Job, unknown>((payload) => this.api.createFromRanking(payload), {
-      ...options,
-      onSuccess: (data) => {
-        this.queryClient.setQueryData<Job[]>([...this.baseKey, "list"], (old = []) => [
-          ...(old || []),
-          data,
-        ])
-        toast.success("Job created from audit!")
-        options?.onSuccess?.(data)
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to create job from audit")
-        options?.onError?.(error)
-      },
-    })
+    this.useMutate<Job, ApiRequestBody<"/jobs/create-from-ranking", "post">>(
+      (payload) => this.api.createFromRanking(payload),
+      {
+        ...options,
+        onSuccess: (data) => {
+          this.queryClient.setQueryData<Job[]>([...this.baseKey, "list"], (old = []) => [
+            ...(old || []),
+            data,
+          ])
+          toast.success("Job created from audit!")
+          options?.onSuccess?.(data)
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to create job from audit")
+          options?.onError?.(error)
+        },
+      }
+    )
 
   /** Toggles a job between running and stopped, based on its current status. */
   useToggleStatus = (options?: {

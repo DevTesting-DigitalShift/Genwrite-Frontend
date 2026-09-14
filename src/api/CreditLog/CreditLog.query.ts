@@ -2,17 +2,15 @@
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { keepPreviousData } from "@tanstack/react-query"
 import { CreditLogAPI } from "./CreditLog.api"
+import type { ApiResponse } from "@/types/apiHelpers"
 
-type CreditLogsResponse = Awaited<ReturnType<typeof CreditLogAPI.list>>
+type CreditLogsResponse = ApiResponse<"/user/credit-logs", "get">
 
 class CreditLogQuery extends QueryBase<unknown> {
   baseKey = ["creditLogs"]
   api = CreditLogAPI
 
-  useList = (
-    params?: Record<string, unknown>,
-    options?: AnyUseQueryOptions<CreditLogsResponse, Error>
-  ) =>
+  useList = (params?: Record<string, unknown>, options?: AnyUseQueryOptions<CreditLogsResponse>) =>
     this.useParamQuery<CreditLogsResponse, typeof params>(
       "list",
       (p) => this.api.list(p),

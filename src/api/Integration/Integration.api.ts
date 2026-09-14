@@ -1,5 +1,6 @@
 // src/api/Integration/Integration.api.ts
 import { apiGet, apiPost, apiPut, rethrow } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 export const IntegrationAPI = {
   list: async () => {
@@ -26,7 +27,7 @@ export const IntegrationAPI = {
     }
   },
 
-  create: async (payload: unknown) => {
+  create: async (payload: ApiRequestBody<"/integrations", "post">) => {
     try {
       return await apiPost("/integrations", payload as never)
     } catch (err) {
@@ -34,7 +35,7 @@ export const IntegrationAPI = {
     }
   },
 
-  createPost: async (payload: unknown) => {
+  createPost: async (payload: ApiRequestBody<"/integrations/post", "post">) => {
     try {
       return await apiPost("/integrations/post", payload as never)
     } catch (err) {
@@ -42,7 +43,7 @@ export const IntegrationAPI = {
     }
   },
 
-  update: async (payload: unknown) => {
+  update: async (payload: ApiRequestBody<"/integrations/post", "put">) => {
     try {
       return await apiPut("/integrations/post", payload as never)
     } catch (err) {
@@ -50,7 +51,7 @@ export const IntegrationAPI = {
     }
   },
 
-  connect: async (payload: unknown) => {
+  connect: async (payload: ApiRequestBody<"/integrations/connect", "post">) => {
     try {
       return await apiPost("/integrations/connect", payload as never)
     } catch (err) {

@@ -2,6 +2,7 @@
 // Backend module is `payments` (covers both Stripe and Razorpay), but only Stripe routes
 // exist in apiSchema.d.ts today — there is no frontend razorpay*.ts file to fold in.
 import { apiGet, apiPatch, apiPost, rethrow } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 export const PaymentsAPI = {
   /**
@@ -10,7 +11,8 @@ export const PaymentsAPI = {
    * real ApiRequestError (status/details intact) rather than collapsing it through
    * `rethrow`'s plain Error.
    */
-  createCheckoutSession: (payload: unknown) => apiPost("/stripe/checkout", payload as never),
+  createCheckoutSession: (payload: ApiRequestBody<"/stripe/checkout", "post">) =>
+    apiPost("/stripe/checkout", payload as never),
 
   cancelSubscription: async () => {
     try {
@@ -29,7 +31,7 @@ export const PaymentsAPI = {
    * portal session falls back to the default return URL. Flagged, not fixed: changing that is a
    * backend HTTP-contract decision beyond this pass's scope.
    */
-  createPortalSession: async (returnUrl: unknown) => {
+  createPortalSession: async (returnUrl: string | undefined) => {
     try {
       return await apiGet("/stripe/portal", { query: { returnUrl } as never })
     } catch (err) {

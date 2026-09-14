@@ -1,6 +1,7 @@
 // src/api/Auth/Auth.api.ts
 import { apiGet, apiPost, ApiRequestError, rethrow } from "@api/typedClient"
 import { getActiveSession, removeSession } from "@utils/sessionStore"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 
 const removeActiveSession = () => {
   const active = getActiveSession()
@@ -35,19 +36,22 @@ const retry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promis
 }
 
 export const AuthAPI = {
-  login: async (reqBody: Record<string, unknown>) => {
+  // `ip` is appended before posting but isn't part of the documented request schema (the
+  // backend accepts it as an undocumented enrichment field, not something the validator
+  // requires) — real fields (email/password/captchaToken) still get full type-checking.
+  login: async (reqBody: ApiRequestBody<"/auth/login", "post">) => {
     try {
-      reqBody.ip = await getIP()
-      return await apiPost("/auth/login", reqBody as never)
+      const ip = await getIP()
+      return await apiPost("/auth/login", { ...reqBody, ip } as never)
     } catch (err) {
       return rethrow(err, "Login failed")
     }
   },
 
-  signup: async (body: Record<string, unknown>) => {
+  signup: async (body: ApiRequestBody<"/auth/register", "post">) => {
     try {
-      body.ip = await getIP()
-      return await apiPost("/auth/register", body as never)
+      const ip = await getIP()
+      return await apiPost("/auth/register", { ...body, ip } as never)
     } catch (err) {
       return rethrow(err, "Signup failed")
     }
@@ -100,11 +104,11 @@ export const AuthAPI = {
     return await apiPost("/auth/forgot-password", { email })
   },
 
-  resetPassword: async (token: string, newPassword: unknown) => {
-    return await apiPost("/auth/reset-password", { token, newPassword } as never)
+  resetPassword: async (payload: ApiRequestBody<"/auth/reset-password", "post">) => {
+    return await apiPost("/auth/reset-password", payload as never)
   },
 
-  loginWithGoogle: async (body: Record<string, unknown>) => {
+  loginWithGoogle: async (body: ApiRequestBody<"/auth/google-signin", "post">) => {
     try {
       return await apiPost("/auth/google-signin", body as never)
     } catch (err) {

@@ -1,5 +1,6 @@
 // src/api/ImageGallery/ImageGallery.api.ts
-import { apiGet, apiPost, rethrow } from "@api/typedClient"
+import { apiGet, apiPost, rethrow, toApiRequestError } from "@api/typedClient"
+import type { ApiRequestBody } from "@/types/apiHelpers"
 import axiosInstance from "@api/index"
 import type { components } from "@/types/apiSchema"
 
@@ -57,7 +58,7 @@ export const ImageGalleryAPI = {
    * Generate a new image.
    * @param data - { prompt, style, imageSize, aspectRatio }
    */
-  generate: async (data: unknown) => {
+  generate: async (data: ApiRequestBody<"/user/images/generate", "post">) => {
     try {
       return await apiPost("/user/images/generate", data as never)
     } catch (err) {
@@ -71,19 +72,26 @@ export const ImageGalleryAPI = {
    * @param formData - FormData containing image (optional), prompt, etc.
    */
   enhance: async (formData: FormData) => {
-    // Content-Type header is usually auto-set by browser for FormData,
-    // but explicitly setting it to undefined lets the browser set the boundary correctly.
-    const response = await axiosInstance.post(`/user/images/enhance`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    return response.data
+    try {
+      // Content-Type header is usually auto-set by browser for FormData,
+      // but explicitly setting it to undefined lets the browser set the boundary correctly.
+      const response = await axiosInstance.post(`/user/images/enhance`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      return response.data
+    } catch (rawError) {
+      return rethrow(
+        toApiRequestError(rawError, "Failed to enhance image"),
+        "Failed to enhance image"
+      )
+    }
   },
 
   /**
    * Generate Alt Text for an image.
    * @param data - { imageUrl, context }
    */
-  generateAltText: async (data: unknown) => {
+  generateAltText: async (data: ApiRequestBody<"/user/images/alt-text", "post">) => {
     try {
       return await apiPost("/user/images/alt-text", data as never)
     } catch (err) {
@@ -100,9 +108,16 @@ export const ImageGalleryAPI = {
     if (overwriteUrl) {
       formData.append("overwriteUrl", overwriteUrl)
     }
-    const response = await axiosInstance.post(`/user/images/upload`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    return response.data
+    try {
+      const response = await axiosInstance.post(`/user/images/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      return response.data
+    } catch (rawError) {
+      return rethrow(
+        toApiRequestError(rawError, "Failed to upload image"),
+        "Failed to upload image"
+      )
+    }
   },
 }
