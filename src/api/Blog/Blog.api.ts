@@ -143,14 +143,6 @@ export const BlogAPI = {
     }
   },
 
-  sendBrand: async (formData: unknown) => {
-    try {
-      await apiPost("/brand/addBrand", formData as never)
-    } catch (err) {
-      return rethrow(err, "Failed to create blog")
-    }
-  },
-
   sendRetryLines: async (id: string, payload?: unknown) => {
     try {
       return await apiPost("/blogs/{id}/rewrite", payload as never, { params: { id } })
