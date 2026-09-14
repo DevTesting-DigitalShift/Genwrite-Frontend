@@ -1,8 +1,8 @@
-import { QueryBase, type AnyUseQueryOptions } from "./QueryBase"
+import { QueryBase, type AnyUseQueryOptions, type QueryError } from "./QueryBase"
 
 export abstract class BaseCRUDQuery<
   TEntity extends { _id?: string },
-  TError = Error,
+  TError = QueryError,
 > extends QueryBase<TEntity, TError> {
   abstract api: {
     list: (params?: any) => Promise<TEntity[]>

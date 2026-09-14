@@ -3,14 +3,16 @@ import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import { BlogAPI, type BlogFormData } from "./Blog.api"
 import { toast } from "sonner"
 import type { CampaignBlogRef } from "@/types/campaign"
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 
-// Every type below is pulled straight off BlogAPI's own inferred return types (which already
-// come from typedClient.ts's per-endpoint generics against apiSchema.d.ts) — never redeclared
-// or cast, since BlogAPI's methods are already correctly typed per their real OpenAPI schema.
-export type Blog = Awaited<ReturnType<typeof BlogAPI.get>>
-type BlogsListResponse = Awaited<ReturnType<typeof BlogAPI.list>>
-type BlogSummary = Awaited<ReturnType<typeof BlogAPI.getAll>>[number]
-type BlogPosting = Awaited<ReturnType<typeof BlogAPI.getAllPostings>>[number]
+// Every type below is ApiResponse<Path, Method> / ApiRequestBody<Path, Method> — pulled
+// directly off apiSchema.d.ts by the same path+method BlogAPI itself calls, never redeclared
+// or hand-cast. This keeps the type tied to the real endpoint contract instead of to
+// whatever a particular function happens to currently return.
+export type Blog = ApiResponse<"/blogs/{id}", "get">
+type BlogsListResponse = ApiResponse<"/blogs", "get">
+type BlogSummary = ApiResponse<"/blogs/all", "get">[number]
+type BlogPosting = ApiResponse<"/blogs/postings", "get">["postings"][number]
 
 class BlogsQuery extends QueryBase<Blog> {
   baseKey = ["blogs"]
@@ -36,7 +38,7 @@ class BlogsQuery extends QueryBase<Blog> {
     })
 
   useUpdate = (options?: { onSuccess?: (data: Blog) => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Blog, { id: string; data: unknown }>(
+    this.useMutate<Blog, { id: string; data: ApiRequestBody<"/blogs/update/{id}", "put"> }>(
       ({ id, data }) => this.api.update(id, data),
       {
         ...options,
@@ -100,38 +102,48 @@ class BlogsQuery extends QueryBase<Blog> {
       { enabled, ...options }
     )
 
-  useStats = (id: string, options?: AnyUseQueryOptions<unknown, Error>) =>
-    this.useFetchQuery(`stats-${id}`, () => BlogAPI.getStats(id), { enabled: !!id, ...options })
+  useStats = (
+    id: string,
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/stats", "get">, Error>
+  ) => this.useFetchQuery(`stats-${id}`, () => BlogAPI.getStats(id), { enabled: !!id, ...options })
 
-  useStatus = (params: Record<string, unknown>, options?: AnyUseQueryOptions<unknown, Error>) =>
-    this.useParamQuery("status", (p) => BlogAPI.getStatus(p), params, options)
+  useStatus = (
+    params: ApiRequestBody<"/blogs/status", "get">,
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/status", "get">, Error>
+  ) => this.useParamQuery("status", (p) => BlogAPI.getStatus(p), params, options)
 
-  useGeneratedTitles = (payload: unknown, options?: AnyUseQueryOptions<unknown, Error>) =>
+  useGeneratedTitles = (
+    payload: ApiRequestBody<"/generate/title", "post">,
+    options?: AnyUseQueryOptions<ApiResponse<"/generate/title", "post">, Error>
+  ) =>
     this.useParamQuery("generatedTitles", (p) => BlogAPI.getGeneratedTitles(p), payload, {
       enabled: !!payload,
       ...options,
     })
 
   useRestore = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof BlogAPI.restore>>, string>((id) => BlogAPI.restore(id), {
-      ...options,
-      onSuccess: () => {
-        toast.success("Blog restored successfully")
-        this.invalidate("trashedBlogs")
-        this.invalidate("list")
-        options?.onSuccess?.()
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to restore blog")
-        options?.onError?.(error)
-      },
-    })
+    this.useMutate<ApiResponse<"/blogs/restore/{id}", "patch">, string>(
+      (id) => BlogAPI.restore(id),
+      {
+        ...options,
+        onSuccess: () => {
+          toast.success("Blog restored successfully")
+          this.invalidate("trashedBlogs")
+          this.invalidate("list")
+          options?.onSuccess?.()
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to restore blog")
+          options?.onError?.(error)
+        },
+      }
+    )
 
   useDeleteAll = (options?: {
-    onSuccess?: (result: { deletedCount?: number }) => void
+    onSuccess?: (result: ApiResponse<"/blogs", "delete">) => void
     onError?: (err: Error) => void
   }) =>
-    this.useMutate<{ deletedCount?: number }, void>(() => BlogAPI.deleteAll(), {
+    this.useMutate<ApiResponse<"/blogs", "delete">, void>(() => BlogAPI.deleteAll(), {
       ...options,
       onSuccess: (result) => {
         toast.success(`${result?.deletedCount} blogs deleted`)
@@ -145,25 +157,31 @@ class BlogsQuery extends QueryBase<Blog> {
     })
 
   useArchive = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof BlogAPI.archive>>, string>((id) => BlogAPI.archive(id), {
-      ...options,
-      onSuccess: () => {
-        toast.success("Blog deleted successfully")
-        this.invalidate("list")
-        this.invalidate("trashedBlogs")
-        options?.onSuccess?.()
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to delete blog")
-        options?.onError?.(error)
-      },
-    })
+    this.useMutate<ApiResponse<"/blogs/archive/{id}", "patch">, string>(
+      (id) => BlogAPI.archive(id),
+      {
+        ...options,
+        onSuccess: () => {
+          toast.success("Blog deleted successfully")
+          this.invalidate("list")
+          this.invalidate("trashedBlogs")
+          options?.onSuccess?.()
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to delete blog")
+          options?.onError?.(error)
+        },
+      }
+    )
 
   useRetry = (options?: {
-    onSuccess?: (result: { message?: string }) => void
+    onSuccess?: (result: ApiResponse<"/blogs/{id}/retry", "post">) => void
     onError?: (err: Error) => void
   }) =>
-    this.useMutate<{ message?: string }, { id: string; payload?: unknown }>(
+    this.useMutate<
+      ApiResponse<"/blogs/{id}/retry", "post">,
+      { id: string; payload?: ApiRequestBody<"/blogs/{id}/retry", "post"> }
+    >(
       ({ id, payload }) => BlogAPI.retry(id, payload),
       {
         ...options,
@@ -184,7 +202,7 @@ class BlogsQuery extends QueryBase<Blog> {
     onError?: (err: Error) => void
   }) =>
     this.useMutate<
-      Awaited<ReturnType<typeof BlogAPI.toggleVisibility>>,
+      ApiResponse<"/blogs/{id}/visibility", "patch">,
       { id: string; isPublic: boolean }
     >(
       ({ id, isPublic }) => BlogAPI.toggleVisibility(id, isPublic),
@@ -207,7 +225,7 @@ class BlogsQuery extends QueryBase<Blog> {
    * mutation rather than a query — never fired automatically on mount.
    */
   useAnalyze = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
-    this.useMutate<Awaited<ReturnType<typeof BlogAPI.analyzePerformance>>, string>(
+    this.useMutate<ApiResponse<"/blogs/{id}/analyze", "post">, string>(
       (id) => BlogAPI.analyzePerformance(id),
       {
         onSuccess: () => {
@@ -231,7 +249,7 @@ class BlogsQuery extends QueryBase<Blog> {
    */
   useInsight = (
     blogId: string,
-    options?: AnyUseQueryOptions<Awaited<ReturnType<typeof BlogAPI.getInsight>>, Error>
+    options?: AnyUseQueryOptions<ApiResponse<"/blogs/{id}/insight", "get">, Error>
   ) =>
     this.useFetchQuery(`insight-${blogId}`, () => BlogAPI.getInsight(blogId), {
       enabled: !!blogId,
@@ -246,7 +264,7 @@ class BlogsQuery extends QueryBase<Blog> {
    */
   useApplyInsight = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
     this.useMutate<
-      Awaited<ReturnType<typeof BlogAPI.applyInsight>>,
+      ApiResponse<"/blogs/{id}/apply-insight", "post">,
       { id: string; suggestionId: string; scope?: string }
     >(({ id, suggestionId, scope }) => BlogAPI.applyInsight(id, { suggestionId, scope }), {
       onSuccess: () => {
@@ -267,7 +285,7 @@ class BlogsQuery extends QueryBase<Blog> {
    */
   useConfirmInsight = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
     this.useMutate<
-      Awaited<ReturnType<typeof BlogAPI.confirmInsight>>,
+      ApiResponse<"/blogs/{id}/confirm-insight", "post">,
       { id: string; suggestionId: string; content?: string; republish?: boolean }
     >(
       ({ id, suggestionId, content, republish }) =>

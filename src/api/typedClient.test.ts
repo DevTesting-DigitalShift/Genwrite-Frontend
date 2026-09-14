@@ -71,11 +71,29 @@ describe("rethrow", () => {
     expect(() => rethrow(err, "fallback")).toThrow("Sitemap unreachable")
   })
 
-  it("falls back to the given message when ApiRequestError carries none", () => {
-    // Empty constructor fallback so `.message` ends up falsy, exercising rethrow's own
-    // fallback branch rather than the one baked in at construction time.
-    const err = new ApiRequestError({}, 500, "")
+  it("falls back to the given message when the backend sent none", () => {
+    // body has no .message, so hasServerMessage is false — exercises rethrow's own
+    // fallback branch rather than request()'s generic one baked in at construction time.
+    const err = new ApiRequestError({}, 500, "some axios-level default text")
     expect(() => rethrow(err, "Failed to do the thing")).toThrow("Failed to do the thing")
+  })
+
+  it("rethrows the SAME ApiRequestError — .status/.code/.details survive, not a plain Error", () => {
+    const err = new ApiRequestError(
+      { message: "Insufficient credits", code: "NO_CREDITS", details: { neededCredits: 5 } },
+      402,
+      "fallback"
+    )
+    try {
+      rethrow(err, "fallback")
+      expect.unreachable("rethrow should always throw")
+    } catch (thrown) {
+      expect(thrown).toBe(err) // literal same object, not a reconstructed Error
+      expect(thrown).toBeInstanceOf(ApiRequestError)
+      expect((thrown as InstanceType<typeof ApiRequestError>).status).toBe(402)
+      expect((thrown as InstanceType<typeof ApiRequestError>).code).toBe("NO_CREDITS")
+      expect((thrown as InstanceType<typeof ApiRequestError>).details).toEqual({ neededCredits: 5 })
+    }
   })
 
   it("normalizes a non-ApiRequestError, non-Error throw into a plain Error", () => {

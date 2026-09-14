@@ -9,9 +9,16 @@
  * path ("/blogs/{id}"), and `FullPath` below re-adds the prefix purely at the type level to
  * look the key up in `paths`. No call site or runtime code ever needs to say "/api/v1" itself.
  */
-import type { paths } from "./apiSchema"
+import type { components, paths } from "./apiSchema"
 
 type JsonContent<T> = T extends { content: { "application/json": infer B } } ? B : never
+
+/** A named component schema straight off apiSchema.d.ts, e.g. `Schema<"BlogResponse">`.
+ * Use this (not `Awaited<ReturnType<typeof someApiFn>>`) whenever the real shape you want is
+ * a named schema rather than one specific path+method's response — it ties the type to the
+ * schema name itself, so it keeps working even if the function that happens to return it is
+ * refactored, and breaks loudly (not silently) if the backend ever renames/removes the schema. */
+export type Schema<Name extends keyof components["schemas"]> = components["schemas"][Name]
 
 /** openapi-typescript emits response status codes as numeric literal keys (200, not "200"). */
 type SuccessCode = 200 | 201 | 202 | 204

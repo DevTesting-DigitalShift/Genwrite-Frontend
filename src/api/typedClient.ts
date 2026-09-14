@@ -65,6 +65,10 @@ export class ApiRequestError extends Error {
   details?: unknown
   context?: ErrorBody["context"]
   status?: number
+  /** True when the backend's own ErrorResponse body carried a `.message` — false when this
+   * error's `.message` is only axios's/request()'s own generic fallback text. Lets `rethrow`
+   * tell "the backend really said nothing" apart from "there's already a real message". */
+  hasServerMessage: boolean
 
   constructor(body: ErrorBody, status: number | undefined, fallbackMessage: string) {
     super(body.message || fallbackMessage)
@@ -73,20 +77,41 @@ export class ApiRequestError extends Error {
     this.details = body.details
     this.context = body.context
     this.status = status
+    this.hasServerMessage = Boolean(body.message)
   }
 }
 
 /**
- * Normalizes any caught error into a plain `Error` carrying the real backend message —
- * `ApiRequestError`'s `.message` when there is one, `fallback` otherwise. Every `api*`
- * call site used to paste its own copy of this; centralized here since it's always the
- * same three lines. Only use this where the caller doesn't need `.status`/`.code`/
- * `.details` afterward (e.g. to branch on a specific HTTP status) — those callers should
- * let the real `ApiRequestError` propagate instead (see stripeApi.ts#createStripeSession).
+ * Every `api*` call already throws `ApiRequestError` — `request()` normalizes ANY failure
+ * (real backend error, network failure, timeout, CORS) into that shape before it ever
+ * reaches a caller, so there is nothing left to normalize by the time `rethrow` runs. What
+ * this does instead: gives each call site a friendlier fallback `.message` for the case
+ * where the backend genuinely sent none, while rethrowing the SAME ApiRequestError object —
+ * `.status`/`.code`/`.details` are never stripped, so callers can still branch on them
+ * (e.g. stripeApi.ts#createStripeSession's 402 handling) whether or not they also use this.
  */
 export const rethrow = (err: unknown, fallback: string): never => {
-  if (err instanceof ApiRequestError) throw new Error(err.message || fallback)
+  if (err instanceof ApiRequestError) {
+    if (!err.hasServerMessage) err.message = fallback
+    throw err
+  }
   throw err instanceof Error ? err : new Error(fallback)
+}
+
+/**
+ * Builds the same ApiRequestError request() throws below, for the handful of calls that
+ * can't go through apiGet/apiPost/etc (multipart uploads, blob downloads — not expressible
+ * as a typed JSON body/response) and so call axiosInstance directly instead. Use this in
+ * their catch blocks so every error in the app ends up the same shape, whether or not the
+ * call went through the typed client — see Blog.api.ts's `create`/`export`.
+ */
+export const toApiRequestError = (rawError: unknown, fallbackMessage: string): ApiRequestError => {
+  const axiosErr = rawError as AxiosError<ErrorBody>
+  return new ApiRequestError(
+    axiosErr.response?.data ?? {},
+    axiosErr.response?.status,
+    axiosErr.message || fallbackMessage
+  )
 }
 
 const request = async <T>(fn: () => Promise<AxiosResponse<T>>): Promise<T> => {
@@ -107,11 +132,7 @@ const request = async <T>(fn: () => Promise<AxiosResponse<T>>): Promise<T> => {
       axiosErr.config?.url,
       axiosErr.response?.status
     )
-    throw new ApiRequestError(
-      axiosErr.response?.data ?? {},
-      axiosErr.response?.status,
-      axiosErr.message || "Request failed"
-    )
+    throw toApiRequestError(rawError, "Request failed")
   }
 }
 

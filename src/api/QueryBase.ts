@@ -13,9 +13,19 @@ import {
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query"
 import { queryClient } from "@utils/queryClient"
+import type { ApiRequestError } from "@api/typedClient"
+
+// Almost every X.api.ts method calls rethrow (typedClient.ts), which preserves the real
+// ApiRequestError (.status/.code/.details) when there is one, but still falls back to a
+// plain Error for anything that wasn't already ApiRequestError to begin with — so this is
+// the accurate default error type everywhere in the query layer, not just Error. Narrow
+// with `instanceof ApiRequestError` before reading the extra fields. A query class can
+// still override TError with something else via its own generic if a domain genuinely
+// throws something different.
+export type QueryError = Error | ApiRequestError
 
 // Temporary type for queries in your BaseQuery
-export type AnyUseQueryOptions<TResult, TError = Error> = Omit<
+export type AnyUseQueryOptions<TResult, TError = QueryError> = Omit<
   UseQueryOptions<TResult, TError, TResult, readonly unknown[]>,
   "queryKey" | "queryFn" // Explicitly omit queryKey and queryFn
 > & {
@@ -23,12 +33,12 @@ export type AnyUseQueryOptions<TResult, TError = Error> = Omit<
 }
 
 // Temporary type for infinite queries in your BaseQuery
-export type InfiniteQueryOptions<TResult, TError = Error> = Omit<
+export type InfiniteQueryOptions<TResult, TError = QueryError> = Omit<
   UseInfiniteQueryOptions<TResult, TError, TResult, readonly unknown[], unknown>,
   "queryKey" | "queryFn" | "getNextPageParam" | "initialPageParam"
 > & { queryKey?: readonly unknown[]; initialPageParam?: any }
 
-export abstract class QueryBase<TEntity, TError = Error> {
+export abstract class QueryBase<TEntity, TError = QueryError> {
   protected queryClient = queryClient
   abstract baseKey: QueryKey
 

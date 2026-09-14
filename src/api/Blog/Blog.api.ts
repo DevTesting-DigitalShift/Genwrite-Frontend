@@ -11,7 +11,6 @@ export interface BlogFormData extends Record<string, unknown> {
   blogImages?: UploadFile[]
 }
 
-import { asApiError, creditError } from "@/types/api"
 import {
   apiDelete,
   apiGet,
@@ -20,21 +19,24 @@ import {
   apiPut,
   ApiRequestError,
   rethrow,
+  toApiRequestError,
 } from "@api/typedClient"
 import axiosInstance from "@api/index"
 
 /**
  * Same idea as `rethrow`, but for the create-blog endpoints: a 402 means the backend's
  * `authMiddleware` rejected the request for insufficient credits, with the amount needed
- * in `details.neededCredits` (see GenWrite-Backend auth.middleware.js).
+ * in `.details.neededCredits` (see GenWrite-Backend auth.middleware.js). Rethrows the real
+ * ApiRequestError either way (never a separate CreditError type) — callers branch on
+ * `err.status === 402` and read `err.details?.neededCredits` directly.
  */
 const rethrowWithCreditCheck = (err: unknown, fallback: string): never => {
   if (err instanceof ApiRequestError && err.status === 402) {
     const neededCredits = (err.details as { neededCredits?: number } | undefined)?.neededCredits
-    const message = neededCredits
+    err.message = neededCredits
       ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
       : err.message || "Insufficient credits to create blog"
-    throw creditError(message, neededCredits)
+    throw err
   }
   return rethrow(err, fallback)
 }
@@ -101,19 +103,10 @@ export const BlogAPI = {
 
       return response.data.blog || response.data
     } catch (rawError) {
-      const error = asApiError(rawError)
-      console.error("createBlog error", error.response?.data || error)
-
-      // Handle 402 Insufficient Credits error
-      if (error.response?.status === 402) {
-        const neededCredits = error.response?.data?.neededCredits as number | undefined
-        const errorMsg = neededCredits
-          ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
-          : error.response?.data?.message || "Insufficient credits to create blog"
-        throw creditError(errorMsg, neededCredits)
-      }
-
-      throw new Error(error.response?.data?.message || "Failed to create blog")
+      return rethrowWithCreditCheck(
+        toApiRequestError(rawError, "Failed to create blog"),
+        "Failed to create blog"
+      )
     }
   },
 
@@ -300,8 +293,10 @@ export const BlogAPI = {
 
       return { data: response.data, filename }
     } catch (rawError) {
-      const error = asApiError(rawError)
-      throw new Error(error.response?.data?.message || `Failed to export ${type.toUpperCase()}`)
+      return rethrow(
+        toApiRequestError(rawError, "Export failed"),
+        `Failed to export ${type.toUpperCase()}`
+      )
     }
   },
 
