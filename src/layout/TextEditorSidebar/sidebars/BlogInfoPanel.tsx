@@ -109,7 +109,8 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
         </motion.div>
 
         {/* Brand Information */}
-        {(blog?.brandId || blog?.nameOfVoice) && (
+        {(blog?.brandId ||
+          (typeof blog?.brandId === "object" && blog.brandId?.nameOfVoice)) && (
           <motion.div
             variants={item}
             className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg"
@@ -123,14 +124,11 @@ const BlogInfoPanel: React.FC<BlogInfoPanelProps> = ({
             <div className="font-bold text-gray-900">
               {typeof blog.brandId === "object" && blog.brandId
                 ? blog.brandId.nameOfVoice || "Brand Voice"
-                : blog.nameOfVoice || "Custom Brand"}
+                : "Custom Brand"}
             </div>
-            {((typeof blog.brandId === "object" && blog.brandId?.describeBrand) ||
-              blog.describeBrand) && (
+            {typeof blog.brandId === "object" && blog.brandId?.describeBrand && (
               <p className="text-[10px] text-gray-500 mt-1 line-clamp-2">
-                {typeof blog.brandId === "object" && blog.brandId?.describeBrand
-                  ? blog.brandId.describeBrand
-                  : blog.describeBrand}
+                {blog.brandId.describeBrand}
               </p>
             )}
           </motion.div>

@@ -151,6 +151,7 @@ export interface BlogInfoPanelProps extends BasePanelProps {
 
 export interface BrandVoicePanelProps extends BasePanelProps {
   onRegenerateWithBrand: () => void
+  setIsSidebarOpen?: (open: boolean) => void
 }
 
 export interface PostingPanelProps extends BasePanelProps {

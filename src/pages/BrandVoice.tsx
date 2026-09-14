@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { motion } from "framer-motion"
 import { FaTimes } from "react-icons/fa"
 import useAuthStore from "@store/useAuthStore"
-import useBrandStore from "@store/useBrandStore"
 import { Info, Loader2, Upload, RefreshCcw, X } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
@@ -30,7 +29,6 @@ const NO_BRANDS = []
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
-  const { siteInfo, fetchSiteInfo, resetSiteInfo } = useBrandStore()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
@@ -85,6 +83,9 @@ const BrandVoice = () => {
   const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
   const { data: brands = NO_BRANDS, isLoading } = brandsQuery.useList()
+  // Fetched imperatively (see handleFetchSiteInfo) rather than on mount/url-change —
+  // enabled: false keeps this a pure "server cache slot for the last manual fetch."
+  const siteInfoQuery = brandsQuery.useSiteInfo(formData.postLink.trim(), { enabled: false })
 
   const resetForm = useCallback(() => {
     reset({
@@ -95,8 +96,7 @@ const BrandVoice = () => {
     setLastScrapedUrl("")
     setIsFormReset(true)
     setShowAllKeywords(false)
-    resetSiteInfo()
-  }, [brands, resetSiteInfo, reset])
+  }, [brands, reset])
 
   // Held in a ref so the effect below keys off the *editing state* only. Depending on
   // `resetForm` directly re-fired it on every identity change of `brands` — on mount that
@@ -112,19 +112,20 @@ const BrandVoice = () => {
   }, [formData._id])
 
   useEffect(() => {
-    if (siteInfo.data && !isFormReset) {
+    const data = siteInfoQuery.data
+    if (data && !isFormReset) {
       const current = getValues()
-      setField("nameOfVoice", siteInfo.data.nameOfVoice || current.nameOfVoice)
-      setField("describeBrand", siteInfo.data.describeBrand || current.describeBrand)
-      setField("keywords", siteInfo.data.keywords || current.keywords)
-      setField("postLink", siteInfo.data.postLink || current.postLink)
-      setField("sitemapUrl", siteInfo.data.sitemap || current.sitemapUrl)
-      setField("logoUrl", siteInfo.data.logoUrl || current.logoUrl)
-      setField("persona", siteInfo.data.persona || current.persona)
+      setField("nameOfVoice", data.nameOfVoice || current.nameOfVoice)
+      setField("describeBrand", data.describeBrand || current.describeBrand)
+      setField("keywords", data.keywords || current.keywords)
+      setField("postLink", data.postLink || current.postLink)
+      setField("sitemapUrl", data.sitemap || current.sitemapUrl)
+      setField("logoUrl", data.logoUrl || current.logoUrl)
+      setField("persona", data.persona || current.persona)
       clearErrors(["nameOfVoice", "describeBrand", "keywords", "postLink", "sitemapUrl", "persona"])
       setLastScrapedUrl(current.postLink)
     }
-  }, [siteInfo, isFormReset, getValues, setField, clearErrors])
+  }, [siteInfoQuery.data, isFormReset, getValues, setField, clearErrors])
 
   const handleInputChange = useCallback(
     (e: any) => {
@@ -393,15 +394,18 @@ const BrandVoice = () => {
     }
     try {
       new URL(url)
-      fetchSiteInfo(url)
-        .then(() => {
+      siteInfoQuery
+        .refetch()
+        .then((result) => {
+          if (result.isError) throw result.error
           setIsFormReset(false)
+          toast.success("Site info fetched successfully.")
         })
         .catch(() => toast.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setFieldError("postLink", "Please enter a valid URL (e.g., https://example.com).")
     }
-  }, [formData.postLink, lastScrapedUrl, fetchSiteInfo, setFieldError])
+  }, [formData.postLink, lastScrapedUrl, siteInfoQuery, setFieldError])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])
@@ -524,12 +528,12 @@ const BrandVoice = () => {
                 className="bg-linear-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap"
                 onClick={handleFetchSiteInfo}
                 disabled={
-                  siteInfo.loading ||
+                  siteInfoQuery.isFetching ||
                   (formData.postLink && formData.postLink === lastScrapedUrl) ||
                   showTrialMessage
                 }
               >
-                {siteInfo.loading ? (
+                {siteInfoQuery.isFetching ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" />
                     Fetching...

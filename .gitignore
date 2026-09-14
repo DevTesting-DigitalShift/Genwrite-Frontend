@@ -31,3 +31,7 @@ dist
 .firebase/*
 
 .playwright-mcp/*
+
+# Scratch area for files removed from src/ during cleanup — kept locally in case
+# something turns out to still be needed, never committed.
+.trash/

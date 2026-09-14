@@ -2,7 +2,6 @@ import type { NavigateFunction } from "react-router-dom"
 import useAnalysisStore from "@store/useAnalysisStore"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
-import useBrandStore from "@store/useBrandStore"
 import useContentStore from "@store/useContentStore"
 import useCreditLogStore from "@store/useCreditLogStore"
 import useEditorStore from "@store/useEditorStore"
@@ -19,7 +18,6 @@ import { connectSocket, disconnectSocket } from "@utils/socket"
 const ACCOUNT_SCOPED_STORES = [
   useJobStore,
   useBlogStore,
-  useBrandStore,
   useAnalysisStore,
   useEditorStore,
   useGscStore,

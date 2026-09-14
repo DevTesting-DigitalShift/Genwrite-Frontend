@@ -8,5 +8,5 @@ export type BrandFormFields = Pick<
 >
 export type BrandSiteInfo = Pick<
   Brand,
-  "nameOfVoice" | "describeBrand" | "keywords" | "postLink" | "persona" | "sitemap"
+  "nameOfVoice" | "describeBrand" | "keywords" | "postLink" | "persona" | "sitemap" | "logoUrl"
 >
