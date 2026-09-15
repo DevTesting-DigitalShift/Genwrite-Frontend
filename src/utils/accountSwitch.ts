@@ -2,11 +2,11 @@ import type { NavigateFunction } from "react-router-dom"
 import useAnalysisStore from "@store/useAnalysisStore"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
-import useContentStore from "@store/useContentStore"
 import useCreditLogStore from "@store/useCreditLogStore"
 import useEditorStore from "@store/useEditorStore"
 import useGscStore from "@store/useGscStore"
 import useImageStore from "@store/useImageStore"
+import useIntegrationStore from "@store/useIntegrationStore"
 import useJobStore from "@store/useJobStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import { queryClient } from "@utils/queryClient"
@@ -21,7 +21,7 @@ const ACCOUNT_SCOPED_STORES = [
   useAnalysisStore,
   useEditorStore,
   useGscStore,
-  useContentStore,
+  useIntegrationStore,
   useCreditLogStore,
   useImageStore,
 ]

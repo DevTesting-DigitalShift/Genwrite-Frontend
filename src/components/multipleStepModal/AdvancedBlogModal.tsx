@@ -33,6 +33,7 @@ import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
 import FieldLabel from "@components/ui/FieldLabel"
 import useIntegrationStore from "@store/useIntegrationStore"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 interface AdvancedBlogModalProps {
@@ -58,7 +59,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const { integrations, fetchIntegrations } = useIntegrationStore()
+  const { integrations, setIntegrations } = useIntegrationStore()
+  const { data: integrationsData } = integrationQuery.useList()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
 
@@ -82,8 +84,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const formData = watch()
 
   useEffect(() => {
-    fetchIntegrations()
-  }, [fetchIntegrations])
+    if (integrationsData) setIntegrations(integrationsData)
+  }, [integrationsData, setIntegrations])
 
   useEffect(() => {
     const connected = integrations?.integrations

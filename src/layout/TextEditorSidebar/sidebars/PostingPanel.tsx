@@ -6,7 +6,6 @@ import { ExternalLink, Info, Pencil, RefreshCw, Send, X } from "lucide-react"
 import { Switch } from "@components/ui/switch"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { asApiError } from "@/types/api"
-import { fetchCategories } from "@api/integrationApi"
 import useEditorStore from "@store/useEditorStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import IndexingStatus from "@components/Blog/IndexingStatus"
@@ -91,12 +90,8 @@ const PostingPanel: React.FC<PostingPanelProps> = ({
     setErrors((prev) => ({ ...prev, category: "" }))
   }, [])
 
-  // Auto-fetch categories when integration changes
-  useEffect(() => {
-    if (selectedIntegration?.platform) {
-      fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
-    }
-  }, [selectedIntegration?.platform])
+  // PlatformCategoriesField below fetches its own categories for the selected platform —
+  // this panel doesn't need a separate prefetch.
 
   // Initialize posting form based on Blog Data & History. This mounts fresh every
   // time Publish becomes the active panel (parent remounts panels on tab switch),

@@ -3,8 +3,7 @@ import { motion } from "framer-motion"
 import MultiDatePicker from "react-multi-date-picker"
 import { Plus, Upload, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
-import { fetchIntegrations } from "@api/integrationApi"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -63,11 +62,7 @@ const StepContent = ({
   const _fileInputRef = useRef<any>(null)
   const _isProUser = user?.subscription?.plan === "pro"
 
-  const { data: integrations } = useQuery({
-    queryKey: ["integrations"],
-    queryFn: fetchIntegrations,
-    staleTime: 5 * 60 * 1000,
-  })
+  const { data: integrations } = integrationQuery.useList({ staleTime: 5 * 60 * 1000 })
 
   // Prefetches/warms the shared brands query cache so BrandVoiceSelector below
   // doesn't show a loading flicker when it mounts.

@@ -43,6 +43,7 @@ import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { generateQuery } from "@api/Generate/Generate.query"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
@@ -247,7 +248,8 @@ const TextEditorSidebar = ({
   const { showLoading, hideLoading } = useLoading()
 
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
-  const { integrations, fetchIntegrations } = useIntegrationStore()
+  const { integrations, setIntegrations } = useIntegrationStore()
+  const { data: integrationsData } = integrationQuery.useList()
   const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
 
   const result = analysisResult?.[blog?._id]
@@ -288,9 +290,11 @@ const TextEditorSidebar = ({
     })
   }, [blog?.seoMetadata?.description, blog?.seoMetadata?.title, setSeoMetadata])
 
+  // Bridges the query cache into the shared store — RegenerateModal/PostingPanel read
+  // `integrations` off the store passively rather than fetching it themselves.
   useEffect(() => {
-    fetchIntegrations()
-  }, [fetchIntegrations])
+    if (integrationsData) setIntegrations(integrationsData)
+  }, [integrationsData, setIntegrations])
 
   const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")

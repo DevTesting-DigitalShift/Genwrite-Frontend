@@ -28,6 +28,11 @@ class IntegrationQuery extends QueryBase<unknown> {
   ) =>
     this.useFetchQuery(`ping-${type}`, () => this.api.ping(type), { enabled: !!type, ...options })
 
+  /** Plain (non-hook) passthrough for call sites that ping an arbitrary, dynamically-chosen
+   * type imperatively (e.g. inside a plugin-status check callback) rather than as a
+   * component-level query keyed to one static type. */
+  ping = (type: string) => this.api.ping(type)
+
   useCreate = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
     this.useMutate<ApiResponse<"/integrations", "post">, ApiRequestBody<"/integrations", "post">>(
       (payload) => this.api.create(payload),

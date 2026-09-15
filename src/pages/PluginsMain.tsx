@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet-async"
 import useIntegrationStore from "@store/useIntegrationStore"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import axiosInstance from "@api/index"
 import { toast } from "sonner"
 import clsx from "clsx"
@@ -36,8 +37,14 @@ interface PluginStatus {
 const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState<Record<number, PluginStatus>>({})
   const [activeTab, setActiveTab] = useState<string | null>(null)
-  const { integrations, loading, fetchIntegrations, createIntegration, pingIntegration } =
-    useIntegrationStore()
+  const { integrations, loading, setIntegrations } = useIntegrationStore()
+  const { data: integrationsData, refetch: fetchIntegrations } = integrationQuery.useList()
+  const { mutateAsync: createIntegration } = integrationQuery.useCreate()
+  const pingIntegration = integrationQuery.ping
+
+  useEffect(() => {
+    if (integrationsData) setIntegrations(integrationsData)
+  }, [integrationsData, setIntegrations])
 
   const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
 
@@ -267,7 +274,7 @@ const PluginsMain = () => {
         setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
-            status: result.status || "success",
+            status: "success",
             message: result.message,
             success: result.success,
           },
@@ -351,8 +358,7 @@ const PluginsMain = () => {
             credentials: { user: wpUsername, password: wpPassword },
           }
         }
-        await createIntegration(payload)
-        await fetchIntegrations()
+        await createIntegration(payload as never)
         setIsEditing(false)
         toast.success(`${plugin.pluginName} Linked!`)
       } catch (rawErr) {
@@ -403,7 +409,6 @@ const PluginsMain = () => {
             url: domain,
             credentials: { useCustomSeo: checked },
           })
-          await fetchIntegrations()
           toast.success(
             checked
               ? "GenWrite will now push custom SEO tags & structured data to Wix."
