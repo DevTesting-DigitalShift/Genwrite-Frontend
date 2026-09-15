@@ -8,15 +8,17 @@ class AnalysisQuery extends QueryBase<unknown> {
   baseKey = ["analysis"]
   api = AnalysisAPI
 
-  useCompetitiveAnalysis = (options?: { onSuccess?: () => void; onError?: (err: Error) => void }) =>
+  useCompetitiveAnalysis = (options?: {
+    onSuccess?: (data: ApiResponse<"/analysis/run", "post">) => void
+    onError?: (err: Error) => void
+  }) =>
     this.useMutate<
       ApiResponse<"/analysis/run", "post">,
       Parameters<typeof AnalysisAPI.runCompetitiveAnalysis>[0]
     >((payload) => this.api.runCompetitiveAnalysis(payload), {
-      ...options,
-      onSuccess: () => {
+      onSuccess: (data) => {
         toast.success("Competitive analysis completed successfully!")
-        options?.onSuccess?.()
+        options?.onSuccess?.(data)
       },
       onError: (error) => {
         toast.error(error.message || "Failed to fetch competitive analysis.")
@@ -24,10 +26,14 @@ class AnalysisQuery extends QueryBase<unknown> {
       },
     })
 
-  useAnalyzeKeywords = (options?: { onError?: (err: Error) => void }) =>
+  useAnalyzeKeywords = (options?: {
+    onSuccess?: (data: ApiResponse<"/analysis/keywords", "post">) => void
+    onError?: (err: Error) => void
+  }) =>
     this.useMutate<ApiResponse<"/analysis/keywords", "post">, string[]>(
       (keywords) => this.api.analyzeKeywords(keywords),
       {
+        onSuccess: (data) => options?.onSuccess?.(data),
         onError: (error) => {
           toast.error(error.message || "Failed to analyze keywords.")
           options?.onError?.(error)

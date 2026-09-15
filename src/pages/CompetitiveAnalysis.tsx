@@ -13,7 +13,7 @@ import {
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate, useLocation } from "react-router-dom"
-import { runCompetitiveAnalysis } from "@api/analysisApi"
+import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { getBlogById } from "@api/blogApi"
 import useAuthStore from "@store/useAuthStore"
 import useAnalysisStore from "@store/useAnalysisStore"
@@ -63,12 +63,10 @@ const CompetitiveAnalysis = () => {
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
-  const {
-    analysisResult,
-    loading: analysisLoading,
-    setAnalysisResult,
-    setLoading: setAnalysisLoading,
-  } = useAnalysisStore()
+  const { analysisResult, setAnalysisResult } = useAnalysisStore()
+
+  const { mutateAsync: runCompetitiveAnalysis, isPending: analysisLoading } =
+    analysisQuery.useCompetitiveAnalysis()
 
   const analysis = analysisResult?.[formData?.selectedProject?._id]
 
@@ -230,7 +228,6 @@ const CompetitiveAnalysis = () => {
     }
 
     setIsLoading(true)
-    setAnalysisLoading(true)
     try {
       const result = await runCompetitiveAnalysis({
         title: formData.title,
@@ -241,13 +238,10 @@ const CompetitiveAnalysis = () => {
       })
       setAnalysisResult(formData?.selectedProject?._id, result)
       setAnalysisResults(result)
-      toast.success("Analysis completed successfully!")
     } catch (err) {
       console.error("Error fetching analysis:", err)
-      toast.error("Failed to run competitive analysis")
     } finally {
       setIsLoading(false)
-      setAnalysisLoading(false)
     }
   }
 

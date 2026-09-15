@@ -17,8 +17,7 @@ import {
 } from "lucide-react"
 import { Chart as ChartJS, registerables } from "chart.js"
 import { Pie, Doughnut, Bar, Line } from "react-chartjs-2"
-import { useQuery } from "@tanstack/react-query"
-import { getBlogStatus } from "@/api/analysisApi"
+import { analysisQuery } from "@api/Analysis/Analysis.query"
 import dayjs from "dayjs"
 
 ChartJS.register(...registerables)
@@ -106,17 +105,18 @@ const AnalyticsPage = () => {
     isLoading: statusLoading,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["blogStatus", activeWorkspace?.id],
-    queryFn: () => {
-      const endDate = dayjs().endOf("day").toISOString()
-      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
-      const params = { start: new Date(start).toISOString(), end: endDate }
-      return getBlogStatus(params)
-    },
+  } = analysisQuery.useBlogStatus({
+    start: new Date(
+      getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+    ).toISOString(),
+    end: dayjs().endOf("day").toISOString(),
+    _workspace: activeWorkspace?.id,
   })
 
-  const stats = blogStatus?.stats || {}
+  // Pre-existing mismatch: the real /blogs/status response has no .stats wrapper or
+  // these field names (it returns total/pending/inProgress/complete/failed/archived) —
+  // left as-is, unrelated to this migration.
+  const stats: any = (blogStatus as any)?.stats || {}
   const {
     totalBlogs = 0,
     postedBlogs = 0,

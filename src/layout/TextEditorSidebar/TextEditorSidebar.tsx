@@ -44,7 +44,7 @@ import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { generateQuery } from "@api/Generate/Generate.query"
 import { integrationQuery } from "@api/Integration/Integration.query"
-import { runCompetitiveAnalysis } from "@api/analysisApi"
+import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import { COSTS } from "@/data/blogData"
@@ -250,7 +250,9 @@ const TextEditorSidebar = ({
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const { integrations, setIntegrations } = useIntegrationStore()
   const { data: integrationsData } = integrationQuery.useList()
-  const { analysisResult, loading: isAnalyzingCompetitive } = useAnalysisStore()
+  const { analysisResult, setAnalysisResult } = useAnalysisStore()
+  const { mutateAsync: runCompetitiveAnalysis, isPending: isAnalyzingCompetitive } =
+    analysisQuery.useCompetitiveAnalysis()
 
   const result = analysisResult?.[blog?._id]
 
@@ -299,8 +301,6 @@ const TextEditorSidebar = ({
   const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")
 
-    const { setLoading, setError, setAnalysisResult } = useAnalysisStore.getState()
-    setLoading(true)
     try {
       const result = await runCompetitiveAnalysis({
         blogId: blog._id,
@@ -312,12 +312,9 @@ const TextEditorSidebar = ({
       setActivePanel("seo")
     } catch (rawErr) {
       const err = asApiError(rawErr)
-      setError(err.message)
-      toast.error("Analysis failed")
-    } finally {
-      setLoading(false)
+      toast.error(err.message || "Analysis failed")
     }
-  }, [isPro, navigate, blog, keywords])
+  }, [isPro, navigate, blog, keywords, runCompetitiveAnalysis, setAnalysisResult])
 
   // Guard shared by both insight actions: archived blogs are read-only, and both
   // calls spend credits, so bail out before the request if the balance is short.

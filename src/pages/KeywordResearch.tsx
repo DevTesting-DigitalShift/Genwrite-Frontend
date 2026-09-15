@@ -20,6 +20,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import useAnalysisStore from "@store/useAnalysisStore"
+import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { toast } from "sonner"
 import {
   X,
@@ -83,13 +84,16 @@ const KeywordResearch = () => {
 
   const {
     keywordAnalysis: keywordAnalysisResult,
-    loading: analyzing,
     selectedKeywords,
     clearKeywordAnalysis,
+    setKeywordAnalysis,
     setSelectedKeywords,
     setPendingImport,
-    analyzeKeywords: analyzeKeywordsAction,
   } = useAnalysisStore()
+
+  const { mutate: analyzeKeywordsMutate, isPending: analyzing } = analysisQuery.useAnalyzeKeywords(
+    { onSuccess: (data) => setKeywordAnalysis(data as any) }
+  )
 
   const REAL_PAGE_SIZE = 10
 
@@ -197,7 +201,7 @@ const KeywordResearch = () => {
 
   const analyzeKeywords = () => {
     if (keywords.length > 0) {
-      analyzeKeywordsAction(keywords)
+      analyzeKeywordsMutate(keywords)
       setCurrentPage(1)
     }
   }
