@@ -1,43 +1,33 @@
-import { motion } from "framer-motion"
-import { BarChart3, Sparkles, FileText, TrendingUp, X } from "lucide-react"
-import { useAnimations } from "../hooks/useAnimations"
-import useViewport from "@/hooks/useViewport"
+import { BarChart3, FileText, Sparkles, TrendingUp, X } from "lucide-react"
+import useEditorStore from "@store/useEditorStore"
 import type { OverviewPanelProps } from "../types"
 import { ScoreCard } from "../FeatureComponents"
-import { COSTS } from "@/data/blogData"
-
 import { getWordCount } from "@/utils/wordUtils"
 
 /**
- * Overview Panel - Dashboard with stats, scores, and quick actions
+ * Overview Panel - Dashboard with stats, scores, and quick actions.
+ *
+ * `editorContent`/`keywords` come straight from `useEditorStore` rather than as props —
+ * they're shared editor state, not something specific to this panel.
  */
 const OverviewPanel: React.FC<OverviewPanelProps> = ({
-  editorContent,
-  keywords,
+  blog,
+  isPro,
+  isPublicMode,
+  isReadOnlyWorkspace,
   setIsSidebarOpen,
   onAnalyze,
   isAnalyzing,
   seoScore,
   contentScore,
-  isPro,
 }) => {
-  const { panel, item, stagger } = useAnimations()
-  const { isMobile } = useViewport()
-
-  const wordCount = getWordCount(editorContent)
+  const editorContent = useEditorStore((s) => s.editorContent)
+  const keywords = useEditorStore((s) => s.keywords)
 
   return (
-    <motion.div
-      variants={panel}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={{ duration: 0.15 }}
-      className="flex flex-col h-full"
-    >
-      {/* Header */}
-      <div className="p-4 border-b bg-white sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
               <BarChart3 className="w-5 h-5 text-white" />
@@ -56,28 +46,34 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
               </p>
             </div>
           </div>
-          {setIsSidebarOpen && isMobile && (
+          {setIsSidebarOpen && (
             <button
               type="button"
               onClick={() => setIsSidebarOpen(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Content */}
-      <motion.div variants={stagger} className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
         {/* Stats Grid */}
-        <motion.div variants={item} className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-            <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-              {wordCount}
+            <div className="flex flex-col items-center">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
+                {getWordCount(editorContent)}
+              </div>
+              {blog?.userDefinedLength && (
+                <div className="text-[9px] font-bold text-gray-400 -mt-1">
+                  Target: {blog.userDefinedLength}
+                </div>
+              )}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Word Count
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+              Current Words
             </div>
           </div>
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
@@ -88,47 +84,70 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
               Keywords
             </div>
           </div>
-        </motion.div>
+          {/* GSC Stats */}
+          {(blog?.statistics?.totalGSCClicks ?? 0) > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-green-600 transition-colors">
+                {blog?.statistics?.totalGSCClicks}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Total Clicks
+              </div>
+            </div>
+          )}
+          {(blog?.statistics?.totalGSCImpressions ?? 0) > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">
+                {blog?.statistics?.totalGSCImpressions}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Impressions
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Scores */}
-        <motion.div variants={item} className="space-y-3">
+        <div className="space-y-3">
           <ScoreCard title="Quality Score" score={contentScore} icon={FileText} />
           <ScoreCard title="SEO Potential" score={seoScore} icon={TrendingUp} />
-        </motion.div>
+        </div>
 
-        {/* Optimization Card */}
-        <motion.div
-          variants={item}
-          className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
-            <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
-          </div>
-          <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
-            Run our advanced competitive analysis to uncover keyword opportunities and improve
-            rankings.
-          </p>
-          <button
-            type="button"
-            onClick={onAnalyze}
-            disabled={isAnalyzing}
-            className={`
-              w-full py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-sm
+        {/* Optimization Card — spends the owner's credits, so it's gone entirely for
+            read-only collaborators rather than shown disabled. */}
+        {!isReadOnlyWorkspace && (
+          <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+              <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
+              Run our advanced competitive analysis to uncover keyword opportunities and improve
+              rankings.
+            </p>
+            <button
+              type="button"
+              onClick={onAnalyze}
+              disabled={isAnalyzing || isPublicMode}
+              className={`
+              w-full py-3 px-4 rounded-md text-xs font-bold transition-all
               ${
-                isAnalyzing
+                isAnalyzing || isPublicMode
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+                  : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
               }
             `}
-          >
-            {isAnalyzing
-              ? "Analyzing Content..."
-              : `Run Analysis (${COSTS.ANALYSIS.COMPETITORS} Credits)`}
-          </button>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+            >
+              {isPublicMode
+                ? "Analysis Locked"
+                : isAnalyzing
+                  ? "Analyzing Content..."
+                  : "Run Analysis (10 Credits)"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 

@@ -21,6 +21,7 @@ import useAiReviewStore from "@/store/useAiReviewStore"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import useBlogStore, { type Blog } from "@store/useBlogStore"
+import useEditorStore from "@store/useEditorStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
@@ -58,22 +59,31 @@ const MainEditorPage = () => {
   const [wordpressMetadata] = useState<{ title?: string; description?: string } | null>(null)
   const [activeTab, _setActiveTab] = useState("Normal")
   // isLoading is now derived from isBlogFetching
-  const [keywords, setKeywords] = useState<any[]>([])
-  const [editorContent, setEditorContent] = useState("")
+  // Shared with TextEditorSidebar/sidebars/* via useEditorStore — see that file for why
+  // this used to be prop-drilled local state.
+  const {
+    editorContent,
+    setEditorContent,
+    editorTitle,
+    setEditorTitle,
+    keywords,
+    setKeywords,
+    unsavedChanges,
+    setUnsavedChanges,
+    formData,
+    setFormData,
+    posted: isPosted,
+    setPosted: setIsPosted,
+    isPosting,
+    setIsPosting,
+    reset: resetEditorStore,
+  } = useEditorStore()
   const resetAiReview = useAiReviewStore((s) => s.reset)
   const aiReview = useAiReviewStore((s) => s.review)
-  const [editorTitle, setEditorTitle] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState<any[]>([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveContent, setSaveContent] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [isPosted, setIsPosted] = useState<any>(null)
-  const [isPosting, setIsPosting] = useState(false)
-  const [formData, setFormData] = useState({
-    category: "",
-    includeTableOfContents: false,
-    title: "",
-  })
   const [showTemplateModal, setShowTemplateModal] = useState(!id)
   const [isHumanizeModalOpen, setIsHumanizeModalOpen] = useState(false)
   const [humanizedContent, setHumanizedContent] = useState("")
@@ -84,7 +94,6 @@ const MainEditorPage = () => {
 
   const pathDetect =
     location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
-  const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -156,13 +165,9 @@ const MainEditorPage = () => {
       // Clear selected blog when creating a new blog
       clearBlogUI()
       // Clear editor state to prevent showing previous blog content
-      setEditorContent("")
-      setEditorTitle("")
-      setKeywords([])
-      setIsPosted(null)
-      setFormData({ category: "", includeTableOfContents: false, title: "" })
+      resetEditorStore()
     }
-  }, [id, clearBlogUI])
+  }, [id, clearBlogUI, resetEditorStore])
 
   useEffect(() => {
     if (blog && id && blog._id === id) {
@@ -203,12 +208,12 @@ const MainEditorPage = () => {
     } else {
       // Fallback to basic content replace
       const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-      setEditorContent((prev) => prev.replace(regex, change))
+      setEditorContent(editorContent.replace(regex, change))
     }
 
     // Remove suggestion from list
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-  }, [])
+  }, [editorContent, setEditorContent])
 
   const handlePostToWordPress = async (postData: any) => {
     setIsPosting(true)
@@ -830,18 +835,11 @@ const MainEditorPage = () => {
             <TextEditorSidebar
               activeEditorVersion={1} // Hardcoded to TipTap
               blog={blog}
-              keywords={keywords}
               onPost={handlePostToWordPress}
               handleSubmit={handleSave}
-              posted={isPosted}
-              isPosting={isPosting}
-              formData={formData}
-              setEditorContent={setEditorContent}
-              editorContent={editorContent}
               setIsHumanizing={setIsHumanizing}
               setHumanizedContent={setHumanizedContent}
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
-              unsavedChanges={unsavedChanges}
             />
           </div>
 
@@ -857,19 +855,12 @@ const MainEditorPage = () => {
                 <TextEditorSidebar
                   activeEditorVersion={1} // Hardcoded to TipTap
                   blog={blog}
-                  keywords={keywords}
                   onPost={handlePostToWordPress}
                   handleSubmit={handleSave}
-                  posted={isPosted}
-                  isPosting={isPosting}
-                  formData={formData}
-                  setEditorContent={setEditorContent}
-                  editorContent={editorContent}
                   setIsHumanizing={setIsHumanizing}
                   setHumanizedContent={setHumanizedContent}
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
                   setIsSidebarOpen={setIsSidebarOpen}
-                  unsavedChanges={unsavedChanges}
                 />
               </motion.div>
             )}

@@ -1,50 +1,33 @@
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   RefreshCw,
   TrendingUp,
-  FileText,
-  Sparkles,
   Send,
-  ExternalLink,
-  Target,
   X,
-  TagIcon,
-  BarChart3,
-  Wand2,
   Lightbulb,
   ChevronLeft,
-  BarChart,
-  RefreshCcw,
+  Wand2,
   Crown,
-  Download,
-  FileCode,
-  Lock,
   Info,
-  User,
-  ImageIcon,
-  Pencil,
-  CheckCircle,
-  MessageSquare,
+  BarChart3,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { useNavigate } from "react-router-dom"
-import { retryBlogById, exportBlog } from "@api/blogApi"
-import { useZodForm } from "@/lib/forms"
-import {
-  regenerateBlogFormDefaults,
-  regenerateBlogFormSchema,
-  toRegenerateBlogPayload,
-} from "@/forms/regenerateBlogForm"
-import { debugPayload } from "@utils/debugPayload"
+import { exportBlog } from "@api/blogApi"
 import { asApiError } from "@/types/api"
 import { useQueryClient } from "@tanstack/react-query"
-import { ScoreCard, CompetitorsList } from "./FeatureComponents"
+import OverviewPanel from "./sidebars/OverviewPanel"
+import SeoPanel from "./sidebars/SeoPanel"
+import BlogInfoPanel from "./sidebars/BlogInfoPanel"
 import BrandVoicePanel from "./sidebars/BrandVoicePanel"
 import InsightsPanel from "./sidebars/InsightsPanel"
-import IndexingStatus from "@components/Blog/IndexingStatus"
+import SectionToolsPanel from "./sidebars/SectionToolsPanel"
+import PostingPanel from "./sidebars/PostingPanel"
+import PlatformCategoriesField from "./sidebars/PlatformCategoriesField"
+import { PLATFORM_LABELS } from "./constants"
 import {
   useAnalyzeBlogMutation,
   useApplyInsightMutation,
@@ -56,21 +39,16 @@ import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import useAiReviewStore from "@/store/useAiReviewStore"
 import useEditorStore from "@/store/useEditorStore"
-import axiosInstance from "@/api"
 import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { generateMetadata } from "@api/generateApi"
-import { fetchCategories } from "@api/integrationApi"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE, COSTS } from "@/data/blogData"
-import { computeCost } from "@/data/pricingConfig"
+import { COSTS } from "@/data/blogData"
 
 import { marked } from "marked"
-import TurndownService from "turndown"
-import { Switch } from "@components/ui/switch"
 
 const renderer = {
   heading({ text, depth: level }: { text: string; depth: number }) {
@@ -84,207 +62,36 @@ const renderer = {
 
 marked.use({ renderer })
 
-// Platform Categories Component (Supports WP, Sanity, Shopify, Server)
-const PlatformCategories = ({
-  onSelect,
-  currentCategory,
-  platform,
-}: {
-  onSelect: (category: any) => void
-  currentCategory?: any
-  platform?: string
-}) => {
-  const [categories, setCategories] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const fetchPlatformCategories = async () => {
-      if (!platform) {
-        setCategories([])
-        return
-      }
-
-      setLoading(true)
-      try {
-        const response = await axiosInstance.get(
-          `/integrations/category?type=${platform.toUpperCase()}`
-        )
-        if (Array.isArray(response.data)) {
-          setCategories(response.data)
-        } else {
-          setCategories([])
-        }
-      } catch (error) {
-        console.error(`Failed to fetch ${platform} categories`, error)
-        setCategories([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPlatformCategories()
-  }, [platform])
-
-  // Merge platform categories with popular categories and deduplicate (case-insensitive)
-  const displayCategories = useMemo(() => {
-    const combined = [...categories]
-    const lowerCategories = categories.map((c) => c.toLowerCase())
-
-    POPULAR_CATEGORIES.forEach((cat) => {
-      if (!lowerCategories.includes(cat.toLowerCase())) {
-        combined.push(cat)
-      }
-    })
-    return combined
-  }, [categories])
-
-  const isUsingOnlyPopular = categories.length === 0
-
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-100">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold  uppercase tracking-wide flex items-center gap-2">
-          {isUsingOnlyPopular ? (
-            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-          ) : (
-            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-          )}
-          {platform && !isUsingOnlyPopular
-            ? `${platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase()} Categories`
-            : "Popular Categories"}
-        </span>
-        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-          {displayCategories.length} available
-        </span>
-      </div>
-
-      <div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100 max-h-48 overflow-y-auto custom-scroll">
-        {loading ? (
-          <div className="flex justify-center p-4">
-            <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-wrap gap-2">
-              {displayCategories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => onSelect(cat)}
-                  type="button"
-                  className={`
-                    px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
-                    ${
-                      currentCategory === cat
-                        ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
-                    }
-                  `}
-                >
-                  {cat}
-                  {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      <p className="text-[10px] text-gray-400 mt-2 px-1">
-        {isUsingOnlyPopular
-          ? "Select a popular category to keep your content organized."
-          : `Select a category from your ${platform} site to populate the field above.`}
-      </p>
-    </div>
-  )
-}
-
-// Popular categories (limited to 15 for relevance)
-const POPULAR_CATEGORIES = [
-  "Blogging",
-  "Technology",
-  "Lifestyle",
-  "Travel",
-  "Food & Drink",
-  "Health & Wellness",
-  "Fashion",
-  "Business",
-  "Education",
-  "Entertainment",
-  "Photography",
-  "Fitness",
-  "Marketing",
-  "Finance",
-  "DIY & Crafts",
-]
-
-// Labels for the AI section tasks, used in the in-editor review header.
-const SECTION_TASK_LABELS: Record<string, string> = {
-  rewrite: "Rewrite",
-  proofread: "Proofread",
-  promptChanges: "Custom Prompt",
-}
-
-/**
- * Reduces whatever the section endpoint returns to the *inside* of a section.
- *
- * That endpoint answers in whole-section markup — the same shape it reports back
- * as `previousContent`. Writing it into the section being edited would nest a
- * second <section> carrying the same id, and because turndown is told to keep
- * <section>, the duplicate survives into the saved blog. Section Tools then lists
- * it twice, both cards select together, and both resolve to the same element,
- * since getElementById can only ever return the first match.
- *
- * Sections are unwrapped innermost-first so unwrapping an outer one cannot
- * re-introduce a nested one.
- */
-const unwrapSectionMarkup = (html: string | null | undefined, parser: DOMParser) => {
-  if (!html || !/<section[\s>]/i.test(html)) return html || ""
-
-  const doc = parser.parseFromString(html, "text/html")
-  for (const section of Array.from(doc.body.querySelectorAll("section")).reverse()) {
-    const inner = section.querySelector(".section-content") || section
-    section.replaceWith(...Array.from(inner.childNodes))
-  }
-  return doc.body.innerHTML
-}
-
 interface TextEditorSidebarProps {
   blog?: any
-  keywords?: string[]
   onPost?: (...args: any[]) => void
-  /** Posting status per platform (e.g. `posted.SHOPIFY?.link`) — not a boolean, despite the name. */
-  posted?: Record<string, any>
-  isPosting?: boolean
-  formData?: any
-  editorContent?: string
   handleSubmit?: (...args: any[]) => void
   setIsHumanizing: (value: boolean) => void
   setHumanizedContent: (content: any) => void
   setIsHumanizeModalOpen: (open: boolean) => void
   setIsSidebarOpen?: (open: boolean) => void
-  unsavedChanges?: boolean
   activeEditorVersion?: any
-  setEditorContent: (content: string) => void
   isPublicMode?: boolean
 }
 
 const TextEditorSidebar = ({
   blog,
-  keywords,
   onPost,
-  posted,
-  isPosting,
-  formData,
-  editorContent,
   handleSubmit,
-  setIsHumanizing,
-  setHumanizedContent,
-  setIsHumanizeModalOpen,
   setIsSidebarOpen,
-  unsavedChanges,
   activeEditorVersion,
-  setEditorContent,
   isPublicMode = false,
 }: TextEditorSidebarProps) => {
+  // Shared editor state — see useEditorStore.ts. `keywords`/`formData`/`posted`/
+  // `isPosting`/`editorContent` used to be prop-drilled in from MainEditorPage; both
+  // now read/write the same store instead. (`unsavedChanges` is read inside
+  // PostingPanel directly, since posting is the only thing here that needs it.)
+  const keywords = useEditorStore((s) => s.keywords)
+  const formData = useEditorStore((s) => s.formData)
+  const posted = useEditorStore((s) => s.posted)
+  const isPosting = useEditorStore((s) => s.isPosting)
+  const editorContent = useEditorStore((s) => s.editorContent)
+  const setEditorContent = useEditorStore((s) => s.setEditorContent)
   // Two flavours of view-only. `isPublicMode` (the public blog reader) keeps controls
   // visible but locked, because the reader may still sign in and get them. A read-only
   // *workspace* removes them outright: a collaborator watching someone else's workspace
@@ -295,9 +102,9 @@ const TextEditorSidebar = ({
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-  const [isRegenerating, setIsRegenerating] = useState(false)
 
-  // Repost Modal State
+  // Repost Modal State — the repost modal is rendered here (not inside PostingPanel)
+  // since it's a page-level overlay, so its state stays local to this component.
   const [isRepostModalOpen, setIsRepostModalOpen] = useState(false)
   const [repostSettings, setRepostSettings] = useState({
     platform: "",
@@ -311,61 +118,19 @@ const TextEditorSidebar = ({
 
   // Blog postings state
   const blogPostings = useEditorStore((s) => s.blogPostings)
-  const isLoadingPostings = useEditorStore((s) => s.isLoadingPostings)
   const fetchPostings = useEditorStore((s) => s.fetchPostings)
 
-  // Blog slug editor state
-  const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
-  const [isEditingSlug, setIsEditingSlug] = useState(false)
-
-  // Posting State (Migrated from CategoriesModal)
-  const [selectedCategory, setSelectedCategory] = useState("")
-  const [selectedIntegration, setSelectedIntegration] = useState<any>(null)
-  const [includeTableOfContents, setIncludeTableOfContents] = useState(false)
-  const [isCategoryLocked, setIsCategoryLocked] = useState(false)
-  const [categoryError, setCategoryError] = useState(false)
-  const [platformError, setPlatformError] = useState(false)
-  const [errors, setErrors] = useState({ category: "", platform: "" })
-
-  const [metadata, setMetadata] = useState({
-    title: blog?.seoMetadata?.title || "",
-    description: blog?.seoMetadata?.description || "",
-  })
+  // SEO metadata — shared with SeoPanel and the accept/reject modal below.
+  const seoMetadata = useEditorStore((s) => s.seoMetadata)
+  const setSeoMetadata = useEditorStore((s) => s.setSeoMetadata)
 
   // Generated metadata accept/reject modal state
   const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
   const [generatedMetadata, setGeneratedMetadata] = useState<any>(null)
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
 
-  // Export with images toggle
-  const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
-  const [_isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
-
-  // Content enhancement editable options state
-  const [enhancementOptions, setEnhancementOptions] = useState<any>({})
-  const [_hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
-  const [_isSavingEnhancement, setIsSavingEnhancement] = useState(false)
-
-  // Regenerate form data. `regenerateBlogFormSchema` owns both the shape and the
-  // validation; `toRegenerateBlogPayload` owns what the retry request contains, so
-  // nothing here has to remember which fields are conditional.
-  const {
-    watch: watchRegen,
-    setValue: setRegenValue,
-    getFieldState: getRegenFieldState,
-    reset: resetRegenForm,
-    handleSubmit: submitRegenForm,
-  } = useZodForm(regenerateBlogFormSchema, regenerateBlogFormDefaults)
-
-  const regenForm = watchRegen()
-
-  // AI Section Tools State
-  const [sectionToolState, setSectionToolState] = useState({
-    sectionId: "",
-    task: "rewrite",
-    instructions: "",
-  })
-  const [isProcessingSection, setIsProcessingSection] = useState(false)
-  const [availableSections, setAvailableSections] = useState<any[]>([])
+  const availableSections = useEditorStore((s) => s.availableSections)
+  const setAvailableSections = useEditorStore((s) => s.setAvailableSections)
 
   // AI rewrites are reviewed inside the editor, not in a dialog here.
   const openReview = useAiReviewStore((s) => s.openReview)
@@ -398,15 +163,10 @@ const TextEditorSidebar = ({
     { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
   ]
 
-  // Clear section selection when switching tabs to simple cleanup
-  useEffect(() => {
-    if (activePanel !== "sectionTools" && sectionToolState.sectionId) {
-      setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
-      window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
-    }
-  }, [activePanel, sectionToolState.sectionId])
-
-  // Parse sections from content whenever it changes
+  // Parse sections from content whenever it changes. This drives both the
+  // "AI Tools" nav item above and SectionToolsPanel's section list — section
+  // selection itself is local to that panel, which unmounts (clearing it) on
+  // tab switch.
   useEffect(() => {
     if (!editorContent) {
       setAvailableSections([])
@@ -473,227 +233,10 @@ const TextEditorSidebar = ({
       // STRATEGY 2: Markdown/Flat HTML Headers (Fallback) has been disabled per request.
 
       setAvailableSections(sections)
-
-      // Auto-select first section if none selected and sections exist
-      if (sections.length > 0 && !sectionToolState.sectionId) {
-        // Don't auto-set ID, let user select
-        // setSectionToolState(prev => ({ ...prev, sectionId: sections[0].id }))
-      }
     } catch (e) {
       console.error("Failed to parse sections for tools:", e)
     }
-  }, [editorContent, sectionToolState.sectionId])
-
-  const handleSectionTask = async () => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    if (!blog?._id) return toast.error("Blog ID missing")
-    if (!sectionToolState.sectionId) return toast.error("Please select a section")
-    if (sectionToolState.task === "promptChanges" && !sectionToolState.instructions.trim()) {
-      return toast.error("Please enter instructions for custom task")
-    }
-
-    setIsProcessingSection(true)
-    try {
-      const payload = {
-        sectionId: sectionToolState.sectionId,
-        task: sectionToolState.task,
-        userInstructions: sectionToolState.instructions,
-      }
-
-      // API Call
-      const response = await axiosInstance.post(`/blogs/${blog._id}/sectionTask`, payload)
-
-      if (response.data && (response.data.content || response.data.markdown)) {
-        let newFullContent = editorContent
-        let _originalSectionContent = ""
-        let newSectionContent = response.data.markdown || response.data.content || ""
-
-        // Helper to normalize slugs similar to how TipTap/Marked does
-        const getSlug = (text: any) =>
-          text
-            .toLowerCase()
-            .replace(/[^\w]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-
-        const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
-        turndownService.keep([
-          "p",
-          "div",
-          "iframe",
-          "table",
-          "tr",
-          "th",
-          "td",
-          "figure",
-          "figcaption",
-          "section",
-          "article",
-        ])
-
-        // STRATEGY 1: DOMParser (HTML Content)
-        // Only works if editorContent contains actual HTML tags with IDs
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(editorContent || "", "text/html")
-        const sectionEl = doc.getElementById(sectionToolState.sectionId)
-
-        if (sectionEl) {
-          // Found explicit HTML section
-          _originalSectionContent = turndownService.turndown(sectionEl.outerHTML)
-
-          // Special handling for the Meta/Overview section to preserve structure
-          if (sectionToolState.sectionId === "blog-meta") {
-            const titleEl = sectionEl.querySelector(".blog-title")
-            const descEl = sectionEl.querySelector(".blog-description")
-
-            // Try to split response content into title and description if it contains both
-            // Usually AI returns description, but sometimes it includes the title
-            if (response.data.content) {
-              const resDoc = parser.parseFromString(response.data.content, "text/html")
-              const resTitle = resDoc.querySelector("h1, h2, h3")
-              const resParas = Array.from(resDoc.querySelectorAll("p"))
-
-              if (resTitle && titleEl) {
-                titleEl.textContent = resTitle.textContent
-              }
-              if (resParas.length > 0 && descEl) {
-                descEl.innerHTML = resParas[0].innerHTML
-              } else if (descEl) {
-                descEl.innerHTML = response.data.content
-              }
-            }
-          } else {
-            // Never write the response in raw: it arrives as whole-section markup,
-            // which would nest a duplicate id inside the section being edited.
-            // Replacing the whole wrapper also repairs a section already carrying
-            // one from before this was guarded.
-            const incoming = unwrapSectionMarkup(response.data.content, parser)
-
-            const contentDiv = sectionEl.querySelector(".section-content")
-            if (contentDiv) {
-              contentDiv.innerHTML = incoming
-            } else {
-              // If .section-content wrapper is missing, preserve headers and wrap/replace content
-              const headings = Array.from(sectionEl.querySelectorAll("h1, h2, h3, h4, h5, h6"))
-              const headerHTML = headings.map((h) => h.outerHTML).join("")
-
-              // Only prepend headers if they aren't already in the AI response —
-              // which may state them as markdown rather than as <h1>-<h6>.
-              const hasHeaderInResponse =
-                /<h[1-6]/i.test(incoming) || /^\s{0,3}#{1,6}\s/m.test(incoming)
-              sectionEl.innerHTML = (hasHeaderInResponse ? "" : headerHTML) + incoming
-            }
-          }
-
-          // Convert modified HTML back to Markdown to match editor format
-          const modifiedHtml = doc.body.innerHTML
-          newFullContent = turndownService.turndown(modifiedHtml)
-
-          // If we got HTML back, clean it up for comparison too
-          if (response.data.content && !response.data.markdown) {
-            newSectionContent = turndownService.turndown(response.data.content)
-          }
-        } else {
-          // STRATEGY 2: Markdown Content (Fallback)
-          // Parse markdown line-by-line to find the header matching the sectionId
-          // Then replace content until next header
-          const lines = (editorContent || "").split("\n")
-          let startLine = -1
-          let endLine = -1
-          let _foundHeaderLevel = 0
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-            // Match Headers: # Title, ## Title, etc.
-            const match = line.match(/^(#{1,6})\s+(.*)$/)
-            if (match) {
-              const level = match[1].length
-              const text = match[2].trim()
-              const slug = getSlug(text)
-
-              if (slug === sectionToolState.sectionId) {
-                // Found our start header
-                startLine = i
-                _foundHeaderLevel = level
-              } else if (startLine !== -1) {
-                // We are inside the section, and found another header
-                // If this header is same level or higher (smaller number), our section ends here.
-                // Actually, strictly speaking, any header ends the previous section block in simple markdown structure
-                endLine = i
-                break
-              }
-            }
-          }
-
-          if (startLine !== -1) {
-            // Found the section
-            if (endLine === -1) endLine = lines.length
-
-            _originalSectionContent = lines.slice(startLine, endLine).join("\n")
-
-            // Construct new content:
-            // 1. Everything before the header (lines 0 to startLine-1)
-            // 2. The Header itself (lines[startLine]) - we keep the header!
-            // 3. The NEW Content (from API markdown or content)
-            // 4. Everything after (lines[endLine] to end)
-
-            const before = lines.slice(0, startLine + 1).join("\n") // Include header line
-            const after = lines.slice(endLine).join("\n")
-
-            newFullContent = `${before}\n\n${newSectionContent}\n\n${after}`
-
-            // For the diff display, let's include the header in the 'new' version too if possible
-            // or just keep it consistent with originalSectionContent
-            newSectionContent = `${lines[startLine]}\n\n${newSectionContent}`
-          } else {
-            toast.error(
-              "Could not locate section in current content. Ensure section headers are not modified."
-            )
-            setIsProcessingSection(false)
-            return
-          }
-        }
-
-        let htmlContent = response.data.previousContent
-        const doc1 = parser.parseFromString(htmlContent, "text/html")
-        const oldContentDiv = doc1.querySelector(".section-content")
-        htmlContent = oldContentDiv ? oldContentDiv.innerHTML : htmlContent
-
-        // Hand the rewrite to the editor for review instead of replacing
-        // outright. Everything the commit needs is captured here, since the
-        // review outlives this call.
-        const taskLabel = SECTION_TASK_LABELS[sectionToolState.task] || "Refinement"
-        openReview({
-          title: "Review Section Changes",
-          task: `Task: ${taskLabel}`,
-          original: htmlContent,
-          refined: response.data.content,
-          acceptLabel: "Accept & Apply to Section",
-          rejectLabel: "Keep Original",
-          onAccept: () => {
-            if (typeof setEditorContent === "function") setEditorContent(newFullContent)
-            toast.success("Changes applied successfully!")
-          },
-        })
-        setIsSidebarOpen?.(false)
-
-        // Clear instructions if custom
-        if (sectionToolState.task === "promptChanges") {
-          setSectionToolState((prev) => ({ ...prev, instructions: "" }))
-        }
-      } else {
-        toast.warning("No content returned from AI")
-      }
-    } catch (rawError) {
-      const error = asApiError(rawError)
-      console.error("Section task failed:", error)
-      toast.error(error.response?.data?.message || "Failed to process section task")
-    } finally {
-      setIsProcessingSection(false)
-    }
-  }
+  }, [editorContent, setAvailableSections])
 
   const { user } = useAuthStore()
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
@@ -712,13 +255,6 @@ const TextEditorSidebar = ({
     integrations?.integrations && Object.keys(integrations.integrations).length > 0
   const _isDisabled = isPosting || !hasAnyIntegration
   const isPro = ["free", "basic"].includes(userPlan)
-
-  const PLATFORM_LABELS: Record<string, string> = {
-    WORDPRESS: "WordPress",
-    SHOPIFY: "Shopify",
-    SERVERENDPOINT: "Server",
-    WIX: "Wix",
-  }
 
   // Use blog postings from API instead of posted object
   const hasPublishedLinks = blogPostings.length > 0
@@ -742,194 +278,18 @@ const TextEditorSidebar = ({
     persistInsight(blog?._id ? (fetchedInsight ?? null) : null)
   }, [blog?._id, fetchedInsight, persistInsight])
 
-  // Initialize data
+  // Initialize SEO metadata from the loaded blog. Blog slug editing lives inside
+  // BlogInfoPanel, which syncs its own local copy from `blog?.slug` directly.
   useEffect(() => {
-    setMetadata({
+    setSeoMetadata({
       title: blog?.seoMetadata?.title || "",
       description: blog?.seoMetadata?.description || "",
     })
-    setBlogSlug(blog?.slug || "")
-  }, [blog?.slug, blog?.seoMetadata?.description, blog?.seoMetadata?.title])
-
-  useEffect(() => {
-    if (blog) {
-      // Determine if images are enabled based on imageSource
-      const savedImageSource = blog.imageSource || DEFAULT_IMAGE_SOURCE
-      const isImagesEnabled = savedImageSource !== IMAGE_SOURCE.NONE && savedImageSource !== "none"
-      // The regenerate modal only offers stock and AI images, so a blog saved with
-      // uploaded images restarts from stock rather than a source it cannot show.
-      const imageSource =
-        savedImageSource === IMAGE_SOURCE.STOCK || savedImageSource === IMAGE_SOURCE.AI
-          ? savedImageSource
-          : isImagesEnabled
-            ? IMAGE_SOURCE.STOCK
-            : IMAGE_SOURCE.NONE
-
-      resetRegenForm({
-        ...regenerateBlogFormDefaults,
-        topic: blog.topic || "",
-        title: blog.title || "",
-        focusKeywords: blog.focusKeywords || [],
-        keywords: blog.keywords || [],
-        tone: blog.tone || "Professional",
-        userDefinedLength: blog.userDefinedLength || 1000,
-        aiModel: blog.aiModel || "gemini",
-        isCheckedGeneratedImages: isImagesEnabled,
-        imageSource: imageSource,
-        numberOfImages: blog.numberOfImages || 0,
-        isCheckedBrand: blog.isCheckedBrand || false,
-        brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
-        costCutter: blog.costCutter || false,
-        options: {
-          includeFaqs: blog.options?.includeFaqs || false,
-          includeInterlinks: blog.options?.includeInterlinks || false,
-          includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
-          addOutBoundLinks: blog.options?.addOutBoundLinks || false,
-          performKeywordResearch: blog.options?.performKeywordResearch || false,
-          humanisation: blog.humanisation || blog.options?.humanisation || false,
-          extendedThinking: blog.extendedThinking || blog.options?.extendedThinking || false,
-          deepResearch: blog.deepResearch || blog.options?.deepResearch || false,
-          easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
-          embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
-          automaticPosting: blog.options?.automaticPosting || false,
-          includeTableOfContents: blog.options?.includeTableOfContents || false,
-          addCTA: blog.options?.addCTA || false,
-          createBrandedImages: blog.options?.createBrandedImages || false,
-        },
-        isCheckedQuick: blog.isCheckedQuick || false,
-        postingDefaultType: blog.postingDefaultType || null,
-      })
-    }
-  }, [blog, resetRegenForm])
+  }, [blog?.seoMetadata?.description, blog?.seoMetadata?.title, setSeoMetadata])
 
   useEffect(() => {
     fetchIntegrations()
   }, [fetchIntegrations])
-
-  // Initialize enhancement options from blog
-  useEffect(() => {
-    if (blog?.options) {
-      setEnhancementOptions(blog.options)
-      setHasEnhancementChanges(false)
-    }
-  }, [blog?.options])
-
-  const getWordCount = (text: any) => {
-    if (!text) return 0
-
-    // Plain text case (heuristic check for HTML tags)
-    if (!/<[a-z][\s\S]*>/i.test(text)) {
-      return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
-    }
-
-    try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(text, "text/html")
-
-      // Remove non-visible / non-content elements
-      const elementsToRemove = doc.querySelectorAll(
-        "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
-      )
-      elementsToRemove.forEach((el) => el.remove())
-
-      // If article exists, use it; otherwise use body
-      const content = doc.querySelector("article") || doc.body
-      const strippedText = content.textContent || ""
-
-      return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
-    } catch (e) {
-      console.error("Error parsing HTML for word count:", e)
-      // Fallback to simple regex strip
-      return text
-        .replace(/<[^>]*>/g, " ")
-        .trim()
-        .replace(/\s+/g, " ")
-        .split(" ")
-        .filter(Boolean).length
-    }
-  }
-
-  // Update regen form field. Dotted names ("options.includeFaqs") address nested
-  // fields directly, which is how the modal already calls this.
-  const updateRegenField = useCallback(
-    (field: any, value: any) =>
-      setRegenValue(field, value, {
-        shouldValidate: !!getRegenFieldState(field).error,
-        shouldDirty: true,
-      }),
-    [setRegenValue, getRegenFieldState]
-  )
-
-  // Calculate regenerate cost using pricing config
-  const calculateRegenCost = useCallback(() => {
-    const features = []
-
-    // Add features based on selections
-    if (regenForm.isCheckedBrand) features.push("brandVoice")
-    if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
-    if (regenForm.options.includeFaqs) features.push("faqGeneration")
-    if (regenForm.options.includeInterlinks) features.push("internalLinking")
-    if (regenForm.isCheckedQuick) features.push("quickSummary")
-    if (regenForm.options.automaticPosting) features.push("automaticPosting")
-    // Note: addOutBoundLinks does not add extra credits
-
-    const roundedLength = Math.max(
-      500,
-      Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
-    )
-    return computeCost({
-      wordCount: roundedLength,
-      features,
-      aiModel: regenForm.aiModel || "gemini",
-      includeImages: regenForm.isCheckedGeneratedImages,
-      imageSource: regenForm.imageSource,
-      numberOfImages: regenForm.numberOfImages || 3,
-      isCheckedBrand: regenForm.isCheckedBrand,
-    })
-  }, [regenForm])
-
-  // Handle regenerate modal submission. The schema is checked first, so `values` is
-  // complete; `toRegenerateBlogPayload` is the only thing that shapes the request.
-  const handleRegenerateSubmit = submitRegenForm(
-    async (values) => {
-      const cost = calculateRegenCost()
-      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-
-      if (credits < cost) {
-        setIsRegenerateModalOpen(false)
-        return handlePopup({
-          title: "Insufficient Credits",
-          description: `Need ${cost} credits, have ${credits}.`,
-          confirmText: "Buy Credits",
-          onConfirm: () => navigate("/pricing"),
-        })
-      }
-
-      setIsRegenerating(true)
-      try {
-        const payload = toRegenerateBlogPayload(values)
-        if (debugPayload("RegenerateBlog", payload)) return
-
-        // Call retry API with blog data - backend will update and regenerate
-        await retryBlogById(blog._id, payload)
-
-        queryClient.invalidateQueries({ queryKey: ["blogs"] })
-        toast.success("Blog regeneration started!")
-        setIsRegenerateModalOpen(false)
-        navigate("/blogs")
-      } catch (rawError) {
-        const error = asApiError(rawError)
-        toast.error(error.message || "Failed to regenerate")
-      } finally {
-        setIsRegenerating(false)
-      }
-    },
-    (invalid) => {
-      // The modal has no inline error slots, so surface the first problem as a toast.
-      const first = Object.values(invalid)[0]
-      toast.error(first?.message || "Please review the regeneration settings.")
-    }
-  )
 
   const handleAnalyzing = useCallback(async () => {
     if (isPro) return navigate("/pricing")
@@ -1133,10 +493,13 @@ const TextEditorSidebar = ({
       openReview,
       handleConfirmSuggestion,
       setIsSidebarOpen,
+      setApplyingSuggestionId,
     ]
   )
 
-  const handleMetadataGen = useCallback(() => {
+  // No confirmation popup — at 2 credits this is cheap enough to run on click,
+  // and the result still goes through the accept/reject modal before it's kept.
+  const handleMetadataGen = useCallback(async () => {
     if (!blog?._id) {
       toast.error("Save the blog before generating metadata.")
       return
@@ -1146,35 +509,26 @@ const TextEditorSidebar = ({
       return
     }
     if (isPro) return navigate("/pricing")
-    handlePopup({
-      title: "Generate Metadata",
-      description: (
-        <>
-          Generate SEO metadata? <span className="font-bold">2 credits</span>
-        </>
-      ),
-      onConfirm: async () => {
-        setIsGeneratingMetadata(true)
-        try {
-          // The backend reads the blog's content and keywords itself — the id is
-          // the whole payload.
-          const result = await generateMetadata({ blogId: blog._id })
-          // Show the generated metadata in accept/reject modal
-          setGeneratedMetadata(result)
-          setGeneratedMetadataModal(true)
-        } catch {
-          toast.error("Generation failed")
-        } finally {
-          setIsGeneratingMetadata(false)
-        }
-      },
-    })
-  }, [isPro, navigate, handlePopup, blog])
+
+    setIsGeneratingMetadata(true)
+    try {
+      // The backend reads the blog's content and keywords itself — the id is
+      // the whole payload.
+      const result = await generateMetadata({ blogId: blog._id })
+      // Show the generated metadata in accept/reject modal
+      setGeneratedMetadata(result)
+      setGeneratedMetadataModal(true)
+    } catch {
+      toast.error("Generation failed")
+    } finally {
+      setIsGeneratingMetadata(false)
+    }
+  }, [isPro, navigate, blog])
 
   // Accept generated metadata
   const handleAcceptMetadata = useCallback(async () => {
     if (generatedMetadata) {
-      setMetadata({
+      setSeoMetadata({
         title: generatedMetadata.title || generatedMetadata.metaTitle || "",
         description: generatedMetadata.description || generatedMetadata.metaDescription || "",
       })
@@ -1182,7 +536,7 @@ const TextEditorSidebar = ({
       setGeneratedMetadata(null)
       toast.success("Metadata applied! Click Save to keep changes.")
     }
-  }, [generatedMetadata])
+  }, [generatedMetadata, setSeoMetadata])
 
   // Reject generated metadata - keep original
   const handleRejectMetadata = useCallback(() => {
@@ -1196,51 +550,52 @@ const TextEditorSidebar = ({
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
     }
-    if (!metadata.title && !metadata.description) return toast.error("Enter metadata")
+    if (!seoMetadata.title && !seoMetadata.description) return toast.error("Enter metadata")
     try {
-      await handleSubmit?.({ metadata })
+      await handleSubmit?.({ metadata: seoMetadata })
       toast.success("Saved!")
     } catch {
       toast.error("Save failed")
     }
-  }, [handleSubmit, metadata, blog?.isArchived])
+  }, [handleSubmit, seoMetadata, blog?.isArchived])
 
-  const handlePdfExport = useCallback(async () => {
-    if (!blog?._id) return toast.error("Blog ID missing")
-    if (!editorContent?.trim()) return toast.error("No content to export")
+  const handlePdfExport = useCallback(
+    async (withImages: boolean) => {
+      if (!blog?._id) return toast.error("Blog ID missing")
+      if (!editorContent?.trim()) return toast.error("No content to export")
 
-    try {
-      toast.loading("Exporting PDF...", { id: "pdf-export" })
+      try {
+        toast.loading("Exporting PDF...", { id: "pdf-export" })
 
-      const { data: blob } = await exportBlog(blog._id, {
-        type: "pdf",
-        withImages: includeImagesInExport,
-      })
+        const { data: blob } = await exportBlog(blog._id, {
+          type: "pdf",
+          withImages,
+        })
 
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      // Use .zip extension if images included, otherwise .pdf
-      const downloadName = includeImagesInExport
-        ? `${blog.title || "blog"}.zip`
-        : `${blog.title || "blog"}.pdf`
-      a.download = downloadName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+        // Create download link
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        // Use .zip extension if images included, otherwise .pdf
+        const downloadName = withImages ? `${blog.title || "blog"}.zip` : `${blog.title || "blog"}.pdf`
+        a.download = downloadName
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
 
-      const successMsg = includeImagesInExport
-        ? "PDF with images downloaded as ZIP!"
-        : "PDF downloaded successfully!"
-      toast.success(successMsg, { id: "pdf-export" })
-    } catch (rawError) {
-      const error = asApiError(rawError)
-      console.error("PDF Export Error:", error)
-      toast.error(error.message || "Failed to export PDF", { id: "pdf-export" })
-    }
-  }, [blog, editorContent, includeImagesInExport])
+        const successMsg = withImages
+          ? "PDF with images downloaded as ZIP!"
+          : "PDF downloaded successfully!"
+        toast.success(successMsg, { id: "pdf-export" })
+      } catch (rawError) {
+        const error = asApiError(rawError)
+        console.error("PDF Export Error:", error)
+        toast.error(error.message || "Failed to export PDF", { id: "pdf-export" })
+      }
+    },
+    [blog, editorContent]
+  )
 
   // --- Posting Helpers ---
   const openRepostModal = (posting: any) => {
@@ -1280,388 +635,12 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleIntegrationChange = useCallback(
-    (platform: any, url: any) => {
-      setSelectedIntegration({ platform: platform.toLowerCase(), rawPlatform: platform, url })
-      setPlatformError(false)
-      setErrors((prev) => ({ ...prev, platform: "" }))
-
-      const hasShopifyAlready = !!posted?.SHOPIFY?.link
-      if (platform === "SHOPIFY") {
-        setIsCategoryLocked(hasShopifyAlready)
-      } else {
-        setIsCategoryLocked(false)
-      }
-    },
-    [posted]
-  )
-
-  const handleCategoryAdd = useCallback((category: any) => {
-    // Remove restriction to allow explicit selection change even if something is selected
-    setSelectedCategory(category)
-    setCategoryError(false)
-    setErrors((prev) => ({ ...prev, category: "" }))
-  }, [])
-
-  const _handleCategoryRemove = useCallback(() => {
-    setSelectedCategory("")
-    setCategoryError(false)
-    setErrors((prev) => ({ ...prev, category: "" }))
-  }, [])
-
-  const handleCategoryChange = useCallback((value: any) => {
-    // If multiple values selected (mode='tags'), take the last one to allow switching
-    const newCategory = value.length > 0 ? value[value.length - 1] : ""
-    setSelectedCategory(newCategory)
-    setCategoryError(false)
-    setErrors((prev) => ({ ...prev, category: "" }))
-  }, [])
-
-  // Auto-fetch categories when integration changes
-  useEffect(() => {
-    if (selectedIntegration?.platform) {
-      if (fetchCategories) {
-        fetchCategories(selectedIntegration.platform.toUpperCase()).catch(() => {})
-      }
-    }
-  }, [selectedIntegration?.platform])
-
-  // Initialize posting form based on Blog Data & History.
-  // selectedCategory is read only to decide whether to auto-fill from blog/history data, not
-  // something this effect should react to — including it as a dependency re-runs this sync on
-  // every keystroke and snaps a cleared field straight back to blog.category, making it
-  // impossible to type a new category.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
-  useEffect(() => {
-    if (activePanel !== "posting") return
-
-    // 1. Always sync ToC from Blog Data if not manually changed (optional, but good for defaults)
-    // We'll trust the initial state setting mostly, but here we enforce blog defaults if state is empty
-    setIncludeTableOfContents((prev) => blog?.options?.includeTableOfContents ?? prev)
-
-    // 2. Sync Category from Blog Data
-    if (blog?.category && !selectedCategory) {
-      setSelectedCategory(blog.category)
-    }
-
-    // 3. Platform Selection & History Logic
-    // If we already have a selection, don't override unless forced by history logic
-
-    // PRIORITY 1: Check blogPostings (New API Source)
-    if (blogPostings.length > 0) {
-      // Find Shopify posting if exists to lock category
-      const shopifyPosting = blogPostings.find((p) => p.integrationType === "SHOPIFY")
-
-      if (shopifyPosting) {
-        const meta = shopifyPosting.metadata || {}
-        setIsCategoryLocked(true)
-        // Use metadata category if available
-        setSelectedCategory((meta.category as string) || "")
-        if (!selectedIntegration) {
-          setSelectedIntegration({
-            platform: "shopify",
-            rawPlatform: "SHOPIFY",
-            url: (integrations?.integrations?.SHOPIFY as { url?: string } | undefined)?.url || "",
-          })
-        }
-        return
-      }
-
-      // If not Shopify locked, default to the most recent posting's platform & metadata
-      if (!selectedIntegration && blogPostings[0]) {
-        const lastPost = blogPostings[0]
-        const meta = lastPost.metadata || {}
-        const rawPlatform = lastPost.integrationType
-
-        if (rawPlatform && integrations?.integrations?.[rawPlatform]) {
-          setSelectedIntegration({
-            platform: rawPlatform.toLowerCase(),
-            rawPlatform: rawPlatform,
-            url: (integrations.integrations[rawPlatform] as { url?: string })?.url || "",
-          })
-
-          // Pre-fill category and ToC from last post metadata
-          if (meta.category) setSelectedCategory(meta.category as string)
-          if (meta.includeTableOfContents !== undefined)
-            setIncludeTableOfContents(meta.includeTableOfContents as boolean)
-
-          return
-        }
-      }
-    }
-
-    const shopify = posted?.SHOPIFY
-
-    // CASE 1: Shopify Posted -> Lock Everything
-    if (shopify?.link) {
-      setIsCategoryLocked(true)
-      setSelectedCategory(blog?.category || "")
-      setSelectedIntegration({
-        platform: "shopify",
-        rawPlatform: "SHOPIFY",
-        url: shopify.url || "",
-      })
-      return
-    }
-
-    // CASE 2: Other History
-    const otherPosted = Object.entries(posted || {}).find(([k, v]) => k !== "SHOPIFY" && v?.link)
-    if (otherPosted) {
-      const [key, val] = otherPosted
-      // Don't lock category for non-Shopify, but selecting platform is helpful
-      if (!selectedIntegration) {
-        setSelectedIntegration({
-          platform: key.toLowerCase(),
-          rawPlatform: key,
-          url: val?.url || "",
-        })
-      }
-      return
-    }
-  }, [activePanel, posted, blog, integrations, selectedIntegration, blogPostings])
-
-  const handlePostClick = useCallback(() => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    // 1. Plan Check
-    if (userPlan === "free") {
-      return handlePopup({
-        title: "Posting Unavailable",
-        description: "Free users cannot publish blogs. Upgrade to unlock automated posting.",
-        confirmText: "Upgrade Now",
-        onConfirm: () => navigate("/pricing"),
-      })
-    }
-
-    // 2. Validate
-    const newErrors = { category: "", platform: "" }
-    let isValid = true
-
-    if (!selectedIntegration) {
-      newErrors.platform = "Please select a platform"
-      setPlatformError(true)
-      isValid = false
-    }
-    if (!selectedCategory) {
-      newErrors.category = "Please select a category"
-      setCategoryError(true)
-      isValid = false
-    }
-    setErrors(newErrors)
-
-    if (!isValid) {
-      toast.error("Please fill in required fields")
-      return
-    }
-
-    // Check if this platform has been posted to before (Warning logic)
-    // Simplified logic: If the blog has ANY published links, warn about duplicate/new URL
-    const _isDuplicatePost = hasPublishedLinks
-
-    // 3. Execution
-    const executePost = async () => {
-      try {
-        await onPost?.({
-          ...formData,
-          categories: selectedCategory, // Use the selected category from sidebar
-          includeTableOfContents,
-          type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
-        })
-        // Clean Refresh "Everything" related to postings
-        await fetchPostings()
-        queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      } catch (rawError) {
-        const error = asApiError(rawError)
-        console.error("Posting failed:", error)
-        // Handle 400 Invalid Credentials specifically
-        if (
-          error.response?.status === 400 &&
-          (error.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
-            error.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
-        ) {
-          toast.error("WordPress API has changed. Kindly update your WordPress credentials.", {
-            duration: 5000,
-          })
-        }
-      }
-    }
-
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: "You have unsaved changes. Save before posting?",
-        confirmText: "Save & Post",
-        cancelText: "Post Without Saving",
-        onConfirm: async () => {
-          try {
-            await handleSubmit?.({ metadata })
-            executePost()
-          } catch (_error) {
-            toast.error("Failed to save changes")
-          }
-        },
-        onCancel: (e) => {
-          // If user clicks "Post Without Saving" (which is typically the cancel button action in this context)
-          if (e?.source === "button") {
-            executePost()
-          }
-        },
-      })
-    } else {
-      executePost()
-    }
-  }, [
-    userPlan,
-    selectedIntegration,
-    selectedCategory,
-    includeTableOfContents,
-    formData,
-    onPost,
-    unsavedChanges,
-    handleSubmit,
-    metadata,
-    handlePopup,
-    navigate,
-    fetchPostings,
-    queryClient,
-    hasPublishedLinks,
-    blog?.isArchived,
-  ])
-
   const seoScore = result?.insights?.blogScore || blog?.seoScore || 0
   const contentScore = blog?.blogScore || 0
 
-  // ========== PANELS ==========
-  const renderOverviewPanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
-              <BarChart3 className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-gray-900">Analysis</h3>
-                {isPro && (
-                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
-                    PRO
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                Real-time Statistics
-              </p>
-            </div>
-          </div>
-          {setIsSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-                {getWordCount(editorContent)}
-              </div>
-              {blog?.userDefinedLength && (
-                <div className="text-[9px] font-bold text-gray-400 -mt-1">
-                  Target: {blog.userDefinedLength}
-                </div>
-              )}
-            </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-              Current Words
-            </div>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-            <div className="text-2xl font-black text-gray-900 group-hover:text-purple-600 transition-colors">
-              {keywords?.length || 0}
-            </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Keywords
-            </div>
-          </div>
-          {/* GSC Stats */}
-          {blog?.statistics?.totalGSCClicks > 0 && (
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-              <div className="text-2xl font-black text-gray-900 group-hover:text-green-600 transition-colors">
-                {blog.statistics.totalGSCClicks}
-              </div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Total Clicks
-              </div>
-            </div>
-          )}
-          {blog?.statistics?.totalGSCImpressions > 0 && (
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
-              <div className="text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">
-                {blog.statistics.totalGSCImpressions}
-              </div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Impressions
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Scores */}
-        <div className="space-y-3">
-          <ScoreCard title="Quality Score" score={contentScore} icon={FileText} />
-          <ScoreCard title="SEO Potential" score={seoScore} icon={TrendingUp} />
-        </div>
-
-        {/* Optimization Card — spends the owner's credits, so it's gone entirely for
-            read-only collaborators rather than shown disabled. */}
-        {!isReadOnlyWorkspace && (
-          <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="w-5 h-5 text-indigo-500" />
-              <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
-            </div>
-            <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
-              Run our advanced competitive analysis to uncover keyword opportunities and improve
-              rankings.
-            </p>
-            <button
-              type="button"
-              onClick={handleAnalyzing}
-              disabled={isAnalyzingCompetitive || isPublicMode}
-              className={`
-              w-full py-3 px-4 rounded-md text-xs font-bold transition-all
-              ${
-                isAnalyzingCompetitive || isPublicMode
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-[#4C5BD6] hover:bg-[#3B4BB8] text-white"
-              }
-            `}
-            >
-              {isPublicMode
-                ? "Analysis Locked"
-                : isAnalyzingCompetitive
-                  ? "Analyzing Content..."
-                  : "Run Analysis (10 Credits)"}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
-  // Export handlers
-  const handleExportMarkdown = async () => {
+  // Export handlers — `withImages` comes from SeoPanel's own local toggle rather
+  // than shared state, since nothing else needs to know about it.
+  const handleExportMarkdown = async (withImages: boolean) => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -1675,14 +654,13 @@ const TextEditorSidebar = ({
     if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      toast.loading(
-        includeImagesInExport ? "Preparing Markdown with images..." : "Generating Markdown...",
-        { id: "md-export" }
-      )
+      toast.loading(withImages ? "Preparing Markdown with images..." : "Generating Markdown...", {
+        id: "md-export",
+      })
 
       const { data: blob } = await exportBlog(blog._id, {
         type: "markdown",
-        withImages: includeImagesInExport,
+        withImages,
       })
 
       // Create download link
@@ -1690,16 +668,14 @@ const TextEditorSidebar = ({
       const a = document.createElement("a")
       a.href = url
       // Use .zip extension if images included, otherwise .md
-      const downloadName = includeImagesInExport
-        ? `${blog.title || "blog"}.zip`
-        : `${blog.title || "blog"}.md`
+      const downloadName = withImages ? `${blog.title || "blog"}.zip` : `${blog.title || "blog"}.md`
       a.download = downloadName
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      const successMsg = includeImagesInExport
+      const successMsg = withImages
         ? "Markdown with images downloaded as ZIP!"
         : "Markdown downloaded successfully!"
       toast.success(successMsg, { id: "md-export" })
@@ -1710,7 +686,7 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleExportHTML = async () => {
+  const handleExportHTML = async (withImages: boolean) => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -1724,14 +700,13 @@ const TextEditorSidebar = ({
     if (!editorContent?.trim()) return toast.error("No content to export")
 
     try {
-      toast.loading(
-        includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
-        { id: "html-export" }
-      )
+      toast.loading(withImages ? "Preparing HTML with images..." : "Generating HTML...", {
+        id: "html-export",
+      })
 
       const { data: blob } = await exportBlog(blog._id, {
         type: "html",
-        withImages: includeImagesInExport,
+        withImages,
       })
 
       // Create download link
@@ -1739,7 +714,7 @@ const TextEditorSidebar = ({
       const a = document.createElement("a")
       a.href = url
       // Use .zip extension if images included, otherwise .html
-      const downloadName = includeImagesInExport
+      const downloadName = withImages
         ? `${blog.title || "blog"}.zip`
         : `${blog.title || "blog"}.html`
       a.download = downloadName
@@ -1748,7 +723,7 @@ const TextEditorSidebar = ({
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      const successMsg = includeImagesInExport
+      const successMsg = withImages
         ? "HTML with images downloaded as ZIP!"
         : "HTML downloaded successfully!"
       toast.success(successMsg, { id: "html-export" })
@@ -1759,1190 +734,54 @@ const TextEditorSidebar = ({
     }
   }
 
-  const renderSeoPanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-100">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-gray-900">SEO & Export</h3>
-                {isPro && (
-                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
-                    PRO
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                Metadata & Assets
-              </p>
-            </div>
-          </div>
-          {setIsSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* SEO Metadata Section */}
-        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              SEO Metadata
-            </span>
-            {!isReadOnlyWorkspace && (
-              <button
-                type="button"
-                onClick={handleMetadataGen}
-                disabled={blog?.isArchived || isPublicMode}
-                className={`text-xs font-medium flex items-center gap-1 ${
-                  blog?.isArchived || isPublicMode
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-blue-600 hover:text-blue-700 hover:underline"
-                }`}
-              >
-                <Sparkles className="w-3 h-3" /> {isPublicMode ? "Locked" : "Generate"}
-              </button>
-            )}
-          </div>
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={metadata.title}
-              onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
-              placeholder="Meta title..."
-              disabled={isLocked}
-              className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
-            />
-            <textarea
-              value={metadata.description}
-              onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Meta description..."
-              rows={4}
-              disabled={isLocked}
-              className="textarea textarea-bordered w-full text-sm resize-none disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
-          {/* Nothing to save when the fields above can't be edited */}
-          {!isReadOnlyWorkspace && (
-            <button
-              type="button"
-              onClick={handleMetadataSave}
-              disabled={blog?.isArchived || isPublicMode}
-              className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
-                blog?.isArchived || isPublicMode
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
-              }`}
-            >
-              {isPublicMode ? "Metadata Locked" : "Save Metadata"}
-            </button>
-          )}
-        </div>
-
-        {/* Export Section */}
-        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
-          <div className="flex items-center gap-2">
-            <Download className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-semibold text-gray-900">Export Blog</span>
-            {userPlan === "free" && (
-              <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Pro
-              </span>
-            )}
-          </div>
-
-          {/* Include Images Toggle */}
-          <div
-            className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
-              includeImagesInExport ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <ImageIcon
-                className={`w-4 h-4 transition-colors ${
-                  includeImagesInExport ? "text-blue-600" : "text-gray-500"
-                }`}
-              />
-              <span
-                className={`text-sm font-medium transition-colors ${
-                  includeImagesInExport ? "text-blue-900" : ""
-                }`}
-              >
-                Include Images
-              </span>
-            </div>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary toggle-sm"
-              checked={includeImagesInExport}
-              onChange={(e) => setIncludeImagesInExport(e.target.checked)}
-              disabled={userPlan === "free"}
-            />
-          </div>
-          {includeImagesInExport && userPlan !== "free" && (
-            <div className="px-2 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                Downloads as ZIP with images included
-              </p>
-            </div>
-          )}
-
-          <div
-            className="
-    grid gap-3
-    grid-cols-1
-    sm:grid-cols-2
-    lg:grid-cols-3
-  "
-          >
-            {/* Markdown */}
-            <button
-              type="button"
-              onClick={handleExportMarkdown}
-              disabled={userPlan === "free"}
-              className={`
-      group flex flex-col items-center justify-center gap-2
-      py-4 px-3
-      rounded-xl text-sm font-semibold
-      border-2 transition-all duration-300
-      ${
-        userPlan === "free"
-          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-          : `
-            bg-linear-to-br from-blue-50 to-indigo-50
-            hover:from-blue-100 hover:to-indigo-100
-            text-blue-700 border-blue-200
-            hover:border-blue-300 hover:shadow-lg
-            active:scale-[0.98] sm:hover:scale-105
-          `
-      }
-    `}
-            >
-              <FileText
-                className={`
-        w-6 h-6
-        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
-      `}
-              />
-              <span>Markdown</span>
-            </button>
-
-            {/* HTML */}
-            <button
-              type="button"
-              onClick={handleExportHTML}
-              disabled={userPlan === "free"}
-              className={`
-      group flex flex-col items-center justify-center gap-2
-      py-4 px-3
-      rounded-xl text-sm font-semibold
-      border-2 transition-all duration-300
-      ${
-        userPlan === "free"
-          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-          : `
-            bg-linear-to-br from-purple-50 to-pink-50
-            hover:from-purple-100 hover:to-pink-100
-            text-purple-700 border-purple-200
-            hover:border-purple-300 hover:shadow-lg
-            active:scale-[0.98] sm:hover:scale-105
-          `
-      }
-    `}
-            >
-              <FileCode
-                className={`
-        w-6 h-6
-        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
-      `}
-              />
-              <span>HTML</span>
-            </button>
-
-            {/* PDF — withheld from read-only collaborators */}
-            {!isReadOnlyWorkspace && (
-              <button
-                type="button"
-                onClick={handlePdfExport}
-                disabled={userPlan === "free"}
-                className={`
-      group flex flex-col items-center justify-center gap-2
-      py-4 px-3
-      rounded-xl text-sm font-semibold
-      border-2 transition-all duration-300
-      ${
-        userPlan === "free"
-          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-          : `
-            bg-linear-to-br from-green-50 to-emerald-50
-            hover:from-green-100 hover:to-emerald-100
-            text-green-700 border-green-200
-            hover:border-green-300 hover:shadow-lg
-            active:scale-[0.98] sm:hover:scale-105
-          `
-      }
-    `}
-              >
-                <Download
-                  className={`
-        w-6 h-6
-        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
-      `}
-                />
-                <span>PDF</span>
-              </button>
-            )}
-          </div>
-
-          {userPlan === "free" && (
-            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-xs text-amber-700 text-center font-medium">
-                🔒 Upgrade to export your blogs in multiple formats
-              </p>
-            </div>
-          )}
-        </div>
-
-        {result && (
-          <div className="space-y-4">
-            {/* Detailed Analysis Breakdown */}
-            {result.insights?.analysis && (
-              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
-                </div>
-                <div className="space-y-2">
-                  {/* Each criterion is one AI-written sentence (score is embedded in the
-                      text itself, e.g. "...(15/20 points)"), not a separate {score,
-                      maxScore, feedback} breakdown. */}
-                  {Object.entries(result.insights.analysis).map(([category, data]) => (
-                    <div
-                      key={category}
-                      className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
-                    >
-                      <input type="checkbox" className="peer" />
-                      <div className="collapse-title flex items-center pr-8">
-                        <span className="font-medium text-gray-800 text-sm">{category}</span>
-                      </div>
-                      <div className="collapse-content">
-                        <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          {data}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Actionable Suggestions — the API returns this as one AI-written paragraph, not a list */}
-            {result.insights?.suggestions && (
-              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-semibold text-gray-900">Suggestions</span>
-                </div>
-                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll">
-                  <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-line">
-                    {result.insights.suggestions}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Competitors Analysis */}
-            {result.competitors && result.competitors.length > 0 && (
-              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
-                  <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                    {result.competitors.length}
-                  </span>
-                </div>
-                <CompetitorsList competitors={result.competitors} />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
-  // Suggestions panel removed
-  const renderBlogInfoPanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 italic">
-              <Info className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 line-clamp-1">Blog Content</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                Technical Data
-              </p>
-            </div>
-          </div>
-          {setIsSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
-        {/* Blog Slug */}
-        <div className="p-3 bg-white border border-gray-300 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs text-gray-500">Blog Slug</div>
-            {!hasPublishedLinks && !isReadOnlyWorkspace && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (blog?.isArchived || isPublicMode) {
-                    toast.error(
-                      isPublicMode
-                        ? "Read-only mode"
-                        : "This blog is archived. Please restore it to perform this action."
-                    )
-                    return
-                  }
-                  setIsEditingSlug(!isEditingSlug)
-                }}
-                className={`text-xs font-semibold ${
-                  blog?.isArchived || isPublicMode
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-blue-600 hover:text-blue-700"
-                }`}
-              >
-                {isEditingSlug ? "Cancel" : "Edit"}
-              </button>
-            )}
-          </div>
-          {isEditingSlug && !hasPublishedLinks ? (
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={blogSlug}
-                onChange={(e) => setBlogSlug(e.target.value)}
-                placeholder="blog-slug"
-                className="input input-bordered input-sm w-full text-sm font-mono"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!blogSlug.trim()) {
-                    return toast.error("Slug cannot be empty")
-                  }
-                  try {
-                    await handleSubmit?.({ slug: blogSlug })
-                    setIsEditingSlug(false)
-                    toast.success("Slug updated successfully")
-                  } catch (error) {
-                    console.error("Failed to update slug:", error)
-                    toast.error("Failed to update slug")
-                  }
-                }}
-                className="btn btn-sm btn-primary w-full text-white"
-              >
-                Save Slug
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div className="font-semibold text-gray-900 font-mono text-sm break-all">
-                {blog?.slug || "Not set"}
-              </div>
-              {hasPublishedLinks && (
-                <p className="text-[10px] text-gray-400 mt-1 italic">Slug locked after posting</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Template & Category */}
-        <div className="space-y-3">
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">Template</div>
-            <div className="font-semibold text-gray-900">{blog?.template || "N/A"}</div>
-          </div>
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">Category</div>
-            <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
-          </div>
-        </div>
-
-        {/* Brand Information */}
-        {(blog?.brandId || blog?.brandId?.nameOfVoice) && (
-          <div className="p-3 bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-3.5 h-3.5 text-purple-600" />
-              <div className="text-xs font-bold text-purple-900 uppercase tracking-wider">
-                Brand Voice
-              </div>
-            </div>
-            <div className="font-bold text-gray-900">
-              {typeof blog.brandId === "object"
-                ? blog.brandId.nameOfVoice || blog.brandId.name
-                : "Custom Brand"}
-            </div>
-            {blog.brandId?.describeBrand && (
-              <p className="text-[10px] text-gray-500 mt-1 line-clamp-2">
-                {blog.brandId.describeBrand}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Tags */}
-        {blog?.tags && blog.tags.length > 0 && (
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-2">Tags</div>
-            <div className="flex flex-wrap gap-1.5">
-              {blog.tags.map((tag: any) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
-                >
-                  <TagIcon className="w-3 h-3 mr-1" />
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Keywords */}
-        {blog?.keywords && blog.keywords.length > 0 && (
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-2">Keywords</div>
-            <div className="flex flex-wrap gap-1.5">
-              {blog.keywords.map((kw: any) => (
-                <span key={kw} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
-                  {kw}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Focus Keywords */}
-        {blog?.focusKeywords && blog.focusKeywords.length > 0 && (
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
-            <div className="flex flex-wrap gap-1.5">
-              {blog.focusKeywords.map((kw: any) => (
-                <span
-                  key={kw}
-                  className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
-                >
-                  {kw}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tone & Word Count */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">Tone</div>
-            <div className="font-semibold text-gray-900">{blog?.tone || "N/A"}</div>
-          </div>
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">Target Length</div>
-            <div className="font-semibold text-gray-900">{blog?.userDefinedLength || 0} words</div>
-          </div>
-        </div>
-
-        {/* AI Model & Image Source */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">AI Model</div>
-            <div className="font-semibold text-gray-900 capitalize">{blog?.aiModel || "N/A"}</div>
-          </div>
-          <div className="p-3 bg-white border border-gray-300 rounded-lg">
-            <div className="text-xs text-gray-500 mb-1">Image Source</div>
-            <div className="font-semibold text-gray-900 capitalize">
-              {blog?.imageSource || "none"}
-            </div>
-          </div>
-        </div>
-
-        {/* Options/Features */}
-        {/* Options/Features - Redesigned */}
-        <div className="p-4 bg-white border border-gray-100 rounded-lg shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Feature Status
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              { key: "exactTitle", label: "Exact Title", value: blog?.options?.exactTitle },
-              {
-                key: "performKeywordResearch",
-                label: "Perform Keyword Research",
-                value: blog?.options?.performKeywordResearch,
-              },
-              {
-                key: "includeInterlinks",
-                label: "Include Interlinks",
-                value: blog?.options?.includeInterlinks,
-              },
-              {
-                key: "includeCompetitorResearch",
-                label: "Include Competitor Research",
-                value: blog?.options?.includeCompetitorResearch,
-              },
-              {
-                key: "addOutBoundLinks",
-                label: "Add Outbound Links",
-                value: blog?.options?.addOutBoundLinks,
-              },
-              { key: "includeFaqs", label: "Include FAQs", value: blog?.options?.includeFaqs },
-              { key: "addCTA", label: "Add CTA", value: blog?.options?.addCTA || blog?.addCTA },
-              {
-                key: "createBrandedImages",
-                label: "Create Branded Images",
-                value: blog?.options?.createBrandedImages || blog?.createBrandedImages,
-              },
-              {
-                key: "automaticPosting",
-                label: "Automatic Posting",
-                value: blog?.options?.automaticPosting,
-              },
-              {
-                key: "includeTableOfContents",
-                label: "Include Table Of Contents",
-                value: blog?.options?.includeTableOfContents,
-              },
-              {
-                key: "embedYouTubeVideos",
-                label: "Embed YouTube Videos",
-                value: blog?.options?.embedYouTubeVideos || blog?.embedYouTubeVideos,
-              },
-              {
-                key: "easyToUnderstand",
-                label: "Easy To Understand",
-                value: blog?.options?.easyToUnderstand || blog?.easyToUnderstand,
-              },
-              { key: "costCutter", label: "Cost Cutter", value: blog?.costCutter },
-              { key: "isCheckedBrand", label: "Brand Voice", value: blog?.isCheckedBrand },
-              { key: "isCheckedQuick", label: "Quick Summary", value: blog?.isCheckedQuick },
-              {
-                key: "humanisation",
-                label: "Humanisation",
-                value: blog?.humanisation || blog?.options?.humanisation || false,
-              },
-              {
-                key: "extendedThinking",
-                label: "Extended Thinking",
-                value: blog?.extendedThinking || blog?.options?.extendedThinking || false,
-              },
-              {
-                key: "deepResearch",
-                label: "Deep Research",
-                value: blog?.deepResearch || blog?.options?.deepResearch || false,
-              },
-            ].map((feature) => (
-              <div
-                key={feature.key}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
-              >
-                <span className="text-sm  font-medium">{feature.label}</span>
-                <div
-                  className={`
-                    flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border
-                    ${
-                      feature.value
-                        ? "bg-green-50 text-green-700 border-green-200"
-                        : "bg-gray-100 text-gray-500 border-gray-200"
-                    }
-                  `}
-                >
-                  {feature.value ? (
-                    <>
-                      <CheckCircle className="w-3 h-3" />
-                      <span>ON</span>
-                    </>
-                  ) : (
-                    <>
-                      <X className="w-3 h-3" />
-                      <span>OFF</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderSectionToolsPanel = () => (
-    <div className="flex flex-col h-full bg-white relative">
-      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 text-primary rounded-lg border border-primary/20">
-              <Wand2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 line-clamp-1">Section Tools</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                AI Modification
-              </p>
-            </div>
-          </div>
-          {setIsSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
-        {/* Section List (Cards) */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
-              Result Sections ({availableSections.length})
-            </span>
-            {sectionToolState.sectionId ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSectionToolState((prev) => ({ ...prev, sectionId: "" }))
-                  window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
-                }}
-                className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-colors"
-              >
-                <X className="w-3 h-3" />
-                Cancel
-              </button>
-            ) : (
-              <span className="text-[10px] text-gray-400">Select to edit</span>
-            )}
-          </div>
-
-          <div className="grid gap-3">
-            {availableSections.length === 0 ? (
-              <div className="text-center p-4 bg-gray-50 rounded-lg text-gray-400 text-xs">
-                No headers found. Add headings to your content to use section tools.
-              </div>
-            ) : (
-              availableSections.map((section) => (
-                <button
-                  type="button"
-                  key={section.id}
-                  aria-pressed={sectionToolState.sectionId === section.id}
-                  onClick={() => {
-                    if (blog?.isArchived) {
-                      toast.error(
-                        "This blog is archived. Please restore it to perform this action."
-                      )
-                      return
-                    }
-                    setSectionToolState((prev) => ({ ...prev, sectionId: section.id }))
-                    // Dispatch highlight event
-                    window.dispatchEvent(
-                      new CustomEvent("highlight-section", { detail: section.id })
-                    )
-                  }}
-                  className={`
-                            group relative block w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
-                            ${
-                              sectionToolState.sectionId === section.id
-                                ? "bg-primary/10 border-primary/40 shadow-none ring-1 ring-primary/20"
-                                : blog?.isArchived
-                                  ? "bg-gray-50 border-gray-100 cursor-not-allowed"
-                                  : "bg-white border-gray-200 hover:border-primary/30 hover:shadow-none"
-                            }
-                        `}
-                >
-                  {/* spans, not h4/p — <button> admits only phrasing content */}
-                  <span
-                    className={`block text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
-                  >
-                    {section.title}
-                  </span>
-                  <span
-                    className={`block text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
-                  >
-                    {section.preview || "No content preview available..."}
-                  </span>
-
-                  {sectionToolState.sectionId === section.id && (
-                    <span className="absolute top-3 right-3">
-                      <span className="flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                      </span>
-                    </span>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Task Selector */}
-        <div
-          className={`space-y-3 transition-opacity duration-300 ${!sectionToolState.sectionId ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}`}
-        >
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
-            Operation
-          </span>
-
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              {
-                id: "rewrite",
-                label: "Rewrite Content",
-                icon: RefreshCcw,
-                desc: "Improve clarity and flow",
-              },
-              {
-                id: "proofread",
-                label: "Proofread",
-                icon: CheckCircle,
-                desc: "Fix grammar and spelling",
-              },
-              {
-                id: "promptChanges",
-                label: "Custom Prompt",
-                icon: MessageSquare,
-                desc: "Give your own instructions",
-              },
-            ].map((task) => (
-              <button
-                type="button"
-                key={task.id}
-                aria-pressed={sectionToolState.task === task.id}
-                onClick={() => setSectionToolState((prev) => ({ ...prev, task: task.id }))}
-                className={`
-                            relative w-full text-left p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
-                            ${
-                              sectionToolState.task === task.id
-                                ? "bg-blue-50 border-blue-200 shadow-sm"
-                                : "bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50"
-                            }
-                        `}
-              >
-                <span
-                  className={`
-                            p-2 rounded-full
-                            ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
-                        `}
-                >
-                  <task.icon className="w-4 h-4" />
-                </span>
-                <span>
-                  <span
-                    className={`block text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : ""}`}
-                  >
-                    {task.label}
-                  </span>
-                  <span className="block text-[10px] text-gray-400">{task.desc}</span>
-                </span>
-                {sectionToolState.task === task.id && (
-                  <span className="absolute top-3 right-3 text-blue-500">
-                    <CheckCircle className="w-4 h-4 fill-blue-100" />
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Custom Instructions */}
-        {sectionToolState.task === "promptChanges" && sectionToolState.sectionId && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="space-y-2"
-          >
-            <label
-              htmlFor="section-tool-instructions"
-              className="text-xs font-bold text-gray-500 uppercase tracking-widest block"
-            >
-              Your Instructions
-            </label>
-            <textarea
-              id="section-tool-instructions"
-              placeholder="E.g., Make it more professional and add 2 examples..."
-              rows={4}
-              value={sectionToolState.instructions}
-              onChange={(e) =>
-                setSectionToolState((prev) => ({ ...prev, instructions: e.target.value }))
-              }
-              className="textarea textarea-bordered w-full text-sm bg-gray-50 focus:bg-white"
-            />
-          </motion.div>
-        )}
-
-        {/* Action Button */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handleSectionTask}
-            disabled={
-              isProcessingSection ||
-              blog?.isArchived ||
-              isLocked ||
-              !sectionToolState.sectionId ||
-              (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
-            }
-            className={`btn btn-primary w-full shadow-lg transition-all border-none rounded-xl ${
-              blog?.isArchived || isPublicMode
-                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                : "hover:shadow-xl hover:scale-[1.02] bg-linear-to-r from-indigo-600 to-blue-600"
-            } ${isProcessingSection ? "opacity-100! text-white" : ""}`}
-          >
-            {isProcessingSection ? (
-              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            {isPublicMode
-              ? "AI Tools Locked"
-              : isProcessingSection
-                ? "Processing..."
-                : "Run AI Task"}
-          </button>
-          <p className="text-[10px] text-center text-gray-400 mt-2">
-            This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
-            directly.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderPostingPanel = () => (
-    <div className="flex flex-col h-full bg-white relative">
-      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-green-600 rounded-xl shadow-lg shadow-green-100">
-              <Send className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 line-clamp-1">Publishing</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                Distribution & History
-              </p>
-            </div>
-          </div>
-          {setIsSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll">
-        {/* === NEW POST SECTION === */}
-        <div>
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
-            <div className="flex items-center gap-2">
-              <Send className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                New Post
-              </span>
-            </div>
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
-              {selectedIntegration
-                ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
-                : "Configure"}
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            {/* Platform Select */}
-            <div>
-              <label htmlFor="posting-platform" className="text-xs font-semibold  mb-1.5 block">
-                Select Platform
-              </label>
-              {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
-                <select
-                  id="posting-platform"
-                  className={`select select-bordered outline-0 w-full ${platformError ? "select-error" : ""} ${
-                    blog?.isArchived ? "bg-gray-100 cursor-not-allowed" : ""
-                  }`}
-                  value={selectedIntegration?.rawPlatform || ""}
-                  disabled={blog?.isArchived}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    const d = integrations?.integrations?.[v] as { url?: string } | undefined
-                    handleIntegrationChange(v, d?.url)
-                  }}
-                >
-                  <option value="" disabled>
-                    Choose platform...
-                  </option>
-                  {Object.entries(integrations.integrations).map(([k, _v]) => (
-                    <option key={k} value={k}>
-                      {PLATFORM_LABELS[k] || k}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
-                  No platforms connected.{" "}
-                  <button
-                    type="button"
-                    className="font-bold cursor-pointer underline"
-                    onClick={() => navigate("/plugins")}
-                  >
-                    Connect now
-                  </button>
-                  .
-                </div>
-              )}
-              {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
-            </div>
-            {/* Category Select */}
-            <div>
-              <span className="text-xs font-semibold  mb-1.5 block">Select Category</span>
-
-              {/* Active Category Tag */}
-              {/* {selectedCategory && (
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-medium max-w-full">
-                    <span className="truncate">{selectedCategory}</span>
-                    {!isCategoryLocked && (
-                      <X
-                        size={12}
-                        className="cursor-pointer opacity-75 hover:opacity-100"
-                        onClick={handleCategoryRemove}
-                      />
-                    )}
-                  </div>
-                </div>
-              )} */}
-
-              <input
-                type="text"
-                className={`input input-bordered outline-0 w-full ${categoryError ? "input-error" : ""}`}
-                placeholder="Select or type..."
-                value={selectedCategory || ""}
-                onChange={(e) => handleCategoryChange([e.target.value])}
-                disabled={isCategoryLocked}
-              />
-
-              {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
-
-              {selectedIntegration?.platform === "shopify" && (
-                <div className="mt-2 p-2.5 bg-amber-50 text-amber-800 text-[10px] border border-amber-200 rounded-xl flex items-start gap-2 shadow-xs">
-                  <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Public Release Warning:</span> Shopify categories
-                    cannot be changed once the post is public. Please ensure this is correct.
-                  </div>
-                </div>
-              )}
-
-              {/* Consistently show Categories for all platforms (WordPress, Shopify, Sanity, Server) */}
-              <PlatformCategories
-                onSelect={handleCategoryAdd}
-                currentCategory={selectedCategory}
-                platform={selectedIntegration?.rawPlatform}
-              />
-            </div>
-            {/* ToC Toggle */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
-              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
-              <Switch
-                checked={includeTableOfContents}
-                onCheckedChange={setIncludeTableOfContents}
-                disabled={blog?.isArchived}
-              />
-            </div>
-
-            {/* Main Post Action */}
-            <button
-              type="button"
-              onClick={handlePostClick}
-              disabled={isPosting || blog?.isArchived || isLocked}
-              className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${
-                isPosting || blog?.isArchived || isLocked
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-linear-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-100 hover:translate-y-px"
-              }`}
-            >
-              {isPosting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Publishing...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>{isPublicMode ? "Publishing Locked" : "Publish Now"}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* === POST HISTORY SECTION === */}
-        <div>
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Post History
-              </span>
-            </div>
-          </div>
-
-          {isLoadingPostings ? (
-            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">Loading history...</p>
-            </div>
-          ) : hasPublishedLinks ? (
-            <div className="space-y-3">
-              {blogPostings.map((posting) => (
-                <div
-                  key={posting.link || posting.postedOn}
-                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-bold ">
-                      {PLATFORM_LABELS[posting.integrationType] || posting.integrationType}
-                    </span>
-                    <span className="text-[12px] text-gray-400">
-                      {posting.postedOn ? new Date(posting.postedOn).toLocaleDateString() : "—"}
-                    </span>
-                  </div>
-                  <div className="space-y-1 mb-2">
-                    <div className="flex justify-between">
-                      <span className="text-[12px] text-gray-400">Category:</span>
-                      <span className="text-[12px] font-medium  text-right truncate max-w-30">
-                        {(posting.metadata?.category as string) || blog.category}
-                      </span>
-                    </div>
-                    {posting.link && (
-                      <a
-                        href={posting.link}
-                        target="_blank"
-                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
-                        rel="noopener"
-                      >
-                        View Live <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
-
-                    {/* Live Search Console index status + best-effort indexing request */}
-                    <IndexingStatus
-                      blogId={blog?._id}
-                      pageUrl={posting.link}
-                      indexing={posting.indexing}
-                      hasGscAccess={hasGscAccess}
-                      canRequest={!isLocked}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="tooltip" data-tip="Edit settings and repost">
-                      <button
-                        type="button"
-                        className="btn btn-square btn-sm btn-ghost border-gray-200 hover:text-blue-600 hover:border-blue-200"
-                        onClick={() => {
-                          if (blog?.isArchived) {
-                            toast.error(
-                              "This blog is archived. Please restore it to perform this action."
-                            )
-                            return
-                          }
-                          openRepostModal(posting)
-                        }}
-                        disabled={isPosting || blog?.isArchived}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm flex-1 text-[12px] font-semibold h-8"
-                      onClick={() => {
-                        if (blog?.isArchived) {
-                          toast.error(
-                            "This blog is archived. Please restore it to perform this action."
-                          )
-                          return
-                        }
-                        onPost?.({
-                          ...formData,
-                          categories: (posting.metadata?.category as string) || blog.category,
-                          includeTableOfContents: posting.metadata?.includeTableOfContents as
-                            | boolean
-                            | undefined,
-                          type: { platform: posting.integrationType },
-                        })
-                      }}
-                      disabled={isPosting || blog?.isArchived}
-                    >
-                      Repost Same Settings
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
-              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-
   const renderPanel = () => {
     switch (activePanel) {
       case "overview":
-        return renderOverviewPanel()
+        return (
+          <OverviewPanel
+            blog={blog}
+            isPro={isPro}
+            isPublicMode={isPublicMode}
+            isReadOnlyWorkspace={isReadOnlyWorkspace}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onAnalyze={handleAnalyzing}
+            isAnalyzing={isAnalyzingCompetitive}
+            seoScore={seoScore}
+            contentScore={contentScore}
+          />
+        )
       case "seo":
-        return renderSeoPanel()
+        return (
+          <SeoPanel
+            blog={blog}
+            userPlan={userPlan}
+            isPro={isPro}
+            isPublicMode={isPublicMode}
+            isReadOnlyWorkspace={isReadOnlyWorkspace}
+            isLocked={isLocked}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onMetadataGenerate={handleMetadataGen}
+            onMetadataSave={handleMetadataSave}
+            isGeneratingMetadata={isGeneratingMetadata}
+            analysisResult={result}
+            onExportMarkdown={handleExportMarkdown}
+            onExportHTML={handleExportHTML}
+            onExportPDF={handlePdfExport}
+          />
+        )
       case "bloginfo":
-        return renderBlogInfoPanel()
+        return (
+          <BlogInfoPanel
+            blog={blog}
+            hasPublishedLinks={hasPublishedLinks}
+            isReadOnlyWorkspace={isReadOnlyWorkspace}
+            isPublicMode={isPublicMode}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onSlugSave={async (slug) => {
+              await handleSubmit?.({ slug })
+            }}
+          />
+        )
       case "brand":
         return (
           <BrandVoicePanel
@@ -2961,7 +800,19 @@ const TextEditorSidebar = ({
           />
         )
       case "posting":
-        return renderPostingPanel()
+        return (
+          <PostingPanel
+            blog={blog}
+            userPlan={userPlan}
+            isLocked={isLocked}
+            isPublicMode={isPublicMode}
+            hasGscAccess={hasGscAccess}
+            onPost={onPost}
+            handleSubmit={handleSubmit}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onOpenRepostModal={openRepostModal}
+          />
+        )
       case "insights":
         return (
           <InsightsPanel
@@ -2977,9 +828,28 @@ const TextEditorSidebar = ({
           />
         )
       case "sectionTools":
-        return renderSectionToolsPanel()
+        return (
+          <SectionToolsPanel
+            blog={blog}
+            isLocked={isLocked}
+            isPublicMode={isPublicMode}
+            setIsSidebarOpen={setIsSidebarOpen}
+          />
+        )
       default:
-        return renderOverviewPanel()
+        return (
+          <OverviewPanel
+            blog={blog}
+            isPro={isPro}
+            isPublicMode={isPublicMode}
+            isReadOnlyWorkspace={isReadOnlyWorkspace}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onAnalyze={handleAnalyzing}
+            isAnalyzing={isAnalyzingCompetitive}
+            seoScore={seoScore}
+            contentScore={contentScore}
+          />
+        )
     }
   }
 
@@ -3189,7 +1059,7 @@ const TextEditorSidebar = ({
             </div>
 
             {repostSettings.platform && (
-              <PlatformCategories
+              <PlatformCategoriesField
                 onSelect={(cat: any) => setRepostSettings({ ...repostSettings, category: cat })}
                 currentCategory={repostSettings.category}
                 platform={repostSettings.platform}
@@ -3260,11 +1130,11 @@ const TextEditorSidebar = ({
               </p>
               <div className="space-y-2">
                 <p className="text-xs text-gray-500">
-                  <span className="font-medium">Title:</span> {metadata.title || "Not set"}
+                  <span className="font-medium">Title:</span> {seoMetadata.title || "Not set"}
                 </p>
                 <p className="text-xs text-gray-500">
                   <span className="font-medium">Description:</span>{" "}
-                  {metadata.description || "Not set"}
+                  {seoMetadata.description || "Not set"}
                 </p>
               </div>
             </div>
@@ -3290,23 +1160,16 @@ const TextEditorSidebar = ({
         />
       </div>
 
-      {/* Regenerate Modal */}
-      <RegenerateModal
-        isOpen={isRegenerateModalOpen}
-        onClose={() => setIsRegenerateModalOpen(false)}
-        onSubmit={handleRegenerateSubmit}
-        isRegenerating={isRegenerating}
-        regenForm={regenForm}
-        updateRegenField={updateRegenField}
-        integrations={integrations}
-      />
+      {/* Regenerate Modal — owns its own form state, cost calc, submit, and reads
+          the open blog from useBlogStore directly instead of taking it as a prop */}
+      <RegenerateModal isOpen={isRegenerateModalOpen} onClose={() => setIsRegenerateModalOpen(false)} />
 
       {/* Categories Modal for Publishing */}
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
         onSubmit={onPost}
-        initialIncludeTableOfContents={includeTableOfContents}
+        initialIncludeTableOfContents={false}
         integrations={integrations}
         blogData={blog}
         posted={posted}

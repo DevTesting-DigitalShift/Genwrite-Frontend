@@ -115,9 +115,11 @@ export interface BasePanelProps {
   isPro: boolean
 }
 
-export interface OverviewPanelProps extends BasePanelProps {
-  editorContent: string
-  keywords: string[]
+export interface OverviewPanelProps {
+  blog: Blog
+  isPro: boolean
+  isPublicMode?: boolean
+  isReadOnlyWorkspace?: boolean
   setIsSidebarOpen?: (open: boolean) => void
   onAnalyze: () => void
   isAnalyzing: boolean
@@ -125,61 +127,35 @@ export interface OverviewPanelProps extends BasePanelProps {
   contentScore: number
 }
 
-export interface SeoPanelProps extends BasePanelProps {
-  metadata: Metadata
-  setMetadata: (metadata: Metadata | ((prev: Metadata) => Metadata)) => void
+export interface SeoPanelProps {
+  blog: Blog
+  userPlan: string
+  isPro: boolean
+  isPublicMode?: boolean
+  isReadOnlyWorkspace?: boolean
+  isLocked?: boolean
+  setIsSidebarOpen?: (open: boolean) => void
   onMetadataGenerate: () => void
   onMetadataSave: () => void
   isGeneratingMetadata: boolean
   analysisResult?: CompetitorAnalysisResponse
-  editorContent: string
-  includeImagesInExport: boolean
-  setIncludeImagesInExport: (value: boolean) => void
-  onExportMarkdown: () => void
-  onExportHTML: () => void
-  onExportPDF: () => void
+  onExportMarkdown: (withImages: boolean) => void
+  onExportHTML: (withImages: boolean) => void
+  onExportPDF: (withImages: boolean) => void
 }
 
-export interface BlogInfoPanelProps extends BasePanelProps {
-  blogSlug: string
-  setBlogSlug: (slug: string) => void
-  isEditingSlug: boolean
-  setIsEditingSlug: (editing: boolean) => void
+export interface BlogInfoPanelProps {
+  blog: Blog
   hasPublishedLinks: boolean
+  isReadOnlyWorkspace?: boolean
+  isPublicMode?: boolean
+  setIsSidebarOpen?: (open: boolean) => void
   onSlugSave: (slug: string) => Promise<void>
 }
 
 export interface BrandVoicePanelProps extends BasePanelProps {
   onRegenerateWithBrand: () => void
   setIsSidebarOpen?: (open: boolean) => void
-}
-
-export interface PostingPanelProps extends BasePanelProps {
-  integrations: Integrations
-  blogPostings: BlogPosting[]
-  isLoadingPostings: boolean
-  selectedCategory: string
-  setSelectedCategory: (category: string) => void
-  selectedIntegration: { platform: string; rawPlatform: string; url: string } | null
-  setSelectedIntegration: (
-    integration: { platform: string; rawPlatform: string; url: string } | null
-  ) => void
-  includeTableOfContents: boolean
-  setIncludeTableOfContents: (include: boolean) => void
-  isCategoryLocked: boolean
-  categoryError: boolean
-  platformError: boolean
-  errors: { category: string; platform: string }
-
-  onPost: (data: any) => void
-  isPosting: boolean
-
-  formData: any
-  hasAnyIntegration: boolean
-}
-
-export interface RegeneratePanelProps extends BasePanelProps {
-  onRegenerate: () => void
 }
 
 /**
