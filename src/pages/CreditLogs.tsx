@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react"
 import { Helmet } from "react-helmet-async"
 import dayjs from "dayjs"
 import useCreditLogStore from "@store/useCreditLogStore"
-import { useCreditLogsQuery } from "@api/queries/creditLogsQueries"
+import { creditLogQuery } from "@api/CreditLog/CreditLog.query"
 import { getSocket } from "@utils/socket"
 import { Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import Fuse from "fuse.js"
@@ -48,7 +48,7 @@ const CreditLogsTable = () => {
 
   const queryParams = { page: 1, limit: -1, ...getDateRangeParams(dateRange) }
 
-  const { data: logsData, isLoading: loading, refetch } = useCreditLogsQuery(queryParams)
+  const { data: logsData, isLoading: loading, refetch } = creditLogQuery.useList(queryParams)
   const logs = logsData?.data || []
 
   const pageSizeOptions = [10, 20, 50, 100]
