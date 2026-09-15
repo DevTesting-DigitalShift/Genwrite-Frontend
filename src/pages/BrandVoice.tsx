@@ -13,7 +13,7 @@ import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { toast } from "sonner"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 import { VALID_IMAGE_CONFIG } from "@/data/blogData"
-import { uploadImage } from "@api/imageGalleryApi"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import { useZodForm } from "@/lib/forms"
 import {
   brandVoiceFormDefaults,
@@ -29,6 +29,7 @@ const NO_BRANDS = []
 
 const BrandVoice = () => {
   const { user } = useAuthStore()
+  const { mutateAsync: uploadImage } = imageGalleryQuery.useUpload()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
@@ -263,7 +264,10 @@ const BrandVoice = () => {
 
     try {
       setIsUploading(true)
-      const res = await uploadImage(formDataUpload, getValues("logoUrl")?.split("?")[0] || null)
+      const res = await uploadImage({
+        formData: formDataUpload,
+        overwriteUrl: getValues("logoUrl")?.split("?")[0] || null,
+      })
       if (res?.url) {
         const bustedUrl = `${res.url}?t=${Date.now()}`
         setField("logoUrl", bustedUrl)
@@ -275,7 +279,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [setField, getValues])
+  }, [setField, getValues, uploadImage])
 
   // The schema validates first, so `values` is complete by the time this runs and
   // `toBrandVoicePayload` is the only thing that shapes the request body.

@@ -2,7 +2,7 @@ import { asApiError } from "@/types/api"
 import type { GalleryImage } from "@store/useImageStore"
 import { useState, useEffect, useCallback } from "react"
 import { Image as ImageIcon, Check } from "lucide-react"
-import { getImages, searchImages } from "@api/imageGalleryApi"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import { toast } from "sonner"
 
@@ -65,12 +65,9 @@ const ImageGalleryPicker = ({
       try {
         const params = { page, limit: pageSize }
 
-        let response: Awaited<ReturnType<typeof getImages>>
-        if (searchQuery.trim()) {
-          response = await searchImages({ ...params, q: searchQuery })
-        } else {
-          response = await getImages(params)
-        }
+        const response = searchQuery.trim()
+          ? await imageGalleryQuery.search({ ...params, q: searchQuery })
+          : await imageGalleryQuery.list(params)
 
         const newImages = response.data || []
         const pagination = response.pagination || {}

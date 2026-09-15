@@ -16,6 +16,7 @@ import { Helmet } from "react-helmet-async"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import useAuthStore from "@store/useAuthStore"
 import useImageStore from "@store/useImageStore"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { COSTS } from "@/data/blogData"
@@ -89,15 +90,7 @@ const ImageGallery = () => {
 
   // Zustand stores
   const { user, fetchUserProfile: fetchUser } = useAuthStore()
-  const {
-    images,
-    totalImages,
-    loading,
-    fetchImages,
-    generateImage: generateImageStore,
-    enhanceImage: enhanceImageStore,
-    generateAltText: generateAltTextStore,
-  } = useImageStore()
+  const { images, totalImages, setImages, setTotalImages } = useImageStore()
 
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
@@ -112,27 +105,35 @@ const ImageGallery = () => {
     setCurrentPage(1)
   }, [])
 
-  // Fetch images
-  const loadImages = useCallback(async () => {
-    try {
-      const params = {
-        page: currentPage,
-        limit: pageSize,
-        minScore: minScore > 0 ? minScore : undefined,
-        tags: selectedTags.length > 0 ? selectedTags : undefined,
-        q: searchQuery.trim() || undefined,
-      }
-      await fetchImages(params)
-    } catch (error) {
-      console.error("Error fetching images:", error)
-      toast.error("Failed to load images")
-    }
-  }, [currentPage, pageSize, minScore, selectedTags, searchQuery, fetchImages])
+  // List vs. search are different endpoints, so both hooks stay mounted and only the
+  // active one is enabled — queryKey already embeds these params, so page/filter/search
+  // changes refetch automatically without a manual effect.
+  const isSearching = !!searchQuery.trim()
+  const listParams = {
+    page: currentPage,
+    limit: pageSize,
+    minScore: minScore > 0 ? minScore : undefined,
+    tags: selectedTags.length > 0 ? selectedTags : undefined,
+  }
+  const searchParams = { ...listParams, q: searchQuery.trim() }
+  const listQuery = imageGalleryQuery.useList(listParams, { enabled: !isSearching })
+  const searchResult = imageGalleryQuery.useSearch(searchParams, { enabled: isSearching })
+  const {
+    data: galleryData,
+    isLoading: loading,
+    refetch: refetchImages,
+  } = isSearching ? searchResult : listQuery
 
-  // Fetch images when page or filters change
   useEffect(() => {
-    loadImages()
-  }, [loadImages])
+    if (galleryData) {
+      setImages(galleryData.data || [])
+      setTotalImages(galleryData.pagination?.total || 0)
+    }
+  }, [galleryData, setImages, setTotalImages])
+
+  const { mutateAsync: generateImageMutation } = imageGalleryQuery.useGenerate()
+  const { mutateAsync: enhanceImageMutation } = imageGalleryQuery.useEnhance()
+  const { mutateAsync: generateAltTextMutation } = imageGalleryQuery.useGenerateAltText()
 
   const checkCredits = (required: any) => {
     if (userCredits < required) {
@@ -179,20 +180,20 @@ const ImageGallery = () => {
 
     setIsGenerating(true)
     try {
-      const response = await generateImageStore(genForm)
+      const response = await generateImageMutation(genForm)
 
       setGenForm({ ...genForm, prompt: "" })
       setShowErrors(false)
       fetchUser() // Update credits
 
-      const newImage = response?.image || response?.data || response
+      const newImage = (response as any)?.image || (response as any)?.data || response
 
       if (newImage?.url) {
         setPreviewImage(newImage) // Open the lightbox with new image
         setEnhanceForm((prev) => ({ ...prev, prompt: "" })) // Clear enhance input
       }
 
-      loadImages() // Refresh gallery
+      refetchImages() // Refresh gallery
     } catch (error) {
       console.error("Generation error:", error)
       toast.error(error.response?.data?.message || error.message || "Generation failed")
@@ -216,7 +217,7 @@ const ImageGallery = () => {
       formData.append("existingImageId", previewImage._id)
       formData.append("imageUrl", previewImage.url)
 
-      const response = await enhanceImageStore(formData)
+      const response: any = await enhanceImageMutation(formData)
       const newImage = response.data || response.image || response
 
       toast.success("Image enhanced successfully!")
@@ -248,8 +249,8 @@ const ImageGallery = () => {
       }
 
       fetchUser()
-      loadImages()
-    } catch (error) {
+      refetchImages()
+    } catch (error: any) {
       console.error(error)
       toast.error(error.response?.data?.message || "Enhancement failed")
     } finally {
@@ -262,7 +263,7 @@ const ImageGallery = () => {
 
     setIsGeneratingAlt(true)
     try {
-      const res = await generateAltTextStore(previewImage.url)
+      const res = await generateAltTextMutation({ imageUrl: previewImage.url })
       setGeneratedAltText(res.altText)
       toast.success("Alt text generated!")
       fetchUser()

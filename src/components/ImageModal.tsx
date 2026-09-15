@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import { generateImage, generateAltText, enhanceImage, uploadImage } from "@api/imageGalleryApi"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { COSTS, VALID_IMAGE_CONFIG } from "@/data/blogData"
@@ -50,6 +50,11 @@ const ImageModal = ({
   allowEnhance = true,
   imageSourceType = "url",
 }: ImageModalProps) => {
+  const { mutateAsync: generateImage } = imageGalleryQuery.useGenerate()
+  const { mutateAsync: enhanceImage } = imageGalleryQuery.useEnhance()
+  const { mutateAsync: generateAltText } = imageGalleryQuery.useGenerateAltText()
+  const { mutateAsync: uploadImageMutation } = imageGalleryQuery.useUpload()
+
   // Internal State
   const [view, setView] = useState(VIEWS.MAIN)
   const [url, setUrl] = useState("")
@@ -267,7 +272,10 @@ const ImageModal = ({
                             const formData = new FormData()
                             formData.append("image", file)
 
-                            const response = await uploadImage(formData, url || null)
+                            const response = await uploadImageMutation({
+                              formData,
+                              overwriteUrl: url || null,
+                            })
                             if (response?.url) {
                               const bustedUrl = `${response.url}?t=${Date.now()}`
                               setUrl(bustedUrl)

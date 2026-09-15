@@ -8,6 +8,7 @@ import type { components } from "@/types/apiSchema"
  * query param is sent) a single raw image doc instead — see imageGallery.response.js's own
  * comment. This wrapper never sends `url`, so it's always the list shape. */
 type ImageGalleryListResponse = components["schemas"]["ImageGalleryListResponse"]
+type ImageGallerySearchResponse = components["schemas"]["ImageGallerySearchResponse"]
 
 export const ImageGalleryAPI = {
   /** Get all images with pagination and filtering. */
@@ -38,10 +39,10 @@ export const ImageGalleryAPI = {
   },
 
   /** Search images by query. */
-  search: async (params: Record<string, unknown> = {}) => {
+  search: async (params: Record<string, unknown> = {}): Promise<ImageGallerySearchResponse> => {
     try {
       const { q, page = 1, limit = 20, minScore } = params
-      return await apiGet("/image-gallery/search", {
+      const result = await apiGet("/image-gallery/search", {
         query: {
           ...(q ? { q } : {}),
           page,
@@ -49,6 +50,7 @@ export const ImageGalleryAPI = {
           ...(minScore !== undefined && minScore !== null ? { minScore } : {}),
         } as never,
       })
+      return result as ImageGallerySearchResponse
     } catch (err) {
       return rethrow(err, "Failed to search images")
     }
