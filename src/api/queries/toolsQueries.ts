@@ -1,18 +1,20 @@
 import { apiErrorMessage } from "@/types/api"
 import { useMutation } from "@tanstack/react-query"
 import useToolsStore from "@store/useToolsStore"
-import {
-  detectAiContentApi,
-  scrapeKeywordsApi,
-  summarizeYoutubeApi,
-  pdfChatApi,
-  likeCompetitorApi,
-  analyseWebsiteApi,
-  createWebsitePromptsApi,
-  checkWebsiteRankingsApi,
-  generateAdvancedAnalysisApi,
-  websiteRankingOrchestratorApi,
-} from "../generateApi"
+import { GenerateAPI } from "@api/Generate/Generate.api"
+
+const {
+  detectAiContent: detectAiContentApi,
+  scrapeKeywords: scrapeKeywordsApi,
+  summarizeYoutube: summarizeYoutubeApi,
+  pdfChat: pdfChatApi,
+  likeCompetitor: likeCompetitorApi,
+  analyseWebsite: analyseWebsiteApi,
+  createWebsitePrompts: createWebsitePromptsApi,
+  checkWebsiteRankings: checkWebsiteRankingsApi,
+  generateAdvancedAnalysis: generateAdvancedAnalysisApi,
+  websiteRankingOrchestrator: websiteRankingOrchestratorApi,
+} = GenerateAPI
 
 /* ================== AI Content Detection ================== */
 export const useAiDetectionMutation = () => {

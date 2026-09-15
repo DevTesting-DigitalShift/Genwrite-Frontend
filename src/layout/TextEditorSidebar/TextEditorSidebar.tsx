@@ -42,7 +42,7 @@ import useEditorStore from "@/store/useEditorStore"
 import useAuthStore from "@store/useAuthStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useAnalysisStore from "@store/useAnalysisStore"
-import { generateMetadata } from "@api/generateApi"
+import { GenerateAPI } from "@api/Generate/Generate.api"
 import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
@@ -514,7 +514,7 @@ const TextEditorSidebar = ({
     try {
       // The backend reads the blog's content and keywords itself — the id is
       // the whole payload.
-      const result = await generateMetadata({ blogId: blog._id })
+      const result = await GenerateAPI.generateMetadata({ blogId: blog._id })
       // Show the generated metadata in accept/reject modal
       setGeneratedMetadata(result)
       setGeneratedMetadataModal(true)

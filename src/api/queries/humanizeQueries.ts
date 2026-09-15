@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query"
-import { humanizeContentGenerator } from "@api/generateApi"
+import { GenerateAPI } from "@api/Generate/Generate.api"
+
+const humanizeContentGenerator = GenerateAPI.humanizeContent
 import useHumanizeStore from "@store/useHumanizeStore"
 
 export const useHumanizeMutation = () => {

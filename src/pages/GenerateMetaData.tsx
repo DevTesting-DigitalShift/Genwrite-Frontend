@@ -1,7 +1,7 @@
 import { asApiError } from "@/types/api"
 import { useState, useCallback } from "react"
 import useAuthStore from "@store/useAuthStore"
-import useContentStore from "@store/useContentStore"
+import { generateQuery } from "@api/Generate/Generate.query"
 import { useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Sparkles, Copy, FileText } from "lucide-react"
@@ -18,7 +18,11 @@ const GenerateMetaData = () => {
   const [isGenerating, setIsGenerating] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { metadata, generateMetadata, resetMetadata } = useContentStore()
+  const {
+    data: metadata,
+    mutateAsync: generateMetadata,
+    reset: resetMetadata,
+  } = generateQuery.useGenerateMetadata()
   const userPlan = user?.subscription?.plan
 
   // Calculate word count
