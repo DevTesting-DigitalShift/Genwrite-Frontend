@@ -26,7 +26,7 @@ import {
   useWebsiteAdvancedAnalysisMutation,
   useWebsiteOrchestratorMutation,
 } from "@api/queries/toolsQueries"
-import { useCreateJobFromRankingMutation } from "@api/queries/jobQueries"
+import { jobsQuery } from "@api/Job/Job.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -236,7 +236,7 @@ const WebsiteRanking = () => {
   const { mutateAsync: websiteRankingOrchestrator, isPending: isOrchestratorLoading } =
     useWebsiteOrchestratorMutation()
   const { mutateAsync: createJobFromRanking, isPending: isCreatingJobFromAudit } =
-    useCreateJobFromRankingMutation()
+    jobsQuery.useCreateFromRanking()
 
   const isLoading =
     isOrchestratorLoading ||

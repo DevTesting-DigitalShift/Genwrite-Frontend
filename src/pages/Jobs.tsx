@@ -19,11 +19,7 @@ import useAuthStore from "@store/useAuthStore"
 import useJobStore from "@store/useJobStore"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-import {
-  useJobsQuery,
-  useToggleJobStatusMutation,
-  useDeleteJobMutation,
-} from "@api/queries/jobQueries"
+import { jobsQuery } from "@api/Job/Job.query"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
@@ -315,15 +311,19 @@ const Jobs = () => {
     localStorage.setItem("jobs_view_mode", viewMode)
   }, [viewMode])
 
-  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
-  const { mutate: deleteMutate } = useDeleteJobMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = jobsQuery.useToggleStatus()
+  const { mutate: deleteMutate } = jobsQuery.useDelete()
 
   const user = useAuthStore((state) => state.user)
   const updateUserPartial = useAuthStore((state) => state.updateUserPartial)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
+  const {
+    data: queryJobs = [],
+    isLoading: queryLoading,
+    refetch,
+  } = jobsQuery.useList({ enabled: !!user })
   const _totalBlogsGenerated = useMemo(() => {
     return queryJobs
       .filter((j: any) => !j.isArchived)
@@ -345,7 +345,8 @@ const Jobs = () => {
       ) {
         toast.error("Job Stopped: Insufficient Credits")
       }
-      // Fix: queryKey must match useJobsQuery's key ["jobs"], not ["jobs", user.id]
+      // ["jobs"] prefix-matches jobsQuery's actual keys (["jobs", "list"], etc.) — no need
+      // to invalidate each one individually.
       queryClient.invalidateQueries({ queryKey: ["jobs"] })
     }
 

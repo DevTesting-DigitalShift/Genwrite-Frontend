@@ -30,8 +30,8 @@ import { BlogMultiSelectField } from "./BlogMultiSelectField"
 import { JobMultiSelectField } from "./JobMultiSelectField"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { usePostedBlogsQuery } from "@api/queries/blogQueries"
-import { useEligibleJobsForCampaignQuery } from "@api/queries/jobQueries"
-import type { Campaign, CampaignBlogRef } from "@/types/campaign"
+import { jobsQuery } from "@api/Job/Job.query"
+import type { Campaign, CampaignBlogRef, CampaignJobRef } from "@/types/campaign"
 import type { CampaignFormUIState } from "./campaignForm.types"
 import { getValueByPath } from "@utils/ObjectPath"
 import { COSTS } from "@/data/blogData"
@@ -88,9 +88,9 @@ export function CampaignFormDialog({
 
   // Only jobs with a posting destination configured — see JobMultiSelectField's own
   // description for why (mirrors the server-side eligibility check on submit).
-  const { data: eligibleJobs = [], isLoading: isJobsLoading } = useEligibleJobsForCampaignQuery(
-    uiState.isOpen
-  )
+  const { data: eligibleJobs = [], isLoading: isJobsLoading } = jobsQuery.useEligibleForCampaign({
+    enabled: uiState.isOpen,
+  })
 
   const {
     control,
@@ -408,7 +408,7 @@ export function CampaignFormDialog({
                     <JobMultiSelectField
                       control={control}
                       name="jobIds"
-                      jobs={eligibleJobs}
+                      jobs={eligibleJobs as unknown as CampaignJobRef[]}
                       isLoading={isJobsLoading}
                     />
                   </TabsContent>

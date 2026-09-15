@@ -66,9 +66,15 @@ export const JobAPI = {
     }
   },
 
+  // Both endpoints respond with { message, job, ... } rather than a bare Job — unwrap here
+  // so callers (and the query layer's cache-patch, which keys off updated._id) get the
+  // entity directly, matching every other JobAPI method.
   start: async (id: string): Promise<Job> => {
     try {
-      return (await apiPatch("/jobs/{id}/start", undefined, { params: { id } })) as Job
+      const result = (await apiPatch("/jobs/{id}/start", undefined, { params: { id } })) as {
+        job: Job
+      }
+      return result.job
     } catch (err) {
       return rethrow(err, "Failed to start job")
     }
@@ -76,7 +82,10 @@ export const JobAPI = {
 
   stop: async (id: string): Promise<Job> => {
     try {
-      return (await apiPatch("/jobs/{id}/stop", undefined, { params: { id } })) as Job
+      const result = (await apiPatch("/jobs/{id}/stop", undefined, { params: { id } })) as {
+        job: Job
+      }
+      return result.job
     } catch (err) {
       return rethrow(err, "Failed to stop job")
     }

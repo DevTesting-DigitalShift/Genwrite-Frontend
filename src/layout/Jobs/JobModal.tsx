@@ -3,7 +3,7 @@ import { debugPayload } from "@utils/debugPayload"
 import useJobStore from "@store/useJobStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
-import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
+import { jobsQuery } from "@api/Job/Job.query"
 import { useZodForm } from "@/lib/forms"
 import {
   JOB_STEP_FIELDS,
@@ -56,8 +56,8 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
   const { showJobModal, closeJobModal, selectedJob } = useJobStore()
   const { selectedKeywords, pendingImport, setPendingImport, clearSelectedKeywords } =
     useAnalysisStore()
-  const { mutate: createJobMutate, isPending: isCreating } = useCreateJobMutation()
-  const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
+  const { mutate: createJobMutate, isPending: isCreating } = jobsQuery.useCreate()
+  const { mutate: updateJobMutate, isPending: isUpdating } = jobsQuery.useUpdate()
 
   const [currentStep, setCurrentStep] = useState(1)
 
@@ -190,7 +190,7 @@ const JobModal = ({ user, userPlan, isUserLoaded }: JobModalProps) => {
       }
       const payload = toJobPayload(values)
       if (debugPayload("Job (Update)", payload)) return
-      updateJobMutate({ jobId, jobPayload: payload }, { onSuccess: () => resetModal() })
+      updateJobMutate({ id: jobId, data: payload }, { onSuccess: () => resetModal() })
     }, onInvalid)
 
   if (!showJobModal) return null

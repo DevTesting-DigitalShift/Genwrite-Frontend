@@ -18,6 +18,43 @@ class JobsQuery extends BaseCRUDQuery<Job> {
       options
     )
 
+  useUpdate = (options?: { onSuccess?: (data: Job) => void; onError?: (err: Error) => void }) =>
+    this.useMutate<Job, { id: string; data: Partial<Job> }>(
+      ({ id, data }) => this.api.update(id, data),
+      {
+        ...options,
+        onSuccess: (updated) => {
+          this.queryClient.setQueryData<Job[]>([...this.baseKey, "list"], (old = []) =>
+            old.map((j) => (j._id === updated._id ? updated : j))
+          )
+          this.queryClient.setQueryData<Job>([...this.baseKey, `detail-${updated._id}`], updated)
+          toast.success("Job updated successfully!")
+          options?.onSuccess?.(updated)
+        },
+        onError: (error) => {
+          toast.error("Failed to update job")
+          options?.onError?.(error)
+        },
+      }
+    )
+
+  useDelete = (options?: { onSuccess?: (id: string) => void; onError?: (err: Error) => void }) =>
+    this.useMutate<void, string>((id) => this.api.delete(id), {
+      ...options,
+      onSuccess: (_, id) => {
+        this.queryClient.setQueryData<Job[]>([...this.baseKey, "list"], (old = []) =>
+          old.filter((j) => j._id !== id)
+        )
+        this.queryClient.removeQueries({ queryKey: [...this.baseKey, `detail-${id}`] })
+        toast.success("Job deleted successfully!")
+        options?.onSuccess?.(id)
+      },
+      onError: (error) => {
+        toast.error("Failed to delete job")
+        options?.onError?.(error)
+      },
+    })
+
   useCreate = (options?: { onSuccess?: (data: Job) => void; onError?: (err: Error) => void }) =>
     this.useMutate<Job, Partial<Job>>((payload) => this.api.create(payload), {
       ...options,
