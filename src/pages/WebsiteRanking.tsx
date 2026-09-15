@@ -19,13 +19,7 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import useToolsStore from "@store/useToolsStore"
-import {
-  useWebsiteAnalysisMutation,
-  useWebsitePromptsMutation,
-  useWebsiteRankingsCheckMutation,
-  useWebsiteAdvancedAnalysisMutation,
-  useWebsiteOrchestratorMutation,
-} from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import { jobsQuery } from "@api/Job/Job.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
@@ -222,19 +216,20 @@ const WebsiteRanking = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const [rankingsResult, setRankingsResult] = useState<any>(null)
 
-  const { websiteRanking, resetWebsiteRanking } = useToolsStore()
+  const { websiteRanking, setWebsiteRankingResult, setWebsiteRankingError, resetWebsiteRanking } =
+    useToolsStore()
   const { advancedComp, orchestrator } = websiteRanking
 
   // Mutations
-  const { mutateAsync: analyseWebsite, isPending: isAnalysing } = useWebsiteAnalysisMutation()
+  const { mutateAsync: analyseWebsite, isPending: isAnalysing } = generateQuery.useAnalyseWebsite()
   const { mutateAsync: createWebsitePrompts, isPending: isCreatingPrompts } =
-    useWebsitePromptsMutation()
+    generateQuery.useCreateWebsitePrompts()
   const { mutateAsync: checkWebsiteRankings, isPending: isCheckingRankings } =
-    useWebsiteRankingsCheckMutation()
+    generateQuery.useCheckWebsiteRankings()
   const { mutateAsync: generateAdvancedAnalysis, isPending: isAnalyzingAdvanced } =
-    useWebsiteAdvancedAnalysisMutation()
+    generateQuery.useGenerateAdvancedAnalysis()
   const { mutateAsync: websiteRankingOrchestrator, isPending: isOrchestratorLoading } =
-    useWebsiteOrchestratorMutation()
+    generateQuery.useWebsiteRankingOrchestrator()
   const { mutateAsync: createJobFromRanking, isPending: isCreatingJobFromAudit } =
     jobsQuery.useCreateFromRanking()
 
@@ -378,9 +373,11 @@ const WebsiteRanking = () => {
   const handleOrchestrator = async () => {
     if (!url) return toast.error("Please enter a URL")
     try {
-      await websiteRankingOrchestrator({ url, region, promptCount })
+      const result = await websiteRankingOrchestrator({ url, region, promptCount })
+      setWebsiteRankingResult("orchestrator", result)
       toast.success("Full audit completed!")
     } catch (err) {
+      setWebsiteRankingError("orchestrator", err)
       console.error(err)
       toast.error(err?.toast || "Audit failed")
     }
@@ -462,9 +459,14 @@ const WebsiteRanking = () => {
   const handleAdvancedAnalysis = async () => {
     if (!analysisResult || !rankingsResult) return toast.error("Missing analysis data")
     try {
-      await generateAdvancedAnalysis({ analysis: analysisResult, rankings: rankingsResult })
+      const result = await generateAdvancedAnalysis({
+        analysis: analysisResult,
+        rankings: rankingsResult,
+      })
+      setWebsiteRankingResult("advancedComp", result)
       toast.success("Report generated!")
     } catch (err) {
+      setWebsiteRankingError("advancedComp", err)
       toast.error(err?.toast || "Report generation failed")
     }
   }

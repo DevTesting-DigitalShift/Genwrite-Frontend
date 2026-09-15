@@ -12,7 +12,7 @@ import {
   Info,
 } from "lucide-react"
 import useToolsStore from "@store/useToolsStore"
-import { useAiDetectionMutation } from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet-async"
@@ -21,9 +21,10 @@ import ConnectedTools from "@components/ConnectedTools"
 const AiContentDetection = () => {
   const location = useLocation()
   const [inputContent, setInputContent] = useState(location.state?.transferValue || "")
-  const { aiDetection, resetAiDetection } = useToolsStore()
+  const { aiDetection, setAiDetectionResult, setAiDetectionError, resetAiDetection } =
+    useToolsStore()
   const { result: detectionResult } = aiDetection
-  const { mutate: detectContent, isPending } = useAiDetectionMutation()
+  const { mutate: detectContent, isPending } = generateQuery.useDetectAiContent()
 
   useEffect(() => {
     return () => {
@@ -47,11 +48,14 @@ const AiContentDetection = () => {
 
     const payload = { content: inputContent.trim() }
 
+    resetAiDetection()
     detectContent(payload, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setAiDetectionResult(data)
         toast.success("Content analyzed successfully!")
       },
       onError: (err) => {
+        setAiDetectionError(err)
         toast.error(apiErrorMessage(err, "Failed to analyze content. Please try again."))
         console.error(err)
       },

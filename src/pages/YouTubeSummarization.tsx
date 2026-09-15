@@ -14,19 +14,17 @@ import { toast } from "sonner"
 import { Helmet } from "react-helmet-async"
 
 import useToolsStore from "@store/useToolsStore"
-import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import ConnectedTools from "@components/ConnectedTools"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const location = useLocation()
   const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
-  const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
+  const { youtubeSummary, setYoutubeSummaryResult, setYoutubeSummaryError, resetYoutubeSummary } =
+    useToolsStore()
   const { result: summaryResult } = youtubeSummary
-  const {
-    mutate: summarizeVideo,
-    isPending,
-  } = useYoutubeSummaryMutation()
+  const { mutate: summarizeVideo, isPending } = generateQuery.useSummarizeYoutube()
   const isLoading = isPending
 
   // Cleanup on unmount - reset state when user leaves the page
@@ -58,11 +56,14 @@ const YouTubeSummarization = () => {
 
     const payload = { url: inputUrl.trim() }
 
+    resetYoutubeSummary()
     summarizeVideo(payload, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setYoutubeSummaryResult(data)
         toast.success("Video summarized successfully!")
       },
       onError: (err) => {
+        setYoutubeSummaryError(err)
         toast.error(err?.message || "Failed to summarize video. Please try again.")
         console.error(err)
       },

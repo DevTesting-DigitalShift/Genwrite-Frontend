@@ -1,98 +1,66 @@
 // src/api/Generate/Generate.query.ts
-import { QueryBase } from "@api/QueryBase"
+import type { UseMutationOptions } from "@tanstack/react-query"
+import { QueryBase, type QueryError } from "@api/QueryBase"
 import { GenerateAPI } from "./Generate.api"
 
-/** Every hook here is a plain mutation with no store/toast side effects baked in — unlike the
- * old toolsQueries.ts/humanizeQueries.ts, which each wrote results into a specific zustand
- * store (useToolsStore/useHumanizeStore). Call sites own that wiring themselves via the
- * mutation's own onSuccess/onError, same as Auth.query.ts/Payments.query.ts. */
+type MutationOf<TFn extends (...args: any) => Promise<any>> = UseMutationOptions<
+  Awaited<ReturnType<TFn>>,
+  QueryError,
+  Parameters<TFn>[0]
+>
+
+/** Every hook takes an optional `options` (onMutate/onSuccess/onError/...), the same shape
+ * react-query's own useMutation takes — so a caller that needs to write a result into a
+ * zustand store (useToolsStore, useHumanizeStore, ...) wires that through here at the call
+ * site instead of importing GenerateAPI directly. This is the only file that imports
+ * Generate.api.ts; every other caller goes through generateQuery. */
 class GenerateQuery extends QueryBase<unknown> {
   baseKey = ["generate"]
   api = GenerateAPI
 
-  useHumanizeContent = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.humanizeContent>>,
-      Parameters<typeof GenerateAPI.humanizeContent>[0]
-    >((payload) => this.api.humanizeContent(payload))
+  useHumanizeContent = (options?: MutationOf<typeof GenerateAPI.humanizeContent>) =>
+    this.useMutate((payload) => this.api.humanizeContent(payload), options)
 
-  useCreateOutline = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.createOutline>>,
-      Parameters<typeof GenerateAPI.createOutline>[0]
-    >((payload) => this.api.createOutline(payload))
+  useCreateOutline = (options?: MutationOf<typeof GenerateAPI.createOutline>) =>
+    this.useMutate((payload) => this.api.createOutline(payload), options)
 
-  useGenerateMetadata = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.generateMetadata>>,
-      Parameters<typeof GenerateAPI.generateMetadata>[0]
-    >((payload) => this.api.generateMetadata(payload))
+  useGenerateMetadata = (options?: MutationOf<typeof GenerateAPI.generateMetadata>) =>
+    this.useMutate((payload) => this.api.generateMetadata(payload), options)
 
-  useGeneratePromptContent = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.generatePromptContent>>,
-      Parameters<typeof GenerateAPI.generatePromptContent>[0]
-    >((payload) => this.api.generatePromptContent(payload))
+  useGeneratePromptContent = (options?: MutationOf<typeof GenerateAPI.generatePromptContent>) =>
+    this.useMutate((payload) => this.api.generatePromptContent(payload), options)
 
-  useDetectAiContent = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.detectAiContent>>,
-      Parameters<typeof GenerateAPI.detectAiContent>[0]
-    >((payload) => this.api.detectAiContent(payload))
+  useDetectAiContent = (options?: MutationOf<typeof GenerateAPI.detectAiContent>) =>
+    this.useMutate((payload) => this.api.detectAiContent(payload), options)
 
-  useScrapeKeywords = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.scrapeKeywords>>,
-      Parameters<typeof GenerateAPI.scrapeKeywords>[0]
-    >((payload) => this.api.scrapeKeywords(payload))
+  useScrapeKeywords = (options?: MutationOf<typeof GenerateAPI.scrapeKeywords>) =>
+    this.useMutate((payload) => this.api.scrapeKeywords(payload), options)
 
-  useSummarizeYoutube = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.summarizeYoutube>>,
-      Parameters<typeof GenerateAPI.summarizeYoutube>[0]
-    >((payload) => this.api.summarizeYoutube(payload))
+  useSummarizeYoutube = (options?: MutationOf<typeof GenerateAPI.summarizeYoutube>) =>
+    this.useMutate((payload) => this.api.summarizeYoutube(payload), options)
 
-  usePdfChat = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.pdfChat>>,
-      Parameters<typeof GenerateAPI.pdfChat>[0]
-    >((payload) => this.api.pdfChat(payload))
+  usePdfChat = (options?: MutationOf<typeof GenerateAPI.pdfChat>) =>
+    this.useMutate((payload) => this.api.pdfChat(payload), options)
 
-  useLikeCompetitor = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.likeCompetitor>>,
-      Parameters<typeof GenerateAPI.likeCompetitor>[0]
-    >((payload) => this.api.likeCompetitor(payload))
+  useLikeCompetitor = (options?: MutationOf<typeof GenerateAPI.likeCompetitor>) =>
+    this.useMutate((payload) => this.api.likeCompetitor(payload), options)
 
-  useAnalyseWebsite = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.analyseWebsite>>,
-      Parameters<typeof GenerateAPI.analyseWebsite>[0]
-    >((payload) => this.api.analyseWebsite(payload))
+  useAnalyseWebsite = (options?: MutationOf<typeof GenerateAPI.analyseWebsite>) =>
+    this.useMutate((payload) => this.api.analyseWebsite(payload), options)
 
-  useCreateWebsitePrompts = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.createWebsitePrompts>>,
-      Parameters<typeof GenerateAPI.createWebsitePrompts>[0]
-    >((payload) => this.api.createWebsitePrompts(payload))
+  useCreateWebsitePrompts = (options?: MutationOf<typeof GenerateAPI.createWebsitePrompts>) =>
+    this.useMutate((payload) => this.api.createWebsitePrompts(payload), options)
 
-  useCheckWebsiteRankings = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.checkWebsiteRankings>>,
-      Parameters<typeof GenerateAPI.checkWebsiteRankings>[0]
-    >((payload) => this.api.checkWebsiteRankings(payload))
+  useCheckWebsiteRankings = (options?: MutationOf<typeof GenerateAPI.checkWebsiteRankings>) =>
+    this.useMutate((payload) => this.api.checkWebsiteRankings(payload), options)
 
-  useGenerateAdvancedAnalysis = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.generateAdvancedAnalysis>>,
-      Parameters<typeof GenerateAPI.generateAdvancedAnalysis>[0]
-    >((payload) => this.api.generateAdvancedAnalysis(payload))
+  useGenerateAdvancedAnalysis = (
+    options?: MutationOf<typeof GenerateAPI.generateAdvancedAnalysis>
+  ) => this.useMutate((payload) => this.api.generateAdvancedAnalysis(payload), options)
 
-  useWebsiteRankingOrchestrator = () =>
-    this.useMutate<
-      Awaited<ReturnType<typeof GenerateAPI.websiteRankingOrchestrator>>,
-      Parameters<typeof GenerateAPI.websiteRankingOrchestrator>[0]
-    >((payload) => this.api.websiteRankingOrchestrator(payload))
+  useWebsiteRankingOrchestrator = (
+    options?: MutationOf<typeof GenerateAPI.websiteRankingOrchestrator>
+  ) => this.useMutate((payload) => this.api.websiteRankingOrchestrator(payload), options)
 }
 
 export const generateQuery = new GenerateQuery() as GenerateQuery
