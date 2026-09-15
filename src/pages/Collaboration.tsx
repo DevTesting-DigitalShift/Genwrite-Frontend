@@ -9,12 +9,7 @@ import { Input } from "@components/ui/input"
 import { Label } from "@components/ui/label"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useWorkspaceStore from "@store/useWorkspaceStore"
-import {
-  useInvitesQuery,
-  useCreateInviteMutation,
-  useRevokeInviteMutation,
-  useWorkspacesSharedWithMeQuery,
-} from "@api/queries/collaborationQueries"
+import { collaborationQuery } from "@api/Collaboration/Collaboration.query"
 
 const MAX_ACTIVE_INVITES = 5
 
@@ -121,7 +116,7 @@ interface InvitePanelProps {
 
 const InvitePanel = ({ activeCount, atLimit }: InvitePanelProps) => {
   const [email, setEmail] = useState<string>("")
-  const { mutate: createInvite, isPending } = useCreateInviteMutation()
+  const { mutate: createInvite, isPending } = collaborationQuery.useCreateInvite()
 
   const handleSubmit = (e: any) => {
     e.preventDefault()
@@ -171,8 +166,8 @@ const InvitePanel = ({ activeCount, atLimit }: InvitePanelProps) => {
 }
 
 const InvitesSentTab = () => {
-  const { data, isLoading } = useInvitesQuery()
-  const { mutate: revokeInvite } = useRevokeInviteMutation()
+  const { data, isLoading } = collaborationQuery.useInvites()
+  const { mutate: revokeInvite } = collaborationQuery.useRevokeInvite()
   const { handlePopup } = useConfirmPopup()
   const invites = data?.invites ?? []
   const activeCount = invites.filter((i: { status?: string }) => i.status !== "revoked").length
@@ -266,7 +261,7 @@ const InvitesSentTab = () => {
 }
 
 const WorkspacesSharedWithMeTab = () => {
-  const { data, isLoading } = useWorkspacesSharedWithMeQuery()
+  const { data, isLoading } = collaborationQuery.useWorkspacesSharedWithMe()
   const { switchToWorkspace } = useWorkspaceStore()
   const navigate = useNavigate()
   const workspaces = data?.watching ?? []
@@ -338,8 +333,8 @@ const WorkspacesSharedWithMeTab = () => {
 
 const Collaboration = () => {
   // Same cache key the tab uses, so this costs no extra request.
-  const { data: invitesData } = useInvitesQuery()
-  const { data: sharedData } = useWorkspacesSharedWithMeQuery()
+  const { data: invitesData } = collaborationQuery.useInvites()
+  const { data: sharedData } = collaborationQuery.useWorkspacesSharedWithMe()
   const inviteCount = invitesData?.invites?.length ?? 0
   const sharedCount = sharedData?.watching?.length ?? 0
 
