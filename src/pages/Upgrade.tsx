@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
-import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
+import { paymentsQuery } from "@api/Payments/Payments.query"
 import { ApiRequestError } from "@api/typedClient"
 
 import { loadStripe } from "@stripe/stripe-js"
@@ -324,7 +324,7 @@ const Upgrade = () => {
   const [showCreditBlockModal, setShowCreditBlockModal] = useState(false)
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
+  const { mutateAsync: createCheckoutSession } = paymentsQuery.useCreateCheckoutSession()
 
   const _CONVERSION_RATE = 90 // USD to INR conversion rate
 
@@ -579,7 +579,7 @@ const Upgrade = () => {
         credits: plan.type === "credit_purchase" ? credits : undefined,
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-        client_id: getGaClientId(),
+        client_id: getGaClientId() ?? undefined,
       }
 
       // 3. Call API — checkoutSessionResponseSchema is a real 6-way union (which shape comes

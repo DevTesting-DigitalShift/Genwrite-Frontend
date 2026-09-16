@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 import { AlertTriangle, Lock, ChevronRight, CreditCard } from "lucide-react"
-import { useCreatePortalSession } from "@api/queries/paymentQueries"
+import { paymentsQuery } from "@api/Payments/Payments.query"
 import { toast } from "sonner"
 
 const PaymentPendingModal = ({
@@ -9,7 +9,7 @@ const PaymentPendingModal = ({
   user?: { subscription?: { status?: string } } | null
 }) => {
   const isOpen = ["past_due"].includes(user?.subscription?.status ?? "")
-  const { mutate: createPortalSession, isPending } = useCreatePortalSession()
+  const { mutate: createPortalSession, isPending } = paymentsQuery.useCreatePortalSession()
 
   const handleResolveIssue = () => {
     createPortalSession(undefined, {

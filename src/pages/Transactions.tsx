@@ -20,7 +20,7 @@ import { useTransactionsQuery } from "@api/queries/userQueries"
 import { useNavigate } from "react-router-dom"
 import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
-import { createPortalSession } from "@api/stripeApi"
+import { paymentsQuery } from "@api/Payments/Payments.query"
 import { toast } from "sonner"
 import { getCurrencySymbol } from "@/data/transactionData"
 
@@ -28,6 +28,7 @@ const Transactions = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { data: transactions = [], isLoading: loading, refetch } = useTransactionsQuery()
   const navigate = useNavigate()
+  const { mutateAsync: createPortalSession } = paymentsQuery.useCreatePortalSession()
 
   const [searchTerm, _setSearchTerm] = useState("")
   const [statusFilter, _setStatusFilter] = useState("all")

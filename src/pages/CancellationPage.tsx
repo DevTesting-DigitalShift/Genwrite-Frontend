@@ -17,7 +17,7 @@ import {
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { cancelStripeSubscription } from "@api/stripeApi"
+import { paymentsQuery } from "@api/Payments/Payments.query"
 import useAuthStore from "@store/useAuthStore"
 import { useUpdateProfileMutation } from "@api/queries/userQueries"
 import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
@@ -25,6 +25,7 @@ import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
 const CancellationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const { mutateAsync: cancelStripeSubscription } = paymentsQuery.useCancelSubscription()
   const { user } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
   const navigate = useNavigate()
