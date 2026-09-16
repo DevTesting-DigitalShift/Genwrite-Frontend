@@ -5,7 +5,7 @@ import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
 import { RotateCcw, Loader2, KeyRound, ShieldCheck, ChevronLeft, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
-import { useResendVerification, useVerifyEmail } from "@/api/queries/authQueries"
+import { authQuery } from "@api/Auth/Auth.query"
 import useVerificationStore from "@store/useVerificationStore"
 import useAuthStore from "@store/useAuthStore"
 import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
@@ -57,8 +57,8 @@ export default function EmailVerification() {
     return () => clearInterval(interval)
   }, [timerStartedAt, showCodeInput])
 
-  const { mutateAsync: resendEmail } = useResendVerification()
-  const { mutateAsync: verifyEmail, isPending: isVerifying } = useVerifyEmail()
+  const { mutateAsync: resendEmail } = authQuery.useResendVerification()
+  const { mutateAsync: verifyEmail, isPending: isVerifying } = authQuery.useVerifyEmail()
 
   const handleSendEmail = async () => {
     try {

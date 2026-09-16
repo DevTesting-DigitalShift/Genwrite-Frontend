@@ -45,7 +45,17 @@ class UserQuery extends QueryBase<unknown> {
     )
 
   // Plain passthroughs for Profile.tsx's imperative Promise.all mount fetch and
-  // one-off form-submit handlers — not shaped as declarative query/mutation hooks.
+  // one-off form-submit handlers, and for useAuthStore's imperative session actions —
+  // not shaped as declarative query/mutation hooks.
+  getProfile = () => this.api.getProfile()
+
+  getTransactions = () => this.api.getTransactions()
+
+  markNotificationsAsRead = () => this.api.markNotificationsAsRead()
+
+  updateProfile = (payload: ApiRequestBody<"/user/profile", "put">) =>
+    this.api.updateProfile(payload)
+
   updatePassword = (payload: ApiRequestBody<"/user/update-password", "post">) =>
     this.api.updatePassword(payload)
 

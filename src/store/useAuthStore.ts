@@ -1,25 +1,10 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import {
-  login,
-  signup,
-  UserLogout,
-  loadUser as loadUserAPI,
-  forgotPasswordAPI,
-  resetPasswordAPI,
-  loginWithGoogle,
-  refreshSession as refreshSessionAPI,
-} from "@api/authApi"
-import {
-  getProfile,
-  getTransactions,
-  markNotificationsAsRead,
-  updateUserProfile,
-} from "@api/userApi"
+import { authQuery } from "@api/Auth/Auth.query"
+import { userQuery } from "@api/User/User.query"
 import { unsubscribeUser } from "@api/otherApi"
 import { pushToDataLayer } from "@utils/DataLayer"
-import { toast } from "sonner"
-import { apiErrorMessage, asApiError } from "@/types/api"
+import { apiErrorMessage } from "@/types/api"
 import { getFriendlyError } from "@utils/friendlyError"
 import * as sessionStore from "@utils/sessionStore"
 import { switchToNextOrNull, clearAllAccountState } from "@utils/accountSwitch"
@@ -77,8 +62,6 @@ interface AuthState {
   isAuthenticated: boolean
   forgotMessage: string | null
   resetMessage: string | null
-  transactions: unknown[]
-  profileLoading: boolean
   unsubscribeSuccessMessage: string | null
 
   setUser: (user: AuthUser | null) => void
@@ -106,8 +89,6 @@ interface AuthState {
   resetPassword: (args: { token: string; newPassword: string }) => Promise<unknown>
   fetchUserProfile: () => Promise<unknown>
   markAllNotificationsAsRead: () => Promise<unknown>
-  fetchTransactions: () => Promise<unknown>
-  updateProfile: (payload: unknown) => Promise<unknown>
   unsubscribeAction: (email: string) => Promise<unknown>
 }
 
@@ -130,8 +111,6 @@ const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       forgotMessage: null,
       resetMessage: null,
-      transactions: [],
-      profileLoading: false,
       unsubscribeSuccessMessage: null,
 
       // Actions
@@ -185,7 +164,14 @@ const useAuthStore = create<AuthState>()(
       loginUser: async ({ email, password, captchaToken }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken } = await login({ email, password, captchaToken })
+          // captchaToken is required by the backend schema but can genuinely be undefined
+          // here (reCAPTCHA not yet resolved) — same pre-existing gap the legacy
+          // Record<string, unknown> signature masked, left as-is.
+          const { user, accessToken } = await authQuery.login({
+            email,
+            password,
+            captchaToken,
+          } as never)
           if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
@@ -216,13 +202,14 @@ const useAuthStore = create<AuthState>()(
       signupUser: async ({ email, password, name, captchaToken, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const { user, accessToken } = await signup({
+          // Same pre-existing captchaToken-can-be-undefined gap as loginUser above.
+          const { user, accessToken } = await authQuery.signup({
             email,
             password,
             name,
             captchaToken,
             referralId,
-          })
+          } as never)
           if (accessToken && user) {
             sessionStore.upsertSession({ user })
             pushToDataLayer({
@@ -253,7 +240,7 @@ const useAuthStore = create<AuthState>()(
       googleLogin: async ({ access_token, referralId }) => {
         set({ loading: true, error: null })
         try {
-          const response = await loginWithGoogle({ access_token, referralId })
+          const response = await authQuery.loginWithGoogle({ access_token, referralId })
           if (!response.success || !response.accessToken || !response.user) {
             throw new Error("Invalid Google login response")
           }
@@ -299,11 +286,11 @@ const useAuthStore = create<AuthState>()(
         set({ loading: true })
         loadAuthPromise = (async () => {
           try {
-            const { accessToken } = await refreshSessionAPI(active.userId)
+            const { accessToken } = await authQuery.refreshSession(active.userId)
             setAccessToken(accessToken)
             set({ token: accessToken })
 
-            const data = await loadUserAPI()
+            const data = await authQuery.loadUser()
             if (data?.success && data?.user) {
               sessionStore.upsertSession({ user: data.user })
               set({ user: data.user, token: accessToken, isAuthenticated: true, loading: false })
@@ -327,12 +314,12 @@ const useAuthStore = create<AuthState>()(
       switchAccount: async (userId) => {
         set({ loading: true, error: null })
         try {
-          const { accessToken } = await refreshSessionAPI(userId)
+          const { accessToken } = await authQuery.refreshSession(userId)
           setAccessToken(accessToken)
           sessionStore.setActiveUserId(userId)
           set({ token: accessToken, loading: false })
 
-          const data = await loadUserAPI()
+          const data = await authQuery.loadUser()
           if (data?.success && data?.user) {
             sessionStore.upsertSession({ user: data.user })
             set({ user: data.user, isAuthenticated: true })
@@ -347,7 +334,7 @@ const useAuthStore = create<AuthState>()(
 
       logoutUser: async () => {
         try {
-          await UserLogout()
+          await authQuery.logout()
         } catch (err) {
           console.warn("Logout API failed", err)
         }
@@ -368,7 +355,7 @@ const useAuthStore = create<AuthState>()(
         for (const session of sessionStore.getSessions()) {
           try {
             await get().switchAccount(session.userId)
-            await UserLogout()
+            await authQuery.logout()
           } catch (err) {
             console.warn(`Logout API failed for ${session.email}`, err)
           }
@@ -385,7 +372,7 @@ const useAuthStore = create<AuthState>()(
       forgotPassword: async (email) => {
         set({ loading: true, error: null, forgotMessage: null })
         try {
-          const data = await forgotPasswordAPI(email)
+          const data = await authQuery.forgotPassword(email)
           set({ loading: false, forgotMessage: data.message })
           return data
         } catch (err) {
@@ -398,7 +385,7 @@ const useAuthStore = create<AuthState>()(
       resetPassword: async ({ token, newPassword }) => {
         set({ loading: true, error: null, resetMessage: null })
         try {
-          const data = await resetPasswordAPI(token, newPassword)
+          const data = await authQuery.resetPassword({ token, newPassword })
           set({ loading: false, resetMessage: data.message })
           return data.message
         } catch (err) {
@@ -408,16 +395,14 @@ const useAuthStore = create<AuthState>()(
         }
       },
 
-      // User Actions from userSlice
       fetchUserProfile: async () => {
-        set({ profileLoading: true, error: null })
+        set({ loading: true, error: null })
         try {
-          const data = await getProfile()
-          set({ user: data, isAuthenticated: true, profileLoading: false })
+          const data = await userQuery.getProfile()
+          set({ user: data, isAuthenticated: true, loading: false })
           return data
         } catch (error) {
-          toast.error("Failed to fetch user profile")
-          set({ profileLoading: false, error: asApiError(error).message })
+          set({ loading: false, error: apiErrorMessage(error, "Failed to fetch user profile") })
           throw error
         }
       },
@@ -427,7 +412,7 @@ const useAuthStore = create<AuthState>()(
         try {
           // 204 No Content — the backend confirms success but sends nothing back, so
           // "mark every notification read" has to happen locally.
-          await markNotificationsAsRead()
+          await userQuery.markNotificationsAsRead()
           const user = get().user
           if (user) {
             set({
@@ -442,36 +427,7 @@ const useAuthStore = create<AuthState>()(
           }
           set({ loading: false })
         } catch (error) {
-          toast.error("Failed to update notification status. Please try again.")
           set({ loading: false, error: "Failed to mark notifications as read." })
-          throw error
-        }
-      },
-
-      fetchTransactions: async () => {
-        set({ loading: true, error: null })
-        try {
-          const data = await getTransactions()
-          set({ transactions: data || [], loading: false })
-          return data || []
-        } catch (error) {
-          toast.error("Failed to fetch transactions")
-          set({ loading: false, error: asApiError(error).message })
-          throw error
-        }
-      },
-
-      updateProfile: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await updateUserProfile(payload)
-          // Refetch profile after update
-          const updatedUser = await getProfile()
-          set({ user: updatedUser, loading: false })
-          return data
-        } catch (error) {
-          toast.error("Error updating profile, try again")
-          set({ loading: false, error: asApiError(error).message })
           throw error
         }
       },
