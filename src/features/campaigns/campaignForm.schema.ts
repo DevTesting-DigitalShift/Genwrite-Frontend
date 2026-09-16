@@ -19,7 +19,8 @@ export const campaignFormSchema = z
       .max(500, "Keep the description under 500 characters"),
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().min(1, "End date is required"),
-    blogIds: z.array(z.string()).min(1, "Select at least one published blog to track"),
+    blogIds: z.array(z.string()),
+    jobIds: z.array(z.string()),
     targets: z
       .object({
         clicks: z.number({ message: "Enter a number" }).nonnegative("Can't be negative").nullable(),
@@ -58,6 +59,13 @@ export const campaignFormSchema = z
     message: "End date must be after start date",
     path: ["endDate"],
   })
+  // A campaign backed entirely by linked jobs can legitimately start with zero blogs —
+  // the daily sync job populates it once those jobs create content. But it can't have
+  // neither: nothing would ever feed it.
+  .refine((data) => data.blogIds.length > 0 || data.jobIds.length > 0, {
+    message: "Select at least one published blog or one job to track",
+    path: ["blogIds"],
+  })
   // Auto-suggest is what produces the suggestions the other two act on, so with it
   // off they are dead switches rather than merely inert ones.
   .refine((data) => !data.automation.autoApply || data.automation.autoSuggest, {
@@ -77,6 +85,7 @@ export const campaignFormDefaultValues: CampaignFormValues = {
   startDate: "",
   endDate: "",
   blogIds: [],
+  jobIds: [],
   targets: { clicks: null, impressions: null, avgPosition: null, keywords: [] },
   automation: { autoSuggest: true, autoApply: false, autoRepost: false, maxAutoActionsPerWeek: 3 },
 }

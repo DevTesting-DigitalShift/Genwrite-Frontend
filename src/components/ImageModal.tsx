@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Sparkles, Image as ImageIcon, Trash2, X } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import { generateImage, generateAltText, enhanceImage, uploadImage } from "@api/imageGalleryApi"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { COSTS, VALID_IMAGE_CONFIG } from "@/data/blogData"
@@ -50,6 +50,11 @@ const ImageModal = ({
   allowEnhance = true,
   imageSourceType = "url",
 }: ImageModalProps) => {
+  const { mutateAsync: generateImage } = imageGalleryQuery.useGenerate()
+  const { mutateAsync: enhanceImage } = imageGalleryQuery.useEnhance()
+  const { mutateAsync: generateAltText } = imageGalleryQuery.useGenerateAltText()
+  const { mutateAsync: uploadImageMutation } = imageGalleryQuery.useUpload()
+
   // Internal State
   const [view, setView] = useState(VIEWS.MAIN)
   const [url, setUrl] = useState("")
@@ -112,7 +117,7 @@ const ImageModal = ({
       toast.loading("Generating alt text...")
 
       const response = await generateAltText({ imageUrl: url })
-      const generatedAlt = response.altText || response.data?.altText
+      const generatedAlt = response.altText
       if (generatedAlt) {
         setAlt(generatedAlt)
         toast.dismiss()
@@ -134,8 +139,7 @@ const ImageModal = ({
 
     setView(VIEWS.GENERATING)
     try {
-      const res = await generateImage(genForm)
-      const img = res.image || res.data || res
+      const img = await generateImage(genForm)
       if (img?.url) {
         setGeneratedImageTemp({ ...img, prompt: genForm.prompt })
         setView(VIEWS.PREVIEW_GENERATE)
@@ -268,7 +272,10 @@ const ImageModal = ({
                             const formData = new FormData()
                             formData.append("image", file)
 
-                            const response = await uploadImage(formData, url || null)
+                            const response = await uploadImageMutation({
+                              formData,
+                              overwriteUrl: url || null,
+                            })
                             if (response?.url) {
                               const bustedUrl = `${response.url}?t=${Date.now()}`
                               setUrl(bustedUrl)
@@ -277,7 +284,7 @@ const ImageModal = ({
                               // Auto-generate Alt Text
                               try {
                                 const altRes = await generateAltText({ imageUrl: response.url })
-                                const generatedAlt = altRes.altText || altRes.data?.altText
+                                const generatedAlt = altRes.altText
                                 if (generatedAlt) {
                                   setAlt(generatedAlt)
                                   toast.success("Alt text generated automatically!")
@@ -493,7 +500,10 @@ const ImageModal = ({
                   </div>
 
                   <div>
-                    <label htmlFor="enhance-instruction" className="block text-sm font-medium  mb-1">
+                    <label
+                      htmlFor="enhance-instruction"
+                      className="block text-sm font-medium  mb-1"
+                    >
                       Instruction
                     </label>
                     <textarea

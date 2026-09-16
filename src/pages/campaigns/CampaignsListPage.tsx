@@ -16,8 +16,12 @@ import { getSocket } from "@utils/socket"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import type { Campaign, CampaignStatusType } from "@/types/campaign"
 
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+const formatDate = (date: string | null) =>
+  new Date(date ?? 0).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 
 export default function CampaignsListPage() {
   const navigate = useNavigate()

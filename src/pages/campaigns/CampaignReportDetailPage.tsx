@@ -1,7 +1,16 @@
 import type { ReactNode } from "react"
 import { Helmet } from "react-helmet-async"
 import { useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lightbulb, Loader2, Mail, Minus, TrendingDown, TrendingUp, Zap } from "lucide-react"
+import {
+  ArrowLeft,
+  Lightbulb,
+  Loader2,
+  Mail,
+  Minus,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from "lucide-react"
 import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
@@ -49,8 +58,12 @@ const PRIORITY_PILL: Record<SuggestionPriorityType, string> = {
   low: "bg-slate-100 text-slate-600",
 }
 
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+const formatDate = (date: string | null) =>
+  new Date(date ?? 0).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 
 const formatNumber = (value: number) => value.toLocaleString("en-US")
 
@@ -143,10 +156,18 @@ export default function CampaignReportDetailPage() {
   const { id = "", reportId = "" } = useParams<{ id: string; reportId: string }>()
   const navigate = useNavigate()
   const { data: campaign } = campaignsQuery.useDetail(id)
-  const { data: report, isLoading, isError, error, refetch } = campaignsQuery.useReport(id, reportId)
+  const {
+    data: report,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = campaignsQuery.useReport(id, reportId)
   const { data: breakdown } = campaignsQuery.useReportBreakdown(id, reportId)
   const weeklyTrend = breakdown?.weeklyTrend ?? []
-  const visibleTrendCharts = TREND_CHART_DEFS.filter((chart) => hasSignal(weeklyTrend, chart.dataKey))
+  const visibleTrendCharts = TREND_CHART_DEFS.filter((chart) =>
+    hasSignal(weeklyTrend, chart.dataKey)
+  )
 
   if (isLoading) {
     return (

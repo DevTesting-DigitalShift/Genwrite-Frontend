@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import useHumanizeStore from "@store/useHumanizeStore"
 import useAuthStore from "@store/useAuthStore"
-import { useHumanizeMutation } from "@api/queries/humanizeQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
@@ -15,8 +15,8 @@ const HumanizeContent = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [inputContent, setInputContent] = useState(location.state?.transferValue || "")
-  const { result: outputContent, resetHumanizeState } = useHumanizeStore()
-  const { mutate: generateContent, isPending } = useHumanizeMutation()
+  const { result: outputContent, setResult, resetHumanizeState } = useHumanizeStore()
+  const { mutate: generateContent, isPending } = generateQuery.useHumanizeContent()
 
   const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
@@ -100,8 +100,10 @@ const HumanizeContent = () => {
 
     const payload = { content: inputContent.trim() }
 
+    setResult(null)
     generateContent(payload, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setResult(data)
         toast.success("Content processed successfully!")
       },
       onError: (err) => {

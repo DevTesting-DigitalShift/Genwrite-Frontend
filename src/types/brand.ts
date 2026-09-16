@@ -1,15 +1,6 @@
-export interface Brand {
-  _id: string
-  userId: string
-  nameOfVoice: string
-  postLink: string
-  sitemap: string
-  keywords: string[]
-  describeBrand: string
-  persona: string
+import type { components } from "@/types/apiSchema"
 
-  [x: string]: any
-}
+export type Brand = components["schemas"]["BrandResponse"] & { [key: string]: any }
 
 export type BrandFormFields = Pick<
   Brand,
@@ -17,5 +8,5 @@ export type BrandFormFields = Pick<
 >
 export type BrandSiteInfo = Pick<
   Brand,
-  "nameOfVoice" | "describeBrand" | "keywords" | "postLink" | "persona" | "sitemap"
+  "nameOfVoice" | "describeBrand" | "keywords" | "postLink" | "persona" | "sitemap" | "logoUrl"
 >

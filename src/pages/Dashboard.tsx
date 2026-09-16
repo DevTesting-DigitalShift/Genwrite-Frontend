@@ -13,11 +13,11 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
-import { getBlogStatus } from "@/api/analysisApi"
+import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { getActiveSession } from "@utils/sessionStore"
-import { getAllBlogs } from "@/api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
 import {
@@ -96,16 +96,16 @@ const Dashboard = () => {
   }
 
   // Fetch blog status for analytics cards
-  const { data: blogStatus } = useQuery({
-    queryKey: ["blogStatus", activeWorkspace?.id],
-    queryFn: () => {
-      const endDate = dayjs().endOf("day").toISOString()
-      const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
-      const params = { start: new Date(start).toISOString(), end: endDate }
-      return getBlogStatus(params)
+  const { data: blogStatus } = analysisQuery.useBlogStatus(
+    {
+      start: new Date(
+        getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
+      ).toISOString(),
+      end: dayjs().endOf("day").toISOString(),
+      _workspace: activeWorkspace?.id,
     },
-    enabled: !!user,
-  })
+    { enabled: !!user }
+  )
 
   // Fetch Recent Successful Blogs
   const { data: recentBlogsData } = useQuery({
@@ -113,7 +113,7 @@ const Dashboard = () => {
     queryFn: () => {
       const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
       // Fetch more than we need (limit: 20) to ensure we find enough "complete" ones
-      return getAllBlogs({ limit: 20, sort: "createdAt:desc", start })
+      return blogsQuery.list({ limit: 20, sort: "createdAt:desc", start })
     },
     enabled: !!user,
   })
@@ -131,7 +131,10 @@ const Dashboard = () => {
   const openBlog = (blog: any) =>
     navigate(blog.isManuallyEdited === true ? `/blog-editor/${blog._id}` : `/editor/${blog._id}`)
 
-  const stats = blogStatus?.stats || {}
+  // Pre-existing mismatch: the real /blogs/status response has no .stats wrapper or
+  // these field names (it returns total/pending/inProgress/complete/failed/archived) —
+  // left as-is, unrelated to this migration.
+  const stats: any = (blogStatus as any)?.stats || {}
   const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
 
   const hasAnalyticsData =

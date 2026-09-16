@@ -21,9 +21,28 @@ const axiosInstance = axios.create({
 // attaching its Bearer token (or its shared workspace scope) to these calls would
 // authenticate the request as the wrong user. /auth/refresh is cookie-authenticated, not
 // Bearer-authenticated, and must never re-enter the 401 handler on its own failure.
-const UNAUTHENTICATED_ROUTES = ["/auth/login", "/auth/register", "/auth/google-signin", "/auth/refresh"]
+const UNAUTHENTICATED_ROUTES = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/google-signin",
+  "/auth/refresh",
+]
 
 const isUnauthenticatedRoute = (url = "") => UNAUTHENTICATED_ROUTES.some((r) => url.includes(r))
+
+// authMiddleware on the backend answers an expired/invalid access token with 403 (not
+// 401), tagged "ERR_TOKEN_EXPIRED" — see auth.middleware.js's TokenExpiredError/
+// JsonWebTokenError branch. Distinguish it from the interceptor's other 403 cases (stale
+// watch context, read-only access) by that code; the message check is a fallback in case
+// an older deployed backend hasn't picked up the code yet.
+const isExpiredTokenError = (error: unknown): boolean => {
+  const err = error as {
+    response?: { status?: number; data?: { code?: unknown; message?: unknown } }
+  }
+  if (err?.response?.status !== 403) return false
+  const { code, message } = err.response.data ?? {}
+  return code === "ERR_TOKEN_EXPIRED" || message === "Invalid or expired token, please log in again"
+}
 
 // Add request interceptor
 axiosInstance.interceptors.request.use(
@@ -133,11 +152,17 @@ axiosInstance.interceptors.response.use(
       toast.error(error.response.data.message)
     }
 
-    // 4. On 401, try one silent refresh for the active account before giving up.
-    //    Roughly every 15 minutes the access token lapses and some request lands here,
-    //    so this is the path a user actually hits — keep why it failed.
+    // 4. On 401 (or the backend's 403 for an expired/invalid access token), try one
+    //    silent refresh for the active account before giving up. Roughly every 15
+    //    minutes the access token lapses and some request lands here, so this is the
+    //    path a user actually hits — keep why it failed.
+    const isAuthFailure = status === 401 || isExpiredTokenError(error)
     let refreshError: string | null = null
-    if (status === 401 && !error.config?._refreshRetried && !isUnauthenticatedRoute(error.config?.url)) {
+    if (
+      isAuthFailure &&
+      !error.config?._refreshRetried &&
+      !isUnauthenticatedRoute(error.config?.url)
+    ) {
       const expiredSession = getActiveSession()
       if (expiredSession) {
         try {
@@ -154,8 +179,8 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 5. Only delete token for 401 Unauthorized (refresh above already failed or wasn't possible)
-    if (status === 401) {
+    // 5. Only delete the token once the refresh above already failed or wasn't possible.
+    if (isAuthFailure) {
       console.warn(`Token removed due to HTTP ${status}`)
       const expiredSession = getActiveSession()
       // adoptNext: false — this tab must not silently start acting as another logged-in

@@ -1,11 +1,3 @@
-import { apiErrorMessage } from "@/types/api"
-import {
-  createIntegration as createIntegrationAPI,
-  fetchCategories as fetchCategoriesAPI,
-  fetchIntegrations as fetchIntegrationsAPI,
-  pingIntegration as pingIntegrationAPI,
-  updateIntegration as updateIntegrationAPI,
-} from "@api/otherApi"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
@@ -18,6 +10,13 @@ export interface IntegrationsPayload {
   [key: string]: any
 }
 
+/**
+ * Pure client-state mirror of the integrations list — a shared cache multiple independent
+ * components (TextEditorSidebar, PluginsMain, AdvancedBlogModal, BulkBlogModal) populate via
+ * integrationQuery.useList() so that passive readers (RegenerateModal, PostingPanel) don't
+ * each need to fetch it themselves. No API calls happen here — every fetch/create/ping goes
+ * through integrationQuery (Integration.query.ts), which then calls setIntegrations.
+ */
 interface IntegrationState {
   integrations: IntegrationsPayload
   categories: any[]
@@ -29,13 +28,9 @@ interface IntegrationState {
   setCategories: (categories: any[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
-
-  fetchIntegrations: () => Promise<any>
-  fetchCategories: (type?: string) => Promise<any>
-  pingIntegration: (type: string) => Promise<any>
-  createIntegration: (payload: unknown) => Promise<any>
-  updateIntegration: (payload: unknown) => Promise<any>
+  setPing: (ping: unknown) => void
   resetCategories: () => void
+  reset: () => void
 }
 
 const useIntegrationStore = create<IntegrationState>()(
@@ -47,74 +42,22 @@ const useIntegrationStore = create<IntegrationState>()(
       error: null,
       ping: null,
 
-      // Actions
       setIntegrations: (integrations) => set({ integrations }),
       setCategories: (categories) => set({ categories }),
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
-
-      // Async Actions
-      fetchIntegrations: async () => {
-        set({ loading: true, error: null })
-        try {
-          const data = await fetchIntegrationsAPI()
-          set({ integrations: data, loading: false })
-          return data
-        } catch (error) {
-          set({ error: apiErrorMessage(error, "Failed to fetch integrations"), loading: false })
-          throw error
-        }
-      },
-
-      fetchCategories: async (type = "WORDPRESS") => {
-        set({ loading: true, error: null })
-        try {
-          const data = await fetchCategoriesAPI(type)
-          set({ categories: data, loading: false })
-          return data
-        } catch (error) {
-          set({ error: apiErrorMessage(error, "Failed to fetch categories"), loading: false })
-          throw error
-        }
-      },
-
-      pingIntegration: async (type) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await pingIntegrationAPI(type)
-          set({ ping: data, loading: false })
-          return data
-        } catch (error) {
-          set({ error: apiErrorMessage(error, "Failed to ping integration"), loading: false })
-          throw error
-        }
-      },
-
-      createIntegration: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await createIntegrationAPI(payload)
-          set({ loading: false })
-          return data
-        } catch (error) {
-          set({ error: apiErrorMessage(error, "Failed to create integration"), loading: false })
-          throw error
-        }
-      },
-
-      updateIntegration: async (payload) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await updateIntegrationAPI(payload)
-          set({ loading: false })
-          return data
-        } catch (error) {
-          set({ error: apiErrorMessage(error, "Failed to update integration"), loading: false })
-          throw error
-        }
-      },
-
+      setPing: (ping) => set({ ping }),
       resetCategories: () => set({ categories: [], error: null }),
+
+      // Cleared on account switch.
+      reset: () =>
+        set({
+          integrations: [] as unknown as IntegrationsPayload,
+          categories: [],
+          loading: false,
+          error: null,
+          ping: null,
+        }),
     }),
     { name: "integration-store" }
   )

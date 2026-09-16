@@ -17,7 +17,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
   baseKey = ["campaigns"]
   api = CampaignAPI
 
-  useReports = (campaignId: string, options?: AnyUseQueryOptions<CampaignReport[], Error>) =>
+  useReports = (campaignId: string, options?: AnyUseQueryOptions<CampaignReport[]>) =>
     this.useFetchQuery<CampaignReport[]>(
       `reports-${campaignId}`,
       () => this.api.listReports(campaignId),
@@ -27,7 +27,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
   useReport = (
     campaignId: string,
     reportId: string,
-    options?: AnyUseQueryOptions<CampaignReport, Error>
+    options?: AnyUseQueryOptions<CampaignReport>
   ) =>
     this.useFetchQuery<CampaignReport>(
       `report-${campaignId}-${reportId}`,
@@ -39,7 +39,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
   useReportBreakdown = (
     campaignId: string,
     reportId: string,
-    options?: AnyUseQueryOptions<CampaignReportBreakdown, Error>
+    options?: AnyUseQueryOptions<CampaignReportBreakdown>
   ) =>
     this.useFetchQuery<CampaignReportBreakdown>(
       `report-breakdown-${campaignId}-${reportId}`,
@@ -51,7 +51,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
   useMetrics = (
     campaignId: string,
     params: { from?: string; to?: string } = {},
-    options?: AnyUseQueryOptions<CampaignLiveMetrics, Error>
+    options?: AnyUseQueryOptions<CampaignLiveMetrics>
   ) =>
     this.useParamQuery<CampaignLiveMetrics, typeof params>(
       `metrics-${campaignId}`,
@@ -61,7 +61,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     )
 
   /** Live pending suggestions across every blog in the campaign. */
-  useSuggestions = (campaignId: string, options?: AnyUseQueryOptions<CampaignLiveSuggestion[], Error>) =>
+  useSuggestions = (campaignId: string, options?: AnyUseQueryOptions<CampaignLiveSuggestion[]>) =>
     this.useFetchQuery<CampaignLiveSuggestion[]>(
       `suggestions-${campaignId}`,
       () => this.api.getSuggestions(campaignId),
@@ -69,7 +69,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     )
 
   /** Audit trail of auto-applied rewrite/repost actions. */
-  useActions = (campaignId: string, options?: AnyUseQueryOptions<CampaignActionLogEntry[], Error>) =>
+  useActions = (campaignId: string, options?: AnyUseQueryOptions<CampaignActionLogEntry[]>) =>
     this.useFetchQuery<CampaignActionLogEntry[]>(
       `actions-${campaignId}`,
       () => this.api.getActions(campaignId),
@@ -135,7 +135,10 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
           this.queryClient.setQueryData<Campaign[]>([...this.baseKey, "list"], (old = []) =>
             old.map((c) => (c._id === updated._id ? updated : c))
           )
-          this.queryClient.setQueryData<Campaign>([...this.baseKey, `detail-${updated._id}`], updated)
+          this.queryClient.setQueryData<Campaign>(
+            [...this.baseKey, `detail-${updated._id}`],
+            updated
+          )
           options?.onSuccess?.(updated)
         },
       }

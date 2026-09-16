@@ -1,60 +1,144 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 import { RefreshCw, Plus, X, Zap } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { TONES } from "@/data/blogData"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { useNavigate } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
-import type { IntegrationsPayload } from "@store/useIntegrationStore"
-
-/** The regenerate form is assembled by the caller and indexed by field name here
- *  (keywords / focusKeywords), so it keeps an index signature. */
-interface RegenerateForm {
-  keywords: string[]
-  focusKeywords: string[]
-  options: Record<string, any>
-  [key: string]: any
-}
+import useIntegrationStore from "@store/useIntegrationStore"
+import useAuthStore from "@store/useAuthStore"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useZodForm } from "@/lib/forms/useZodForm"
+import {
+  regenerateBlogFormDefaults,
+  regenerateBlogFormSchema,
+  toRegenerateBlogPayload,
+} from "@/forms/regenerateBlogForm"
+import { debugPayload } from "@utils/debugPayload"
+import { asApiError } from "@/types/api"
+import { blogsQuery } from "@api/Blog/Blog.query"
+import useBlogStore from "@store/useBlogStore"
 
 interface RegenerateModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: () => void
-  isRegenerating: boolean
-  regenForm: RegenerateForm
-  updateRegenField: (field: string, value: unknown) => void
-  integrations?: IntegrationsPayload
 }
 
-const RegenerateModal = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  isRegenerating,
-  regenForm,
-  updateRegenField,
-  integrations,
-}: RegenerateModalProps) => {
-  const _navigate = useNavigate()
+const RegenerateModal = ({ isOpen, onClose }: RegenerateModalProps) => {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
+  const { user } = useAuthStore()
+  const { integrations } = useIntegrationStore()
+  // The blog being edited already lives in useBlogStore — reading it directly
+  // here avoids threading it through the sidebar as a prop just for this modal.
+  const blog = useBlogStore((s) => s.selectedBlog)
   const [regenerateStep, setRegenerateStep] = useState(1)
   const [keywordInput, setKeywordInput] = useState("")
   const [focusKeywordInput, setFocusKeywordInput] = useState("")
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
-  // Calculate regenerate cost using pricing config
+  // Owns its own form state — nothing outside this modal reads or writes it, so
+  // there's no reason for the sidebar that opens the modal to hold it.
+  const {
+    watch: watchRegen,
+    setValue: setRegenValue,
+    getFieldState: getRegenFieldState,
+    reset: resetRegenForm,
+    handleSubmit: submitRegenForm,
+  } = useZodForm(regenerateBlogFormSchema, regenerateBlogFormDefaults)
+
+  const regenForm = watchRegen()
+
+  const updateRegenField = useCallback(
+    (field: any, value: any) =>
+      setRegenValue(field, value, {
+        shouldValidate: !!getRegenFieldState(field).error,
+        shouldDirty: true,
+      }),
+    [setRegenValue, getRegenFieldState]
+  )
+
+  // Reset the form from the blog whenever it changes (including on open, since
+  // the blog is already loaded by the time this modal can be shown).
+  useEffect(() => {
+    if (!blog) return
+
+    const savedImageSource = blog.imageSource || DEFAULT_IMAGE_SOURCE
+    const isImagesEnabled = savedImageSource !== IMAGE_SOURCE.NONE
+    // This modal only offers stock and AI images, so a blog saved with uploaded
+    // images restarts from stock rather than a source it cannot show.
+    const imageSource =
+      savedImageSource === IMAGE_SOURCE.STOCK || savedImageSource === IMAGE_SOURCE.AI
+        ? savedImageSource
+        : isImagesEnabled
+          ? IMAGE_SOURCE.STOCK
+          : IMAGE_SOURCE.NONE
+
+    resetRegenForm({
+      ...regenerateBlogFormDefaults,
+      topic: blog.topic || "",
+      title: blog.title || "",
+      focusKeywords: blog.focusKeywords || [],
+      keywords: blog.keywords || [],
+      tone: blog.tone || "Professional",
+      userDefinedLength: blog.userDefinedLength || 1000,
+      aiModel: blog.aiModel || "gemini",
+      isCheckedGeneratedImages: isImagesEnabled,
+      imageSource: imageSource,
+      numberOfImages: blog.numberOfImages || 0,
+      isCheckedBrand: blog.isCheckedBrand || false,
+      brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
+      costCutter: blog.costCutter || false,
+      options: {
+        includeFaqs: blog.options?.includeFaqs || false,
+        includeInterlinks: blog.options?.includeInterlinks || false,
+        includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
+        addOutBoundLinks: blog.options?.addOutBoundLinks || false,
+        performKeywordResearch: blog.options?.performKeywordResearch || false,
+        humanisation: (blog as any).humanisation || blog.options?.humanisation || false,
+        extendedThinking: (blog as any).extendedThinking || blog.options?.extendedThinking || false,
+        deepResearch: (blog as any).deepResearch || blog.options?.deepResearch || false,
+        easyToUnderstand: (blog as any).easyToUnderstand || blog.options?.easyToUnderstand || false,
+        embedYouTubeVideos:
+          (blog as any).embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
+        automaticPosting: blog.options?.automaticPosting || false,
+        includeTableOfContents: blog.options?.includeTableOfContents || false,
+        addCTA: blog.options?.addCTA || false,
+        createBrandedImages: blog.options?.createBrandedImages || false,
+      },
+      isCheckedQuick: (blog as any).isCheckedQuick || false,
+      postingDefaultType: (blog as any).postingDefaultType || null,
+    })
+  }, [blog, resetRegenForm])
+
+  // Calculate regenerate cost using pricing config. This is also what gates the
+  // actual submit below, so it must stay the source of truth for both the
+  // preview shown here and the credit check on submit.
   const calculateRegenCost = useCallback(() => {
+    const features = []
+    if (regenForm.isCheckedBrand) features.push("brandVoice")
+    if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
+    if (regenForm.options.includeFaqs) features.push("faqGeneration")
+    if (regenForm.options.includeInterlinks) features.push("internalLinking")
+    if (regenForm.isCheckedQuick) features.push("quickSummary")
+    if (regenForm.options.automaticPosting) features.push("automaticPosting")
+    // Note: addOutBoundLinks does not add extra credits
+
     const roundedLength = Math.max(
       500,
       Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
     )
     return computeCost({
       wordCount: roundedLength,
-      options: regenForm.options,
+      features,
       aiModel: regenForm.aiModel || "gemini",
       includeImages: regenForm.isCheckedGeneratedImages,
       imageSource: regenForm.imageSource,
@@ -63,6 +147,50 @@ const RegenerateModal = ({
       costCutter: regenForm.costCutter,
     })
   }, [regenForm])
+
+  // The schema is checked first, so `values` is complete; `toRegenerateBlogPayload`
+  // is the only thing that shapes the request.
+  const onSubmit = submitRegenForm(
+    async (values) => {
+      const cost = calculateRegenCost()
+      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+      if (credits < cost) {
+        onClose()
+        return handlePopup({
+          title: "Insufficient Credits",
+          description: `Need ${cost} credits, have ${credits}.`,
+          confirmText: "Buy Credits",
+          onConfirm: () => navigate("/pricing"),
+        })
+      }
+
+      if (!blog?._id) return
+
+      setIsRegenerating(true)
+      try {
+        const payload = toRegenerateBlogPayload(values)
+        if (debugPayload("RegenerateBlog", payload)) return
+
+        await blogsQuery.retry(blog._id, payload)
+
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        toast.success("Blog regeneration started!")
+        onClose()
+        navigate("/blogs")
+      } catch (rawError) {
+        const error = asApiError(rawError)
+        toast.error(error.message || "Failed to regenerate")
+      } finally {
+        setIsRegenerating(false)
+      }
+    },
+    (invalid) => {
+      // The modal has no inline error slots, so surface the first problem as a toast.
+      const first = Object.values(invalid)[0]
+      toast.error(first?.message || "Please review the regeneration settings.")
+    }
+  )
 
   const addRegenKeyword = (type: string) => {
     const input = type === "focus" ? focusKeywordInput : keywordInput
@@ -404,7 +532,7 @@ const RegenerateModal = ({
                 labelClass="text-sm font-semibold "
                 value={{
                   isCheckedBrand: regenForm.isCheckedBrand,
-                  brandId: regenForm.brandId,
+                  brandId: regenForm.brandId ?? "",
                   addCTA: regenForm.options.addCTA,
                   createBrandedImages: regenForm.options.createBrandedImages,
                 }}

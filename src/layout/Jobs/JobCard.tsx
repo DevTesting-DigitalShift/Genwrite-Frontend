@@ -2,9 +2,8 @@ import type { ReactNode } from "react"
 import { memo, useState } from "react"
 import { motion } from "framer-motion"
 import { Play, Square, Clock } from "lucide-react"
-import { useToggleJobStatusMutation, useDeleteJobMutation } from "@api/queries/jobQueries"
+import { jobsQuery } from "@api/Job/Job.query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
@@ -37,15 +36,14 @@ interface JobCardProps {
 }
 
 const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }: JobCardProps) => {
-  const _queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const [_showAllTopics, _setShowAllTopics] = useState(false)
   const { isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
 
   const isRunning = job.status === "active"
 
-  const { mutate: toggleStatus, isPending: isToggling } = useToggleJobStatusMutation()
-  const { mutate: deleteMutate } = useDeleteJobMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = jobsQuery.useToggleStatus()
+  const { mutate: deleteMutate } = jobsQuery.useDelete()
 
   const handleToggleStatus = (e: any) => {
     e.stopPropagation()

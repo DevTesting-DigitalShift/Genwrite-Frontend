@@ -50,7 +50,7 @@ import TableHeader from "@tiptap/extension-table-header"
 import Heading from "@tiptap/extension-heading"
 import Underline from "@tiptap/extension-underline"
 import { AIBubbleMenu } from "./AIBubbleMenu"
-import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryApi"
+import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import { COSTS } from "@/data/blogData"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
@@ -90,6 +90,9 @@ const TipTapEditor = ({
   setUnsavedChanges,
   isPublicMode = false,
 }: TipTapEditorProps) => {
+  const { mutateAsync: generateImage } = imageGalleryQuery.useGenerate()
+  const { mutateAsync: enhanceImage } = imageGalleryQuery.useEnhance()
+  const { mutateAsync: generateAltText } = imageGalleryQuery.useGenerateAltText()
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -175,7 +178,10 @@ const TipTapEditor = ({
       ? markdown
       : marked.parse(
           markdown
-            .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_: any, alt: any, url: any) => `![${alt}](${url})`)
+            .replace(
+              /!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g,
+              (_: any, alt: any, url: any) => `![${alt}](${url})`
+            )
             .replace(/'/g, "'"),
           { gfm: true, breaks: true }
         )
@@ -225,69 +231,66 @@ const TipTapEditor = ({
     return turndownService.turndown(html)
   }, [])
 
-  const handleLinkHover = useCallback(
-    (event: any) => {
-      const link = event.target.closest("a")
-      if (!link) return
+  const handleLinkHover = useCallback((event: any) => {
+    const link = event.target.closest("a")
+    if (!link) return
 
-      const url = link.href
-      if (!url) return
+    const url = link.href
+    if (!url) return
 
-      // Don't show preview for internal anchors or mailto
-      if (url.startsWith("#") || url.startsWith("mailto:")) return
+    // Don't show preview for internal anchors or mailto
+    if (url.startsWith("#") || url.startsWith("mailto:")) return
 
-      if (hideTimeout.current) {
-        clearTimeout(hideTimeout.current)
-        hideTimeout.current = null
-      }
+    if (hideTimeout.current) {
+      clearTimeout(hideTimeout.current)
+      hideTimeout.current = null
+    }
 
-      const rect = link.getBoundingClientRect()
-      // Initial position (will be refined by useLayoutEffect)
-      setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
+    const rect = link.getBoundingClientRect()
+    // Initial position (will be refined by useLayoutEffect)
+    setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
 
-      setLinkPreviewUrl((currentUrl: any) => {
-        if (currentUrl === url) return currentUrl
-        return url
+    setLinkPreviewUrl((currentUrl: any) => {
+      if (currentUrl === url) return currentUrl
+      return url
+    })
+    setLinkPreviewElement(link)
+
+    if (previewCache.current[url]) {
+      setLinkPreview((prev: any) =>
+        prev === previewCache.current[url] ? prev : previewCache.current[url]
+      )
+      if (previewCache.current[url].loading) return
+      return
+    }
+
+    const loadingState = { loading: true }
+    previewCache.current[url] = loadingState
+    setLinkPreview(loadingState)
+
+    getLinkPreview(url)
+      .catch(() => getLinkPreview(url, { proxyUrl: "https://corsproxy.io/?" }))
+      .then((data) => {
+        previewCache.current[url] = data
+        // Check if we are still looking for THIS url
+        setLinkPreviewUrl((current: any) => {
+          if (current === url) {
+            setLinkPreview(data)
+          }
+          return current
+        })
       })
-      setLinkPreviewElement(link)
-
-      if (previewCache.current[url]) {
-        setLinkPreview((prev: any) =>
-          prev === previewCache.current[url] ? prev : previewCache.current[url]
-        )
-        if (previewCache.current[url].loading) return
-        return
-      }
-
-      const loadingState = { loading: true }
-      previewCache.current[url] = loadingState
-      setLinkPreview(loadingState)
-
-      getLinkPreview(url)
-        .catch(() => getLinkPreview(url, { proxyUrl: "https://corsproxy.io/?" }))
-        .then((data) => {
-          previewCache.current[url] = data
-          // Check if we are still looking for THIS url
-          setLinkPreviewUrl((current: any) => {
-            if (current === url) {
-              setLinkPreview(data)
-            }
-            return current
-          })
+      .catch((err) => {
+        console.error("Link preview error:", err)
+        previewCache.current[url] = { error: true, url }
+        setLinkPreviewUrl((current: any) => {
+          if (current === url) {
+            setLinkPreview({ error: true, url })
+          }
+          return current
         })
-        .catch((err) => {
-          console.error("Link preview error:", err)
-          previewCache.current[url] = { error: true, url }
-          setLinkPreviewUrl((current: any) => {
-            if (current === url) {
-              setLinkPreview({ error: true, url })
-            }
-            return current
-          })
-        })
-    },
-    []
-  )
+      })
+  }, [])
 
   const normalEditor = useEditor(
     {
@@ -1537,7 +1540,10 @@ const TipTapEditor = ({
                 {isGenerateMode && (
                   <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
                     <div>
-                      <label htmlFor="tiptap-gen-prompt" className="text-xs font-medium text-gray-500">
+                      <label
+                        htmlFor="tiptap-gen-prompt"
+                        className="text-xs font-medium text-gray-500"
+                      >
                         Prompt
                       </label>
                       <textarea
@@ -1551,7 +1557,10 @@ const TipTapEditor = ({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label htmlFor="tiptap-gen-style" className="text-xs font-medium text-gray-500">
+                        <label
+                          htmlFor="tiptap-gen-style"
+                          className="text-xs font-medium text-gray-500"
+                        >
                           Style
                         </label>
                         <select
@@ -1569,7 +1578,10 @@ const TipTapEditor = ({
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="tiptap-gen-ratio" className="text-xs font-medium text-gray-500">
+                        <label
+                          htmlFor="tiptap-gen-ratio"
+                          className="text-xs font-medium text-gray-500"
+                        >
                           Ratio
                         </label>
                         <select
@@ -1605,7 +1617,9 @@ const TipTapEditor = ({
                           }
                           const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                           if (credits < COSTS.IMAGE.GENERATE) {
-                            toast.error(`Insufficient credits. Need ${COSTS.IMAGE.GENERATE} credits.`)
+                            toast.error(
+                              `Insufficient credits. Need ${COSTS.IMAGE.GENERATE} credits.`
+                            )
                             return
                           }
                           if (!genForm.prompt.trim()) {
@@ -1614,8 +1628,7 @@ const TipTapEditor = ({
                           }
                           const toastId = toast.loading("Generating image...")
                           try {
-                            const response = await generateImage(genForm)
-                            const newImage = response.image || response.data || response
+                            const newImage = await generateImage(genForm)
                             if (newImage?.url) {
                               setImageUrl(newImage.url)
                               setImageAlt(genForm.prompt)
@@ -1733,7 +1746,9 @@ const TipTapEditor = ({
                           }
                           const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                           if (credits < COSTS.IMAGE.ENHANCE) {
-                            toast.error(`Insufficient credits. Need ${COSTS.IMAGE.ENHANCE} credits.`)
+                            toast.error(
+                              `Insufficient credits. Need ${COSTS.IMAGE.ENHANCE} credits.`
+                            )
                             return
                           }
                           if (!enhanceForm.prompt.trim()) {
@@ -1806,7 +1821,7 @@ const TipTapEditor = ({
                                 const toastId = toast.loading("Generating alt text...")
                                 try {
                                   const response = await generateAltText({ imageUrl })
-                                  const alt = response.altText || response.data?.altText
+                                  const alt = response.altText
                                   if (alt) {
                                     setImageAlt(alt)
                                     toast.success("Alt text generated!", { id: toastId })

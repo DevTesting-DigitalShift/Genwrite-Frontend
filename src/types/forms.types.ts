@@ -49,7 +49,7 @@ export const ScheduleType = {
   DAILY: "daily",
   WEEKLY: "weekly",
   WEEKDAYS: "weekdays",
-  MONTHDAYS: "monthdays",
+  MONTHLY: "monthly",
   CUSTOM: "custom",
 } as const
 

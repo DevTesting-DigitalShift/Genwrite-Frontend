@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
-import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
+import { paymentsQuery } from "@api/Payments/Payments.query"
+import { ApiRequestError } from "@api/typedClient"
 
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
@@ -12,7 +13,6 @@ import useAuthStore from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import useVerificationStore from "@store/useVerificationStore"
 
 interface PricingCardProps {
   plan: any
@@ -324,7 +324,7 @@ const Upgrade = () => {
   const [showCreditBlockModal, setShowCreditBlockModal] = useState(false)
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
+  const { mutateAsync: createCheckoutSession } = paymentsQuery.useCreateCheckoutSession()
 
   const _CONVERSION_RATE = 90 // USD to INR conversion rate
 
@@ -544,8 +544,6 @@ const Upgrade = () => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
       toast.warning("Please verify your email before purchasing a plan.")
-      // Use verification store instead of URL param
-      useVerificationStore.getState().setEmail(user.email)
       navigate(`/email-verify`, { replace: true })
       return
     }
@@ -581,29 +579,22 @@ const Upgrade = () => {
         credits: plan.type === "credit_purchase" ? credits : undefined,
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-        client_id: getGaClientId(),
+        client_id: getGaClientId() ?? undefined,
       }
 
-      // 3. Call API
-      const response = await createCheckoutSession(payload)
+      // 3. Call API — checkoutSessionResponseSchema is a real 6-way union (which shape comes
+      // back depends on which of 5 backend services handled the request), so each branch is
+      // its own `"key" in data` narrowing rather than optional-chained property probing.
+      const data = await createCheckoutSession(payload)
 
-      const data = response.data
-
-      // if (data?.sessionId) {
-      //   sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
-      //   const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-      //   if (result?.error) throw result.error
-      //   return
-      // }
-
-      if (data?.url) {
+      if ("url" in data) {
         sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
         window.location.href = data.url
         return
       }
 
       // New cases from upgrade endpoint — handle 3DS/SCA natively via Stripe SDK
-      if (data?.requiresAction && data?.clientSecret) {
+      if ("requiresAction" in data) {
         toast.info(`Authenticating payment of ${data.amountDue} ${data.currency}...`)
         const { paymentIntent: confirmedIntent, error: actionError } =
           await stripe.handleNextAction({ clientSecret: data.clientSecret })
@@ -619,27 +610,26 @@ const Upgrade = () => {
         return
       }
 
-      if (data?.requiresPayment && data?.hostedInvoiceUrl) {
+      if ("requiresPayment" in data) {
         // Redirect to Stripe's hosted invoice page
         // It shows amount, lets user pay with card / other methods, handles 3DS, etc.
-        toast.info(
-          `Redirecting to secure payment page for ${data.amountDue || "the prorated amount"}...`
-        )
-        window.location.href = data.hostedInvoiceUrl
+        toast.info(`Redirecting to secure payment page for ${data.amountDue}...`)
+        if (data.hostedInvoiceUrl) window.location.href = data.hostedInvoiceUrl
         return
       }
 
-      if (data?.success) {
-        toast.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+      if ("success" in data) {
+        toast.success(data.message || "Your Upcoming Plan has been set successfully.")
         navigate("/transactions", { replace: true })
       }
     } catch (error) {
       console.error("Checkout Error:", error)
-      if (error?.status === 403 && plan.type === "credit_purchase") {
+      const status = error instanceof ApiRequestError ? error.status : undefined
+      if (status === 403 && plan.type === "credit_purchase") {
         setShowCreditBlockModal(true)
-      } else if (error?.status === 409) {
-        toast.error(error?.response?.data?.toast || "User Subscription Conflict Error")
-      } else if (error?.status === 404) {
+      } else if (status === 409) {
+        toast.error(error instanceof Error ? error.message : "User Subscription Conflict Error")
+      } else if (status === 404) {
         toast.error("Selected plan configuration unavailable.")
       } else {
         toast.error("Failed to initiate checkout. Please try again.")

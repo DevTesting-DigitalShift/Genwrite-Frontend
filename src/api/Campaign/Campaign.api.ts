@@ -1,94 +1,81 @@
 // src/api/Campaign/Campaign.api.ts
-import axiosInstance from "@/api"
-import type {
-  Campaign,
-  CampaignReport,
-  CampaignReportBreakdown,
-  CampaignStatusType,
-  CampaignAnalyzeQueued,
-  CampaignLiveMetrics,
-  CampaignLiveSuggestion,
-  CampaignActionLogEntry,
-} from "@/types/campaign"
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@api/typedClient"
+import type { Campaign, CampaignActionLogEntry, CampaignReport } from "@/types/campaign"
 
 export const CampaignAPI = {
-  list: async (): Promise<Campaign[]> => {
-    const res = await axiosInstance.get("/campaigns")
-    return res.data
+  list: async () => {
+    return (await apiGet("/campaigns")) as Campaign[]
   },
 
-  get: async (id: string): Promise<Campaign> => {
-    const res = await axiosInstance.get(`/campaigns/${id}`)
-    return res.data
+  get: async (id: string) => {
+    return (await apiGet("/campaigns/{id}", { params: { id } })) as Campaign
   },
 
-  create: async (payload: Partial<Campaign>): Promise<Campaign> => {
-    const res = await axiosInstance.post("/campaigns", payload)
-    return res.data
+  create: async (payload: unknown) => {
+    return (await apiPost("/campaigns", payload as never)) as Campaign
   },
 
-  update: async (id: string, payload: Partial<Campaign>): Promise<Campaign> => {
-    const res = await axiosInstance.put(`/campaigns/${id}`, payload)
-    return res.data
+  update: async (id: string, payload: unknown) => {
+    return (await apiPut("/campaigns/{id}", payload as never, { params: { id } })) as Campaign
   },
 
-  delete: async (id: string): Promise<void> => {
-    await axiosInstance.delete(`/campaigns/${id}`)
+  delete: async (id: string) => {
+    await apiDelete("/campaigns/{id}", { params: { id } })
   },
 
-  listReports: async (campaignId: string): Promise<CampaignReport[]> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/reports`)
-    return res.data
+  listReports: async (campaignId: string) => {
+    return (await apiGet("/campaigns/{id}/reports", {
+      params: { id: campaignId },
+    })) as CampaignReport[]
   },
 
-  getReport: async (campaignId: string, reportId: string): Promise<CampaignReport> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/reports/${reportId}`)
-    return res.data
+  getReport: async (campaignId: string, reportId: string) => {
+    return (await apiGet("/campaigns/{id}/reports/{reportId}", {
+      params: { id: campaignId, reportId },
+    })) as CampaignReport
   },
 
-  getReportBreakdown: async (
-    campaignId: string,
-    reportId: string
-  ): Promise<CampaignReportBreakdown> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/reports/${reportId}/breakdown`)
-    return res.data
+  getReportBreakdown: async (campaignId: string, reportId: string) => {
+    return await apiGet("/campaigns/{id}/reports/{reportId}/breakdown", {
+      params: { id: campaignId, reportId },
+    })
   },
 
   /** Queues analysis (202) — it does not wait for it. Listen for the `campaign:analyzed`
    * socket event for the actual results. */
-  analyze: async (campaignId: string): Promise<CampaignAnalyzeQueued> => {
-    const res = await axiosInstance.post(`/campaigns/${campaignId}/analyze`)
-    return res.data
+  analyze: async (campaignId: string) => {
+    return await apiPost("/campaigns/{id}/analyze", undefined, { params: { id: campaignId } })
   },
 
   generateReport: async (
     campaignId: string,
     payload: { periodStart?: string; sendEmail?: boolean } = {}
-  ): Promise<CampaignReport> => {
-    const res = await axiosInstance.post(`/campaigns/${campaignId}/reports/generate`, payload)
-    return res.data
+  ) => {
+    return (await apiPost("/campaigns/{id}/reports/generate", payload as never, {
+      params: { id: campaignId },
+    })) as CampaignReport
   },
 
-  getMetrics: async (
-    campaignId: string,
-    params: { from?: string; to?: string } = {}
-  ): Promise<CampaignLiveMetrics> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/metrics`, { params })
-    return res.data
+  getMetrics: async (campaignId: string, params: { from?: string; to?: string } = {}) => {
+    return await apiGet("/campaigns/{id}/metrics", {
+      params: { id: campaignId },
+      query: params as never,
+    })
   },
 
-  getSuggestions: async (campaignId: string): Promise<CampaignLiveSuggestion[]> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/suggestions`)
-    return res.data
+  getSuggestions: async (campaignId: string) => {
+    return await apiGet("/campaigns/{id}/suggestions", { params: { id: campaignId } })
   },
 
-  getActions: async (campaignId: string): Promise<CampaignActionLogEntry[]> => {
-    const res = await axiosInstance.get(`/campaigns/${campaignId}/actions`)
-    return res.data
+  getActions: async (campaignId: string) => {
+    return (await apiGet("/campaigns/{id}/actions", {
+      params: { id: campaignId },
+    })) as CampaignActionLogEntry[]
   },
 
-  updateStatus: async (campaignId: string, status: CampaignStatusType): Promise<Campaign> => {
-    const res = await axiosInstance.patch(`/campaigns/${campaignId}/status`, { status })
-    return res.data
+  updateStatus: async (campaignId: string, status: string) => {
+    return (await apiPatch("/campaigns/{id}/status", { status } as never, {
+      params: { id: campaignId },
+    })) as Campaign
   },
 }

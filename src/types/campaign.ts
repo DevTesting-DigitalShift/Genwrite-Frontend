@@ -15,11 +15,7 @@ export const ProgressStatus = {
 
 export type ProgressStatusType = (typeof ProgressStatus)[keyof typeof ProgressStatus]
 
-export const SuggestionPriority = {
-  HIGH: "high",
-  MEDIUM: "medium",
-  LOW: "low",
-} as const
+export const SuggestionPriority = { HIGH: "high", MEDIUM: "medium", LOW: "low" } as const
 
 export type SuggestionPriorityType = (typeof SuggestionPriority)[keyof typeof SuggestionPriority]
 
@@ -55,19 +51,42 @@ export interface CampaignBlogRef {
   postedOn?: string
 }
 
+/** Minimal shape needed to render a job in the campaign job picker. */
+export interface CampaignJobRef {
+  _id: string
+  name: string
+}
+
+/** A job linked to a campaign, with its *current* eligibility — not whatever was true
+ * when it was linked. `eligible: false` means the job stopped posting (or was paused)
+ * since being linked, so its new blogs aren't being synced into this campaign right now. */
+export interface LinkedJob {
+  _id: string
+  name: string
+  eligible: boolean
+}
+
 export interface Campaign {
   _id: string
   userId: string
   name: string
   description: string
   status: CampaignStatusType
-  startDate: string
-  endDate: string
+  startDate: string | null
+  endDate: string | null
   blogIds: string[]
+  jobIds: string[]
+  /** Only present on the single-campaign fetch (GET /campaigns/:id), not the list endpoint. */
+  linkedJobs?: LinkedJob[]
+  // blogIds/jobIds/targets/automation are `.optional()` at the raw Mongoose-mirror schema
+  // level (no `required: true`), but every campaign created through this app's own
+  // CampaignFormDialog always sets them — Campaign.api.ts asserts that guarantee at the
+  // fetch boundary so the rest of the app can keep treating them as always-present.
   targets: CampaignTargets
   automation: CampaignAutomation
-  createdAt: string
-  updatedAt: string
+  // Generated coerced-date fields come through the openapi pipeline as `string | null`.
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface CampaignMetrics {
@@ -84,8 +103,8 @@ export interface CampaignProgressVsTarget {
 }
 
 export interface CampaignSuggestionRef {
-  blogId: string
-  insightId: string
+  blogId: string | null
+  insightId: string | null
   summary: string
   priority: SuggestionPriorityType
 }
@@ -95,7 +114,7 @@ export interface CampaignActionTaken {
   action: "rewrite" | "repost"
   insightId: string | null
   creditsCost: number
-  at: string
+  at: string | null
 }
 
 /** Full CampaignActionLog document, as returned by GET /campaigns/:id/actions —
@@ -111,8 +130,8 @@ export interface CampaignActionLogEntry {
   creditsCost: number
   status: "success" | "failed"
   error: string | null
-  createdAt: string
-  updatedAt: string
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface CampaignAnalyzeResultItem {
@@ -155,15 +174,15 @@ export interface CampaignLiveSuggestion {
   blogId: string
   insightId: string
   suggestionId: string
-  generatedAt: string
-  sectionTitle: string
+  generatedAt: string | null
+  sectionTitle?: string
   issue: string
   recommendation: string
   priority: SuggestionPriorityType
 }
 
 export interface CampaignWeeklyTrendPoint {
-  weekStart: string
+  weekStart: string | null
   clicks: number
   impressions: number
   avgPosition: number
@@ -188,14 +207,14 @@ export interface CampaignReport {
   _id: string
   campaignId: string
   userId: string
-  periodStart: string
-  periodEnd: string
+  periodStart: string | null
+  periodEnd: string | null
   metrics: CampaignMetrics
   deltaVsPreviousMonth: CampaignMetrics
   progressVsTarget: CampaignProgressVsTarget
   topSuggestions: CampaignSuggestionRef[]
   actionsTaken: CampaignActionTaken[]
   emailSentAt: string | null
-  createdAt: string
-  updatedAt: string
+  createdAt: string | null
+  updatedAt: string | null
 }

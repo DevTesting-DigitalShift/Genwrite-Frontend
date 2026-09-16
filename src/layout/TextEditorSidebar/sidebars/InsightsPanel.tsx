@@ -21,6 +21,7 @@ import { useAnimations } from "../hooks/useAnimations"
 import useViewport from "@/hooks/useViewport"
 import type { InsightsPanelProps, InsightSuggestion } from "../types"
 import { COSTS } from "@/data/blogData"
+import useEditorStore from "@store/useEditorStore"
 
 const PRIORITY_STYLES: Record<InsightSuggestion["priority"], string> = {
   high: "bg-red-50 text-red-600 border-red-100",
@@ -120,7 +121,7 @@ const SuggestionCard = ({
         </div>
       </div>
 
-      {suggestion.targetKeywords?.length > 0 && (
+      {suggestion.targetKeywords && suggestion.targetKeywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {suggestion.targetKeywords.map((keyword) => (
             <span
@@ -202,16 +203,16 @@ const SuggestionCard = ({
  * Search Console data, with one-click rewrites for each suggestion.
  */
 const InsightsPanel: React.FC<InsightsPanelProps> = ({
-  insight,
   isAnalyzing,
   onAnalyze,
   onApplySuggestion,
-  applyingSuggestionId,
   hasPublishedLinks,
   setIsSidebarOpen,
 }) => {
   const { panel, item, stagger } = useAnimations()
   const { isMobile } = useViewport()
+  const insight = useEditorStore((s) => s.insight)
+  const applyingSuggestionId = useEditorStore((s) => s.applyingSuggestionId)
 
   const isBusy = isAnalyzing || applyingSuggestionId !== null
   const trend = TREND_DISPLAY[insight?.metricsSnapshot?.trend || "unknown"]
@@ -337,7 +338,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
                 <TrendIcon className="w-4 h-4" />
                 {trend.label}
                 <span className="text-gray-400 font-medium ml-auto">
-                  {new Date(insight.generatedAt).toLocaleDateString()}
+                  {insight.generatedAt ? new Date(insight.generatedAt).toLocaleDateString() : ""}
                 </span>
               </motion.div>
 

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Plus, X, AlertCircle } from "lucide-react"
-import useContentStore from "@store/useContentStore"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import { toast } from "sonner"
 
 // Popular WordPress categories (limited to 15 for relevance)
@@ -50,17 +50,13 @@ const CategoriesModal = ({
   const [categoryError, setCategoryError] = useState<any>(false)
   const [platformError, setPlatformError] = useState<any>(false)
   const [errors, setErrors] = useState<any>({ category: "", platform: "" })
-  const { categories, fetchCategories, resetCategories, error: wordpressError } = useContentStore()
   const [selectedIntegration, setSelectedIntegration] = useState<any>(null)
   const [isCategoryLocked, setIsCategoryLocked] = useState<any>(false)
+  const { data: categories = [], error: wordpressError } = integrationQuery.useCategories(
+    selectedIntegration?.platform?.toUpperCase() || ""
+  )
 
   const hasShopifyPosted = !!posted?.SHOPIFY?.link
-
-  useEffect(() => {
-    if (selectedIntegration?.platform) {
-      fetchCategories(selectedIntegration.platform.toUpperCase())
-    }
-  }, [fetchCategories, selectedIntegration?.platform])
 
   const handleIntegrationChange = (platform: any, url: string) => {
     setSelectedIntegration({
@@ -215,11 +211,8 @@ const CategoriesModal = ({
       setPlatformError(false)
       setErrors({ category: "", platform: "" })
       setIsCategoryLocked(false)
-
-      // Reset categories in store
-      resetCategories()
     }
-  }, [isCategoryModalOpen, initialIncludeTableOfContents, resetCategories])
+  }, [isCategoryModalOpen, initialIncludeTableOfContents])
 
   // Auto-select platform based on posting history (only when modal opens)
   useEffect(() => {

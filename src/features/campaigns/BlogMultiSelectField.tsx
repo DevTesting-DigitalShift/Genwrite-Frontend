@@ -70,8 +70,7 @@ export function BlogMultiSelectField<TFieldValues extends FieldValues>({
         return (
           <FieldShell
             label="Blogs"
-            required
-            description="Only published blogs are listed — a campaign scores Search Console performance, and an unpublished blog has no URL to report on."
+            description="Only published blogs are listed — a campaign scores Search Console performance, and an unpublished blog has no URL to report on. Optional if you link a job below instead."
             error={fieldState.error?.message}
           >
             <div className="space-y-2">

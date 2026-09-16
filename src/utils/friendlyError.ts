@@ -21,7 +21,10 @@ export function getFriendlyError(err: unknown, context: ErrorContext = "general"
   // making every call site cast.
   const e = err as CaughtError | null | undefined
   const status = e?.response?.status ?? e?.status ?? null
-  const backendMsg = e?.response?.data?.message ?? e?.response?.data?.error ?? ""
+  // `e?.message` covers ApiRequestError (typedClient.ts) — flat, no `.response` nesting,
+  // `.message` already set to the real backend message. Without this fallback, every SAFE_PATTERNS
+  // match below silently stops working for API calls migrated onto the typed client.
+  const backendMsg = e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? ""
 
   // --- SAFE backend messages: authentication-related, always user-understandable ---
   const SAFE_PATTERNS = [

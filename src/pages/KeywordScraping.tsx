@@ -4,19 +4,17 @@ import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } fro
 import { toast } from "sonner"
 
 import useToolsStore from "@store/useToolsStore"
-import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ConnectedTools from "@components/ConnectedTools"
 
 const KeywordScraping = () => {
   const location = useLocation()
   const [inputUrl, setInputUrl] = useState(location.state?.transferValue || "")
-  const { keywordScraping, resetKeywordScraping } = useToolsStore()
+  const { keywordScraping, setKeywordScrapingResult, setKeywordScrapingError, resetKeywordScraping } =
+    useToolsStore()
   const { result: scrapingResult } = keywordScraping
-  const {
-    mutate: scrapeKeywords,
-    isPending,
-  } = useKeywordScrapingMutation()
+  const { mutate: scrapeKeywords, isPending } = generateQuery.useScrapeKeywords()
   const isLoading = isPending
 
   const [timer, setTimer] = useState(0)
@@ -82,11 +80,14 @@ const KeywordScraping = () => {
 
     const payload = { url: inputUrl.trim() }
 
+    resetKeywordScraping()
     scrapeKeywords(payload, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setKeywordScrapingResult(data)
         toast.success("Keywords scraped successfully!")
       },
       onError: (err) => {
+        setKeywordScrapingError(err)
         toast.error(err?.message || "Failed to scrape keywords. Please try again.")
         console.error(err)
       },

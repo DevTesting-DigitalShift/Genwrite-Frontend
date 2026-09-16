@@ -4,12 +4,12 @@ import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import App from "./App"
 import ErrorBoundary from "./layout/error/ErrorBoundary"
-import VerifiedEmail from "@pages/VerifiedEmail"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
 const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const GscProtectedRoute = lazy(() => import("./layout/GscProtectedRoute"))
+const TesterProtectedRoute = lazy(() => import("./layout/TesterProtectedRoute"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
 const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
@@ -45,6 +45,7 @@ const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 
 const ImageGallery = lazy(() => import("@pages/ImageGallery"))
+const Media = lazy(() => import("@pages/Media"))
 const Onboarding = lazy(() => import("@pages/Onboarding"))
 const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
 const YouTubeSummarization = lazy(() => import("@pages/YouTubeSummarization"))
@@ -137,6 +138,13 @@ const router = createBrowserRouter([
               { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
             ],
           },
+          {
+            // Media Studio is new/beta — gated to tester/admin roles (or anyone viewing a
+            // shared workspace, same as every other tester-gated area) until it's ready
+            // for general availability.
+            element: withLayoutSuspense(TesterProtectedRoute),
+            children: [{ path: "media", element: r(Media) }],
+          },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },
@@ -163,7 +171,6 @@ const router = createBrowserRouter([
           { path: "keyword-research", element: r(KeywordResearch) },
           { path: "onboarding", element: r(Onboarding) },
           { path: "email-verify", element: r(EmailVerification) },
-          { path: "verify-email", element: <VerifiedEmail /> },
         ],
       },
       {

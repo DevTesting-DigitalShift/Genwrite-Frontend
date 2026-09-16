@@ -7,7 +7,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import useAuthStore from "@store/useAuthStore"
-import useContentStore from "@store/useContentStore"
+import { generateQuery } from "@api/Generate/Generate.query"
 import { TONES } from "@/data/blogData"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import { Slider } from "@/components/ui/slider"
@@ -19,7 +19,7 @@ import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 const OutlineEditor = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { createOutline } = useContentStore()
+  const { mutateAsync: createOutline } = generateQuery.useCreateOutline()
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState<any[]>([])
   const [showAllKeywords, setShowAllKeywords] = useState(false)

@@ -2,41 +2,14 @@
  * Shared TypeScript types for TextEditorSidebar
  */
 
-export interface Blog {
-  _id: string
-  title?: string
-  topic?: string
-  content?: string
-  slug?: string
-  category?: string
-  template?: string
-  tone?: string
-  userDefinedLength?: number
-  aiModel?: string
-  imageSource?: string
-  numberOfImages?: number
-  tags?: string[]
-  keywords?: string[]
-  focusKeywords?: string[]
-  seoMetadata?: { title?: string; description?: string }
-  brandId?: BrandVoice | string
-  nameOfVoice?: string
-  describeBrand?: string
-  description?: string
-  persona?: string
-  postLink?: string
-  options?: BlogOptions
-  seoScore?: number
-  blogScore?: number
-  isCheckedBrand?: boolean
-  costCutter?: boolean
-  easyToUnderstand?: boolean
-  embedYouTubeVideos?: boolean
-  isCheckedQuick?: boolean
-  isCheckedGeneratedImages?: boolean
-  wordpressPostStatus?: boolean
-  postingDefaultType?: string | null
-}
+// The single canonical Blog type (derived from the backend's OpenAPI response schema,
+// see useBlogStore.ts) — re-exported here so existing imports from this module keep
+// working. Don't redeclare it; this file used to have its own drifting copy.
+import type { Blog } from "@store/useBlogStore"
+export type { Blog }
+import type { components } from "@/types/apiSchema"
+
+export type CompetitorAnalysisResponse = components["schemas"]["CompetitorAnalysisResponse"]
 
 export interface BrandVoice {
   _id?: string
@@ -88,15 +61,6 @@ export interface BlogPosting {
   category?: string
   includeTableOfContents?: boolean
   postedOn: string
-}
-
-export interface AnalysisResult {
-  insights?: {
-    blogScore?: number
-    analysis?: Record<string, { score: number; maxScore: number; feedback: string }>
-    suggestions?: string[]
-  }
-  competitors?: Array<{ title: string; url: string; score?: number }>
 }
 
 export interface ProofreadingSuggestion {
@@ -151,9 +115,11 @@ export interface BasePanelProps {
   isPro: boolean
 }
 
-export interface OverviewPanelProps extends BasePanelProps {
-  editorContent: string
-  keywords: string[]
+export interface OverviewPanelProps {
+  blog: Blog
+  isPro: boolean
+  isPublicMode?: boolean
+  isReadOnlyWorkspace?: boolean
   setIsSidebarOpen?: (open: boolean) => void
   onAnalyze: () => void
   isAnalyzing: boolean
@@ -161,108 +127,54 @@ export interface OverviewPanelProps extends BasePanelProps {
   contentScore: number
 }
 
-export interface SeoPanelProps extends BasePanelProps {
-  metadata: Metadata
-  setMetadata: (metadata: Metadata | ((prev: Metadata) => Metadata)) => void
+export interface SeoPanelProps {
+  blog: Blog
+  userPlan: string
+  isPro: boolean
+  isPublicMode?: boolean
+  isReadOnlyWorkspace?: boolean
+  isLocked?: boolean
+  setIsSidebarOpen?: (open: boolean) => void
   onMetadataGenerate: () => void
   onMetadataSave: () => void
   isGeneratingMetadata: boolean
-  analysisResult?: AnalysisResult
-  editorContent: string
-  includeImagesInExport: boolean
-  setIncludeImagesInExport: (value: boolean) => void
-  onExportMarkdown: () => void
-  onExportHTML: () => void
-  onExportPDF: () => void
+  analysisResult?: CompetitorAnalysisResponse
+  onExportMarkdown: (withImages: boolean) => void
+  onExportHTML: (withImages: boolean) => void
+  onExportPDF: (withImages: boolean) => void
 }
 
-export interface BlogInfoPanelProps extends BasePanelProps {
-  blogSlug: string
-  setBlogSlug: (slug: string) => void
-  isEditingSlug: boolean
-  setIsEditingSlug: (editing: boolean) => void
+export interface BlogInfoPanelProps {
+  blog: Blog
   hasPublishedLinks: boolean
+  isReadOnlyWorkspace?: boolean
+  isPublicMode?: boolean
+  setIsSidebarOpen?: (open: boolean) => void
   onSlugSave: (slug: string) => Promise<void>
 }
 
 export interface BrandVoicePanelProps extends BasePanelProps {
   onRegenerateWithBrand: () => void
-}
-
-export interface PostingPanelProps extends BasePanelProps {
-  integrations: Integrations
-  blogPostings: BlogPosting[]
-  isLoadingPostings: boolean
-  selectedCategory: string
-  setSelectedCategory: (category: string) => void
-  selectedIntegration: { platform: string; rawPlatform: string; url: string } | null
-  setSelectedIntegration: (
-    integration: { platform: string; rawPlatform: string; url: string } | null
-  ) => void
-  includeTableOfContents: boolean
-  setIncludeTableOfContents: (include: boolean) => void
-  isCategoryLocked: boolean
-  categoryError: boolean
-  platformError: boolean
-  errors: { category: string; platform: string }
-
-  onPost: (data: any) => void
-  isPosting: boolean
-
-  formData: any
-  hasAnyIntegration: boolean
-}
-
-export interface RegeneratePanelProps extends BasePanelProps {
-  onRegenerate: () => void
+  setIsSidebarOpen?: (open: boolean) => void
 }
 
 /**
- * A single AI-generated rewrite suggestion from a blog performance review.
- * Mirrors the suggestion subdocument of the backend BlogInsight model.
+ * Result of POST /blogs/:id/analyze / GET /blogs/:id/insight — a persisted BlogInsight
+ * document, or null if none has been generated yet. Derived from the backend's OpenAPI
+ * schema (regenerate via `npm run gen:api-types`) rather than hand-mirrored.
  */
-export interface InsightSuggestion {
-  _id: string
-  sectionId: string | null
-  sectionTitle: string
-  issue: string
-  recommendation: string
-  targetKeywords: string[]
-  priority: "high" | "medium" | "low"
-  status: "pending" | "applied" | "dismissed"
-}
+export type BlogInsight = NonNullable<components["schemas"]["BlogInsight"]>
 
-/**
- * Result of POST /blogs/:id/analyze — a persisted BlogInsight document.
- */
-export interface BlogInsight {
-  _id: string
-  blogId: string
-  userId: string
-  generatedAt: string
-  rangeFrom: string | null
-  rangeTo: string | null
-  metricsSnapshot: {
-    totalClicks: number
-    totalImpressions: number
-    avgPosition: number
-    trend: "up" | "down" | "flat" | "unknown"
-  }
-  /** Set when there was no search data yet, explaining why (from URL inspection) */
-  indexingNote: string | null
-  overallSummary: string
-  suggestions: InsightSuggestion[]
-}
+/** A single AI-generated rewrite suggestion — one entry of `BlogInsight["suggestions"]`. */
+export type InsightSuggestion = BlogInsight["suggestions"][number]
 
 export interface InsightsPanelProps extends BasePanelProps {
-  insight: BlogInsight | null
   isAnalyzing: boolean
   onAnalyze: () => void
   onApplySuggestion: (
     suggestion: InsightSuggestion,
     options: { scope: "section" | "whole"; republish: boolean }
   ) => void
-  applyingSuggestionId: string | null
   hasPublishedLinks: boolean
   setIsSidebarOpen?: (open: boolean) => void
 }

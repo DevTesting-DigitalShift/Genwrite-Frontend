@@ -1,10 +1,3 @@
-import {
-  enhanceImage,
-  generateAltText,
-  generateImage,
-  getImages,
-  searchImages,
-} from "@api/imageGalleryApi"
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 
@@ -24,76 +17,39 @@ export interface ImageQueryParams extends Record<string, unknown> {
   minScore?: number
 }
 
-interface ImageListResponse {
-  data?: GalleryImage[]
-  pagination?: { total?: number }
-}
-
+/**
+ * Pure client-state mirror of the last-fetched image page. All fetching/generation/
+ * enhancement goes through imageGalleryQuery (ImageGallery.query.ts) — callers write the
+ * result here via setImages/setTotalImages themselves, same split as useIntegrationStore.
+ */
 interface ImageState {
   images: GalleryImage[]
   totalImages: number
   loading: boolean
   error: string | null
 
+  setImages: (images: GalleryImage[]) => void
+  setTotalImages: (total: number) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   reset: () => void
-
-  fetchImages: (params: ImageQueryParams) => Promise<ImageListResponse>
-  generateImage: (genForm: object) => Promise<any>
-  enhanceImage: (formData: FormData) => Promise<any>
-  generateAltText: (imageUrl: string) => Promise<any>
 }
 
 const useImageStore = create<ImageState>()(
   devtools(
-    (set, _get) => ({
+    (set) => ({
       images: [],
       totalImages: 0,
       loading: false,
       error: null,
 
-      // Actions
+      setImages: (images) => set({ images }),
+      setTotalImages: (totalImages) => set({ totalImages }),
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
 
       // Cleared on account switch — the image gallery is account-specific.
       reset: () => set({ images: [], totalImages: 0, loading: false, error: null }),
-
-      // Async Actions
-      fetchImages: async (params) => {
-        set({ loading: true, error: null })
-        try {
-          const response: ImageListResponse = params.q
-            ? await searchImages(params)
-            : await getImages(params)
-          set({
-            images: response.data || [],
-            totalImages: response.pagination?.total || 0,
-            loading: false,
-          })
-          return response
-        } catch (error) {
-          const errMsg = (error as Error)?.message || "Failed to load images"
-          set({ error: errMsg, loading: false })
-          throw error
-        }
-      },
-
-      generateImage: async (genForm) => {
-        const response = await generateImage(genForm)
-        return response
-      },
-
-      enhanceImage: async (formData) => {
-        const response = await enhanceImage(formData)
-        return response
-      },
-
-      generateAltText: async (imageUrl) => {
-        const response = await generateAltText({ imageUrl })
-        return response
-      },
     }),
     { name: "image-store" }
   )

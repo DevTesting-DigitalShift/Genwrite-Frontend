@@ -28,11 +28,13 @@ import {
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useIntegrationStore from "@store/useIntegrationStore"
+import { integrationQuery } from "@api/Integration/Integration.query"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   const { user } = useAuthStore()
-  const { integrations, fetchIntegrations } = useIntegrationStore()
+  const { integrations, setIntegrations } = useIntegrationStore()
+  const { data: integrationsData } = integrationQuery.useList()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
@@ -94,8 +96,8 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   )
 
   useEffect(() => {
-    fetchIntegrations()
-  }, [fetchIntegrations])
+    if (integrationsData) setIntegrations(integrationsData)
+  }, [integrationsData, setIntegrations])
 
   useEffect(() => {
     const connected = integrations?.integrations
@@ -263,7 +265,7 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
 
-    let val
+    let val: string | number
     if (type === "tel" || type === "range") {
       if (value === "") {
         val = ""

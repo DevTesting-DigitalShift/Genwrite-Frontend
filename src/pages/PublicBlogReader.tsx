@@ -5,10 +5,10 @@ import { useQuery } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { FileText, Share2, Sparkles, TrendingUp, ChevronRight } from "lucide-react"
-import { getBlogPublicly } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import useBlogStore from "@store/useBlogStore"
+import useBlogStore, { type Blog } from "@store/useBlogStore"
 import useAuthStore from "@store/useAuthStore"
 import "../layout/TextEditor/editor.css"
 
@@ -29,7 +29,7 @@ const PublicBlogReader = () => {
     error,
   } = useQuery({
     queryKey: ["blog", id, "public"],
-    queryFn: () => getBlogPublicly(id ?? ""),
+    queryFn: () => blogsQuery.getPublicly(id ?? ""),
     enabled: !!id,
     retry: false,
   })
@@ -89,7 +89,10 @@ const PublicBlogReader = () => {
 
   useEffect(() => {
     if (fetchedBlog) {
-      setSelectedBlog(fetchedBlog)
+      // getBlogPublicly's PublicBlogResponse is a narrower, public-safe shape than the
+      // authenticated BlogResponse the store's Blog type models (see legacyPublic.response.js) —
+      // useBlogStore doesn't distinguish "full" vs "public preview" blogs.
+      setSelectedBlog(fetchedBlog as unknown as Blog)
 
       const authorId = authorData.id
       if (hasResolvedViewer && user?._id && authorId && user._id === authorId) {
@@ -97,7 +100,16 @@ const PublicBlogReader = () => {
         navigate(`/editor/${id}`, { replace: true })
       }
     }
-  }, [fetchedBlog, hasResolvedViewer, id, navigate, queryClient, setSelectedBlog, user?._id, authorData.id])
+  }, [
+    fetchedBlog,
+    hasResolvedViewer,
+    id,
+    navigate,
+    queryClient,
+    setSelectedBlog,
+    user?._id,
+    authorData.id,
+  ])
 
   useEffect(() => {
     if (isError) {

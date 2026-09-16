@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 
 import useToolsStore from "@store/useToolsStore"
-import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -26,12 +26,14 @@ const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState(location.state?.transferValue || "")
   const [topic, setTopic] = useState("")
 
-  const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
-  const { result } = competitorLikeBlog
   const {
-    mutate: generateContent,
-    isPending,
-  } = useCompetitorLikeBlogMutation()
+    competitorLikeBlog,
+    setCompetitorLikeBlogResult,
+    setCompetitorLikeBlogError,
+    resetCompetitorLikeBlog,
+  } = useToolsStore()
+  const { result } = competitorLikeBlog
+  const { mutate: generateContent, isPending } = generateQuery.useLikeCompetitor()
   const isLoading = isPending
 
   // Cleanup on unmount
@@ -73,11 +75,14 @@ const CompetitorLikeBlog = () => {
 
     const payload = { url: url.trim(), topic: topic.trim() }
 
+    resetCompetitorLikeBlog()
     generateContent(payload, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setCompetitorLikeBlogResult(data)
         toast.success("Content generated successfully!")
       },
       onError: (err) => {
+        setCompetitorLikeBlogError(err)
         toast.error(apiErrorMessage(err, "Failed to generate content. Please try again."))
         console.error(err)
       },

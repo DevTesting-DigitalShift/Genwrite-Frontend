@@ -9,7 +9,9 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { toast } from "sonner"
 import { Sparkles as SparklesIcon } from "lucide-react"
-import { sendRetryLines } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
+import { ApiRequestError } from "@api/typedClient"
+import { asApiError } from "@/types/api"
 import { debugPayload } from "@utils/debugPayload"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
@@ -18,9 +20,9 @@ import EditorAiReview from "@/layout/Editor/EditorAiReview"
 import useAiReviewStore from "@/store/useAiReviewStore"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import useBlogStore from "@store/useBlogStore"
+import useBlogStore, { type Blog } from "@store/useBlogStore"
+import useEditorStore from "@store/useEditorStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
@@ -45,27 +47,42 @@ const MainEditorPage = () => {
     error,
   } = useQuery({
     queryKey: ["blog", id],
-    queryFn: () => getBlogById(id),
+    // `enabled` guards this to only run once `id` is set.
+    queryFn: () => blogsQuery.get(id as string),
     enabled: !!id && !cachedBlog,
     initialData: cachedBlog || undefined,
     retry: false,
   })
 
-  const metadata = null // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
+  // TODO: Migrate wordpress/otherSlice metadata to Zustand if needed
+  const [wordpressMetadata] = useState<{ title?: string; description?: string } | null>(null)
   const [activeTab, _setActiveTab] = useState("Normal")
   // isLoading is now derived from isBlogFetching
-  const [keywords, setKeywords] = useState<any[]>([])
-  const [editorContent, setEditorContent] = useState("")
+  // Shared with TextEditorSidebar/sidebars/* via useEditorStore — see that file for why
+  // this used to be prop-drilled local state.
+  const {
+    editorContent,
+    setEditorContent,
+    editorTitle,
+    setEditorTitle,
+    keywords,
+    setKeywords,
+    unsavedChanges,
+    setUnsavedChanges,
+    formData,
+    setFormData,
+    posted: isPosted,
+    setPosted: setIsPosted,
+    isPosting,
+    setIsPosting,
+    reset: resetEditorStore,
+  } = useEditorStore()
   const resetAiReview = useAiReviewStore((s) => s.reset)
   const aiReview = useAiReviewStore((s) => s.review)
-  const [editorTitle, setEditorTitle] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState<any[]>([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveContent, setSaveContent] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [isPosted, setIsPosted] = useState<any>(null)
-  const [isPosting, setIsPosting] = useState(false)
-  const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
   const [showTemplateModal, setShowTemplateModal] = useState(!id)
   const [isHumanizeModalOpen, setIsHumanizeModalOpen] = useState(false)
   const [humanizedContent, setHumanizedContent] = useState("")
@@ -76,7 +93,6 @@ const MainEditorPage = () => {
 
   const pathDetect =
     location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
-  const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -118,13 +134,13 @@ const MainEditorPage = () => {
 
   useEffect(() => {
     if (fetchedBlog) {
-      setSelectedBlog(fetchedBlog)
+      setSelectedBlog(fetchedBlog as Blog)
     }
   }, [fetchedBlog, setSelectedBlog])
 
   useEffect(() => {
     if (isError) {
-      const status = error?.response?.status || 404
+      const status = (error instanceof ApiRequestError ? error.status : undefined) || 404
       const message =
         status === 403
           ? "Access Restricted: This blog belongs to another account."
@@ -148,13 +164,9 @@ const MainEditorPage = () => {
       // Clear selected blog when creating a new blog
       clearBlogUI()
       // Clear editor state to prevent showing previous blog content
-      setEditorContent("")
-      setEditorTitle("")
-      setKeywords([])
-      setIsPosted(null)
-      setFormData({ category: "", includeTableOfContents: false })
+      resetEditorStore()
     }
-  }, [id, clearBlogUI])
+  }, [id, clearBlogUI, resetEditorStore])
 
   useEffect(() => {
     if (blog && id && blog._id === id) {
@@ -195,12 +207,12 @@ const MainEditorPage = () => {
     } else {
       // Fallback to basic content replace
       const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-      setEditorContent((prev) => prev.replace(regex, change))
+      setEditorContent(editorContent.replace(regex, change))
     }
 
     // Remove suggestion from list
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-  }, [])
+  }, [editorContent, setEditorContent])
 
   const handlePostToWordPress = async (postData: any) => {
     setIsPosting(true)
@@ -222,9 +234,14 @@ const MainEditorPage = () => {
       return
     }
 
-    const selectedCategory = postData.categories || formData.categories
+    const selectedCategory = postData.categories || formData.category
     if (!selectedCategory) {
       toast.error("Please select a category.")
+      setIsPosting(false)
+      return
+    }
+    if (!blog?._id) {
+      toast.error("Blog is not loaded yet.")
       setIsPosting(false)
       return
     }
@@ -247,7 +264,8 @@ const MainEditorPage = () => {
       toast.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )
-    } catch (error) {
+    } catch (rawError) {
+      const error = asApiError(rawError)
       toast.error(
         error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
       )
@@ -267,7 +285,13 @@ const MainEditorPage = () => {
       .filter((word: any) => word.length > 0).length
   }
 
-  const handleSave = async (updateData = {}) => {
+  const handleSave = async (
+    updateData: {
+      metadata?: { title?: string; description?: string }
+      slug?: string
+      [key: string]: any
+    } = {}
+  ) => {
     if (blog?.isArchived) {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
@@ -284,7 +308,7 @@ const MainEditorPage = () => {
       // No blog yet (fresh manual blog opened via /blog-editor with no :id) —
       // create it first instead of PUTing to /blogs/update/undefined.
       if (!blog?._id) {
-        const created = await createSimpleBlog({
+        const created = await blogsQuery.createSimple({
           title: editorTitle,
           content: editorContent,
           keywords,
@@ -311,7 +335,7 @@ const MainEditorPage = () => {
         ...rest,
       }
 
-      const response = await updateBlog(blog._id, payload)
+      const response = await blogsQuery.update(blog._id, payload)
 
       toast.success("Blog updated successfully")
       setUnsavedChanges(false) // Reset unsavedChanges after save
@@ -338,6 +362,10 @@ const MainEditorPage = () => {
       toast.error("This blog is archived. Please restore it to perform this action.")
       return
     }
+    if (!blog?._id) {
+      toast.error("Blog is not loaded yet.")
+      return
+    }
     setIsSaving(true)
     try {
       const payload = {
@@ -346,16 +374,16 @@ const MainEditorPage = () => {
         published: blog?.published,
         focusKeywords: blog?.focusKeywords,
         keywords,
-        seoMetadata: metadata
-          ? { title: metadata.title, description: metadata.description }
+        seoMetadata: wordpressMetadata
+          ? { title: wordpressMetadata.title, description: wordpressMetadata.description }
           : blog?.seoMetadata || { title: "", description: "" },
       }
-      const updated = await updateBlog(blog._id, payload)
+      const updated = await blogsQuery.update(blog._id, payload)
       setSelectedBlog(updated)
       queryClient.setQueryData(["blog", id], updated)
-      const res = await sendRetryLines(blog._id)
-      if (res.data) {
-        setSaveContent(res.data)
+      const res = await blogsQuery.sendRetryLines(blog._id)
+      if (res) {
+        setSaveContent(res)
         setSaveModalOpen(true)
         toast.success("Review the suggested content.")
       } else {
@@ -418,7 +446,7 @@ const MainEditorPage = () => {
       isUnsplashActive: false,
     }
 
-    const newErrors = {}
+    const newErrors: Partial<typeof errors> = {}
     if (!blogData.title) newErrors.title = true
     if (!blogData.topic) newErrors.topic = true
     if (!blogData.template) newErrors.template = true
@@ -436,12 +464,12 @@ const MainEditorPage = () => {
     if (debugPayload("ManualBlog", blogData)) return
 
     try {
-      const res = await createSimpleBlog(blogData)
+      const res = await blogsQuery.createSimple(blogData)
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
       console.error("Failed to create blog:", err)
-      toast.error(err?.message || "Failed to create blog")
+      toast.error(err instanceof Error ? err.message : "Failed to create blog")
     }
   }
 
@@ -662,11 +690,12 @@ const MainEditorPage = () => {
                     type="button"
                     disabled={isReadOnlyWorkspace}
                     onClick={async () => {
+                      if (!blog?._id) return
                       try {
                         const newVisibility = !blog.isPublic
-                        const _response = await toggleBlogVisibility(blog._id, newVisibility)
+                        await blogsQuery.toggleVisibility(blog._id, newVisibility)
                         // Update both TanStack Query and Zustand store for immediate UI feedback
-                        queryClient.setQueryData(["blog", id], (prev) => ({
+                        queryClient.setQueryData(["blog", id], (prev: typeof blog) => ({
                           ...prev,
                           isPublic: newVisibility,
                         }))
@@ -708,7 +737,7 @@ const MainEditorPage = () => {
 
                   <button
                     type="button"
-                    onClick={() => handleSave({ metadata })}
+                    onClick={() => handleSave({ metadata: wordpressMetadata ?? undefined })}
                     title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-md font-bold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
@@ -749,9 +778,10 @@ const MainEditorPage = () => {
                     <textarea
                       value={editorTitle}
                       onChange={handleTitleChange}
-                      onInput={(e) => {
-                        e.target.style.height = "auto"
-                        e.target.style.height = e.target.scrollHeight + "px"
+                      onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
+                        const target = e.currentTarget
+                        target.style.height = "auto"
+                        target.style.height = `${target.scrollHeight}px`
                       }}
                       placeholder="Enter your blog title..."
                       readOnly={isReadOnlyWorkspace}
@@ -790,22 +820,7 @@ const MainEditorPage = () => {
                     blog={blog}
                     content={editorContent}
                     setContent={setEditorContent}
-                    unsavedChanges={unsavedChanges}
                     setUnsavedChanges={setUnsavedChanges}
-                    title={editorTitle}
-                    setTitle={setEditorTitle}
-                    handleSubmit={handleSave}
-                    keywords={keywords}
-                    setKeywords={setKeywords}
-                    proofreadingResults={proofreadingResults}
-                    handleReplace={handleReplace}
-                    isSavingKeyword={isSaving}
-                    humanizedContent={humanizedContent}
-                    showDiff={isHumanizeModalOpen}
-                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                    handleAcceptOriginalContent={handleAcceptOriginalContent}
-                    wordpressMetadata={metadata}
-                    onReplaceReady={handleReplaceReady}
                     // Same viewer treatment the public reader gets: content is selectable
                     // but not editable, and the formatting toolbar/bubble menu stay hidden.
                     isPublicMode={isReadOnlyWorkspace}
@@ -819,28 +834,11 @@ const MainEditorPage = () => {
             <TextEditorSidebar
               activeEditorVersion={1} // Hardcoded to TipTap
               blog={blog}
-              keywords={keywords}
-              setKeywords={setKeywords}
               onPost={handlePostToWordPress}
-              handleReplace={handleReplace}
-              proofreadingResults={proofreadingResults}
-              setProofreadingResults={setProofreadingResults}
-              handleSave={handleOptimizeSave}
               handleSubmit={handleSave}
-              posted={isPosted}
-              isPosting={isPosting}
-              formData={formData}
-              title={editorTitle}
-              setEditorContent={setEditorContent}
-              editorContent={editorContent}
-              humanizePrompt={humanizePrompt}
-              setHumanizePrompt={setHumanizePrompt}
               setIsHumanizing={setIsHumanizing}
-              isHumanizing={isHumanizing}
               setHumanizedContent={setHumanizedContent}
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
-              unsavedChanges={unsavedChanges}
-              wordpressMetadata={metadata}
             />
           </div>
 
@@ -856,29 +854,12 @@ const MainEditorPage = () => {
                 <TextEditorSidebar
                   activeEditorVersion={1} // Hardcoded to TipTap
                   blog={blog}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
                   onPost={handlePostToWordPress}
-                  handleReplace={handleReplace}
-                  proofreadingResults={proofreadingResults}
-                  setProofreadingResults={setProofreadingResults}
-                  handleSave={handleOptimizeSave}
                   handleSubmit={handleSave}
-                  posted={isPosted}
-                  isPosting={isPosting}
-                  formData={formData}
-                  title={editorTitle}
-                  setEditorContent={setEditorContent}
-                  editorContent={editorContent}
-                  humanizePrompt={humanizePrompt}
-                  setHumanizePrompt={setHumanizePrompt}
                   setIsHumanizing={setIsHumanizing}
-                  isHumanizing={isHumanizing}
                   setHumanizedContent={setHumanizedContent}
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
                   setIsSidebarOpen={setIsSidebarOpen}
-                  unsavedChanges={unsavedChanges}
-                  wordpressMetadata={metadata}
                 />
               </motion.div>
             )}
@@ -894,7 +875,6 @@ const MainEditorPage = () => {
         setErrors={setErrors}
         formData={templateFormData}
         setFormData={setTemplateFormData}
-        className="w-full max-w-lg"
       />
     </>
   )

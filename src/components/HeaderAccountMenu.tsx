@@ -20,7 +20,7 @@ import { SESSION_LIMIT_MESSAGE } from "@utils/sessionStore"
 import { useSessions } from "@/hooks/useSessions"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
-import { useWorkspacesSharedWithMeQuery } from "@api/queries/collaborationQueries"
+import { collaborationQuery } from "@api/Collaboration/Collaboration.query"
 
 interface AvatarProps {
   src?: string
@@ -113,7 +113,9 @@ const HeaderAccountMenu = ({ onSignOut }: HeaderAccountMenuProps) => {
 
   // Only meaningful once you actually collaborate; skipped entirely otherwise so the
   // dropdown costs nothing for solo accounts.
-  const { data: sharedData } = useWorkspacesSharedWithMeQuery(!!activeSession)
+  const { data: sharedData } = collaborationQuery.useWorkspacesSharedWithMe({
+    enabled: !!activeSession,
+  })
   const sharedWorkspaces = sharedData?.watching ?? []
 
   const me = {

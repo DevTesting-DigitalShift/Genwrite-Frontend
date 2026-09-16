@@ -4,7 +4,7 @@ import DOMPurify from "dompurify"
 import { useNavigate } from "react-router-dom"
 import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import useContentStore from "@store/useContentStore"
+import { generateQuery } from "@api/Generate/Generate.query"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { toast } from "sonner"
@@ -22,18 +22,18 @@ const PromptContent = () => {
 
   const {
     data: generatedContent,
-    loading: isGenerating,
+    isPending: isGenerating,
     error,
-    generatePromptContent,
-    resetMetadata,
-  } = useContentStore()
+    mutateAsync: generatePromptContent,
+    reset: resetGeneratedContent,
+  } = generateQuery.useGeneratePromptContent()
 
   // Clear data on route change or component unmount
   useEffect(() => {
     return () => {
-      resetMetadata()
+      resetGeneratedContent()
     }
-  }, [resetMetadata])
+  }, [resetGeneratedContent])
 
   // Robust word count calculation that ignores HTML tags
   const plainText = content.replace(/<[^>]*>/g, " ").trim()
@@ -91,9 +91,9 @@ const PromptContent = () => {
   const handleReset = useCallback(() => {
     setContent("")
     setPrompt("")
-    resetMetadata()
+    resetGeneratedContent()
     toast.success("Content and prompt reset!")
-  }, [resetMetadata])
+  }, [resetGeneratedContent])
 
   const copyToClipboard = async (text: string, label: string, fieldName: string) => {
     try {
@@ -308,7 +308,7 @@ const PromptContent = () => {
       {/* Error State */}
       {error && !isGenerating && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-red-700">Error: {error}</p>
+          <p className="text-red-700">Error: {error?.message}</p>
         </div>
       )}
     </div>

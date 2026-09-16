@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
-import { usePdfChatMutation } from "@api/queries/toolsQueries"
+import { generateQuery } from "@api/Generate/Generate.query"
 import { Helmet } from "react-helmet-async"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -25,9 +25,9 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
 
 const ChatWithPdf = () => {
-  const { pdfChat, resetPdfChat } = useToolsStore()
+  const { pdfChat, setPdfChatResult, resetPdfChat } = useToolsStore()
   const { cacheKey } = pdfChat
-  const { mutateAsync: sendMessage, isPending: loading } = usePdfChatMutation()
+  const { mutateAsync: sendMessage, isPending: loading } = generateQuery.usePdfChat()
   const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
@@ -155,6 +155,7 @@ const ChatWithPdf = () => {
       }
 
       const result = await sendMessage(payload)
+      setPdfChatResult(result)
       setMessages((prev) => [
         ...prev,
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },

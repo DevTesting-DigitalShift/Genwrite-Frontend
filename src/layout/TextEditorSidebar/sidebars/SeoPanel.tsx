@@ -1,381 +1,371 @@
-import { motion } from "framer-motion"
+import { useState } from "react"
 import {
-  TrendingUp,
-  Sparkles,
+  BarChart,
   Download,
-  FileText,
   FileCode,
-  Lock,
+  FileText,
   ImageIcon,
   Info,
-  BarChart,
-  Target,
   Lightbulb,
-  Crown,
-  ExternalLink,
+  Lock,
+  Sparkles,
+  Target,
+  TrendingUp,
+  X,
 } from "lucide-react"
-import { useAnimations } from "../hooks/useAnimations"
+import useEditorStore from "@store/useEditorStore"
 import type { SeoPanelProps } from "../types"
 import { CompetitorsList } from "../FeatureComponents"
 
+/**
+ * SEO & Export panel — metadata editing (backed by `useEditorStore.seoMetadata`, shared
+ * with the accept/reject modal that lives in TextEditorSidebar) plus one-off exports.
+ * `includeImagesInExport` is a purely local toggle: nothing outside this panel reads it,
+ * so it isn't worth a store field — it's just threaded through the export callbacks.
+ */
 const SeoPanel: React.FC<SeoPanelProps> = ({
+  blog,
   userPlan,
   isPro,
-  metadata,
-  setMetadata,
+  isPublicMode,
+  isReadOnlyWorkspace,
+  isLocked,
+  setIsSidebarOpen,
   onMetadataGenerate,
   onMetadataSave,
   isGeneratingMetadata,
   analysisResult,
-  includeImagesInExport,
-  setIncludeImagesInExport,
   onExportMarkdown,
   onExportHTML,
   onExportPDF,
 }) => {
-  const { panel, item, stagger } = useAnimations()
+  const metadata = useEditorStore((s) => s.seoMetadata)
+  const setMetadata = useEditorStore((s) => s.setSeoMetadata)
+  const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
 
   return (
-    <motion.div
-      variants={panel}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="flex flex-col h-full bg-white"
-    >
-      {/* Header */}
-      <div className="p-4 border-b bg-slate-50/50 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-blue-500/10 transition-colors" />
-        <div className="flex items-center justify-between mb-2 relative z-10">
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b bg-white sticky top-0 z-10 border-gray-300">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-950 rounded-lg shadow-lg shadow-slate-900/10 group-hover:scale-110 transition-transform duration-500">
+            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-100">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-slate-900 tracking-tight">System Intelligence</h3>
+                <h3 className="font-bold text-gray-900">SEO & Export</h3>
                 {isPro && (
-                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-black uppercase tracking-widest flex items-center gap-1 border border-amber-200">
-                    <Crown className="w-3 h-3" />
-                    Neural+
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
+                    PRO
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
-                SEO & Export Matrix
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Metadata & Assets
               </p>
             </div>
           </div>
+          {setIsSidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Content */}
-      <motion.div variants={stagger} className="flex-1 overflow-y-auto p-4 space-y-8 custom-scroll">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* SEO Metadata Section */}
-        <motion.div
-          variants={item}
-          className="space-y-4 p-6 bg-white border border-slate-200/60 rounded-[32px] shadow-2xl shadow-slate-200/10 group"
-        >
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-600" />
-              Metadata Core
+              SEO Metadata
             </span>
-            <button
-              type="button"
-              onClick={onMetadataGenerate}
-              disabled={isGeneratingMetadata}
-              className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-30 disabled:grayscale transition-all"
-            >
-              <Sparkles className="w-3 h-3" />
-              {isGeneratingMetadata ? "Generating..." : "Auto-Generate"}
-            </button>
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={onMetadataGenerate}
+                disabled={blog?.isArchived || isPublicMode || isGeneratingMetadata}
+                className={`text-xs font-medium flex items-center gap-1 ${
+                  blog?.isArchived || isPublicMode || isGeneratingMetadata
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700 hover:underline"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />{" "}
+                {isPublicMode ? "Locked" : isGeneratingMetadata ? "Generating..." : "Generate"}
+              </button>
+            )}
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <input
+              type="text"
               value={metadata.title}
               onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
-              placeholder="Meta Signature Title..."
-              className="w-full text-sm rounded-xl border-none outline-none ring-1 ring-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all h-10 px-4 font-medium"
+              placeholder="Meta title..."
+              disabled={isLocked}
+              className="input input-bordered input-sm w-full disabled:bg-gray-50 disabled:text-gray-500"
             />
             <textarea
               value={metadata.description}
               onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Abstract Summary for AI crawlers..."
+              placeholder="Meta description..."
               rows={4}
-              className="w-full text-sm resize-none rounded-xl border-none outline-none ring-1 ring-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-600/20 transition-all p-4 font-medium"
+              disabled={isLocked}
+              className="textarea textarea-bordered w-full text-sm resize-none disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>
-          <button
-            type="button"
-            onClick={onMetadataSave}
-            className="w-full h-11 text-xs font-black uppercase tracking-widest rounded-xl bg-slate-950 text-white shadow-xl shadow-slate-900/10 hover:shadow-blue-600/10 hover:bg-slate-800 transition-all active:scale-95"
-          >
-            Deploy Metadata
-          </button>
-        </motion.div>
+          {/* Nothing to save when the fields above can't be edited */}
+          {!isReadOnlyWorkspace && (
+            <button
+              type="button"
+              onClick={onMetadataSave}
+              disabled={blog?.isArchived || isPublicMode}
+              className={`w-full py-2 text-sm font-semibold rounded-lg transition-all ${
+                blog?.isArchived || isPublicMode
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+              }`}
+            >
+              {isPublicMode ? "Metadata Locked" : "Save Metadata"}
+            </button>
+          )}
+        </div>
 
         {/* Export Section */}
-        <motion.div
-          variants={item}
-          className="space-y-4 p-6 bg-white border border-slate-200/60 rounded-[32px] shadow-2xl shadow-slate-200/10"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100">
-              <Download className="w-4 h-4 text-emerald-600" />
-            </div>
-            <span className="text-sm font-black text-slate-900 uppercase tracking-widest">
-              Data Extraction
-            </span>
+        <div className="space-y-3 p-3 bg-white border border-gray-300 rounded-xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <Download className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-semibold text-gray-900">Export Blog</span>
             {userPlan === "free" && (
-              <span className="ml-auto text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md font-black uppercase tracking-widest border border-slate-200">
-                <Lock className="w-3 h-3" /> Encrypted
+              <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Pro
               </span>
             )}
           </div>
 
           {/* Include Images Toggle */}
           <div
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-500 ${
-              includeImagesInExport
-                ? "bg-blue-50/50 border-blue-200"
-                : "bg-slate-50 border-slate-100"
+            className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+              includeImagesInExport ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
             }`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <ImageIcon
-                className={`w-5 h-5 transition-colors ${
-                  includeImagesInExport ? "text-blue-600" : "text-slate-400"
+                className={`w-4 h-4 transition-colors ${
+                  includeImagesInExport ? "text-blue-600" : "text-gray-500"
                 }`}
               />
               <span
-                className={`text-xs font-black uppercase tracking-widest transition-colors ${
-                  includeImagesInExport ? "text-blue-900" : "text-slate-500"
+                className={`text-sm font-medium transition-colors ${
+                  includeImagesInExport ? "text-blue-900" : ""
                 }`}
               >
-                Media Assets
+                Include Images
               </span>
             </div>
             <input
               type="checkbox"
-              className="toggle toggle-sm toggle-primary"
+              className="toggle toggle-primary toggle-sm"
               checked={includeImagesInExport}
               onChange={(e) => setIncludeImagesInExport(e.target.checked)}
               disabled={userPlan === "free"}
             />
           </div>
-
           {includeImagesInExport && userPlan !== "free" && (
-            <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-              <p className="text-[10px] font-bold text-blue-700 flex items-center gap-2">
+            <div className="px-2 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
                 <Info className="w-3 h-3" />
-                Aggregating to ZIP format with local assets
+                Downloads as ZIP with images included
               </p>
             </div>
           )}
 
-          <div className="grid gap-4 grid-cols-1">
+          <div
+            className="
+    grid gap-3
+    grid-cols-1
+    sm:grid-cols-2
+    lg:grid-cols-3
+  "
+          >
             {/* Markdown */}
             <button
               type="button"
-              onClick={onExportMarkdown}
+              onClick={() => onExportMarkdown(includeImagesInExport)}
               disabled={userPlan === "free"}
               className={`
-                group flex items-center gap-4 py-4 px-6
-                rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]
-                border transition-all duration-500
-                ${
-                  userPlan === "free"
-                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-50"
-                    : "bg-white text-slate-800 border-slate-100 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50 active:scale-95"
-                }
-              `}
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-linear-to-br from-blue-50 to-indigo-50
+            hover:from-blue-100 hover:to-indigo-100
+            text-blue-700 border-blue-200
+            hover:border-blue-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
             >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${userPlan === "free" ? "bg-slate-100" : "bg-blue-50 group-hover:bg-blue-100"}`}
-              >
-                <FileText
-                  className={`w-5 h-5 ${userPlan === "free" ? "text-slate-300" : "text-blue-600"}`}
-                />
-              </div>
-              <span>Protocol: .MD</span>
-              <ExternalLink className="ml-auto w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <FileText
+                className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
+              />
+              <span>Markdown</span>
             </button>
 
             {/* HTML */}
             <button
               type="button"
-              onClick={onExportHTML}
+              onClick={() => onExportHTML(includeImagesInExport)}
               disabled={userPlan === "free"}
               className={`
-                group flex items-center gap-4 py-4 px-6
-                rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]
-                border transition-all duration-500
-                ${
-                  userPlan === "free"
-                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-50"
-                    : "bg-white text-slate-800 border-slate-100 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50 active:scale-95"
-                }
-              `}
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-linear-to-br from-purple-50 to-pink-50
+            hover:from-purple-100 hover:to-pink-100
+            text-purple-700 border-purple-200
+            hover:border-purple-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
             >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${userPlan === "free" ? "bg-slate-100" : "bg-emerald-50 group-hover:bg-emerald-100"}`}
-              >
-                <FileCode
-                  className={`w-5 h-5 ${userPlan === "free" ? "text-slate-300" : "text-emerald-600"}`}
-                />
-              </div>
-              <span>Structure: .HTML</span>
-              <ExternalLink className="ml-auto w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <FileCode
+                className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
+              />
+              <span>HTML</span>
             </button>
 
-            {/* PDF */}
-            <button
-              type="button"
-              onClick={onExportPDF}
-              disabled={userPlan === "free"}
-              className={`
-                group flex items-center gap-4 py-4 px-6
-                rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]
-                border transition-all duration-500
-                ${
-                  userPlan === "free"
-                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-50"
-                    : "bg-white text-slate-800 border-slate-100 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50 active:scale-95"
-                }
-              `}
-            >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${userPlan === "free" ? "bg-slate-100" : "bg-rose-50 group-hover:bg-rose-100"}`}
+            {/* PDF — withheld from read-only collaborators */}
+            {!isReadOnlyWorkspace && (
+              <button
+                type="button"
+                onClick={() => onExportPDF(includeImagesInExport)}
+                disabled={userPlan === "free"}
+                className={`
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-linear-to-br from-green-50 to-emerald-50
+            hover:from-green-100 hover:to-emerald-100
+            text-green-700 border-green-200
+            hover:border-green-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
               >
                 <Download
-                  className={`w-5 h-5 ${userPlan === "free" ? "text-slate-300" : "text-rose-600"}`}
+                  className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
                 />
-              </div>
-              <span>Render: .PDF</span>
-              <ExternalLink className="ml-auto w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
+                <span>PDF</span>
+              </button>
+            )}
           </div>
 
           {userPlan === "free" && (
-            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-              <p className="text-[10px] text-amber-950 font-black uppercase tracking-widest text-center">
-                Upgrade System to Unlock Export
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-700 text-center font-medium">
+                🔒 Upgrade to export your blogs in multiple formats
               </p>
             </div>
           )}
-        </motion.div>
+        </div>
 
-        {/* Analysis Results */}
         {analysisResult && (
-          <>
+          <div className="space-y-4">
             {/* Detailed Analysis Breakdown */}
             {analysisResult.insights?.analysis && (
-              <motion.div
-                variants={item}
-                className="space-y-4 p-6 bg-white border border-slate-200/60 rounded-[32px] shadow-2xl shadow-slate-200/10"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
-                    <BarChart className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                    Heuristic Audit
-                  </span>
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
                 </div>
-
-                <div className="space-y-4">
+                <div className="space-y-2">
+                  {/* Each criterion is one AI-written sentence (score is embedded in the
+                      text itself, e.g. "...(15/20 points)"), not a separate {score,
+                      maxScore, feedback} breakdown. */}
                   {Object.entries(analysisResult.insights.analysis).map(([category, data]) => (
                     <div
                       key={category}
-                      className="collapse collapse-arrow bg-transparent rounded-none border-b border-slate-100 last:border-0 p-0"
+                      className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
                     >
-                      <input type="checkbox" className="min-h-0" />
-                      <div className="collapse-title flex items-center justify-between w-full p-4 pl-0 min-h-0">
-                        <span className="font-bold text-slate-800 text-xs uppercase tracking-widest">
-                          {category.replace(/([A-Z])/g, " $1").trim()}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                            {data.score}/{data.maxScore}
-                          </span>
-                        </div>
+                      <input type="checkbox" className="peer" />
+                      <div className="collapse-title flex items-center pr-8">
+                        <span className="font-medium text-gray-800 text-sm">{category}</span>
                       </div>
-                      <div className="collapse-content p-0 pb-4">
-                        <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 font-medium">
-                          {data.feedback}
+                      <div className="collapse-content">
+                        <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          {data}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             )}
 
-            {/* Actionable Suggestions */}
-            {analysisResult.insights?.suggestions &&
-              analysisResult.insights.suggestions.length > 0 && (
-                <motion.div
-                  variants={item}
-                  className="space-y-4 p-6 bg-white border border-slate-200/60 rounded-[32px] shadow-2xl shadow-slate-200/10"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center border border-amber-200">
-                      <Lightbulb className="w-4 h-4 text-amber-600" />
-                    </div>
-                    <span className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                      Optimization Pulse
-                    </span>
-                    <span className="ml-auto text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-black border border-amber-100 leading-none">
-                      {analysisResult.insights.suggestions.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3 max-h-80 overflow-y-auto custom-scroll pr-2">
-                    {analysisResult.insights.suggestions.map((suggestion, idx) => (
-                      <motion.div
-                        key={suggestion}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="w-6 h-6 bg-white border border-slate-200 rounded-lg flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                          <span className="text-[10px] font-black text-slate-900">{idx + 1}</span>
-                        </div>
-                        <p className="text-xs text-slate-700 leading-relaxed flex-1 font-medium">
-                          {suggestion}
-                        </p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
+            {/* Actionable Suggestions — the API returns this as one AI-written paragraph, not a list */}
+            {analysisResult.insights?.suggestions && (
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-gray-900">Suggestions</span>
+                </div>
+                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll">
+                  <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-line">
+                    {analysisResult.insights.suggestions}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Competitors Analysis */}
             {analysisResult.competitors && analysisResult.competitors.length > 0 && (
-              <motion.div
-                variants={item}
-                className="space-y-4 p-6 bg-white border border-slate-200/60 rounded-[32px] shadow-2xl shadow-slate-200/10"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                    Market Rivals
-                  </span>
-                  <span className="ml-auto text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-black border border-blue-100 leading-none">
+              <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
+                  <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                     {analysisResult.competitors.length}
                   </span>
                 </div>
                 <CompetitorsList competitors={analysisResult.competitors} />
-              </motion.div>
+              </div>
             )}
-          </>
+          </div>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 

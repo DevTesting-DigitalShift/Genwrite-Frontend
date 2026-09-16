@@ -53,7 +53,10 @@ export function pushBlogCreationEvent({
 
 interface JobAgentCreationEvent {
   status: string
-  job?: { _id?: string; job?: { _id?: string } }
+  // createJob's real response is either the bare job doc (persistJob sends
+  // res.status(201).json(job) — see job.response.js) or, in payload-debug mode
+  // (VITE_DEBUG_PAYLOADS), a `{ message, payload, debug: true }` body with no `_id` at all.
+  job?: { _id?: string; debug?: boolean }
   error?: unknown
 }
 
@@ -67,7 +70,7 @@ export function pushJobAgentCreationEvent({ status, job, error }: JobAgentCreati
     event: "job_agent_creation",
     status,
     user_id: user?._id,
-    job_id: job?.job?._id ?? job?._id,
+    job_id: job?._id,
     error: apiErrorMessage(error, ""),
   })
 }

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import { useAcceptInviteMutation } from "@api/queries/collaborationQueries"
+import { collaborationQuery } from "@api/Collaboration/Collaboration.query"
 import { setPostAuthRedirect } from "@utils/postAuthRedirect"
 
 const AcceptInvite = () => {
@@ -13,7 +13,8 @@ const AcceptInvite = () => {
   const { isAuthenticated } = useAuthStore()
   const hasAccepted = useRef(false)
 
-  const { mutate: acceptInvite, isPending, isError, error, isSuccess } = useAcceptInviteMutation()
+  const { mutate: acceptInvite, isPending, isError, error, isSuccess } =
+    collaborationQuery.useAcceptInvite()
 
   useEffect(() => {
     if (!token) return
