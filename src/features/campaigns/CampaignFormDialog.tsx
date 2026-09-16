@@ -29,7 +29,7 @@ import { KeywordTargetsField } from "./KeywordTargetsField"
 import { BlogMultiSelectField } from "./BlogMultiSelectField"
 import { JobMultiSelectField } from "./JobMultiSelectField"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
-import { usePostedBlogsQuery } from "@api/queries/blogQueries"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { jobsQuery } from "@api/Job/Job.query"
 import type { Campaign, CampaignBlogRef, CampaignJobRef } from "@/types/campaign"
 import type { CampaignFormUIState } from "./campaignForm.types"
@@ -83,7 +83,9 @@ export function CampaignFormDialog({
   // landing on the campaigns page alone would eagerly fetch and dedupe every posting
   // across every blog (500+ for an active account) before the user ever opens "New
   // campaign".
-  const { data: postedBlogs = [], isLoading: isBlogsLoading } = usePostedBlogsQuery(uiState.isOpen)
+  const { data: postedBlogs = [], isLoading: isBlogsLoading } = blogsQuery.usePostedBlogs(
+    uiState.isOpen
+  )
   const blogRefs: CampaignBlogRef[] = postedBlogs
 
   // Only jobs with a posting destination configured — see JobMultiSelectField's own

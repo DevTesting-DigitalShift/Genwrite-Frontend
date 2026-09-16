@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { createBlog, createBlogMultiple, createQuickBlog, createTopicOnlyBlog } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { pushBlogCreationEvent } from "@utils/creationEvents"
 import { toast } from "sonner"
 import { create } from "zustand"
@@ -90,7 +90,7 @@ const useBlogStore = create<BlogState>()(
 
       createNewBlog: async ({ blogData, navigate, queryClient }) => {
         try {
-          const newBlog = await createBlog(blogData)
+          const newBlog = await blogsQuery.create(blogData)
           queryClient.invalidateQueries({ queryKey: ["blogs"] })
           pushBlogCreationEvent({
             status: "success",
@@ -110,7 +110,7 @@ const useBlogStore = create<BlogState>()(
 
       createMultiBlog: async ({ blogData, navigate, queryClient }) => {
         try {
-          const newBlogs = await createBlogMultiple(blogData)
+          const newBlogs = await blogsQuery.createMultiple(blogData)
           queryClient.invalidateQueries({ queryKey: ["blogs"] })
           pushBlogCreationEvent({ status: "success", blogType: "multi", blogData })
           if (newBlogs) {
@@ -125,7 +125,7 @@ const useBlogStore = create<BlogState>()(
 
       createNewQuickBlog: async ({ blogData, navigate, type, queryClient }) => {
         try {
-          const newBlog = await createQuickBlog(blogData, type)
+          const newBlog = await blogsQuery.createQuickBlog(blogData, type)
           queryClient.invalidateQueries({ queryKey: ["blogs"] })
           pushBlogCreationEvent({
             status: "success",
@@ -145,7 +145,7 @@ const useBlogStore = create<BlogState>()(
 
       createTopicBlog: async ({ topic, navigate, queryClient }) => {
         try {
-          const newBlog = await createTopicOnlyBlog({ topic })
+          const newBlog = await blogsQuery.createTopicOnlyBlog({ topic })
           queryClient.invalidateQueries({ queryKey: ["blogs"] })
           pushBlogCreationEvent({
             status: "success",

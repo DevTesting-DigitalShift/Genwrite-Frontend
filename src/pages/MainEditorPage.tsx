@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { toast } from "sonner"
 import { Sparkles as SparklesIcon } from "lucide-react"
-import { sendRetryLines } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { ApiRequestError } from "@api/typedClient"
 import { asApiError } from "@/types/api"
 import { debugPayload } from "@utils/debugPayload"
@@ -23,7 +23,6 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import useBlogStore, { type Blog } from "@store/useBlogStore"
 import useEditorStore from "@store/useEditorStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { getBlogById, createSimpleBlog, updateBlog, toggleBlogVisibility } from "@api/blogApi"
 import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
@@ -49,7 +48,7 @@ const MainEditorPage = () => {
   } = useQuery({
     queryKey: ["blog", id],
     // `enabled` guards this to only run once `id` is set.
-    queryFn: () => getBlogById(id as string),
+    queryFn: () => blogsQuery.get(id as string),
     enabled: !!id && !cachedBlog,
     initialData: cachedBlog || undefined,
     retry: false,
@@ -309,7 +308,7 @@ const MainEditorPage = () => {
       // No blog yet (fresh manual blog opened via /blog-editor with no :id) —
       // create it first instead of PUTing to /blogs/update/undefined.
       if (!blog?._id) {
-        const created = await createSimpleBlog({
+        const created = await blogsQuery.createSimple({
           title: editorTitle,
           content: editorContent,
           keywords,
@@ -336,7 +335,7 @@ const MainEditorPage = () => {
         ...rest,
       }
 
-      const response = await updateBlog(blog._id, payload)
+      const response = await blogsQuery.update(blog._id, payload)
 
       toast.success("Blog updated successfully")
       setUnsavedChanges(false) // Reset unsavedChanges after save
@@ -379,10 +378,10 @@ const MainEditorPage = () => {
           ? { title: wordpressMetadata.title, description: wordpressMetadata.description }
           : blog?.seoMetadata || { title: "", description: "" },
       }
-      const updated = await updateBlog(blog._id, payload)
+      const updated = await blogsQuery.update(blog._id, payload)
       setSelectedBlog(updated)
       queryClient.setQueryData(["blog", id], updated)
-      const res = await sendRetryLines(blog._id)
+      const res = await blogsQuery.sendRetryLines(blog._id)
       if (res) {
         setSaveContent(res)
         setSaveModalOpen(true)
@@ -465,7 +464,7 @@ const MainEditorPage = () => {
     if (debugPayload("ManualBlog", blogData)) return
 
     try {
-      const res = await createSimpleBlog(blogData)
+      const res = await blogsQuery.createSimple(blogData)
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
@@ -694,7 +693,7 @@ const MainEditorPage = () => {
                       if (!blog?._id) return
                       try {
                         const newVisibility = !blog.isPublic
-                        await toggleBlogVisibility(blog._id, newVisibility)
+                        await blogsQuery.toggleVisibility(blog._id, newVisibility)
                         // Update both TanStack Query and Zustand store for immediate UI feedback
                         queryClient.setQueryData(["blog", id], (prev: typeof blog) => ({
                           ...prev,

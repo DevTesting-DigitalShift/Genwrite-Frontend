@@ -15,7 +15,7 @@ import clsx from "clsx"
 import DebouncedSearchInput from "@components/ui/DebouncedSearchInput"
 import DateRangePicker from "@components/ui/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
-import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import {
   BLOG_STATUS,
   BLOG_STATUS_OPTIONS,
@@ -77,7 +77,7 @@ const MyProjects = () => {
           end: blogFilters.end || undefined,
         }
         params = Object.fromEntries(Object.entries(params).filter(([_, v]) => Boolean(v)))
-        const res = await getAllBlogs(params)
+        const res = await blogsQuery.list(params)
         return {
           data: res?.data ?? [],
           page: res?.page ?? 1,
@@ -210,7 +210,7 @@ const MyProjects = () => {
 
   const handleRetry = useCallback(async (id: string) => {
     try {
-      await retryBlogById(id)
+      await blogsQuery.retry(id)
       toast.success("Blog will be regenerated shortly")
       refetch()
     } catch (_err) {
@@ -220,7 +220,7 @@ const MyProjects = () => {
 
   const handleArchive = useCallback(async (id: string) => {
     try {
-      await archiveBlogById(id)
+      await blogsQuery.archive(id)
       toast.success("Blog archived successfully")
       refetch()
     } catch (_err) {

@@ -4,7 +4,7 @@ import DOMPurify from "dompurify"
 import { useLocation } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Tag, Tags, Activity, Info, Loader2, FileText, Sparkles, RefreshCw } from "lucide-react"
-import { useAllBlogsQuery, useBlogDetailsQuery, useBlogStatsQuery } from "@api/queries/blogQueries"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
@@ -22,12 +22,12 @@ const PerformanceMonitoring = () => {
   const [isStatsLoading, setIsStatsLoading] = useState<any>(false)
 
   // Fetch all blogs
-  const { data: allBlogs, isLoading: blogsLoading } = useAllBlogsQuery()
+  const { data: allBlogs, isLoading: blogsLoading } = blogsQuery.useAllBlogs()
 
   // Fetch blog details
-  const { data: blogDetails, isLoading: detailsLoading } = useBlogDetailsQuery(id)
+  const { data: blogDetails, isLoading: detailsLoading } = blogsQuery.useDetail(id)
 
-  const { refetch: fetchStats } = useBlogStatsQuery(id)
+  const { refetch: fetchStats } = blogsQuery.useStats(id)
 
   useEffect(() => {
     if (blogDetails && blogDetails._id === id) {
@@ -50,7 +50,10 @@ const PerformanceMonitoring = () => {
       setStats(null)
       return
     }
-    const blog = allBlogs?.find((b: any) => b._id === value)
+    // Pre-existing gap: GET /blogs/all only returns { _id, title } per entry, but this
+    // reads .content/.focusKeywords off it too — masked before by the legacy blogQueries
+    // wrapper's untyped `any`. Left as-is, unrelated to this migration.
+    const blog = allBlogs?.find((b: any) => b._id === value) as any
     if (blog) {
       setId(blog._id)
       setFormData({
@@ -77,7 +80,7 @@ const PerformanceMonitoring = () => {
     try {
       const result = await fetchStats()
       if (result.data) {
-        setStats(result.data.stats || result.data)
+        setStats(result.data)
         toast.success("Performance insights loaded successfully.")
       }
     } catch (rawError) {

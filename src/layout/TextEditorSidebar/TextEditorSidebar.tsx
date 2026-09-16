@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { useNavigate } from "react-router-dom"
-import { exportBlog } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { asApiError } from "@/types/api"
 import { useQueryClient } from "@tanstack/react-query"
 import OverviewPanel from "./sidebars/OverviewPanel"
@@ -28,12 +28,6 @@ import SectionToolsPanel from "./sidebars/SectionToolsPanel"
 import PostingPanel from "./sidebars/PostingPanel"
 import PlatformCategoriesField from "./sidebars/PlatformCategoriesField"
 import { PLATFORM_LABELS } from "./constants"
-import {
-  useAnalyzeBlogMutation,
-  useApplyInsightMutation,
-  useConfirmInsightMutation,
-  useBlogInsightQuery,
-} from "@api/queries/blogQueries"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
@@ -142,11 +136,11 @@ const TextEditorSidebar = ({
   // full reload) restores it instead of silently discarding it.
   const persistInsight = useEditorStore((s) => s.persistInsight)
   const setApplyingSuggestionId = useEditorStore((s) => s.setApplyingSuggestionId)
-  const analyzeBlogMutation = useAnalyzeBlogMutation()
-  const applyInsightMutation = useApplyInsightMutation()
-  const confirmInsightMutation = useConfirmInsightMutation()
+  const analyzeBlogMutation = blogsQuery.useAnalyze()
+  const applyInsightMutation = blogsQuery.useApplyInsight()
+  const confirmInsightMutation = blogsQuery.useConfirmInsight()
   const { mutateAsync: generateMetadata } = generateQuery.useGenerateMetadata()
-  const { data: fetchedInsight } = useBlogInsightQuery(blog?._id)
+  const { data: fetchedInsight } = blogsQuery.useInsight(blog?._id)
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -569,7 +563,7 @@ const TextEditorSidebar = ({
       try {
         toast.loading("Exporting PDF...", { id: "pdf-export" })
 
-        const { data: blob } = await exportBlog(blog._id, {
+        const { data: blob } = await blogsQuery.export(blog._id, {
           type: "pdf",
           withImages,
         })
@@ -660,7 +654,7 @@ const TextEditorSidebar = ({
         id: "md-export",
       })
 
-      const { data: blob } = await exportBlog(blog._id, {
+      const { data: blob } = await blogsQuery.export(blog._id, {
         type: "markdown",
         withImages,
       })
@@ -706,7 +700,7 @@ const TextEditorSidebar = ({
         id: "html-export",
       })
 
-      const { data: blob } = await exportBlog(blog._id, {
+      const { data: blob } = await blogsQuery.export(blog._id, {
         type: "html",
         withImages,
       })

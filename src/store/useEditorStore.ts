@@ -1,12 +1,12 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import { getBlogPostings } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { queryClient } from "@utils/queryClient"
 import type { components } from "@/types/apiSchema"
 import useBlogStore from "./useBlogStore"
 
 export type BlogInsight = NonNullable<components["schemas"]["BlogInsight"]>
-export type BlogPosting = Awaited<ReturnType<typeof getBlogPostings>>[number]
+export type BlogPosting = Awaited<ReturnType<typeof blogsQuery.getPostings>>[number]
 
 interface FormData {
   category: string
@@ -119,7 +119,7 @@ const useEditorStore = create<EditorState>()(
 
         set({ isLoadingPostings: true })
         try {
-          const postings = await getBlogPostings(blogId)
+          const postings = await blogsQuery.getPostings(blogId)
           set({ blogPostings: postings })
         } catch (error) {
           console.error("Failed to fetch blog postings:", error)

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { FileText, Share2, Sparkles, TrendingUp, ChevronRight } from "lucide-react"
-import { getBlogPublicly } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import useBlogStore, { type Blog } from "@store/useBlogStore"
@@ -29,7 +29,7 @@ const PublicBlogReader = () => {
     error,
   } = useQuery({
     queryKey: ["blog", id, "public"],
-    queryFn: () => getBlogPublicly(id ?? ""),
+    queryFn: () => blogsQuery.getPublicly(id ?? ""),
     enabled: !!id,
     retry: false,
   })

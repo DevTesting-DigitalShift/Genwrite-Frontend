@@ -290,6 +290,52 @@ class BlogsQuery extends QueryBase<Blog> {
         },
       }
     )
+
+  // Plain passthroughs for imperative callers that aren't React components (zustand
+  // store actions taking navigate/queryClient as args) or that need a shape a
+  // declarative hook doesn't fit (multipart create, file export, single-blog lookups
+  // outside render).
+  list = (params?: Record<string, unknown>) => this.api.list(params)
+
+  get = (id: string) => this.api.get(id)
+
+  create = (blogData: BlogFormData) => this.api.create(blogData)
+
+  createMultiple = (blogData: BlogFormData) => this.api.createMultiple(blogData)
+
+  createQuickBlog = (blogData: unknown, type?: string) => this.api.createQuickBlog(blogData, type)
+
+  createTopicOnlyBlog = (args: { topic: string }) => this.api.createTopicOnlyBlog(args)
+
+  createSimple = (data: unknown) => this.api.createSimple(data)
+
+  getGeneratedTitles = (data: unknown) => this.api.getGeneratedTitles(data)
+
+  update = (id: string, updatedData: unknown) => this.api.update(id, updatedData)
+
+  getByAuthor = () => this.api.getByAuthor()
+
+  sendRetryLines = (id: string, payload?: unknown) => this.api.sendRetryLines(id, payload)
+
+  retry = (id: string, payload?: unknown) => this.api.retry(id, payload)
+
+  archive = (id: string) => this.api.archive(id)
+
+  restore = (id: string) => this.api.restore(id)
+
+  restoreAll = () => this.api.restoreAll()
+
+  deleteAll = () => this.api.deleteAll()
+
+  toggleVisibility = (id: string, isPublic: unknown) => this.api.toggleVisibility(id, isPublic)
+
+  getPostings = (blogId: string) => this.api.getPostings(blogId)
+
+  getPublicly = (id: string) => this.api.getPublicly(id)
+
+  export = (...args: Parameters<typeof BlogAPI.export>) => this.api.export(...args)
+
+  exportAsPdf = (id: string) => this.api.exportAsPdf(id)
 }
 
 export const blogsQuery = new BlogsQuery() as BlogsQuery

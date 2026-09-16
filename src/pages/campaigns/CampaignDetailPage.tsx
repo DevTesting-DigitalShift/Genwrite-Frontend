@@ -17,7 +17,7 @@ import { Progress } from "@components/ui/progress"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
-import { useAllBlogsQuery } from "@api/queries/blogQueries"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { COSTS } from "@/data/blogData"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
@@ -138,7 +138,7 @@ export default function CampaignDetailPage() {
     error: reportsError,
     refetch: refetchReports,
   } = campaignsQuery.useReports(id)
-  const { data: allBlogs = [] } = useAllBlogsQuery()
+  const { data: allBlogs = [] } = blogsQuery.useAllBlogs()
   const { state: uiState, actions } = useCampaignFormUI()
   const { confirmSpend } = useCreditConfirm()
 

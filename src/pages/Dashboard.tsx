@@ -17,7 +17,7 @@ import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { getActiveSession } from "@utils/sessionStore"
-import { getAllBlogs } from "@/api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { tools } from "@/data/toolsData"
 import ToolCard from "../components/dashboard/ToolCard"
 import {
@@ -113,7 +113,7 @@ const Dashboard = () => {
     queryFn: () => {
       const start = getDefaultFilterStart(user, { isSharedWorkspace: !!activeWorkspace })
       // Fetch more than we need (limit: 20) to ensure we find enough "complete" ones
-      return getAllBlogs({ limit: 20, sort: "createdAt:desc", start })
+      return blogsQuery.list({ limit: 20, sort: "createdAt:desc", start })
     },
     enabled: !!user,
   })

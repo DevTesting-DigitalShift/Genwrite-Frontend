@@ -14,12 +14,11 @@ import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate, useLocation } from "react-router-dom"
 import { analysisQuery } from "@api/Analysis/Analysis.query"
-import { getBlogById } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import useAuthStore from "@store/useAuthStore"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import { useAllBlogsQuery } from "@api/queries/blogQueries"
 import { toast } from "sonner"
 import { Helmet } from "react-helmet-async"
 import ConnectedTools from "@components/ConnectedTools"
@@ -70,7 +69,7 @@ const CompetitiveAnalysis = () => {
 
   const analysis = analysisResult?.[formData?.selectedProject?._id]
 
-  const { data: allBlogsData } = useAllBlogsQuery()
+  const { data: allBlogsData } = blogsQuery.useAllBlogs()
   const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
 
   // --- 1. Utilities ---
@@ -142,7 +141,7 @@ const CompetitiveAnalysis = () => {
   useEffect(() => {
     if (id) {
       setIsLoading(true)
-      getBlogById(id)
+      blogsQuery.get(id)
         .then((response) => {
           if (response?._id) {
             setFormData((prev) => ({

@@ -28,14 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { useProAction } from "@/hooks/useProAction"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { getDefaultFilterStart } from "@utils/dateDefaults"
-import {
-  archiveBlogById,
-  getAllBlogs,
-  retryBlogById,
-  restoreBlogById,
-  restoreAllBlogs,
-  deleteAllBlogs,
-} from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import {
   BLOG_STATUS,
   BLOG_STATUS_OPTIONS,
@@ -156,7 +149,7 @@ const BlogsPage = () => {
       params = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
       )
-      const res = await getAllBlogs(params)
+      const res = await blogsQuery.list(params)
       return {
         data: res?.data ?? [],
         page: res?.page ?? 1,
@@ -201,7 +194,7 @@ const BlogsPage = () => {
       params = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
       )
-      const res = await getAllBlogs(params)
+      const res = await blogsQuery.list(params)
       return {
         data: res?.data ?? [],
         page: res?.page ?? 1,
@@ -387,7 +380,7 @@ const BlogsPage = () => {
   const handleRetry = useCallback(
     async (id: any) => {
       try {
-        await retryBlogById(id)
+        await blogsQuery.retry(id)
         toast.success("Synthesis recalibrated. Retrying...")
         isTrashcan ? queryClient.invalidateQueries({ queryKey: ["trashedBlogs"] }) : refetchActive()
       } catch (_err) {
@@ -414,7 +407,7 @@ const BlogsPage = () => {
       toast.success("Article archived")
 
       try {
-        await archiveBlogById(id)
+        await blogsQuery.archive(id)
       } catch (_err) {
         toast.error("Failed to archive")
         refetchActive()
@@ -442,7 +435,7 @@ const BlogsPage = () => {
       })
 
       try {
-        await restoreBlogById(id)
+        await blogsQuery.restore(id)
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       } catch (_err) {
         toast.error("Restoration failed")
@@ -466,7 +459,7 @@ const BlogsPage = () => {
     })
 
     try {
-      await restoreAllBlogs()
+      await blogsQuery.restoreAll()
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     } catch (_err) {
       toast.error("Restoration failed")
@@ -486,7 +479,7 @@ const BlogsPage = () => {
     toast.success("Trash emptied. Permanent deletion complete.")
 
     try {
-      await deleteAllBlogs()
+      await blogsQuery.deleteAll()
     } catch (_err) {
       toast.error("delete failed")
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })

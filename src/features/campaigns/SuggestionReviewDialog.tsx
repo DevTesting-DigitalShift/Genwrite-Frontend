@@ -11,32 +11,11 @@ import {
 } from "@components/ui/dialog"
 import { Button } from "@components/ui/button"
 import ContentDiffViewerUntyped from "@/layout/Editor/ContentDiffViewer"
-import {
-  useBlogDetailsQuery,
-  useApplyInsightMutation as useApplyInsightUntyped,
-  useConfirmInsightMutation as useConfirmInsightUntyped,
-} from "@api/queries/blogQueries"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { COSTS } from "@/data/blogData"
 import { useCreditConfirm } from "./useCreditConfirm"
 import { PanelError, PanelLoading } from "./CampaignStates"
 import type { CampaignLiveSuggestion } from "@/types/campaign"
-
-// blogQueries is untyped JS, so TS infers `void` mutation variables — pin the shapes
-// the BlogInsight endpoints actually take.
-type MutationHandle<TVars, TResult> = () => {
-  mutateAsync: (vars: TVars) => Promise<TResult>
-  isPending: boolean
-}
-
-const useApplyInsightMutation = useApplyInsightUntyped as unknown as MutationHandle<
-  { id: string; suggestionId: string; scope?: "section" | "whole" },
-  { content: string; suggestionId: string; scope: string }
->
-
-const useConfirmInsightMutation = useConfirmInsightUntyped as unknown as MutationHandle<
-  { id: string; suggestionId: string; content: string; republish?: boolean },
-  { content: string }
->
 
 const ContentDiffViewer = ContentDiffViewerUntyped as ComponentType<{
   oldMarkdown: string
@@ -70,9 +49,9 @@ export function SuggestionReviewDialog({
   const { confirmSpend } = useCreditConfirm()
 
   const blogId = suggestion?.blogId ?? ""
-  const { data: blog, isLoading: isBlogLoading, isError: isBlogError } = useBlogDetailsQuery(blogId)
-  const applyMutation = useApplyInsightMutation()
-  const confirmMutation = useConfirmInsightMutation()
+  const { data: blog, isLoading: isBlogLoading, isError: isBlogError } = blogsQuery.useDetail(blogId)
+  const applyMutation = blogsQuery.useApplyInsight()
+  const confirmMutation = blogsQuery.useConfirmInsight()
 
   const handleGenerate = () => {
     if (!suggestion) return

@@ -27,7 +27,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useAnalysisStore from "@store/useAnalysisStore"
-import { getGeneratedTitles } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { Switch } from "@components/ui/switch"
 import { Slider } from "@components/ui/slider"
 import { X } from "lucide-react"
@@ -132,7 +132,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         keywords: formData.keywords,
         ...(generatedTitles?.length > 0 && { oldTitles: generatedTitles }),
       }
-      const result = await getGeneratedTitles(payload)
+      const result = await blogsQuery.getGeneratedTitles(payload)
       setGeneratedTitles(result)
     } catch (rawError) {
     const error = asApiError(rawError)

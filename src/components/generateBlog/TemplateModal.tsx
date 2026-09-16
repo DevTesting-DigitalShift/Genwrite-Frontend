@@ -7,7 +7,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { Slider } from "@/components/ui/slider"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import useAuthStore from "@store/useAuthStore"
-import { getGeneratedTitles } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
 interface TemplateModalProps {
@@ -172,7 +172,7 @@ const TemplateModal = ({
 
     setIsGeneratingTitles(true)
     try {
-      const result = await getGeneratedTitles({
+      const result = await blogsQuery.getGeneratedTitles({
         focusKeywords: formData.focusKeywords,
         keywords: formData.keywords,
         topic: formData.topic,

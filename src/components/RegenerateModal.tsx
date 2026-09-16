@@ -23,7 +23,7 @@ import {
 } from "@/forms/regenerateBlogForm"
 import { debugPayload } from "@utils/debugPayload"
 import { asApiError } from "@/types/api"
-import { retryBlogById } from "@api/blogApi"
+import { blogsQuery } from "@api/Blog/Blog.query"
 import useBlogStore from "@store/useBlogStore"
 
 interface RegenerateModalProps {
@@ -172,7 +172,7 @@ const RegenerateModal = ({ isOpen, onClose }: RegenerateModalProps) => {
         const payload = toRegenerateBlogPayload(values)
         if (debugPayload("RegenerateBlog", payload)) return
 
-        await retryBlogById(blog._id, payload)
+        await blogsQuery.retry(blog._id, payload)
 
         queryClient.invalidateQueries({ queryKey: ["blogs"] })
         toast.success("Blog regeneration started!")
