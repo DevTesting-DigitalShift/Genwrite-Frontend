@@ -1,5 +1,5 @@
 import { asApiError } from "@/types/api"
-import useGscStore from "@store/useGscStore"
+import { gscQuery } from "@api/Analytics/Gsc.query"
 import { toast } from "sonner"
 import { LogIn } from "lucide-react"
 import { apiErrorMessage } from "@/types/api"
@@ -9,13 +9,11 @@ import { FcGoogle } from "react-icons/fc"
 const GSCLogin = () => {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { fetchGscAuthUrl } = useGscStore()
-
   // Connect to Google Search Console
   const connectGSC = useCallback(async () => {
     try {
       setIsConnecting(true)
-      const authUrl = await fetchGscAuthUrl()
+      const authUrl = await gscQuery.getAuthUrl()
       const popup = window.open(authUrl as string, "GSC Connect", "width=600,height=600")
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
@@ -50,7 +48,7 @@ const GSCLogin = () => {
       setError(apiErrorMessage(err, "Connection failed"))
       setIsConnecting(false)
     }
-  }, [fetchGscAuthUrl])
+  }, [])
 
   return (
     <div className="flex items-center justify-center h-[80vh] p-6">

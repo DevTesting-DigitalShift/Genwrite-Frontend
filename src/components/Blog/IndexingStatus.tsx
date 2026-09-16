@@ -9,7 +9,7 @@ import {
   Link2Off,
 } from "lucide-react"
 import { Link } from "react-router-dom"
-import { useIndexingStatusQuery, useRequestIndexingMutation } from "@api/queries/gscQueries"
+import { gscQuery } from "@api/Analytics/Gsc.query"
 
 interface PostingIndexing {
   lastInspectedAt?: string | null
@@ -115,9 +115,9 @@ const IndexingStatus: React.FC<IndexingStatusProps> = ({
     error,
     refetch,
     isFetching,
-  } = useIndexingStatusQuery(pageUrl, { enabled: hasGscAccess })
+  } = gscQuery.useIndexingStatus(pageUrl, { enabled: hasGscAccess })
 
-  const requestIndexingMutation = useRequestIndexingMutation()
+  const requestIndexingMutation = gscQuery.useRequestIndexing()
 
   if (!pageUrl) return null
 

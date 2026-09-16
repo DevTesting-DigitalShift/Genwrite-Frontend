@@ -2,7 +2,7 @@ import { asApiError } from "@/types/api"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
-import useGscStore from "@store/useGscStore"
+import { gscQuery } from "@api/Analytics/Gsc.query"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { RefreshCw, Search, Download } from "lucide-react"
@@ -35,9 +35,12 @@ const SearchConsole = () => {
   const [autoFallbackDone, setAutoFallbackDone] = useState<any>(false)
 
   const { user } = useAuthStore()
-  const { clearAnalytics, fetchGscAnalytics } = useGscStore()
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const queryClient = useQueryClient()
+
+  const clearAnalytics = useCallback(() => {
+    queryClient.removeQueries({ queryKey: ["gscAnalytics"] })
+  }, [queryClient])
 
   // While viewing a shared workspace, connection status belongs to the owner being
   // watched, not the invitee's own account — the invitee's `user.gsc` is irrelevant.
@@ -109,7 +112,7 @@ const SearchConsole = () => {
       const params = { from, to, query: JSON.stringify(dimensions) }
       let data: any
       try {
-        data = await fetchGscAnalytics(params)
+        data = await gscQuery.getAnalytics(params)
       } catch (rawErr) {
         const err = asApiError(rawErr)
         setError(err.message || "Failed to fetch analytics data")

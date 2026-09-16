@@ -42,6 +42,13 @@ class GscQuery extends QueryBase<unknown> {
       options
     )
 
+  // Plain passthroughs for imperative flows that need their own queryFn/error handling
+  // rather than a declarative hook: SearchConsole.tsx's custom useQuery (row post-processing,
+  // invalid_grant handling) and GSCLogin.tsx's popup-based OAuth connect.
+  getAnalytics = (params: Record<string, unknown>) => this.api.getAnalytics(params)
+
+  getAuthUrl = () => this.api.getAuthUrl()
+
   /**
    * Ask Google to crawl a published URL.
    *

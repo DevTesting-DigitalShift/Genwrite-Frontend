@@ -4,7 +4,6 @@ import useAuthStore from "@store/useAuthStore"
 import useBlogStore from "@store/useBlogStore"
 import useCreditLogStore from "@store/useCreditLogStore"
 import useEditorStore from "@store/useEditorStore"
-import useGscStore from "@store/useGscStore"
 import useImageStore from "@store/useImageStore"
 import useIntegrationStore from "@store/useIntegrationStore"
 import useJobStore from "@store/useJobStore"
@@ -20,7 +19,6 @@ const ACCOUNT_SCOPED_STORES = [
   useBlogStore,
   useAnalysisStore,
   useEditorStore,
-  useGscStore,
   useIntegrationStore,
   useCreditLogStore,
   useImageStore,
