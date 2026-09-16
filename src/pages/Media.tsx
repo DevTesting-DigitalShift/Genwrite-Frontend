@@ -15,20 +15,20 @@ import { getSocket } from "@utils/socket"
  * estimate before submitting. Keep in sync if the backend catalogue changes. */
 const IMAGE_MODELS = [
   { id: "fal-ai/nano-banana", label: "Nano Banana", usdPerUnit: 0.0398, unit: "megapixel" },
-  { id: "fal-ai/seedream-v4", label: "Seedream v4", usdPerUnit: 0.03, unit: "image" },
-  { id: "fal-ai/flux-kontext-pro", label: "Flux Kontext Pro", usdPerUnit: 0.04, unit: "image" },
+  { id: "fal-ai/bytedance/seedream/v4/text-to-image", label: "Seedream v4", usdPerUnit: 0.03, unit: "image" },
+  { id: "fal-ai/flux-pro/kontext", label: "Flux Kontext Pro", usdPerUnit: 0.04, unit: "image" },
   { id: "fal-ai/qwen-image", label: "Qwen Image", usdPerUnit: 0.02, unit: "megapixel" },
 ] as const
 
 const VIDEO_MODELS = [
-  { id: "fal-ai/wan-2.5", label: "Wan 2.5", usdPerUnit: 0.05, unit: "second" },
+  { id: "fal-ai/wan-25-preview/text-to-video", label: "Wan 2.5", usdPerUnit: 0.05, unit: "second" },
   {
-    id: "fal-ai/kling-2.5-turbo-pro",
+    id: "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
     label: "Kling 2.5 Turbo Pro",
     usdPerUnit: 0.07,
     unit: "second",
   },
-  { id: "fal-ai/veo-3", label: "Veo 3", usdPerUnit: 0.4, unit: "second" },
+  { id: "fal-ai/veo3.1", label: "Veo 3", usdPerUnit: 0.4, unit: "second" },
   { id: "fal-ai/ovi", label: "Ovi", usdPerUnit: 0.2, unit: "video (flat)" },
 ] as const
 
