@@ -287,14 +287,30 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
     setField(name, val)
 
     if (name === "numberOfBlogs") {
-      const minBlogs = Math.max(1, formData.topics.length)
+      const minBlogs = Math.max(BLOG_CONFIG.BULK.MIN_BLOGS, formData.topics.length)
       if (val === "" || val < minBlogs) {
         setFieldError(
           "numberOfBlogs",
-          `Number of blogs must be at least ${minBlogs} (number of topics provided).`
+          formData.topics.length > BLOG_CONFIG.BULK.MIN_BLOGS
+            ? `Number of blogs must be at least ${minBlogs} (number of topics provided).`
+            : `Number of blogs must be at least ${BLOG_CONFIG.BULK.MIN_BLOGS}.`
         )
       }
     }
+  }
+
+  /**
+   * Keeps the blog count at or above the number of topics, since the backend pairs
+   * them 1:1. Adding a 4th topic to a 3-blog run raises the count rather than
+   * refusing the topic; it never lowers a count the user deliberately set higher.
+   */
+  const syncBlogCountToTopics = (topicCount: number) => {
+    const current = Number(getValues("numberOfBlogs")) || 0
+    if (topicCount <= current) return
+    const next = Math.min(topicCount, BLOG_CONFIG.BULK.MAX_BLOGS)
+    setField("numberOfBlogs", next)
+    clearErrors(["numberOfBlogs"])
+    toast.info(`Number of blogs increased to ${next} to match your topics.`)
   }
 
   const handleCheckboxChange = (e: any) => {
@@ -354,31 +370,29 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
       return false
     }
 
-    const limit = formData.numberOfBlogs || 0
-    if (formData.topics.length + newTopics.length > limit) {
-      const allowedCount = limit - formData.topics.length
-      if (allowedCount <= 0) {
-        setFieldError("topics", `Cannot add more than ${limit} topics.`)
-        toast.error(
-          `Cannot add more than ${limit} topics. Please increase the number of blogs first if you want more topics.`
-        )
-        setField("topicInput", "")
-        return false
-      } else {
-        const slicedNewTopics = newTopics.slice(0, allowedCount)
-        setField("topics", [...formData.topics, ...slicedNewTopics])
-        setField("topicInput", "")
-        clearErrors(["topics", "topicsCSV"])
-        toast.warning(
-          `Only ${allowedCount} topic(s) were added because the limit of ${limit} blogs is reached.`
-        )
-        return true
-      }
+    // Only the hard ceiling rejects topics now — the blog count is raised to match
+    // whatever the user adds, rather than making them go set it first.
+    const room = BLOG_CONFIG.BULK.MAX_BLOGS - formData.topics.length
+    if (room <= 0) {
+      setFieldError("topics", `You can add at most ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`)
+      toast.error(`Cannot add more than ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`)
+      setField("topicInput", "")
+      return false
     }
 
-    setField("topics", [...formData.topics, ...newTopics])
+    const acceptedTopics = newTopics.slice(0, room)
+    const nextTopics = [...formData.topics, ...acceptedTopics]
+    setField("topics", nextTopics)
     setField("topicInput", "")
     clearErrors(["topics", "topicsCSV"])
+
+    syncBlogCountToTopics(nextTopics.length)
+
+    if (acceptedTopics.length < newTopics.length) {
+      toast.warning(
+        `Only ${acceptedTopics.length} topic(s) were added — the maximum is ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`
+      )
+    }
     return true
   }
 
@@ -518,30 +532,30 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
         return
       }
 
-      const limit = getValues("numberOfBlogs") || 0
-      if (getValues("topics").length + uniqueNewItems.length > limit) {
-        const allowedCount = limit - getValues("topics").length
-        if (allowedCount <= 0) {
-          setFieldError("topicsCSV", `Cannot add more than ${limit} topics. CSV upload ignored.`)
-          toast.error(`CSV ignored. Adding these topics would exceed your limit of ${limit} blogs.`)
-          return
-        } else {
-          const slicedNewTopics = uniqueNewItems.slice(0, allowedCount)
-          setField("topics", [...getValues("topics"), ...slicedNewTopics])
-          clearErrors(["topics", "topicsCSV"])
-          setRecentlyUploadedTopicsCount(slicedNewTopics.length)
-          setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
-          toast.warning(
-            `Only ${allowedCount} topic(s) from CSV were added to match your limit of ${limit} blogs.`
-          )
-          return
-        }
+      const room = BLOG_CONFIG.BULK.MAX_BLOGS - getValues("topics").length
+      if (room <= 0) {
+        setFieldError(
+          "topicsCSV",
+          `You already have ${BLOG_CONFIG.BULK.MAX_BLOGS} topics — the maximum. CSV upload ignored.`
+        )
+        toast.error(`CSV ignored. The maximum is ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`)
+        return
       }
 
-      setField("topics", [...getValues("topics"), ...uniqueNewItems])
+      const acceptedItems = uniqueNewItems.slice(0, room)
+      const nextTopics = [...getValues("topics"), ...acceptedItems]
+      setField("topics", nextTopics)
       clearErrors(["topics", "topicsCSV"])
-      setRecentlyUploadedTopicsCount(uniqueNewItems.length)
+      setRecentlyUploadedTopicsCount(acceptedItems.length)
       setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
+
+      syncBlogCountToTopics(nextTopics.length)
+
+      if (acceptedItems.length < uniqueNewItems.length) {
+        toast.warning(
+          `Only ${acceptedItems.length} topic(s) from the CSV were added — the maximum is ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`
+        )
+      }
     }
 
     reader.onerror = () => {
@@ -727,14 +741,16 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
                   Number of Blogs <span className="text-red-500">*</span>
                 </label>
                 <p className="text-xs text-slate-500 font-medium mb-3">
-                  How many blogs to generate based on the topics provided.
+                  How many blogs to generate based on the topics provided (
+                  {BLOG_CONFIG.BULK.MIN_BLOGS}&ndash;{BLOG_CONFIG.BULK.MAX_BLOGS}). Adding more
+                  topics than this raises it automatically.
                 </p>
                 <input
                   id="bulk-number-of-blogs"
                   type="tel"
                   inputMode="numeric"
                   name="numberOfBlogs"
-                  min="1"
+                  min={BLOG_CONFIG.BULK.MIN_BLOGS}
                   max={BLOG_CONFIG.BULK.MAX_BLOGS}
                   value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
                   onChange={handleInputChange}
@@ -742,7 +758,7 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
                   className={`w-full px-3 py-2 border rounded-md text-sm ${
                     errors.numberOfBlogs?.message ? "border-red-500" : "border-gray-300"
                   } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
-                  placeholder="e.g., 5"
+                  placeholder={`e.g., ${BLOG_CONFIG.BULK.MIN_BLOGS}`}
                 />
                 {errors.numberOfBlogs?.message && (
                   <p className="text-red-500 text-xs mt-1">
@@ -760,7 +776,9 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
                   Topics ({formData.topics.length}/{formData.numberOfBlogs || 0} added)
                 </FieldLabel>
                 <p className="text-xs text-slate-500 font-medium mb-2">
-                  Enter the main topics for your blogs.
+                  Enter the main topics for your blogs &mdash; {BLOG_CONFIG.BULK.MIN_BLOGS} to{" "}
+                  {BLOG_CONFIG.BULK.MAX_BLOGS}, one per blog. Adding more than the current blog
+                  count raises it for you.
                 </p>
                 <div className="flex gap-2 mt-2">
                   <input

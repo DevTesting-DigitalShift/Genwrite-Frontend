@@ -17,9 +17,11 @@ export const BLOG_CONFIG = {
     ALLOWED_TYPES: ["image/png", "image/jpeg", "image/webp"],
   },
 
-  // Bulk generation settings
+  // Bulk generation settings. Topics are paired 1:1 with blogs, so these bounds
+  // govern the topic list too — MIN_BLOGS/MAX_BLOGS topics, no separate limit.
   BULK: {
-    MAX_BLOGS: 5,
+    MIN_BLOGS: 2,
+    MAX_BLOGS: 10,
     DEFAULT_FREQUENCY_SECONDS: 600, // 10 minutes
   },
 

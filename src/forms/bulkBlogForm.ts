@@ -82,11 +82,11 @@ export const bulkBlogFormSchema = z
     }
 
     const blogs = values.numberOfBlogs === "" ? Number.NaN : values.numberOfBlogs
-    if (Number.isNaN(blogs) || blogs < 1) {
+    if (Number.isNaN(blogs) || blogs < BLOG_CONFIG.BULK.MIN_BLOGS) {
       ctx.addIssue({
         path: ["numberOfBlogs"],
         code: "custom",
-        message: "Number of blogs must be at least 1.",
+        message: `Number of blogs must be at least ${BLOG_CONFIG.BULK.MIN_BLOGS}.`,
       })
     } else if (blogs > BLOG_CONFIG.BULK.MAX_BLOGS) {
       ctx.addIssue({
@@ -98,11 +98,18 @@ export const bulkBlogFormSchema = z
 
     // One topic per blog: the backend generates exactly `numberOfBlogs` posts and
     // pairs each with a topic, so a mismatch would silently drop or repeat one.
-    if (values.topics.length === 0 && values.topicInput.trim() === "") {
+    // The same 1:1 rule is what bounds the topic list at MIN_BLOGS..MAX_BLOGS.
+    if (values.topics.length < BLOG_CONFIG.BULK.MIN_BLOGS) {
       ctx.addIssue({
         path: ["topics"],
         code: "custom",
-        message: "Please add at least one topic.",
+        message: `Please add at least ${BLOG_CONFIG.BULK.MIN_BLOGS} topics (currently ${values.topics.length} added).`,
+      })
+    } else if (values.topics.length > BLOG_CONFIG.BULK.MAX_BLOGS) {
+      ctx.addIssue({
+        path: ["topics"],
+        code: "custom",
+        message: `You can add at most ${BLOG_CONFIG.BULK.MAX_BLOGS} topics.`,
       })
     } else if (values.topics.length !== blogs) {
       ctx.addIssue({
@@ -170,7 +177,7 @@ export const bulkBlogFormDefaults: BulkBlogFormValues = {
   userDefinedLength: BLOG_CONFIG.LENGTH.DEFAULT,
   aiModel: "gemini",
   costCutter: true,
-  numberOfBlogs: 1,
+  numberOfBlogs: BLOG_CONFIG.BULK.MIN_BLOGS,
   numberOfImages: 0,
   isCheckedGeneratedImages: true,
   imageSource: IMAGE_SOURCE.STOCK as BulkBlogFormValues["imageSource"],
@@ -207,7 +214,8 @@ export const bulkBlogFormDefaults: BulkBlogFormValues = {
  * schema supplies its default.
  */
 export function toBulkBlogPayload(values: BulkBlogFormValues) {
-  const numberOfBlogs = values.numberOfBlogs === "" ? 1 : values.numberOfBlogs
+  const numberOfBlogs =
+    values.numberOfBlogs === "" ? BLOG_CONFIG.BULK.MIN_BLOGS : values.numberOfBlogs
   const numberOfImages = values.numberOfImages === "" ? 0 : values.numberOfImages
 
   return buildPayload("BulkBlog", bulkBlogFinalDataSchema, {

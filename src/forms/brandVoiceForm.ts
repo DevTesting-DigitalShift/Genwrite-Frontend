@@ -39,7 +39,14 @@ export const brandVoiceFormSchema = z.object({
   describeBrand: z.string().trim().min(1, "Brand description is required."),
   persona: z.string().trim().min(1, "Persona is required."),
   keywords: z.array(z.string()).min(1, "At least one keyword is required."),
-  logoUrl: z.string(),
+
+  // Uploading a logo stores an absolute URL with a `?t=` cache-buster, which
+  // `new URL()` accepts and `toBrandVoicePayload` strips before sending.
+  logoUrl: z
+    .string()
+    .trim()
+    .min(1, "Brand logo is required.")
+    .pipe(absoluteUrl("Please enter a valid logo URL (e.g., https://example.com/logo.png).")),
 
   // ---- Page state: validated here, never sent ----
   /** Set while editing an existing brand; decides create vs update on save. */

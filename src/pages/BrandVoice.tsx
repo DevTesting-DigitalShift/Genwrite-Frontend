@@ -573,7 +573,7 @@ const BrandVoice = () => {
 
           <div>
             <label htmlFor="logoUrl" className="text-sm font-medium flex gap-2 mb-1">
-              Brand Logo (Optional)
+              Brand Logo <span className="text-red-500">*</span>
               <div
                 className="tooltip tooltip-right"
                 data-tip="Add a logo URL or upload an image for your brand voice"
@@ -592,7 +592,11 @@ const BrandVoice = () => {
                   value={formData.logoUrl}
                   onChange={handleInputChange}
                   placeholder="Paste Logo URL (e.g., https://example.com/logo.png)"
-                  className="p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base border-gray-300 w-full"
+                  aria-invalid={!!errors.logoUrl?.message}
+                  aria-describedby={errors.logoUrl?.message ? "logoUrl-error" : undefined}
+                  className={`p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base w-full ${
+                    errors.logoUrl?.message ? "border-red-500" : "border-gray-300"
+                  }`}
                   whileFocus={{ scale: 1.01 }}
                 />
                 {formData.logoUrl && (
@@ -629,6 +633,11 @@ const BrandVoice = () => {
                 )}
               </div>
             </div>
+            {errors.logoUrl?.message && (
+              <p id="logoUrl-error" className="text-red-500 text-xs sm:text-sm mt-1">
+                {errors.logoUrl?.message}
+              </p>
+            )}
           </div>
 
           <div>
