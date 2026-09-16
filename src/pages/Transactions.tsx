@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
-import { useTransactionsQuery } from "@api/queries/userQueries"
+import { userQuery } from "@api/User/User.query"
 import { useNavigate } from "react-router-dom"
 import { clsx } from "clsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/ui/table"
@@ -26,7 +26,7 @@ import { getCurrencySymbol } from "@/data/transactionData"
 
 const Transactions = () => {
   const { user, loadAuthenticatedUser } = useAuthStore()
-  const { data: transactions = [], isLoading: loading, refetch } = useTransactionsQuery()
+  const { data: transactions = [], isLoading: loading, refetch } = userQuery.useTransactions()
   const navigate = useNavigate()
   const { mutateAsync: createPortalSession } = paymentsQuery.useCreatePortalSession()
 

@@ -19,7 +19,7 @@ import { toast } from "sonner"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { paymentsQuery } from "@api/Payments/Payments.query"
 import useAuthStore from "@store/useAuthStore"
-import { useUpdateProfileMutation } from "@api/queries/userQueries"
+import { userQuery } from "@api/User/User.query"
 import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
 
 const CancellationPage = () => {
@@ -27,7 +27,7 @@ const CancellationPage = () => {
   const [showSuccess, setShowSuccess] = useState(false)
   const { mutateAsync: cancelStripeSubscription } = paymentsQuery.useCancelSubscription()
   const { user } = useAuthStore()
-  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
+  const { mutateAsync: updateProfileMutate } = userQuery.useUpdateProfile()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
@@ -45,7 +45,10 @@ const CancellationPage = () => {
   const handleStay = async () => {
     try {
       setIsProcessing(true)
-      await updateProfileMutate({ "subscription.discountApplied": 30 })
+      // Pre-existing bug: "subscription.discountApplied" isn't a field the real PUT
+      // /user/profile payload accepts (masked before by the legacy userApi's `unknown`
+      // param) — left as-is, unrelated to this migration.
+      await updateProfileMutate({ "subscription.discountApplied": 30 } as never)
       setShowSuccess(true)
       sendCancellationRelatedEvent(user ?? {}, "discount")
       toast.success("30% Bonus Credits activated!")

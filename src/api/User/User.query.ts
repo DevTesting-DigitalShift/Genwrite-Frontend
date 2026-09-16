@@ -43,6 +43,22 @@ class UserQuery extends QueryBase<unknown> {
         },
       }
     )
+
+  // Plain passthroughs for Profile.tsx's imperative Promise.all mount fetch and
+  // one-off form-submit handlers — not shaped as declarative query/mutation hooks.
+  updatePassword = (payload: ApiRequestBody<"/user/update-password", "post">) =>
+    this.api.updatePassword(payload)
+
+  generateReferralCode = () => this.api.generateReferralCode()
+
+  getReferralStats = () => this.api.getReferralStats()
+
+  getEmailPreferences = () => this.api.getEmailPreferences()
+
+  updateEmailPreferences = (payload: ApiRequestBody<"/user/email-preferences", "put">) =>
+    this.api.updateEmailPreferences(payload)
+
+  getSubscriptionStatus = () => this.api.getSubscriptionStatus()
 }
 
 export const userQuery = new UserQuery() as UserQuery

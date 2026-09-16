@@ -21,18 +21,10 @@ import { Calendar } from "@components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@components/ui/popover"
 import { isEqual } from "@/lib/utils"
 import useAuthStore from "@store/useAuthStore"
-import { useUpdateProfileMutation } from "@api/queries/userQueries"
+import { userQuery } from "@api/User/User.query"
 import dayjs from "dayjs"
 import { Helmet } from "react-helmet-async"
 import PasswordModal from "@components/PasswordModal"
-import {
-  updatePasswordAPI,
-  getReferralStatsAPI,
-  generateReferralCodeAPI,
-  getEmailPreferencesAPI,
-  updateEmailPreferencesAPI,
-  getSubscriptionStatusAPI,
-} from "@api/userApi"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
 
@@ -55,7 +47,7 @@ const SUBSCRIPTION_STATUS_CONFIG = {
 const Profile = () => {
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
-  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation()
+  const { mutateAsync: updateProfileMutate } = userQuery.useUpdateProfile()
 
   const [profileData, setProfileData] = useState({
     profilePicture: "",
@@ -116,9 +108,9 @@ const Profile = () => {
     const fetchData = async () => {
       try {
         const [statsRes, prefsRes, subRes] = await Promise.all([
-          getReferralStatsAPI(),
-          getEmailPreferencesAPI(),
-          getSubscriptionStatusAPI(),
+          userQuery.getReferralStats(),
+          userQuery.getEmailPreferences(),
+          userQuery.getSubscriptionStatus(),
         ])
         setReferralStats(statsRes)
         if (prefsRes.emailPreference)
@@ -188,7 +180,7 @@ const Profile = () => {
     const payload = user?.hasPassword
       ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
       : { newPassword: values.newPassword }
-    const res = await updatePasswordAPI(payload)
+    const res = await userQuery.updatePassword(payload)
     if (!res.success) throw new Error(res.message)
     toast.success("Password updated successfully")
     loadAuthenticatedUser()
@@ -196,7 +188,7 @@ const Profile = () => {
 
   const handleGenerateReferral = async () => {
     try {
-      const res = await generateReferralCodeAPI()
+      const res = await userQuery.generateReferralCode()
       setReferralCode(res.referralId)
       toast.success("Referral program enabled!")
       loadAuthenticatedUser()
@@ -216,7 +208,7 @@ const Profile = () => {
     const newPrefs = { ...emailPreferences, [key]: checked }
     setEmailPreferences(newPrefs)
     try {
-      await updateEmailPreferencesAPI({ emailPreference: newPrefs })
+      await userQuery.updateEmailPreferences({ emailPreference: newPrefs })
       toast.success("Preferences saved")
     } catch (_error) {
       setEmailPreferences(emailPreferences)
