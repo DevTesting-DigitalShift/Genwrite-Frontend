@@ -117,7 +117,8 @@ const Auth = ({ path }: { path?: string }) => {
         referralId: formData.referralId,
       })
         .then((data) => {
-          toast.success("Google login successful!")
+          // Only greet on signup — a returning user landing on the dashboard is confirmation enough.
+          if (isSignup) toast.success("Welcome to GenWrite!")
 
           const user = data.user || data?.data?.user || data
 
@@ -183,7 +184,7 @@ const Auth = ({ path }: { path?: string }) => {
 
         const { user } = await authPromise
 
-        toast.success(isSignup ? "Signup successful!" : "Login successful!")
+        if (isSignup) toast.success("Welcome to GenWrite!")
 
         if (isAddingAccount && user?._id) {
           await switchToAccount(user._id, {

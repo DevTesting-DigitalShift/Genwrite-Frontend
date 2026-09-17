@@ -69,81 +69,107 @@ const SignOutDialog = ({
               </>
             ) : (
               <>
-                You'll be signed out
+                Are you sure you want to sign out
                 {activeEmail ? (
                   <>
                     {" "}
                     of <span className="font-semibold">{activeEmail}</span>
                   </>
-                ) : null}{" "}
-                and returned to the login page.
+                ) : null}
+                ? You'll be returned to the login page.
               </>
             )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2 mt-3">
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => run("current", onSignOutCurrent)}
-            className="w-full flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <span className="mt-0.5 shrink-0">
-              {pendingAction === "current" ? (
-                <Loader2 className="h-4 w-4 animate-spin text-red-600" />
-              ) : (
-                <LogOut className="h-4 w-4 text-red-600" />
-              )}
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-gray-900">
-                {hasMultiple ? "Sign out of this account" : "Sign out"}
-              </span>
-              <span className="block text-xs text-gray-500 mt-0.5">
-                {hasMultiple
-                  ? `${activeEmail || "This account"} only — your other accounts stay signed in.`
-                  : "End your session on this browser."}
-              </span>
-            </span>
-          </button>
+        {hasMultiple ? (
+          <>
+            <div className="flex flex-col gap-2 mt-3">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => run("current", onSignOutCurrent)}
+                className="w-full flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="mt-0.5 shrink-0">
+                  {pendingAction === "current" ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+                  ) : (
+                    <LogOut className="h-4 w-4 text-red-600" />
+                  )}
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-gray-900">
+                    Sign out of this account
+                  </span>
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    {activeEmail || "This account"} only — your other accounts stay signed in.
+                  </span>
+                </span>
+              </button>
 
-          {hasMultiple && (
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => run("all", onSignOutAll)}
+                className="w-full flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="mt-0.5 shrink-0">
+                  {pendingAction === "all" ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+                  ) : (
+                    <Users className="h-4 w-4 text-red-600" />
+                  )}
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-gray-900">
+                    Sign out of all accounts
+                  </span>
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    Ends all {sessions.length} sessions on this browser.
+                  </span>
+                </span>
+              </button>
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => onOpenChange(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          // Single account: a plain yes/no confirm — the scoped option cards above only make
+          // sense when there's more than one session to choose between.
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
             <button
               type="button"
               disabled={isBusy}
-              onClick={() => run("all", onSignOutAll)}
-              className="w-full flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={() => onOpenChange(false)}
+              className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
             >
-              <span className="mt-0.5 shrink-0">
-                {pendingAction === "all" ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-red-600" />
-                ) : (
-                  <Users className="h-4 w-4 text-red-600" />
-                )}
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-gray-900">
-                  Sign out of all accounts
-                </span>
-                <span className="block text-xs text-gray-500 mt-0.5">
-                  Ends all {sessions.length} sessions on this browser.
-                </span>
-              </span>
+              Cancel
             </button>
-          )}
-        </div>
-
-        <div className="flex justify-end mt-4">
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => onOpenChange(false)}
-            className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
-          >
-            Cancel
-          </button>
-        </div>
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => run("current", onSignOutCurrent)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {pendingAction === "current" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              Sign out
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

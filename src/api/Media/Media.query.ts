@@ -62,16 +62,11 @@ class MediaQuery extends QueryBase<MediaAsset> {
       },
     })
 
-  /** Prepends a freshly-submitted (queued) asset to every cached list page's `data` array —
-   * used by both the generate mutations above and nowhere else, since a brand-new asset was
-   * never in any cached page before. */
-  private prependToList = (asset: MediaAsset) => {
-    this.queryClient.setQueriesData<MediaAssetList>(
-      { queryKey: [...this.baseKey, "list"] },
-      (old) => (old ? { ...old, data: [asset, ...old.data] } : old)
-    )
-    this.queryClient.setQueryData<MediaAsset>([...this.baseKey, `detail-${asset._id}`], asset)
-  }
+  /** Adds a freshly-submitted (queued) asset to the cache. Routed through applyAssetUpdate
+   * rather than a blind prepend: the backend emits "media:created" over the socket before
+   * the HTTP response resolves, so by the time the mutation's onSuccess runs the asset is
+   * usually already in the list — prepending again is what produced duplicate cards. */
+  private prependToList = (asset: MediaAsset) => this.applyAssetUpdate(asset)
 
   /** Patches every cached list page's matching entry plus the detail cache in place — used
    * both by useRefresh's onSuccess above and by the "media:created"/"media:statusChanged"
