@@ -426,6 +426,7 @@ const Jobs = () => {
 
   const totalPages = Math.ceil(filteredJobs.length / PAGE_SIZE)
   const usagePercentage = usageLimit > 0 ? Math.min(100, Math.round((usage / usageLimit) * 100)) : 0
+  const isCreateDisabled = usage >= usageLimit || isReadOnlyWorkspace
 
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
@@ -557,25 +558,44 @@ const Jobs = () => {
             <button
               type="button"
               onClick={handleOpenJobModal}
-              disabled={usage >= usageLimit || isReadOnlyWorkspace}
+              disabled={isCreateDisabled}
               title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
               className={`relative h-full text-left rounded-xl p-10 overflow-hidden group transition-all duration-500 ${
-                usage >= usageLimit || isReadOnlyWorkspace
-                  ? "bg-slate-100 cursor-not-allowed grayscale"
+                isCreateDisabled
+                  ? "bg-slate-100 border border-slate-200 cursor-not-allowed"
                   : "bg-linear-to-br from-indigo-600 via-blue-700 to-indigo-800"
               }`}
             >
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+              {/* Disabled card sits on a light background, so text/icon switch to dark tones */}
+              <div
+                className={`absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 transition-transform duration-1000 ${
+                  isCreateDisabled ? "text-slate-500" : ""
+                }`}
+              >
                 <Sparkles size={160} />
               </div>
 
               <div className="relative z-10 h-full flex flex-col justify-between">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-xl text-white rounded-lg flex items-center justify-center border border-white/20">
+                <div
+                  className={`w-12 h-12 backdrop-blur-xl rounded-lg flex items-center justify-center border ${
+                    isCreateDisabled
+                      ? "bg-slate-200 text-slate-500 border-slate-300"
+                      : "bg-white/20 text-white border-white/20"
+                  }`}
+                >
                   <Plus size={32} strokeWidth={3} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white mb-2">Create New Job</h3>
-                  <p className="text-indigo-100 font-medium leading-relaxed opacity-80">
+                  <h3
+                    className={`text-2xl font-black mb-2 ${isCreateDisabled ? "text-slate-700" : "text-white"}`}
+                  >
+                    Create New Job
+                  </h3>
+                  <p
+                    className={`font-medium leading-relaxed ${
+                      isCreateDisabled ? "text-slate-500" : "text-indigo-100 opacity-80"
+                    }`}
+                  >
                     Setup a new automated content generation stream.
                   </p>
                 </div>

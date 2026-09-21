@@ -23,6 +23,32 @@ import { CompetitorsList } from "../FeatureComponents"
  * `includeImagesInExport` is a purely local toggle: nothing outside this panel reads it,
  * so it isn't worth a store field — it's just threaded through the export callbacks.
  */
+/**
+ * The analysis API has returned each criterion both as a plain sentence and as a
+ * `{ score, maxScore, feedback }` object (the generated schema types lag the
+ * backend), so accept either. Rendering the object directly crashes React.
+ */
+const normalizeCriterion = (
+  data: unknown,
+): { score?: number; maxScore?: number; feedback: string } => {
+  if (data && typeof data === "object") {
+    const { score, maxScore, feedback } = data as {
+      score?: number
+      maxScore?: number
+      feedback?: string
+    }
+    return { score, maxScore, feedback: feedback ?? "" }
+  }
+  return { feedback: data == null ? "" : String(data) }
+}
+
+/** Suggestions arrive as a string[] (current) or one paragraph (older responses). */
+const normalizeSuggestions = (suggestions: unknown): string[] => {
+  if (Array.isArray(suggestions)) return suggestions.map(String).filter(Boolean)
+  if (typeof suggestions === "string" && suggestions.trim()) return [suggestions]
+  return []
+}
+
 const SeoPanel: React.FC<SeoPanelProps> = ({
   blog,
   userPlan,
@@ -311,41 +337,49 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                   <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
                 </div>
                 <div className="space-y-2">
-                  {/* Each criterion is one AI-written sentence (score is embedded in the
-                      text itself, e.g. "...(15/20 points)"), not a separate {score,
-                      maxScore, feedback} breakdown. */}
-                  {Object.entries(analysisResult.insights.analysis).map(([category, data]) => (
-                    <div
-                      key={category}
-                      className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
-                    >
-                      <input type="checkbox" className="peer" />
-                      <div className="collapse-title flex items-center pr-8">
-                        <span className="font-medium text-gray-800 text-sm">{category}</span>
+                  {Object.entries(analysisResult.insights.analysis).map(([category, data]) => {
+                    const { score, maxScore, feedback } = normalizeCriterion(data)
+                    return (
+                      <div
+                        key={category}
+                        className="collapse collapse-arrow bg-transparent border border-gray-100 rounded-xl"
+                      >
+                        <input type="checkbox" className="peer" />
+                        <div className="collapse-title flex items-center justify-between gap-2 pr-8">
+                          <span className="font-medium text-gray-800 text-sm">{category}</span>
+                          {score != null && (
+                            <span className="shrink-0 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                              {score}
+                              {maxScore != null && `/${maxScore}`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="collapse-content">
+                          <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            {feedback}
+                          </p>
+                        </div>
                       </div>
-                      <div className="collapse-content">
-                        <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          {data}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Actionable Suggestions — the API returns this as one AI-written paragraph, not a list */}
-            {analysisResult.insights?.suggestions && (
+            {/* Actionable Suggestions */}
+            {normalizeSuggestions(analysisResult.insights?.suggestions).length > 0 && (
               <div className="space-y-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Lightbulb className="w-4 h-4 text-amber-600" />
                   <span className="text-sm font-semibold text-gray-900">Suggestions</span>
                 </div>
-                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll">
-                  <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-line">
-                    {analysisResult.insights.suggestions}
-                  </p>
-                </div>
+                <ul className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll space-y-2 list-disc pl-6">
+                  {normalizeSuggestions(analysisResult.insights?.suggestions).map((tip, i) => (
+                    <li key={i} className="text-xs text-amber-900 leading-relaxed">
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
