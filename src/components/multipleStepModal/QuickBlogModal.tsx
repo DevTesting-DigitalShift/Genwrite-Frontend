@@ -6,6 +6,7 @@ import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
+import usePricingStore from "@store/usePricingStore"
 import { toast } from "sonner"
 import { Plus, X } from "lucide-react"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
@@ -85,27 +86,27 @@ const QuickBlogModal = ({
   // Check if user has a pro subscription
   const _isProUser = user?.subscription?.plan === "pro"
 
+  const blogPricing = usePricingStore((s) => s.catalogue.blog)
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
     const features = []
     if (formData.performKeywordResearch) features.push("keywordResearch")
     if (formData.humanisation) features.push("humanisation")
 
-    let cost = computeCost({
-      wordCount: 1500,
-      features,
-      aiModel: formData.aiModel || "gemini",
-      includeImages: formData.addImages,
-      imageSource: formData.imageSource,
-      numberOfImages: formData.numberOfImages,
-    })
-
-    if (formData.costCutter) {
-      cost = Math.round(cost * 0.5)
-    }
-
-    return cost
+    return computeCost(
+      {
+        wordCount: 1500,
+        features,
+        aiModel: formData.aiModel || "gemini",
+        includeImages: formData.addImages,
+        imageSource: formData.imageSource,
+        numberOfImages: formData.numberOfImages,
+        costCutter: formData.costCutter,
+      },
+      blogPricing
+    )
   }, [
+    blogPricing,
     formData.performKeywordResearch, 
     formData.humanisation, 
     formData.addImages, 

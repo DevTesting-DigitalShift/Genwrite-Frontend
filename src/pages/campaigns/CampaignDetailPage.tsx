@@ -18,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { campaignsQuery } from "@api/Campaign/Campaign.query"
 import { blogsQuery } from "@api/Blog/Blog.query"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import { CampaignFormDialog } from "@/features/campaigns/CampaignFormDialog"
 import { useCampaignFormUI } from "@/features/campaigns/campaignForm.reducer"
 import { CampaignStatusControl } from "@/features/campaigns/CampaignStatusControl"
@@ -125,6 +125,7 @@ function AutomationRow({ label, enabled }: { label: string; enabled: boolean }) 
 }
 
 export default function CampaignDetailPage() {
+  const COSTS = useCosts()
   const { id = "" } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [tab, setTab] = useState("overview")

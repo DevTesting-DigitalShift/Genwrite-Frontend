@@ -20,7 +20,7 @@ import {
 import { useAnimations } from "../hooks/useAnimations"
 import useViewport from "@/hooks/useViewport"
 import type { InsightsPanelProps, InsightSuggestion } from "../types"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import useEditorStore from "@store/useEditorStore"
 
 const PRIORITY_STYLES: Record<InsightSuggestion["priority"], string> = {
@@ -84,6 +84,7 @@ const SuggestionCard = ({
   isApplying: boolean
   isBusy: boolean
 }) => {
+  const COSTS = useCosts()
   const [scope, setScope] = useState<"section" | "whole">("section")
   const [republish, setRepublish] = useState(false)
 
@@ -209,6 +210,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   hasPublishedLinks,
   setIsSidebarOpen,
 }) => {
+  const COSTS = useCosts()
   const { panel, item, stagger } = useAnimations()
   const { isMobile } = useViewport()
   const insight = useEditorStore((s) => s.insight)

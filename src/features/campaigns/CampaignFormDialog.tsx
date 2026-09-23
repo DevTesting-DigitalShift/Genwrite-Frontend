@@ -34,7 +34,7 @@ import { jobsQuery } from "@api/Job/Job.query"
 import type { Campaign, CampaignBlogRef, CampaignJobRef } from "@/types/campaign"
 import type { CampaignFormUIState } from "./campaignForm.types"
 import { getValueByPath } from "@utils/ObjectPath"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import { getFriendlyError } from "@utils/friendlyError"
 
 /** How long after a step change the submit button ignores clicks. */
@@ -69,6 +69,7 @@ export function CampaignFormDialog({
   onBlogSearchChange,
   campaigns,
 }: CampaignFormDialogProps) {
+  const COSTS = useCosts()
   const editingCampaign = useMemo(
     () => campaigns.find((c) => c._id === uiState.editingCampaignId),
     [campaigns, uiState.editingCampaignId]

@@ -23,8 +23,10 @@ import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/cre
 import { getFriendlyError } from "@utils/friendlyError"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { toast } from "sonner"
+import { useCosts } from "@/data/costs"
 
 const ChatWithPdf = () => {
+  const COSTS = useCosts()
   const { pdfChat, setPdfChatResult, resetPdfChat } = useToolsStore()
   const { cacheKey } = pdfChat
   const { mutateAsync: sendMessage, isPending: loading } = generateQuery.usePdfChat()
@@ -444,7 +446,8 @@ const ChatWithPdf = () => {
 
                   <div className="text-center mt-3">
                     <p className="text-xs text-slate-400">
-                      AI can assist with summaries and insights. (Cost: 1 credit)
+                      AI can assist with summaries and insights. (Cost: {COSTS.TOOLS.PDF_CHAT}{" "}
+                      credit{COSTS.TOOLS.PDF_CHAT === 1 ? "" : "s"})
                     </p>
                   </div>
                 </div>

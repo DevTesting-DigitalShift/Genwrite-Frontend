@@ -8,6 +8,7 @@ import { BLOG_CONFIG } from "@/data/blogConfig"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import AdvancedOptions from "@components/AdvancedOptions"
 import { computeCost } from "@/data/pricingConfig"
+import usePricingStore from "@store/usePricingStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { useZodForm } from "@/lib/forms"
@@ -185,6 +186,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     updateFormData({ [type]: [...formData[type], ...newItems] })
   }
 
+  const blogPricing = usePricingStore((s) => s.catalogue.blog)
   // Memoized estimated cost calculation
   const estimatedCost = useMemo(() => {
     const features = []
@@ -200,8 +202,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     if (formData.options.deepResearch) features.push("deepResearch")
     if (formData.wordpressPostStatus) features.push("automaticPosting")
 
-    let cost = computeCost({
-      wordCount: formData.userDefinedLength,
+    return computeCost(
+      {
+        wordCount: formData.userDefinedLength,
       features,
       aiModel: formData.aiModel || "gemini",
       includeImages: formData.isCheckedGeneratedImages,
@@ -210,14 +213,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
         formData.imageSource === IMAGE_SOURCE.UPLOAD
           ? formData.blogImages.length
           : formData.numberOfImages,
-    })
-
-    if (formData.costCutter) {
-      cost = Math.round(cost * 0.5)
-    }
-
-    return cost
+        costCutter: formData.costCutter,
+      },
+      blogPricing
+    )
   }, [
+    blogPricing,
     formData.isCheckedBrand, 
     formData.options.includeCompetitorResearch, 
     formData.options.performKeywordResearch, 

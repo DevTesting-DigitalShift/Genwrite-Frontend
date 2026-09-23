@@ -41,7 +41,7 @@ import { integrationQuery } from "@api/Integration/Integration.query"
 import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 
 import { marked } from "marked"
 
@@ -77,6 +77,7 @@ const TextEditorSidebar = ({
   activeEditorVersion,
   isPublicMode = false,
 }: TextEditorSidebarProps) => {
+  const COSTS = useCosts()
   // Shared editor state — see useEditorStore.ts. `keywords`/`formData`/`posted`/
   // `isPosting`/`editorContent` used to be prop-drilled in from MainEditorPage; both
   // now read/write the same store instead. (`unsavedChanges` is read inside
@@ -354,6 +355,7 @@ const TextEditorSidebar = ({
   }, [
     blog?._id,
     guardCreditedAction,
+    COSTS.BLOG_INSIGHT.ANALYZE,
     analyzeBlogMutation,
     persistInsight,
     showLoading,
@@ -482,6 +484,7 @@ const TextEditorSidebar = ({
     [
       blog?._id,
       guardCreditedAction,
+      COSTS.BLOG_INSIGHT.APPLY,
       applyInsightMutation,
       editorContent,
       showLoading,
@@ -493,7 +496,7 @@ const TextEditorSidebar = ({
     ]
   )
 
-  // No confirmation popup — at 2 credits this is cheap enough to run on click,
+  // No confirmation popup — metadata is cheap enough (COSTS.BLOG.METADATA) to run on click,
   // and the result still goes through the accept/reject modal before it's kept.
   const handleMetadataGen = useCallback(async () => {
     if (!blog?._id) {

@@ -26,7 +26,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 
 const Card = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
   <div
@@ -201,6 +201,7 @@ const NumberStepper = ({
 }
 
 const WebsiteRanking = () => {
+  const COSTS = useCosts()
   const location = useLocation()
   const navigate = useNavigate()
   const [url, setUrl] = useState(location.state?.transferValue || "")

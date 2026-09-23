@@ -1,5 +1,5 @@
 import { asApiError } from "@/types/api"
-import { useState, useEffect, lazy, Suspense } from "react"
+import { useState, useEffect, useMemo, lazy, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
@@ -18,7 +18,8 @@ import { getDefaultFilterStart } from "@utils/dateDefaults"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 import { getActiveSession } from "@utils/sessionStore"
 import { blogsQuery } from "@api/Blog/Blog.query"
-import { tools } from "@/data/toolsData"
+import { tools as toolDefinitions } from "@/data/toolsData"
+import { useCosts } from "@/data/costs"
 import ToolCard from "../components/dashboard/ToolCard"
 import {
   FileText,
@@ -231,6 +232,17 @@ const Dashboard = () => {
   }
 
   // --- Tool Categorization ---
+
+  // Credit labels are functions of the live pricing catalogue — resolve them once per change.
+  const COSTS = useCosts()
+  const tools = useMemo(
+    () =>
+      toolDefinitions.map((t) => ({
+        ...t,
+        credit: typeof t.credit === "function" ? t.credit(COSTS) : t.credit,
+      })),
+    [COSTS]
+  )
 
   // 1. Blog Creation Studio (Priority Tools)
   const creationTools = tools.filter((t) =>

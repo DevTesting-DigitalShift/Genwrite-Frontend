@@ -3114,7 +3114,7 @@ export interface paths {
         };
         /**
          * Get static pricing configuration
-         * @description Returns the full static pricing/credit-cost configuration, for the authenticated dashboard.
+         * @description Returns the full per-module pricing catalogue by default, or a single module's slice when `?module=` is given — see `pricing.service.js#buildCatalogue()` for exactly which module owns which action.
          */
         get: operations["getUserPricing"];
         put?: never;
@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-23T06:22:14.185Z
+             * @default 2026-09-23T06:36:04.275Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -4578,6 +4578,26 @@ export interface components {
                 trigger: "ctr" | "indexing";
             }[];
         } | null;
+        InsufficientCreditsError: components["schemas"]["ErrorResponse"] & {
+            /**
+             * @example ERR_INSUFFICIENT_CREDITS
+             * @enum {string}
+             */
+            code?: "ERR_INSUFFICIENT_CREDITS";
+            /** @description Insufficient-credits detail */
+            details: {
+                /**
+                 * @description Credits required for this action
+                 * @example 25
+                 */
+                neededCredits: number;
+                /**
+                 * @description User's current total credits (base + extra) — best-effort, may be slightly stale under concurrent requests
+                 * @example 4
+                 */
+                remainingCredits?: number;
+            };
+        };
         /** @description Preview of the rewritten content for a suggestion — nothing is persisted yet */
         ApplyInsightResponse: {
             /** @description Rewritten content for the suggestion, for review */
@@ -5321,7 +5341,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T06:22:14.231Z
+                 * @default 2026-09-23T06:36:04.318Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5515,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T06:22:14.232Z
+                 * @default 2026-09-23T06:36:04.319Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5690,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-23T06:22:14.238Z
+             * @default 2026-09-23T06:36:04.326Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6417,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T06:22:14.251Z
+                 * @default 2026-09-23T06:36:04.342Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6591,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T06:22:14.252Z
+                 * @default 2026-09-23T06:36:04.344Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7023,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-23T06:22:14.261Z
+             * @default 2026-09-23T06:36:04.355Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8608,15 +8628,260 @@ export interface components {
              */
             success: true;
             data: {
-                /** @description Static per-feature/word-count pricing config */
-                pricingConfig: {
-                    [key: string]: unknown;
+                pricingConfig: components["schemas"]["BlogPricingConfig"];
+                catalogue: components["schemas"]["PricingCatalogue"];
+            } | {
+                /**
+                 * @description Backend module name
+                 * @example media
+                 * @enum {string}
+                 */
+                module: "blog" | "generate" | "blogGeneration" | "images" | "media" | "analysis" | "job" | "analytics";
+                data: components["schemas"]["BlogPricingConfig"] | components["schemas"]["GeneratePricing"] | components["schemas"]["BlogGenerationPricing"] | components["schemas"]["ImagePricing"] | {
+                    [key: string]: {
+                        /** @enum {string} */
+                        kind: "image" | "video";
+                        /** @enum {string} */
+                        unit: "image" | "megapixel" | "second" | "video";
+                        usdPerUnit: number;
+                        label: string;
+                        /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
+                        requiresImage?: boolean;
+                    };
+                } | components["schemas"]["AnalysisPricing"] | components["schemas"]["JobPricing"] | components["schemas"]["AnalyticsPricing"];
+            };
+        };
+        BlogPricingConfig: {
+            wordCount: {
+                /**
+                 * @description Words per unit
+                 * @example 100
+                 */
+                base: number;
+                /**
+                 * @description Credits per base unit
+                 * @example 10
+                 */
+                cost: number;
+            };
+            features: {
+                brandVoice: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
                 };
-                /** @description Static per-action credit costs (tools, images, generate, ...) */
-                creditCosts: {
-                    [key: string]: unknown;
+                competitorResearch: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                keywordResearch: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                internalLinking: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                faqGeneration: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                automaticPosting: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                humanisation: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                extendedThinking: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+                deepResearch: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
+                };
+            } & {
+                [key: string]: {
+                    /** @example Brand Voice */
+                    label: string;
+                    /** @example 10 */
+                    cost: number;
                 };
             };
+            images: {
+                stock: {
+                    /** @example 10 */
+                    featureFee: number;
+                };
+                ai: {
+                    /** @example 20 */
+                    featureFee: number;
+                };
+                upload: {
+                    /** @example 5 */
+                    perImageFee: number;
+                };
+            };
+            aiModels: {
+                gemini: {
+                    label: string;
+                    /** @example 1 */
+                    costMultiplier: number;
+                };
+                openai: {
+                    label: string;
+                    /** @example 1.25 */
+                    costMultiplier: number;
+                };
+                chatgpt: {
+                    label: string;
+                    /** @example 1.25 */
+                    costMultiplier: number;
+                };
+                claude: {
+                    label: string;
+                    /** @example 1.5 */
+                    costMultiplier: number;
+                };
+            } & {
+                [key: string]: {
+                    label: string;
+                    costMultiplier: number;
+                };
+            };
+        };
+        PricingCatalogue: {
+            blog: components["schemas"]["BlogPricingConfig"];
+            generate: components["schemas"]["GeneratePricing"];
+            blogGeneration: components["schemas"]["BlogGenerationPricing"];
+            images: components["schemas"]["ImagePricing"];
+            /** @description fal model id -> {kind, unit, usdPerUnit, label, requiresImage?} */
+            media: {
+                [key: string]: {
+                    /** @enum {string} */
+                    kind: "image" | "video";
+                    /** @enum {string} */
+                    unit: "image" | "megapixel" | "second" | "video";
+                    usdPerUnit: number;
+                    label: string;
+                    /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
+                    requiresImage?: boolean;
+                };
+            };
+            analysis: components["schemas"]["AnalysisPricing"];
+            job: components["schemas"]["JobPricing"];
+            analytics: components["schemas"]["AnalyticsPricing"];
+        };
+        GeneratePricing: {
+            /** @example 1 */
+            METADATA: number;
+            /** @example 5 */
+            HUMANISED_CONTENT: number;
+            /** @example 10 */
+            OUTLINE: number;
+            /** @example 5 */
+            PROMPT_CONTENT: number;
+            /** @example 2 */
+            DETECTOR: number;
+            /** @example 5 */
+            KEYWORD_SCRAPER: number;
+            /** @example 5 */
+            YOUTUBE_SUMMARIZER: number;
+            /** @example 1 */
+            PDF_CHAT: number;
+            /** @example 10 */
+            COMPETITOR_LIKE_BLOG: number;
+            WEBSITE_RANKING: components["schemas"]["WebsiteRankingPricing"];
+        } & {
+            [key: string]: number | {
+                [key: string]: number;
+            };
+        };
+        WebsiteRankingPricing: {
+            /** @example 3 */
+            ANALYSER: number;
+            /** @example 2 */
+            PROMPT_CREATOR: number;
+            /** @example 1 */
+            RANK_CHECKER_PER_PROMPT: number;
+            /** @example 3 */
+            ADVANCED_ANALYSIS: number;
+            /** @example 8 */
+            ORCHESTRATOR_BASE: number;
+        } & {
+            [key: string]: number;
+        };
+        BlogGenerationPricing: {
+            /** @example 5 */
+            PROOFREAD: number;
+            /** @example 3 */
+            REWRITE: number;
+            SECTION_TASK: components["schemas"]["SectionTaskPricing"];
+        } & {
+            [key: string]: number | {
+                [key: string]: number;
+            };
+        };
+        SectionTaskPricing: {
+            /** @example 10 */
+            PROOFREAD: number;
+            /** @example 10 */
+            REWRITE: number;
+            /** @example 10 */
+            ANALYSIS: number;
+            /** @example 10 */
+            PROMPT: number;
+        } & {
+            [key: string]: number;
+        };
+        ImagePricing: {
+            /** @example 2 */
+            GENERATE: number;
+            /** @example 2 */
+            ALT_TEXT: number;
+            /** @example 5 */
+            ENHANCE_PRO: number;
+        } & {
+            [key: string]: number;
+        };
+        AnalysisPricing: {
+            /** @example 10 */
+            COMPETITORS: number;
+        } & {
+            [key: string]: number;
+        };
+        JobPricing: {
+            /** @example 1 */
+            FROM_RANKING: number;
+        } & {
+            [key: string]: number;
+        };
+        AnalyticsPricing: {
+            /** @example 10 */
+            ANALYZE: number;
+            /** @example 10 */
+            APPLY: number;
+        } & {
+            [key: string]: number;
         };
         CalculateCostResponse: {
             /**
@@ -8660,6 +8925,10 @@ export interface components {
             /** @enum {string} */
             type: "generate";
             params: components["schemas"]["GeneratePricingParams"];
+        } | {
+            /** @enum {string} */
+            type: "media";
+            params: components["schemas"]["MediaPricingParams"];
         } | {
             /** @enum {string} */
             type: "analysis";
@@ -8785,7 +9054,33 @@ export interface components {
              * @example OUTLINE
              * @enum {string}
              */
-            action: "METADATA" | "HUMANISED_CONTENT" | "OUTLINE" | "PROMPT_CONTENT" | "REWRITE";
+            action: "METADATA" | "HUMANISED_CONTENT" | "OUTLINE" | "PROMPT_CONTENT";
+        };
+        MediaPricingParams: {
+            /**
+             * @description fal media model id
+             * @example fal-ai/nano-banana
+             * @enum {string}
+             */
+            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
+            /**
+             * @description Item count, for per-item models
+             * @default 1
+             * @example 1
+             */
+            count: number;
+            /**
+             * @description Video duration, for per-second models
+             * @default 1
+             * @example 5
+             */
+            durationSeconds: number;
+            /**
+             * @description Output megapixels, for per-megapixel models
+             * @default 1
+             * @example 1
+             */
+            megapixels: number;
         };
         MediaAssetResponse: {
             /**
@@ -8832,7 +9127,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
+            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks */
@@ -8894,7 +9189,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image";
+            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -11087,7 +11382,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T06:22:14.148Z
+                             * @default 2026-09-23T06:36:04.239Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11234,7 +11529,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T06:22:14.150Z
+                             * @default 2026-09-23T06:36:04.242Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11967,13 +12262,22 @@ export interface operations {
                     "application/json": components["schemas"]["BlogInsight"];
                 };
             };
-            /** @description Unauthorized - missing or invalid access token */
+            /** @description Unauthorized - missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Blog not found */
@@ -12008,7 +12312,7 @@ export interface operations {
                     "application/json": components["schemas"]["BlogInsight"];
                 };
             };
-            /** @description Unauthorized - missing or invalid access token */
+            /** @description Unauthorized - missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -12071,13 +12375,22 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
-            /** @description Unauthorized - missing or invalid access token */
+            /** @description Unauthorized - missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Blog not found */
@@ -12130,7 +12443,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
-            /** @description Unauthorized - missing or invalid access token */
+            /** @description Unauthorized - missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -12190,7 +12503,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unauthorized - missing or invalid access token */
+            /** @description Unauthorized - missing or invalid bearer token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -13316,13 +13629,13 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Insufficient credits - not enough credits to perform analysis */
+            /** @description Insufficient credits - not enough credits to perform this action */
             402: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Blog not found - when blogId is provided but blog doesn't exist */
@@ -15476,6 +15789,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -15588,6 +15910,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -15679,6 +16010,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -15745,6 +16085,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -15822,6 +16171,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -15885,6 +16243,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -15937,6 +16304,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -15992,6 +16368,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -16064,6 +16449,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -16147,6 +16541,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -16216,6 +16619,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -16346,6 +16758,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -16425,6 +16846,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description Internal server error */
@@ -16587,6 +17017,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -16636,6 +17075,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
             /** @description AI image generation limit reached for this billing period */
@@ -16689,6 +17137,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description AI image generation limit reached for this billing period */
             403: {
                 headers: {
@@ -16738,6 +17195,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
         };
@@ -17482,6 +17948,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
             /** @description Too many requests - maximum jobs limit reached for the month */
             429: {
                 headers: {
@@ -17491,7 +17966,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Internal server error — also covers insufficient credits (thrown as a plain Error, not a 402, by User.atomicUpdateCredits) */
+            /** @description Internal server error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -18017,7 +18492,10 @@ export interface operations {
     };
     getPublicPricing: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Return only this module's pricing catalogue */
+                module?: "blog" | "generate" | "blogGeneration" | "images" | "media" | "analysis" | "job" | "analytics";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -18031,6 +18509,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PricingConfigResponse"];
+                };
+            };
+            /** @description Invalid request - missing or invalid fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
             /** @description Unauthorized - missing or invalid x-api-key header */
@@ -18126,6 +18613,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
         };
     };
     postMediaVideoGenerate: {
@@ -18166,6 +18662,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
                 };
             };
         };
@@ -18540,7 +19045,10 @@ export interface operations {
     };
     getUserPricing: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Return only this module's pricing catalogue */
+                module?: "blog" | "generate" | "blogGeneration" | "images" | "media" | "analysis" | "job" | "analytics";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -18554,6 +19062,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PricingConfigResponse"];
+                };
+            };
+            /** @description Unknown `module` value */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Unauthorized - missing or invalid bearer token */

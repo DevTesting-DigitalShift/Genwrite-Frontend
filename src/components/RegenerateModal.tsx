@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { computeCost } from "@/data/pricingConfig"
+import usePricingStore from "@store/usePricingStore"
 import AiModelSelector from "@components/AiModelSelector"
 import ImageSourceSelector from "@components/ImageSourceSelector"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
@@ -122,6 +123,7 @@ const RegenerateModal = ({ isOpen, onClose }: RegenerateModalProps) => {
   // Calculate regenerate cost using pricing config. This is also what gates the
   // actual submit below, so it must stay the source of truth for both the
   // preview shown here and the credit check on submit.
+  const blogPricing = usePricingStore((s) => s.catalogue.blog)
   const calculateRegenCost = useCallback(() => {
     const features = []
     if (regenForm.isCheckedBrand) features.push("brandVoice")
@@ -136,17 +138,20 @@ const RegenerateModal = ({ isOpen, onClose }: RegenerateModalProps) => {
       500,
       Math.round((regenForm.userDefinedLength || 1000) / 500) * 500
     )
-    return computeCost({
-      wordCount: roundedLength,
-      features,
-      aiModel: regenForm.aiModel || "gemini",
-      includeImages: regenForm.isCheckedGeneratedImages,
-      imageSource: regenForm.imageSource,
-      numberOfImages: regenForm.numberOfImages || 3,
-      isCheckedBrand: regenForm.isCheckedBrand,
-      costCutter: regenForm.costCutter,
-    })
-  }, [regenForm])
+    return computeCost(
+      {
+        wordCount: roundedLength,
+        features,
+        aiModel: regenForm.aiModel || "gemini",
+        includeImages: regenForm.isCheckedGeneratedImages,
+        imageSource: regenForm.imageSource,
+        numberOfImages: regenForm.numberOfImages || 3,
+        isCheckedBrand: regenForm.isCheckedBrand,
+        costCutter: regenForm.costCutter,
+      },
+      blogPricing
+    )
+  }, [regenForm, blogPricing])
 
   // The schema is checked first, so `values` is complete; `toRegenerateBlogPayload`
   // is the only thing that shapes the request.

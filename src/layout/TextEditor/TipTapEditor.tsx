@@ -51,7 +51,7 @@ import Heading from "@tiptap/extension-heading"
 import Underline from "@tiptap/extension-underline"
 import { AIBubbleMenu } from "./AIBubbleMenu"
 import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
 import useAuthStore from "@store/useAuthStore"
@@ -90,6 +90,7 @@ const TipTapEditor = ({
   setUnsavedChanges,
   isPublicMode = false,
 }: TipTapEditorProps) => {
+  const COSTS = useCosts()
   const { mutateAsync: generateImage } = imageGalleryQuery.useGenerate()
   const { mutateAsync: enhanceImage } = imageGalleryQuery.useEnhance()
   const { mutateAsync: generateAltText } = imageGalleryQuery.useGenerateAltText()

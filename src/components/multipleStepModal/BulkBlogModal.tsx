@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
+import usePricingStore from "@store/usePricingStore"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
@@ -107,6 +108,7 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
   }, [integrations, formData.postingType, setValue])
 
   // Memoized estimated cost calculation
+  const blogPricing = usePricingStore((s) => s.catalogue.blog)
   const estimatedCost = useMemo(() => {
     const features = []
     if (formData.isCheckedBrand) features.push("brandVoice")
@@ -119,8 +121,9 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
     if (formData.extendedThinking) features.push("extendedThinking")
     if (formData.deepResearch) features.push("deepResearch")
 
-    const blogCost = computeCost({
-      wordCount: formData.userDefinedLength,
+    const blogCost = computeCost(
+      {
+        wordCount: formData.userDefinedLength,
       features,
       aiModel: formData.aiModel || "gemini",
       includeImages: formData.isCheckedGeneratedImages,
@@ -129,15 +132,15 @@ const BulkBlogModal = ({ closeFnc }: { closeFnc: () => void }) => {
         formData.imageSource === "customImage"
           ? formData.blogImages.length
           : formData.numberOfImages,
-    })
+        costCutter: formData.costCutter,
+      },
+      blogPricing
+    )
 
-    let totalCost = formData.numberOfBlogs * blogCost
-    if (formData.costCutter) {
-      totalCost = Math.round(totalCost * 0.5)
-    }
-
-    return totalCost
+    // Each blog in the batch is charged on its own, so the cost cutter applies per blog.
+    return formData.numberOfBlogs * blogCost
   }, [
+    blogPricing,
     formData.isCheckedBrand,
     formData.includeCompetitorResearch,
     formData.performKeywordResearch,

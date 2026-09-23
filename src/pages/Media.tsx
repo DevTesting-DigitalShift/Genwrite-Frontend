@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import {
   Clapperboard,
   Clock,
+  Copy,
   Download,
   ImageIcon,
   Loader2,
@@ -18,34 +19,11 @@ import useAuthStore from "@store/useAuthStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaQuery } from "@api/Media/Media.query"
 import type { MediaAsset } from "@api/Media/Media.api"
+import type { PricingCatalogue } from "@api/Pricing/Pricing.api"
+import usePricingStore from "@store/usePricingStore"
 import { MasonryGrid, MasonryItem } from "@components/ui/MasonryGrid"
 
-/** Display-only catalogue mirroring GenWrite-Backend's constants/mediaModelPricing.js —
- * the backend is the source of truth for actual cost, this is purely for the UI's live
- * estimate before submitting. Keep in sync if the backend catalogue changes. */
-const IMAGE_MODELS = [
-  { id: "fal-ai/nano-banana", label: "Nano Banana", usdPerUnit: 0.0398, unit: "megapixel" },
-  {
-    id: "fal-ai/bytedance/seedream/v4/text-to-image",
-    label: "Seedream v4",
-    usdPerUnit: 0.03,
-    unit: "image",
-  },
-  { id: "fal-ai/flux-pro/kontext", label: "Flux Kontext Pro", usdPerUnit: 0.04, unit: "image" },
-  { id: "fal-ai/qwen-image", label: "Qwen Image", usdPerUnit: 0.02, unit: "megapixel" },
-] as const
-
-const VIDEO_MODELS = [
-  { id: "fal-ai/wan-25-preview/text-to-video", label: "Wan 2.5", usdPerUnit: 0.05, unit: "second" },
-  {
-    id: "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
-    label: "Kling 2.5 Turbo Pro",
-    usdPerUnit: 0.07,
-    unit: "second",
-  },
-  { id: "fal-ai/veo3.1", label: "Veo 3", usdPerUnit: 0.4, unit: "second" },
-  { id: "fal-ai/ovi", label: "Ovi", usdPerUnit: 0.2, unit: "video (flat)" },
-] as const
+type MediaModel = PricingCatalogue["media"][string] & { id: string }
 
 const PURPOSES = [
   { id: "poster", label: "Poster" },
@@ -55,8 +33,23 @@ const PURPOSES = [
   { id: "other", label: "Other" },
 ] as const
 
-/** 1 credit = 1 cent, matching media.pricing.js#getMediaCreditCost exactly. */
-const estimateCredits = (usdPerUnit: number, units: number) => Math.ceil(usdPerUnit * units * 100)
+/** Mirrors the backend's media.pricing.js#getMediaCreditCost exactly: 1 credit = 1 cent, and
+ * only the unit the model is billed in counts — seconds for per-second video, megapixels for
+ * per-megapixel images, otherwise a flat price per image/video. */
+const estimateCredits = (
+  model: MediaModel,
+  { megapixels, durationSeconds }: { megapixels: number; durationSeconds: number }
+) => {
+  const units =
+    model.unit === "second" ? durationSeconds : model.unit === "megapixel" ? megapixels : 1
+  return Math.ceil(model.usdPerUnit * units * 100)
+}
+
+/** "5 credits / second", "4 credits / image" — the model's rate in the unit it's billed in. */
+const formatRate = (model: MediaModel) => {
+  const perUnit = Math.ceil(model.usdPerUnit * 100)
+  return `${perUnit} credit${perUnit === 1 ? "" : "s"} / ${model.unit}`
+}
 
 /** Rough wait shown to the user — fal delivers the result via webhook, surfaced as a toast
  * by useMediaNotifications, so nothing on this page waits or polls for it. */
@@ -71,6 +64,15 @@ const STATUS_STYLES: Record<MediaAsset["status"], { label: string; className: st
   completed: { label: "Completed", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
   failed: { label: "Failed", className: "bg-rose-50 text-rose-600 border-rose-200" },
 }
+
+const formatDateTime = (date: string) =>
+  new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
 
 const isActive = (status: MediaAsset["status"]) => status === "queued" || status === "processing"
 
@@ -172,12 +174,21 @@ const Media = () => {
   const [tab, setTab] = useState<"image" | "video">("image")
   const [prompt, setPrompt] = useState("")
   const [purpose, setPurpose] = useState<(typeof PURPOSES)[number]["id"]>("other")
-  const [imageModel, setImageModel] = useState<(typeof IMAGE_MODELS)[number]["id"]>(
-    IMAGE_MODELS[0].id
-  )
-  const [videoModel, setVideoModel] = useState<(typeof VIDEO_MODELS)[number]["id"]>(
-    VIDEO_MODELS[0].id
-  )
+  // Models + prices come from the backend's pricing catalogue, so a model added/removed or
+  // repriced there shows up here without a frontend change. Image-to-image models need a
+  // source image this prompt-only form can't provide, so they're not offered.
+  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const modelsByKind = useMemo(() => {
+    const all: MediaModel[] = Object.entries(mediaCatalogue)
+      .filter(([, m]) => !m.requiresImage)
+      .map(([id, m]) => ({ id, ...m }))
+    return {
+      image: all.filter((m) => m.kind === "image"),
+      video: all.filter((m) => m.kind === "video"),
+    }
+  }, [mediaCatalogue])
+  const [imageModel, setImageModel] = useState("")
+  const [videoModel, setVideoModel] = useState("")
   const [megapixels, setMegapixels] = useState(1)
   const [durationSeconds, setDurationSeconds] = useState(5)
   // An id rather than a snapshot so the preview modal always reflects the live cache entry
@@ -221,13 +232,15 @@ const Media = () => {
   const refresh = mediaQuery.useRefresh()
 
   const isSubmitting = generateImage.isPending || generateVideo.isPending
-  const currentModel =
-    tab === "image"
-      ? IMAGE_MODELS.find((m) => m.id === imageModel)
-      : VIDEO_MODELS.find((m) => m.id === videoModel)
+  const tabModels = modelsByKind[tab]
+  // Falls back to the first model when nothing's picked yet, or the picked one was removed
+  // from the catalogue since.
+  const selectedModelId = tab === "image" ? imageModel : videoModel
+  const currentModel = tabModels.find((m) => m.id === selectedModelId) ?? tabModels[0]
   const estimatedCredits = currentModel
-    ? estimateCredits(currentModel.usdPerUnit, tab === "image" ? megapixels : durationSeconds)
+    ? estimateCredits(currentModel, { megapixels, durationSeconds })
     : 0
+  const modelLabel = (id: string) => mediaCatalogue[id]?.label ?? id
 
   const activeIds = assets.filter((a) => isActive(a.status)).map((a) => a._id)
 
@@ -273,20 +286,30 @@ const Media = () => {
     }
     if (!checkCredits()) return
 
+    if (!currentModel) return
     if (tab === "image") {
       generateImage.mutate({
         prompt: prompt.trim(),
-        model: imageModel,
+        model: currentModel.id,
         purpose,
         megapixels,
       } as never)
     } else {
       generateVideo.mutate({
         prompt: prompt.trim(),
-        model: videoModel,
+        model: currentModel.id,
         purpose,
         durationSeconds,
       } as never)
+    }
+  }
+
+  const handleCopyPrompt = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("Prompt copied")
+    } catch {
+      toast.error("Couldn't copy the prompt")
     }
   }
 
@@ -360,16 +383,14 @@ const Media = () => {
                 <select
                   id="media-model"
                   className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-                  value={tab === "image" ? imageModel : videoModel}
+                  value={currentModel?.id ?? ""}
                   onChange={(e) =>
-                    tab === "image"
-                      ? setImageModel(e.target.value as typeof imageModel)
-                      : setVideoModel(e.target.value as typeof videoModel)
+                    tab === "image" ? setImageModel(e.target.value) : setVideoModel(e.target.value)
                   }
                 >
-                  {(tab === "image" ? IMAGE_MODELS : VIDEO_MODELS).map((m) => (
+                  {tabModels.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label}
+                      {m.label} · {formatRate(m)}
                     </option>
                   ))}
                 </select>
@@ -413,7 +434,9 @@ const Media = () => {
                     onChange={(e) => setMegapixels(Number(e.target.value) || 1)}
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
-                    For cost estimation only — actual output size is set by the model.
+                    {currentModel?.unit === "megapixel"
+                      ? "For cost estimation only — actual output size is set by the model."
+                      : "This model is billed per image — size doesn't change the cost."}
                   </p>
                 </div>
               ) : (
@@ -431,6 +454,11 @@ const Media = () => {
                     value={durationSeconds}
                     onChange={(e) => setDurationSeconds(Number(e.target.value) || 5)}
                   />
+                  {currentModel && currentModel.unit !== "second" && (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      This model is billed per video — length doesn't change the cost.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -458,6 +486,9 @@ const Media = () => {
               <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
                 <Sparkles size={14} className="text-[#4C5BD6]" />
                 Estimated cost: <span className="text-slate-900">{estimatedCredits} credits</span>
+                {currentModel && (
+                  <span className="font-medium text-slate-400">({formatRate(currentModel)})</span>
+                )}
               </div>
 
               <button
@@ -586,41 +617,114 @@ const Media = () => {
                   </button>
                 </div>
 
-                <div className="w-full lg:w-90 xl:w-100 shrink-0 p-4 sm:p-6 flex flex-col gap-4 sm:gap-5 lg:overflow-y-auto">
-                  <div>
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border mb-3 ${STATUS_STYLES[previewAsset.status].className}`}
-                    >
-                      {STATUS_STYLES[previewAsset.status].label}
-                    </span>
-                    <p className="text-sm text-slate-700 leading-relaxed">{previewAsset.prompt}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 min-w-0">
-                      <p className="text-slate-400 font-semibold mb-1">Model</p>
-                      <p
-                        className="text-slate-700 font-bold truncate"
-                        title={previewAsset.providerModel}
+                <div className="w-full lg:w-90 xl:w-100 shrink-0 flex flex-col lg:max-h-[92vh]">
+                  <div className="flex-1 min-h-0 p-4 sm:p-6 flex flex-col gap-5 lg:overflow-y-auto">
+                    {/* Header: status, type, when */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_STYLES[previewAsset.status].className}`}
                       >
-                        {previewAsset.providerModel}
+                        {STATUS_STYLES[previewAsset.status].label}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 text-slate-600 flex items-center gap-1">
+                        {previewAsset.type === "image" ? (
+                          <ImageIcon size={10} />
+                        ) : (
+                          <Video size={10} />
+                        )}
+                        {previewAsset.type === "image" ? "Image" : "Video"}
+                      </span>
+                      {previewAsset.createdAt && (
+                        <span className="ml-auto text-[11px] text-slate-400">
+                          {formatDateTime(previewAsset.createdAt)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Prompt — keeps the user's own line breaks/spacing; long prompts scroll
+                        inside their own box instead of stretching the panel. */}
+                    <section>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Prompt
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt(previewAsset.prompt)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-[#4C5BD6] transition-colors"
+                        >
+                          <Copy size={12} /> Copy
+                        </button>
+                      </div>
+                      <p className="max-h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+                        {previewAsset.prompt}
                       </p>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <p className="text-slate-400 font-semibold mb-1">Cost</p>
-                      <p className="text-slate-700 font-bold">{previewAsset.creditCost} credits</p>
-                    </div>
+                    </section>
+
+                    {/* Details */}
+                    <section>
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Details
+                      </h3>
+                      <dl className="divide-y divide-slate-100 rounded-lg border border-slate-100 text-sm">
+                        <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+                          <dt className="text-slate-500 shrink-0">Model</dt>
+                          <dd className="min-w-0 text-right">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {modelLabel(previewAsset.providerModel)}
+                            </p>
+                            <p
+                              className="font-mono text-[10px] text-slate-400 truncate"
+                              title={previewAsset.providerModel}
+                            >
+                              {previewAsset.providerModel}
+                            </p>
+                          </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+                          <dt className="text-slate-500">Purpose</dt>
+                          <dd className="font-semibold text-slate-800 capitalize">
+                            {previewAsset.purpose.replace("_", " ")}
+                          </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+                          <dt className="text-slate-500">Credits used</dt>
+                          <dd className="font-semibold text-slate-800 flex items-center gap-1">
+                            <Sparkles size={12} className="text-[#4C5BD6]" />
+                            {previewAsset.creditCost}
+                            {previewAsset.status === "failed" && (
+                              <span className="text-[11px] font-medium text-emerald-600">
+                                (refunded)
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                        {mediaCatalogue[previewAsset.providerModel] && (
+                          <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+                            <dt className="text-slate-500">Rate</dt>
+                            <dd className="text-slate-600">
+                              {formatRate({
+                                id: previewAsset.providerModel,
+                                ...mediaCatalogue[previewAsset.providerModel],
+                              })}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </section>
                   </div>
 
                   {previewAsset.status === "completed" && previewAsset.resultUrl && (
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(previewAsset)}
-                      className="btn btn-primary w-full h-12 rounded-lg bg-slate-900 border-none text-white font-medium hover:bg-black transition-all mt-auto"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </button>
+                    <div className="shrink-0 border-t border-slate-100 p-4 sm:p-6">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(previewAsset)}
+                        className="btn btn-primary w-full h-12 rounded-lg bg-slate-900 border-none text-white font-medium hover:bg-black transition-all"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </button>
+                    </div>
                   )}
                 </div>
               </motion.div>

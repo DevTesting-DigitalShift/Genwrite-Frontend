@@ -19,7 +19,7 @@ import useImageStore from "@store/useImageStore"
 import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import { toast } from "sonner"
 import { AnimatePresence, motion } from "framer-motion"
 
@@ -56,6 +56,7 @@ const SkeletonGrid = ({ count = 12 }) => {
 }
 
 const ImageGallery = () => {
+  const COSTS = useCosts()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(40)

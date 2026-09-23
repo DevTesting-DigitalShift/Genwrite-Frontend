@@ -5,7 +5,8 @@ import useAuthStore from "@store/useAuthStore"
 import { imageGalleryQuery } from "@api/ImageGallery/ImageGallery.query"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import { COSTS, VALID_IMAGE_CONFIG } from "@/data/blogData"
+import { VALID_IMAGE_CONFIG } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import { apiErrorMessage } from "@/types/api"
 
 // View Constants
@@ -50,6 +51,7 @@ const ImageModal = ({
   allowEnhance = true,
   imageSourceType = "url",
 }: ImageModalProps) => {
+  const COSTS = useCosts()
   const { mutateAsync: generateImage } = imageGalleryQuery.useGenerate()
   const { mutateAsync: enhanceImage } = imageGalleryQuery.useEnhance()
   const { mutateAsync: generateAltText } = imageGalleryQuery.useGenerateAltText()

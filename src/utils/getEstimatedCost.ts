@@ -1,15 +1,16 @@
-import { COSTS, MODEL_MULTIPLIER } from "@/data/blogData"
+import { getCosts } from "@/data/costs"
 
 type CostNode = number | { [key: string]: CostNode }
 
 /**
- * Get the estimated credit cost for a specific operation.
+ * Get the estimated credit cost for a specific operation, from the live pricing catalogue.
  *
- * @param type - Dot-separated path to the cost (e.g., "ANALYSIS.COMPETITORS")
+ * @param type - Dot-separated path to the cost (e.g., "ANALYSIS.COMPETITORS", "tools.pdf_chat")
  */
 export function getEstimatedCost(type: string, aiModel: string = "gemini"): number {
+  const { MODEL_MULTIPLIER, ...costs } = getCosts()
   const keys = type.toUpperCase().split(".")
-  const root = COSTS as unknown as Record<string, CostNode>
+  const root = costs as unknown as Record<string, CostNode>
   let cost: CostNode = root
 
   for (const key of keys) {
@@ -32,8 +33,7 @@ export function getEstimatedCost(type: string, aiModel: string = "gemini"): numb
   }
 
   const modelKey = aiModel.toUpperCase() === "CHATGPT" ? "OPENAI" : aiModel.toUpperCase()
-  const multiplier =
-    MODEL_MULTIPLIER[modelKey as keyof typeof MODEL_MULTIPLIER] ?? MODEL_MULTIPLIER.GEMINI
+  const multiplier = MODEL_MULTIPLIER[modelKey] ?? MODEL_MULTIPLIER.GEMINI ?? 1
 
   return Math.ceil((cost as number) * multiplier)
 }

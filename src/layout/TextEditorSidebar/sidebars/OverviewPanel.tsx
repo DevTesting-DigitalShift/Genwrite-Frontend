@@ -3,6 +3,7 @@ import useEditorStore from "@store/useEditorStore"
 import type { OverviewPanelProps } from "../types"
 import { ScoreCard } from "../FeatureComponents"
 import { getWordCount } from "@/utils/wordUtils"
+import { useCosts } from "@/data/costs"
 
 /**
  * Overview Panel - Dashboard with stats, scores, and quick actions.
@@ -21,6 +22,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
   seoScore,
   contentScore,
 }) => {
+  const COSTS = useCosts()
   const editorContent = useEditorStore((s) => s.editorContent)
   const keywords = useEditorStore((s) => s.keywords)
 
@@ -142,7 +144,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
                 ? "Analysis Locked"
                 : isAnalyzing
                   ? "Analyzing Content..."
-                  : "Run Analysis (10 Credits)"}
+                  : `Run Analysis (${COSTS.ANALYSIS.COMPETITORS} Credits)`}
             </button>
           </div>
         )}

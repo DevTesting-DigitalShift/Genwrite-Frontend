@@ -1,139 +1,93 @@
-import { COSTS, MODEL_MULTIPLIER } from "@/data/blogData"
+import usePricingStore from "@store/usePricingStore"
+import type { PricingCatalogue } from "@api/Pricing/Pricing.api"
 
-// Pricing configuration for the PricingCalculator
-// All costs are in credits - Updated image source handling
-export const pricingConfig = {
-  wordCount: {
-    base: 100, // words per unit
-    cost: 10, // Normalized cost per unit, scaled by overall blog cost logic
-  },
-  features: {
-    brandVoice: { label: "Brand Voice", cost: 10 },
-    competitorResearch: { label: "Competitor Research", cost: COSTS.ANALYSIS.COMPETITORS },
-    keywordResearch: { label: "Keyword Research", cost: COSTS.ANALYSIS.KEYWORDS },
-    internalLinking: { label: "Internal Linking", cost: 10 },
-    faqGeneration: { label: "FAQ Generation", cost: 10 },
-    automaticPosting: { label: "Automatic Posting", cost: 10 },
-    humanisation: { label: "AI Humanisation", cost: COSTS.BLOG.HUMANISED_CONTENT },
-    extendedThinking: { label: "Extended Thinking", cost: 15 },
-    deepResearch: { label: "Deep Research", cost: 15 },
-    quickSummary: { label: "Quick Summary", cost: 10 },
-  },
-  images: {
-    stock: { featureFee: 10 },
-    ai: { featureFee: COSTS.IMAGE.GENERATE * 10 }, // Scaling appropriately
-    upload: { perImageFee: 5 },
-  },
-  aiModels: {
-    gemini: { label: "Gemini", costMultiplier: MODEL_MULTIPLIER.GEMINI },
-    openai: { label: "OpenAI", costMultiplier: MODEL_MULTIPLIER.OPENAI },
-    chatgpt: { label: "ChatGPT", costMultiplier: MODEL_MULTIPLIER.CHATGPT },
-    claude: { label: "Claude", costMultiplier: MODEL_MULTIPLIER.CLAUDE },
-  },
+export type BlogPricing = PricingCatalogue["blog"]
+
+/** `options{}` keys the blog forms send, mapped to the pricing feature they bill as —
+ * identical to GenWrite-Backend's blog.pricing.js#computeCost. */
+const OPTION_TO_FEATURE: Record<string, string> = {
+  includeCompetitorResearch: "competitorResearch",
+  performKeywordResearch: "keywordResearch",
+  includeInterlinks: "internalLinking",
+  includeFaqs: "faqGeneration",
+  automaticPosting: "automaticPosting",
+  humanisation: "humanisation",
+  extendedThinking: "extendedThinking",
+  deepResearch: "deepResearch",
 }
 
 /**
- * Compute the cost for blog content generation
- * @param {Object} params - Cost calculation options
- * @param {number} params.wordCount - Number of words in the blog
- * @param {string[]} [params.features=[]] - Array of feature keys (e.g., ['brandVoice', 'keywordResearch'])
- * @param {string} [params.aiModel='gemini'] - AI model to use ('gemini', 'chatgpt', 'claude')
- * @param {boolean} [params.includeImages=false] - Whether to include images in the blog
- * @param {string} [params.imageSource='stock'] - Image source type ('stock', 'ai', 'upload')
- * @param {number} [params.numberOfImages=0] - Number of images (for upload option only)
- * @param {Object} [params.options={}] - Additional options object (for backward compatibility)
- * @param {boolean} [params.isCheckedBrand=false] - Whether brand voice is enabled
- * @param {boolean} [params.costCutter=false] - Whether cost cutter is enabled
- * @returns {number} Total cost in credits
+ * Estimated credit cost of generating a blog — a line-for-line mirror of the backend's
+ * blog.pricing.js#computeCost (same word-unit rounding, model multiplier, feature fees, image
+ * fees and cost-cutter rounding), fed by the live pricing catalogue so prices never drift.
+ * A feature only costs something if the backend's catalogue lists it: e.g. `quickSummary` is
+ * free until the backend adds a price for it, and then it's picked up automatically.
+ *
+ * @param blogPricing - the catalogue's `blog` slice; components should pass
+ *   `usePricingStore(s => s.catalogue.blog)` so the estimate re-renders when it loads.
  */
-export function computeCost({
-  wordCount = 1000,
-  features = [],
-  aiModel = "gemini",
-  options = {},
-  isCheckedBrand = false,
-  includeImages = false,
-  imageSource = "stock",
-  numberOfImages = 0,
-  costCutter = false,
-}: {
-  wordCount?: number
-  features?: string[]
-  aiModel?: string
-  options?: Record<string, unknown> & { isCheckedQuick?: boolean }
-  isCheckedBrand?: boolean
-  includeImages?: boolean
-  imageSource?: string
-  numberOfImages?: number
-  costCutter?: boolean
-}) {
-  let totalCost = 0
+export function computeCost(
+  {
+    wordCount = 1000,
+    features = [],
+    aiModel = "gemini",
+    options = {},
+    isCheckedBrand = false,
+    includeImages = false,
+    imageSource = "stock",
+    numberOfImages = 0,
+    costCutter = false,
+  }: {
+    wordCount?: number
+    features?: string[]
+    aiModel?: string
+    options?: Record<string, unknown>
+    isCheckedBrand?: boolean
+    includeImages?: boolean
+    imageSource?: string
+    numberOfImages?: number
+    costCutter?: boolean
+  },
+  blogPricing: BlogPricing = usePricingStore.getState().catalogue.blog
+): number {
+  const featurePrices = blogPricing.features as Record<string, { cost: number }>
 
-  // 1. Word Cost
-  const wordUnits = Math.ceil(wordCount / pricingConfig.wordCount.base)
-  const baseWordCost = wordUnits * pricingConfig.wordCount.cost
+  // 1. Word cost
+  const wordUnits = Math.ceil(wordCount / blogPricing.wordCount.base)
+  const wordCost = wordUnits * blogPricing.wordCount.cost
 
   // 2. AI multiplier
-  const aiModelKey = (aiModel || "gemini").toLowerCase()
-  const multiplier =
-    pricingConfig.aiModels[aiModelKey as keyof typeof pricingConfig.aiModels]?.costMultiplier || 1
-  totalCost += baseWordCost * multiplier
+  const aiModels = blogPricing.aiModels as Record<string, { costMultiplier: number }>
+  const aiMultiplier = aiModels[(aiModel || "gemini").toLowerCase()]?.costMultiplier || 1
 
-  // 3. Feature Costs
-  const hasFeature = (feat: string) => features.includes(feat)
-  const hasOption = (opt: string) => !!options?.[opt]
+  // 3. Features — options{} keys and features[] keys both count, each feature at most once
+  const enabled = new Set(features)
+  if (isCheckedBrand) enabled.add("brandVoice")
+  for (const [option, feature] of Object.entries(OPTION_TO_FEATURE)) {
+    if (options?.[option]) enabled.add(feature)
+  }
+  let featuresCost = 0
+  for (const feature of enabled) featuresCost += featurePrices[feature]?.cost ?? 0
 
-  if (isCheckedBrand || hasFeature("brandVoice")) {
-    totalCost += pricingConfig.features.brandVoice.cost
-  }
-  if (hasOption("includeCompetitorResearch") || hasFeature("competitorResearch")) {
-    totalCost += pricingConfig.features.competitorResearch.cost
-  }
-  if (hasOption("performKeywordResearch") || hasFeature("keywordResearch")) {
-    totalCost += pricingConfig.features.keywordResearch.cost
-  }
-  if (hasOption("includeInterlinks") || hasFeature("internalLinking")) {
-    totalCost += pricingConfig.features.internalLinking.cost
-  }
-  if (hasOption("includeFaqs") || hasFeature("faqGeneration")) {
-    totalCost += pricingConfig.features.faqGeneration.cost
-  }
-  if (hasOption("automaticPosting") || hasFeature("automaticPosting")) {
-    totalCost += pricingConfig.features.automaticPosting.cost
-  }
-  if (hasOption("humanisation") || hasFeature("humanisation")) {
-    totalCost += pricingConfig.features.humanisation.cost
-  }
-  if (hasOption("extendedThinking") || hasFeature("extendedThinking")) {
-    totalCost += pricingConfig.features.extendedThinking.cost
-  }
-  if (hasOption("deepResearch") || hasFeature("deepResearch")) {
-    totalCost += pricingConfig.features.deepResearch.cost
-  }
-  if (hasOption("quickSummary") || hasFeature("quickSummary") || options.isCheckedQuick) {
-    totalCost += pricingConfig.features.quickSummary.cost
-  }
-
-  // 4. Image Costs
+  // 4. Images
+  let imagesCost = 0
   if (includeImages) {
-    // Handle both naming conventions: unsplash/stock, ai-generated/ai, custom/upload
     if (imageSource === "stock" || imageSource === "unsplash") {
-      totalCost += pricingConfig.images.stock.featureFee
+      imagesCost = blogPricing.images.stock.featureFee
     } else if (imageSource === "ai" || imageSource === "ai-generated") {
-      totalCost += pricingConfig.images.ai.featureFee
+      imagesCost = blogPricing.images.ai.featureFee
     } else if (
       imageSource === "upload" ||
       imageSource === "custom" ||
       imageSource === "customImage"
     ) {
-      totalCost += pricingConfig.images.upload.perImageFee * numberOfImages
+      imagesCost = blogPricing.images.upload.perImageFee * numberOfImages
     }
   }
 
-  // 5. Cost cutter toggle
-  if (costCutter) totalCost = Math.round(totalCost * 0.5)
-
-  return Math.ceil(totalCost)
+  // 5. Cost cutter — Math.round(total * 0.5), as the backend charges it (getTotalCreditCostForBlog).
+  // Pass `costCutter` here rather than halving the returned number: halving an already-rounded
+  // total can land one credit off the real charge.
+  const rawTotal = wordCost * aiMultiplier + featuresCost + imagesCost
+  return Math.ceil(costCutter ? Math.round(rawTotal * 0.5) : rawTotal)
 }
-
-// Once one step has been run there will be no credits refunded for that step even in failure

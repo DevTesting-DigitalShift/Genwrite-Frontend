@@ -88,45 +88,5 @@ export const VALID_IMAGE_CONFIG = {
   max_files: 15,
 }
 
-// Credit Costs for AI Operations (Synced with Backend)
-export const COSTS = Object.freeze({
-  ANALYSIS: { COMPETITORS: 10, KEYWORDS: 10 },
-  BLOG: {
-    PROOFREAD: 5,
-    REWRITE: 3,
-    METADATA: 5,
-    HUMANISED_CONTENT: 20,
-    OUTLINE: 10,
-    PROMPT_CONTENT: 5,
-    QUICK: 10,
-    SINGLE: 10,
-    REGENERATE: 15,
-  },
-  SECTION_TASK: { PROOFREAD: 10, REWRITE: 10, ANALYSIS: 10, PROMPT: 10 },
-  TOOLS: { DETECTOR: 2, KEYWORD_SCRAPER: 5, YOUTUBE_SUMMARIZER: 5, PDF_CHAT: 1 },
-  IMAGE: { GENERATE: 2, ALT_TEXT: 2, ENHANCE: 5 },
-  WEBSITE_RANKING: {
-    ANALYSER: 3,
-    PROMPT_CREATOR: 2,
-    RANK_CHECKER_PER_PROMPT: 1,
-    ADVANCED_ANALYSIS: 3,
-    ORCHESTRATOR_BASE: 8,
-  },
-  COMPETITOR_LIKE_BLOG: 10,
-  BLOG_INSIGHT: { ANALYZE: 10, APPLY: 10 },
-})
-
-// Cost Multipliers based on AI model
-export const MODEL_MULTIPLIER = { OPENAI: 1.25, CHATGPT: 1.25, CLAUDE: 1.5, GEMINI: 1 }
-
-/**
- * Converts backend (Gemini-based) credits to model-specific credits
- * @param geminiCredits Base credits for Gemini
- * @param aiModel Targeted AI model
- * @returns {number} Final credit cost
- */
-export function convertGeminiToAICredits(geminiCredits: number, aiModel?: string): number {
-  const model = (aiModel?.toUpperCase() || "GEMINI") as keyof typeof MODEL_MULTIPLIER
-  const multiplier = MODEL_MULTIPLIER[model] ?? (MODEL_MULTIPLIER.GEMINI as number)
-  return Math.ceil(geminiCredits * multiplier)
-}
+// Credit costs live in the backend's pricing catalogue — use useCosts()/getCosts() from
+// @/data/costs (or computeCost from @/data/pricingConfig for blog generation).

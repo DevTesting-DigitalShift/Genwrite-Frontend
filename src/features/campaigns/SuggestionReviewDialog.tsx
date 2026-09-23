@@ -12,7 +12,7 @@ import {
 import { Button } from "@components/ui/button"
 import ContentDiffViewerUntyped from "@/layout/Editor/ContentDiffViewer"
 import { blogsQuery } from "@api/Blog/Blog.query"
-import { COSTS } from "@/data/blogData"
+import { useCosts } from "@/data/costs"
 import { useCreditConfirm } from "./useCreditConfirm"
 import { PanelError, PanelLoading } from "./CampaignStates"
 import type { CampaignLiveSuggestion } from "@/types/campaign"
@@ -45,6 +45,7 @@ export function SuggestionReviewDialog({
   onClose,
   onApplied,
 }: SuggestionReviewDialogProps) {
+  const COSTS = useCosts()
   const [rewrite, setRewrite] = useState<string | null>(null)
   const { confirmSpend } = useCreditConfirm()
 

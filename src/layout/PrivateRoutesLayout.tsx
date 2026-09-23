@@ -2,6 +2,7 @@ import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
 import { useState, useEffect } from "react"
 import useAuthStore from "@store/useAuthStore"
+import usePricingStore from "@store/usePricingStore"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/ui/LoadingScreen"
 import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
@@ -109,6 +110,13 @@ const PrivateRoutesLayout = () => {
       setIsSocketConnected(true)
     }
   }, [token])
+
+  // Credit costs come from the backend's pricing catalogue (GET /user/pricing needs auth) —
+  // fetched once per session; every cost label/credit check reads it via usePricingStore.
+  const loadPricing = usePricingStore((s) => s.load)
+  useEffect(() => {
+    if (token) loadPricing()
+  }, [token, loadPricing])
 
   const isAllowed =
     ALLOWED_ROUTES.some((path) => location.pathname.startsWith(path)) || isPublicPath
