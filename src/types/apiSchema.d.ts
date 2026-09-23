@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-23T04:14:37.665Z
+             * @default 2026-09-23T06:22:14.185Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T04:14:37.742Z
+                 * @default 2026-09-23T06:22:14.231Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T04:14:37.744Z
+                 * @default 2026-09-23T06:22:14.232Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-23T04:14:37.752Z
+             * @default 2026-09-23T06:22:14.238Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T04:14:37.777Z
+                 * @default 2026-09-23T06:22:14.251Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T04:14:37.778Z
+                 * @default 2026-09-23T06:22:14.252Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-23T04:14:37.795Z
+             * @default 2026-09-23T06:22:14.261Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -7321,6 +7321,12 @@ export interface components {
              * @example 662f1a2b8c9d4e0012a3b4c5
              */
             blogId: string;
+            /**
+             * @description The blog's title when the action ran (null on logs written before this field existed)
+             * @default null
+             * @example 10 SEO Tips for 2026
+             */
+            blogTitle: string | null;
             /**
              * @description MongoDB ObjectId, serialized as a hex string
              * @example 662f1a2b8c9d4e0012a3b4c5
@@ -11081,7 +11087,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T04:14:37.617Z
+                             * @default 2026-09-23T06:22:14.148Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11228,7 +11234,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T04:14:37.621Z
+                             * @default 2026-09-23T06:22:14.150Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

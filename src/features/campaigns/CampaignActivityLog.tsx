@@ -19,7 +19,7 @@ const ACTION_LABEL: Record<string, string> = {
 
 interface CampaignActivityLogProps {
   campaignId: string
-  /** blogId → title, so each entry names the blog it acted on. */
+  /** blogId → current title — fallback for older entries logged without a blogTitle. */
   blogTitles: Record<string, string>
 }
 
@@ -77,7 +77,7 @@ export function CampaignActivityLog({ campaignId, blogTitles }: CampaignActivity
                 </p>
               </div>
               <p className="truncate text-xs text-muted-foreground">
-                {blogTitles[entry.blogId] ?? "Untitled blog"}
+                {entry.blogTitle ?? blogTitles[entry.blogId] ?? "Untitled blog"}
                 {entry.creditsCost > 0 && ` · ${entry.creditsCost} credits`}
               </p>
               {failed && entry.error && <p className="text-xs text-destructive">{entry.error}</p>}

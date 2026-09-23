@@ -32,8 +32,11 @@ import { useProAction } from "@/hooks/useProAction"
 import HeaderAccountMenu from "@components/HeaderAccountMenu"
 import SignOutDialog from "@components/SignOutDialog"
 import { useSessions } from "@/hooks/useSessions"
+import { useMediaNotifications } from "@/hooks/useMediaNotifications"
 
 const SideBar_Header = () => {
+  // Media Studio generations finish asynchronously (fal webhook) — notify app-wide.
+  useMediaNotifications()
   const [sidebarOpen, setSidebarOpen] = useState<any>(false)
   const [isUserLoaded, setIsUserLoaded] = useState<any>(false)
   const [showWhatsNew, setShowWhatsNew] = useState<any>(false)

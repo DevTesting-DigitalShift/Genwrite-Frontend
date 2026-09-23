@@ -124,6 +124,8 @@ export interface CampaignActionLogEntry {
   _id: string
   campaignId: string
   blogId: string
+  /** Title snapshot taken when the action ran; null on logs written before it was stored. */
+  blogTitle: string | null
   userId: string
   action: "rewrite" | "repost"
   insightId: string | null

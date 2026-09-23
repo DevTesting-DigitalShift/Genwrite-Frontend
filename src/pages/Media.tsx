@@ -2,14 +2,22 @@ import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { Helmet } from "react-helmet-async"
 import { AnimatePresence, motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { Clapperboard, Download, ImageIcon, Loader2, Sparkles, Video, X } from "lucide-react"
+import {
+  Clapperboard,
+  Clock,
+  Download,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Video,
+  X,
+} from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaQuery } from "@api/Media/Media.query"
 import type { MediaAsset } from "@api/Media/Media.api"
-import { getSocket } from "@utils/socket"
-import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import { MasonryGrid, MasonryItem } from "@components/ui/MasonryGrid"
 
 /** Display-only catalogue mirroring GenWrite-Backend's constants/mediaModelPricing.js —
@@ -50,10 +58,12 @@ const PURPOSES = [
 /** 1 credit = 1 cent, matching media.pricing.js#getMediaCreditCost exactly. */
 const estimateCredits = (usdPerUnit: number, units: number) => Math.ceil(usdPerUnit * units * 100)
 
-/** Upper bound on how long the full-screen generation overlay stays up before we give up
- * waiting and let the user carry on — the asset keeps polling in the gallery regardless.
- * Video models (Veo/Kling) routinely take a few minutes, so this is deliberately generous. */
-const GENERATION_TIMEOUT_MS = 10 * 60 * 1000
+/** Rough wait shown to the user — fal delivers the result via webhook, surfaced as a toast
+ * by useMediaNotifications, so nothing on this page waits or polls for it. */
+const ETA_LABEL: Record<MediaAsset["type"], string> = {
+  image: "about a minute",
+  video: "5–10 minutes",
+}
 
 const STATUS_STYLES: Record<MediaAsset["status"], { label: string; className: string }> = {
   queued: { label: "Queued", className: "bg-slate-100 text-slate-600 border-slate-200" },
@@ -64,8 +74,8 @@ const STATUS_STYLES: Record<MediaAsset["status"], { label: string; className: st
 
 const isActive = (status: MediaAsset["status"]) => status === "queued" || status === "processing"
 
-/** Memoised: the polling loop patches the list every few seconds while anything is
- * generating, and only the cards whose asset object actually changed should re-render. */
+/** Memoised: socket updates patch single entries in the cached list, and only the cards
+ * whose asset object actually changed should re-render. */
 const AssetCard = memo(
   ({ asset, onSelect }: { asset: MediaAsset; onSelect: (id: string) => void }) => {
     const style = STATUS_STYLES[asset.status]
@@ -113,9 +123,10 @@ const AssetCard = memo(
           <div className="aspect-square flex flex-col items-center justify-center gap-3 p-4 sm:p-6 bg-linear-to-br from-slate-50 to-slate-100">
             {isActive(asset.status) ? (
               <>
-                <Loader2 className="w-8 h-8 text-[#4C5BD6] animate-spin" />
+                <Clock className="w-8 h-8 text-[#4C5BD6]" />
                 <p className="text-xs font-semibold text-slate-500 text-center">
-                  {asset.status === "queued" ? "Queued…" : "Generating…"}
+                  {asset.status === "queued" ? "Queued" : "Generating"} — ready in{" "}
+                  {ETA_LABEL[asset.type]}
                 </p>
               </>
             ) : (
@@ -169,14 +180,13 @@ const Media = () => {
   )
   const [megapixels, setMegapixels] = useState(1)
   const [durationSeconds, setDurationSeconds] = useState(5)
-  // Ids rather than snapshots so the preview modal / overlay always reflect the live cache
-  // entry (status flips from processing → completed while they're open).
+  // An id rather than a snapshot so the preview modal always reflects the live cache entry
+  // (status flips from processing → completed while it's open).
   const [previewId, setPreviewId] = useState<string | null>(null)
-  const [pendingId, setPendingId] = useState<string | null>(null)
 
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-  const { data: list, isLoading } = mediaQuery.useList({ page: 1, limit: 40 })
+  const { data: list, isLoading, refetch, isFetching } = mediaQuery.useList({ page: 1, limit: 40 })
   // Belt-and-braces dedupe by _id — the cache layer already guards against double inserts,
   // but a duplicate key here would silently render the same card twice.
   const assets = useMemo(() => {
@@ -189,28 +199,28 @@ const Media = () => {
   }, [list?.data])
 
   const previewAsset = previewId ? (assets.find((a) => a._id === previewId) ?? null) : null
-  const pendingAsset = pendingId ? (assets.find((a) => a._id === pendingId) ?? null) : null
 
+  // Submitting only queues the job with fal — no waiting screen. The result arrives via the
+  // webhook → "media:statusChanged" socket event, toasted app-wide by useMediaNotifications.
+  const handleSubmitted = (asset: MediaAsset) => {
+    setPrompt("")
+    loadAuthenticatedUser()
+    toast.success(
+      `${asset.type === "image" ? "Image" : "Video"} generation started — ready in ${ETA_LABEL[asset.type]}`,
+      { description: "We'll notify you when it's done, or hit Refresh to check." }
+    )
+  }
   const generateImage = mediaQuery.useGenerateImage({
-    onSuccess: (asset) => {
-      setPendingId(asset._id)
-      setPrompt("")
-      loadAuthenticatedUser()
-    },
+    onSuccess: handleSubmitted,
     onError: (err) => toast.error(err.message || "Failed to start image generation"),
   })
   const generateVideo = mediaQuery.useGenerateVideo({
-    onSuccess: (asset) => {
-      setPendingId(asset._id)
-      setPrompt("")
-      loadAuthenticatedUser()
-    },
+    onSuccess: handleSubmitted,
     onError: (err) => toast.error(err.message || "Failed to start video generation"),
   })
   const refresh = mediaQuery.useRefresh()
 
   const isSubmitting = generateImage.isPending || generateVideo.isPending
-  const isGenerating = isSubmitting || pendingId !== null
   const currentModel =
     tab === "image"
       ? IMAGE_MODELS.find((m) => m.id === imageModel)
@@ -219,51 +229,29 @@ const Media = () => {
     ? estimateCredits(currentModel.usdPerUnit, tab === "image" ? megapixels : durationSeconds)
     : 0
 
-  // Resolve the full-screen wait once the pending asset settles: completed → open it in the
-  // preview, failed → toast the backend's reason. The socket/polling below keep the cache
-  // entry fresh, so this is purely a reaction to that.
-  useEffect(() => {
-    if (!pendingAsset) return
-    if (pendingAsset.status === "completed") {
-      setPendingId(null)
-      setPreviewId(pendingAsset._id)
-      toast.success(`${pendingAsset.type === "image" ? "Image" : "Video"} ready`)
-    } else if (pendingAsset.status === "failed") {
-      setPendingId(null)
-      toast.error(pendingAsset.errorMessage || "Generation failed")
-    }
-  }, [pendingAsset])
-
-  // Live updates via the "media:created"/"media:statusChanged" socket events — falls back to
-  // the polling loop below for local dev / any missed delivery, since neither is guaranteed
-  // (fal's webhook itself only fires when the backend has a public API_DOMAIN configured).
-  useEffect(() => {
-    const socket = getSocket()
-    if (!socket) return
-    const handleUpdate = (asset: MediaAsset) => mediaQuery.applyAssetUpdate(asset)
-    socket.on("media:created", handleUpdate)
-    socket.on("media:statusChanged", handleUpdate)
-    return () => {
-      socket.off("media:created", handleUpdate)
-      socket.off("media:statusChanged", handleUpdate)
-    }
-  }, [])
-
-  // Polling fallback: while any asset is queued/processing, nudge the backend to check fal
-  // every few seconds. Safe to call repeatedly — refreshMediaAssetStatus is a no-op once an
-  // asset resolves.
   const activeIds = assets.filter((a) => isActive(a.status)).map((a) => a._id)
-  const activeIdsKey = activeIds.join(",")
-  const refreshRef = useRef(refresh.mutate)
-  refreshRef.current = refresh.mutate
+
+  // Asks the backend to check fal directly for every still-generating asset — the fallback
+  // for a missed webhook. A no-op server-side for anything already resolved.
+  const refreshActive = (ids: string[]) => {
+    for (const id of ids) refresh.mutate(id)
+  }
+
+  // One automatic check when the page opens (once the list has loaded), so anything that
+  // finished while the user was away shows up without them having to click Refresh.
+  const autoRefreshedRef = useRef(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once, right after the first load
   useEffect(() => {
-    if (!activeIdsKey) return
-    const ids = activeIdsKey.split(",")
-    const interval = setInterval(() => {
-      for (const id of ids) refreshRef.current(id)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [activeIdsKey])
+    if (autoRefreshedRef.current || isLoading) return
+    autoRefreshedRef.current = true
+    refreshActive(activeIds)
+  }, [isLoading])
+
+  const handleManualRefresh = async () => {
+    const { data } = await refetch()
+    refreshActive((data?.data ?? []).filter((a) => isActive(a.status)).map((a) => a._id))
+  }
+  const isRefreshing = isFetching || refresh.isPending
 
   const checkCredits = () => {
     if (userCredits < estimatedCredits) {
@@ -302,11 +290,6 @@ const Media = () => {
     }
   }
 
-  const handleGenerationTimeout = () => {
-    setPendingId(null)
-    toast.info("Still generating — it'll appear in your library below once it's ready")
-  }
-
   const handleDownload = async (asset: MediaAsset) => {
     if (!asset.resultUrl) return
     try {
@@ -330,19 +313,6 @@ const Media = () => {
       <Helmet>
         <title>Media Studio | GenWrite</title>
       </Helmet>
-
-      {isGenerating && (
-        <ProgressLoadingScreen
-          delay={0}
-          maxDuration={GENERATION_TIMEOUT_MS}
-          onTimeout={handleGenerationTimeout}
-          message={
-            tab === "video"
-              ? "Generating your video… this can take a few minutes"
-              : "Generating your image… this usually takes under a minute"
-          }
-        />
-      )}
 
       <div className="min-h-screen p-4 sm:p-6">
         <div className="mb-6 sm:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
@@ -493,7 +463,7 @@ const Media = () => {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isSubmitting}
                 className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
               >
                 {isSubmitting ? (
@@ -507,6 +477,26 @@ const Media = () => {
         </div>
 
         {/* Gallery */}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-semibold text-slate-800">Your library</h2>
+            {activeIds.length > 0 && (
+              <p className="text-xs text-slate-500">
+                {activeIds.length} generating — videos can take 5–10 minutes. We'll notify you when
+                they're ready.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="btn btn-sm h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
         {isLoading && assets.length === 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -570,8 +560,11 @@ const Media = () => {
                     <div className="flex flex-col items-center gap-3 text-slate-300">
                       {isActive(previewAsset.status) ? (
                         <>
-                          <Loader2 className="w-8 h-8 animate-spin" />
-                          <p className="text-sm font-semibold">Generating…</p>
+                          <Clock className="w-8 h-8" />
+                          <p className="text-sm font-semibold text-center px-6">
+                            Still generating — usually ready in {ETA_LABEL[previewAsset.type]}.
+                            We'll notify you when it's done.
+                          </p>
                         </>
                       ) : (
                         <>
