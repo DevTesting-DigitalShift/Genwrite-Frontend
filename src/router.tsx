@@ -138,13 +138,7 @@ const router = createBrowserRouter([
               { path: "campaigns/:id/reports/:reportId", element: r(CampaignReportDetailPage) },
             ],
           },
-          {
-            // Media Studio is new/beta — gated to tester/admin roles (or anyone viewing a
-            // shared workspace, same as every other tester-gated area) until it's ready
-            // for general availability.
-            element: withLayoutSuspense(TesterProtectedRoute),
-            children: [{ path: "media", element: r(Media) }],
-          },
+          { path: "media", element: r(Media) },
           { path: "transactions", element: r(Transactions) },
           { path: "credit-logs", element: r(CreditLogsTable) },
           { path: "contact", element: r(ContactUs) },
