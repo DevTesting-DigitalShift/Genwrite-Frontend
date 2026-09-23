@@ -2003,7 +2003,7 @@ export interface paths {
         put?: never;
         /**
          * Queue AI analysis for a campaign's blogs
-         * @description Read-only — never rewrites/reposts regardless of automation settings. Runs via a background job; completion is reported over the user's socket room as campaign:analyzed.
+         * @description Read-only — never rewrites/reposts regardless of automation settings. Only blogs outside the 30-day analysis cooldown are analyzed. Runs via a background job; completion is reported over the user's socket room as campaign:analyzed. Returns 200 with status "skipped" (no job, no socket event) when every blog was analyzed recently.
          */
         post: operations["postCampaignsByIdAnalyze"];
         delete?: never;
@@ -4457,7 +4457,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-14T12:55:45.679Z
+             * @default 2026-09-23T04:14:37.665Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5321,7 +5321,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-14T12:55:45.781Z
+                 * @default 2026-09-23T04:14:37.742Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5495,7 +5495,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-14T12:55:45.785Z
+                 * @default 2026-09-23T04:14:37.744Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5670,7 +5670,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-14T12:55:45.797Z
+             * @default 2026-09-23T04:14:37.752Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6397,7 +6397,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-14T12:55:45.824Z
+                 * @default 2026-09-23T04:14:37.777Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6571,7 +6571,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-14T12:55:45.836Z
+                 * @default 2026-09-23T04:14:37.778Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7003,7 +7003,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-14T12:55:45.852Z
+             * @default 2026-09-23T04:14:37.795Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -7221,7 +7221,7 @@ export interface components {
              * @example queued
              * @enum {string}
              */
-            status: "queued";
+            status: "queued" | "skipped";
             /** @example 64d3179f01f9a2c1f0d9b34a */
             campaignId: string;
             /**
@@ -7229,6 +7229,11 @@ export interface components {
              * @example 5
              */
             blogCount: number;
+            /**
+             * @description Blogs skipped because they were analyzed within the cooldown window
+             * @example 2
+             */
+            skippedCount: number;
         };
         CampaignMetricsResponse: {
             /**
@@ -8821,7 +8826,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "fal-ai/nano-banana" | "fal-ai/seedream-v4" | "fal-ai/flux-kontext-pro" | "fal-ai/qwen-image" | "fal-ai/wan-2.5" | "fal-ai/kling-2.5-turbo-pro" | "fal-ai/veo-3" | "fal-ai/ovi";
+            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks */
@@ -8883,7 +8888,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            model: "fal-ai/nano-banana" | "fal-ai/seedream-v4" | "fal-ai/flux-kontext-pro" | "fal-ai/qwen-image";
+            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -8909,10 +8914,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal video model id
-             * @example fal-ai/wan-2.5
+             * @example fal-ai/wan-25-preview/text-to-video
              * @enum {string}
              */
-            model: "fal-ai/wan-2.5" | "fal-ai/kling-2.5-turbo-pro" | "fal-ai/veo-3" | "fal-ai/ovi";
+            model: "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -11076,7 +11081,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-14T12:55:45.625Z
+                             * @default 2026-09-23T04:14:37.617Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11223,7 +11228,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-14T12:55:45.628Z
+                             * @default 2026-09-23T04:14:37.621Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -14724,6 +14729,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Nothing due — every blog was analyzed recently */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyzeCampaignResponse"];
+                };
+            };
             /** @description Analysis queued */
             202: {
                 headers: {

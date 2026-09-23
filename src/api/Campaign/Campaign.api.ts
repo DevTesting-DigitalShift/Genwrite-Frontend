@@ -42,7 +42,8 @@ export const CampaignAPI = {
   },
 
   /** Queues analysis (202) — it does not wait for it. Listen for the `campaign:analyzed`
-   * socket event for the actual results. */
+   * socket event for the actual results. Responds 200 with status "skipped" (no event
+   * follows) when every blog was analyzed within the cooldown. */
   analyze: async (campaignId: string) => {
     return await apiPost("/campaigns/{id}/analyze", undefined, { params: { id: campaignId } })
   },

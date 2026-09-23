@@ -34,7 +34,7 @@ export default function CampaignsListPage() {
     onError: (err) => toast.error(getFriendlyError(err, "campaign")),
   })
 
-  // The weekly job auto-completes campaigns past their endDate, so a status here can
+  // The daily job auto-completes campaigns past their endDate, so a status here can
   // change with no request from this tab to hang a cache update off.
   useEffect(() => {
     const socket = getSocket()
@@ -86,7 +86,7 @@ export default function CampaignsListPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Campaigns</h1>
           <p className="text-sm text-muted-foreground">
-            Group blogs under a shared SEO goal and get weekly suggestions toward it.
+            Group blogs under a shared SEO goal and get ongoing suggestions toward it.
           </p>
         </div>
         {campaigns.length > 0 && (

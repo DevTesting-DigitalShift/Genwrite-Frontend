@@ -76,7 +76,8 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
       { enabled: !!campaignId, ...options }
     )
 
-  /** Queues AI analysis for every campaign blog, instead of waiting for the weekly job.
+  /** Queues AI analysis for every campaign blog outside the 30-day analysis cooldown,
+   * instead of waiting for the daily job.
    * Resolving means only that the job was accepted — nothing has been analyzed yet, so
    * this deliberately does NOT refresh suggestions (that would just refetch pre-analysis
    * data). Call `onAnalyzed` when the `campaign:analyzed` socket event lands. */
@@ -95,7 +96,7 @@ class CampaignsQuery extends BaseCRUDQuery<Campaign> {
     this.invalidate(`suggestions-${campaignId}`)
   }
 
-  /** Patches a status the server changed on its own — the weekly job auto-completes
+  /** Patches a status the server changed on its own — the daily job auto-completes
    * campaigns past their endDate. Call from the `campaign:statusChanged` socket handler.
    * Patches rather than invalidates: the event already carries the only changed field. */
   applyStatusChange = (campaignId: string, status: CampaignStatusType) => {

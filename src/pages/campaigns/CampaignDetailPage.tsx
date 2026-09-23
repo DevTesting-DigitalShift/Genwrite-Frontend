@@ -160,17 +160,27 @@ export default function CampaignDetailPage() {
 
   const analyzeMutation = campaignsQuery.useAnalyze({
     onSuccess: (queued) => {
+      // Every blog was analyzed within the cooldown — nothing queued, no socket event coming.
+      if (queued.status === "skipped") {
+        toast.info("All blogs in this campaign were analyzed in the last 30 days — nothing to analyze yet.")
+        setTab("suggestions")
+        return
+      }
+
       const plural = queued.blogCount === 1 ? "" : "s"
+      const skippedNote = queued.skippedCount
+        ? ` (${queued.skippedCount} skipped — analyzed recently)`
+        : ""
       // Only enter the pending state when a socket can actually deliver the completion
       // event — otherwise the spinner would never clear and the button stay disabled.
       if (getSocket()) {
         setIsAnalyzing(true)
         toast.success(
-          `Analyzing ${queued.blogCount} blog${plural} — this page updates when it's done.`
+          `Analyzing ${queued.blogCount} blog${plural}${skippedNote} — this page updates when it's done.`
         )
       } else {
         toast.success(
-          `Analyzing ${queued.blogCount} blog${plural} — refresh shortly to see results.`
+          `Analyzing ${queued.blogCount} blog${plural}${skippedNote} — refresh shortly to see results.`
         )
       }
       setTab("suggestions")

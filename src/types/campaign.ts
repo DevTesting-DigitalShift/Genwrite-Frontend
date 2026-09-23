@@ -142,22 +142,27 @@ export interface CampaignAnalyzeResultItem {
   error?: string
 }
 
-/** 202 response from POST /campaigns/:id/analyze. The analysis itself runs as the
- * "analyze-campaign" background job — one AI call per blog would otherwise exceed a
- * typical HTTP timeout — so this only confirms the job was queued. The results arrive
- * later over the socket as `campaign:analyzed` (see CampaignAnalyzedEvent). */
+/** Response from POST /campaigns/:id/analyze. Only blogs outside the 30-day analysis
+ * cooldown are analyzed. "queued" (202): the "analyze-campaign" background job was
+ * queued for `blogCount` blogs — one AI call per blog would otherwise exceed a typical
+ * HTTP timeout — and the results arrive later over the socket as `campaign:analyzed`
+ * (see CampaignAnalyzedEvent). "skipped" (200): every blog was analyzed recently, so
+ * nothing was queued and no socket event follows. */
 export interface CampaignAnalyzeQueued {
-  status: "queued"
+  status: "queued" | "skipped"
   campaignId: string
   blogCount: number
+  skippedCount: number
 }
 
 /** Payload of the `campaign:analyzed` socket event, emitted once the background job
- * has finished every blog in the campaign. */
+ * has finished every due blog in the campaign. `total` counts only the blogs actually
+ * attempted; `skipped` ones were inside the analysis cooldown and never attempted. */
 export interface CampaignAnalyzedEvent {
   campaignId: string
   analyzed: number
   total: number
+  skipped: number
   results: CampaignAnalyzeResultItem[]
 }
 
