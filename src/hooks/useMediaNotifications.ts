@@ -4,10 +4,14 @@ import { toast } from "sonner"
 import { getSocket } from "@utils/socket"
 import { mediaQuery } from "@api/Media/Media.query"
 import type { MediaAsset } from "@api/Media/Media.api"
+import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
+import type { MediaPipeline } from "@api/Media/MediaPipeline.api"
 
 /** Assets already announced this session — the fal webhook and a manual refresh can race
  * and both emit "media:statusChanged" for the same terminal state. */
 const notifiedIds = new Set<string>()
+/** Same guard for Auto Video runs, keyed by pipeline id. */
+const notifiedPipelineIds = new Set<string>()
 
 /**
  * App-wide listener for Media Studio's "media:created"/"media:statusChanged" socket events
@@ -29,6 +33,9 @@ export function useMediaNotifications() {
     const handleStatusChanged = (asset: MediaAsset) => {
       mediaQuery.applyAssetUpdate(asset)
       if (asset.status !== "completed" && asset.status !== "failed") return
+      // Auto Video children (frames, retried videos, and the delivered video itself) are
+      // announced once for the whole run by handlePipelineUpdated instead.
+      if (asset.pipelineId) return
       if (notifiedIds.has(asset._id)) return
       notifiedIds.add(asset._id)
 
@@ -44,6 +51,28 @@ export function useMediaNotifications() {
       }
     }
 
+    const handlePipelineUpdated = (pipeline: MediaPipeline) => {
+      mediaPipelineQuery.applyPipelineUpdate(pipeline)
+      if (pipeline.stage !== "completed" && pipeline.stage !== "failed") return
+      if (notifiedPipelineIds.has(pipeline._id)) return
+      notifiedPipelineIds.add(pipeline._id)
+
+      if (pipeline.stage === "failed") {
+        toast.error("Video generation failed — credits refunded", {
+          description: pipeline.errorMessage || undefined,
+        })
+      } else if (pipeline.qaWarning) {
+        toast.warning("Video ready, but it may have imperfections", {
+          description: "Our automatic check flagged it. You can regenerate it from Media Studio.",
+          action: { label: "View", onClick: () => navigate("/media") },
+        })
+      } else {
+        toast.success("Video ready in Media Studio", {
+          action: { label: "View", onClick: () => navigate("/media") },
+        })
+      }
+    }
+
     // Same wait-for-socket retry as SideBar_Header's listeners — the socket connects after auth.
     const setupListeners = () => {
       socket = socket ?? getSocket()
@@ -53,6 +82,7 @@ export function useMediaNotifications() {
       }
       socket.on("media:created", handleCreated)
       socket.on("media:statusChanged", handleStatusChanged)
+      socket.on("mediaPipeline:updated", handlePipelineUpdated)
     }
     setupListeners()
 
@@ -60,6 +90,7 @@ export function useMediaNotifications() {
       if (retryTimeout) clearTimeout(retryTimeout)
       socket?.off("media:created", handleCreated)
       socket?.off("media:statusChanged", handleStatusChanged)
+      socket?.off("mediaPipeline:updated", handlePipelineUpdated)
     }
   }, [navigate])
 }

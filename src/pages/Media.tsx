@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Sparkles,
   Video,
+  WandSparkles,
   X,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -19,19 +20,12 @@ import useAuthStore from "@store/useAuthStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaQuery } from "@api/Media/Media.query"
 import type { MediaAsset } from "@api/Media/Media.api"
-import type { PricingCatalogue } from "@api/Pricing/Pricing.api"
 import usePricingStore from "@store/usePricingStore"
 import { MasonryGrid, MasonryItem } from "@components/ui/MasonryGrid"
-
-type MediaModel = PricingCatalogue["media"][string] & { id: string }
-
-const PURPOSES = [
-  { id: "poster", label: "Poster" },
-  { id: "thumbnail", label: "Thumbnail" },
-  { id: "reel", label: "Reel" },
-  { id: "social_post", label: "Social post" },
-  { id: "other", label: "Other" },
-] as const
+import { PURPOSES, type MediaModel, type Purpose } from "@/features/media/mediaOptions"
+import { AutoVideoForm } from "@/features/media/AutoVideoForm"
+import { PipelineRuns } from "@/features/media/PipelineRuns"
+import { PipelineAssetActions } from "@/features/media/PipelineAssetActions"
 
 /** Mirrors the backend's media.pricing.js#getMediaCreditCost exactly: 1 credit = 1 cent, and
  * only the unit the model is billed in counts — seconds for per-second video, megapixels for
@@ -171,9 +165,10 @@ const Media = () => {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
-  const [tab, setTab] = useState<"image" | "video">("image")
+  // "auto" is the Auto Video pipeline (AutoVideoForm), which owns its own form state.
+  const [tab, setTab] = useState<"image" | "video" | "auto">("image")
   const [prompt, setPrompt] = useState("")
-  const [purpose, setPurpose] = useState<(typeof PURPOSES)[number]["id"]>("other")
+  const [purpose, setPurpose] = useState<Purpose>("other")
   // Models + prices come from the backend's pricing catalogue, so a model added/removed or
   // repriced there shows up here without a frontend change. Image-to-image models need a
   // source image this prompt-only form can't provide, so they're not offered.
@@ -232,7 +227,7 @@ const Media = () => {
   const refresh = mediaQuery.useRefresh()
 
   const isSubmitting = generateImage.isPending || generateVideo.isPending
-  const tabModels = modelsByKind[tab]
+  const tabModels = tab === "auto" ? [] : modelsByKind[tab]
   // Falls back to the first model when nothing's picked yet, or the picked one was removed
   // from the catalogue since.
   const selectedModelId = tab === "image" ? imageModel : videoModel
@@ -373,139 +368,161 @@ const Media = () => {
               >
                 <Video size={16} /> Video
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
-              <div className="form-control w-full">
-                <label htmlFor="media-model" className="label">
-                  <span className="label-text font-semibold">Model</span>
-                </label>
-                <select
-                  id="media-model"
-                  className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-                  value={currentModel?.id ?? ""}
-                  onChange={(e) =>
-                    tab === "image" ? setImageModel(e.target.value) : setVideoModel(e.target.value)
-                  }
-                >
-                  {tabModels.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label} · {formatRate(m)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-control w-full">
-                <label htmlFor="media-purpose" className="label">
-                  <span className="label-text font-semibold">Purpose</span>
-                </label>
-                <select
-                  id="media-purpose"
-                  className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value as typeof purpose)}
-                >
-                  {PURPOSES.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Tag for organizing your library — doesn't change the output.
-                </p>
-              </div>
-
-              {tab === "image" ? (
-                <div className="form-control w-full sm:col-span-2 lg:col-span-1">
-                  <label htmlFor="media-megapixels" className="label">
-                    <span className="label-text font-semibold">Est. size (megapixels)</span>
-                  </label>
-                  <input
-                    id="media-megapixels"
-                    type="number"
-                    inputMode="decimal"
-                    min={0.25}
-                    max={4}
-                    step={0.25}
-                    className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
-                    value={megapixels}
-                    onChange={(e) => setMegapixels(Number(e.target.value) || 1)}
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    {currentModel?.unit === "megapixel"
-                      ? "For cost estimation only — actual output size is set by the model."
-                      : "This model is billed per image — size doesn't change the cost."}
-                  </p>
-                </div>
-              ) : (
-                <div className="form-control w-full sm:col-span-2 lg:col-span-1">
-                  <label htmlFor="media-duration" className="label">
-                    <span className="label-text font-semibold">Duration (seconds)</span>
-                  </label>
-                  <input
-                    id="media-duration"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={30}
-                    className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
-                    value={durationSeconds}
-                    onChange={(e) => setDurationSeconds(Number(e.target.value) || 5)}
-                  />
-                  {currentModel && currentModel.unit !== "second" && (
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      This model is billed per video — length doesn't change the cost.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 mb-5 sm:mb-6">
-              <label htmlFor="media-prompt" className="label">
-                <span className="label-text font-semibold">
-                  Prompt <span className="text-rose-500 text-lg">*</span>
-                </span>
-              </label>
-              <textarea
-                id="media-prompt"
-                className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={
-                  tab === "image"
-                    ? "Describe the image you want... (e.g. A futuristic city skyline at dusk)"
-                    : "Describe the video you want... (e.g. A drone shot flying over a mountain range at sunrise)"
-                }
-              />
-            </div>
-
-            <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-6">
-              <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
-                <Sparkles size={14} className="text-[#4C5BD6]" />
-                Estimated cost: <span className="text-slate-900">{estimatedCredits} credits</span>
-                {currentModel && (
-                  <span className="font-medium text-slate-400">({formatRate(currentModel)})</span>
-                )}
-              </div>
-
               <button
                 type="button"
-                onClick={handleGenerate}
-                disabled={isSubmitting}
-                className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
+                onClick={() => setTab("auto")}
+                className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${
+                  tab === "auto" ? "bg-white text-[#4C5BD6] shadow-sm" : "text-slate-500"
+                }`}
               >
-                {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  `Generate ${tab === "image" ? "Image" : "Video"}`
-                )}
+                <WandSparkles size={16} /> Auto Video
               </button>
             </div>
+
+            {tab === "auto" ? (
+              <AutoVideoForm />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+                  <div className="form-control w-full">
+                    <label htmlFor="media-model" className="label">
+                      <span className="label-text font-semibold">Model</span>
+                    </label>
+                    <select
+                      id="media-model"
+                      className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                      value={currentModel?.id ?? ""}
+                      onChange={(e) =>
+                        tab === "image"
+                          ? setImageModel(e.target.value)
+                          : setVideoModel(e.target.value)
+                      }
+                    >
+                      {tabModels.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label} · {formatRate(m)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-control w-full">
+                    <label htmlFor="media-purpose" className="label">
+                      <span className="label-text font-semibold">Purpose</span>
+                    </label>
+                    <select
+                      id="media-purpose"
+                      className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value as typeof purpose)}
+                    >
+                      {PURPOSES.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Tag for organizing your library — doesn't change the output.
+                    </p>
+                  </div>
+
+                  {tab === "image" ? (
+                    <div className="form-control w-full sm:col-span-2 lg:col-span-1">
+                      <label htmlFor="media-megapixels" className="label">
+                        <span className="label-text font-semibold">Est. size (megapixels)</span>
+                      </label>
+                      <input
+                        id="media-megapixels"
+                        type="number"
+                        inputMode="decimal"
+                        min={0.25}
+                        max={4}
+                        step={0.25}
+                        className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
+                        value={megapixels}
+                        onChange={(e) => setMegapixels(Number(e.target.value) || 1)}
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {currentModel?.unit === "megapixel"
+                          ? "For cost estimation only — actual output size is set by the model."
+                          : "This model is billed per image — size doesn't change the cost."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="form-control w-full sm:col-span-2 lg:col-span-1">
+                      <label htmlFor="media-duration" className="label">
+                        <span className="label-text font-semibold">Duration (seconds)</span>
+                      </label>
+                      <input
+                        id="media-duration"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={30}
+                        className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
+                        value={durationSeconds}
+                        onChange={(e) => setDurationSeconds(Number(e.target.value) || 5)}
+                      />
+                      {currentModel && currentModel.unit !== "second" && (
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          This model is billed per video — length doesn't change the cost.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 mb-5 sm:mb-6">
+                  <label htmlFor="media-prompt" className="label">
+                    <span className="label-text font-semibold">
+                      Prompt <span className="text-rose-500 text-lg">*</span>
+                    </span>
+                  </label>
+                  <textarea
+                    id="media-prompt"
+                    className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={
+                      tab === "image"
+                        ? "Describe the image you want... (e.g. A futuristic city skyline at dusk)"
+                        : "Describe the video you want... (e.g. A drone shot flying over a mountain range at sunrise)"
+                    }
+                  />
+                </div>
+
+                <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                    <Sparkles size={14} className="text-[#4C5BD6]" />
+                    Estimated cost:{" "}
+                    <span className="text-slate-900">{estimatedCredits} credits</span>
+                    {currentModel && (
+                      <span className="font-medium text-slate-400">
+                        ({formatRate(currentModel)})
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={isSubmitting}
+                    className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      `Generate ${tab === "image" ? "Image" : "Video"}`
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
+
+        <PipelineRuns />
 
         {/* Gallery */}
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -646,7 +663,7 @@ const Media = () => {
                     <section>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          Prompt
+                          {previewAsset.pipelineId ? "Video prompt (auto-refined)" : "Prompt"}
                         </h3>
                         <button
                           type="button"
@@ -687,19 +704,23 @@ const Media = () => {
                             {previewAsset.purpose.replace("_", " ")}
                           </dd>
                         </div>
-                        <div className="flex items-center justify-between gap-4 px-3 py-2.5">
-                          <dt className="text-slate-500">Credits used</dt>
-                          <dd className="font-semibold text-slate-800 flex items-center gap-1">
-                            <Sparkles size={12} className="text-[#4C5BD6]" />
-                            {previewAsset.creditCost}
-                            {previewAsset.status === "failed" && (
-                              <span className="text-[11px] font-medium text-emerald-600">
-                                (refunded)
-                              </span>
-                            )}
-                          </dd>
-                        </div>
-                        {mediaCatalogue[previewAsset.providerModel] && (
+                        {/* Auto Video children carry no charge of their own — the run's price
+                            is shown by PipelineAssetActions instead. */}
+                        {!previewAsset.pipelineId && (
+                          <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+                            <dt className="text-slate-500">Credits used</dt>
+                            <dd className="font-semibold text-slate-800 flex items-center gap-1">
+                              <Sparkles size={12} className="text-[#4C5BD6]" />
+                              {previewAsset.creditCost}
+                              {previewAsset.status === "failed" && (
+                                <span className="text-[11px] font-medium text-emerald-600">
+                                  (refunded)
+                                </span>
+                              )}
+                            </dd>
+                          </div>
+                        )}
+                        {!previewAsset.pipelineId && mediaCatalogue[previewAsset.providerModel] && (
                           <div className="flex items-center justify-between gap-4 px-3 py-2.5">
                             <dt className="text-slate-500">Rate</dt>
                             <dd className="text-slate-600">
@@ -712,6 +733,13 @@ const Media = () => {
                         )}
                       </dl>
                     </section>
+
+                    {previewAsset.pipelineId && (
+                      <PipelineAssetActions
+                        pipelineId={previewAsset.pipelineId}
+                        onStarted={() => setPreviewId(null)}
+                      />
+                    )}
                   </div>
 
                   {previewAsset.status === "completed" && previewAsset.resultUrl && (

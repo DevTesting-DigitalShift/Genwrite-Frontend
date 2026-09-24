@@ -73,6 +73,10 @@ class MediaQuery extends QueryBase<MediaAsset> {
    * socket handler (see useMediaSocketSync in Media.tsx) for live status updates without a
    * refetch, matching this codebase's established cache-patch-over-invalidate pattern. */
   applyAssetUpdate = (asset: MediaAsset) => {
+    // Auto Video candidates/retries are internal to a pipeline run and never belong in the
+    // library — mirrors GET /media's server-side filter. The delivered video arrives again
+    // with isIntermediate false once the run picks it.
+    if (asset.isIntermediate) return
     this.queryClient.setQueriesData<MediaAssetList>(
       { queryKey: [...this.baseKey, "list"] },
       (old) => {

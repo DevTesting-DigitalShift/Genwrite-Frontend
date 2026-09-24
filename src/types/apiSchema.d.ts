@@ -2996,9 +2996,67 @@ export interface paths {
         put?: never;
         /**
          * Manually refresh a media asset's generation status
-         * @description Polls fal.ai for the current job status and updates the record — a stand-in for webhooks/polling jobs, which aren't built yet.
+         * @description Polls fal.ai for the current job status and updates the record — a manual fallback alongside the fal webhook and the per-asset safety-net job.
          */
         post: operations["postMediaByIdRefresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Auto Video pipeline runs */
+        get: operations["getMediaPipelines"];
+        put?: never;
+        /**
+         * Start an Auto Video pipeline run
+         * @description Charges one fixed price, then asynchronously: refines the prompt, generates and QA-screens first/last frame candidates, generates a frame-to-video clip, QA-screens it and retries once on failure. Progress is pushed over the `mediaPipeline:updated` socket event.
+         */
+        post: operations["postMediaPipelines"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/pipelines/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an Auto Video pipeline run */
+        get: operations["getMediaPipelinesById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/pipelines/{id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate from a finished Auto Video run
+         * @description Starts a new, separately charged run: 'video' reuses the chosen frames and only re-rolls the video; 'full' starts over from the prompt.
+         */
+        post: operations["postMediaPipelinesByIdRegenerate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4457,7 +4515,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-23T06:36:04.275Z
+             * @default 2026-09-23T12:31:59.696Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5341,7 +5399,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T06:36:04.318Z
+                 * @default 2026-09-23T12:31:59.736Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5515,7 +5573,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T06:36:04.319Z
+                 * @default 2026-09-23T12:31:59.737Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5666,7 +5724,7 @@ export interface components {
              * @example blog_generation
              * @enum {string}
              */
-            purpose: "BLOG_GENERATION" | "QUICK_BLOG_GENERATION" | "YT_BLOG_GENERATION" | "AI_PROOFREADING" | "PROMPT_CONTENT_GENERATION" | "OUTLINE_GENERATION" | "HUMANISED_CONTENT_GENERATION" | "METADATA_GENERATION" | "COMPETITOR_ANALYSIS" | "SUBSCRIPTION_PAYMENT" | "SECTION_REWRITE" | "SECTION_PROOFREAD" | "SECTION_PROMPT_CHANGES" | "SECTION_COMPETITOR_ANALYSIS" | "CONTENT_REWRITE" | "AI_CONTENT_DETECTION" | "KEYWORD_SCRAPER" | "YOUTUBE_SUMMARIZER" | "IMAGE_GENERATION" | "IMAGE_ENHANCEMENT" | "IMAGE_ALT_TEXT" | "PDF_CHAT" | "WEBSITE_ANALYSER" | "WEBSITE_PROMPT_CREATOR" | "WEBSITE_RANK_CHECKER" | "WEBSITE_ADVANCED_ANALYSIS" | "WEBSITE_RANKING_ORCHESTRATOR" | "JOB_FROM_RANKING" | "COMPETITOR_LIKE_BLOG" | "BLOG_INSIGHT_ANALYZE" | "BLOG_INSIGHT_APPLY" | "MEDIA_IMAGE_GENERATION" | "MEDIA_VIDEO_GENERATION" | "OTHER";
+            purpose: "BLOG_GENERATION" | "QUICK_BLOG_GENERATION" | "YT_BLOG_GENERATION" | "AI_PROOFREADING" | "PROMPT_CONTENT_GENERATION" | "OUTLINE_GENERATION" | "HUMANISED_CONTENT_GENERATION" | "METADATA_GENERATION" | "COMPETITOR_ANALYSIS" | "SUBSCRIPTION_PAYMENT" | "SECTION_REWRITE" | "SECTION_PROOFREAD" | "SECTION_PROMPT_CHANGES" | "SECTION_COMPETITOR_ANALYSIS" | "CONTENT_REWRITE" | "AI_CONTENT_DETECTION" | "KEYWORD_SCRAPER" | "YOUTUBE_SUMMARIZER" | "IMAGE_GENERATION" | "IMAGE_ENHANCEMENT" | "IMAGE_ALT_TEXT" | "PDF_CHAT" | "WEBSITE_ANALYSER" | "WEBSITE_PROMPT_CREATOR" | "WEBSITE_RANK_CHECKER" | "WEBSITE_ADVANCED_ANALYSIS" | "WEBSITE_RANKING_ORCHESTRATOR" | "JOB_FROM_RANKING" | "COMPETITOR_LIKE_BLOG" | "BLOG_INSIGHT_ANALYZE" | "BLOG_INSIGHT_APPLY" | "MEDIA_IMAGE_GENERATION" | "MEDIA_VIDEO_GENERATION" | "MEDIA_VIDEO_PIPELINE" | "OTHER";
             /**
              * @description Credit amount for this transaction. Positive values mean credit was added, negative values mean credit was deducted.
              * @example -10
@@ -5690,7 +5748,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-23T06:36:04.326Z
+             * @default 2026-09-23T12:31:59.744Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6417,7 +6475,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T06:36:04.342Z
+                 * @default 2026-09-23T12:31:59.758Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6591,7 +6649,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T06:36:04.344Z
+                 * @default 2026-09-23T12:31:59.760Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7023,7 +7081,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-23T06:36:04.355Z
+             * @default 2026-09-23T12:31:59.769Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8647,6 +8705,16 @@ export interface components {
                         label: string;
                         /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
                         requiresImage?: boolean;
+                        /** @description First/last-frame-to-video model used by the Auto Video pipeline; `durations` lists the supported lengths in seconds */
+                        frameVideo?: {
+                            first: string;
+                            last: string;
+                            durations: number[];
+                            /** @enum {string} */
+                            durationFormat: "number-string" | "seconds-string" | "none";
+                            seed: boolean;
+                            aspectRatio: boolean;
+                        };
                     };
                 } | components["schemas"]["AnalysisPricing"] | components["schemas"]["JobPricing"] | components["schemas"]["AnalyticsPricing"];
             };
@@ -8774,7 +8842,7 @@ export interface components {
             generate: components["schemas"]["GeneratePricing"];
             blogGeneration: components["schemas"]["BlogGenerationPricing"];
             images: components["schemas"]["ImagePricing"];
-            /** @description fal model id -> {kind, unit, usdPerUnit, label, requiresImage?} */
+            /** @description fal model id -> {kind, unit, usdPerUnit, label, requiresImage?, frameVideo?} */
             media: {
                 [key: string]: {
                     /** @enum {string} */
@@ -8785,6 +8853,16 @@ export interface components {
                     label: string;
                     /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
                     requiresImage?: boolean;
+                    /** @description First/last-frame-to-video model used by the Auto Video pipeline; `durations` lists the supported lengths in seconds */
+                    frameVideo?: {
+                        first: string;
+                        last: string;
+                        durations: number[];
+                        /** @enum {string} */
+                        durationFormat: "number-string" | "seconds-string" | "none";
+                        seed: boolean;
+                        aspectRatio: boolean;
+                    };
                 };
             };
             analysis: components["schemas"]["AnalysisPricing"];
@@ -8931,6 +9009,10 @@ export interface components {
             params: components["schemas"]["MediaPricingParams"];
         } | {
             /** @enum {string} */
+            type: "media-pipeline";
+            params: components["schemas"]["MediaPipelinePricingParams"];
+        } | {
+            /** @enum {string} */
             type: "analysis";
             /** @default {} */
             params: Record<string, never>;
@@ -9062,7 +9144,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
+            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9081,6 +9163,29 @@ export interface components {
              * @example 1
              */
             megapixels: number;
+        };
+        MediaPipelinePricingParams: {
+            /**
+             * @description fal first/last-frame-to-video model id
+             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @enum {string}
+             */
+            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            /**
+             * @description Video duration in seconds
+             * @example 5
+             */
+            durationSeconds: number;
+            /**
+             * @default 16:9
+             * @enum {string}
+             */
+            aspectRatio: "16:9" | "9:16";
+            /**
+             * @description false prices a video-only regenerate
+             * @default true
+             */
+            includeFrames: boolean;
         };
         MediaAssetResponse: {
             /**
@@ -9127,7 +9232,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
+            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks */
@@ -9165,6 +9270,23 @@ export interface components {
              * @example 4
              */
             creditCost: number;
+            /**
+             * @description Auto Video pipeline run that generated this asset, or null for a standalone generation
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            pipelineId: string | null;
+            /**
+             * @description Pipeline step that produced this asset; null for standalone generations
+             * @default null
+             * @enum {string|null}
+             */
+            role: "first_frame" | "last_frame" | "video" | null;
+            /**
+             * @description True for pipeline candidates/attempts that aren't the delivered video
+             * @default false
+             */
+            isIntermediate: boolean;
             /**
              * Format: date-time
              * @description ISO timestamp of creation
@@ -9244,6 +9366,237 @@ export interface components {
                 total: number;
                 totalPages: number;
             };
+        };
+        MediaPipelineResponse: {
+            /**
+             * @description Unique identifier of the document
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            _id: string;
+            /**
+             * @description Owning user
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            userId: string;
+            /**
+             * @description Linked brand, or null
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            brandId: string | null;
+            /**
+             * @description Linked marketing campaign, or null
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            campaignId: string | null;
+            /**
+             * @description Intended use of the generated video
+             * @default other
+             * @enum {string}
+             */
+            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "other";
+            /** @description The prompt as the user typed it */
+            userPrompt: string;
+            /**
+             * @description fal first/last-frame-to-video model id
+             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @enum {string}
+             */
+            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            /**
+             * @description Requested video duration in seconds
+             * @example 5
+             */
+            durationSeconds: number;
+            /**
+             * @description Video (and frame) aspect ratio
+             * @default 16:9
+             * @enum {string}
+             */
+            aspectRatio: "16:9" | "9:16";
+            /** @description Refined prompts; source 'fallback' means the user's prompt was used as-is */
+            refined: {
+                /** @default null */
+                firstFramePrompt: string | null;
+                /** @default null */
+                lastFramePrompt: string | null;
+                /** @default null */
+                motionPrompt: string | null;
+                /** @default null */
+                negativePrompt: string | null;
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                source: "llm" | "fallback" | null;
+            };
+            /**
+             * @description Current pipeline stage
+             * @default refining
+             * @enum {string}
+             */
+            stage: "refining" | "first_frames" | "last_frames" | "video" | "completed" | "failed";
+            /**
+             * @description Candidate round within the current frame stage
+             * @default 0
+             */
+            stageRound: number;
+            /**
+             * @description Video generations submitted so far
+             * @default 0
+             */
+            videoAttempts: number;
+            /** @default [] */
+            firstFrameAssetIds: string[];
+            /** @default [] */
+            lastFrameAssetIds: string[];
+            /** @default [] */
+            videoAssetIds: string[];
+            /**
+             * @description MongoDB ObjectId, serialized as a hex string
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            selectedFirstFrameId: string | null;
+            /**
+             * @description MongoDB ObjectId, serialized as a hex string
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            selectedLastFrameId: string | null;
+            /**
+             * @description MongoDB ObjectId, serialized as a hex string
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            finalVideoAssetId: string | null;
+            /**
+             * @description Chosen first frame
+             * @default null
+             */
+            firstFrameUrl: string | null;
+            /**
+             * @description Chosen last frame
+             * @default null
+             */
+            lastFrameUrl: string | null;
+            /**
+             * @description Delivered video
+             * @default null
+             */
+            videoUrl: string | null;
+            /** @default [] */
+            qa: components["schemas"]["MediaPipelineQaResult"][];
+            /**
+             * @description Delivered, but the final video never passed automated QA
+             * @default false
+             */
+            qaWarning: boolean;
+            /**
+             * @description Pipeline this was regenerated from
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            parentPipelineId: string | null;
+            /**
+             * @description Fixed upfront credits charged for the whole run
+             * @example 57
+             */
+            creditCost: number;
+            /** @default null */
+            errorMessage: string | null;
+            /**
+             * Format: date-time
+             * @description ISO timestamp of creation
+             * @example 2024-01-01T12:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description ISO timestamp of last update
+             * @example 2024-01-02T12:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        MediaPipelineQaResult: {
+            /**
+             * @description MediaAsset that was screened
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            assetId: string;
+            /**
+             * @description Pipeline step the asset belongs to
+             * @enum {string}
+             */
+            role: "first_frame" | "last_frame" | "video";
+            /**
+             * @description QA verdict; 'skipped' means the QA model call itself failed
+             * @enum {string}
+             */
+            qaStatus: "passed" | "failed" | "skipped";
+            /**
+             * @description QA score 0-10, null when skipped
+             * @default null
+             */
+            score: number | null;
+            /**
+             * @description Defects the QA model reported
+             * @default []
+             */
+            issues: string[];
+        };
+        CreateMediaPipelineBody: {
+            /**
+             * @description What the video should show — refined automatically before generation
+             * @example A barista pouring latte art in a sunlit cafe
+             */
+            prompt: string;
+            /**
+             * @description fal first/last-frame-to-video model id
+             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @enum {string}
+             */
+            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            /**
+             * @description Video length in seconds; must be one of the model's supported durations
+             * @default 5
+             * @example 5
+             */
+            durationSeconds: number;
+            /**
+             * @description Video (and frame) aspect ratio
+             * @default 16:9
+             * @enum {string}
+             */
+            aspectRatio: "16:9" | "9:16";
+            /**
+             * @description Intended use of the generated video
+             * @default other
+             * @enum {string}
+             */
+            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "other";
+            /** @description Optional linked brand */
+            brandId?: string;
+            /** @description Optional linked campaign */
+            campaignId?: string;
+        };
+        ListMediaPipelinesResponse: {
+            data: components["schemas"]["MediaPipelineResponse"][];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
+        RegenerateMediaPipelineBody: {
+            /**
+             * @description 'video' re-rolls only the video from the same frames (cheaper); 'full' starts over from the prompt
+             * @default video
+             * @enum {string}
+             */
+            mode: "video" | "full";
         };
         CheckoutSessionResponse: components["schemas"]["StripeNewOrTrialSession"] | components["schemas"]["StripeCreditPurchaseSession"] | components["schemas"]["StripeUpgradePaid"] | components["schemas"]["StripeUpgradeRequiresAction"] | components["schemas"]["StripeUpgradeRequiresPayment"] | components["schemas"]["StripeDowngradeScheduled"];
         StripeNewOrTrialSession: {
@@ -11382,7 +11735,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T06:36:04.239Z
+                             * @default 2026-09-23T12:31:59.672Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11529,7 +11882,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T06:36:04.242Z
+                             * @default 2026-09-23T12:31:59.677Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -18813,6 +19166,224 @@ export interface operations {
             };
             /** @description Media asset not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getMediaPipelines: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                limit?: number;
+                /** @description Only still-running pipelines when 'true' */
+                active?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of pipeline runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMediaPipelinesResponse"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    postMediaPipelines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMediaPipelineBody"];
+            };
+        };
+        responses: {
+            /** @description Pipeline started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaPipelineResponse"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
+        };
+    };
+    getMediaPipelinesById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Mongoose Model Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pipeline run */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaPipelineResponse"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Media pipeline not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    postMediaPipelinesByIdRegenerate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Mongoose Model Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerateMediaPipelineBody"];
+            };
+        };
+        responses: {
+            /** @description New pipeline run started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaPipelineResponse"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
+            /** @description Media pipeline not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Source run still in progress, or has no frames to reuse */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
