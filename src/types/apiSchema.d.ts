@@ -3523,8 +3523,15 @@ export interface components {
              * @enum {string}
              */
             type: "single" | "quick" | "yt";
+            generationId?: string;
+            committedGenerationId?: string;
             /** @description Structured JSON representation of the blog content used by the editor */
             contentJSON?: unknown;
+            /**
+             * @description BlogGenerated run for V2-pipeline blogs; null for V1 blogs
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            blogGenerated?: string | null;
             /**
              * @description Short summary of the blog, used for reuse and interlinking
              * @example An overview of SEO best practices for 2024.
@@ -3582,6 +3589,14 @@ export interface components {
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 generationDate?: string | null;
+                /** @description V2 pipeline token/cost summary */
+                usage?: {
+                    totalTokens?: number;
+                    inputTokens?: number;
+                    outputTokens?: number;
+                    costUsd?: number;
+                    unpricedCalls?: number;
+                };
             };
             /**
              * @description ID of the scheduled job that created this blog, if any
@@ -4515,7 +4530,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-23T12:31:59.696Z
+             * @default 2026-09-30T12:59:39.376Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5399,7 +5414,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T12:31:59.736Z
+                 * @default 2026-09-30T12:59:39.431Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5573,7 +5588,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T12:31:59.737Z
+                 * @default 2026-09-30T12:59:39.434Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5748,7 +5763,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-23T12:31:59.744Z
+             * @default 2026-09-30T12:59:39.446Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6475,7 +6490,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-23T12:31:59.758Z
+                 * @default 2026-09-30T12:59:39.481Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6649,7 +6664,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-23T12:31:59.760Z
+                 * @default 2026-09-30T12:59:39.487Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7081,7 +7096,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-23T12:31:59.769Z
+             * @default 2026-09-30T12:59:39.504Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8479,6 +8494,13 @@ export interface components {
              * @enum {string}
              */
             type: "single" | "quick" | "yt";
+            generationId?: string;
+            committedGenerationId?: string;
+            /**
+             * @description BlogGenerated run for V2-pipeline blogs; null for V1 blogs
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            blogGenerated?: string | null;
             /**
              * @description Short summary of the blog, used for reuse and interlinking
              * @example An overview of SEO best practices for 2024.
@@ -8529,6 +8551,14 @@ export interface components {
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 generationDate?: string | null;
+                /** @description V2 pipeline token/cost summary */
+                usage?: {
+                    totalTokens?: number;
+                    inputTokens?: number;
+                    outputTokens?: number;
+                    costUsd?: number;
+                    unpricedCalls?: number;
+                };
             };
             /**
              * @description Overall quality score assigned to the blog
@@ -9144,7 +9174,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "fal-ai/wan-flf2v" | "veo-3.1-generate-001";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9167,10 +9197,10 @@ export interface components {
         MediaPipelinePricingParams: {
             /**
              * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @example fal-ai/kling-video/v3/pro/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
             /**
              * @description Video duration in seconds
              * @example 5
@@ -9226,17 +9256,17 @@ export interface components {
              * @default fal
              * @enum {string}
              */
-            provider: "fal";
+            provider: "fal" | "vertex";
             /**
              * @description fal model id used
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "fal-ai/wan-flf2v" | "veo-3.1-generate-001";
             /** @description Prompt used for generation */
             prompt: string;
-            /** @description fal.ai queue request id, used to poll/match webhook callbacks */
-            requestId?: string;
+            /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
+            requestId?: string | null;
             /**
              * @description Generation status
              * @default queued
@@ -9311,7 +9341,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image";
+            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9400,10 +9430,10 @@ export interface components {
             userPrompt: string;
             /**
              * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @example fal-ai/kling-video/v3/pro/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
             /**
              * @description Requested video duration in seconds
              * @example 5
@@ -9554,10 +9584,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v2.5-turbo/pro/image-to-video
+             * @example fal-ai/kling-video/v3/pro/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/veo3.1/first-last-frame-to-video" | "fal-ai/wan-flf2v";
+            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
             /**
              * @description Video length in seconds; must be one of the model's supported durations
              * @default 5
@@ -11735,7 +11765,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T12:31:59.672Z
+                             * @default 2026-09-30T12:59:39.348Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11882,7 +11912,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-23T12:31:59.677Z
+                             * @default 2026-09-30T12:59:39.356Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
