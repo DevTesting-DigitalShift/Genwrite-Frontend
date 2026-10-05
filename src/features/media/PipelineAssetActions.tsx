@@ -39,7 +39,7 @@ export function PipelineAssetActions({
     estimatePipelineCredits(mediaCatalogue, {
       videoModel: pipeline.videoModel,
       durationSeconds: pipeline.durationSeconds,
-      aspectRatio: pipeline.aspectRatio,
+      useEndFrame: pipeline.useEndFrame,
       includeFrames,
     })
 
@@ -51,7 +51,7 @@ export function PipelineAssetActions({
       description: short
         ? `This costs ${price} credits, but you have ${userCredits}.`
         : mode === "video"
-          ? `Keeps the same opening and closing frames and re-animates them, with the automatic check and retry. Costs ${price} credits.`
+          ? `Keeps the same ${pipeline.useEndFrame ? "opening and closing frames" : "opening frame"} and re-animates it, with the automatic check and retry. Costs ${price} credits.`
           : `Starts again from your prompt with new frames. Costs ${price} credits.`,
       confirmText: mode === "video" ? "Regenerate video" : "Start over",
       confirmProps: { disabled: short },

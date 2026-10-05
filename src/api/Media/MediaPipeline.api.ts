@@ -11,7 +11,8 @@ export type RegenerateMediaPipelinePayload = ApiRequestBody<
 >
 export type MediaPipelineListParams = ApiQueryParams<"/media/pipelines", "get">
 
-/** Auto Video: prompt → QA'd first/last frames → QA'd video, run server-side (see
+/** Auto Video: prompt → QA'd opening frame (+ closing frame when `useEndFrame`) → QA'd video
+ * with native audio, run server-side (see
  * src/modules/media/pipeline/ on the backend). Progress arrives over the
  * "mediaPipeline:updated" socket event — see useMediaNotifications. */
 export const MediaPipelineAPI = {

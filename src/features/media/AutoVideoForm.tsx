@@ -26,11 +26,12 @@ export function AutoVideoForm() {
   const { handlePopup } = useConfirmPopup()
   const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
 
-  // Only first/last-frame models can run this flow — the catalogue marks them with frameVideo.
+  // Only image-to-video models can run this flow — the catalogue marks them with frameVideo.
+  // Legacy ones stay priced for old runs but aren't offered for new ones.
   const models = useMemo<MediaModel[]>(
     () =>
       Object.entries(mediaCatalogue)
-        .filter(([, m]) => m.frameVideo)
+        .filter(([, m]) => m.frameVideo && !m.legacy)
         .map(([id, m]) => ({ id, ...m })),
     [mediaCatalogue]
   )
@@ -40,18 +41,27 @@ export function AutoVideoForm() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9")
   const [purpose, setPurpose] = useState<Purpose>("reel")
   const [prompt, setPrompt] = useState("")
+  const [lockEndFrame, setLockEndFrame] = useState(false)
 
   const model = models.find((m) => m.id === modelId) ?? models[0]
   const durations = model?.frameVideo?.durations ?? []
-  // The picked duration may not exist on a newly picked model — fall back to its first.
+  // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
   const durationSeconds =
-    duration !== null && durations.includes(duration) ? duration : (durations[0] ?? 5)
+    duration !== null && durations.includes(duration)
+      ? duration
+      : durations.includes(5)
+        ? 5
+        : (durations[0] ?? 5)
+  // Animating forward from one frame looks most natural, so the end frame is opt-in, and only
+  // offered where the model accepts one.
+  const canLockEndFrame = model?.frameVideo?.endFrame === "optional"
+  const useEndFrame = canLockEndFrame && lockEndFrame
 
   const price = model
     ? estimatePipelineCredits(mediaCatalogue, {
         videoModel: model.id,
         durationSeconds,
-        aspectRatio,
+        useEndFrame,
       })
     : 0
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -88,6 +98,7 @@ export function AutoVideoForm() {
       videoModel: model.id,
       durationSeconds,
       aspectRatio,
+      useEndFrame,
       purpose,
     } as CreateMediaPipelinePayload)
   }
@@ -111,7 +122,7 @@ export function AutoVideoForm() {
           >
             {models.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.label.replace(" (Frames)", "")}
+                {m.label}
               </option>
             ))}
           </select>
@@ -173,6 +184,24 @@ export function AutoVideoForm() {
         </div>
       </div>
 
+      {canLockEndFrame && (
+        <label className="mb-5 sm:mb-6 flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="toggle toggle-primary toggle-sm mt-0.5"
+            checked={lockEndFrame}
+            onChange={(e) => setLockEndFrame(e.target.checked)}
+          />
+          <span className="text-sm">
+            <span className="font-semibold text-slate-800">Lock the ending frame</span>
+            <span className="block text-xs text-slate-500">
+              Also generates a closing shot and makes the video end exactly on it. Leave off for the
+              most natural motion; turn on when the clip must land on a specific final pose.
+            </span>
+          </span>
+        </label>
+      )}
+
       <div className="space-y-2 mb-4">
         <label htmlFor="auto-video-prompt" className="label">
           <span className="label-text font-semibold">
@@ -185,17 +214,19 @@ export function AutoVideoForm() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           maxLength={2000}
-          placeholder="e.g. A barista pouring latte art in a sunlit cafe, slow push-in"
+          placeholder={'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'}
         />
       </div>
 
       <div className="mb-5 sm:mb-6 flex gap-2.5 rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs leading-relaxed text-slate-600">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#4C5BD6]" />
         <p>
-          We expand your idea into a detailed shot, generate several opening and closing frames, and
-          keep the ones that pass an automatic quality check before animating them. If the video
-          shows defects, we retry once at no extra cost. On-screen text is avoided on purpose,
-          because AI video often garbles it.
+          We expand your idea into a realistic shot with a spoken script and sound, generate several
+          opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one that passes an
+          automatic quality check before animating it in 1080p with native audio. Put any lines the
+          speaker should say in quotes and we'll keep them word for word. If the video shows defects
+          or the speech is out of sync, we retry once at no extra cost. On-screen text is avoided on
+          purpose, because AI video often garbles it.
         </p>
       </div>
 

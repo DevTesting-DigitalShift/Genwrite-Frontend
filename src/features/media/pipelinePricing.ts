@@ -6,30 +6,31 @@ export type AspectRatio = "16:9" | "9:16"
 /** Mirrors the backend's pipeline/mediaPipeline.config.js + media.pricing.js#getPipelineCreditCost.
  * Keep in step with those: the backend charges its own number, this is only the quote shown
  * before submitting. */
-const FIRST_FRAME_MODEL = "fal-ai/hidream-o1-image"
-const FRAME_SIZES: Record<AspectRatio, { width: number; height: number }> = {
-  "16:9": { width: 1344, height: 768 },
-  "9:16": { width: 768, height: 1344 },
-}
+const FRAME_IMAGE_USD = 0.0675 // Seedream 5.0 Pro per 1080p frame candidate
 const FRAME_CANDIDATES = 2
 const VIDEO_RETRY_BUFFER = 1.5
 
+/** USD → credits, rounded up — after rounding to micro-cents, so float noise can't add a credit
+ * (same as the backend's usdToCredits). */
+const usdToCredits = (usd: number) => Math.ceil(Number((usd * 100).toFixed(6)))
+
 /**
  * Fixed upfront price of one Auto Video run, in credits (1 credit = 1 cent): the hidden
- * first/last-frame candidates plus 1.5× the video, which covers the automatic retry. Pass
- * `includeFrames: false` for a video-only regenerate.
+ * opening-frame candidates (plus closing-frame ones when the end frame is locked) and 1.5× the
+ * video, which covers the automatic retry. Pass `includeFrames: false` for a video-only
+ * regenerate.
  */
 export function estimatePipelineCredits(
   catalogue: MediaCatalogue,
   {
     videoModel,
     durationSeconds,
-    aspectRatio = "16:9",
+    useEndFrame = false,
     includeFrames = true,
   }: {
     videoModel: string
     durationSeconds: number
-    aspectRatio?: AspectRatio
+    useEndFrame?: boolean
     includeFrames?: boolean
   }
 ): number {
@@ -37,12 +38,9 @@ export function estimatePipelineCredits(
   if (!video) return 0
   const videoUsd = video.usdPerUnit * (video.unit === "second" ? durationSeconds : 1)
 
-  let framesUsd = 0
-  const frameModel = catalogue[FIRST_FRAME_MODEL]
-  if (includeFrames && frameModel) {
-    const { width, height } = FRAME_SIZES[aspectRatio]
-    framesUsd = frameModel.usdPerUnit * ((width * height) / 1_000_000) * FRAME_CANDIDATES * 2
-  }
+  // A (legacy) model that requires an end frame always gets one, as on the backend.
+  const endFrame = useEndFrame || video.frameVideo?.endFrame === "required"
+  const framesUsd = includeFrames ? FRAME_IMAGE_USD * FRAME_CANDIDATES * (endFrame ? 2 : 1) : 0
 
-  return Math.ceil((framesUsd + videoUsd * VIDEO_RETRY_BUFFER) * 100)
+  return usdToCredits(framesUsd + videoUsd * VIDEO_RETRY_BUFFER)
 }

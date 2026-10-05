@@ -4530,7 +4530,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-09-30T12:59:39.376Z
+             * @default 2026-10-04T12:16:16.548Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5414,7 +5414,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-30T12:59:39.431Z
+                 * @default 2026-10-04T12:16:16.577Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5588,7 +5588,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-30T12:59:39.434Z
+                 * @default 2026-10-04T12:16:16.578Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5763,7 +5763,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-09-30T12:59:39.446Z
+             * @default 2026-10-04T12:16:16.584Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6490,7 +6490,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-09-30T12:59:39.481Z
+                 * @default 2026-10-04T12:16:16.598Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6664,7 +6664,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-09-30T12:59:39.487Z
+                 * @default 2026-10-04T12:16:16.599Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7096,7 +7096,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-09-30T12:59:39.504Z
+             * @default 2026-10-04T12:16:16.609Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8733,17 +8733,55 @@ export interface components {
                         unit: "image" | "megapixel" | "second" | "video";
                         usdPerUnit: number;
                         label: string;
-                        /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
+                        /**
+                         * @description Generated directly through Vertex AI rather than fal
+                         * @enum {string}
+                         */
+                        provider?: "vertex";
+                        /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                         requiresImage?: boolean;
-                        /** @description First/last-frame-to-video model used by the Auto Video pipeline; `durations` lists the supported lengths in seconds */
+                        /** @description Superseded model, kept priced for historical records — hide it from pickers */
+                        legacy?: boolean;
+                        /** @description Image-to-video model used by the Auto Video pipeline */
                         frameVideo?: {
-                            first: string;
-                            last: string;
+                            /** @description Supported output lengths in seconds */
                             durations: number[];
                             /** @enum {string} */
-                            durationFormat: "number-string" | "seconds-string" | "none";
+                            durationFormat: "number-string" | "seconds-string" | "number";
                             seed: boolean;
                             aspectRatio: boolean;
+                            negativePrompt: boolean;
+                            /** @description Resolution requested (and priced), null if the model has no such input */
+                            resolution: string | null;
+                            /** @description Input that switches native audio on; null = always on */
+                            audioField: string | null;
+                            extra: {
+                                [key: string]: unknown;
+                            };
+                            first: string | null;
+                            last: string | null;
+                            /**
+                             * @description Whether the run can/must be pinned to an end frame
+                             * @enum {string}
+                             */
+                            endFrame: "none" | "optional" | "required";
+                        };
+                        /** @description Text-to-video model used by the prompt-only video endpoint */
+                        textVideo?: {
+                            /** @description Supported output lengths in seconds */
+                            durations: number[];
+                            /** @enum {string} */
+                            durationFormat: "number-string" | "seconds-string" | "number";
+                            seed: boolean;
+                            aspectRatio: boolean;
+                            negativePrompt: boolean;
+                            /** @description Resolution requested (and priced), null if the model has no such input */
+                            resolution: string | null;
+                            /** @description Input that switches native audio on; null = always on */
+                            audioField: string | null;
+                            extra: {
+                                [key: string]: unknown;
+                            };
                         };
                     };
                 } | components["schemas"]["AnalysisPricing"] | components["schemas"]["JobPricing"] | components["schemas"]["AnalyticsPricing"];
@@ -8872,7 +8910,7 @@ export interface components {
             generate: components["schemas"]["GeneratePricing"];
             blogGeneration: components["schemas"]["BlogGenerationPricing"];
             images: components["schemas"]["ImagePricing"];
-            /** @description fal model id -> {kind, unit, usdPerUnit, label, requiresImage?, frameVideo?} */
+            /** @description model id -> {kind, unit, usdPerUnit, label, provider?, requiresImage?, legacy?, frameVideo?, textVideo?} */
             media: {
                 [key: string]: {
                     /** @enum {string} */
@@ -8881,17 +8919,55 @@ export interface components {
                     unit: "image" | "megapixel" | "second" | "video";
                     usdPerUnit: number;
                     label: string;
-                    /** @description Image-to-image model — needs a source image, not offered by the prompt-only generate endpoints */
+                    /**
+                     * @description Generated directly through Vertex AI rather than fal
+                     * @enum {string}
+                     */
+                    provider?: "vertex";
+                    /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                     requiresImage?: boolean;
-                    /** @description First/last-frame-to-video model used by the Auto Video pipeline; `durations` lists the supported lengths in seconds */
+                    /** @description Superseded model, kept priced for historical records — hide it from pickers */
+                    legacy?: boolean;
+                    /** @description Image-to-video model used by the Auto Video pipeline */
                     frameVideo?: {
-                        first: string;
-                        last: string;
+                        /** @description Supported output lengths in seconds */
                         durations: number[];
                         /** @enum {string} */
-                        durationFormat: "number-string" | "seconds-string" | "none";
+                        durationFormat: "number-string" | "seconds-string" | "number";
                         seed: boolean;
                         aspectRatio: boolean;
+                        negativePrompt: boolean;
+                        /** @description Resolution requested (and priced), null if the model has no such input */
+                        resolution: string | null;
+                        /** @description Input that switches native audio on; null = always on */
+                        audioField: string | null;
+                        extra: {
+                            [key: string]: unknown;
+                        };
+                        first: string | null;
+                        last: string | null;
+                        /**
+                         * @description Whether the run can/must be pinned to an end frame
+                         * @enum {string}
+                         */
+                        endFrame: "none" | "optional" | "required";
+                    };
+                    /** @description Text-to-video model used by the prompt-only video endpoint */
+                    textVideo?: {
+                        /** @description Supported output lengths in seconds */
+                        durations: number[];
+                        /** @enum {string} */
+                        durationFormat: "number-string" | "seconds-string" | "number";
+                        seed: boolean;
+                        aspectRatio: boolean;
+                        negativePrompt: boolean;
+                        /** @description Resolution requested (and priced), null if the model has no such input */
+                        resolution: string | null;
+                        /** @description Input that switches native audio on; null = always on */
+                        audioField: string | null;
+                        extra: {
+                            [key: string]: unknown;
+                        };
                     };
                 };
             };
@@ -9171,10 +9247,10 @@ export interface components {
         MediaPricingParams: {
             /**
              * @description fal media model id
-             * @example fal-ai/nano-banana
+             * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "fal-ai/wan-flf2v" | "veo-3.1-generate-001";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9196,21 +9272,27 @@ export interface components {
         };
         MediaPipelinePricingParams: {
             /**
-             * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v3/pro/image-to-video
+             * @description Auto Video image-to-video model id
+             * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Video duration in seconds
              * @example 5
              */
             durationSeconds: number;
             /**
+             * @description Doesn't affect the price; accepted for compatibility
              * @default 16:9
              * @enum {string}
              */
             aspectRatio: "16:9" | "9:16";
+            /**
+             * @description true prices a run that also generates a locked end frame
+             * @default false
+             */
+            useEndFrame: boolean;
             /**
              * @description false prices a video-only regenerate
              * @default true
@@ -9262,7 +9344,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "fal-ai/wan-flf2v" | "veo-3.1-generate-001";
+            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
@@ -9338,10 +9420,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal image model id
-             * @example fal-ai/nano-banana
+             * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            model: "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image";
+            model: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9367,10 +9449,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal video model id
-             * @example fal-ai/wan-25-preview/text-to-video
+             * @example alibaba/wan-3.0/text-to-video
              * @enum {string}
              */
-            model: "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/veo3.1" | "fal-ai/ovi";
+            model: "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9382,7 +9464,7 @@ export interface components {
             /** @description Optional linked campaign */
             campaignId?: string;
             /**
-             * @description Expected output duration in seconds, used for cost calculation
+             * @description Video length in seconds; must be one of the model's supported durations
              * @default 5
              * @example 5
              */
@@ -9429,11 +9511,11 @@ export interface components {
             /** @description The prompt as the user typed it */
             userPrompt: string;
             /**
-             * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v3/pro/image-to-video
+             * @description Auto Video image-to-video model id
+             * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Requested video duration in seconds
              * @example 5
@@ -9445,6 +9527,11 @@ export interface components {
              * @enum {string}
              */
             aspectRatio: "16:9" | "9:16";
+            /**
+             * @description Also generate an end frame and pin the video to it (off: animate forward from the first frame)
+             * @default false
+             */
+            useEndFrame: boolean;
             /** @description Refined prompts; source 'fallback' means the user's prompt was used as-is */
             refined: {
                 /** @default null */
@@ -9453,6 +9540,12 @@ export interface components {
                 lastFramePrompt: string | null;
                 /** @default null */
                 motionPrompt: string | null;
+                /** @default null */
+                speaker: string | null;
+                /** @default [] */
+                dialogue: string[];
+                /** @default null */
+                audioPrompt: string | null;
                 /** @default null */
                 negativePrompt: string | null;
                 /**
@@ -9583,11 +9676,11 @@ export interface components {
              */
             prompt: string;
             /**
-             * @description fal first/last-frame-to-video model id
-             * @example fal-ai/kling-video/v3/pro/image-to-video
+             * @description Image-to-video model id
+             * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "fal-ai/kling-video/v3/pro/image-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video" | "veo-3.1-generate-001";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001";
             /**
              * @description Video length in seconds; must be one of the model's supported durations
              * @default 5
@@ -9600,6 +9693,11 @@ export interface components {
              * @enum {string}
              */
             aspectRatio: "16:9" | "9:16";
+            /**
+             * @description Also generate an end frame and pin the video to it (off: animate forward from the first frame)
+             * @default false
+             */
+            useEndFrame: boolean;
             /**
              * @description Intended use of the generated video
              * @default other
@@ -11765,7 +11863,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-30T12:59:39.348Z
+                             * @default 2026-10-04T12:16:16.532Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -11912,7 +12010,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-09-30T12:59:39.356Z
+                             * @default 2026-10-04T12:16:16.535Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

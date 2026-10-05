@@ -8,21 +8,18 @@ import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
 import type { MediaPipeline } from "@api/Media/MediaPipeline.api"
 import { estimatePipelineCredits } from "./pipelinePricing"
 
-const STEPS = [
-  "Refining prompt",
-  "Opening frame",
-  "Closing frame",
-  "Video + quality check",
-] as const
+type Step = { stage: MediaPipeline["stage"]; label: string }
 
-const STEP_INDEX: Record<MediaPipeline["stage"], number> = {
-  refining: 0,
-  first_frames: 1,
-  last_frames: 2,
-  video: 3,
-  completed: 4,
-  failed: -1,
-}
+const STEPS: Step[] = [
+  { stage: "refining", label: "Refining prompt" },
+  { stage: "first_frames", label: "Opening frame" },
+  { stage: "last_frames", label: "Closing frame" },
+  { stage: "video", label: "Video + quality check" },
+]
+
+/** The closing-frame step only exists for runs that lock an end frame. */
+const stepsFor = (pipeline: MediaPipeline) =>
+  pipeline.useEndFrame ? STEPS : STEPS.filter((s) => s.stage !== "last_frames")
 
 /** Failed runs stay on screen this long so the user sees what happened and can retry. */
 const FAILED_VISIBLE_MS = 24 * 60 * 60 * 1000
@@ -31,7 +28,9 @@ function stepDetail(pipeline: MediaPipeline): string {
   if (pipeline.stage === "video") {
     return pipeline.videoAttempts > 1
       ? "The first take didn't pass our quality check, so we're retrying"
-      : "Animating between the two frames — usually a few minutes"
+      : pipeline.useEndFrame
+        ? "Animating between the two frames with sound — usually a few minutes"
+        : "Animating the opening frame with sound — usually a few minutes"
   }
   if (
     (pipeline.stage === "first_frames" || pipeline.stage === "last_frames") &&
@@ -44,10 +43,14 @@ function stepDetail(pipeline: MediaPipeline): string {
 }
 
 function Stepper({ pipeline }: { pipeline: MediaPipeline }) {
-  const current = STEP_INDEX[pipeline.stage]
+  const steps = stepsFor(pipeline)
+  const current =
+    pipeline.stage === "completed"
+      ? steps.length
+      : steps.findIndex((s) => s.stage === pipeline.stage) // -1 for "failed"
   return (
     <ol className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-      {STEPS.map((label, i) => {
+      {steps.map(({ label }, i) => {
         const done = i < current
         const active = i === current
         return (
@@ -129,7 +132,7 @@ export function PipelineRuns() {
     const price = estimatePipelineCredits(mediaCatalogue, {
       videoModel: pipeline.videoModel,
       durationSeconds: pipeline.durationSeconds,
-      aspectRatio: pipeline.aspectRatio,
+      useEndFrame: pipeline.useEndFrame,
     })
     handlePopup({
       title: "Try again?",
@@ -152,7 +155,7 @@ export function PipelineRuns() {
         >
           <div className="flex gap-2">
             <FrameThumb url={pipeline.firstFrameUrl} label="Opening" />
-            <FrameThumb url={pipeline.lastFrameUrl} label="Closing" />
+            {pipeline.useEndFrame && <FrameThumb url={pipeline.lastFrameUrl} label="Closing" />}
           </div>
 
           <div className="min-w-0 flex-1 space-y-2">

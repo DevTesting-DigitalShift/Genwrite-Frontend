@@ -36,7 +36,8 @@ const estimateCredits = (
 ) => {
   const units =
     model.unit === "second" ? durationSeconds : model.unit === "megapixel" ? megapixels : 1
-  return Math.ceil(model.usdPerUnit * units * 100)
+  // Round to micro-cents first so float noise can't add a credit (0.168 × 5 × 100 = 84.00000000000001).
+  return Math.ceil(Number((model.usdPerUnit * units * 100).toFixed(6)))
 }
 
 /** "5 credits / second", "4 credits / image" — the model's rate in the unit it's billed in. */
@@ -175,7 +176,7 @@ const Media = () => {
   const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
   const modelsByKind = useMemo(() => {
     const all: MediaModel[] = Object.entries(mediaCatalogue)
-      .filter(([, m]) => !m.requiresImage)
+      .filter(([, m]) => !m.requiresImage && !m.legacy)
       .map(([id, m]) => ({ id, ...m }))
     return {
       image: all.filter((m) => m.kind === "image"),
@@ -232,8 +233,17 @@ const Media = () => {
   // from the catalogue since.
   const selectedModelId = tab === "image" ? imageModel : videoModel
   const currentModel = tabModels.find((m) => m.id === selectedModelId) ?? tabModels[0]
+  // Video models only accept specific lengths — keep the picked one if this model supports it,
+  // else fall back to 5s, else the model's first.
+  const videoDurations = currentModel?.textVideo?.durations ?? []
+  const videoDuration =
+    videoDurations.length === 0 || videoDurations.includes(durationSeconds)
+      ? durationSeconds
+      : videoDurations.includes(5)
+        ? 5
+        : videoDurations[0]
   const estimatedCredits = currentModel
-    ? estimateCredits(currentModel, { megapixels, durationSeconds })
+    ? estimateCredits(currentModel, { megapixels, durationSeconds: videoDuration })
     : 0
   const modelLabel = (id: string) => mediaCatalogue[id]?.label ?? id
 
@@ -294,7 +304,7 @@ const Media = () => {
         prompt: prompt.trim(),
         model: currentModel.id,
         purpose,
-        durationSeconds,
+        durationSeconds: videoDuration,
       } as never)
     }
   }
@@ -454,16 +464,19 @@ const Media = () => {
                       <label htmlFor="media-duration" className="label">
                         <span className="label-text font-semibold">Duration (seconds)</span>
                       </label>
-                      <input
+                      <select
                         id="media-duration"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={30}
-                        className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
-                        value={durationSeconds}
-                        onChange={(e) => setDurationSeconds(Number(e.target.value) || 5)}
-                      />
+                        className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                        value={videoDuration}
+                        onChange={(e) => setDurationSeconds(Number(e.target.value))}
+                        disabled={videoDurations.length <= 1}
+                      >
+                        {videoDurations.map((d) => (
+                          <option key={d} value={d}>
+                            {d} seconds
+                          </option>
+                        ))}
+                      </select>
                       {currentModel && currentModel.unit !== "second" && (
                         <p className="text-[11px] text-slate-400 mt-1">
                           This model is billed per video — length doesn't change the cost.
