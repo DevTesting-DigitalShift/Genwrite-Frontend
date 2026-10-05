@@ -15,11 +15,16 @@ const STEPS: Step[] = [
   { stage: "first_frames", label: "Opening frame" },
   { stage: "last_frames", label: "Closing frame" },
   { stage: "video", label: "Video + quality check" },
+  { stage: "subtitles", label: "Subtitles" },
 ]
 
-/** The closing-frame step only exists for runs that lock an end frame. */
+/** The closing-frame and subtitle steps only exist for runs that use them. */
 const stepsFor = (pipeline: MediaPipeline) =>
-  pipeline.useEndFrame ? STEPS : STEPS.filter((s) => s.stage !== "last_frames")
+  STEPS.filter(
+    s =>
+      (s.stage !== "last_frames" || pipeline.useEndFrame) &&
+      (s.stage !== "subtitles" || pipeline.subtitles?.style)
+  )
 
 /** Failed runs stay on screen this long so the user sees what happened and can retry. */
 const FAILED_VISIBLE_MS = 24 * 60 * 60 * 1000
@@ -38,6 +43,7 @@ function stepDetail(pipeline: MediaPipeline): string {
   ) {
     return "No candidate passed our quality check yet, so we're generating new ones"
   }
+  if (pipeline.stage === "subtitles") return "Timing the captions to the speech and adding them"
   if (pipeline.stage === "refining") return "Turning your idea into a detailed shot"
   return "Generating candidates and checking them for defects"
 }
@@ -45,9 +51,7 @@ function stepDetail(pipeline: MediaPipeline): string {
 function Stepper({ pipeline }: { pipeline: MediaPipeline }) {
   const steps = stepsFor(pipeline)
   const current =
-    pipeline.stage === "completed"
-      ? steps.length
-      : steps.findIndex((s) => s.stage === pipeline.stage) // -1 for "failed"
+    pipeline.stage === "completed" ? steps.length : steps.findIndex(s => s.stage === pipeline.stage) // -1 for "failed"
   return (
     <ol className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {steps.map(({ label }, i) => {
@@ -102,7 +106,7 @@ function FrameThumb({ url, label }: { url: string | null; label: string }) {
 export function PipelineRuns() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
   const { data } = mediaPipelineQuery.useList({ page: 1, limit: 10 })
@@ -111,12 +115,12 @@ export function PipelineRuns() {
       loadAuthenticatedUser()
       toast.success("Started a new attempt")
     },
-    onError: (err) => toast.error(err.message || "Failed to start a new attempt"),
+    onError: err => toast.error(err.message || "Failed to start a new attempt"),
   })
 
   const runs = useMemo(
     () =>
-      (data?.data ?? []).filter((p) => {
+      (data?.data ?? []).filter(p => {
         if (p.stage === "completed" || dismissed.has(p._id)) return false
         if (p.stage !== "failed") return true
         return Date.now() - new Date(p.updatedAt).getTime() < FAILED_VISIBLE_MS
@@ -132,7 +136,9 @@ export function PipelineRuns() {
     const price = estimatePipelineCredits(mediaCatalogue, {
       videoModel: pipeline.videoModel,
       durationSeconds: pipeline.durationSeconds,
+      resolution: pipeline.resolution,
       useEndFrame: pipeline.useEndFrame,
+      subtitles: Boolean(pipeline.subtitles?.style),
     })
     handlePopup({
       title: "Try again?",
@@ -148,7 +154,7 @@ export function PipelineRuns() {
 
   return (
     <div className="mb-6 space-y-3">
-      {runs.map((pipeline) => (
+      {runs.map(pipeline => (
         <div
           key={pipeline._id}
           className="rounded-lg border border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4"
@@ -190,7 +196,7 @@ export function PipelineRuns() {
               </button>
               <button
                 type="button"
-                onClick={() => setDismissed((prev) => new Set(prev).add(pipeline._id))}
+                onClick={() => setDismissed(prev => new Set(prev).add(pipeline._id))}
                 aria-label="Dismiss"
                 className="btn btn-sm h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center gap-1.5"
               >

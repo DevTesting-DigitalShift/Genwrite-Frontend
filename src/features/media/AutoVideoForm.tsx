@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Loader2, ShieldCheck, Sparkles } from "lucide-react"
+import { AlertTriangle, Loader2, ShieldCheck, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
 import usePricingStore from "@store/usePricingStore"
@@ -8,11 +8,30 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
 import type { CreateMediaPipelinePayload } from "@api/Media/MediaPipeline.api"
 import { PURPOSES, type MediaModel, type Purpose } from "./mediaOptions"
-import { estimatePipelineCredits, type AspectRatio } from "./pipelinePricing"
+import {
+  DEFAULT_RESOLUTION,
+  effectiveResolution,
+  estimatePipelineCredits,
+  resolutionsOf,
+  type AspectRatio,
+  type VideoResolution,
+} from "./pipelinePricing"
+import { pacingAdvice } from "./scriptPacing"
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string }[] = [
   { id: "16:9", label: "Landscape 16:9" },
   { id: "9:16", label: "Vertical 9:16" },
+]
+
+type SubtitleStyle = NonNullable<CreateMediaPipelinePayload["subtitleStyle"]>
+
+/** Backend SUBTITLE_STYLES, described by how each one actually renders. */
+const SUBTITLE_STYLES: { id: SubtitleStyle; label: string }[] = [
+  { id: "hustle", label: "Bold, highlight current word" },
+  { id: "slay", label: "Bold italic, highlight current word" },
+  { id: "beans", label: "Words light up as spoken" },
+  { id: "karl", label: "One word at a time" },
+  { id: "simple", label: "Clean, no highlight" },
 ]
 
 /**
@@ -24,7 +43,7 @@ export function AutoVideoForm() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
 
   // Only image-to-video models can run this flow — the catalogue marks them with frameVideo.
   // Legacy ones stay priced for old runs but aren't offered for new ones.
@@ -42,8 +61,10 @@ export function AutoVideoForm() {
   const [purpose, setPurpose] = useState<Purpose>("reel")
   const [prompt, setPrompt] = useState("")
   const [lockEndFrame, setLockEndFrame] = useState(false)
+  const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_RESOLUTION)
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null)
 
-  const model = models.find((m) => m.id === modelId) ?? models[0]
+  const model = models.find(m => m.id === modelId) ?? models[0]
   const durations = model?.frameVideo?.durations ?? []
   // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
   const durationSeconds =
@@ -56,12 +77,19 @@ export function AutoVideoForm() {
   // offered where the model accepts one.
   const canLockEndFrame = model?.frameVideo?.endFrame === "optional"
   const useEndFrame = canLockEndFrame && lockEndFrame
+  // Only models with per-resolution pricing take a resolution; the rest render at a fixed one.
+  const resolutionOptions = resolutionsOf(model)
+  const videoResolution = effectiveResolution(model, resolution)
+  // A quoted script longer than the clip allows comes out rushed — say so before they pay.
+  const pacing = pacingAdvice(prompt, durationSeconds, durations)
 
   const price = model
     ? estimatePipelineCredits(mediaCatalogue, {
         videoModel: model.id,
         durationSeconds,
+        resolution: videoResolution,
         useEndFrame,
+        subtitles: subtitleStyle !== null,
       })
     : 0
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -75,7 +103,7 @@ export function AutoVideoForm() {
           "We'll check the frames and the video for defects and retry automatically if needed.",
       })
     },
-    onError: (err) => toast.error(err.message || "Failed to start video generation"),
+    onError: err => toast.error(err.message || "Failed to start video generation"),
   })
 
   const handleGenerate = () => {
@@ -98,7 +126,9 @@ export function AutoVideoForm() {
       videoModel: model.id,
       durationSeconds,
       aspectRatio,
+      ...(videoResolution ? { resolution: videoResolution } : {}),
       useEndFrame,
+      subtitleStyle,
       purpose,
     } as CreateMediaPipelinePayload)
   }
@@ -118,9 +148,9 @@ export function AutoVideoForm() {
             id="auto-video-model"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={model?.id ?? ""}
-            onChange={(e) => setModelId(e.target.value)}
+            onChange={e => setModelId(e.target.value)}
           >
-            {models.map((m) => (
+            {models.map(m => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>
@@ -136,10 +166,10 @@ export function AutoVideoForm() {
             id="auto-video-duration"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={durationSeconds}
-            onChange={(e) => setDuration(Number(e.target.value))}
+            onChange={e => setDuration(Number(e.target.value))}
             disabled={durations.length <= 1}
           >
-            {durations.map((d) => (
+            {durations.map(d => (
               <option key={d} value={d}>
                 {d} seconds
               </option>
@@ -155,9 +185,9 @@ export function AutoVideoForm() {
             id="auto-video-aspect"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={aspectRatio}
-            onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
+            onChange={e => setAspectRatio(e.target.value as AspectRatio)}
           >
-            {ASPECT_RATIOS.map((a) => (
+            {ASPECT_RATIOS.map(a => (
               <option key={a.id} value={a.id}>
                 {a.label}
               </option>
@@ -173,11 +203,56 @@ export function AutoVideoForm() {
             id="auto-video-purpose"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={purpose}
-            onChange={(e) => setPurpose(e.target.value as Purpose)}
+            onChange={e => setPurpose(e.target.value as Purpose)}
           >
-            {PURPOSES.map((p) => (
+            {PURPOSES.map(p => (
               <option key={p.id} value={p.id}>
                 {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-5 sm:mb-6">
+        <div className="form-control w-full">
+          <label htmlFor="auto-video-resolution" className="label">
+            <span className="label-text font-semibold">Resolution</span>
+          </label>
+          <select
+            id="auto-video-resolution"
+            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+            value={videoResolution ?? ""}
+            onChange={e => setResolution(e.target.value as VideoResolution)}
+            disabled={resolutionOptions.length <= 1}
+          >
+            {resolutionOptions.length === 0 ? (
+              <option value="">Set by the model</option>
+            ) : (
+              resolutionOptions.map(r => (
+                <option key={r} value={r}>
+                  {r}
+                  {r === "1080p" ? " (sharpest)" : r === "480p" ? " (cheapest)" : ""}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div className="form-control w-full sm:col-span-1 lg:col-span-2">
+          <label htmlFor="auto-video-subtitles" className="label">
+            <span className="label-text font-semibold">Subtitles</span>
+          </label>
+          <select
+            id="auto-video-subtitles"
+            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+            value={subtitleStyle ?? ""}
+            onChange={e => setSubtitleStyle((e.target.value || null) as SubtitleStyle | null)}
+          >
+            <option value="">No subtitles</option>
+            {SUBTITLE_STYLES.map(st => (
+              <option key={st.id} value={st.id}>
+                {st.label}
               </option>
             ))}
           </select>
@@ -190,7 +265,7 @@ export function AutoVideoForm() {
             type="checkbox"
             className="toggle toggle-primary toggle-sm mt-0.5"
             checked={lockEndFrame}
-            onChange={(e) => setLockEndFrame(e.target.checked)}
+            onChange={e => setLockEndFrame(e.target.checked)}
           />
           <span className="text-sm">
             <span className="font-semibold text-slate-800">Lock the ending frame</span>
@@ -212,21 +287,44 @@ export function AutoVideoForm() {
           id="auto-video-prompt"
           className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={e => setPrompt(e.target.value)}
           maxLength={2000}
-          placeholder={'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'}
+          placeholder={
+            'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'
+          }
         />
+        {pacing && (
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <p>
+              Your script is {pacing.words} words — about {pacing.neededSeconds}s at a natural pace,
+              so at {durationSeconds}s it will sound rushed.{" "}
+              {pacing.suggestedDuration ? (
+                <button
+                  type="button"
+                  className="font-semibold underline"
+                  onClick={() => setDuration(pacing.suggestedDuration)}
+                >
+                  Use {pacing.suggestedDuration} seconds
+                </button>
+              ) : (
+                "Shorten it — this model can't go long enough."
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mb-5 sm:mb-6 flex gap-2.5 rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs leading-relaxed text-slate-600">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#4C5BD6]" />
         <p>
           We expand your idea into a realistic shot with a spoken script and sound, generate several
-          opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one that passes an
-          automatic quality check before animating it in 1080p with native audio. Put any lines the
-          speaker should say in quotes and we'll keep them word for word. If the video shows defects
-          or the speech is out of sync, we retry once at no extra cost. On-screen text is avoided on
-          purpose, because AI video often garbles it.
+          opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one that passes
+          an automatic quality check before animating it with native audio
+          {videoResolution ? ` in ${videoResolution}` : ""}. Put any lines the speaker should say in
+          quotes and we'll keep them word for word. If the video shows defects or the speech is out
+          of sync, we retry once at no extra cost. On-screen text is avoided on purpose, because AI
+          video often garbles it.
         </p>
       </div>
 

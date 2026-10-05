@@ -26,18 +26,29 @@ import { PURPOSES, type MediaModel, type Purpose } from "@/features/media/mediaO
 import { AutoVideoForm } from "@/features/media/AutoVideoForm"
 import { PipelineRuns } from "@/features/media/PipelineRuns"
 import { PipelineAssetActions } from "@/features/media/PipelineAssetActions"
+import {
+  DEFAULT_RESOLUTION,
+  effectiveResolution,
+  resolutionsOf,
+  usdPerUnitFor,
+  type VideoResolution,
+} from "@/features/media/pipelinePricing"
 
 /** Mirrors the backend's media.pricing.js#getMediaCreditCost exactly: 1 credit = 1 cent, and
  * only the unit the model is billed in counts — seconds for per-second video, megapixels for
  * per-megapixel images, otherwise a flat price per image/video. */
 const estimateCredits = (
   model: MediaModel,
-  { megapixels, durationSeconds }: { megapixels: number; durationSeconds: number }
+  {
+    megapixels,
+    durationSeconds,
+    resolution = null,
+  }: { megapixels: number; durationSeconds: number; resolution?: VideoResolution | null }
 ) => {
   const units =
     model.unit === "second" ? durationSeconds : model.unit === "megapixel" ? megapixels : 1
   // Round to micro-cents first so float noise can't add a credit (0.168 × 5 × 100 = 84.00000000000001).
-  return Math.ceil(Number((model.usdPerUnit * units * 100).toFixed(6)))
+  return Math.ceil(Number((usdPerUnitFor(model, resolution) * units * 100).toFixed(6)))
 }
 
 /** "5 credits / second", "4 credits / image" — the model's rate in the unit it's billed in. */
@@ -173,20 +184,21 @@ const Media = () => {
   // Models + prices come from the backend's pricing catalogue, so a model added/removed or
   // repriced there shows up here without a frontend change. Image-to-image models need a
   // source image this prompt-only form can't provide, so they're not offered.
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
   const modelsByKind = useMemo(() => {
     const all: MediaModel[] = Object.entries(mediaCatalogue)
       .filter(([, m]) => !m.requiresImage && !m.legacy)
       .map(([id, m]) => ({ id, ...m }))
     return {
-      image: all.filter((m) => m.kind === "image"),
-      video: all.filter((m) => m.kind === "video"),
+      image: all.filter(m => m.kind === "image"),
+      video: all.filter(m => m.kind === "video"),
     }
   }, [mediaCatalogue])
   const [imageModel, setImageModel] = useState("")
   const [videoModel, setVideoModel] = useState("")
   const [megapixels, setMegapixels] = useState(1)
   const [durationSeconds, setDurationSeconds] = useState(5)
+  const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_RESOLUTION)
   // An id rather than a snapshot so the preview modal always reflects the live cache entry
   // (status flips from processing → completed while it's open).
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -198,14 +210,14 @@ const Media = () => {
   // but a duplicate key here would silently render the same card twice.
   const assets = useMemo(() => {
     const seen = new Set<string>()
-    return (list?.data ?? []).filter((a) => {
+    return (list?.data ?? []).filter(a => {
       if (seen.has(a._id)) return false
       seen.add(a._id)
       return true
     })
   }, [list?.data])
 
-  const previewAsset = previewId ? (assets.find((a) => a._id === previewId) ?? null) : null
+  const previewAsset = previewId ? (assets.find(a => a._id === previewId) ?? null) : null
 
   // Submitting only queues the job with fal — no waiting screen. The result arrives via the
   // webhook → "media:statusChanged" socket event, toasted app-wide by useMediaNotifications.
@@ -219,11 +231,11 @@ const Media = () => {
   }
   const generateImage = mediaQuery.useGenerateImage({
     onSuccess: handleSubmitted,
-    onError: (err) => toast.error(err.message || "Failed to start image generation"),
+    onError: err => toast.error(err.message || "Failed to start image generation"),
   })
   const generateVideo = mediaQuery.useGenerateVideo({
     onSuccess: handleSubmitted,
-    onError: (err) => toast.error(err.message || "Failed to start video generation"),
+    onError: err => toast.error(err.message || "Failed to start video generation"),
   })
   const refresh = mediaQuery.useRefresh()
 
@@ -232,7 +244,7 @@ const Media = () => {
   // Falls back to the first model when nothing's picked yet, or the picked one was removed
   // from the catalogue since.
   const selectedModelId = tab === "image" ? imageModel : videoModel
-  const currentModel = tabModels.find((m) => m.id === selectedModelId) ?? tabModels[0]
+  const currentModel = tabModels.find(m => m.id === selectedModelId) ?? tabModels[0]
   // Video models only accept specific lengths — keep the picked one if this model supports it,
   // else fall back to 5s, else the model's first.
   const videoDurations = currentModel?.textVideo?.durations ?? []
@@ -242,12 +254,19 @@ const Media = () => {
       : videoDurations.includes(5)
         ? 5
         : videoDurations[0]
+  // Only resolution-priced video models take a resolution; images never do.
+  const videoResolution = tab === "video" ? effectiveResolution(currentModel, resolution) : null
+  const videoResolutions = tab === "video" ? resolutionsOf(currentModel) : []
   const estimatedCredits = currentModel
-    ? estimateCredits(currentModel, { megapixels, durationSeconds: videoDuration })
+    ? estimateCredits(currentModel, {
+        megapixels,
+        durationSeconds: videoDuration,
+        resolution: videoResolution,
+      })
     : 0
   const modelLabel = (id: string) => mediaCatalogue[id]?.label ?? id
 
-  const activeIds = assets.filter((a) => isActive(a.status)).map((a) => a._id)
+  const activeIds = assets.filter(a => isActive(a.status)).map(a => a._id)
 
   // Asks the backend to check fal directly for every still-generating asset — the fallback
   // for a missed webhook. A no-op server-side for anything already resolved.
@@ -267,7 +286,7 @@ const Media = () => {
 
   const handleManualRefresh = async () => {
     const { data } = await refetch()
-    refreshActive((data?.data ?? []).filter((a) => isActive(a.status)).map((a) => a._id))
+    refreshActive((data?.data ?? []).filter(a => isActive(a.status)).map(a => a._id))
   }
   const isRefreshing = isFetching || refresh.isPending
 
@@ -305,6 +324,7 @@ const Media = () => {
         model: currentModel.id,
         purpose,
         durationSeconds: videoDuration,
+        ...(videoResolution ? { resolution: videoResolution } : {}),
       } as never)
     }
   }
@@ -402,13 +422,13 @@ const Media = () => {
                       id="media-model"
                       className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                       value={currentModel?.id ?? ""}
-                      onChange={(e) =>
+                      onChange={e =>
                         tab === "image"
                           ? setImageModel(e.target.value)
                           : setVideoModel(e.target.value)
                       }
                     >
-                      {tabModels.map((m) => (
+                      {tabModels.map(m => (
                         <option key={m.id} value={m.id}>
                           {m.label} · {formatRate(m)}
                         </option>
@@ -424,9 +444,9 @@ const Media = () => {
                       id="media-purpose"
                       className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                       value={purpose}
-                      onChange={(e) => setPurpose(e.target.value as typeof purpose)}
+                      onChange={e => setPurpose(e.target.value as typeof purpose)}
                     >
-                      {PURPOSES.map((p) => (
+                      {PURPOSES.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.label}
                         </option>
@@ -451,7 +471,7 @@ const Media = () => {
                         step={0.25}
                         className="input outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1 px-4"
                         value={megapixels}
-                        onChange={(e) => setMegapixels(Number(e.target.value) || 1)}
+                        onChange={e => setMegapixels(Number(e.target.value) || 1)}
                       />
                       <p className="text-[11px] text-slate-400 mt-1">
                         {currentModel?.unit === "megapixel"
@@ -468,10 +488,10 @@ const Media = () => {
                         id="media-duration"
                         className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
                         value={videoDuration}
-                        onChange={(e) => setDurationSeconds(Number(e.target.value))}
+                        onChange={e => setDurationSeconds(Number(e.target.value))}
                         disabled={videoDurations.length <= 1}
                       >
-                        {videoDurations.map((d) => (
+                        {videoDurations.map(d => (
                           <option key={d} value={d}>
                             {d} seconds
                           </option>
@@ -482,6 +502,30 @@ const Media = () => {
                           This model is billed per video — length doesn't change the cost.
                         </p>
                       )}
+                    </div>
+                  )}
+                  {tab === "video" && (
+                    <div className="form-control w-full">
+                      <label htmlFor="media-resolution" className="label">
+                        <span className="label-text font-semibold">Resolution</span>
+                      </label>
+                      <select
+                        id="media-resolution"
+                        className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+                        value={videoResolution ?? ""}
+                        onChange={e => setResolution(e.target.value as VideoResolution)}
+                        disabled={videoResolutions.length <= 1}
+                      >
+                        {videoResolutions.length === 0 ? (
+                          <option value="">Set by the model</option>
+                        ) : (
+                          videoResolutions.map(r => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))
+                        )}
+                      </select>
                     </div>
                   )}
                 </div>
@@ -496,7 +540,7 @@ const Media = () => {
                     id="media-prompt"
                     className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    onChange={e => setPrompt(e.target.value)}
                     placeholder={
                       tab === "image"
                         ? "Describe the image you want... (e.g. A futuristic city skyline at dusk)"
@@ -573,7 +617,7 @@ const Media = () => {
           </div>
         ) : (
           <MasonryGrid className="grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-3 sm:gap-x-4">
-            {assets.map((asset) => (
+            {assets.map(asset => (
               <MasonryItem key={asset._id} gapClassName="pb-3 sm:pb-4">
                 <AssetCard asset={asset} onSelect={setPreviewId} />
               </MasonryItem>

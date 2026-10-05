@@ -21,7 +21,7 @@ export function PipelineAssetActions({
 }) {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
   const { data: pipeline } = mediaPipelineQuery.useDetail(pipelineId)
   const regenerate = mediaPipelineQuery.useRegenerate({
     onSuccess: () => {
@@ -29,7 +29,7 @@ export function PipelineAssetActions({
       toast.success("Regenerating — we'll notify you when it's ready")
       onStarted?.()
     },
-    onError: (err) => toast.error(err.message || "Failed to regenerate"),
+    onError: err => toast.error(err.message || "Failed to regenerate"),
   })
 
   if (!pipeline) return null
@@ -39,7 +39,9 @@ export function PipelineAssetActions({
     estimatePipelineCredits(mediaCatalogue, {
       videoModel: pipeline.videoModel,
       durationSeconds: pipeline.durationSeconds,
+      resolution: pipeline.resolution,
       useEndFrame: pipeline.useEndFrame,
+      subtitles: Boolean(pipeline.subtitles?.style),
       includeFrames,
     })
 
@@ -81,7 +83,23 @@ export function PipelineAssetActions({
         <p className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400">
           <Sparkles size={11} className="text-[#4C5BD6]" />
           Auto Video · {pipeline.creditCost} credits for the whole run
+          {pipeline.resolution ? ` · ${pipeline.resolution}` : ""}
         </p>
+        {pipeline.unsubtitledVideoUrl && (
+          <a
+            href={pipeline.unsubtitledVideoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1.5 inline-block text-[11px] font-semibold text-[#4C5BD6] hover:underline"
+          >
+            Download without subtitles
+          </a>
+        )}
+        {pipeline.subtitles?.status === "failed" && (
+          <p className="mt-1.5 text-[11px] text-amber-700">
+            Subtitles couldn't be added to this video — the subtitle cost was refunded.
+          </p>
+        )}
       </section>
 
       <div className="grid grid-cols-2 gap-2">

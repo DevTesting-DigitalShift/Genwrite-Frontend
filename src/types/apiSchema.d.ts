@@ -4530,7 +4530,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-04T12:16:16.548Z
+             * @default 2026-10-05T02:28:12.508Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5414,7 +5414,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-04T12:16:16.577Z
+                 * @default 2026-10-05T02:28:12.534Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5588,7 +5588,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-04T12:16:16.578Z
+                 * @default 2026-10-05T02:28:12.536Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5763,7 +5763,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-04T12:16:16.584Z
+             * @default 2026-10-05T02:28:12.541Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6490,7 +6490,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-04T12:16:16.598Z
+                 * @default 2026-10-05T02:28:12.555Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6664,7 +6664,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-04T12:16:16.599Z
+                 * @default 2026-10-05T02:28:12.557Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7096,7 +7096,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-04T12:16:16.609Z
+             * @default 2026-10-05T02:28:12.566Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8733,6 +8733,10 @@ export interface components {
                         unit: "image" | "megapixel" | "second" | "video";
                         usdPerUnit: number;
                         label: string;
+                        /** @description USD per second at each output resolution the model offers; usdPerUnit is the 720p default */
+                        resolutionPricing?: {
+                            [key: string]: number;
+                        };
                         /**
                          * @description Generated directly through Vertex AI rather than fal
                          * @enum {string}
@@ -8751,8 +8755,6 @@ export interface components {
                             seed: boolean;
                             aspectRatio: boolean;
                             negativePrompt: boolean;
-                            /** @description Resolution requested (and priced), null if the model has no such input */
-                            resolution: string | null;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
                             extra: {
@@ -8775,8 +8777,6 @@ export interface components {
                             seed: boolean;
                             aspectRatio: boolean;
                             negativePrompt: boolean;
-                            /** @description Resolution requested (and priced), null if the model has no such input */
-                            resolution: string | null;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
                             extra: {
@@ -8919,6 +8919,10 @@ export interface components {
                     unit: "image" | "megapixel" | "second" | "video";
                     usdPerUnit: number;
                     label: string;
+                    /** @description USD per second at each output resolution the model offers; usdPerUnit is the 720p default */
+                    resolutionPricing?: {
+                        [key: string]: number;
+                    };
                     /**
                      * @description Generated directly through Vertex AI rather than fal
                      * @enum {string}
@@ -8937,8 +8941,6 @@ export interface components {
                         seed: boolean;
                         aspectRatio: boolean;
                         negativePrompt: boolean;
-                        /** @description Resolution requested (and priced), null if the model has no such input */
-                        resolution: string | null;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
                         extra: {
@@ -8961,8 +8963,6 @@ export interface components {
                         seed: boolean;
                         aspectRatio: boolean;
                         negativePrompt: boolean;
-                        /** @description Resolution requested (and priced), null if the model has no such input */
-                        resolution: string | null;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
                         extra: {
@@ -9250,7 +9250,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "veed/subtitles" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9269,6 +9269,12 @@ export interface components {
              * @example 1
              */
             megapixels: number;
+            /**
+             * @description Output resolution, for resolution-priced video models
+             * @default null
+             * @enum {string|null}
+             */
+            resolution: "480p" | "720p" | "1080p" | null;
         };
         MediaPipelinePricingParams: {
             /**
@@ -9293,6 +9299,17 @@ export interface components {
              * @default false
              */
             useEndFrame: boolean;
+            /**
+             * @description Output resolution, for resolution-priced models
+             * @default null
+             * @enum {string|null}
+             */
+            resolution: "480p" | "720p" | "1080p" | null;
+            /**
+             * @description true adds the burned-in subtitles add-on
+             * @default false
+             */
+            subtitles: boolean;
             /**
              * @description false prices a video-only regenerate
              * @default true
@@ -9344,7 +9361,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "veed/subtitles" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
@@ -9393,7 +9410,7 @@ export interface components {
              * @default null
              * @enum {string|null}
              */
-            role: "first_frame" | "last_frame" | "video" | null;
+            role: "first_frame" | "last_frame" | "video" | "subtitled_video" | null;
             /**
              * @description True for pipeline candidates/attempts that aren't the delivered video
              * @default false
@@ -9469,6 +9486,13 @@ export interface components {
              * @example 5
              */
             durationSeconds: number;
+            /**
+             * @description Output resolution — must be one the model offers (its resolutionPricing); ignored for models without a resolution choice
+             * @default 720p
+             * @example 720p
+             * @enum {string}
+             */
+            resolution: "480p" | "720p" | "1080p";
         };
         ListMediaAssetsResponse: {
             data: components["schemas"]["MediaAssetResponse"][];
@@ -9528,10 +9552,44 @@ export interface components {
              */
             aspectRatio: "16:9" | "9:16";
             /**
+             * @description Output resolution; null when the model has no resolution choice
+             * @default null
+             * @enum {string|null}
+             */
+            resolution: "480p" | "720p" | "1080p" | null;
+            /**
              * @description Also generate an end frame and pin the video to it (off: animate forward from the first frame)
              * @default false
              */
             useEndFrame: boolean;
+            /** @description Burned-in subtitles: chosen style and progress; status null = not requested */
+            subtitles: {
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                style: "hustle" | "slay" | "beans" | "karl" | "simple" | null;
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                status: "processing" | "done" | "failed" | null;
+                /** @default null */
+                srt: string | null;
+                /**
+                 * @description MongoDB ObjectId, serialized as a hex string
+                 * @default null
+                 * @example 662f1a2b8c9d4e0012a3b4c5
+                 */
+                videoAssetId: string | null;
+                /** @default null */
+                error: string | null;
+            };
+            /**
+             * @description The video before subtitles were added
+             * @default null
+             */
+            unsubtitledVideoUrl: string | null;
             /** @description Refined prompts; source 'fallback' means the user's prompt was used as-is */
             refined: {
                 /** @default null */
@@ -9559,7 +9617,7 @@ export interface components {
              * @default refining
              * @enum {string}
              */
-            stage: "refining" | "first_frames" | "last_frames" | "video" | "completed" | "failed";
+            stage: "refining" | "first_frames" | "last_frames" | "video" | "subtitles" | "completed" | "failed";
             /**
              * @description Candidate round within the current frame stage
              * @default 0
@@ -9694,10 +9752,23 @@ export interface components {
              */
             aspectRatio: "16:9" | "9:16";
             /**
+             * @description Output resolution — must be one the model offers (its resolutionPricing); ignored for models without a resolution choice
+             * @default 720p
+             * @example 720p
+             * @enum {string}
+             */
+            resolution: "480p" | "720p" | "1080p";
+            /**
              * @description Also generate an end frame and pin the video to it (off: animate forward from the first frame)
              * @default false
              */
             useEndFrame: boolean;
+            /**
+             * @description Burn in subtitles of the spoken script in this style (a flat add-on); null = no subtitles
+             * @default null
+             * @enum {string|null}
+             */
+            subtitleStyle: "hustle" | "slay" | "beans" | "karl" | "simple" | null;
             /**
              * @description Intended use of the generated video
              * @default other
@@ -11863,7 +11934,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-04T12:16:16.532Z
+                             * @default 2026-10-05T02:28:12.478Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12010,7 +12081,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-04T12:16:16.535Z
+                             * @default 2026-10-05T02:28:12.483Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

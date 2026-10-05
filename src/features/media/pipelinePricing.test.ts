@@ -7,7 +7,8 @@ const catalogue = {
   "alibaba/wan-3.0/image-to-video": {
     kind: "video",
     unit: "second",
-    usdPerUnit: 0.2,
+    usdPerUnit: 0.1,
+    resolutionPricing: { "480p": 0.05, "720p": 0.1, "1080p": 0.2 },
     label: "Wan 3.0",
     frameVideo: { endFrame: "optional" },
   },
@@ -30,13 +31,28 @@ const catalogue = {
 } as never
 
 describe("estimatePipelineCredits", () => {
-  it("prices opening-frame candidates + 1.5× a per-second video", () => {
+  it("prices opening-frame candidates + 1.5× a per-second video at the picked resolution", () => {
+    const quote = (resolution?: "480p" | "720p" | "1080p") =>
+      estimatePipelineCredits(catalogue, {
+        videoModel: "alibaba/wan-3.0/image-to-video",
+        durationSeconds: 5,
+        resolution,
+      })
+    expect(quote("1080p")).toBe(164)
+    expect(quote("720p")).toBe(89)
+    expect(quote("480p")).toBe(51)
+    expect(quote()).toBe(89) // no resolution → the model's default (720p) rate
+  })
+
+  it("adds the flat subtitle add-on", () => {
     expect(
       estimatePipelineCredits(catalogue, {
         videoModel: "alibaba/wan-3.0/image-to-video",
         durationSeconds: 5,
+        resolution: "1080p",
+        subtitles: true,
       })
-    ).toBe(164)
+    ).toBe(196)
   })
 
   it("adds closing-frame candidates when the end frame is locked, without float rounding up", () => {
@@ -63,6 +79,7 @@ describe("estimatePipelineCredits", () => {
       estimatePipelineCredits(catalogue, {
         videoModel: "alibaba/wan-3.0/image-to-video",
         durationSeconds: 5,
+        resolution: "1080p",
         includeFrames: false,
       })
     ).toBe(150)
