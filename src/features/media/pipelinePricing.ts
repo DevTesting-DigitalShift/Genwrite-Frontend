@@ -7,14 +7,21 @@ export type VideoResolution = "480p" | "720p" | "1080p"
 /** What the backend uses when no resolution is picked (DEFAULT_VIDEO_RESOLUTION). */
 export const DEFAULT_RESOLUTION: VideoResolution = "720p"
 
-/** Subtitle add-on: forced alignment ($0.22) + one VEED render ($0.10) — SUBTITLES_USD. */
-const SUBTITLES_USD = 0.32
+/** The fal models whose rates make up a run's price besides the video model itself. Their live
+ * rates come from the catalogue (the backend serves today's fal prices); the numbers below are
+ * only the fallback for a catalogue that doesn't list them yet. */
+const FRAME_MODEL = "bytedance/seedream/v5/pro/edit"
+const SUBTITLE_MODELS = ["fal-ai/elevenlabs/forced-alignment", "veed/subtitles"] as const
+const FALLBACK_FRAME_USD = 0.0675
+const FALLBACK_SUBTITLES_USD = 0.32
 
 /** Mirrors the backend's pipeline/mediaPipeline.config.js + media.pricing.js#getPipelineCreditCost.
  * Keep in step with those: the backend charges its own number, this is only the quote shown
  * before submitting. */
-const FRAME_IMAGE_USD = 0.0675 // Seedream 5.0 Pro per 1080p frame candidate
 const FRAME_CANDIDATES = 2
+/** Each product screenshot after the first adds this share of a frame's price per opening-frame
+ * candidate (backend: EXTRA_REFERENCE_IMAGE_RATIO — $0.0045 on a $0.0675 frame). */
+const EXTRA_REFERENCE_IMAGE_RATIO = 1 / 15
 const VIDEO_RETRY_BUFFER = 1.5
 
 /** USD per unit at a resolution — the model's resolution rate, else its flat usdPerUnit
@@ -26,7 +33,7 @@ export const usdPerUnitFor = (
 
 /** Resolutions a model offers, low to high; empty when it has no resolution choice. */
 export const resolutionsOf = (model: MediaCatalogue[string] | undefined): VideoResolution[] =>
-  (["480p", "720p", "1080p"] as const).filter(r => model?.resolutionPricing?.[r] !== undefined)
+  (["480p", "720p", "1080p"] as const).filter((r) => model?.resolutionPricing?.[r] !== undefined)
 
 /** The picked resolution if the model offers it, else 720p, else its lowest. */
 export function effectiveResolution(
@@ -57,6 +64,7 @@ export function estimatePipelineCredits(
     resolution = null,
     useEndFrame = false,
     subtitles = false,
+    productImages = 0,
     includeFrames = true,
   }: {
     videoModel: string
@@ -64,6 +72,7 @@ export function estimatePipelineCredits(
     resolution?: VideoResolution | null
     useEndFrame?: boolean
     subtitles?: boolean
+    productImages?: number
     includeFrames?: boolean
   }
 ): number {
@@ -74,7 +83,15 @@ export function estimatePipelineCredits(
 
   // A (legacy) model that requires an end frame always gets one, as on the backend.
   const endFrame = useEndFrame || video.frameVideo?.endFrame === "required"
-  const framesUsd = includeFrames ? FRAME_IMAGE_USD * FRAME_CANDIDATES * (endFrame ? 2 : 1) : 0
+  const frameUsd = catalogue[FRAME_MODEL]?.usdPerUnit ?? FALLBACK_FRAME_USD
+  const productFeeUsd =
+    Math.max(0, productImages - 1) * frameUsd * EXTRA_REFERENCE_IMAGE_RATIO * FRAME_CANDIDATES
+  const framesUsd = includeFrames
+    ? frameUsd * FRAME_CANDIDATES * (endFrame ? 2 : 1) + productFeeUsd
+    : 0
+  const subtitlesUsd = SUBTITLE_MODELS.every((id) => catalogue[id])
+    ? SUBTITLE_MODELS.reduce((sum, id) => sum + catalogue[id].usdPerUnit, 0)
+    : FALLBACK_SUBTITLES_USD
 
-  return usdToCredits(framesUsd + videoUsd * VIDEO_RETRY_BUFFER + (subtitles ? SUBTITLES_USD : 0))
+  return usdToCredits(framesUsd + videoUsd * VIDEO_RETRY_BUFFER + (subtitles ? subtitlesUsd : 0))
 }

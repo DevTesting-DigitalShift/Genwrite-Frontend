@@ -7,6 +7,7 @@ export const PURPOSES = [
   { id: "thumbnail", label: "Thumbnail" },
   { id: "reel", label: "Reel" },
   { id: "social_post", label: "Social post" },
+  { id: "ugc_ad", label: "UGC ad" },
   { id: "other", label: "Other" },
 ] as const
 

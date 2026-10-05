@@ -6,6 +6,7 @@ export type MediaAsset = ApiResponse<"/media/{id}", "get">
 export type MediaAssetList = ApiResponse<"/media", "get">
 export type GenerateImagePayload = ApiRequestBody<"/media/image/generate", "post">
 export type GenerateVideoPayload = ApiRequestBody<"/media/video/generate", "post">
+export type EnhanceVideoPayload = ApiRequestBody<"/media/{id}/enhance", "post">
 export type MediaListParams = ApiQueryParams<"/media", "get">
 
 export const MediaAPI = {
@@ -38,6 +39,16 @@ export const MediaAPI = {
       return await apiGet("/media", { query: params as never })
     } catch (err) {
       return rethrow(err, "Failed to fetch media assets")
+    }
+  },
+
+  /** Upscales a finished video to a higher resolution — returns a NEW (queued) video asset and
+   * leaves the original in the library. */
+  enhance: async (id: string, payload: EnhanceVideoPayload): Promise<MediaAsset> => {
+    try {
+      return await apiPost("/media/{id}/enhance", payload as never, { params: { id } })
+    } catch (err) {
+      return rethrow(err, "Failed to enhance video")
     }
   },
 

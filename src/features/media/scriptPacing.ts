@@ -6,7 +6,7 @@ const LEAD_SECONDS = 1
 
 /** The spoken script a prompt quotes (the backend keeps quoted text word for word), or null. */
 export function extractQuotedScript(prompt: string): string | null {
-  const quotes = [...prompt.matchAll(/["“]([^"”]{2,})["”]/g)].map(m => m[1].trim())
+  const quotes = [...prompt.matchAll(/["“]([^"”]{2,})["”]/g)].map((m) => m[1].trim())
   return quotes.length > 0 ? quotes.join(" ") : null
 }
 
@@ -36,6 +36,6 @@ export function pacingAdvice(
   const neededSeconds = naturalSecondsFor(words)
   if (neededSeconds <= durationSeconds) return null
   const suggestedDuration =
-    [...durations].sort((a, b) => a - b).find(d => d >= neededSeconds) ?? null
+    [...durations].sort((a, b) => a - b).find((d) => d >= neededSeconds) ?? null
   return { words, neededSeconds, suggestedDuration }
 }

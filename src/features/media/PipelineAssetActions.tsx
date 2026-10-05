@@ -21,7 +21,7 @@ export function PipelineAssetActions({
 }) {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
+  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
   const { data: pipeline } = mediaPipelineQuery.useDetail(pipelineId)
   const regenerate = mediaPipelineQuery.useRegenerate({
     onSuccess: () => {
@@ -29,7 +29,7 @@ export function PipelineAssetActions({
       toast.success("Regenerating — we'll notify you when it's ready")
       onStarted?.()
     },
-    onError: err => toast.error(err.message || "Failed to regenerate"),
+    onError: (err) => toast.error(err.message || "Failed to regenerate"),
   })
 
   if (!pipeline) return null

@@ -17,6 +17,7 @@ import {
   type VideoResolution,
 } from "./pipelinePricing"
 import { pacingAdvice } from "./scriptPacing"
+import { ProductScreenshots } from "./ProductScreenshots"
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string }[] = [
   { id: "16:9", label: "Landscape 16:9" },
@@ -43,14 +44,14 @@ export function AutoVideoForm() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
+  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
 
   // Only image-to-video models can run this flow — the catalogue marks them with frameVideo.
   // Legacy ones stay priced for old runs but aren't offered for new ones.
   const models = useMemo<MediaModel[]>(
     () =>
       Object.entries(mediaCatalogue)
-        .filter(([, m]) => m.frameVideo && !m.legacy)
+        .filter(([, m]) => m.frameVideo && !m.legacy && !m.unavailable)
         .map(([id, m]) => ({ id, ...m })),
     [mediaCatalogue]
   )
@@ -63,8 +64,10 @@ export function AutoVideoForm() {
   const [lockEndFrame, setLockEndFrame] = useState(false)
   const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_RESOLUTION)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null)
+  const [productUrls, setProductUrls] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
-  const model = models.find(m => m.id === modelId) ?? models[0]
+  const model = models.find((m) => m.id === modelId) ?? models[0]
   const durations = model?.frameVideo?.durations ?? []
   // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
   const durationSeconds =
@@ -82,6 +85,10 @@ export function AutoVideoForm() {
   const videoResolution = effectiveResolution(model, resolution)
   // A quoted script longer than the clip allows comes out rushed — say so before they pay.
   const pacing = pacingAdvice(prompt, durationSeconds, durations)
+  // UGC ads can carry real product/app screenshots; any other purpose ignores them.
+  const isUgc = purpose === "ugc_ad"
+  const screenshots = isUgc ? productUrls : []
+  const takesScreenRefs = Boolean(model?.frameVideo?.referenceImages)
 
   const price = model
     ? estimatePipelineCredits(mediaCatalogue, {
@@ -90,6 +97,7 @@ export function AutoVideoForm() {
         resolution: videoResolution,
         useEndFrame,
         subtitles: subtitleStyle !== null,
+        productImages: screenshots.length,
       })
     : 0
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -97,13 +105,14 @@ export function AutoVideoForm() {
   const create = mediaPipelineQuery.useCreate({
     onSuccess: () => {
       setPrompt("")
+      setProductUrls([])
       loadAuthenticatedUser()
       toast.success("Video generation started — usually ready in 5–10 minutes", {
         description:
           "We'll check the frames and the video for defects and retry automatically if needed.",
       })
     },
-    onError: err => toast.error(err.message || "Failed to start video generation"),
+    onError: (err) => toast.error(err.message || "Failed to start video generation"),
   })
 
   const handleGenerate = () => {
@@ -112,6 +121,10 @@ export function AutoVideoForm() {
       return
     }
     if (!model) return
+    if (uploading) {
+      toast.error("Wait for the screenshots to finish uploading")
+      return
+    }
     if (userCredits < price) {
       handlePopup({
         title: "Insufficient Credits",
@@ -129,6 +142,7 @@ export function AutoVideoForm() {
       ...(videoResolution ? { resolution: videoResolution } : {}),
       useEndFrame,
       subtitleStyle,
+      productImageUrls: screenshots,
       purpose,
     } as CreateMediaPipelinePayload)
   }
@@ -148,9 +162,9 @@ export function AutoVideoForm() {
             id="auto-video-model"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={model?.id ?? ""}
-            onChange={e => setModelId(e.target.value)}
+            onChange={(e) => setModelId(e.target.value)}
           >
-            {models.map(m => (
+            {models.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>
@@ -166,10 +180,10 @@ export function AutoVideoForm() {
             id="auto-video-duration"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={durationSeconds}
-            onChange={e => setDuration(Number(e.target.value))}
+            onChange={(e) => setDuration(Number(e.target.value))}
             disabled={durations.length <= 1}
           >
-            {durations.map(d => (
+            {durations.map((d) => (
               <option key={d} value={d}>
                 {d} seconds
               </option>
@@ -185,9 +199,9 @@ export function AutoVideoForm() {
             id="auto-video-aspect"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={aspectRatio}
-            onChange={e => setAspectRatio(e.target.value as AspectRatio)}
+            onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
           >
-            {ASPECT_RATIOS.map(a => (
+            {ASPECT_RATIOS.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.label}
               </option>
@@ -203,9 +217,9 @@ export function AutoVideoForm() {
             id="auto-video-purpose"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={purpose}
-            onChange={e => setPurpose(e.target.value as Purpose)}
+            onChange={(e) => setPurpose(e.target.value as Purpose)}
           >
-            {PURPOSES.map(p => (
+            {PURPOSES.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
               </option>
@@ -213,6 +227,22 @@ export function AutoVideoForm() {
           </select>
         </div>
       </div>
+
+      {isUgc && (
+        <>
+          <ProductScreenshots
+            urls={productUrls}
+            onChange={setProductUrls}
+            onUploadingChange={setUploading}
+          />
+          {screenshots.length > 0 && !takesScreenRefs && (
+            <p className="-mt-3 mb-5 text-xs text-slate-500 sm:-mt-4 sm:mb-6">
+              This model animates the opening frame, which shows your screen. Models marked "product
+              refs" also receive the screenshots directly, which keeps the screen steadier.
+            </p>
+          )}
+        </>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-5 sm:mb-6">
         <div className="form-control w-full">
@@ -223,13 +253,13 @@ export function AutoVideoForm() {
             id="auto-video-resolution"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={videoResolution ?? ""}
-            onChange={e => setResolution(e.target.value as VideoResolution)}
+            onChange={(e) => setResolution(e.target.value as VideoResolution)}
             disabled={resolutionOptions.length <= 1}
           >
             {resolutionOptions.length === 0 ? (
               <option value="">Set by the model</option>
             ) : (
-              resolutionOptions.map(r => (
+              resolutionOptions.map((r) => (
                 <option key={r} value={r}>
                   {r}
                   {r === "1080p" ? " (sharpest)" : r === "480p" ? " (cheapest)" : ""}
@@ -247,10 +277,10 @@ export function AutoVideoForm() {
             id="auto-video-subtitles"
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={subtitleStyle ?? ""}
-            onChange={e => setSubtitleStyle((e.target.value || null) as SubtitleStyle | null)}
+            onChange={(e) => setSubtitleStyle((e.target.value || null) as SubtitleStyle | null)}
           >
             <option value="">No subtitles</option>
-            {SUBTITLE_STYLES.map(st => (
+            {SUBTITLE_STYLES.map((st) => (
               <option key={st.id} value={st.id}>
                 {st.label}
               </option>
@@ -265,7 +295,7 @@ export function AutoVideoForm() {
             type="checkbox"
             className="toggle toggle-primary toggle-sm mt-0.5"
             checked={lockEndFrame}
-            onChange={e => setLockEndFrame(e.target.checked)}
+            onChange={(e) => setLockEndFrame(e.target.checked)}
           />
           <span className="text-sm">
             <span className="font-semibold text-slate-800">Lock the ending frame</span>
@@ -287,7 +317,7 @@ export function AutoVideoForm() {
           id="auto-video-prompt"
           className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
           value={prompt}
-          onChange={e => setPrompt(e.target.value)}
+          onChange={(e) => setPrompt(e.target.value)}
           maxLength={2000}
           placeholder={
             'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'
@@ -338,7 +368,7 @@ export function AutoVideoForm() {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={create.isPending}
+          disabled={create.isPending || uploading}
           className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
         >
           {create.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Generate Video"}

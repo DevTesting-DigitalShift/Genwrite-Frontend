@@ -21,7 +21,7 @@ const STEPS: Step[] = [
 /** The closing-frame and subtitle steps only exist for runs that use them. */
 const stepsFor = (pipeline: MediaPipeline) =>
   STEPS.filter(
-    s =>
+    (s) =>
       (s.stage !== "last_frames" || pipeline.useEndFrame) &&
       (s.stage !== "subtitles" || pipeline.subtitles?.style)
   )
@@ -51,7 +51,9 @@ function stepDetail(pipeline: MediaPipeline): string {
 function Stepper({ pipeline }: { pipeline: MediaPipeline }) {
   const steps = stepsFor(pipeline)
   const current =
-    pipeline.stage === "completed" ? steps.length : steps.findIndex(s => s.stage === pipeline.stage) // -1 for "failed"
+    pipeline.stage === "completed"
+      ? steps.length
+      : steps.findIndex((s) => s.stage === pipeline.stage) // -1 for "failed"
   return (
     <ol className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {steps.map(({ label }, i) => {
@@ -106,7 +108,7 @@ function FrameThumb({ url, label }: { url: string | null; label: string }) {
 export function PipelineRuns() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore(s => s.catalogue.media)
+  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
   const { data } = mediaPipelineQuery.useList({ page: 1, limit: 10 })
@@ -115,12 +117,12 @@ export function PipelineRuns() {
       loadAuthenticatedUser()
       toast.success("Started a new attempt")
     },
-    onError: err => toast.error(err.message || "Failed to start a new attempt"),
+    onError: (err) => toast.error(err.message || "Failed to start a new attempt"),
   })
 
   const runs = useMemo(
     () =>
-      (data?.data ?? []).filter(p => {
+      (data?.data ?? []).filter((p) => {
         if (p.stage === "completed" || dismissed.has(p._id)) return false
         if (p.stage !== "failed") return true
         return Date.now() - new Date(p.updatedAt).getTime() < FAILED_VISIBLE_MS
@@ -154,7 +156,7 @@ export function PipelineRuns() {
 
   return (
     <div className="mb-6 space-y-3">
-      {runs.map(pipeline => (
+      {runs.map((pipeline) => (
         <div
           key={pipeline._id}
           className="rounded-lg border border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4"
@@ -196,7 +198,7 @@ export function PipelineRuns() {
               </button>
               <button
                 type="button"
-                onClick={() => setDismissed(prev => new Set(prev).add(pipeline._id))}
+                onClick={() => setDismissed((prev) => new Set(prev).add(pipeline._id))}
                 aria-label="Dismiss"
                 className="btn btn-sm h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center gap-1.5"
               >
