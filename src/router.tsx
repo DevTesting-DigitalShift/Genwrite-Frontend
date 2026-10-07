@@ -14,6 +14,7 @@ const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
 const PublicBlogReader = lazy(() => import("@pages/PublicBlogReader"))
 const BlogsPage = lazy(() => import("@pages/BlogsPage"))
+const CreatePage = lazy(() => import("@/features/create/CreatePage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
 const CampaignsListPage = lazy(() => import("@pages/campaigns/CampaignsListPage"))
@@ -123,6 +124,8 @@ const router = createBrowserRouter([
           { path: "dashboard", element: r(Dashboard) },
           { path: "editor", element: r(ToolBox) },
           { path: "blogs", element: r(BlogsPage) },
+          { path: "create/:kind", element: r(CreatePage) },
+          { path: "create/:kind/:id", element: r(CreatePage) },
           { path: "integrations", element: r(PluginsMain) },
           { path: "jobs", element: r(jobs) },
           { path: "trashcan", element: r(BlogsPage) },

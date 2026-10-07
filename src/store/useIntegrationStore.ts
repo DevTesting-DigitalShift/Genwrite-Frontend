@@ -12,7 +12,7 @@ export interface IntegrationsPayload {
 
 /**
  * Pure client-state mirror of the integrations list — a shared cache multiple independent
- * components (TextEditorSidebar, PluginsMain, AdvancedBlogModal, BulkBlogModal) populate via
+ * components (TextEditorSidebar, PluginsMain, and the create-form posting fields) populate via
  * integrationQuery.useList() so that passive readers (RegenerateModal, PostingPanel) don't
  * each need to fetch it themselves. No API calls happen here — every fetch/create/ping goes
  * through integrationQuery (Integration.query.ts), which then calls setIntegrations.

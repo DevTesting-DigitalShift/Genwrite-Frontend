@@ -1,5 +1,5 @@
 // Converts an AEO audit report (variable size, depends on chosen AEO token count)
-// into the compact { focusKeywords, keywords, allKeywords } shape JobModal expects.
+// into the compact { focusKeywords, keywords, allKeywords } shape the job form prefill expects.
 const MAX_TOPICS = 10
 const MAX_KEYWORDS = 15
 export const MAX_BLOGS_FROM_AUDIT = 10

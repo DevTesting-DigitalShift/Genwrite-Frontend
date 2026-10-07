@@ -28,6 +28,8 @@ export const BLOG_CONFIG = {
   // Content constraints
   CONSTRAINTS: {
     MAX_REFERENCE_LINKS: 4,
+    // The blog-generation endpoints (quick, advanced, job) reject more than 3.
+    MAX_BLOG_REFERENCE_LINKS: 3,
     MAX_FOCUS_KEYWORDS: 3,
     MAX_SECONDARY_KEYWORDS: 18, // Visible before "show more"
   },

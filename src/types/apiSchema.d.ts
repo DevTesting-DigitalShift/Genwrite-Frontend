@@ -3803,337 +3803,12 @@ export interface components {
                 [key: string]: unknown;
             });
         };
-        CreateBlogBody: {
-            /**
-             * @description The title of the blog post
-             * @example The Ultimate Guide to AI-Powered Content Creation
-             */
-            title: string;
-            /**
-             * @description The topic or subject of the blog post
-             * @example Artificial Intelligence
-             */
-            topic?: string;
-            /**
-             * @description The writing tone for the blog post
-             * @example Professional
-             */
-            tone: string;
-            /**
-             * @description Desired word count for the blog content
-             * @example 1500
-             */
-            userDefinedLength?: number;
-            /**
-             * @description Whether to use brand voice and guidelines
-             * @default false
-             * @example true
-             */
-            isCheckedBrand: boolean;
-            /**
-             * @description Brand ID to use for voice and guidelines (required if isCheckedBrand is true)
-             * @example 507f1f77bcf86cd799439011
-             */
-            brandId?: string;
-            /**
-             * @description Whether to generate AI images for the blog
-             * @default false
-             * @example true
-             */
-            isCheckedGeneratedImages: boolean;
-            /**
-             * @description Whether to use Unsplash stock images
-             * @default false
-             * @example false
-             */
-            isUnsplashActive: boolean;
-            /**
-             * @description Number of images allowed (0 means AI decides)
-             * @default 0
-             * @example 3
-             */
-            numberOfImages: number;
-            /**
-             * @description Whether to use quick generation mode
-             * @default false
-             * @example false
-             */
-            isCheckedQuick: boolean;
-            /**
-             * @description Brief description or outline for the blog
-             * @example Cover the latest AI trends and their impact on content creation
-             */
-            brief?: string;
-            /**
-             * @description Summary of the blog for reuse and interlinking
-             * @example This blog discusses AI tools for content creation.
-             */
-            summary?: string;
-            /**
-             * @description SEO keywords for the blog
-             * @example [
-             *       "AI",
-             *       "content creation",
-             *       "automation"
-             *     ]
-             */
-            keywords?: string[];
-            /**
-             * @description Primary focus keywords for SEO optimization
-             * @example [
-             *       "AI content creation",
-             *       "automated writing"
-             *     ]
-             */
-            focusKeywords?: string[];
-            /**
-             * @description Reference URLs for research and citations
-             * @example [
-             *       "https://example.com/ai-research"
-             *     ]
-             */
-            referenceLinks?: string[];
-            /**
-             * @description Array of image data (e.g., URLs, metadata)
-             * @example [
-             *       {
-             *         "url": "https://example.com/image.jpg",
-             *         "alt": "AI Image"
-             *       }
-             *     ]
-             */
-            images?: unknown[];
-            /**
-             * @description The main content of the blog post
-             * @default
-             * @example <p>Blog content here...</p>
-             */
-            content: string;
-            /**
-             * @description Reference to the User ID (ObjectId as string)
-             * @example 507f1f77bcf86cd799439012
-             */
-            author: string;
-            /**
-             * @description Template type for the blog structure
-             * @default Classic
-             * @example How to....
-             * @enum {string}
-             */
-            template: "Classic" | "Listicle" | "Product Review" | "How to...." | "News Article" | "Opinion Piece" | "Case Study" | "Interview" | "Other";
-            /**
-             * @description Category of the blog post
-             * @default other
-             * @example Technology
-             */
-            category: string;
-            /**
-             * @description Array of tags for the blog
-             * @example [
-             *       "tech",
-             *       "ai"
-             *     ]
-             */
-            tags?: string[];
-            /** @description SEO metadata for the blog */
-            seoMetadata?: {
-                /**
-                 * @description SEO title
-                 * @example AI Content Guide
-                 */
-                title?: string;
-                /**
-                 * @description SEO description
-                 * @example Learn about AI in content creation.
-                 */
-                description?: string;
-            };
-            /**
-             * @description AI model used for generation
-             * @default Gemini
-             * @example Gemini
-             */
-            aiModel: string;
-            /** @description AI generation information */
-            aiInfo?: {
-                /**
-                 * @description AI product name
-                 * @default Gemini
-                 * @example Gemini
-                 */
-                aiProduct: string;
-                /**
-                 * @description AI model version
-                 * @example 1.0
-                 */
-                aiModelVer?: string;
-                /**
-                 * Format: date-time
-                 * @description Date of AI generation
-                 * @example 2025-09-08T12:00:00.000Z
-                 */
-                generationDate?: string;
-                /**
-                 * @description Array of completed generation steps
-                 * @default []
-                 * @example [
-                 *       "outline",
-                 *       "content"
-                 *     ]
-                 */
-                generationSteps: string[];
-                /** @description Processing time details */
-                processingTime?: {
-                    /**
-                     * @description Total processing time in seconds
-                     * @default 0
-                     * @example 60
-                     */
-                    total: number;
-                    /**
-                     * @description Breakdown of time per step
-                     * @default {}
-                     * @example {
-                     *       "outline": 10,
-                     *       "content": 50
-                     *     }
-                     */
-                    breakdown: {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /**
-             * @description Reference to the Job ID (ObjectId as string)
-             * @example 507f1f77bcf86cd799439013
-             */
-            jobId?: string;
-            /** @description Blog generation options */
-            options?: {
-                /**
-                 * @description Whether to perform keyword research
-                 * @default false
-                 * @example true
-                 */
-                performKeywordResearch: boolean;
-                /**
-                 * @description Whether to include internal links
-                 * @default false
-                 * @example true
-                 */
-                includeInterlinks: boolean;
-                /**
-                 * @description Whether to include competitor research
-                 * @default false
-                 * @example true
-                 */
-                includeCompetitorResearch: boolean;
-                /**
-                 * @description Whether to add outbound links
-                 * @default false
-                 * @example true
-                 */
-                addOutBoundLinks: boolean;
-                /**
-                 * @description Whether to generate humanized content
-                 * @default false
-                 * @example true
-                 */
-                generateHumanisedContent: boolean;
-                /**
-                 * @description Whether to include FAQs
-                 * @default false
-                 * @example true
-                 */
-                includeFaqs: boolean;
-                /**
-                 * @description Whether to add a call-to-action
-                 * @default false
-                 * @example true
-                 */
-                addCTA: boolean;
-                /**
-                 * @description Whether to enable WordPress posting
-                 * @default false
-                 * @example false
-                 */
-                wordpressPosting: boolean;
-                /**
-                 * @description Whether to include a table of contents
-                 * @default false
-                 * @example true
-                 */
-                includeTableOfContents: boolean;
-                /**
-                 * @description Whether to embed YouTube videos
-                 * @default false
-                 * @example true
-                 */
-                embedYouTubeVideos: boolean;
-                /**
-                 * @description Whether to make content 8th-grade readable
-                 * @default false
-                 * @example true
-                 */
-                easyToUnderstand: boolean;
-                /**
-                 * @description Whether to humanise AI-generated content
-                 * @default false
-                 * @example true
-                 */
-                humanisation: boolean;
-                /**
-                 * @description Whether to use extended thinking for deeper content
-                 * @default false
-                 * @example false
-                 */
-                extendedThinking: boolean;
-                /**
-                 * @description Whether to perform deep research for the blog
-                 * @default false
-                 * @example false
-                 */
-                deepResearch: boolean;
-            };
-        };
         CreateBlogResponseWithDebug: components["schemas"]["CreateBlogResponse"] & {
             /**
              * @description Present when the request opted into debug mode
              * @enum {boolean}
              */
             debug?: true;
-        };
-        CreateQuickBlogBody: {
-            /**
-             * @description Blog template for quick generation
-             * @example Classic
-             */
-            template: string;
-            /**
-             * @description Keywords for quick blog generation
-             * @example [
-             *       "AI",
-             *       "automation",
-             *       "productivity"
-             *     ]
-             */
-            keywords: string[];
-            /**
-             * @description Focus keywords for SEO optimization
-             * @example [
-             *       "AI automation",
-             *       "productivity tools"
-             *     ]
-             */
-            focusKeywords: string[];
-            /**
-             * @description YouTube video links for content research
-             * @example [
-             *       "https://youtube.com/watch?v=example1",
-             *       "https://youtube.com/watch?v=example2"
-             *     ]
-             */
-            videoLinks: string[];
         };
         BulkBlogResponse: {
             /**
@@ -4149,111 +3824,6 @@ export interface components {
              *     ]
              */
             bulkBlogs: string[];
-        };
-        CreateMultipleBlogBody: {
-            /**
-             * @description Blog templates for bulk generation
-             * @example [
-             *       "Classic",
-             *       "Listicle",
-             *       "How to...."
-             *     ]
-             */
-            templates: string[];
-            /**
-             * @description Topics for blog generation
-             * @example [
-             *       "AI in Marketing",
-             *       "Content Automation",
-             *       "SEO Trends"
-             *     ]
-             */
-            topics: string[];
-            /**
-             * @description Whether to perform keyword research
-             * @example true
-             */
-            performKeywordResearch: boolean;
-            /**
-             * @description Writing tone for all blogs
-             * @example Professional and engaging
-             */
-            tone: string;
-            /**
-             * @description Base keywords for all blogs
-             * @example [
-             *       "AI",
-             *       "marketing",
-             *       "automation"
-             *     ]
-             */
-            keywords?: string[];
-            /**
-             * @description Word count for each blog
-             * @example 1500
-             */
-            userDefinedLength: number;
-            /**
-             * @description Image source for blogs
-             * @example unsplash
-             * @enum {string}
-             */
-            imageSource: "unsplash" | "generated" | "none";
-            /**
-             * @description Number of blogs to generate
-             * @example 5
-             */
-            numberOfBlogs: number;
-            /**
-             * @description Frequency between blog generations in seconds
-             * @example 3600
-             */
-            postFrequency: number;
-            /**
-             * @description Whether to use brand voice
-             * @example true
-             */
-            useBrandVoice?: boolean;
-            /**
-             * @description Whether to include internal links
-             * @example true
-             */
-            includeInterlinks?: boolean;
-            /**
-             * @description Whether to include FAQ sections
-             * @example true
-             */
-            includeFaqs?: boolean;
-            /**
-             * @description AI model to use
-             * @example gemini
-             */
-            aiModel?: string;
-            /**
-             * @description Whether to use competitor research
-             * @example true
-             */
-            useCompetitors?: boolean;
-            /**
-             * @description Whether to auto-post to WordPress
-             * @example false
-             */
-            wordpressPostStatus?: boolean;
-            /**
-             * @description Whether to include table of contents
-             * @example true
-             */
-            includeTableOfContents?: boolean;
-            /**
-             * @description Whether to generate AI images
-             * @example true
-             */
-            isCheckedGeneratedImages?: boolean;
-            /**
-             * @description Whether to add outbound links
-             * @example true
-             */
-            addOutBoundLinks?: boolean;
         };
         BlogsListResponse: {
             /**
@@ -4550,7 +4120,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-05T03:26:25.059Z
+             * @default 2026-10-06T12:13:04.167Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5434,7 +5004,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-05T03:26:25.085Z
+                 * @default 2026-10-06T12:13:04.225Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5608,7 +5178,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-05T03:26:25.086Z
+                 * @default 2026-10-06T12:13:04.227Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5783,7 +5353,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-05T03:26:25.092Z
+             * @default 2026-10-06T12:13:04.233Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6510,7 +6080,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-05T03:26:25.105Z
+                 * @default 2026-10-06T12:13:04.253Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6684,7 +6254,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-05T03:26:25.106Z
+                 * @default 2026-10-06T12:13:04.255Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -7116,7 +6686,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-05T03:26:25.117Z
+             * @default 2026-10-06T12:13:04.266Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8116,67 +7686,150 @@ export interface components {
                  * @enum {string}
                  */
                 imageSource: "none" | "stock" | "ai" | "upload";
+                /** @default 0 */
+                numberOfImages: number;
                 /**
                  * @description AI model used for generation
                  * @default gemini
                  */
                 aiModel: string;
+                /** @default true */
+                costCutter: boolean;
+                /** @default english */
+                languageToWrite: string;
+                /**
+                 * @description Whether the job writes in a brand voice (requires brandId)
+                 * @default false
+                 */
+                isCheckedBrand: boolean;
                 /**
                  * @description Brand voice to apply, if any
                  * @example 662f1a2b8c9d4e0012a3b4c5
                  */
                 brandId?: string | null;
-                /** @default false */
-                useBrandVoice: boolean;
-                /** @default true */
-                isCheckedGeneratedImages: boolean;
-                /** @default false */
-                isCheckedCustomImages: boolean;
-                /** @default true */
-                addCTA: boolean;
-                /** @default [] */
-                references: string[];
-                /** @default 0 */
-                numberOfImages: number;
+                /**
+                 * @description Reference URLs summarised into each blog (max 3)
+                 * @default []
+                 */
+                referenceLinks: string[];
                 /**
                  * @description Where generated blogs get auto-posted, if configured
                  * @example wordpress
                  * @enum {string|null}
                  */
+                postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                /** @deprecated */
+                isCheckedGeneratedImages?: boolean;
+                /** @deprecated */
+                useBrandVoice?: boolean;
+                /** @deprecated */
+                references?: string[];
+                /**
+                 * @deprecated
+                 * @enum {string|null}
+                 */
                 postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                /** @default english */
-                languageToWrite: string;
-                /** @default true */
-                costCutter: boolean;
-                /** @default false */
-                createBrandedImages: boolean;
+                /** @deprecated */
+                addCTA?: boolean;
+                /** @deprecated */
+                createBrandedImages?: boolean;
+                /** @deprecated */
+                isCheckedCustomImages?: boolean;
             };
             /** @description Additional options and settings for the job */
             options: {
-                /** @default false */
-                wordpressPosting: boolean;
-                /** @default false */
-                includeFaqs: boolean;
-                /** @default false */
-                includeCompetitorResearch: boolean;
-                /** @default false */
-                includeInterlinks: boolean;
-                /** @default false */
+                /**
+                 * @description Use the exact provided title instead of letting AI generate one
+                 * @default false
+                 * @example false
+                 */
+                exactTitle: boolean;
+                /**
+                 * @description Whether to run keyword research before generating the blog
+                 * @default false
+                 * @example false
+                 */
                 performKeywordResearch: boolean;
-                /** @default false */
-                includeTableOfContents: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to include internal links to other content
+                 * @default false
+                 * @example false
+                 */
+                includeInterlinks: boolean;
+                /**
+                 * @description Whether to research competitor content before generation
+                 * @default false
+                 * @example false
+                 */
+                includeCompetitorResearch: boolean;
+                /**
+                 * @description Whether to add outbound links to external sources
+                 * @default false
+                 * @example false
+                 */
                 addOutBoundLinks: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to include a FAQ section in the blog
+                 * @default false
+                 * @example false
+                 */
+                includeFaqs: boolean;
+                /**
+                 * @description Whether to add a call-to-action section to the blog
+                 * @default false
+                 * @example false
+                 */
+                addCTA: boolean;
+                /**
+                 * @description Whether to automatically post the blog to configured integrations once generated
+                 * @default false
+                 * @example false
+                 */
+                automaticPosting: boolean;
+                /**
+                 * @description Whether to include a table of contents in the blog
+                 * @default false
+                 * @example false
+                 */
+                includeTableOfContents: boolean;
+                /**
+                 * @description Whether to embed relevant YouTube videos in the blog
+                 * @default false
+                 * @example false
+                 */
                 embedYouTubeVideos: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to simplify the writing style for easier readability
+                 * @default false
+                 * @example false
+                 */
                 easyToUnderstand: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to apply humanisation processing to make the content sound less AI-generated
+                 * @default false
+                 * @example false
+                 */
                 humanisation: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to use extended AI thinking/reasoning during generation
+                 * @default false
+                 * @example false
+                 */
                 extendedThinking: boolean;
-                /** @default false */
+                /**
+                 * @description Whether to perform deep research before generating the blog
+                 * @default false
+                 * @example false
+                 */
                 deepResearch: boolean;
+                /**
+                 * @description Whether to generate brand-styled images; only takes effect when a brandId is set and imageSource is 'ai' or 'upload'
+                 * @default false
+                 * @example false
+                 */
+                createBrandedImages: boolean;
+                /** @deprecated */
+                wordpressPosting?: boolean;
             };
             /**
              * @description Blog IDs created by this job, keyed by creation date (YYYY-MM-DD)
@@ -11498,7 +11151,67 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateBlogBody"];
+                "application/json": {
+                    template: string | {
+                        name: string;
+                    };
+                    topic: string;
+                    focusKeywords?: string[];
+                    keywords?: string[];
+                    title?: string;
+                    tone: string;
+                    userDefinedLength: number;
+                    brief?: string;
+                    aiModel: string;
+                    /** @deprecated */
+                    isCheckedGeneratedImages?: boolean;
+                    /** @enum {string} */
+                    imageSource: "none" | "stock" | "ai" | "upload";
+                    numberOfImages: number;
+                    referenceLinks?: string[];
+                    isCheckedQuick: boolean;
+                    isCheckedBrand: boolean;
+                    /** @default english */
+                    languageToWrite?: string;
+                    /** @default true */
+                    costCutter?: boolean;
+                    brandId?: string;
+                    /** @enum {string|null} */
+                    postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @default {} */
+                    options?: {
+                        /** @default false */
+                        exactTitle?: boolean;
+                        /** @default false */
+                        performKeywordResearch?: boolean;
+                        /** @default false */
+                        includeFaqs?: boolean;
+                        /** @default false */
+                        includeInterlinks?: boolean;
+                        /** @default false */
+                        includeCompetitorResearch?: boolean;
+                        /** @default false */
+                        addOutBoundLinks?: boolean;
+                        /** @default false */
+                        addCTA?: boolean;
+                        /** @default false */
+                        automaticPosting?: boolean;
+                        /** @default false */
+                        includeTableOfContents?: boolean;
+                        /** @default false */
+                        embedYouTubeVideos?: boolean;
+                        /** @default false */
+                        easyToUnderstand?: boolean;
+                        /** @default false */
+                        humanisation?: boolean;
+                        /** @default false */
+                        extendedThinking?: boolean;
+                        /** @default false */
+                        deepResearch?: boolean;
+                        /** @default false */
+                        createBrandedImages?: boolean;
+                    };
+                };
             };
         };
         responses: {
@@ -11692,7 +11405,92 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateQuickBlogBody"];
+                "application/json": {
+                    topic: string;
+                    /** @enum {string} */
+                    template: "Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is";
+                    /** @default [] */
+                    keywords?: string[];
+                    /** @default [] */
+                    focusKeywords?: string[];
+                    imageSource: string;
+                    /** @default 0 */
+                    numberOfImages?: number;
+                    /** @enum {string} */
+                    type: "quick" | "yt";
+                    /** @default english */
+                    languageToWrite?: string;
+                    aiModel?: string;
+                    /** @default true */
+                    costCutter?: boolean;
+                    referenceLinks?: string[];
+                    options?: {
+                        exactTitle?: boolean;
+                        performKeywordResearch?: boolean;
+                        includeInterlinks?: boolean;
+                        includeCompetitorResearch?: boolean;
+                        addOutBoundLinks?: boolean;
+                        includeFaqs?: boolean;
+                        addCTA?: boolean;
+                        automaticPosting?: boolean;
+                        includeTableOfContents?: boolean;
+                        embedYouTubeVideos?: boolean;
+                        easyToUnderstand?: boolean;
+                        humanisation?: boolean;
+                        extendedThinking?: boolean;
+                        deepResearch?: boolean;
+                        createBrandedImages?: boolean;
+                    };
+                    /** @deprecated */
+                    otherLinks?: string[];
+                    /** @deprecated */
+                    references?: string[];
+                    /** @deprecated */
+                    useBrandVoice?: boolean;
+                    /**
+                     * @deprecated
+                     * @enum {string|null}
+                     */
+                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @deprecated */
+                    useCompetitors?: boolean;
+                    /** @deprecated */
+                    wordpressPostStatus?: boolean;
+                    /** @deprecated */
+                    wordpressPosting?: boolean;
+                    /** @deprecated */
+                    addImages?: boolean;
+                    /** @deprecated */
+                    exactTitle?: boolean;
+                    /** @deprecated */
+                    performKeywordResearch?: boolean;
+                    /** @deprecated */
+                    includeInterlinks?: boolean;
+                    /** @deprecated */
+                    includeCompetitorResearch?: boolean;
+                    /** @deprecated */
+                    addOutBoundLinks?: boolean;
+                    /** @deprecated */
+                    includeFaqs?: boolean;
+                    /** @deprecated */
+                    addCTA?: boolean;
+                    /** @deprecated */
+                    automaticPosting?: boolean;
+                    /** @deprecated */
+                    includeTableOfContents?: boolean;
+                    /** @deprecated */
+                    embedYouTubeVideos?: boolean;
+                    /** @deprecated */
+                    easyToUnderstand?: boolean;
+                    /** @deprecated */
+                    humanisation?: boolean;
+                    /** @deprecated */
+                    extendedThinking?: boolean;
+                    /** @deprecated */
+                    deepResearch?: boolean;
+                    /** @deprecated */
+                    createBrandedImages?: boolean;
+                };
             };
         };
         responses: {
@@ -11734,7 +11532,92 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateQuickBlogBody"];
+                "application/json": {
+                    topic: string;
+                    /** @enum {string} */
+                    template: "Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is";
+                    /** @default [] */
+                    keywords?: string[];
+                    /** @default [] */
+                    focusKeywords?: string[];
+                    imageSource: string;
+                    /** @default 0 */
+                    numberOfImages?: number;
+                    /** @enum {string} */
+                    type: "quick" | "yt";
+                    /** @default english */
+                    languageToWrite?: string;
+                    aiModel?: string;
+                    /** @default true */
+                    costCutter?: boolean;
+                    referenceLinks?: string[];
+                    options?: {
+                        exactTitle?: boolean;
+                        performKeywordResearch?: boolean;
+                        includeInterlinks?: boolean;
+                        includeCompetitorResearch?: boolean;
+                        addOutBoundLinks?: boolean;
+                        includeFaqs?: boolean;
+                        addCTA?: boolean;
+                        automaticPosting?: boolean;
+                        includeTableOfContents?: boolean;
+                        embedYouTubeVideos?: boolean;
+                        easyToUnderstand?: boolean;
+                        humanisation?: boolean;
+                        extendedThinking?: boolean;
+                        deepResearch?: boolean;
+                        createBrandedImages?: boolean;
+                    };
+                    /** @deprecated */
+                    otherLinks?: string[];
+                    /** @deprecated */
+                    references?: string[];
+                    /** @deprecated */
+                    useBrandVoice?: boolean;
+                    /**
+                     * @deprecated
+                     * @enum {string|null}
+                     */
+                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @deprecated */
+                    useCompetitors?: boolean;
+                    /** @deprecated */
+                    wordpressPostStatus?: boolean;
+                    /** @deprecated */
+                    wordpressPosting?: boolean;
+                    /** @deprecated */
+                    addImages?: boolean;
+                    /** @deprecated */
+                    exactTitle?: boolean;
+                    /** @deprecated */
+                    performKeywordResearch?: boolean;
+                    /** @deprecated */
+                    includeInterlinks?: boolean;
+                    /** @deprecated */
+                    includeCompetitorResearch?: boolean;
+                    /** @deprecated */
+                    addOutBoundLinks?: boolean;
+                    /** @deprecated */
+                    includeFaqs?: boolean;
+                    /** @deprecated */
+                    addCTA?: boolean;
+                    /** @deprecated */
+                    automaticPosting?: boolean;
+                    /** @deprecated */
+                    includeTableOfContents?: boolean;
+                    /** @deprecated */
+                    embedYouTubeVideos?: boolean;
+                    /** @deprecated */
+                    easyToUnderstand?: boolean;
+                    /** @deprecated */
+                    humanisation?: boolean;
+                    /** @deprecated */
+                    extendedThinking?: boolean;
+                    /** @deprecated */
+                    deepResearch?: boolean;
+                    /** @deprecated */
+                    createBrandedImages?: boolean;
+                };
             };
         };
         responses: {
@@ -11776,7 +11659,105 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateMultipleBlogBody"];
+                "application/json": {
+                    templates: ("Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is")[];
+                    topics: string[];
+                    tone: string;
+                    /** @default 1000 */
+                    userDefinedLength?: number;
+                    /** @default 1 */
+                    numberOfBlogs?: number;
+                    /** @default 0 */
+                    numberOfImages?: number;
+                    /** @default [] */
+                    keywords?: string[];
+                    /**
+                     * @default none
+                     * @enum {string}
+                     */
+                    imageSource?: "none" | "stock" | "ai" | "upload";
+                    /** @deprecated */
+                    isCheckedGeneratedImages?: boolean;
+                    /** @default false */
+                    isCheckedBrand?: boolean;
+                    brandId?: string | null;
+                    /** @default 600 */
+                    postFrequency?: number;
+                    /** @default gemini */
+                    aiModel?: string;
+                    /** @enum {string|null} */
+                    postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @default english */
+                    languageToWrite?: string;
+                    /** @default true */
+                    costCutter?: boolean;
+                    options?: {
+                        exactTitle?: boolean;
+                        performKeywordResearch?: boolean;
+                        includeInterlinks?: boolean;
+                        includeCompetitorResearch?: boolean;
+                        addOutBoundLinks?: boolean;
+                        includeFaqs?: boolean;
+                        addCTA?: boolean;
+                        automaticPosting?: boolean;
+                        includeTableOfContents?: boolean;
+                        embedYouTubeVideos?: boolean;
+                        easyToUnderstand?: boolean;
+                        humanisation?: boolean;
+                        extendedThinking?: boolean;
+                        deepResearch?: boolean;
+                        createBrandedImages?: boolean;
+                    };
+                    /** @deprecated */
+                    otherLinks?: string[];
+                    /** @deprecated */
+                    references?: string[];
+                    /** @deprecated */
+                    useBrandVoice?: boolean;
+                    /**
+                     * @deprecated
+                     * @enum {string|null}
+                     */
+                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @deprecated */
+                    useCompetitors?: boolean;
+                    /** @deprecated */
+                    wordpressPostStatus?: boolean;
+                    /** @deprecated */
+                    wordpressPosting?: boolean;
+                    /** @deprecated */
+                    addImages?: boolean;
+                    /** @deprecated */
+                    exactTitle?: boolean;
+                    /** @deprecated */
+                    performKeywordResearch?: boolean;
+                    /** @deprecated */
+                    includeInterlinks?: boolean;
+                    /** @deprecated */
+                    includeCompetitorResearch?: boolean;
+                    /** @deprecated */
+                    addOutBoundLinks?: boolean;
+                    /** @deprecated */
+                    includeFaqs?: boolean;
+                    /** @deprecated */
+                    addCTA?: boolean;
+                    /** @deprecated */
+                    automaticPosting?: boolean;
+                    /** @deprecated */
+                    includeTableOfContents?: boolean;
+                    /** @deprecated */
+                    embedYouTubeVideos?: boolean;
+                    /** @deprecated */
+                    easyToUnderstand?: boolean;
+                    /** @deprecated */
+                    humanisation?: boolean;
+                    /** @deprecated */
+                    extendedThinking?: boolean;
+                    /** @deprecated */
+                    deepResearch?: boolean;
+                    /** @deprecated */
+                    createBrandedImages?: boolean;
+                };
             };
         };
         responses: {
@@ -12017,7 +11998,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-05T03:26:25.030Z
+                             * @default 2026-10-06T12:13:04.124Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12164,7 +12145,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-05T03:26:25.034Z
+                             * @default 2026-10-06T12:13:04.130Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -18342,66 +18323,66 @@ export interface operations {
                          * @enum {string}
                          */
                         imageSource?: "none" | "stock" | "ai" | "upload";
+                        /** @default 0 */
+                        numberOfImages?: number;
                         /**
                          * @description AI model used for generation
                          * @default gemini
                          */
                         aiModel?: string;
+                        /** @default true */
+                        costCutter?: boolean;
+                        /** @default english */
+                        languageToWrite?: string;
+                        isCheckedBrand?: boolean;
                         /**
                          * @description Brand voice to apply, if any
                          * @example 662f1a2b8c9d4e0012a3b4c5
                          */
                         brandId?: string | null;
-                        /** @default false */
-                        useBrandVoice?: boolean;
-                        /** @default true */
-                        isCheckedGeneratedImages?: boolean;
-                        /** @default false */
-                        isCheckedCustomImages?: boolean;
-                        /** @default true */
-                        addCTA?: boolean;
-                        /** @default [] */
-                        references?: string[];
-                        /** @default 0 */
-                        numberOfImages?: number;
+                        referenceLinks?: string[];
                         /**
                          * @description Where generated blogs get auto-posted, if configured
                          * @example wordpress
                          * @enum {string|null}
                          */
+                        postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                        /** @deprecated */
+                        isCheckedGeneratedImages?: boolean;
+                        /** @deprecated */
+                        useBrandVoice?: boolean;
+                        /** @deprecated */
+                        references?: string[];
+                        /**
+                         * @deprecated
+                         * @enum {string|null}
+                         */
                         postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                        /** @default english */
-                        languageToWrite?: string;
-                        /** @default true */
-                        costCutter?: boolean;
-                        /** @default false */
+                        /** @deprecated */
+                        addCTA?: boolean;
+                        /** @deprecated */
                         createBrandedImages?: boolean;
+                        /** @deprecated */
+                        isCheckedCustomImages?: boolean;
                     };
                     options: {
-                        /** @default false */
-                        wordpressPosting?: boolean;
-                        /** @default false */
-                        includeFaqs?: boolean;
-                        /** @default false */
-                        includeCompetitorResearch?: boolean;
-                        /** @default false */
-                        includeInterlinks?: boolean;
-                        /** @default false */
+                        exactTitle?: boolean;
                         performKeywordResearch?: boolean;
-                        /** @default false */
-                        includeTableOfContents?: boolean;
-                        /** @default false */
+                        includeInterlinks?: boolean;
+                        includeCompetitorResearch?: boolean;
                         addOutBoundLinks?: boolean;
-                        /** @default false */
+                        includeFaqs?: boolean;
+                        addCTA?: boolean;
+                        automaticPosting?: boolean;
+                        includeTableOfContents?: boolean;
                         embedYouTubeVideos?: boolean;
-                        /** @default false */
                         easyToUnderstand?: boolean;
-                        /** @default false */
                         humanisation?: boolean;
-                        /** @default false */
                         extendedThinking?: boolean;
-                        /** @default false */
                         deepResearch?: boolean;
+                        createBrandedImages?: boolean;
+                        /** @deprecated */
+                        wordpressPosting?: boolean;
                     };
                     /**
                      * @default stop
@@ -18517,8 +18498,14 @@ export interface operations {
                     /** @default gemini */
                     aiModel?: string;
                     /** @enum {string|null} */
+                    postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    referenceLinks?: string[];
+                    /**
+                     * @deprecated
+                     * @enum {string|null}
+                     */
                     postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                    /** @default [] */
+                    /** @deprecated */
                     references?: string[];
                     /** @default {} */
                     overrides?: {
@@ -18671,36 +18658,22 @@ export interface operations {
                      * @example Daily Tech Blog Generation
                      */
                     name?: string;
-                    /** @description Job schedule configuration */
                     schedule?: {
-                        /**
-                         * @description Type of schedule for the job
-                         * @example weekly
-                         * @enum {string}
-                         */
+                        /** @enum {string} */
                         type: "daily" | "weekly" | "weekdays" | "monthly" | "custom";
                         /**
-                         * @description Days of the week (0 = Sunday, 6 = Saturday) — used with 'weekly' type
-                         * @example [
-                         *       1,
-                         *       3,
-                         *       5
-                         *     ]
+                         * @description 0 = Sunday, 6 = Saturday
+                         * @default []
                          */
                         daysOfWeek?: number[];
                         /**
-                         * @description Days of the month (1-31) — used with 'monthly' type
-                         * @example [
-                         *       1,
-                         *       15,
-                         *       30
-                         *     ]
+                         * @description 1-31
+                         * @default []
                          */
                         daysOfMonth?: number[];
-                        /** @description Custom specific dates — used with 'custom' type */
+                        /** @default [] */
                         customDates?: (string | null)[];
                     };
-                    /** @description Blog configuration and settings for the job */
                     blogs?: {
                         /**
                          * @description Number of blogs to generate per run
@@ -18733,67 +18706,66 @@ export interface operations {
                          * @enum {string}
                          */
                         imageSource?: "none" | "stock" | "ai" | "upload";
+                        /** @default 0 */
+                        numberOfImages?: number;
                         /**
                          * @description AI model used for generation
                          * @default gemini
                          */
                         aiModel?: string;
+                        /** @default true */
+                        costCutter?: boolean;
+                        /** @default english */
+                        languageToWrite?: string;
+                        isCheckedBrand?: boolean;
                         /**
                          * @description Brand voice to apply, if any
                          * @example 662f1a2b8c9d4e0012a3b4c5
                          */
                         brandId?: string | null;
-                        /** @default false */
-                        useBrandVoice?: boolean;
-                        /** @default true */
-                        isCheckedGeneratedImages?: boolean;
-                        /** @default false */
-                        isCheckedCustomImages?: boolean;
-                        /** @default true */
-                        addCTA?: boolean;
-                        /** @default [] */
-                        references?: string[];
-                        /** @default 0 */
-                        numberOfImages?: number;
+                        referenceLinks?: string[];
                         /**
                          * @description Where generated blogs get auto-posted, if configured
                          * @example wordpress
                          * @enum {string|null}
                          */
+                        postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                        /** @deprecated */
+                        isCheckedGeneratedImages?: boolean;
+                        /** @deprecated */
+                        useBrandVoice?: boolean;
+                        /** @deprecated */
+                        references?: string[];
+                        /**
+                         * @deprecated
+                         * @enum {string|null}
+                         */
                         postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                        /** @default english */
-                        languageToWrite?: string;
-                        /** @default true */
-                        costCutter?: boolean;
-                        /** @default false */
+                        /** @deprecated */
+                        addCTA?: boolean;
+                        /** @deprecated */
                         createBrandedImages?: boolean;
+                        /** @deprecated */
+                        isCheckedCustomImages?: boolean;
                     };
-                    /** @description Additional options and settings for the job */
                     options?: {
-                        /** @default false */
-                        wordpressPosting?: boolean;
-                        /** @default false */
-                        includeFaqs?: boolean;
-                        /** @default false */
-                        includeCompetitorResearch?: boolean;
-                        /** @default false */
-                        includeInterlinks?: boolean;
-                        /** @default false */
+                        exactTitle?: boolean;
                         performKeywordResearch?: boolean;
-                        /** @default false */
-                        includeTableOfContents?: boolean;
-                        /** @default false */
+                        includeInterlinks?: boolean;
+                        includeCompetitorResearch?: boolean;
                         addOutBoundLinks?: boolean;
-                        /** @default false */
+                        includeFaqs?: boolean;
+                        addCTA?: boolean;
+                        automaticPosting?: boolean;
+                        includeTableOfContents?: boolean;
                         embedYouTubeVideos?: boolean;
-                        /** @default false */
                         easyToUnderstand?: boolean;
-                        /** @default false */
                         humanisation?: boolean;
-                        /** @default false */
                         extendedThinking?: boolean;
-                        /** @default false */
                         deepResearch?: boolean;
+                        createBrandedImages?: boolean;
+                        /** @deprecated */
+                        wordpressPosting?: boolean;
                     };
                 };
             };

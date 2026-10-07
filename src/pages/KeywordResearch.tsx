@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useMemo } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Table,
@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { createFormPath } from "@/features/create/createForms.registry"
 import useAnalysisStore from "@store/useAnalysisStore"
 import { analysisQuery } from "@api/Analysis/Analysis.query"
 import { toast } from "sonner"
@@ -35,9 +36,6 @@ import {
   ArrowUp01,
 } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
-import useJobStore from "@store/useJobStore"
-import { useQueryClient } from "@tanstack/react-query"
-import LoadingScreen from "@/components/ui/LoadingScreen"
 import { Helmet } from "react-helmet-async"
 
 import {
@@ -52,7 +50,6 @@ import dayjs from "dayjs"
 import ConnectedTools from "@components/ConnectedTools"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
 
-const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 const KEYWORD_LIMIT = 20
 
 const KeywordResearch = () => {
@@ -74,13 +71,10 @@ const KeywordResearch = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [autoSelectVisible, setAutoSelectVisible] = useState(false)
-  const [showAdvancedBlogModal, setShowAdvancedBlogModal] = useState(false)
   const [sorting, setSorting] = useState<any[]>([])
   const [rowSelection, setRowSelection] = useState<any>({})
 
   const navigate = useNavigate()
-  const { openJobModal } = useJobStore()
-  const queryClient = useQueryClient()
 
   const {
     keywordAnalysis: keywordAnalysisResult,
@@ -88,7 +82,6 @@ const KeywordResearch = () => {
     clearKeywordAnalysis,
     setKeywordAnalysis,
     setSelectedKeywords,
-    setPendingImport,
   } = useAnalysisStore()
 
   const { mutate: analyzeKeywordsMutate, isPending: analyzing } = analysisQuery.useAnalyzeKeywords(
@@ -290,20 +283,27 @@ const KeywordResearch = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  const proceedWithSelectedKeywords = async (type: any) => {
+  /** Hands the picked keywords to a create form as router-state prefill. */
+  const proceedWithSelectedKeywords = (type: "blog" | "job") => {
     const finalKeywords = selectedKeywords?.allKeywords || []
-    setSelectedKeywords({
-      focusKeywords: finalKeywords.slice(0, 3),
-      keywords: finalKeywords.slice(3),
-      allKeywords: finalKeywords,
-    })
-    setPendingImport(type)
-
     if (type === "blog") {
-      setShowAdvancedBlogModal(true)
+      navigate(createFormPath("advanced"), {
+        state: {
+          prefill: {
+            focusKeywords: finalKeywords.slice(0, 3),
+            keywords: finalKeywords.slice(3),
+          },
+        },
+      })
     } else {
-      navigate("/jobs")
-      openJobModal()
+      navigate(createFormPath("job"), {
+        state: {
+          prefill: {
+            topics: finalKeywords,
+            keywords: finalKeywords,
+          },
+        },
+      })
     }
   }
 
@@ -881,15 +881,6 @@ const KeywordResearch = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Suspense fallback={<LoadingScreen />}>
-        {showAdvancedBlogModal && (
-          <AdvancedBlogModal
-            closeFnc={() => setShowAdvancedBlogModal(false)}
-            queryClient={queryClient}
-          />
-        )}
-      </Suspense>
     </div>
   )
 }

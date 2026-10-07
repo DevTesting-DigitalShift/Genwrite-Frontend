@@ -16,13 +16,12 @@ import {
   ChevronRight,
 } from "lucide-react"
 import useAuthStore from "@store/useAuthStore"
-import useJobStore from "@store/useJobStore"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
 import { jobsQuery } from "@api/Job/Job.query"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import JobModal from "@/layout/Jobs/JobModal"
+import { createFormPath } from "@/features/create/createForms.registry"
 import JobCard from "@/layout/Jobs/JobCard"
 import JobExpandedPanel from "@/layout/Jobs/JobExpandedPanel"
 import { useQueryClient } from "@tanstack/react-query"
@@ -300,7 +299,6 @@ const Jobs = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
-  const openJobModal = useJobStore((state) => state.openJobModal)
   const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const [searchQuery, _setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState(() => {
@@ -318,7 +316,6 @@ const Jobs = () => {
   const updateUserPartial = useAuthStore((state) => state.updateUserPartial)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
   const {
     data: queryJobs = [],
     isLoading: queryLoading,
@@ -375,9 +372,6 @@ const Jobs = () => {
     if (!user) {
       queryClient.removeQueries({ queryKey: ["jobs"] })
       setCurrentPage(1)
-      setIsUserLoaded(false)
-    } else {
-      setIsUserLoaded(!!(user?.name || user?.credits))
     }
   }, [user, queryClient])
 
@@ -392,15 +386,15 @@ const Jobs = () => {
   const handleOpenJobModal = useCallback(() => {
     guardWrite(() => {
       if (!checkJobLimit()) return
-      openJobModal(null)
+      navigate(createFormPath("job"))
     })
-  }, [checkJobLimit, openJobModal, guardWrite])
+  }, [checkJobLimit, navigate, guardWrite])
 
   const handleEditJob = useCallback(
     (job: any) => {
-      openJobModal(job)
+      navigate(createFormPath("job", job._id))
     },
-    [openJobModal]
+    [navigate]
   )
 
   const handleRefresh = () => {
@@ -726,7 +720,6 @@ const Jobs = () => {
           )}
         </div>
 
-        <JobModal user={user} userPlan={userPlan} isUserLoaded={isUserLoaded} />
       </div>
     </>
   )

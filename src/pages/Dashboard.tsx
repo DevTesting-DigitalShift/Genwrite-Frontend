@@ -1,16 +1,14 @@
 import { asApiError } from "@/types/api"
-import { useState, useEffect, useMemo, lazy, Suspense } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
-import useJobStore from "@store/useJobStore"
-import useAnalysisStore from "@store/useAnalysisStore"
 import useBlogStore from "@store/useBlogStore"
 import { toast } from "sonner"
 import GoThrough from "../components/dashboardModals/GoThrough"
 import LoadingScreen from "@components/ui/LoadingScreen"
-import { ACTIVE_MODELS } from "@/data/dashModels"
+import { createFormPath, type CreateFormKind } from "@/features/create/createForms.registry"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { analysisQuery } from "@api/Analysis/Analysis.query"
@@ -42,20 +40,14 @@ import relativeTime from "dayjs/plugin/relativeTime"
 dayjs.extend(relativeTime)
 
 // lazy imports
-const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
-const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
-const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogModal"))
 
 const Dashboard = () => {
-  const [activeModel, setActiveModel] = useState("")
   const [_loading, setLoading] = useState<any>(true)
   const [showWhatsNew, setShowWhatsNew] = useState<any>(false)
 
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
-  const { openJobModal } = useJobStore()
-  const { clearSelectedKeywords } = useAnalysisStore()
   const { isReadOnlyWorkspace, guardWrite, readOnlyMessage } = useReadOnlyGuard()
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState<any>(false)
@@ -203,32 +195,9 @@ const Dashboard = () => {
     sessionStorage.setItem("hasSeenGoThrough", "true")
   }
 
-  const handleCloseActiveModal = () => {
-    if ([ACTIVE_MODELS.Advanced_Blog].includes(activeModel)) {
-      clearSelectedKeywords()
-    }
-    setActiveModel("")
-  }
-
-  const _openSecondStepJobModal = () => {
-    setActiveModel("")
-    navigate("/jobs")
-    openJobModal()
-  }
-
-  const renderModel = () => {
-    switch (activeModel) {
-      case ACTIVE_MODELS.Quick_Blog:
-        return <QuickBlogModal type="quick" closeFnc={handleCloseActiveModal} />
-      case ACTIVE_MODELS.YouTube_Blog:
-        return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
-      case ACTIVE_MODELS.Advanced_Blog:
-        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} />
-      case ACTIVE_MODELS.Bulk_Blog:
-        return <BulkBlogModal closeFnc={handleCloseActiveModal} />
-      default:
-        return null
-    }
+  /** Blog-creation tools open their single-page form; the rest navigate as before. */
+  const openTool = (tool: { formKind?: CreateFormKind }) => {
+    if (tool.formKind) navigate(createFormPath(tool.formKind))
   }
 
   // --- Tool Categorization ---
@@ -291,7 +260,6 @@ const Dashboard = () => {
         }}
       />
 
-      {activeModel && renderModel()}
 
       <motion.div
         className="min-h-screen p-4 md:p-8 space-y-12"
@@ -492,7 +460,7 @@ const Dashboard = () => {
                 className={`group relative bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-none hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between min-h-[180px] ${
                   isReadOnlyWorkspace ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                 }`}
-                onClick={() => guardWrite(() => setActiveModel(tool.modelKey ?? ""))}
+                onClick={() => guardWrite(() => openTool(tool))}
               >
                 {isReadOnlyWorkspace && (
                   <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-200">
@@ -555,7 +523,7 @@ const Dashboard = () => {
                         // spend the owner's credits, so they're no safer to open.
                         disabled={isReadOnlyWorkspace}
                         disabledReason={readOnlyMessage}
-                        onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey ?? "")}
+                        onClick={() => tool.type === "modal" && openTool(tool)}
                       />
                     ))}
                   </div>

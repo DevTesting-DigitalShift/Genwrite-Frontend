@@ -11,6 +11,8 @@ interface RHFSwitchFieldProps<TFieldValues extends FieldValues> {
   description?: string
   disabled?: boolean
   className?: string
+  /** Runs after the value is written — for toggles that reset or enable other fields. */
+  onValueChange?: (checked: boolean) => void
 }
 
 /** Generic boolean toggle wired to react-hook-form — the "auto suggest / auto apply" style field. */
@@ -21,6 +23,7 @@ export function RHFSwitchField<TFieldValues extends FieldValues>({
   description,
   disabled,
   className,
+  onValueChange,
 }: RHFSwitchFieldProps<TFieldValues>) {
   return (
     <Controller
@@ -37,7 +40,10 @@ export function RHFSwitchField<TFieldValues extends FieldValues>({
           <Switch
             id={name}
             checked={!!field.value}
-            onCheckedChange={field.onChange}
+            onCheckedChange={(checked) => {
+              field.onChange(checked)
+              onValueChange?.(checked)
+            }}
             disabled={disabled}
           />
         </div>

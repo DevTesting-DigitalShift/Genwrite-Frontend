@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { ImageSource, AiModel, Tone, Language, ScheduleType } from "./forms.types"
+import { GENERATION_OPTION_KEYS, type GenerationOptionKey } from "@/forms/shared/options"
 
 export const imageSourceSchema = z
   .enum([ImageSource.NONE, ImageSource.STOCK, ImageSource.AI])
@@ -85,88 +86,76 @@ export const brandVoicePayloadSchema = z.object({
 export type BrandVoicePayload = z.infer<typeof brandVoicePayloadSchema>
 
 // ============================================================================
+// SHARED WIRE FRAGMENTS
+// ============================================================================
+//
+// Every generation endpoint speaks the same key names, taken from `models/Blog.js` on the
+// backend: scalars at the top level, feature toggles under `options`, links in
+// `referenceLinks`, the brand switch as `isCheckedBrand`, the posting target as
+// `postingDefaultType`. The fragments below are spread into each request schema.
+
+/** `options` as sent on the wire; every toggle defaults off. */
+export const generationOptionsPayloadSchema = z.object(
+  Object.fromEntries(
+    GENERATION_OPTION_KEYS.map((key) => [key, z.boolean().default(false)])
+  ) as Record<GenerationOptionKey, z.ZodDefault<z.ZodBoolean>>
+)
+
+const referenceLinksPayload = z
+  .array(z.string().url())
+  .max(3)
+  .default([])
+  .describe("Reference links or YouTube video URLs (max 3)")
+
+const brandPayload = {
+  isCheckedBrand: z.boolean().default(false).describe("Whether to write in a brand voice"),
+  brandId: z.string().nullable().optional().describe("Brand voice ID when isCheckedBrand is true"),
+}
+
+const aiPayload = {
+  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
+  costCutter: z.boolean().default(true).describe("Use AI Flash model for 50% credit savings"),
+}
+
+const writingPayload = {
+  tone: toneSchema.describe("Tone of voice for the blog content"),
+  userDefinedLength: z
+    .number()
+    .min(500)
+    .max(5000)
+    .default(1000)
+    .describe("Target word count (500-5000)"),
+  languageToWrite: languageSchema
+    .default(Language.ENGLISH)
+    .describe("Target language for the blog content"),
+}
+
+// ============================================================================
 // QUICK BLOG FINAL DATA SCHEMA
 // ============================================================================
 
 export const quickBlogFinalDataSchema = z.object({
-  topic: z
-    .string()
-    .min(1, "Topic is required")
-    .describe("The main topic or subject of the blog post"),
+  type: z.enum(["quick", "yt"]).describe("Blog type: quick (standard) or yt (YouTube-based)"),
+  topic: z.string().min(1, "Topic is required").describe("The main topic of the blog post"),
+  template: z.string().nullable().describe("Selected blog template name"),
 
-  exactTitle: z
-    .boolean()
-    .default(false)
-    .describe("Whether to use the topic as the exact blog title"),
+  keywords: z.array(z.string()).default([]).describe("Secondary keywords for SEO"),
+  focusKeywords: z.array(z.string()).max(3).default([]).describe("Primary focus keywords (max 3)"),
+  referenceLinks: referenceLinksPayload,
 
-  performKeywordResearch: z
-    .boolean()
-    .default(false)
-    .describe("Whether to perform AI-powered keyword research"),
-
-  addImages: z.boolean().default(false).describe("Whether to add images to the blog"),
-
-  imageSource: imageSourceSchema
-    .default(ImageSource.NONE)
-    .describe("Source of images when addImages is true"),
-
+  imageSource: imageSourceSchema.default(ImageSource.NONE).describe("Where images come from"),
   numberOfImages: z
     .number()
     .min(0)
     .max(15)
     .default(0)
-    .describe("Number of images to add (0 = AI decides); 0 whenever addImages is off"),
+    .describe("Number of images (0 = AI decides); 0 whenever images are off"),
 
-  template: z.string().nullable().describe("Selected blog template name"),
+  languageToWrite: writingPayload.languageToWrite,
+  aiModel: aiPayload.aiModel,
+  costCutter: aiPayload.costCutter,
 
-  keywords: z.array(z.string()).default([]).describe("Secondary keywords for SEO optimization"),
-
-  focusKeywords: z
-    .array(z.string())
-    .max(3)
-    .default([])
-    .describe("Primary focus keywords (max 3) for SEO"),
-
-  languageToWrite: languageSchema
-    .default(Language.ENGLISH)
-    .describe("Target language for the blog content"),
-
-  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
-
-  easyToUnderstand: z
-    .boolean()
-    .default(false)
-    .describe("Use v2 system prompts for 8th grader level readability"),
-
-  embedYouTubeVideos: z
-    .boolean()
-    .default(false)
-    .describe("Embed YouTube videos in the blog content"),
-
-  type: z.enum(["quick", "yt"]).describe("Blog type: quick (standard) or yt (YouTube-based)"),
-
-  otherLinks: z
-    .array(z.string().url())
-    .max(3)
-    .default([])
-    .describe("Reference links or YouTube video URLs (max 3)"),
-
-  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
-
-  deepResearch: z
-    .boolean()
-    .default(false)
-    .describe("Extensive multi-source investigative research"),
-
-  humanisation: z
-    .boolean()
-    .default(false)
-    .describe("Natural linguistic patterns to bypass AI filters"),
-
-  createBrandedImages: z
-    .boolean()
-    .default(false)
-    .describe("Create AI images with brand voice characteristics"),
+  options: generationOptionsPayloadSchema,
 })
 
 export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSchema>
@@ -176,117 +165,23 @@ export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSche
 // ============================================================================
 
 export const bulkBlogFinalDataSchema = z.object({
-  templates: z
-    .array(z.string())
-    .min(1, "At least one template is required")
-    .describe("Selected blog template names"),
+  templates: z.array(z.string()).min(1, "At least one template is required"),
+  topics: z.array(z.string()).min(1, "At least one topic is required"),
+  keywords: z.array(z.string()).default([]),
 
-  topics: z
-    .array(z.string())
-    .min(1, "At least one topic is required")
-    .describe("List of blog topics to generate"),
+  ...writingPayload,
+  ...aiPayload,
+  ...brandPayload,
 
-  keywords: z
-    .array(z.string())
-    .default([])
-    .describe("Keywords for SEO (required if performKeywordResearch is false)"),
-
-  performKeywordResearch: z
-    .boolean()
-    .default(true)
-    .describe("Whether to perform AI-powered keyword research"),
-
-  tone: toneSchema,
-
-  languageToWrite: languageSchema
-    .default(Language.ENGLISH)
-    .describe("Target language for blog content"),
-
-  userDefinedLength: z
-    .number()
-    .min(500)
-    .max(5000)
-    .default(1000)
-    .describe("Target word count for each blog (500-5000)"),
-
-  imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Source of images for blogs"),
-
-  isCheckedBrand: z.boolean().default(false).describe("Whether to use a custom brand voice"),
-
-  useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
-
-  includeInterlinks: z.boolean().default(true).describe("Whether to include internal links"),
-
-  includeFaqs: z.boolean().default(true).describe("Whether to include FAQ section"),
-
-  numberOfBlogs: z
-    .number()
-    .min(1)
-    .max(10)
-    .default(1)
-    .describe("Number of blogs to generate (1-10)"),
-
-  numberOfImages: z
-    .number()
-    .min(0)
-    .max(15)
-    .default(0)
-    .describe("Number of images per blog (0 = AI decides)"),
-
-  wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
-
+  numberOfBlogs: z.number().min(1).max(10).default(1).describe("Number of blogs (1-10)"),
   postFrequency: z.number().default(600).describe("Post frequency in seconds"),
 
-  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
+  imageSource: imageSourceSchema.default(ImageSource.NONE).describe("Where images come from"),
+  numberOfImages: z.number().min(0).max(15).default(0),
 
-  includeTableOfContents: z
-    .boolean()
-    .default(false)
-    .describe("Whether to include table of contents"),
+  postingDefaultType: postingTypeSchema.optional(),
 
-  isCheckedGeneratedImages: z
-    .boolean()
-    .default(true)
-    .describe("Whether images should be generated/included"),
-
-  addOutBoundLinks: z.boolean().default(false).describe("Whether to include outbound links"),
-
-  blogImages: z.array(z.any()).optional().describe("Custom uploaded images (File objects)"),
-
-  postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
-
-  brandId: z.string().nullable().optional().describe("Brand voice ID when isCheckedBrand is true"),
-
-  addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
-
-  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
-
-  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
-
-  deepResearch: z
-    .boolean()
-    .default(false)
-    .describe("Extensive multi-source investigative research"),
-
-  humanisation: z
-    .boolean()
-    .default(false)
-    .describe("Natural linguistic patterns to bypass AI filters"),
-
-  easyToUnderstand: z
-    .boolean()
-    .default(false)
-    .describe("Use v2 system prompts for 8th grader level readability"),
-
-  embedYouTubeVideos: z
-    .boolean()
-    .default(false)
-    .describe("Embed YouTube videos in the blog content"),
-
-  createBrandedImages: z
-    .boolean()
-    .default(false)
-    .describe("Create AI images with brand voice characteristics"),
+  options: generationOptionsPayloadSchema,
 })
 
 export type BulkBlogFinalDataSchemaType = z.infer<typeof bulkBlogFinalDataSchema>
@@ -297,14 +192,11 @@ export type BulkBlogFinalDataSchemaType = z.infer<typeof bulkBlogFinalDataSchema
 
 export const jobScheduleSchema = z.object({
   type: scheduleTypeSchema.default(ScheduleType.DAILY).describe("Schedule frequency type"),
-
   customDates: z.array(z.string()).default([]).describe("Custom dates for 'custom' schedule type"),
-
   daysOfWeek: z
     .array(z.number().min(0).max(6))
     .default([])
     .describe("Days of week (0-6, Sun-Sat) for 'weekly' schedule"),
-
   daysOfMonth: z
     .array(z.number().min(1).max(31))
     .default([])
@@ -313,137 +205,28 @@ export const jobScheduleSchema = z.object({
 
 export const jobBlogConfigSchema = z.object({
   numberOfBlogs: z.number().min(1).max(10).default(1).describe("Number of blogs per schedule run"),
+  topics: z.array(z.string()).min(1, "At least one topic is required"),
+  keywords: z.array(z.string()).default([]),
+  templates: z.array(z.string()).min(1, "At least one template is required"),
+  referenceLinks: referenceLinksPayload,
 
-  topics: z
-    .array(z.string())
-    .min(1, "At least one topic is required")
-    .describe("List of blog topics"),
+  ...writingPayload,
+  ...aiPayload,
+  ...brandPayload,
 
-  keywords: z.array(z.string()).default([]).describe("Keywords for SEO optimization"),
+  imageSource: imageSourceSchema.default(ImageSource.NONE),
+  numberOfImages: z.number().min(0).max(15).default(0),
 
-  references: z
-    .array(z.string().url("Please enter valid URLs"))
-    .max(3, "Maximum 3 references allowed")
-    .default([])
-    .describe("Reference URLs (max 3)"),
-
-  templates: z
-    .array(z.string())
-    .min(1, "At least one template is required")
-    .describe("Selected template names"),
-
-  tone: toneSchema.default(Tone.PROFESSIONAL).describe("Tone of voice for content"),
-
-  userDefinedLength: z.number().min(500).max(5000).default(1000).describe("Target word count"),
-
-  imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Image source type"),
-
-  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for generation"),
-
-  brandId: z.string().nullable().optional().describe("Brand voice ID"),
-
-  useBrandVoice: z.boolean().default(false).describe("Use custom brand voice"),
-
-  isCheckedGeneratedImages: z.boolean().default(true).describe("Enable image generation"),
-
-  addCTA: z.boolean().default(true).describe("Add call-to-action"),
-
-  numberOfImages: z.number().min(0).max(15).default(0).describe("Number of images"),
-
-  blogImages: z.array(z.any()).optional().describe("Custom image files"),
-
-  postingType: postingTypeSchema.optional().describe("Auto-posting platform"),
-
-  languageToWrite: languageSchema.default(Language.ENGLISH).describe("Content language"),
-
-  costCutter: z.boolean().default(true).describe("Enable cost cutter mode"),
-
-  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
-
-  deepResearch: z
-    .boolean()
-    .default(false)
-    .describe("Extensive multi-source investigative research"),
-
-  humanisation: z
-    .boolean()
-    .default(false)
-    .describe("Natural linguistic patterns to bypass AI filters"),
-
-  easyToUnderstand: z
-    .boolean()
-    .default(false)
-    .describe("Use v2 system prompts for 8th grader level readability"),
-
-  embedYouTubeVideos: z
-    .boolean()
-    .default(false)
-    .describe("Embed YouTube videos in the blog content"),
-
-  createBrandedImages: z
-    .boolean()
-    .default(false)
-    .describe("Create AI images with brand voice characteristics"),
-
-  enableAdvanced: z
-    .boolean()
-    .default(false)
-    .describe("Whether the job was configured through the advanced step; persisted so that reopening the job restores that step"),
+  postingDefaultType: postingTypeSchema.optional(),
 })
 
-export const jobOptionsSchema = z.object({
-  wordpressPosting: z.boolean().default(false).describe("Enable automatic WordPress posting"),
-
-  includeFaqs: z.boolean().default(false).describe("Include FAQ section"),
-
-  includeCompetitorResearch: z.boolean().default(false).describe("Perform competitor research"),
-
-  includeInterlinks: z.boolean().default(false).describe("Include internal links"),
-
-  performKeywordResearch: z.boolean().default(false).describe("Auto-generate keywords"),
-
-  includeTableOfContents: z.boolean().default(false).describe("Include table of contents"),
-
-  addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
-
-  easyToUnderstand: z
-    .boolean()
-    .default(false)
-    .describe("Use v2 system prompts for 8th grader level readability"),
-
-  embedYouTubeVideos: z
-    .boolean()
-    .default(false)
-    .describe("Embed YouTube videos in the blog content"),
-
-  brandId: z.string().nullable().optional().describe("Brand voice ID for job"),
-  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
-  deepResearch: z
-    .boolean()
-    .default(false)
-    .describe("Extensive multi-source investigative research"),
-  humanisation: z
-    .boolean()
-    .default(false)
-    .describe("Natural linguistic patterns to bypass AI filters"),
-  createBrandedImages: z
-    .boolean()
-    .default(false)
-    .describe("Create AI images with brand voice characteristics"),
+export const jobFinalDataSchema = z.object({
+  name: z.string().min(1, "Job name is required").describe("Name of the job"),
+  schedule: jobScheduleSchema.describe("Job schedule configuration"),
+  blogs: jobBlogConfigSchema.describe("Blog generation configuration"),
+  options: generationOptionsPayloadSchema.describe("Per-blog feature toggles"),
+  status: z.enum(["active", "stop"]).default("stop").describe("Current job status"),
 })
-
-export const jobFinalDataSchema = z
-  .object({
-    name: z.string().min(1, "Job name is required").describe("Name of the job"),
-
-    schedule: jobScheduleSchema.describe("Job schedule configuration"),
-
-    blogs: jobBlogConfigSchema.describe("Blog generation configuration"),
-
-    options: jobOptionsSchema.describe("Additional job options"),
-
-    status: z.enum(["active", "stop"]).default("stop").describe("Current job status"),
-  })
 
 export type JobFinalDataSchemaType = z.infer<typeof jobFinalDataSchema>
 
@@ -451,112 +234,31 @@ export type JobFinalDataSchemaType = z.infer<typeof jobFinalDataSchema>
 // ADVANCED BLOG FINAL DATA SCHEMA
 // ============================================================================
 
-export const advancedBlogOptionsSchema = z.object({
-  exactTitle: z.boolean().default(false).describe("Use exact title as provided"),
+export const advancedBlogFinalDataSchema = z.object({
+  template: z.string().min(1, "Template is required").describe("Selected template name"),
+  topic: z.string().min(1, "Topic is required").describe("Blog topic/subject"),
+  title: z.string().optional().describe("Blog title (optional if performKeywordResearch)"),
+  brief: z.string().default("").describe("Brief section or special instructions"),
 
-  performKeywordResearch: z.boolean().default(false).describe("Auto-generate title and keywords"),
+  focusKeywords: z.array(z.string()).max(3).optional(),
+  keywords: z.array(z.string()).optional(),
+  referenceLinks: referenceLinksPayload,
 
-  includeFaqs: z.boolean().default(false).describe("Include FAQ section"),
+  ...writingPayload,
+  ...aiPayload,
+  isCheckedBrand: brandPayload.isCheckedBrand,
+  brandId: z.string().optional().describe("Brand voice ID (required if isCheckedBrand)"),
 
-  includeInterlinks: z.boolean().default(false).describe("Include internal links"),
+  imageSource: imageSourceWithUploadSchema.default(ImageSource.NONE).describe("Image source type"),
+  numberOfImages: z.number().min(0).max(15).default(0).describe("Number of images (0 = AI decides)"),
+  blogImages: z.array(z.any()).optional().describe("Custom uploaded images"),
 
-  includeCompetitorResearch: z.boolean().default(false).describe("Perform competitor research"),
+  isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
 
-  addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
+  postingDefaultType: postingTypeSchema.optional(),
 
-  addCTA: z.boolean().default(false).describe("Add call-to-action"),
-
-  easyToUnderstand: z
-    .boolean()
-    .default(false)
-    .describe("Use v2 system prompts for 8th grader level readability"),
-
-  embedYouTubeVideos: z
-    .boolean()
-    .default(false)
-    .describe("Embed YouTube videos in the blog content"),
-  extendedThinking: z.boolean().default(false).describe("Deepen AI reasoning for logical outputs"),
-  deepResearch: z
-    .boolean()
-    .default(false)
-    .describe("Extensive multi-source investigative research"),
-  humanisation: z
-    .boolean()
-    .default(false)
-    .describe("Natural linguistic patterns to bypass AI filters"),
-  createBrandedImages: z
-    .boolean()
-    .default(false)
-    .describe("Create AI images with brand voice characteristics"),
-
-  // POST /blogs (createBlog.schema.js) only recognizes automatic-posting on/off here —
-  // there is no top-level wordpressPostStatus/postingType on that endpoint.
-  automaticPosting: z.boolean().default(false).describe("Enable automatic posting"),
+  options: generationOptionsPayloadSchema,
 })
-
-export const advancedBlogFinalDataSchema = z
-  .object({
-    template: z.string().min(1, "Template is required").describe("Selected template name"),
-
-    topic: z.string().min(1, "Topic is required").describe("Blog topic/subject"),
-
-    focusKeywords: z
-      .array(z.string())
-      .max(3)
-      .optional()
-      .describe("Focus keywords (max 3, optional if performKeywordResearch)"),
-
-    keywords: z
-      .array(z.string())
-      .optional()
-      .describe("Secondary keywords (optional if performKeywordResearch)"),
-
-    title: z.string().optional().describe("Blog title (optional if performKeywordResearch)"),
-
-    tone: toneSchema.describe("Tone of voice for content"),
-
-    userDefinedLength: z
-      .number()
-      .min(500)
-      .max(5000)
-      .default(1000)
-      .describe("Target word count (500-5000)"),
-
-    brief: z.string().default("").describe("Brief section or special instructions"),
-
-    aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
-
-    isCheckedGeneratedImages: z.boolean().default(false).describe("Enable image generation"),
-
-    imageSource: imageSourceWithUploadSchema
-      .default(ImageSource.STOCK)
-      .describe("Image source type"),
-
-    numberOfImages: z
-      .number()
-      .min(0)
-      .max(15)
-      .default(0)
-      .describe("Number of images (0 = AI decides)"),
-
-    blogImages: z.array(z.any()).optional().describe("Custom uploaded images"),
-
-    referenceLinks: z.array(z.string().url()).max(3).default([]).describe("Reference URLs (max 3)"),
-
-    isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
-
-    isCheckedBrand: z.boolean().default(false).describe("Use custom brand voice"),
-
-    brandId: z.string().optional().describe("Brand voice ID (required if isCheckedBrand)"),
-
-    languageToWrite: languageSchema
-      .default(Language.ENGLISH)
-      .describe("Target language for content"),
-
-    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
-
-    options: advancedBlogOptionsSchema.describe("Advanced blog options"),
-  })
 
 export type AdvancedBlogFinalDataSchemaType = z.infer<typeof advancedBlogFinalDataSchema>
 

@@ -15,7 +15,6 @@ import {
 
 import { FaYoutube } from "react-icons/fa"
 import { ImMagicWand } from "react-icons/im"
-import { ACTIVE_MODELS } from "@/data/dashModels"
 import type { Costs } from "@/data/costs"
 
 export const categories = [
@@ -37,7 +36,7 @@ export const tools = [
     color: "text-purple-600",
     bgColor: "bg-purple-50",
     type: "modal",
-    modelKey: ACTIVE_MODELS.Quick_Blog,
+    formKind: "quick" as const,
     category: "blog",
     isPopular: true,
     stats: "2M",
@@ -50,7 +49,7 @@ export const tools = [
     color: "text-red-600",
     bgColor: "bg-red-50",
     type: "modal",
-    modelKey: ACTIVE_MODELS.YouTube_Blog,
+    formKind: "youtube" as const,
     category: "youtube",
   },
   {
@@ -61,7 +60,7 @@ export const tools = [
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     type: "modal",
-    modelKey: ACTIVE_MODELS.Advanced_Blog,
+    formKind: "advanced" as const,
     category: "blog",
   },
   {
@@ -72,7 +71,7 @@ export const tools = [
     color: "text-orange-600",
     bgColor: "bg-orange-50",
     type: "modal",
-    modelKey: ACTIVE_MODELS.Bulk_Blog,
+    formKind: "bulk" as const,
     category: "blog",
   },
   {

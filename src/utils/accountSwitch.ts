@@ -6,7 +6,6 @@ import useCreditLogStore from "@store/useCreditLogStore"
 import useEditorStore from "@store/useEditorStore"
 import useImageStore from "@store/useImageStore"
 import useIntegrationStore from "@store/useIntegrationStore"
-import useJobStore from "@store/useJobStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import { queryClient } from "@utils/queryClient"
 import * as sessionStore from "@utils/sessionStore"
@@ -15,7 +14,6 @@ import { connectSocket, disconnectSocket } from "@utils/socket"
 // Every account-scoped Zustand store that caches data in plain (non-persisted) module
 // state and would otherwise leak from one account into another across a switch.
 const ACCOUNT_SCOPED_STORES = [
-  useJobStore,
   useBlogStore,
   useAnalysisStore,
   useEditorStore,
