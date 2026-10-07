@@ -49,14 +49,14 @@ function Harness({
 
 describe("FormSection", () => {
   it("starts closed, stays mounted, and opens itself when a field inside has an error", async () => {
-    const { container } = render(<Harness />)
-    const details = container.querySelector("details") as HTMLDetailsElement
-    expect(details.open).toBe(false)
+    render(<Harness />)
+    const trigger = screen.getByRole("button", { name: /Hidden section/ })
+    expect(trigger).toHaveAttribute("aria-expanded", "false")
     // Body is mounted even while closed, so its fields stay registered with the form.
     expect(screen.getByLabelText("Keywords")).toBeTruthy()
 
     fireEvent.click(screen.getByText("fail"))
-    await waitFor(() => expect(details.open).toBe(true))
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"))
     expect(screen.getByText("1 to fix")).toBeTruthy()
   })
 })

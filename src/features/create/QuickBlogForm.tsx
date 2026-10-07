@@ -11,6 +11,7 @@ import {
   ImageSettingsFields,
   RHFTagsField,
   RHFTextField,
+  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
@@ -29,13 +30,14 @@ import {
   toQuickBlogPayload,
   type QuickBlogFormValues,
 } from "@/forms/quick/quick.schema"
-import { useGenerationCost } from "@/forms/shared/cost"
+import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
 import { validateLink } from "@/forms/shared/links"
 
 /**
- * Quick / YouTube blog as a single page. Visible: template, topic, language, keywords,
- * images, and the YouTube links a `yt` blog cannot start without. Collapsed: AI model and
- * the writing switches, which most users never touch.
+ * Quick / YouTube blog as a single page, in the four groups every create form uses:
+ * Template, Basics (what to write about), AI & Images, and Advanced options for everything
+ * else. Visible by default: Template and Basics; AI & Images and Advanced stay collapsed
+ * for the common case, since the defaults they hold are already sensible.
  */
 export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
   const form = useZodForm(quickBlogFormSchema, quickBlogFormDefaults(type))
@@ -46,7 +48,7 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
 
   const values = useWatch({ control }) as QuickBlogFormValues
   const researching = values.options?.performKeywordResearch
-  const estimatedCost = useGenerationCost(values, { wordCount: QUICK_BLOG_WORD_COUNT })
+  const cost = useGenerationCostBreakdown(values, { wordCount: QUICK_BLOG_WORD_COUNT })
 
   const send = useCallback(
     (payload: ReturnType<typeof toQuickBlogPayload>) =>
@@ -57,7 +59,7 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
   const { submit, isSubmitting, sentRef } = useFormSubmission({
     loadingMessage: `Creating ${type === "quick" ? "quick" : "YouTube"} blog...`,
     debugName: type === "yt" ? "YouTubeBlog" : "QuickBlog",
-    estimatedCost,
+    estimatedCost: cost.total,
     send,
   })
 
@@ -83,14 +85,21 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
         onSubmit={onSubmit}
         submitLabel="Generate blog"
         isSubmitting={isSubmitting}
-        estimatedCost={estimatedCost}
+        estimatedCost={cost.total}
         costNote={values.costCutter ? "(-50% off)" : undefined}
+        costLines={toCostLines(cost)}
+        selectionSummary={values.template ?? undefined}
       >
         <FormSection title="Template" description="How the blog is structured" fields={["template"]} defaultOpen>
           <TemplatePickerField mode="single" name="template" />
         </FormSection>
 
-        <FormSection title="Content" defaultOpen fields={["topic", "keywords", "focusKeywords", "referenceLinks"]}>
+        <FormSection
+          title="Basics"
+          description="What the blog is about"
+          defaultOpen
+          fields={["topic", "keywords", "focusKeywords", "referenceLinks"]}
+        >
           <RHFTextField control={control} name="topic" label="Topic" required placeholder="Enter the blog topic" />
 
           {isYouTube && (
@@ -108,7 +117,7 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
           <WritingStyleFields fields={["language"]} />
 
           <ToggleListField
-            keys={["performKeywordResearch"]}
+            keys={["exactTitle", "performKeywordResearch"]}
             onToggle={{
               performKeywordResearch: (checked) => {
                 if (!checked) return
@@ -140,21 +149,7 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               />
             </>
           )}
-        </FormSection>
 
-        <FormSection title="Images" fields={["imageSource", "numberOfImages"]} defaultOpen>
-          <ImageSettingsFields />
-        </FormSection>
-
-        <FormSection
-          title="Advanced options"
-          description="AI model, cost cutter and writing style"
-          fields={["aiModel"]}
-        >
-          <AiModelFields />
-          <ToggleListField
-            keys={isYouTube ? ["exactTitle", "easyToUnderstand", "humanisation"] : ["exactTitle", "easyToUnderstand", "humanisation", "embedYouTubeVideos"]}
-          />
           {!isYouTube && (
             <RHFTagsField
               control={control}
@@ -164,6 +159,26 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               validate={(link) => validateLink(link, "reference")}
               placeholder="Enter full URLs (e.g., https://example.com)"
             />
+          )}
+        </FormSection>
+
+        <FormSection
+          title="AI & images"
+          description="Model, cost cutter and image source"
+          fields={["aiModel", "imageSource", "numberOfImages"]}
+        >
+          <AiModelFields />
+          <ImageSettingsFields />
+        </FormSection>
+
+        <FormSection title="Advanced options" description="Writing style and extra switches">
+          <SubGroup label="Writing style">
+            <ToggleListField keys={["easyToUnderstand", "humanisation"]} />
+          </SubGroup>
+          {!isYouTube && (
+            <SubGroup label="Content">
+              <ToggleListField keys={["embedYouTubeVideos"]} />
+            </SubGroup>
           )}
         </FormSection>
       </CreateFormShell>

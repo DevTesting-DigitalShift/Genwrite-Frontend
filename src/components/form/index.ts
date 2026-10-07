@@ -1,5 +1,6 @@
 export { CreateFormShell } from "./CreateFormShell"
 export { FormSection } from "./FormSection"
+export { SubGroup } from "./SubGroup"
 export { ToggleListField } from "./ToggleListField"
 export { ImageSettingsFields } from "./generation/ImageSettingsFields"
 export { AiModelFields } from "./generation/AiModelFields"

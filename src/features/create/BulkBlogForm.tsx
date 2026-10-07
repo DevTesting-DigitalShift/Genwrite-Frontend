@@ -13,6 +13,7 @@ import {
   PostingFields,
   RHFNumberField,
   RHFTagsField,
+  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
@@ -32,13 +33,13 @@ import {
   toBulkBlogPayload,
   type BulkBlogFormValues,
 } from "@/forms/bulk/bulk.schema"
-import { useGenerationCost } from "@/forms/shared/cost"
+import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
 import type { CreateFormProps } from "./createForms.registry"
 
 /**
- * Bulk blog as a single page. Visible: templates, how many blogs and which topics, keywords
- * (unless research is on), language and images. Collapsed: tone/length and the writing/SEO
- * switches, then AI model, brand voice and auto-posting.
+ * Bulk blog as a single page, in the four groups every create form uses: Templates, Basics
+ * (topics, keywords, tone), AI & Images, and Advanced options (the remaining content
+ * switches, brand voice and auto-posting, each under its own label).
  */
 export default function BulkBlogForm({ prefill }: CreateFormProps) {
   const form = useZodForm(bulkBlogFormSchema, {
@@ -52,7 +53,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
 
   const values = useWatch({ control }) as BulkBlogFormValues
   const researching = values.options?.performKeywordResearch
-  const estimatedCost = useGenerationCost(values, { blogs: Number(values.numberOfBlogs) || 0 })
+  const cost = useGenerationCostBreakdown(values, { blogs: Number(values.numberOfBlogs) || 0 })
 
   const send = useCallback(
     (payload: ReturnType<typeof toBulkBlogPayload>) =>
@@ -63,7 +64,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
   const { submit, isSubmitting, sentRef } = useFormSubmission({
     loadingMessage: "Creating blogs...",
     debugName: "BulkBlog",
-    estimatedCost,
+    estimatedCost: cost.total,
     send,
   })
 
@@ -99,12 +100,18 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         onSubmit={onSubmit}
         submitLabel="Generate blogs"
         isSubmitting={isSubmitting}
-        estimatedCost={estimatedCost}
+        estimatedCost={cost.total}
         costNote={
           <>
             {values.costCutter && "(-50% off) "}({values.numberOfBlogs || 0} blog
             {Number(values.numberOfBlogs) === 1 ? "" : "s"})
           </>
+        }
+        costLines={toCostLines(cost)}
+        selectionSummary={
+          values.templates?.length
+            ? `${values.templates.length} template${values.templates.length > 1 ? "s" : ""}`
+            : undefined
         }
       >
         <FormSection
@@ -117,7 +124,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         </FormSection>
 
         <FormSection
-          title="Topics"
+          title="Basics"
           defaultOpen
           fields={["numberOfBlogs", "topics", "keywords", "languageToWrite"]}
         >
@@ -144,7 +151,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
             placeholder="Enter topics (comma, tab, or newline separated)"
           />
 
-          <WritingStyleFields fields={["language"]} />
+          <WritingStyleFields fields={["tone", "length", "language"]} />
 
           <ToggleListField
             keys={["performKeywordResearch"]}
@@ -164,35 +171,35 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
           )}
         </FormSection>
 
-        <FormSection title="Images" fields={["imageSource", "numberOfImages"]} defaultOpen>
+        <FormSection
+          title="AI & images"
+          description="Model, cost cutter and image source"
+          fields={["aiModel", "imageSource", "numberOfImages"]}
+        >
+          <AiModelFields />
           <ImageSettingsFields />
         </FormSection>
 
-        <FormSection title="Writing & SEO options" description="Tone, length and extra switches">
-          <WritingStyleFields fields={["tone", "length"]} />
-          <ToggleListField
-            keys={[
-              "easyToUnderstand",
-              "humanisation",
-              "extendedThinking",
-              "deepResearch",
-              "includeFaqs",
-              "includeInterlinks",
-              "addOutBoundLinks",
-              "includeCompetitorResearch",
-              "includeTableOfContents",
-              "embedYouTubeVideos",
-            ]}
-          />
-        </FormSection>
-
         <FormSection
-          title="AI model, brand & posting"
-          fields={["aiModel", "brandId", "postingDefaultType"]}
+          title="Advanced options"
+          description="Content switches, brand voice and posting"
+          fields={["brandId", "postingDefaultType"]}
         >
-          <AiModelFields />
-          <BrandVoiceField />
-          <PostingFields />
+          <SubGroup label="Writing style">
+            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+          </SubGroup>
+          <SubGroup label="Content">
+            <ToggleListField keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]} />
+          </SubGroup>
+          <SubGroup label="SEO & research">
+            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+          </SubGroup>
+          <SubGroup label="Brand voice">
+            <BrandVoiceField />
+          </SubGroup>
+          <SubGroup label="Posting">
+            <PostingFields />
+          </SubGroup>
         </FormSection>
       </CreateFormShell>
     </FormProvider>

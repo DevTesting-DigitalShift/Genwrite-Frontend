@@ -15,11 +15,11 @@ import {
   RHFTagsField,
   RHFTextField,
   RHFTextareaField,
+  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
 } from "@components/form"
-import { Switch } from "@components/ui/switch"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import {
   useCancelNavigation,
@@ -34,14 +34,15 @@ import {
   type AdvancedBlogFormValues,
 } from "@/forms/advanced/advanced.schema"
 import { useTitleGenerator } from "@/forms/advanced/useTitleGenerator"
-import { useGenerationCost } from "@/forms/shared/cost"
+import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
 import { validateLink } from "@/forms/shared/links"
 import type { CreateFormProps } from "./createForms.registry"
 
 /**
- * Advanced blog as a single page. Visible: template, topic, keywords/title (unless keyword
- * research is on) and images. Collapsed: tone/length/brief, links, the writing & SEO
- * switches, AI model, brand voice and auto-posting.
+ * Advanced blog as a single page, in the four groups every create form uses: Template,
+ * Basics (topic, title, keywords), AI & Images, and Advanced options for everything else —
+ * tone/length/brief, reference links, the writing & SEO switches, brand voice and posting,
+ * each under its own label.
  */
 export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
   const form = useZodForm(advancedBlogFormSchema, {
@@ -56,7 +57,7 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
 
   const values = useWatch({ control }) as AdvancedBlogFormValues
   const researching = values.options?.performKeywordResearch
-  const estimatedCost = useGenerationCost(values, {
+  const cost = useGenerationCostBreakdown(values, {
     features: values.isCheckedQuick ? ["quickSummary"] : [],
   })
 
@@ -70,7 +71,7 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
   const { submit, isSubmitting, sentRef } = useFormSubmission({
     loadingMessage: "Creating your blog...",
     debugName: "AdvancedBlog",
-    estimatedCost,
+    estimatedCost: cost.total,
     send,
   })
 
@@ -90,22 +91,24 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         onSubmit={onSubmit}
         submitLabel="Generate blog"
         isSubmitting={isSubmitting}
-        estimatedCost={estimatedCost}
+        estimatedCost={cost.total}
         costNote={values.costCutter ? "(-50% off)" : undefined}
+        costLines={toCostLines(cost)}
+        selectionSummary={values.template ?? undefined}
       >
         <FormSection title="Template" fields={["template"]} defaultOpen>
           <TemplatePickerField mode="single" name="template" />
         </FormSection>
 
         <FormSection
-          title="Content"
+          title="Basics"
           defaultOpen
-          fields={["topic", "focusKeywords", "keywords", "title"]}
+          fields={["topic", "focusKeywords", "keywords", "title", "referenceLinks"]}
         >
           <RHFTextField control={control} name="topic" label="Topic" required placeholder="e.g., Tech Blog" />
 
           <ToggleListField
-            keys={["performKeywordResearch"]}
+            keys={["exactTitle", "performKeywordResearch"]}
             onToggle={{
               performKeywordResearch: (checked) => {
                 if (checked) clearErrors(["focusKeywords", "keywords", "title"])
@@ -185,20 +188,19 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
                   </FieldShell>
                 )}
               />
-
-              <ToggleListField keys={["exactTitle"]} />
             </>
           )}
 
-          <WritingStyleFields fields={["language"]} />
-        </FormSection>
+          <RHFTagsField
+            control={control}
+            name="referenceLinks"
+            label="Reference links (max 3)"
+            max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
+            validate={(link) => validateLink(link, "reference")}
+            placeholder="Add reference links"
+          />
 
-        <FormSection title="Images" fields={["imageSource", "numberOfImages", "blogImages"]} defaultOpen>
-          <ImageSettingsFields allowUpload />
-        </FormSection>
-
-        <FormSection title="Style & length" description="Tone, word count and brief">
-          <WritingStyleFields fields={["tone", "length"]} />
+          <WritingStyleFields fields={["tone", "length", "language"]} />
           <RHFTextareaField
             control={control}
             name="brief"
@@ -208,59 +210,47 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         </FormSection>
 
         <FormSection
-          title="Reference links"
-          description="Pages the AI should read first"
-          fields={["referenceLinks"]}
+          title="AI & images"
+          description="Model, cost cutter and image source"
+          fields={["aiModel", "imageSource", "numberOfImages", "blogImages"]}
         >
-          <RHFTagsField
-            control={control}
-            name="referenceLinks"
-            label="Reference links (max 3)"
-            max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
-            validate={(link) => validateLink(link, "reference")}
-            placeholder="Add reference links"
-          />
-        </FormSection>
-
-        <FormSection title="Writing & SEO options" description="Extra switches for power users">
-          <ToggleListField
-            keys={[
-              "easyToUnderstand",
-              "humanisation",
-              "extendedThinking",
-              "deepResearch",
-              "includeFaqs",
-              "includeInterlinks",
-              "addOutBoundLinks",
-              "includeCompetitorResearch",
-              "includeTableOfContents",
-              "embedYouTubeVideos",
-            ]}
-          />
-          <Controller
-            control={control}
-            name="isCheckedQuick"
-            render={({ field }) => (
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">Add a quick summary</p>
-                  <p className="text-xs text-muted-foreground">
-                    Generate a concise summary for the readers
-                  </p>
-                </div>
-                <Switch size="large" checked={!!field.value} onCheckedChange={field.onChange} />
-              </div>
-            )}
-          />
+          <AiModelFields />
+          <ImageSettingsFields allowUpload />
         </FormSection>
 
         <FormSection
-          title="AI model, brand & posting"
-          fields={["aiModel", "brandId", "postingDefaultType"]}
+          title="Advanced options"
+          description="Content switches, brand voice and posting"
+          fields={["brandId", "postingDefaultType"]}
         >
-          <AiModelFields />
-          <BrandVoiceField />
-          <PostingFields />
+          <SubGroup label="Writing style">
+            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+          </SubGroup>
+
+          <SubGroup label="Content">
+            <ToggleListField
+              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
+              extra={[
+                {
+                  name: "isCheckedQuick",
+                  label: "Add a quick summary",
+                  description: "Generate a concise summary for the readers",
+                },
+              ]}
+            />
+          </SubGroup>
+
+          <SubGroup label="SEO & research">
+            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+          </SubGroup>
+
+          <SubGroup label="Brand voice">
+            <BrandVoiceField />
+          </SubGroup>
+
+          <SubGroup label="Posting">
+            <PostingFields />
+          </SubGroup>
         </FormSection>
       </CreateFormShell>
     </FormProvider>

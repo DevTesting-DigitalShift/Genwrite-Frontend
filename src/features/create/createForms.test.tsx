@@ -76,12 +76,15 @@ describe.each([
     const { container } = renderAt(`/create/${kind}`)
     await screen.findByText(title, {}, LAZY_LOAD)
 
-    const sections = Array.from(container.querySelectorAll<HTMLDetailsElement>("details"))
+    const sections = Array.from(container.querySelectorAll<HTMLButtonElement>("[aria-expanded]"))
     expect(sections.length).toBeGreaterThan(2)
     // At least one section is open (the basics) and at least one is collapsed (advanced).
-    expect(sections.some((d) => d.open)).toBe(true)
-    expect(sections.some((d) => !d.open)).toBe(true)
-    expect(screen.getByRole("button", { name: submitLabel })).toBeTruthy()
+    expect(sections.some((d) => d.getAttribute("aria-expanded") === "true")).toBe(true)
+    expect(sections.some((d) => d.getAttribute("aria-expanded") === "false")).toBe(true)
+    // The desktop side panel and the mobile sticky bar each render their own submit
+    // button — both exist at once in jsdom, which doesn't evaluate the responsive
+    // classes that show only one at real viewport widths.
+    expect(screen.getAllByRole("button", { name: submitLabel }).length).toBeGreaterThan(0)
   })
 
   it("submitting an empty form shows errors without sending anything", { timeout: 45_000 }, async () => {
@@ -89,7 +92,7 @@ describe.each([
     await screen.findByText(title, {}, LAZY_LOAD)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: submitLabel }))
+      fireEvent.click(screen.getAllByRole("button", { name: submitLabel })[0])
     })
 
     await waitFor(() =>

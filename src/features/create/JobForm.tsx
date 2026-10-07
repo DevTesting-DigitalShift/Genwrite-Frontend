@@ -16,6 +16,7 @@ import {
   RHFTagsField,
   RHFTextField,
   ScheduleFields,
+  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
@@ -42,9 +43,9 @@ import type { CreateFormProps } from "./createForms.registry"
 
 /**
  * Scheduled job as a single page, for both creating (`/create/job`) and editing
- * (`/create/job/:id`). Visible: name, templates, topics, keywords, schedule, images.
- * Collapsed: tone/length, reference links, writing & SEO switches, AI model, brand voice and
- * auto-posting.
+ * (`/create/job/:id`), in the four groups every create form uses: Templates, Basics (what to
+ * write and when to run it — side by side on desktop, since a job has both a content side and
+ * a schedule side), AI & Images, and Advanced options for everything else.
  */
 export default function JobForm({ id, prefill }: CreateFormProps) {
   const { data: job, isLoading } = jobsQuery.useDetail(id ?? "", { enabled: !!id })
@@ -115,107 +116,126 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         onSubmit={onSubmit}
         submitLabel={isEditing ? "Update job" : "Create job"}
         isSubmitting={isSubmitting}
+        selectionSummary={
+          values.templates?.length
+            ? `${values.templates.length} template${values.templates.length > 1 ? "s" : ""}`
+            : undefined
+        }
       >
-        <FormSection title="Templates" description={`Pick up to ${JOB_MAX_TEMPLATES}`} fields={["templates"]} defaultOpen>
+        <FormSection
+          title="Templates"
+          description={`Pick up to ${JOB_MAX_TEMPLATES}`}
+          fields={["templates"]}
+          defaultOpen
+        >
           <TemplatePickerField mode="multiple" name="templates" max={JOB_MAX_TEMPLATES} />
         </FormSection>
 
-        <FormSection title="Topics" defaultOpen fields={["name", "topics", "keywords"]}>
-          <RHFTextField control={control} name="name" label="Job name" required placeholder="e.g., Weekly tech posts" />
+        <FormSection
+          title="Basics"
+          description="What to write, and when to run"
+          defaultOpen
+          fields={[
+            "name",
+            "topics",
+            "keywords",
+            "referenceLinks",
+            "numberOfBlogs",
+            "schedule.daysOfWeek",
+            "schedule.daysOfMonth",
+            "schedule.customDates",
+          ]}
+        >
+          <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
+            <div className="space-y-5">
+              <RHFTextField control={control} name="name" label="Job name" required placeholder="e.g., Weekly tech posts" />
 
-          <RHFTagsField
-            control={control}
-            name="topics"
-            label="Topics"
-            required
-            csv
-            maxVisible={18}
-            description="Blogs are written about these topics. Paste a list or upload a CSV."
-            placeholder="Enter topics (comma, tab, or newline separated)"
-          />
+              <RHFTagsField
+                control={control}
+                name="topics"
+                label="Topics"
+                required
+                csv
+                maxVisible={18}
+                description="Blogs are written about these topics. Paste a list or upload a CSV."
+                placeholder="Enter topics (comma, tab, or newline separated)"
+              />
 
-          <ToggleListField
-            keys={["performKeywordResearch"]}
-            onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
-          />
-          {!researching && (
-            <RHFTagsField
-              control={control}
-              name="keywords"
-              label="Keywords"
-              required
-              csv
-              maxVisible={18}
-              placeholder="Enter keywords (comma, tab, or newline separated)"
-            />
-          )}
+              <ToggleListField
+                keys={["performKeywordResearch"]}
+                onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
+              />
+              {!researching && (
+                <RHFTagsField
+                  control={control}
+                  name="keywords"
+                  label="Keywords"
+                  required
+                  csv
+                  maxVisible={18}
+                  placeholder="Enter keywords (comma, tab, or newline separated)"
+                />
+              )}
 
-          <WritingStyleFields fields={["language"]} />
+              <WritingStyleFields fields={["tone", "length", "language"]} />
+
+              <RHFTagsField
+                control={control}
+                name="referenceLinks"
+                label="Reference links (max 3)"
+                max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
+                validate={(link) => validateLink(link, "reference")}
+                placeholder="Enter full URLs (e.g., https://example.com)"
+              />
+            </div>
+
+            <div className="mt-5 space-y-5 lg:mt-0">
+              <ScheduleFields />
+              <RHFNumberField
+                control={control}
+                name="numberOfBlogs"
+                label="Blogs per run"
+                required
+                min={1}
+                max={JOB_MAX_BLOGS}
+              />
+            </div>
+          </div>
         </FormSection>
 
         <FormSection
-          title="Schedule"
-          defaultOpen
-          fields={["schedule.daysOfWeek", "schedule.daysOfMonth", "schedule.customDates", "numberOfBlogs"]}
+          title="AI & images"
+          description="Model, cost cutter and image source"
+          fields={["aiModel", "imageSource", "numberOfImages"]}
         >
-          <ScheduleFields />
-          <RHFNumberField
-            control={control}
-            name="numberOfBlogs"
-            label="Blogs per run"
-            required
-            min={1}
-            max={JOB_MAX_BLOGS}
-          />
-        </FormSection>
-
-        <FormSection title="Images" fields={["imageSource", "numberOfImages"]} defaultOpen>
+          <AiModelFields />
           <ImageSettingsFields />
         </FormSection>
 
-        <FormSection title="Style & length" description="Tone and word count">
-          <WritingStyleFields fields={["tone", "length"]} />
-        </FormSection>
-
         <FormSection
-          title="Reference links"
-          description="Pages the AI should read first"
-          fields={["referenceLinks"]}
+          title="Advanced options"
+          description="Content switches, brand voice and posting"
+          fields={["brandId", "postingDefaultType"]}
         >
-          <RHFTagsField
-            control={control}
-            name="referenceLinks"
-            label="Reference links (max 3)"
-            max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
-            validate={(link) => validateLink(link, "reference")}
-            placeholder="Enter full URLs (e.g., https://example.com)"
-          />
-        </FormSection>
+          <SubGroup label="Writing style">
+            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+          </SubGroup>
 
-        <FormSection title="Writing & SEO options" description="Extra switches for power users">
-          <ToggleListField
-            keys={[
-              "easyToUnderstand",
-              "humanisation",
-              "extendedThinking",
-              "deepResearch",
-              "includeFaqs",
-              "includeInterlinks",
-              "addOutBoundLinks",
-              "includeCompetitorResearch",
-              "includeTableOfContents",
-              "embedYouTubeVideos",
-            ]}
-          />
-        </FormSection>
+          <SubGroup label="Content">
+            <ToggleListField keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]} />
+          </SubGroup>
 
-        <FormSection
-          title="AI model, brand & posting"
-          fields={["aiModel", "brandId", "postingDefaultType"]}
-        >
-          <AiModelFields />
-          <BrandVoiceField />
-          <PostingFields />
+          <SubGroup label="SEO & research">
+            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+          </SubGroup>
+
+          <SubGroup label="Brand voice">
+            <BrandVoiceField />
+          </SubGroup>
+
+          <SubGroup label="Posting">
+            <PostingFields />
+          </SubGroup>
         </FormSection>
       </CreateFormShell>
     </FormProvider>

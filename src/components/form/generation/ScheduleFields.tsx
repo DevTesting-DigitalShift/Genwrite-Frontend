@@ -1,6 +1,11 @@
+import { useState } from "react"
+import type { ChangeEvent } from "react"
 import { Controller, useFormContext, useWatch } from "react-hook-form"
 import type { FieldValues } from "react-hook-form"
-import MultiDatePicker from "react-multi-date-picker"
+import { X } from "lucide-react"
+import { Badge } from "@components/ui/badge"
+import { Button } from "@components/ui/button"
+import { Input } from "@components/ui/input"
 import { FieldShell } from "../fields"
 import { cn } from "@/lib/utils"
 
@@ -116,26 +121,65 @@ export function ScheduleFields() {
         />
       )}
 
-      {type === "custom" && (
-        <Controller
-          control={control}
-          name="schedule.customDates"
-          render={({ field, fieldState }) => (
-            <FieldShell label="Dates" error={fieldState.error?.message}>
-              <div className={cn(fieldState.error && "rounded-lg border-2 border-destructive")}>
-                <MultiDatePicker
-                  value={field.value}
-                  onChange={(dates) => field.onChange(dates.map(String))}
-                  multiple
-                  format="YYYY-MM-DD"
-                  className="w-full"
-                  inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </FieldShell>
-          )}
-        />
-      )}
+      {type === "custom" && <CustomDatesField />}
     </div>
+  )
+}
+
+/** One date at a time, added to a chip list — the same picker-plus-chips shape as the tag fields. */
+function CustomDatesField() {
+  const { control } = useFormContext<FieldValues>()
+  const [draft, setDraft] = useState("")
+
+  return (
+    <Controller
+      control={control}
+      name="schedule.customDates"
+      render={({ field, fieldState }) => {
+        const dates: string[] = field.value ?? []
+
+        const add = () => {
+          if (!draft || dates.includes(draft)) {
+            setDraft("")
+            return
+          }
+          field.onChange([...dates, draft].sort())
+          setDraft("")
+        }
+
+        return (
+          <FieldShell label="Dates" error={fieldState.error?.message}>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={draft}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+                className="h-10 w-auto"
+              />
+              <Button type="button" variant="outline" onClick={add}>
+                Add date
+              </Button>
+            </div>
+            {dates.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {dates.map((date) => (
+                  <Badge key={date} variant="secondary" className="gap-1">
+                    {date}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${date}`}
+                      onClick={() => field.onChange(dates.filter((d) => d !== date))}
+                      className="ml-0.5 rounded-full hover:text-destructive"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </FieldShell>
+        )
+      }}
+    />
   )
 }
