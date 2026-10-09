@@ -48,7 +48,11 @@ export function FieldShell({
           </div>
           <div className="shrink-0">{children}</div>
         </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        )}
       </div>
     )
   }
@@ -58,7 +62,11 @@ export function FieldShell({
       {labelNode}
       {children}
       {description && !error && <p className="text-xs text-muted-foreground">{description}</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

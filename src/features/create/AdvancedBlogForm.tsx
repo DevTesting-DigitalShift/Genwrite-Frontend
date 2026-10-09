@@ -90,22 +90,45 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         onCancel={goBack}
         onSubmit={onSubmit}
         submitLabel="Generate blog"
+        submittingLabel="Generating blog..."
         isSubmitting={isSubmitting}
         estimatedCost={cost.total}
         costNote={values.costCutter ? "(-50% off)" : undefined}
         costLines={toCostLines(cost)}
         selectionSummary={values.template ?? undefined}
       >
-        <FormSection title="Template" fields={["template"]} defaultOpen>
+        <FormSection
+          title="Template"
+          summary={values.template ?? "Not selected"}
+          fields={["template"]}
+          defaultOpen
+        >
           <TemplatePickerField mode="single" name="template" />
         </FormSection>
 
         <FormSection
           title="Basics"
           defaultOpen
-          fields={["topic", "focusKeywords", "keywords", "title", "referenceLinks"]}
+          summary={values.topic || "Not completed"}
+          fields={[
+            "topic",
+            "focusKeywords",
+            "keywords",
+            "title",
+            "referenceLinks",
+            "tone",
+            "userDefinedLength",
+            "languageToWrite",
+            "brief",
+          ]}
         >
-          <RHFTextField control={control} name="topic" label="Topic" required placeholder="e.g., Tech Blog" />
+          <RHFTextField
+            control={control}
+            name="topic"
+            label="Topic"
+            required
+            placeholder="e.g., Tech Blog"
+          />
 
           <ToggleListField
             keys={["exactTitle", "performKeywordResearch"]}
@@ -114,9 +137,7 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
                 if (checked) clearErrors(["focusKeywords", "keywords", "title"])
               },
             }}
-            descriptions={{
-              performKeywordResearch: "AI picks the title and keywords for you.",
-            }}
+            descriptions={{ performKeywordResearch: "AI picks the title and keywords for you." }}
           />
 
           {!researching && (
@@ -152,6 +173,7 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
                       <input
                         id="title"
                         {...field}
+                        aria-invalid={!!fieldState.error}
                         placeholder="e.g., How to create a blog"
                         className="input input-bordered h-10 w-full rounded-md text-sm"
                       />
@@ -212,7 +234,8 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         <FormSection
           title="AI & images"
           description="Model, cost cutter and image source"
-          fields={["aiModel", "imageSource", "numberOfImages", "blogImages"]}
+          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
+          fields={["aiModel", "costCutter", "imageSource", "numberOfImages", "blogImages"]}
         >
           <AiModelFields />
           <ImageSettingsFields allowUpload />
@@ -220,11 +243,27 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
 
         <FormSection
           title="Advanced options"
-          description="Content switches, brand voice and posting"
-          fields={["brandId", "postingDefaultType"]}
+          description="Writing, content and SEO controls"
+          summary={`${
+            [
+              values.options.easyToUnderstand,
+              values.options.humanisation,
+              values.options.extendedThinking,
+              values.options.deepResearch,
+              values.options.includeFaqs,
+              values.options.includeTableOfContents,
+              values.options.embedYouTubeVideos,
+              values.options.includeInterlinks,
+              values.options.addOutBoundLinks,
+              values.options.includeCompetitorResearch,
+              values.isCheckedQuick,
+            ].filter(Boolean).length
+          } enabled`}
         >
           <SubGroup label="Writing style">
-            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+            <ToggleListField
+              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+            />
           </SubGroup>
 
           <SubGroup label="Content">
@@ -241,16 +280,32 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
           </SubGroup>
 
           <SubGroup label="SEO & research">
-            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+            <ToggleListField
+              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
+            />
           </SubGroup>
+        </FormSection>
 
-          <SubGroup label="Brand voice">
-            <BrandVoiceField />
-          </SubGroup>
+        <FormSection
+          title="Brand voice"
+          description="Apply your saved brand style and assets"
+          summary={values.isCheckedBrand ? "On" : "Off"}
+          fields={["brandId"]}
+        >
+          <BrandVoiceField />
+        </FormSection>
 
-          <SubGroup label="Posting">
-            <PostingFields />
-          </SubGroup>
+        <FormSection
+          title="Publishing"
+          description="Automatically publish after generation"
+          summary={
+            values.options.automaticPosting
+              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
+              : "Off"
+          }
+          fields={["postingDefaultType"]}
+        >
+          <PostingFields />
         </FormSection>
       </CreateFormShell>
     </FormProvider>

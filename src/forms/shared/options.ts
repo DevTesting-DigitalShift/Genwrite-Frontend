@@ -73,7 +73,7 @@ export const GENERATION_TOGGLES: readonly ToggleDefinition[] = [
   {
     key: "humanisation",
     label: "Humanization",
-    description: "Natural linguistic patterns to bypass AI filters.",
+    description: "Use more natural phrasing, sentence rhythm, and variation.",
     group: "writing",
   },
   {

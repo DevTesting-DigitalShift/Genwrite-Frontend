@@ -86,6 +86,7 @@ export function ScheduleFields() {
           <FieldShell htmlFor="schedule-type" label="Schedule type">
             <select
               id="schedule-type"
+              aria-label="Schedule type"
               value={field.value}
               onChange={(e) => {
                 field.onChange(e.target.value)
@@ -137,9 +138,11 @@ function CustomDatesField() {
       name="schedule.customDates"
       render={({ field, fieldState }) => {
         const dates: string[] = field.value ?? []
+        const today = new Date()
+        const minimumDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
         const add = () => {
-          if (!draft || dates.includes(draft)) {
+          if (!draft || draft < minimumDate || dates.includes(draft)) {
             setDraft("")
             return
           }
@@ -152,9 +155,11 @@ function CustomDatesField() {
             <div className="flex gap-2">
               <Input
                 type="date"
+                min={minimumDate}
                 value={draft}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
                 className="h-10 w-auto"
+                aria-invalid={!!fieldState.error}
               />
               <Button type="button" variant="outline" onClick={add}>
                 Add date

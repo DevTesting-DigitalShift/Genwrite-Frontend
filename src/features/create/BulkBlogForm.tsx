@@ -99,6 +99,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         onCancel={goBack}
         onSubmit={onSubmit}
         submitLabel="Generate blogs"
+        submittingLabel="Generating blogs..."
         isSubmitting={isSubmitting}
         estimatedCost={cost.total}
         costNote={
@@ -117,6 +118,9 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         <FormSection
           title="Templates"
           description={`Pick up to ${BULK_MAX_TEMPLATES}`}
+          summary={
+            values.templates?.length ? `${values.templates.length} selected` : "Not selected"
+          }
           fields={["templates"]}
           defaultOpen
         >
@@ -126,7 +130,15 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         <FormSection
           title="Basics"
           defaultOpen
-          fields={["numberOfBlogs", "topics", "keywords", "languageToWrite"]}
+          summary={`${values.topics?.length ?? 0}/${values.numberOfBlogs || 0} topics`}
+          fields={[
+            "numberOfBlogs",
+            "topics",
+            "keywords",
+            "tone",
+            "userDefinedLength",
+            "languageToWrite",
+          ]}
         >
           <RHFNumberField
             control={control}
@@ -174,7 +186,8 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         <FormSection
           title="AI & images"
           description="Model, cost cutter and image source"
-          fields={["aiModel", "imageSource", "numberOfImages"]}
+          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
+          fields={["aiModel", "costCutter", "imageSource", "numberOfImages"]}
         >
           <AiModelFields />
           <ImageSettingsFields />
@@ -182,24 +195,59 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
 
         <FormSection
           title="Advanced options"
-          description="Content switches, brand voice and posting"
-          fields={["brandId", "postingDefaultType"]}
+          description="Writing, content and SEO controls"
+          summary={`${
+            [
+              values.options.easyToUnderstand,
+              values.options.humanisation,
+              values.options.extendedThinking,
+              values.options.deepResearch,
+              values.options.includeFaqs,
+              values.options.includeTableOfContents,
+              values.options.embedYouTubeVideos,
+              values.options.includeInterlinks,
+              values.options.addOutBoundLinks,
+              values.options.includeCompetitorResearch,
+            ].filter(Boolean).length
+          } enabled`}
         >
           <SubGroup label="Writing style">
-            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+            <ToggleListField
+              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+            />
           </SubGroup>
           <SubGroup label="Content">
-            <ToggleListField keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]} />
+            <ToggleListField
+              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
+            />
           </SubGroup>
           <SubGroup label="SEO & research">
-            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+            <ToggleListField
+              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
+            />
           </SubGroup>
-          <SubGroup label="Brand voice">
-            <BrandVoiceField />
-          </SubGroup>
-          <SubGroup label="Posting">
-            <PostingFields />
-          </SubGroup>
+        </FormSection>
+
+        <FormSection
+          title="Brand voice"
+          description="Apply your saved brand style and assets"
+          summary={values.isCheckedBrand ? "On" : "Off"}
+          fields={["brandId"]}
+        >
+          <BrandVoiceField />
+        </FormSection>
+
+        <FormSection
+          title="Publishing"
+          description="Automatically publish generated blogs"
+          summary={
+            values.options.automaticPosting
+              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
+              : "Off"
+          }
+          fields={["postingDefaultType"]}
+        >
+          <PostingFields />
         </FormSection>
       </CreateFormShell>
     </FormProvider>

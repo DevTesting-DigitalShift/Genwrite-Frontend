@@ -1,10 +1,12 @@
 import { useEffect } from "react"
 import { Controller, useFormContext } from "react-hook-form"
 import type { FieldValues } from "react-hook-form"
+import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { integrationQuery } from "@api/Integration/Integration.query"
 import useIntegrationStore from "@store/useIntegrationStore"
 import { Switch } from "@components/ui/switch"
+import { Button } from "@components/ui/button"
 
 /**
  * Automatic posting: the `options.automaticPosting` switch plus, once it is on, the
@@ -12,6 +14,7 @@ import { Switch } from "@components/ui/switch"
  * store warm for the passive readers (editor sidebar, regenerate modal).
  */
 export function PostingFields() {
+  const navigate = useNavigate()
   const { control, setValue } = useFormContext<FieldValues>()
   const { integrations, setIntegrations } = useIntegrationStore()
   const { data } = integrationQuery.useList()
@@ -44,12 +47,29 @@ export function PostingFields() {
                   return
                 }
                 field.onChange(checked)
-                setValue("postingDefaultType", checked ? platforms[0] : null, {
-                  shouldDirty: true,
-                })
+                setValue("postingDefaultType", checked ? platforms[0] : null, { shouldDirty: true })
               }}
             />
           </div>
+
+          {platforms.length === 0 && (
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">No publishing platform connected</p>
+                <p className="text-xs text-muted-foreground">
+                  Connect WordPress or another platform before turning on automatic publishing.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/integrations")}
+              >
+                Connect platform
+              </Button>
+            </div>
+          )}
 
           {field.value && platforms.length > 0 && (
             <Controller
@@ -65,6 +85,7 @@ export function PostingFields() {
                     value={platform.value ?? ""}
                     onChange={(e) => platform.onChange(e.target.value)}
                     className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
+                    aria-invalid={!!fieldState.error}
                   >
                     {platforms.map((name) => (
                       <option key={name} value={name}>

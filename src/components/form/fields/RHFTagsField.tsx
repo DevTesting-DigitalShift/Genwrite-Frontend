@@ -187,6 +187,7 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
               )}
               <Input
                 id={name}
+                aria-invalid={!!(fieldState.error || localError)}
                 value={draft}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   setDraft(e.target.value)
@@ -210,7 +211,11 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
                 </span>
                 <span className="flex items-center gap-3">
                   {showAll && maxVisible && tags.length > maxVisible && (
-                    <button type="button" onClick={() => setShowAll(false)} className="font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setShowAll(false)}
+                      className="font-semibold"
+                    >
                       Show less
                     </button>
                   )}

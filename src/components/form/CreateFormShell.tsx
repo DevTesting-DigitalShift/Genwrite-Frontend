@@ -1,5 +1,5 @@
 import type { FormEventHandler, ReactNode } from "react"
-import { ArrowLeft, Sparkles } from "lucide-react"
+import { ArrowLeft, LoaderCircle, Sparkles } from "lucide-react"
 import { Button } from "@components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,7 @@ interface CreateFormShellProps {
   onCancel: () => void
   onSubmit: FormEventHandler<HTMLFormElement>
   submitLabel: string
+  submittingLabel?: string
   isSubmitting?: boolean
   /** Credits the request will cost; omit for forms that are free. */
   estimatedCost?: number
@@ -41,6 +42,7 @@ export function CreateFormShell({
   onCancel,
   onSubmit,
   submitLabel,
+  submittingLabel,
   isSubmitting,
   estimatedCost,
   costNote,
@@ -86,9 +88,16 @@ export function CreateFormShell({
 
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {submitLabel}
+          {isSubmitting && <LoaderCircle className="animate-spin" />}
+          {isSubmitting ? (submittingLabel ?? "Working...") : submitLabel}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="w-full"
+        >
           Cancel
         </Button>
       </div>
@@ -99,6 +108,7 @@ export function CreateFormShell({
     <form
       onSubmit={onSubmit}
       noValidate
+      aria-busy={isSubmitting}
       className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10"
     >
       <header className="mb-6 flex items-start gap-3">
@@ -107,6 +117,7 @@ export function CreateFormShell({
           variant="ghost"
           size="icon"
           onClick={onCancel}
+          disabled={isSubmitting}
           aria-label="Go back"
           className="mt-0.5 shrink-0"
         >
@@ -124,7 +135,7 @@ export function CreateFormShell({
             "space-y-4",
             // The fixed bottom bar below needs room to sit clear of the last section on mobile;
             // the sticky side panel takes over that job at `lg`, so the padding only applies below it.
-            "pb-28 lg:pb-0"
+            "pb-36 sm:pb-28 lg:pb-0"
           )}
         >
           {children}
@@ -133,7 +144,7 @@ export function CreateFormShell({
         <aside className="hidden lg:sticky lg:top-10 lg:block">{summary}</aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-2 text-sm">
             {estimatedCost !== undefined && (
@@ -145,11 +156,18 @@ export function CreateFormShell({
             )}
           </div>
           <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1 sm:flex-none">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="flex-1 sm:flex-none"
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none">
-              {submitLabel}
+              {isSubmitting && <LoaderCircle className="animate-spin" />}
+              {isSubmitting ? (submittingLabel ?? "Working...") : submitLabel}
             </Button>
           </div>
         </div>

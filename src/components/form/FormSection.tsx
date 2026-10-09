@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 interface FormSectionProps {
   title: string
   description?: string
+  /** Compact current-state copy shown while the section is closed. */
+  summary?: ReactNode
   /** One or two characters shown in the leading badge — defaults to the title's initial. */
   icon?: ReactNode
   /**
@@ -34,6 +36,7 @@ interface FormSectionProps {
 export function FormSection({
   title,
   description,
+  summary,
   icon,
   fields = [],
   defaultOpen = false,
@@ -85,6 +88,11 @@ export function FormSection({
                   <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
                 )}
               </span>
+              {!open && summary && (
+                <span className="max-w-48 truncate rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  {summary}
+                </span>
+              )}
               {errorCount > 0 && (
                 <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                   {errorCount} to fix
@@ -99,7 +107,8 @@ export function FormSection({
           // Presence unmounts it once the close animation ends, which would drop its
           // fields' registration with react-hook-form instead of merely hiding them.
           forceMount
-          className="overflow-hidden data-[state=closed]:h-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+          className="overflow-hidden data-[state=closed]:h-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+        >
           <div className="space-y-5 border-t border-border/70 px-4 py-4 sm:px-5">{children}</div>
         </AccordionPrimitive.Content>
       </AccordionPrimitive.Item>

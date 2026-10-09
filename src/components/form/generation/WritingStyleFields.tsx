@@ -31,6 +31,7 @@ export function WritingStyleFields({
               <select
                 id="languageToWrite"
                 {...field}
+                aria-invalid={!!fieldState.error}
                 className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
               >
                 {LANGUAGES.map((lang) => (
@@ -59,6 +60,7 @@ export function WritingStyleFields({
               <select
                 id="tone"
                 {...field}
+                aria-invalid={!!fieldState.error}
                 className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
               >
                 {TONES.map((tone) => (
@@ -84,6 +86,7 @@ export function WritingStyleFields({
             >
               <div className="flex items-center gap-4">
                 <Slider
+                  aria-label="Blog length in words"
                   min={BLOG_CONFIG.LENGTH.MIN}
                   max={BLOG_CONFIG.LENGTH.MAX}
                   step={BLOG_CONFIG.LENGTH.STEP}

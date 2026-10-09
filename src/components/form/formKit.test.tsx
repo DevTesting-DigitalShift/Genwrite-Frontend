@@ -37,7 +37,7 @@ function Harness({
         <button type="button" onClick={() => form.setError("keywords", { message: "Need one" })}>
           fail
         </button>
-        <FormSection title="Hidden section" fields={["keywords"]}>
+        <FormSection title="Hidden section" summary="Off" fields={["keywords"]}>
           <RHFTagsField control={form.control} name="keywords" label="Keywords" max={max} />
           <ToggleListField keys={["includeFaqs"]} />
         </FormSection>
@@ -52,11 +52,13 @@ describe("FormSection", () => {
     render(<Harness />)
     const trigger = screen.getByRole("button", { name: /Hidden section/ })
     expect(trigger).toHaveAttribute("aria-expanded", "false")
+    expect(screen.getByText("Off")).toBeTruthy()
     // Body is mounted even while closed, so its fields stay registered with the form.
     expect(screen.getByLabelText("Keywords")).toBeTruthy()
 
     fireEvent.click(screen.getByText("fail"))
     await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"))
+    expect(screen.queryByText("Off")).toBeNull()
     expect(screen.getByText("1 to fix")).toBeTruthy()
   })
 })

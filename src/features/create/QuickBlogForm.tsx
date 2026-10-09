@@ -52,7 +52,9 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
 
   const send = useCallback(
     (payload: ReturnType<typeof toQuickBlogPayload>) =>
-      useBlogStore.getState().createNewQuickBlog({ blogData: payload, navigate, type, queryClient }),
+      useBlogStore
+        .getState()
+        .createNewQuickBlog({ blogData: payload, navigate, type, queryClient }),
     [navigate, type, queryClient]
   )
 
@@ -84,13 +86,20 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
         onCancel={goBack}
         onSubmit={onSubmit}
         submitLabel="Generate blog"
+        submittingLabel="Generating blog..."
         isSubmitting={isSubmitting}
         estimatedCost={cost.total}
         costNote={values.costCutter ? "(-50% off)" : undefined}
         costLines={toCostLines(cost)}
         selectionSummary={values.template ?? undefined}
       >
-        <FormSection title="Template" description="How the blog is structured" fields={["template"]} defaultOpen>
+        <FormSection
+          title="Template"
+          description="How the blog is structured"
+          summary={values.template ?? "Not selected"}
+          fields={["template"]}
+          defaultOpen
+        >
           <TemplatePickerField mode="single" name="template" />
         </FormSection>
 
@@ -98,9 +107,16 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
           title="Basics"
           description="What the blog is about"
           defaultOpen
-          fields={["topic", "keywords", "focusKeywords", "referenceLinks"]}
+          summary={values.topic || "Not completed"}
+          fields={["topic", "keywords", "focusKeywords", "referenceLinks", "languageToWrite"]}
         >
-          <RHFTextField control={control} name="topic" label="Topic" required placeholder="Enter the blog topic" />
+          <RHFTextField
+            control={control}
+            name="topic"
+            label="Topic"
+            required
+            placeholder="Enter the blog topic"
+          />
 
           {isYouTube && (
             <RHFTagsField
@@ -165,13 +181,23 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
         <FormSection
           title="AI & images"
           description="Model, cost cutter and image source"
-          fields={["aiModel", "imageSource", "numberOfImages"]}
+          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
+          fields={["aiModel", "costCutter", "imageSource", "numberOfImages"]}
         >
           <AiModelFields />
           <ImageSettingsFields />
         </FormSection>
 
-        <FormSection title="Advanced options" description="Writing style and extra switches">
+        <FormSection
+          title="Advanced options"
+          description="Writing style and extra switches"
+          summary={`${[values.options.easyToUnderstand, values.options.humanisation, !isYouTube && values.options.embedYouTubeVideos].filter(Boolean).length} enabled`}
+          fields={[
+            "options.easyToUnderstand",
+            "options.humanisation",
+            "options.embedYouTubeVideos",
+          ]}
+        >
           <SubGroup label="Writing style">
             <ToggleListField keys={["easyToUnderstand", "humanisation"]} />
           </SubGroup>

@@ -115,6 +115,7 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         onCancel={goBack}
         onSubmit={onSubmit}
         submitLabel={isEditing ? "Update job" : "Create job"}
+        submittingLabel={isEditing ? "Updating job..." : "Creating job..."}
         isSubmitting={isSubmitting}
         selectionSummary={
           values.templates?.length
@@ -125,6 +126,9 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         <FormSection
           title="Templates"
           description={`Pick up to ${JOB_MAX_TEMPLATES}`}
+          summary={
+            values.templates?.length ? `${values.templates.length} selected` : "Not selected"
+          }
           fields={["templates"]}
           defaultOpen
         >
@@ -135,6 +139,7 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
           title="Basics"
           description="What to write, and when to run"
           defaultOpen
+          summary={`${values.schedule.type} · ${values.numberOfBlogs || 0} per run`}
           fields={[
             "name",
             "topics",
@@ -144,11 +149,21 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
             "schedule.daysOfWeek",
             "schedule.daysOfMonth",
             "schedule.customDates",
+            "schedule.type",
+            "tone",
+            "userDefinedLength",
+            "languageToWrite",
           ]}
         >
           <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
             <div className="space-y-5">
-              <RHFTextField control={control} name="name" label="Job name" required placeholder="e.g., Weekly tech posts" />
+              <RHFTextField
+                control={control}
+                name="name"
+                label="Job name"
+                required
+                placeholder="e.g., Weekly tech posts"
+              />
 
               <RHFTagsField
                 control={control}
@@ -206,7 +221,8 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         <FormSection
           title="AI & images"
           description="Model, cost cutter and image source"
-          fields={["aiModel", "imageSource", "numberOfImages"]}
+          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
+          fields={["aiModel", "costCutter", "imageSource", "numberOfImages"]}
         >
           <AiModelFields />
           <ImageSettingsFields />
@@ -214,28 +230,61 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
 
         <FormSection
           title="Advanced options"
-          description="Content switches, brand voice and posting"
-          fields={["brandId", "postingDefaultType"]}
+          description="Writing, content and SEO controls"
+          summary={`${
+            [
+              values.options.easyToUnderstand,
+              values.options.humanisation,
+              values.options.extendedThinking,
+              values.options.deepResearch,
+              values.options.includeFaqs,
+              values.options.includeTableOfContents,
+              values.options.embedYouTubeVideos,
+              values.options.includeInterlinks,
+              values.options.addOutBoundLinks,
+              values.options.includeCompetitorResearch,
+            ].filter(Boolean).length
+          } enabled`}
         >
           <SubGroup label="Writing style">
-            <ToggleListField keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]} />
+            <ToggleListField
+              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
+            />
           </SubGroup>
 
           <SubGroup label="Content">
-            <ToggleListField keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]} />
+            <ToggleListField
+              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
+            />
           </SubGroup>
 
           <SubGroup label="SEO & research">
-            <ToggleListField keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]} />
+            <ToggleListField
+              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
+            />
           </SubGroup>
+        </FormSection>
 
-          <SubGroup label="Brand voice">
-            <BrandVoiceField />
-          </SubGroup>
+        <FormSection
+          title="Brand voice"
+          description="Apply your saved brand style and assets"
+          summary={values.isCheckedBrand ? "On" : "Off"}
+          fields={["brandId"]}
+        >
+          <BrandVoiceField />
+        </FormSection>
 
-          <SubGroup label="Posting">
-            <PostingFields />
-          </SubGroup>
+        <FormSection
+          title="Publishing"
+          description="Automatically publish each generated blog"
+          summary={
+            values.options.automaticPosting
+              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
+              : "Off"
+          }
+          fields={["postingDefaultType"]}
+        >
+          <PostingFields />
         </FormSection>
       </CreateFormShell>
     </FormProvider>
