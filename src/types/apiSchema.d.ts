@@ -3951,48 +3951,155 @@ export interface components {
             gscImpressions: number;
         };
         BlogStatusResponse: {
-            total: number;
-            pending: number;
-            inProgress: number;
-            complete: number;
-            failed: number;
-            archived: number;
+            period: {
+                /**
+                 * Format: date-time
+                 * @description Start of the reporting window (default: 10 days ago)
+                 */
+                startDate: string;
+                /**
+                 * Format: date-time
+                 * @description End of the reporting window (default: now)
+                 */
+                endDate: string;
+            };
+            stats: {
+                totalBlogs: number;
+                /** @description Blogs posted to at least one integration (omitted when none) */
+                postedBlogs?: number;
+                /**
+                 * @description Postings per integration type
+                 * @example {
+                 *       "WORDPRESS": 3
+                 *     }
+                 */
+                postedBlogsByType: {
+                    [key: string]: number;
+                };
+                archivedBlogs: number;
+                /**
+                 * @example {
+                 *       "Gemini": 4,
+                 *       "OpenAI": 0,
+                 *       "Claude": 0,
+                 *       "Other": 0
+                 *     }
+                 */
+                blogsByModel: {
+                    [key: string]: number;
+                };
+                blogsByStatus: {
+                    pending: number;
+                    "in-progress": number;
+                    complete: number;
+                    failed: number;
+                };
+                imageSources: {
+                    aiGenerated: number;
+                    stockImages: number;
+                    uploadedImages: number;
+                    noImages: number;
+                };
+                templatesUsed: {
+                    [key: string]: number;
+                };
+                brandedBlogs: number;
+            };
         };
         BlogStatsResponse: {
-            /**
-             * @description Readability score
-             * @example 75
-             */
-            readabilityScore: number;
-            /**
-             * @description Total word count
-             * @example 1500
-             */
-            wordCount: number;
-            /**
-             * @description Number of paragraphs
-             * @example 12
-             */
-            paragraphCount: number;
-            /**
-             * @description Number of sentences
-             * @example 45
-             */
-            sentenceCount: number;
-            /**
-             * @description Average words per sentence
-             * @example 18.5
-             */
-            averageWordsPerSentence: number;
-            /**
-             * @description Keyword density percentages
-             * @example {
-             *       "AI": 2.5,
-             *       "content": 1.8
-             *     }
-             */
-            keywordDensity: {
-                [key: string]: number;
+            readabililty: {
+                fleschEase: {
+                    /**
+                     * @description Computed score (null when the content could not be analysed)
+                     * @example 62.4
+                     */
+                    score: number | null;
+                    /**
+                     * @description Human-readable level for the score
+                     * @example Standard
+                     */
+                    level: string;
+                };
+                smogIndex: {
+                    /**
+                     * @description Computed score (null when the content could not be analysed)
+                     * @example 62.4
+                     */
+                    score: number | null;
+                    /**
+                     * @description Human-readable level for the score
+                     * @example Standard
+                     */
+                    level: string;
+                };
+                ari: {
+                    /**
+                     * @description Computed score (null when the content could not be analysed)
+                     * @example 62.4
+                     */
+                    score: number | null;
+                    /**
+                     * @description Human-readable level for the score
+                     * @example Standard
+                     */
+                    level: string;
+                };
+                /**
+                 * @description Total word count
+                 * @example 1500
+                 */
+                wordCount: number;
+                /** @example 45 */
+                sentenceCount: number;
+                /**
+                 * @description Average words per sentence
+                 * @example 18.5
+                 */
+                avgSentenceLength: number;
+                /** @example 4.7 */
+                avgWordLength: number;
+                /** @example 2100 */
+                syllableCount: number;
+                /**
+                 * @description Estimated reading time in minutes
+                 * @example 7
+                 */
+                readingTime: number;
+            };
+            seo: {
+                /**
+                 * @description SEO score formatted to two decimals
+                 * @example 72.00
+                 */
+                score: string;
+                focusKeywords: string[];
+                keywords: string[];
+                /**
+                 * @description Per-keyword density information
+                 * @example {
+                 *       "AI": {
+                 *         "count": 4,
+                 *         "density": 2.5
+                 *       }
+                 *     }
+                 */
+                keywordDensity: {
+                    [key: string]: unknown;
+                };
+                internalLinks: number;
+                externalLinks: number;
+                metaTitle: string;
+                metaDescription: string;
+                metaDescriptionLength: number;
+            };
+            metadata: {
+                title?: string;
+                tone?: string;
+                template?: string;
+                aiModel?: string;
+                /** Format: date-time */
+                lastGeneratedAt?: string;
+                blogLinks?: unknown;
             };
         };
         UpdateBlogBody: {
@@ -4120,7 +4227,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-06T12:13:04.167Z
+             * @default 2026-10-12T04:47:53.669Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5004,7 +5111,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-06T12:13:04.225Z
+                 * @default 2026-10-12T04:47:53.701Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5178,7 +5285,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-06T12:13:04.227Z
+                 * @default 2026-10-12T04:47:53.703Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5353,7 +5460,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-06T12:13:04.233Z
+             * @default 2026-10-12T04:47:53.711Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -5657,9 +5764,9 @@ export interface components {
              * @example [
              *       {
              *         "title": "AI Content Marketing Trends 2024",
-             *         "snippet": "Explore the latest trends in AI-powered content marketing...",
-             *         "link": "https://competitor1.com/ai-trends-2024",
-             *         "summary": "Comprehensive guide covering AI tools, automation strategies, and future predictions for content marketing."
+             *         "url": "https://competitor1.com/ai-trends-2024",
+             *         "content": "Explore the latest trends in AI-powered content marketing...",
+             *         "score": 0.92
              *       }
              *     ]
              */
@@ -5673,92 +5780,79 @@ export interface components {
              */
             title: string;
             /**
+             * Format: uri
+             * @description URL of the competitor content (Tavily and scraped results)
+             * @example https://example.com/ai-content-marketing-2024
+             */
+            url?: string;
+            /**
+             * Format: uri
+             * @description URL of the competitor content (Google Custom Search results)
+             * @example https://example.com/ai-content-marketing-2024
+             */
+            link?: string;
+            /**
              * @description Brief snippet or description of the content
              * @example Discover how artificial intelligence is revolutionizing content marketing strategies...
              */
             snippet?: string;
             /**
-             * Format: uri
-             * @description URL of the competitor content
-             * @example https://example.com/ai-content-marketing-2024
-             */
-            link: string;
-            /**
-             * @description Full content text (when available from advanced search)
+             * @description Content text returned by the search provider
              * @example Artificial intelligence has fundamentally changed how we approach content marketing...
              */
             content?: string;
             /**
-             * @description Relevance score (0-1) when using advanced search
+             * @description Relevance score (0-1) from the search provider
              * @example 0.92
              */
             score?: number;
             /**
-             * Format: uri
-             * @description Alternative URL field for consistency
-             * @example https://example.com/ai-content-marketing-2024
-             */
-            url?: string;
-            /**
              * @description AI-generated summary of the competitor content
-             * @example This article covers the latest AI tools for content creation, focusing on automation and personalization strategies...
+             * @example This article covers the latest AI tools for content creation, focusing on automation.
              */
             summary?: string;
         };
         CompetitorAnalysisInsights: {
             analysis: components["schemas"]["SEOAnalysisBreakdown"];
             /**
-             * @description Overall SEO score out of 100 based on analysis criteria
+             * @description Overall SEO score out of 100 (sum of the category scores)
              * @example 81
              */
             blogScore: number;
             /**
              * @description Actionable suggestions to improve content and beat competitors
-             * @example To improve your content: 1) Add more visual elements like infographics and charts, 2) Include more internal links to related content, 3) Expand the conclusion with specific action steps...
+             * @example [
+             *       "Add more visual elements like infographics and charts",
+             *       "Include more internal links"
+             *     ]
              */
-            suggestions: string;
+            suggestions: string[];
         };
         SEOAnalysisBreakdown: {
+            "Keyword Mastery & Semantic Relevance": components["schemas"]["SEOAnalysisCategory"];
+            "Content Depth & Semantic Authority": components["schemas"]["SEOAnalysisCategory"];
+            "Structure & User Experience": components["schemas"]["SEOAnalysisCategory"];
+            "Link Profile & Credibility": components["schemas"]["SEOAnalysisCategory"];
+            "Visuals & Media Strategy": components["schemas"]["SEOAnalysisCategory"];
+            "SEO & AI Readiness": components["schemas"]["SEOAnalysisCategory"];
+            "Differentiation & Value": components["schemas"]["SEOAnalysisCategory"];
+        };
+        SEOAnalysisCategory: {
             /**
-             * @description Analysis of keyword usage and placement
-             * @example Keywords are well-distributed throughout the content with good density (15/20 points)
+             * @description Score awarded for this rubric category
+             * @example 15
              */
-            "Keyword Usage": string;
+            score: number;
             /**
-             * @description Assessment of content comprehensiveness and accuracy
-             * @example Content provides comprehensive coverage of the topic with actionable insights (18/20 points)
+             * @description Critique for this rubric category
+             * @example Keywords are well-distributed throughout the content.
              */
-            "Content Depth & Relevance": string;
+            feedback: string;
             /**
-             * @description Evaluation of headline effectiveness
-             * @example Headline is clear, includes target keywords, and is compelling (8/10 points)
+             * @description Maximum score available for this category (injected server-side)
+             * @example 20
              */
-            "Headline Strength": string;
-            /**
-             * @description Analysis of content organization and readability
-             * @example Well-structured with clear subheadings and good flow (13/15 points)
-             */
-            "Content Structure & Readability": string;
-            /**
-             * @description Assessment of media usage and optimization
-             * @example Limited use of images and media elements (6/10 points)
-             */
-            "Use of Media": string;
-            /**
-             * @description Evaluation of unique insights and value proposition
-             * @example Provides unique perspectives and actionable advice (9/10 points)
-             */
-            "Unique Value & Differentiation": string;
-            /**
-             * @description Assessment of writing tone and style consistency
-             * @example Professional tone maintained throughout with good engagement (4/5 points)
-             */
-            "Tone and Style": string;
-            /**
-             * @description Evaluation of technical SEO elements
-             * @example Good use of internal linking and semantic structure (8/10 points)
-             */
-            "On-Page SEO Extras": string;
+            maxScore?: number;
         };
         AnalyzeCompetitorsBody: {
             /**
@@ -6080,7 +6174,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-06T12:13:04.253Z
+                 * @default 2026-10-12T04:47:53.731Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6254,7 +6348,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-06T12:13:04.255Z
+                 * @default 2026-10-12T04:47:53.733Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -6686,7 +6780,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-06T12:13:04.266Z
+             * @default 2026-10-12T04:47:53.747Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8411,10 +8505,10 @@ export interface components {
                             [key: string]: number;
                         };
                         /**
-                         * @description Generated directly through Vertex AI rather than fal
+                         * @description Not served by fal: "vertex" = generated directly through Vertex AI, "local" = assembled on our own server
                          * @enum {string}
                          */
-                        provider?: "vertex";
+                        provider?: "vertex" | "local";
                         /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                         requiresImage?: boolean;
                         /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
@@ -8432,6 +8526,10 @@ export interface components {
                             negativePrompt: boolean;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
+                            /** @description Value sent to the model for a picked resolution when it spells it differently */
+                            resolutionMap?: {
+                                [key: string]: string;
+                            };
                             /**
                              * @description 'sections' = the model wants a [VISUAL]/[SPEECH]/[SOUNDS] prompt
                              * @enum {string}
@@ -8453,6 +8551,7 @@ export interface components {
                                 max: number;
                                 firstFrameAsReference: boolean;
                                 syntax: string;
+                                indexBase?: number;
                             };
                         };
                         /** @description Text-to-video model used by the prompt-only video endpoint */
@@ -8466,6 +8565,10 @@ export interface components {
                             negativePrompt: boolean;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
+                            /** @description Value sent to the model for a picked resolution when it spells it differently */
+                            resolutionMap?: {
+                                [key: string]: string;
+                            };
                             /**
                              * @description 'sections' = the model wants a [VISUAL]/[SPEECH]/[SOUNDS] prompt
                              * @enum {string}
@@ -8616,10 +8719,10 @@ export interface components {
                         [key: string]: number;
                     };
                     /**
-                     * @description Generated directly through Vertex AI rather than fal
+                     * @description Not served by fal: "vertex" = generated directly through Vertex AI, "local" = assembled on our own server
                      * @enum {string}
                      */
-                    provider?: "vertex";
+                    provider?: "vertex" | "local";
                     /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                     requiresImage?: boolean;
                     /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
@@ -8637,6 +8740,10 @@ export interface components {
                         negativePrompt: boolean;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
+                        /** @description Value sent to the model for a picked resolution when it spells it differently */
+                        resolutionMap?: {
+                            [key: string]: string;
+                        };
                         /**
                          * @description 'sections' = the model wants a [VISUAL]/[SPEECH]/[SOUNDS] prompt
                          * @enum {string}
@@ -8658,6 +8765,7 @@ export interface components {
                             max: number;
                             firstFrameAsReference: boolean;
                             syntax: string;
+                            indexBase?: number;
                         };
                     };
                     /** @description Text-to-video model used by the prompt-only video endpoint */
@@ -8671,6 +8779,10 @@ export interface components {
                         negativePrompt: boolean;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
+                        /** @description Value sent to the model for a picked resolution when it spells it differently */
+                        resolutionMap?: {
+                            [key: string]: string;
+                        };
                         /**
                          * @description 'sections' = the model wants a [VISUAL]/[SPEECH]/[SOUNDS] prompt
                          * @enum {string}
@@ -8790,7 +8902,7 @@ export interface components {
                  * @example 25
                  */
                 cost: number;
-                /** @description Present only for type: "blog" — per-component cost breakdown */
+                /** @description Per-component cost breakdown for type "blog"; for "media-ugc-ad" the scenes the ad will have (after pacing adjustments), warnings and the demo-scene model */
                 breakdown?: {
                     [key: string]: unknown;
                 };
@@ -8828,6 +8940,10 @@ export interface components {
             /** @enum {string} */
             type: "media-pipeline";
             params: components["schemas"]["MediaPipelinePricingParams"];
+        } | {
+            /** @enum {string} */
+            type: "media-ugc-ad";
+            params: components["schemas"]["MediaUgcAdPricingParams"];
         } | {
             /** @enum {string} */
             type: "analysis";
@@ -8961,7 +9077,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -8985,7 +9101,7 @@ export interface components {
              * @default null
              * @enum {string|null}
              */
-            resolution: "480p" | "720p" | "1080p" | null;
+            resolution: "480p" | "540p" | "720p" | "1080p" | null;
         };
         MediaPipelinePricingParams: {
             /**
@@ -8993,7 +9109,7 @@ export interface components {
              * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Video duration in seconds
              * @example 5
@@ -9015,7 +9131,7 @@ export interface components {
              * @default null
              * @enum {string|null}
              */
-            resolution: "480p" | "720p" | "1080p" | null;
+            resolution: "480p" | "540p" | "720p" | "1080p" | null;
             /**
              * @description Number of product screenshots attached (UGC ad)
              * @default 0
@@ -9031,6 +9147,38 @@ export interface components {
              * @default true
              */
             includeFrames: boolean;
+        };
+        MediaUgcAdPricingParams: {
+            /**
+             * @description The ad's image-to-video model (demo scenes fall back to one with an end frame)
+             * @example alibaba/wan-3.0/image-to-video
+             * @enum {string}
+             */
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
+            /**
+             * @default null
+             * @enum {string|null}
+             */
+            resolution: "480p" | "540p" | "720p" | "1080p" | null;
+            /**
+             * @description Screenshots attached
+             * @default 0
+             */
+            productImages: number;
+            /** @default false */
+            subtitles: boolean;
+            structure?: {
+                /** @enum {string} */
+                kind: "hook" | "demo" | "cta" | "talk";
+                durationSeconds: number;
+            }[];
+            /** @description A pasted IMAGE PROMPT / VIDEO PROMPT script — the quote reflects its (possibly lengthened) scenes */
+            script?: string;
+            /**
+             * @default natural
+             * @enum {string}
+             */
+            pacing: "natural" | "as_written";
         };
         MediaAssetResponse: {
             /**
@@ -9071,13 +9219,13 @@ export interface components {
              * @default fal
              * @enum {string}
              */
-            provider: "fal" | "vertex";
+            provider: "fal" | "vertex" | "local";
             /**
              * @description fal model id used
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
@@ -9208,7 +9356,7 @@ export interface components {
              * @example 720p
              * @enum {string}
              */
-            resolution: "480p" | "720p" | "1080p";
+            resolution: "480p" | "540p" | "720p" | "1080p";
         };
         ListMediaAssetsResponse: {
             data: components["schemas"]["MediaAssetResponse"][];
@@ -9264,7 +9412,7 @@ export interface components {
              * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Requested video duration in seconds
              * @example 5
@@ -9277,11 +9425,48 @@ export interface components {
              */
             aspectRatio: "16:9" | "9:16";
             /**
+             * @description single clip, multi-scene UGC ad, or one scene of an ad
+             * @default single
+             * @enum {string}
+             */
+            kind: "single" | "ugc" | "scene";
+            /** @description Multi-scene ad plan and progress (kind 'ugc'); empty otherwise */
+            ugc: {
+                /**
+                 * @description A pasted IMAGE PROMPT / VIDEO PROMPT script, used as written
+                 * @default null
+                 */
+                script: string | null;
+                /**
+                 * @default natural
+                 * @enum {string}
+                 */
+                pacing: "natural" | "as_written";
+                /** @default true */
+                masterAudio: boolean;
+                /** @default null */
+                demoVideoModel: string | null;
+                /** @default 0 */
+                planAttempts: number;
+                /** @default 0 */
+                stitchAttempts: number;
+                /** @default [] */
+                creators: {
+                    label: string;
+                    sheet: string;
+                    voice: string;
+                }[];
+                /** @default [] */
+                scenes: components["schemas"]["MediaPipelineUgcScene"][];
+                /** @default [] */
+                warnings: string[];
+            };
+            /**
              * @description Output resolution; null when the model has no resolution choice
              * @default null
              * @enum {string|null}
              */
-            resolution: "480p" | "720p" | "1080p" | null;
+            resolution: "480p" | "540p" | "720p" | "1080p" | null;
             /**
              * @description Product/app screenshots shown in the video (UGC ads); empty for a plain run
              * @default []
@@ -9334,20 +9519,26 @@ export interface components {
                 dialogue: string[];
                 /** @default null */
                 audioPrompt: string | null;
+                /** @default [] */
+                beats: {
+                    start: number;
+                    end: number;
+                    action: string;
+                }[];
                 /** @default null */
                 negativePrompt: string | null;
                 /**
                  * @default null
                  * @enum {string|null}
                  */
-                source: "llm" | "fallback" | null;
+                source: "llm" | "fallback" | "preset" | null;
             };
             /**
              * @description Current pipeline stage
              * @default refining
              * @enum {string}
              */
-            stage: "refining" | "first_frames" | "last_frames" | "video" | "subtitles" | "completed" | "failed";
+            stage: "planning" | "scenes" | "stitching" | "refining" | "first_frames" | "last_frames" | "video" | "subtitles" | "completed" | "failed";
             /**
              * @description Candidate round within the current frame stage
              * @default 0
@@ -9430,6 +9621,51 @@ export interface components {
              */
             updatedAt: string;
         };
+        MediaPipelineUgcScene: {
+            index: number;
+            /** @enum {string} */
+            kind: "hook" | "demo" | "cta" | "talk";
+            /** @default null */
+            title: string | null;
+            durationSeconds: number;
+            /**
+             * @default waiting
+             * @enum {string}
+             */
+            status: "waiting" | "running" | "done" | "failed";
+            /** @default null */
+            stage: string | null;
+            /**
+             * @description MongoDB ObjectId, serialized as a hex string
+             * @default null
+             * @example 662f1a2b8c9d4e0012a3b4c5
+             */
+            pipelineId: string | null;
+            /** @default true */
+            lipsync: boolean;
+            /** @default A */
+            creator: string;
+            /** @default null */
+            imagePrompt: string | null;
+            /** @default null */
+            imagePromptB: string | null;
+            /** @default null */
+            videoPrompt: string | null;
+            /** @default [] */
+            dialogue: string[];
+            /** @default [] */
+            voiceover: string[];
+            /** @default null */
+            voiceSpec: string | null;
+            /** @default null */
+            audioCues: string | null;
+            /** @default [] */
+            beats: {
+                start: number;
+                end: number;
+                action: string;
+            }[];
+        };
         MediaPipelineQaResult: {
             /**
              * @description MediaAsset that was screened
@@ -9468,7 +9704,7 @@ export interface components {
              * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
             /**
              * @description Video length in seconds; must be one of the model's supported durations
              * @default 5
@@ -9487,7 +9723,7 @@ export interface components {
              * @example 720p
              * @enum {string}
              */
-            resolution: "480p" | "720p" | "1080p";
+            resolution: "480p" | "540p" | "720p" | "1080p";
             /**
              * @description Also generate an end frame and pin the video to it (off: animate forward from the first frame)
              * @default false
@@ -9511,6 +9747,40 @@ export interface components {
              * @enum {string}
              */
             purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
+            /** @description Make a multi-scene UGC ad (hook → demo → wrap-up, each its own shot, stitched together). Requires purpose 'ugc_ad'. */
+            ugc?: {
+                /**
+                 * @description The ad's scenes in order (default: hook 5s → demo 6s → wrap-up 5s). Ignored when a script is pasted.
+                 * @example [
+                 *       {
+                 *         "kind": "hook",
+                 *         "durationSeconds": 5
+                 *       },
+                 *       {
+                 *         "kind": "demo",
+                 *         "durationSeconds": 6
+                 *       }
+                 *     ]
+                 */
+                structure?: {
+                    /** @enum {string} */
+                    kind: "hook" | "demo" | "cta" | "talk";
+                    durationSeconds: number;
+                }[];
+                /** @description A pasted IMAGE PROMPT / VIDEO PROMPT script for ONE ad, used exactly as written (its scenes, beats, dialogue and sound cues). Without it the scenes are written for you. */
+                script?: string;
+                /**
+                 * @description 'natural' lengthens a scene whose speech would be rushed; 'as_written' keeps the script's timings
+                 * @default natural
+                 * @enum {string}
+                 */
+                pacing: "natural" | "as_written";
+                /**
+                 * @description Level the finished ad's soundtrack (loudness, rumble, harsh top end)
+                 * @default true
+                 */
+                masterAudio: boolean;
+            };
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -11998,7 +12268,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-06T12:13:04.124Z
+                             * @default 2026-10-12T04:47:53.639Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12145,7 +12415,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-06T12:13:04.130Z
+                             * @default 2026-10-12T04:47:53.647Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

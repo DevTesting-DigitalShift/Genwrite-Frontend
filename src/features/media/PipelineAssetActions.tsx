@@ -36,14 +36,19 @@ export function PipelineAssetActions({
 
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
   const priceOf = (includeFrames: boolean) =>
-    estimatePipelineCredits(mediaCatalogue, {
-      videoModel: pipeline.videoModel,
-      durationSeconds: pipeline.durationSeconds,
-      resolution: pipeline.resolution,
-      useEndFrame: pipeline.useEndFrame,
-      subtitles: Boolean(pipeline.subtitles?.style),
-      includeFrames,
-    })
+    pipeline.kind === "ugc"
+      ? pipeline.creditCost
+      : estimatePipelineCredits(mediaCatalogue, {
+          videoModel: pipeline.videoModel,
+          durationSeconds: pipeline.durationSeconds,
+          resolution: pipeline.resolution,
+          useEndFrame: pipeline.useEndFrame,
+          subtitles: Boolean(pipeline.subtitles?.style),
+          includeFrames,
+        })
+
+  // A multi-scene ad has no single opening frame to re-animate — only a full restart makes sense.
+  const isMultiScene = pipeline.kind === "ugc"
 
   const confirm = (mode: "video" | "full") => {
     const price = priceOf(mode === "full")
@@ -102,15 +107,42 @@ export function PipelineAssetActions({
         )}
       </section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => confirm("video")}
-          disabled={regenerate.isPending}
-          className="btn h-11 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center justify-center gap-1.5"
-        >
-          <Film size={15} /> Regenerate video
-        </button>
+      {isMultiScene && (pipeline.ugc?.scenes.length ?? 0) > 0 && (
+        <section>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            Scenes
+          </h3>
+          <ol className="space-y-1 text-xs text-slate-600">
+            {pipeline.ugc.scenes.map((s) => (
+              <li key={s.index} className="flex justify-between gap-3">
+                <span className="truncate">
+                  {s.index + 1}. {s.title || s.kind}
+                </span>
+                <span className="shrink-0 font-semibold text-slate-700">{s.durationSeconds}s</span>
+              </li>
+            ))}
+          </ol>
+          {pipeline.ugc.warnings.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[11px] text-amber-700">
+              {pipeline.ugc.warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <div className={isMultiScene ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
+        {!isMultiScene && (
+          <button
+            type="button"
+            onClick={() => confirm("video")}
+            disabled={regenerate.isPending}
+            className="btn h-11 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center justify-center gap-1.5"
+          >
+            <Film size={15} /> Regenerate video
+          </button>
+        )}
         <button
           type="button"
           onClick={() => confirm("full")}

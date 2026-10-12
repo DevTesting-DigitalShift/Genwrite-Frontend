@@ -18,6 +18,8 @@ import {
 } from "./pipelinePricing"
 import { pacingAdvice } from "./scriptPacing"
 import { ProductScreenshots } from "./ProductScreenshots"
+import { UgcAdOptions, useUgcQuote } from "./UgcAdOptions"
+import { DEFAULT_UGC_SETTINGS, ugcPayload, type UgcAdSettings } from "./ugcAd"
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string }[] = [
   { id: "16:9", label: "Landscape 16:9" },
@@ -66,8 +68,12 @@ export function AutoVideoForm() {
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null)
   const [productUrls, setProductUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [ugcSettings, setUgcSettings] = useState<UgcAdSettings>(DEFAULT_UGC_SETTINGS)
 
   const model = models.find((m) => m.id === modelId) ?? models[0]
+  // UGC ads can carry product screenshots and be built from several scenes; other purposes ignore both.
+  const isUgc = purpose === "ugc_ad"
+  const isMultiScene = isUgc && ugcSettings.mode === "multi"
   const durations = model?.frameVideo?.durations ?? []
   // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
   const durationSeconds =
@@ -78,19 +84,31 @@ export function AutoVideoForm() {
         : (durations[0] ?? 5)
   // Animating forward from one frame looks most natural, so the end frame is opt-in, and only
   // offered where the model accepts one.
-  const canLockEndFrame = model?.frameVideo?.endFrame === "optional"
+  const canLockEndFrame = model?.frameVideo?.endFrame === "optional" && !isMultiScene
   const useEndFrame = canLockEndFrame && lockEndFrame
   // Only models with per-resolution pricing take a resolution; the rest render at a fixed one.
   const resolutionOptions = resolutionsOf(model)
   const videoResolution = effectiveResolution(model, resolution)
   // A quoted script longer than the clip allows comes out rushed — say so before they pay.
-  const pacing = pacingAdvice(prompt, durationSeconds, durations)
-  // UGC ads can carry real product/app screenshots; any other purpose ignores them.
-  const isUgc = purpose === "ugc_ad"
+  const pacing = isMultiScene ? null : pacingAdvice(prompt, durationSeconds, durations)
   const screenshots = isUgc ? productUrls : []
   const takesScreenRefs = Boolean(model?.frameVideo?.referenceImages)
 
-  const price = model
+  // A multi-scene ad is priced by the backend (its scenes — and a pasted script's lengthened ones —
+  // decide the cost); a single clip is priced here from the catalogue.
+  const quote = useUgcQuote(
+    ugcSettings,
+    {
+      videoModel: model?.id ?? "",
+      resolution: videoResolution,
+      productImages: screenshots.length,
+      subtitles: subtitleStyle !== null,
+    },
+    isMultiScene
+  )
+  const quoteReady = !isMultiScene || quote.data !== undefined
+
+  const clipPrice = model
     ? estimatePipelineCredits(mediaCatalogue, {
         videoModel: model.id,
         durationSeconds,
@@ -100,12 +118,14 @@ export function AutoVideoForm() {
         productImages: screenshots.length,
       })
     : 0
+  const price = isMultiScene ? (quote.data?.cost ?? 0) : clipPrice
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const create = mediaPipelineQuery.useCreate({
     onSuccess: () => {
       setPrompt("")
       setProductUrls([])
+      setUgcSettings(DEFAULT_UGC_SETTINGS)
       loadAuthenticatedUser()
       toast.success("Video generation started — usually ready in 5–10 minutes", {
         description:
@@ -123,6 +143,10 @@ export function AutoVideoForm() {
     if (!model) return
     if (uploading) {
       toast.error("Wait for the screenshots to finish uploading")
+      return
+    }
+    if (!quoteReady) {
+      toast.error("Still pricing the ad — try again in a moment")
       return
     }
     if (userCredits < price) {
@@ -144,6 +168,7 @@ export function AutoVideoForm() {
       subtitleStyle,
       productImageUrls: screenshots,
       purpose,
+      ...(isUgc && ugcPayload(ugcSettings) ? { ugc: ugcPayload(ugcSettings) } : {}),
     } as CreateMediaPipelinePayload)
   }
 
@@ -181,7 +206,7 @@ export function AutoVideoForm() {
             className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
             value={durationSeconds}
             onChange={(e) => setDuration(Number(e.target.value))}
-            disabled={durations.length <= 1}
+            disabled={durations.length <= 1 || isMultiScene}
           >
             {durations.map((d) => (
               <option key={d} value={d}>
@@ -234,6 +259,12 @@ export function AutoVideoForm() {
             urls={productUrls}
             onChange={setProductUrls}
             onUploadingChange={setUploading}
+          />
+          <UgcAdOptions
+            settings={ugcSettings}
+            onChange={setUgcSettings}
+            scenes={quote.data?.breakdown?.scenes}
+            warnings={quote.data?.breakdown?.warnings}
           />
           {screenshots.length > 0 && !takesScreenRefs && (
             <p className="-mt-3 mb-5 text-xs text-slate-500 sm:-mt-4 sm:mb-6">
@@ -368,7 +399,7 @@ export function AutoVideoForm() {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={create.isPending || uploading}
+          disabled={create.isPending || uploading || !quoteReady}
           className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
         >
           {create.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Generate Video"}

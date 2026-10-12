@@ -7,7 +7,12 @@ type MediaCatalogue = PricingCatalogue["media"]
  * decides which options to offer. */
 const ENHANCE_MODEL = "topaz/upscale/video/precision"
 const TARGET_HEIGHTS = { "1080p": 1080, "4k": 2160 } as const
-const SOURCE_HEIGHTS: Record<string, number> = { "480p": 480, "720p": 720, "1080p": 1080 }
+const SOURCE_HEIGHTS: Record<string, number> = {
+  "480p": 480,
+  "540p": 540,
+  "720p": 720,
+  "1080p": 1080,
+}
 const MAX_FACTOR = 4
 
 export type EnhanceResolution = keyof typeof TARGET_HEIGHTS

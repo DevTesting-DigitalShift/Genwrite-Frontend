@@ -2,7 +2,7 @@ import type { PricingCatalogue } from "@api/Pricing/Pricing.api"
 
 type MediaCatalogue = PricingCatalogue["media"]
 export type AspectRatio = "16:9" | "9:16"
-export type VideoResolution = "480p" | "720p" | "1080p"
+export type VideoResolution = "480p" | "540p" | "720p" | "1080p"
 
 /** What the backend uses when no resolution is picked (DEFAULT_VIDEO_RESOLUTION). */
 export const DEFAULT_RESOLUTION: VideoResolution = "720p"
@@ -33,7 +33,9 @@ export const usdPerUnitFor = (
 
 /** Resolutions a model offers, low to high; empty when it has no resolution choice. */
 export const resolutionsOf = (model: MediaCatalogue[string] | undefined): VideoResolution[] =>
-  (["480p", "720p", "1080p"] as const).filter((r) => model?.resolutionPricing?.[r] !== undefined)
+  (["480p", "540p", "720p", "1080p"] as const).filter(
+    (r) => model?.resolutionPricing?.[r] !== undefined
+  )
 
 /** The picked resolution if the model offers it, else 720p, else its lowest. */
 export function effectiveResolution(
