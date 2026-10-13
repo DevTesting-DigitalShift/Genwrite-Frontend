@@ -17,6 +17,7 @@ import {
   type VideoResolution,
 } from "./pipelinePricing"
 import { pacingAdvice } from "./scriptPacing"
+import { RefinePromptButton } from "./RefinePromptButton"
 import { ProductScreenshots } from "./ProductScreenshots"
 import { UgcAdOptions, useUgcQuote } from "./UgcAdOptions"
 import { DEFAULT_UGC_SETTINGS, ugcPayload, type UgcAdSettings } from "./ugcAd"
@@ -50,7 +51,7 @@ export function AutoVideoForm() {
 
   // Only image-to-video models can run this flow — the catalogue marks them with frameVideo.
   // Legacy ones stay priced for old runs but aren't offered for new ones.
-  const models = useMemo<MediaModel[]>(
+  const allModels = useMemo<MediaModel[]>(
     () =>
       Object.entries(mediaCatalogue)
         .filter(([, m]) => m.frameVideo && !m.legacy && !m.unavailable)
@@ -70,9 +71,15 @@ export function AutoVideoForm() {
   const [uploading, setUploading] = useState(false)
   const [ugcSettings, setUgcSettings] = useState<UgcAdSettings>(DEFAULT_UGC_SETTINGS)
 
-  const model = models.find((m) => m.id === modelId) ?? models[0]
   // UGC ads can carry product screenshots and be built from several scenes; other purposes ignore both.
   const isUgc = purpose === "ugc_ad"
+  // A UGC ad is built around the user's product screenshots, so only models that take product
+  // reference images are offered for it; every other purpose can use any image-to-video model.
+  const models = useMemo(
+    () => (isUgc ? allModels.filter((m) => m.frameVideo?.referenceImages) : allModels),
+    [allModels, isUgc]
+  )
+  const model = models.find((m) => m.id === modelId) ?? models[0]
   const isMultiScene = isUgc && ugcSettings.mode === "multi"
   const durations = model?.frameVideo?.durations ?? []
   // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
@@ -172,7 +179,7 @@ export function AutoVideoForm() {
     } as CreateMediaPipelinePayload)
   }
 
-  if (models.length === 0) {
+  if (allModels.length === 0) {
     return <p className="text-sm text-slate-500">Auto Video isn't available right now.</p>
   }
 
@@ -354,6 +361,9 @@ export function AutoVideoForm() {
             'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'
           }
         />
+        <div className="flex justify-end">
+          <RefinePromptButton prompt={prompt} kind="video" purpose={purpose} onRefined={setPrompt} />
+        </div>
         {pacing && (
           <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />

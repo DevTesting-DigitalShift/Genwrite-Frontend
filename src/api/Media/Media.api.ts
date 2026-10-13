@@ -7,6 +7,11 @@ export type MediaAssetList = ApiResponse<"/media", "get">
 export type GenerateImagePayload = ApiRequestBody<"/media/image/generate", "post">
 export type GenerateVideoPayload = ApiRequestBody<"/media/video/generate", "post">
 export type EnhanceVideoPayload = ApiRequestBody<"/media/{id}/enhance", "post">
+export type RefinePromptPayload = {
+  prompt: string
+  kind: "image" | "video"
+  purpose?: string
+}
 export type MediaListParams = ApiQueryParams<"/media", "get">
 
 export const MediaAPI = {
@@ -23,6 +28,15 @@ export const MediaAPI = {
       return await apiPost("/media/video/generate", payload as never)
     } catch (err) {
       return rethrow(err, "Failed to start video generation")
+    }
+  },
+
+  /** Free: rewrites a rough idea into a fuller prompt so the user can review it before paying. */
+  refinePrompt: async (payload: RefinePromptPayload): Promise<{ prompt: string }> => {
+    try {
+      return await apiPost("/media/prompt/refine" as never, payload as never)
+    } catch (err) {
+      return rethrow(err, "Failed to refine the prompt")
     }
   },
 

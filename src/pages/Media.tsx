@@ -26,6 +26,7 @@ import { PURPOSES, type MediaModel, type Purpose } from "@/features/media/mediaO
 import { AutoVideoForm } from "@/features/media/AutoVideoForm"
 import { PipelineRuns } from "@/features/media/PipelineRuns"
 import { PipelineAssetActions } from "@/features/media/PipelineAssetActions"
+import { RefinePromptButton } from "@/features/media/RefinePromptButton"
 import { EnhanceVideoAction } from "@/features/media/EnhanceVideoAction"
 import {
   DEFAULT_RESOLUTION,
@@ -190,8 +191,10 @@ const Media = () => {
     const all: MediaModel[] = Object.entries(mediaCatalogue)
       .filter(([, m]) => !m.requiresImage && !m.legacy && !m.unavailable)
       .map(([id, m]) => ({ id, ...m }))
+    // Cheapest image model first (priced for one megapixel), so it's also the default pick.
+    const cost = (m: MediaModel) => estimateCredits(m, { megapixels: 1, durationSeconds: 5 })
     return {
-      image: all.filter((m) => m.kind === "image"),
+      image: all.filter((m) => m.kind === "image").sort((a, b) => cost(a) - cost(b)),
       video: all.filter((m) => m.kind === "video"),
     }
   }, [mediaCatalogue])
@@ -548,6 +551,14 @@ const Media = () => {
                         : "Describe the video you want... (e.g. A drone shot flying over a mountain range at sunrise)"
                     }
                   />
+                  <div className="flex justify-end">
+                    <RefinePromptButton
+                      prompt={prompt}
+                      kind={tab === "image" ? "image" : "video"}
+                      purpose={purpose}
+                      onRefined={setPrompt}
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-6">

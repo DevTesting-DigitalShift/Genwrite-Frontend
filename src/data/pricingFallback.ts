@@ -65,31 +65,23 @@ export const PRICING_FALLBACK: PricingCatalogue = {
       usdPerUnit: 0.048,
       label: "FLUX 3 Image",
     },
-    "fal-ai/nano-banana-2": {
+    "fal-ai/hidream-o1-image": {
+      kind: "image",
+      unit: "megapixel",
+      usdPerUnit: 0.01,
+      label: "HiDream (Text-to-Image)",
+    },
+    "openai/gpt-image-2": {
       kind: "image",
       unit: "image",
-      usdPerUnit: 0.08,
-      label: "Nano Banana 2",
+      usdPerUnit: 0.211,
+      label: "GPT Image 2",
     },
     "alibaba/qwen-image-3/text-to-image": {
       kind: "image",
       unit: "image",
       usdPerUnit: 0.04,
       label: "Qwen Image 3",
-    },
-    "gemini-3.1-flash-image": {
-      kind: "image",
-      unit: "image",
-      usdPerUnit: 0.067,
-      label: "Gemini 3.1 Flash Image",
-      provider: "vertex",
-    },
-    "gemini-3-pro-image": {
-      kind: "image",
-      unit: "image",
-      usdPerUnit: 0.134,
-      label: "Gemini 3 Pro Image",
-      provider: "vertex",
     },
     "bytedance/seedream/v5/pro/edit": {
       kind: "image",

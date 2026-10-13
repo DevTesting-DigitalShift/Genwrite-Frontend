@@ -8,6 +8,7 @@ import {
   type MediaAsset,
   type MediaAssetList,
   type MediaListParams,
+  type RefinePromptPayload,
 } from "./Media.api"
 
 /** No update/delete-by-id endpoints exist for media assets — hand-written hooks against
@@ -53,6 +54,15 @@ class MediaQuery extends QueryBase<MediaAsset> {
         options?.onSuccess?.(data)
       },
     })
+
+  useRefinePrompt = (options?: {
+    onSuccess?: (data: { prompt: string }) => void
+    onError?: (err: Error) => void
+  }) =>
+    this.useMutate<{ prompt: string }, RefinePromptPayload>(
+      (payload) => this.api.refinePrompt(payload),
+      options
+    )
 
   useEnhance = (options?: {
     onSuccess?: (data: MediaAsset) => void
