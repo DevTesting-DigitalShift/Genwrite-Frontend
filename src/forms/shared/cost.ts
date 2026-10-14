@@ -1,4 +1,3 @@
-import { useMemo } from "react"
 import usePricingStore from "@store/usePricingStore"
 import { computeCostBreakdown, type BlogPricing, type CostBreakdown } from "@/data/pricingConfig"
 import { AI_MODELS, IMAGE_SOURCE } from "@/data/blogData"
@@ -73,40 +72,11 @@ export function estimateGenerationCost(
   }
 }
 
-/** Live cost breakdown that re-renders when the pricing catalogue loads or the form changes. */
-export function useGenerationCostBreakdown(
-  values: CostInputs,
-  config: CostConfig = {}
-): GenerationCostBreakdown {
-  const pricing = usePricingStore((s) => s.catalogue.blog)
-  const { wordCount, blogs, features } = config
-  const featureKey = features?.join(",")
-  const optionsKey = JSON.stringify(values.options)
+/** The blog price list, subscribed to — re-renders when the pricing catalogue loads. */
+export const useBlogPricing = (): BlogPricing => usePricingStore((s) => s.catalogue.blog)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: options/features are keyed by value above
-  return useMemo(
-    () => estimateGenerationCost(values, pricing, { wordCount, blogs, features }),
-    [
-      pricing,
-      optionsKey,
-      featureKey,
-      wordCount,
-      blogs,
-      values.isCheckedBrand,
-      values.aiModel,
-      values.costCutter,
-      values.imageSource,
-      values.numberOfImages,
-      values.blogImages?.length,
-      values.userDefinedLength,
-    ]
-  )
-}
-
-/** {@link useGenerationCostBreakdown}, for call sites that only need the final number. */
-export function useGenerationCost(values: CostInputs, config: CostConfig = {}): number {
-  return useGenerationCostBreakdown(values, config).total
-}
+/** The blog price list right now, for code that runs on an event rather than a render. */
+export const getBlogPricing = (): BlogPricing => usePricingStore.getState().catalogue.blog
 
 const MODEL_LABEL = Object.fromEntries(AI_MODELS.map((m) => [m.id, m.label]))
 
@@ -115,7 +85,10 @@ export function toCostLines(breakdown: GenerationCostBreakdown): CostLine[] {
   const writing = Math.round(breakdown.writingCost)
   const modelLabel = MODEL_LABEL[breakdown.aiModel] ?? breakdown.aiModel
   return [
-    { label: `Writing (${modelLabel}${breakdown.blogs > 1 ? ` × ${breakdown.blogs}` : ""})`, credits: writing },
+    {
+      label: `Writing (${modelLabel}${breakdown.blogs > 1 ? ` × ${breakdown.blogs}` : ""})`,
+      credits: writing,
+    },
     ...breakdown.lines.map((line) => ({ label: line.label, credits: Math.round(line.credits) })),
   ]
 }

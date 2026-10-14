@@ -11,11 +11,11 @@ interface FormSectionProps {
   id?: string
   title: string
   description?: string
-  /** Compact current-state copy shown as a chip in the header. */
+  /** Compact current-state copy shown as a chip in the header (else the form's, by `id`). */
   summary?: ReactNode
   /** Position in the form, shown in the leading badge until the section is complete. */
   step?: number
-  /** Everything required here is filled in — the badge turns into a green check. */
+  /** Everything required here is filled in — the badge turns into a green check (else the form's, by `id`). */
   complete?: boolean
   /** Badge content when there's no `step` — defaults to the title's initial. */
   icon?: ReactNode
@@ -49,9 +49,9 @@ export function FormSection({
   id,
   title,
   description,
-  summary,
+  summary: summaryProp,
   step,
-  complete,
+  complete: completeProp,
   icon,
   fields = [],
   defaultOpen = false,
@@ -64,7 +64,10 @@ export function FormSection({
   const {
     formState: { errors },
   } = useFormContext()
-  const { openRequest } = useCreateFormContext()
+  const { openRequest, sections } = useCreateFormContext()
+  const status = id ? sections[id] : undefined
+  const summary = summaryProp ?? status?.summary
+  const complete = completeProp ?? status?.complete
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : uncontrolledOpen

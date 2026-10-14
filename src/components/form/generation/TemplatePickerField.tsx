@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { memo, useCallback, useState } from "react"
 import { get, useFormContext, useFormState, useWatch } from "react-hook-form"
 import type { FieldValues } from "react-hook-form"
 import { toast } from "sonner"
@@ -28,6 +28,7 @@ interface TemplatePickerFieldProps {
   max?: number
 }
 
+const NO_IDS: number[] = []
 const sameList = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const RESTRICTED_MESSAGE = "Please upgrade to a Pro subscription or more to access this template."
 
@@ -43,11 +44,11 @@ const RESTRICTED_MESSAGE = "Please upgrade to a Pro subscription or more to acce
  * must be stable and must not write (or re-validate) when nothing changed — otherwise showing
  * an error would loop through validation forever.
  */
-export function TemplatePickerField({ mode, name, max = 1 }: TemplatePickerFieldProps) {
+function TemplatePickerFieldImpl({ mode, name, max = 1 }: TemplatePickerFieldProps) {
   const { control, setValue, getValues, getFieldState } = useFormContext<FieldValues>()
   const plan = useAuthStore((s) => s.user?.subscription?.plan) ?? "free"
   const isProUser = !["free", "basic"].includes(plan.toLowerCase())
-  const templateIds = (useWatch({ control, name: "templateIds" }) as number[] | undefined) ?? []
+  const templateIds = (useWatch({ control, name: "templateIds" }) as number[] | undefined) ?? NO_IDS
   const { errors } = useFormState({ control })
   const error = (get(errors, name)?.message ?? get(errors, "templateIds")?.message) as
     | string
@@ -116,6 +117,9 @@ export function TemplatePickerField({ mode, name, max = 1 }: TemplatePickerField
     </div>
   )
 }
+
+/** Memoised: its props are primitives, so keystrokes elsewhere in the form never re-render the grid. */
+export const TemplatePickerField = memo(TemplatePickerFieldImpl)
 
 function restrictionError(isProUser: boolean, templateId: number) {
   const template = packages.find((p) => p.id === templateId)

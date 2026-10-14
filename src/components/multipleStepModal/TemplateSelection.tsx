@@ -3,7 +3,7 @@ import { Switch } from "@components/ui/switch"
 import { toast } from "sonner"
 import clsx from "clsx"
 import { AlertCircle, Check, Crown, Search } from "lucide-react"
-import { type FC, useEffect, useState, useMemo } from "react"
+import { type FC, memo, useEffect, useState, useMemo } from "react"
 
 interface TemplateSelectionProps {
   numberOfSelection?: number
@@ -294,4 +294,4 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   )
 }
 
-export default TemplateSelection
+export default memo(TemplateSelection)

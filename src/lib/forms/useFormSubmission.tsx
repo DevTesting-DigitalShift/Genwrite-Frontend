@@ -12,8 +12,11 @@ interface UseFormSubmissionOptions<TPayload> {
   loadingMessage: string
   /** Name passed to the payload debugger. */
   debugName: string
-  /** Credits the request will cost. Omit for free requests (no balance check). */
-  estimatedCost?: number
+  /**
+   * Credits the request will cost, read at submit time (so the form needn't watch its values
+   * just to feed this). Omit for free requests (no balance check).
+   */
+  getEstimatedCost?: () => number | undefined
   /** Performs the request. Throw to report failure; the message is toasted. */
   send: (payload: TPayload) => Promise<unknown>
   /** Runs after a successful `send` (reset the form, navigate...). */
@@ -29,7 +32,7 @@ interface UseFormSubmissionOptions<TPayload> {
 export function useFormSubmission<TPayload>({
   loadingMessage,
   debugName,
-  estimatedCost,
+  getEstimatedCost,
   send,
   onSuccess,
 }: UseFormSubmissionOptions<TPayload>) {
@@ -45,6 +48,7 @@ export function useFormSubmission<TPayload>({
     async (payload: TPayload) => {
       dispatch({ type: "SUBMIT_START" })
 
+      const estimatedCost = getEstimatedCost?.()
       const balance = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
       if (estimatedCost !== undefined && balance < estimatedCost) {
         handlePopup({
@@ -80,7 +84,8 @@ export function useFormSubmission<TPayload>({
         onSuccess?.()
         return true
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Something went wrong. Please try again."
+        const message =
+          error instanceof Error ? error.message : "Something went wrong. Please try again."
         sentRef.current = false
         dispatch({ type: "SUBMIT_FAILED", error: message })
         toast.error(message)
@@ -91,7 +96,7 @@ export function useFormSubmission<TPayload>({
     },
     [
       user,
-      estimatedCost,
+      getEstimatedCost,
       debugName,
       loadingMessage,
       send,

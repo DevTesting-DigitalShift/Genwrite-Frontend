@@ -6,7 +6,7 @@ import { Button } from "@components/ui/button"
 import { findFirstInvalidField, revealAndFocus } from "@/lib/forms/invalidSubmit"
 import { cn } from "@/lib/utils"
 import { CreateFormContext, sectionDomId } from "./createFormContext"
-import type { SectionOpenRequest } from "./createFormContext"
+import type { SectionOpenRequest, SectionStatus } from "./createFormContext"
 
 export interface CostLine {
   label: string
@@ -33,14 +33,8 @@ export interface SummaryRow {
   value: ReactNode
 }
 
-interface CreateFormShellProps {
-  title: string
-  description?: string
-  onCancel: () => void
-  onSubmit: FormEventHandler<HTMLFormElement>
-  submitLabel: string
-  submittingLabel?: string
-  isSubmitting?: boolean
+/** Everything the rail and the mobile bar show, derived from the form's current values. */
+export interface FormSummary {
   /** Credits the request will cost; omit for forms that are free. */
   estimatedCost?: number
   /** What it would cost without the cost cutter — shown struck through when higher. */
@@ -53,8 +47,31 @@ interface CreateFormShellProps {
   readiness?: ReadinessItem[]
   /** Everything else that's been chosen, listed under the submit button. */
   summaryRows?: SummaryRow[]
+  /** Header chip and done-state for each `FormSection`, by its `id`. */
+  sections?: Record<string, SectionStatus>
+}
+
+interface CreateFormShellProps<TArg> {
+  title: string
+  description?: string
+  onCancel: () => void
+  onSubmit: FormEventHandler<HTMLFormElement>
+  submitLabel: string
+  submittingLabel?: string
+  isSubmitting?: boolean
+  /**
+   * Hook that watches the form and returns what the rail shows. The shell calls it — not the
+   * form — so a keystroke re-renders only the shell chrome and the section headers: `children`
+   * is the same element each time, so the fields inside skip the render.
+   */
+  useSummary: (arg: TArg) => FormSummary
+  summaryArg?: TArg
   children: ReactNode
 }
+
+const NO_ITEMS: ReadinessItem[] = []
+const NO_ROWS: SummaryRow[] = []
+const NO_SECTIONS: Record<string, SectionStatus> = {}
 
 type ItemState = "done" | "error" | "todo"
 
@@ -67,7 +84,7 @@ type ItemState = "done" | "error" | "todo"
  * section), the cost with the cost-cutter saving spelled out, the submit button, and a full
  * summary of the choices so far.
  */
-export function CreateFormShell({
+export function CreateFormShell<TArg = undefined>({
   title,
   description,
   onCancel,
@@ -75,17 +92,23 @@ export function CreateFormShell({
   submitLabel,
   submittingLabel,
   isSubmitting,
-  estimatedCost,
-  originalCost,
-  costNote,
-  costLines,
-  readiness = [],
-  summaryRows = [],
+  useSummary,
+  summaryArg,
   children,
-}: CreateFormShellProps) {
+}: CreateFormShellProps<TArg>) {
   const { errors } = useFormState()
+  const summary = useSummary(summaryArg as TArg)
+  const {
+    estimatedCost,
+    originalCost,
+    costNote,
+    costLines,
+    readiness = NO_ITEMS,
+    summaryRows = NO_ROWS,
+    sections = NO_SECTIONS,
+  } = summary
   const [openRequest, setOpenRequest] = useState<SectionOpenRequest | null>(null)
-  const context = useMemo(() => ({ openRequest }), [openRequest])
+  const context = useMemo(() => ({ openRequest, sections }), [openRequest, sections])
   const railRef = useRef<HTMLElement>(null)
   const stickyTop = useStickyTop(railRef)
 
@@ -277,18 +300,8 @@ export function CreateFormShell({
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          {submitButton("h-11 w-full text-[15px]")}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="w-full text-muted-foreground"
-          >
-            Cancel
-          </Button>
-        </div>
+        {/* No Cancel here: the header's back arrow and the app sidebar are always on screen. */}
+        {submitButton("h-11 w-full text-[15px]")}
 
         {summaryRows.length > 0 && (
           <dl className="space-y-2 border-t border-border pt-4 text-xs">

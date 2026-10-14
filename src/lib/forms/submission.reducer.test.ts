@@ -5,7 +5,9 @@ describe("submissionReducer", () => {
   it("walks idle -> submitting -> idle on success", () => {
     const submitting = submissionReducer(initialSubmissionState, { type: "SUBMIT_START" })
     expect(submitting.status).toBe("submitting")
-    expect(submissionReducer(submitting, { type: "SUBMIT_SUCCEEDED" })).toEqual(initialSubmissionState)
+    expect(submissionReducer(submitting, { type: "SUBMIT_SUCCEEDED" })).toEqual(
+      initialSubmissionState
+    )
   })
 
   it("keeps the failure message until the next attempt", () => {

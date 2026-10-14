@@ -1,5 +1,6 @@
 export { CreateFormShell } from "./CreateFormShell"
-export type { CostLine, ReadinessItem, SummaryRow } from "./CreateFormShell"
+export type { CostLine, FormSummary, ReadinessItem, SummaryRow } from "./CreateFormShell"
+export { Watch } from "./Watch"
 export { FormSection } from "./FormSection"
 export { SubGroup } from "./SubGroup"
 export { ToggleListField } from "./ToggleListField"

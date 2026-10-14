@@ -42,17 +42,17 @@ export function AdvancedConfigSection({
   const writing = WRITING_KEYS
   const seo = SEO_KEYS
   const { control } = useFormContext<FieldValues>()
-  const values = useWatch({ control }) as {
-    options: Record<string, boolean>
-    isCheckedBrand?: boolean
-    isCheckedQuick?: boolean
-    [key: string]: unknown
-  }
-  const on = (key: string) => !!values.options?.[key]
+  // Only what the badges read — watching every value would re-render this on each keystroke.
+  const extraNames = (seoExtra ?? []).map((t) => t.name)
+  const [options, isCheckedBrand, ...extraValues] = useWatch({
+    control,
+    name: ["options", "isCheckedBrand", ...extraNames],
+  }) as [Record<string, boolean> | undefined, boolean | undefined, ...unknown[]]
+  const on = (key: string) => !!options?.[key]
 
   const writingCount = writing.filter(on).length
-  const seoCount = seo.filter(on).length + (seoExtra ?? []).filter((t) => !!values[t.name]).length
-  const brandOn = !!values.isCheckedBrand
+  const seoCount = seo.filter(on).length + extraValues.filter(Boolean).length
+  const brandOn = !!isCheckedBrand
   const postingOn = on("automaticPosting")
 
   const tabs: ConfigTab[] = [

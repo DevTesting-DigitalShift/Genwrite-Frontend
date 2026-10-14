@@ -1,5 +1,5 @@
-import { useCallback } from "react"
-import { FormProvider, useWatch } from "react-hook-form"
+import { useCallback, useMemo } from "react"
+import { FormProvider } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { Sparkles } from "lucide-react"
@@ -12,12 +12,15 @@ import {
   RHFTextField,
   TemplatePickerField,
   ToggleListField,
+  Watch,
+  type FormSummary,
 } from "@components/form"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import {
   onInvalidSubmit,
   useCancelNavigation,
   useFormSubmission,
+  useFormValues,
   useUnsavedChangesGuard,
   useZodForm,
 } from "@/lib/forms"
@@ -29,7 +32,13 @@ import {
   toQuickBlogPayload,
   type QuickBlogFormValues,
 } from "@/forms/quick/quick.schema"
-import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
+import {
+  estimateGenerationCost,
+  getBlogPricing,
+  toCostLines,
+  useBlogPricing,
+} from "@/forms/shared/cost"
+import type { BlogPricing } from "@/data/pricingConfig"
 import { validateLink } from "@/forms/shared/links"
 import {
   imagesSummary,
@@ -43,51 +52,22 @@ import {
 const YT_AUTOMATIC =
   "We watch your videos and pick the template and keywords for you. The blog is written with Gemini (cost cutter on) and stock images."
 
-/**
- * Quick / YouTube blog — the "just give me a blog" forms, so they ask for almost nothing and
- * the backend fills the rest (Gemini behind the cost cutter, stock images, ~800 words):
- *
- * - Quick: Template, then Basics — topic, the exact-title and keyword-research switches (the
- *   keyword fields appear only once research is off), and optional reference links.
- * - YouTube: one section — the video links and the topic. The template and keywords are
- *   picked from the videos by the backend's yt-setup step.
- *
- * No AI-model or advanced settings on either: those live in the advanced, bulk and job forms.
- */
-export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
-  const form = useZodForm(quickBlogFormSchema, quickBlogFormDefaults(type))
-  const { control, setValue, clearErrors, handleSubmit } = form
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const goBack = useCancelNavigation()
+const validateYouTubeLink = (link: string) => validateLink(link, "youtube")
+const validateReferenceLink = (link: string) => validateLink(link, "reference")
 
-  const values = useWatch({ control }) as QuickBlogFormValues
-  const isYouTube = type === "yt"
-  const researching = !isYouTube && values.options?.performKeywordResearch
-  const cost = useGenerationCostBreakdown(
-    { ...values, ...QUICK_BLOG_FIXED },
-    { wordCount: QUICK_BLOG_WORD_COUNT }
-  )
-
-  const send = useCallback(
-    (payload: ReturnType<typeof toQuickBlogPayload>) =>
-      useBlogStore
-        .getState()
-        .createNewQuickBlog({ blogData: payload, navigate, type, queryClient }),
-    [navigate, type, queryClient]
-  )
-
-  const { submit, isSubmitting, sentRef } = useFormSubmission({
-    loadingMessage: `Creating ${isYouTube ? "YouTube" : "quick"} blog...`,
-    debugName: isYouTube ? "YouTubeBlog" : "QuickBlog",
-    estimatedCost: cost.total,
-    send,
+const quickCost = (values: QuickBlogFormValues, pricing: BlogPricing) =>
+  estimateGenerationCost({ ...values, ...QUICK_BLOG_FIXED }, pricing, {
+    wordCount: QUICK_BLOG_WORD_COUNT,
   })
 
-  useUnsavedChangesGuard(form.formState.isDirty, sentRef)
+/** Everything the rail shows. Runs in the shell, so the form root never watches its values. */
+function useQuickSummary(type: "quick" | "yt"): FormSummary {
+  const values = useFormValues<QuickBlogFormValues>()
+  const pricing = useBlogPricing()
+  const cost = useMemo(() => quickCost(values, pricing), [values, pricing])
 
-  const onSubmit = handleSubmit((data) => submit(toQuickBlogPayload(data)), onInvalidSubmit)
-
+  const isYouTube = type === "yt"
+  const researching = !isYouTube && values.options?.performKeywordResearch
   const topic = values.topic?.trim() ?? ""
   const links = values.referenceLinks?.length ?? 0
   const keywordsDone =
@@ -142,6 +122,89 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
     { label: "Images", value: imagesSummary(QUICK_BLOG_FIXED) },
   ]
 
+  return {
+    estimatedCost: cost.total,
+    originalCost: originalCostOf(cost),
+    costLines: toCostLines(cost),
+    readiness,
+    sections: isYouTube
+      ? {
+          videos: {
+            summary: links ? plural(links, "video") : "No videos yet",
+            complete: sectionDone("videos"),
+          },
+        }
+      : {
+          template: { summary: values.template ?? "Not selected", complete: !!values.template },
+          basics: { summary: topic || "Not completed", complete: sectionDone("basics") },
+        },
+    summaryRows: isYouTube
+      ? [
+          { label: "Videos", value: links ? plural(links, "video") : "—" },
+          { label: "Topic", value: topic || "—" },
+          { label: "Title", value: titleRule },
+          { label: "Template", value: "Picked from the videos" },
+          { label: "Keywords", value: "Picked from the videos" },
+          ...fixedRows,
+        ]
+      : [
+          { label: "Template", value: values.template ?? "—" },
+          { label: "Topic", value: topic || "—" },
+          { label: "Title", value: titleRule },
+          { label: "Keywords", value: keywordsSummary(values, researching) },
+          { label: "Reference links", value: links ? plural(links, "link") : "None" },
+          ...fixedRows,
+        ],
+  }
+}
+
+/**
+ * Quick / YouTube blog — the "just give me a blog" forms, so they ask for almost nothing and
+ * the backend fills the rest (Gemini behind the cost cutter, stock images, ~800 words):
+ *
+ * - Quick: Template, then Basics — topic, the exact-title and keyword-research switches (the
+ *   keyword fields appear only once research is off), and optional reference links.
+ * - YouTube: one section — the video links and the topic. The template and keywords are
+ *   picked from the videos by the backend's yt-setup step.
+ *
+ * No AI-model or advanced settings on either: those live in the advanced, bulk and job forms.
+ *
+ * The root deliberately watches nothing: the rail's summary lives in `useQuickSummary` (run by
+ * the shell) and the one value-dependent field is wrapped in `Watch`, so typing re-renders only
+ * the field being typed in and the rail.
+ */
+export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
+  const form = useZodForm(quickBlogFormSchema, quickBlogFormDefaults(type))
+  const { control, setValue, getValues, clearErrors, handleSubmit } = form
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const goBack = useCancelNavigation()
+  const isYouTube = type === "yt"
+
+  const send = useCallback(
+    (payload: ReturnType<typeof toQuickBlogPayload>) =>
+      useBlogStore
+        .getState()
+        .createNewQuickBlog({ blogData: payload, navigate, type, queryClient }),
+    [navigate, type, queryClient]
+  )
+
+  const getEstimatedCost = useCallback(
+    () => quickCost(getValues() as QuickBlogFormValues, getBlogPricing()).total,
+    [getValues]
+  )
+
+  const { submit, isSubmitting, sentRef } = useFormSubmission({
+    loadingMessage: `Creating ${isYouTube ? "YouTube" : "quick"} blog...`,
+    debugName: isYouTube ? "YouTubeBlog" : "QuickBlog",
+    getEstimatedCost,
+    send,
+  })
+
+  useUnsavedChangesGuard(form.formState.isDirty, sentRef)
+
+  const onSubmit = handleSubmit((data) => submit(toQuickBlogPayload(data)), onInvalidSubmit)
+
   const exactTitleSwitch = <ToggleListField keys={["exactTitle"]} />
   const topicField = (
     <RHFTextField
@@ -167,29 +230,8 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
         submitLabel="Generate blog"
         submittingLabel="Generating blog..."
         isSubmitting={isSubmitting}
-        estimatedCost={cost.total}
-        originalCost={originalCostOf(cost)}
-        costLines={toCostLines(cost)}
-        readiness={readiness}
-        summaryRows={
-          isYouTube
-            ? [
-                { label: "Videos", value: links ? plural(links, "video") : "—" },
-                { label: "Topic", value: topic || "—" },
-                { label: "Title", value: titleRule },
-                { label: "Template", value: "Picked from the videos" },
-                { label: "Keywords", value: "Picked from the videos" },
-                ...fixedRows,
-              ]
-            : [
-                { label: "Template", value: values.template ?? "—" },
-                { label: "Topic", value: topic || "—" },
-                { label: "Title", value: titleRule },
-                { label: "Keywords", value: keywordsSummary(values, researching) },
-                { label: "Reference links", value: links ? plural(links, "link") : "None" },
-                ...fixedRows,
-              ]
-        }
+        useSummary={useQuickSummary}
+        summaryArg={type}
       >
         {isYouTube ? (
           <FormSection
@@ -198,8 +240,6 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
             title="Videos & topic"
             description="The videos to write from, and what the blog is about"
             defaultOpen
-            summary={links ? plural(links, "video") : "No videos yet"}
-            complete={sectionDone("videos")}
             fields={["referenceLinks", "topic"]}
           >
             <RHFTagsField
@@ -208,7 +248,7 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               label="YouTube video links"
               required
               max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
-              validate={(link) => validateLink(link, "youtube")}
+              validate={validateYouTubeLink}
               placeholder="Paste a YouTube link and press Enter"
             />
             {topicField}
@@ -225,8 +265,6 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               step={1}
               title="Template"
               description="How the blog is structured"
-              summary={values.template ?? "Not selected"}
-              complete={!!values.template}
               fields={["template"]}
               defaultOpen
             >
@@ -239,8 +277,6 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               title="Basics"
               description="What the blog is about"
               defaultOpen
-              summary={topic || "Not completed"}
-              complete={sectionDone("basics")}
               fields={["topic", "keywords", "focusKeywords", "referenceLinks"]}
             >
               {topicField}
@@ -258,34 +294,38 @@ export default function QuickBlogForm({ type }: { type: "quick" | "yt" }) {
               />
 
               {/* Hidden while research is on — it picks them, and the form stays short. */}
-              {!researching && (
-                <>
-                  <RHFTagsField
-                    control={control}
-                    name="focusKeywords"
-                    label="Focus keywords (max 3)"
-                    required
-                    max={BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS}
-                    description="The main keywords you want this article to rank for."
-                    placeholder="Enter keywords (comma, tab, or newline separated)"
-                  />
-                  <RHFTagsField
-                    control={control}
-                    name="keywords"
-                    label="Keywords"
-                    required
-                    description="Secondary keywords woven through the article."
-                    placeholder="Enter keywords (comma, tab, or newline separated)"
-                  />
-                </>
-              )}
+              <Watch<boolean | undefined> name="options.performKeywordResearch">
+                {(researching) =>
+                  !researching && (
+                    <>
+                      <RHFTagsField
+                        control={control}
+                        name="focusKeywords"
+                        label="Focus keywords (max 3)"
+                        required
+                        max={BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS}
+                        description="The main keywords you want this article to rank for."
+                        placeholder="Enter keywords (comma, tab, or newline separated)"
+                      />
+                      <RHFTagsField
+                        control={control}
+                        name="keywords"
+                        label="Keywords"
+                        required
+                        description="Secondary keywords woven through the article."
+                        placeholder="Enter keywords (comma, tab, or newline separated)"
+                      />
+                    </>
+                  )
+                }
+              </Watch>
 
               <RHFTagsField
                 control={control}
                 name="referenceLinks"
                 label="Reference links (max 3)"
                 max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
-                validate={(link) => validateLink(link, "reference")}
+                validate={validateReferenceLink}
                 placeholder="Enter full URLs (e.g., https://example.com)"
               />
             </FormSection>

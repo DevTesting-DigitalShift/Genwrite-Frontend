@@ -10,9 +10,11 @@ const schema = z.object({
 
 describe("stripUndefined", () => {
   it("removes undefined keys at every level and leaves nulls alone", () => {
-    expect(
-      stripUndefined({ a: 1, b: undefined, c: null, d: { e: undefined, f: 2 } })
-    ).toEqual({ a: 1, c: null, d: { f: 2 } })
+    expect(stripUndefined({ a: 1, b: undefined, c: null, d: { e: undefined, f: 2 } })).toEqual({
+      a: 1,
+      c: null,
+      d: { f: 2 },
+    })
   })
 
   it("keeps array positions and class instances intact", () => {

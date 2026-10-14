@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react"
-import { FormProvider, useWatch } from "react-hook-form"
+import { FormProvider } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { jobsQuery } from "@api/Job/Job.query"
 import useAuthStore from "@store/useAuthStore"
@@ -10,6 +10,8 @@ import {
   CreateFormShell,
   DependentFields,
   FormSection,
+  type FormSummary,
+  Watch,
   type ReadinessItem,
   RHFNumberField,
   RHFTagsField,
@@ -26,6 +28,7 @@ import {
   onInvalidSubmit,
   useCancelNavigation,
   useFormSubmission,
+  useFormValues,
   useUnsavedChangesGuard,
   useZodForm,
 } from "@/lib/forms"
@@ -68,50 +71,10 @@ function mergePrefill(prefill: CreateFormProps["prefill"]): JobFormValues {
   return { ...jobFormDefaults, ...(prefill as Partial<JobFormValues> | undefined) }
 }
 
-function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
-  const form = useZodForm(jobFormSchema, initial)
-  const { control, clearErrors, handleSubmit } = form
-  const navigate = useNavigate()
-  const goBack = useCancelNavigation("/jobs")
-  const user = useAuthStore((s) => s.user)
-  const isEditing = !!id
-
-  // Creating counts against the plan's monthly job limit; check it before the user fills
-  // the whole form in, as the Jobs page used to when it opened the modal.
-  const usage = user?.usage?.createdJobs || 0
-  const usageLimit = user?.usageLimits?.createdJobs || 0
-  useEffect(() => {
-    if (!isEditing && user && usage >= usageLimit) {
-      openUpgradePopup({ featureName: "Additional Jobs", navigate })
-      goBack()
-    }
-  }, [isEditing, user, usage, usageLimit, navigate, goBack])
-
-  const { mutateAsync: createJob } = jobsQuery.useCreate()
-  const { mutateAsync: updateJob } = jobsQuery.useUpdate()
-
-  const values = useWatch({ control }) as JobFormValues
+/** Everything the rail shows. Runs in the shell, so the form root never watches its values. */
+function useJobSummary(): FormSummary {
+  const values = useFormValues<JobFormValues>()
   const researching = values.options?.performKeywordResearch
-
-  const send = useCallback(
-    (payload: ReturnType<typeof toJobPayload>) =>
-      isEditing
-        ? updateJob({ id: id as string, data: payload })
-        : createJob(payload).then(() => undefined),
-    [isEditing, id, createJob, updateJob]
-  )
-
-  const { submit, isSubmitting, sentRef } = useFormSubmission({
-    loadingMessage: isEditing ? "Updating job..." : "Creating job...",
-    debugName: isEditing ? "Job (Update)" : "Job (Create)",
-    send,
-    onSuccess: () => navigate("/jobs", { replace: true }),
-  })
-
-  useUnsavedChangesGuard(form.formState.isDirty, sentRef)
-
-  const onSubmit = handleSubmit((data) => submit(toJobPayload(data)), onInvalidSubmit)
-
   const templateCount = values.templates?.length ?? 0
   const topicCount = values.topics?.length ?? 0
   const links = values.referenceLinks?.length ?? 0
@@ -212,6 +175,84 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
   const sectionDone = (id: string) =>
     readiness.filter((item) => item.section === id).every((item) => item.done)
 
+  return {
+    sections: {
+      template: {
+        summary: templateCount ? `${templateCount} selected` : "Not selected",
+        complete: templateCount > 0,
+      },
+      content: {
+        summary: values.name?.trim() || "Not completed",
+        complete: sectionDone("content"),
+      },
+      schedule: {
+        summary: `${scheduleDetail} · ${values.numberOfBlogs || 0} per run`,
+        complete: sectionDone("schedule"),
+      },
+    },
+    readiness,
+    summaryRows: [
+      { label: "Job", value: values.name?.trim() || "—" },
+      { label: "Templates", value: templateCount ? (values.templates ?? []).join(", ") : "—" },
+      { label: "Topics", value: `${topicCount} added` },
+      { label: "Keywords", value: keywordsSummary({ keywords: values.keywords }, researching) },
+      { label: "Schedule", value: scheduleDetail },
+      { label: "Blogs per run", value: values.numberOfBlogs || 0 },
+      { label: "Tone · length", value: `${values.tone} · ~${values.userDefinedLength} words` },
+      { label: "Language", value: values.languageToWrite },
+      { label: "Reference links", value: links ? plural(links, "link") : "None" },
+      { label: "Model", value: modelSummary(values.aiModel, values.costCutter) },
+      { label: "Images", value: imagesSummary(values) },
+      { label: "Advanced options", value: `${enabledOptions} enabled` },
+      { label: "Brand voice", value: values.isCheckedBrand ? "On" : "Off" },
+      {
+        label: "Publishing",
+        value: values.options.automaticPosting ? (values.postingDefaultType ?? "On") : "Off",
+      },
+    ],
+  }
+}
+function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
+  const form = useZodForm(jobFormSchema, initial)
+  const { control, clearErrors, handleSubmit } = form
+  const navigate = useNavigate()
+  const goBack = useCancelNavigation("/jobs")
+  const user = useAuthStore((s) => s.user)
+  const isEditing = !!id
+
+  // Creating counts against the plan's monthly job limit; check it before the user fills
+  // the whole form in, as the Jobs page used to when it opened the modal.
+  const usage = user?.usage?.createdJobs || 0
+  const usageLimit = user?.usageLimits?.createdJobs || 0
+  useEffect(() => {
+    if (!isEditing && user && usage >= usageLimit) {
+      openUpgradePopup({ featureName: "Additional Jobs", navigate })
+      goBack()
+    }
+  }, [isEditing, user, usage, usageLimit, navigate, goBack])
+
+  const { mutateAsync: createJob } = jobsQuery.useCreate()
+  const { mutateAsync: updateJob } = jobsQuery.useUpdate()
+
+  const send = useCallback(
+    (payload: ReturnType<typeof toJobPayload>) =>
+      isEditing
+        ? updateJob({ id: id as string, data: payload })
+        : createJob(payload).then(() => undefined),
+    [isEditing, id, createJob, updateJob]
+  )
+
+  const { submit, isSubmitting, sentRef } = useFormSubmission({
+    loadingMessage: isEditing ? "Updating job..." : "Creating job...",
+    debugName: isEditing ? "Job (Update)" : "Job (Create)",
+    send,
+    onSuccess: () => navigate("/jobs", { replace: true }),
+  })
+
+  useUnsavedChangesGuard(form.formState.isDirty, sentRef)
+
+  const onSubmit = handleSubmit((data) => submit(toJobPayload(data)), onInvalidSubmit)
+
   return (
     <FormProvider {...form}>
       <CreateFormShell
@@ -222,34 +263,13 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         submitLabel={isEditing ? "Update job" : "Create job"}
         submittingLabel={isEditing ? "Updating job..." : "Creating job..."}
         isSubmitting={isSubmitting}
-        readiness={readiness}
-        summaryRows={[
-          { label: "Job", value: values.name?.trim() || "—" },
-          { label: "Templates", value: templateCount ? (values.templates ?? []).join(", ") : "—" },
-          { label: "Topics", value: `${topicCount} added` },
-          { label: "Keywords", value: keywordsSummary({ keywords: values.keywords }, researching) },
-          { label: "Schedule", value: scheduleDetail },
-          { label: "Blogs per run", value: values.numberOfBlogs || 0 },
-          { label: "Tone · length", value: `${values.tone} · ~${values.userDefinedLength} words` },
-          { label: "Language", value: values.languageToWrite },
-          { label: "Reference links", value: links ? plural(links, "link") : "None" },
-          { label: "Model", value: modelSummary(values.aiModel, values.costCutter) },
-          { label: "Images", value: imagesSummary(values) },
-          { label: "Advanced options", value: `${enabledOptions} enabled` },
-          { label: "Brand voice", value: values.isCheckedBrand ? "On" : "Off" },
-          {
-            label: "Publishing",
-            value: values.options.automaticPosting ? (values.postingDefaultType ?? "On") : "Off",
-          },
-        ]}
+        useSummary={useJobSummary}
       >
         <FormSection
           id="template"
           step={1}
           title="Templates"
           description={`Pick up to ${JOB_MAX_TEMPLATES}`}
-          summary={templateCount ? `${templateCount} selected` : "Not selected"}
-          complete={templateCount > 0}
           fields={["templates"]}
           defaultOpen
         >
@@ -262,8 +282,6 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
           title="Content"
           description="What each run writes about"
           defaultOpen
-          summary={values.name?.trim() || "Not completed"}
-          complete={sectionDone("content")}
           fields={[
             "name",
             "topics",
@@ -298,21 +316,25 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
             keys={["performKeywordResearch"]}
             onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
           />
-          <DependentFields
-            enabled={!researching}
-            hint="Keyword research will pick these for you — turn it off to enter your own."
-          >
-            <RHFTagsField
-              control={control}
-              name="keywords"
-              label="Keywords"
-              required
-              csv
-              maxVisible={18}
-              description="Secondary keywords woven through every blog."
-              placeholder="Enter keywords (comma, tab, or newline separated)"
-            />
-          </DependentFields>
+          <Watch<boolean | undefined> name="options.performKeywordResearch">
+            {(researching) => (
+              <DependentFields
+                enabled={!researching}
+                hint="Keyword research will pick these for you — turn it off to enter your own."
+              >
+                <RHFTagsField
+                  control={control}
+                  name="keywords"
+                  label="Keywords"
+                  required
+                  csv
+                  maxVisible={18}
+                  description="Secondary keywords woven through every blog."
+                  placeholder="Enter keywords (comma, tab, or newline separated)"
+                />
+              </DependentFields>
+            )}
+          </Watch>
 
           <RHFTagsField
             control={control}
@@ -334,8 +356,6 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
           title="Schedule"
           description="When it runs, and how much each run writes"
           defaultOpen
-          summary={`${scheduleDetail} · ${values.numberOfBlogs || 0} per run`}
-          complete={sectionDone("schedule")}
           fields={[
             "schedule.type",
             "schedule.daysOfWeek",
