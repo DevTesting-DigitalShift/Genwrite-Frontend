@@ -79,7 +79,12 @@ export function TemplatePickerField({ mode, name, max = 1 }: TemplatePickerField
   )
 
   return (
-    <div className="space-y-2">
+    // A field shell like every RHF field, so a failed submit can name and focus the picker.
+    <div
+      data-field-shell
+      data-field-label={mode === "single" ? "Template" : "Templates"}
+      className="space-y-2"
+    >
       <div className="hidden md:block">
         <TemplateSelection
           userSubscriptionPlan={plan}
@@ -87,6 +92,7 @@ export function TemplatePickerField({ mode, name, max = 1 }: TemplatePickerField
           preSelectedIds={templateIds}
           error={error}
           onClick={handleSelect}
+          compact
         />
       </div>
       <div className="md:hidden">
@@ -155,7 +161,11 @@ function CompactSingleTemplatePicker({
           ))}
         </SelectContent>
       </Select>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -259,7 +269,11 @@ function CompactMultiTemplatePicker({
           ))}
         </div>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

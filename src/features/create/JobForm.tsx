@@ -1,17 +1,16 @@
 import { useCallback, useEffect } from "react"
 import { FormProvider, useWatch } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
-import { toast } from "sonner"
 import { jobsQuery } from "@api/Job/Job.query"
 import useAuthStore from "@store/useAuthStore"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import {
-  AiModelFields,
-  BrandVoiceField,
+  AdvancedConfigSection,
+  AiImagesSection,
   CreateFormShell,
+  DependentFields,
   FormSection,
-  ImageSettingsFields,
-  PostingFields,
+  type ReadinessItem,
   RHFNumberField,
   RHFTagsField,
   RHFTextField,
@@ -24,6 +23,7 @@ import {
 import LoadingScreen from "@components/ui/LoadingScreen"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import {
+  onInvalidSubmit,
   useCancelNavigation,
   useFormSubmission,
   useUnsavedChangesGuard,
@@ -39,13 +39,21 @@ import {
   type JobFormValues,
 } from "@/forms/job/job.schema"
 import { validateLink } from "@/forms/shared/links"
+import { ScheduleType } from "@/types/forms.types"
+import {
+  countEnabled,
+  imagesSummary,
+  keywordsSummary,
+  modelSummary,
+  plural,
+} from "@/forms/shared/summary"
 import type { CreateFormProps } from "./createForms.registry"
 
 /**
  * Scheduled job as a single page, for both creating (`/create/job`) and editing
- * (`/create/job/:id`), in the four groups every create form uses: Templates, Basics (what to
- * write and when to run it — side by side on desktop, since a job has both a content side and
- * a schedule side), AI & Images, and Advanced options for everything else.
+ * (`/create/job/:id`): Templates, Content (what each run writes), Schedule (when it runs and
+ * how many blogs per run, read back in plain words), AI model, and the Advanced configuration
+ * tabs. Content and Schedule used to share one two-column "Basics" card, which squeezed both.
  */
 export default function JobForm({ id, prefill }: CreateFormProps) {
   const { data: job, isLoading } = jobsQuery.useDetail(id ?? "", { enabled: !!id })
@@ -102,10 +110,107 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
 
   useUnsavedChangesGuard(form.formState.isDirty, sentRef)
 
-  const onSubmit = handleSubmit(
-    (data) => submit(toJobPayload(data)),
-    () => toast.error("Please fill all required fields correctly.")
-  )
+  const onSubmit = handleSubmit((data) => submit(toJobPayload(data)), onInvalidSubmit)
+
+  const templateCount = values.templates?.length ?? 0
+  const topicCount = values.topics?.length ?? 0
+  const links = values.referenceLinks?.length ?? 0
+  const { schedule } = values
+  // Days picked for the schedule types that need them (daily / weekdays need none).
+  const scheduleDays =
+    schedule.type === ScheduleType.WEEKLY
+      ? schedule.daysOfWeek.length
+      : schedule.type === ScheduleType.MONTHLY
+        ? schedule.daysOfMonth.length
+        : schedule.type === ScheduleType.CUSTOM
+          ? schedule.customDates.length
+          : null
+  const scheduleType = schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)
+  const scheduleDetail =
+    scheduleDays === null ? scheduleType : `${scheduleType} · ${plural(scheduleDays, "day")}`
+  const enabledOptions = countEnabled([
+    values.options.easyToUnderstand,
+    values.options.humanisation,
+    values.options.extendedThinking,
+    values.options.deepResearch,
+    values.options.includeFaqs,
+    values.options.includeTableOfContents,
+    values.options.embedYouTubeVideos,
+    values.options.includeInterlinks,
+    values.options.addOutBoundLinks,
+    values.options.includeCompetitorResearch,
+  ])
+
+  // Brand voice and publishing only become requirements once they're switched on.
+  const readiness: ReadinessItem[] = [
+    {
+      section: "template",
+      label: "Templates chosen",
+      done: templateCount > 0,
+      detail: templateCount ? `${templateCount} of ${JOB_MAX_TEMPLATES}` : undefined,
+      fields: ["templates"],
+    },
+    {
+      section: "content",
+      label: "Job named",
+      done: !!values.name?.trim(),
+      detail: values.name?.trim() || undefined,
+      fields: ["name"],
+    },
+    {
+      section: "content",
+      label: "Topics added",
+      done: topicCount > 0,
+      detail: topicCount ? `${topicCount} added` : undefined,
+      fields: ["topics"],
+    },
+    {
+      section: "content",
+      label: researching ? "Keywords: AI research" : "Keywords added",
+      done: !!researching || (values.keywords?.length ?? 0) > 0,
+      detail: researching ? undefined : `${values.keywords?.length ?? 0} added`,
+      fields: ["keywords", "referenceLinks", "tone", "userDefinedLength", "languageToWrite"],
+    },
+    {
+      section: "schedule",
+      label: "Schedule set",
+      done:
+        scheduleDays !== 0 && values.numberOfBlogs >= 1 && values.numberOfBlogs <= JOB_MAX_BLOGS,
+      detail: scheduleDetail,
+      fields: [
+        "schedule.type",
+        "schedule.daysOfWeek",
+        "schedule.daysOfMonth",
+        "schedule.customDates",
+        "numberOfBlogs",
+      ],
+    },
+    ...(values.isCheckedBrand
+      ? [
+          {
+            section: "advanced",
+            tab: "brand",
+            label: "Brand voice picked",
+            done: !!values.brandId,
+            fields: ["brandId"],
+          },
+        ]
+      : []),
+    ...(values.options.automaticPosting
+      ? [
+          {
+            section: "advanced",
+            tab: "publishing",
+            label: "Publishing platform picked",
+            done: !!values.postingDefaultType,
+            detail: values.postingDefaultType ?? undefined,
+            fields: ["postingDefaultType"],
+          },
+        ]
+      : []),
+  ]
+  const sectionDone = (id: string) =>
+    readiness.filter((item) => item.section === id).every((item) => item.done)
 
   return (
     <FormProvider {...form}>
@@ -117,18 +222,34 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         submitLabel={isEditing ? "Update job" : "Create job"}
         submittingLabel={isEditing ? "Updating job..." : "Creating job..."}
         isSubmitting={isSubmitting}
-        selectionSummary={
-          values.templates?.length
-            ? `${values.templates.length} template${values.templates.length > 1 ? "s" : ""}`
-            : undefined
-        }
+        readiness={readiness}
+        summaryRows={[
+          { label: "Job", value: values.name?.trim() || "—" },
+          { label: "Templates", value: templateCount ? (values.templates ?? []).join(", ") : "—" },
+          { label: "Topics", value: `${topicCount} added` },
+          { label: "Keywords", value: keywordsSummary({ keywords: values.keywords }, researching) },
+          { label: "Schedule", value: scheduleDetail },
+          { label: "Blogs per run", value: values.numberOfBlogs || 0 },
+          { label: "Tone · length", value: `${values.tone} · ~${values.userDefinedLength} words` },
+          { label: "Language", value: values.languageToWrite },
+          { label: "Reference links", value: links ? plural(links, "link") : "None" },
+          { label: "Model", value: modelSummary(values.aiModel, values.costCutter) },
+          { label: "Images", value: imagesSummary(values) },
+          { label: "Advanced options", value: `${enabledOptions} enabled` },
+          { label: "Brand voice", value: values.isCheckedBrand ? "On" : "Off" },
+          {
+            label: "Publishing",
+            value: values.options.automaticPosting ? (values.postingDefaultType ?? "On") : "Off",
+          },
+        ]}
       >
         <FormSection
+          id="template"
+          step={1}
           title="Templates"
           description={`Pick up to ${JOB_MAX_TEMPLATES}`}
-          summary={
-            values.templates?.length ? `${values.templates.length} selected` : "Not selected"
-          }
+          summary={templateCount ? `${templateCount} selected` : "Not selected"}
+          complete={templateCount > 0}
           fields={["templates"]}
           defaultOpen
         >
@@ -136,76 +257,95 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
         </FormSection>
 
         <FormSection
-          title="Basics"
-          description="What to write, and when to run"
+          id="content"
+          step={2}
+          title="Content"
+          description="What each run writes about"
           defaultOpen
-          summary={`${values.schedule.type} · ${values.numberOfBlogs || 0} per run`}
+          summary={values.name?.trim() || "Not completed"}
+          complete={sectionDone("content")}
           fields={[
             "name",
             "topics",
             "keywords",
             "referenceLinks",
-            "numberOfBlogs",
-            "schedule.daysOfWeek",
-            "schedule.daysOfMonth",
-            "schedule.customDates",
-            "schedule.type",
             "tone",
             "userDefinedLength",
             "languageToWrite",
           ]}
         >
-          <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
-            <div className="space-y-5">
-              <RHFTextField
-                control={control}
-                name="name"
-                label="Job name"
-                required
-                placeholder="e.g., Weekly tech posts"
-              />
+          <RHFTextField
+            control={control}
+            name="name"
+            label="Job name"
+            required
+            placeholder="e.g., Weekly tech posts"
+            description="Only you see this — it names the job in your Jobs list."
+          />
 
-              <RHFTagsField
-                control={control}
-                name="topics"
-                label="Topics"
-                required
-                csv
-                maxVisible={18}
-                description="Blogs are written about these topics. Paste a list or upload a CSV."
-                placeholder="Enter topics (comma, tab, or newline separated)"
-              />
+          <RHFTagsField
+            control={control}
+            name="topics"
+            label="Topics"
+            required
+            csv
+            maxVisible={18}
+            description="Each run picks from these topics. Paste a list or upload a CSV."
+            placeholder="Enter topics (comma, tab, or newline separated)"
+          />
 
-              <ToggleListField
-                keys={["performKeywordResearch"]}
-                onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
-              />
-              {!researching && (
-                <RHFTagsField
-                  control={control}
-                  name="keywords"
-                  label="Keywords"
-                  required
-                  csv
-                  maxVisible={18}
-                  placeholder="Enter keywords (comma, tab, or newline separated)"
-                />
-              )}
+          <ToggleListField
+            keys={["performKeywordResearch"]}
+            onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
+          />
+          <DependentFields
+            enabled={!researching}
+            hint="Keyword research will pick these for you — turn it off to enter your own."
+          >
+            <RHFTagsField
+              control={control}
+              name="keywords"
+              label="Keywords"
+              required
+              csv
+              maxVisible={18}
+              description="Secondary keywords woven through every blog."
+              placeholder="Enter keywords (comma, tab, or newline separated)"
+            />
+          </DependentFields>
 
-              <WritingStyleFields fields={["tone", "length", "language"]} />
+          <RHFTagsField
+            control={control}
+            name="referenceLinks"
+            label="Reference links (max 3)"
+            max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
+            validate={(link) => validateLink(link, "reference")}
+            placeholder="Enter full URLs (e.g., https://example.com)"
+          />
 
-              <RHFTagsField
-                control={control}
-                name="referenceLinks"
-                label="Reference links (max 3)"
-                max={BLOG_CONFIG.CONSTRAINTS.MAX_BLOG_REFERENCE_LINKS}
-                validate={(link) => validateLink(link, "reference")}
-                placeholder="Enter full URLs (e.g., https://example.com)"
-              />
-            </div>
+          <SubGroup label="Writing style">
+            <WritingStyleFields fields={["tone", "length", "language"]} />
+          </SubGroup>
+        </FormSection>
 
-            <div className="mt-5 space-y-5 lg:mt-0">
-              <ScheduleFields />
+        <FormSection
+          id="schedule"
+          step={3}
+          title="Schedule"
+          description="When it runs, and how much each run writes"
+          defaultOpen
+          summary={`${scheduleDetail} · ${values.numberOfBlogs || 0} per run`}
+          complete={sectionDone("schedule")}
+          fields={[
+            "schedule.type",
+            "schedule.daysOfWeek",
+            "schedule.daysOfMonth",
+            "schedule.customDates",
+            "numberOfBlogs",
+          ]}
+        >
+          <ScheduleFields
+            footer={
               <RHFNumberField
                 control={control}
                 name="numberOfBlogs"
@@ -213,79 +353,16 @@ function JobFormBody({ id, initial }: { id?: string; initial: JobFormValues }) {
                 required
                 min={1}
                 max={JOB_MAX_BLOGS}
+                inline
+                description={`How many blogs each run generates (1–${JOB_MAX_BLOGS}).`}
               />
-            </div>
-          </div>
+            }
+          />
         </FormSection>
 
-        <FormSection
-          title="AI & images"
-          description="Model, cost cutter and image source"
-          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
-          fields={["aiModel", "costCutter", "imageSource", "numberOfImages"]}
-        >
-          <AiModelFields />
-          <ImageSettingsFields />
-        </FormSection>
+        <AiImagesSection step={4} />
 
-        <FormSection
-          title="Advanced options"
-          description="Writing, content and SEO controls"
-          summary={`${
-            [
-              values.options.easyToUnderstand,
-              values.options.humanisation,
-              values.options.extendedThinking,
-              values.options.deepResearch,
-              values.options.includeFaqs,
-              values.options.includeTableOfContents,
-              values.options.embedYouTubeVideos,
-              values.options.includeInterlinks,
-              values.options.addOutBoundLinks,
-              values.options.includeCompetitorResearch,
-            ].filter(Boolean).length
-          } enabled`}
-        >
-          <SubGroup label="Writing style">
-            <ToggleListField
-              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
-            />
-          </SubGroup>
-
-          <SubGroup label="Content">
-            <ToggleListField
-              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
-            />
-          </SubGroup>
-
-          <SubGroup label="SEO & research">
-            <ToggleListField
-              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
-            />
-          </SubGroup>
-        </FormSection>
-
-        <FormSection
-          title="Brand voice"
-          description="Apply your saved brand style and assets"
-          summary={values.isCheckedBrand ? "On" : "Off"}
-          fields={["brandId"]}
-        >
-          <BrandVoiceField />
-        </FormSection>
-
-        <FormSection
-          title="Publishing"
-          description="Automatically publish each generated blog"
-          summary={
-            values.options.automaticPosting
-              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
-              : "Off"
-          }
-          fields={["postingDefaultType"]}
-        >
-          <PostingFields />
-        </FormSection>
+        <AdvancedConfigSection step={5} />
       </CreateFormShell>
     </FormProvider>
   )

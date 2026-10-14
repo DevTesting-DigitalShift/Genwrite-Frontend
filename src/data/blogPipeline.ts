@@ -1,5 +1,6 @@
 // Full ordered pipeline — must stay in sync with AIBlogServiceV2 #allSteps
 export const ALL_PIPELINE_STEPS = [
+  "yt-setup",
   "keyword-research",
   "outsource",
   "context",
@@ -17,6 +18,7 @@ export const ALL_PIPELINE_STEPS = [
 export type PipelineStep = (typeof ALL_PIPELINE_STEPS)[number]
 
 export const PIPELINE_STEP_LABELS: Record<string, string> = {
+  "yt-setup": "Reading YouTube Videos",
   "keyword-research": "Keyword Research",
   outsource: "Content Research",
   context: "Context Analysis",

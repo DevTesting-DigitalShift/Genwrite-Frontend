@@ -400,8 +400,8 @@ export interface paths {
         get: operations["getBlogs"];
         put?: never;
         /**
-         * Create a new blog
-         * @description Creates a new blog with AI-powered content generation. The blog will be processed asynchronously and the user will be notified when generation is complete. Supports various customization options including brand voice, templates, SEO optimization, and image generation.
+         * Create a generated blog (advanced, quick or YouTube)
+         * @description One endpoint for every generated blog; `type` picks the kind. `single` (default) is the advanced blog and takes the full configuration (template, title/keywords unless keyword research is on, tone, length, model, images, brand voice, posting). `quick` needs only `template` + `topic` — keyword research, Gemini with the cost cutter, stock images and an AI-chosen image count are filled in for anything not sent. `yt` needs only `topic` + YouTube `referenceLinks`; the template and keywords are picked from the videos by the yt-setup generation step unless sent. Any field the client does send is used as-is. Quick and YouTube blogs are titled by their topic and queued at the highest priority. Send JSON, or multipart with the body as a JSON `data` field plus `blogImages` files for uploaded images. Generation runs asynchronously; the user is notified when it completes.
          */
         post: operations["postBlogs"];
         /**
@@ -448,46 +448,6 @@ export interface paths {
          * @description Creates a blog seeded with only a topic; keyword research, tone, template, and image sourcing all use fixed defaults. Generation runs asynchronously.
          */
         post: operations["postBlogsTopic"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/blogs/quick": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate a quick blog from video content
-         * @description Generates a blog quickly using YouTube video links as reference material. This is a faster generation method that uses video transcripts and content for blog creation.
-         */
-        post: operations["postBlogsQuick"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/blogs/yt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate a blog from a YouTube video (highest-priority queue)
-         * @description Same request shape as /blogs/quick, queued at highest agenda priority instead of high.
-         */
-        post: operations["postBlogsYt"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2934,6 +2894,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/prompt/refine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refine a rough image/video idea into a fuller prompt (free) */
+        post: operations["postMediaPromptRefine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/video/generate": {
         parameters: {
             query?: never;
@@ -3432,9 +3409,9 @@ export interface components {
             /** @description Generation options and feature toggles for this blog */
             options?: {
                 /**
-                 * @description Use the exact provided title instead of letting AI generate one
-                 * @default false
-                 * @example false
+                 * @description Keep the provided title (the topic for quick/YT/keyword-research blogs) word-for-word instead of letting AI write one. Defaults to true.
+                 * @default true
+                 * @example true
                  */
                 exactTitle: boolean;
                 /**
@@ -4227,7 +4204,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-12T04:47:53.669Z
+             * @default 2026-10-14T04:21:03.020Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5111,7 +5088,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-12T04:47:53.701Z
+                 * @default 2026-10-14T04:21:03.067Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5285,7 +5262,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-12T04:47:53.703Z
+                 * @default 2026-10-14T04:21:03.068Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5460,7 +5437,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-12T04:47:53.711Z
+             * @default 2026-10-14T04:21:03.075Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6174,7 +6151,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-12T04:47:53.731Z
+                 * @default 2026-10-14T04:21:03.094Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6348,7 +6325,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-12T04:47:53.733Z
+                 * @default 2026-10-14T04:21:03.098Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -6780,7 +6757,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-12T04:47:53.747Z
+             * @default 2026-10-14T04:21:03.114Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -7833,9 +7810,9 @@ export interface components {
             /** @description Additional options and settings for the job */
             options: {
                 /**
-                 * @description Use the exact provided title instead of letting AI generate one
-                 * @default false
-                 * @example false
+                 * @description Keep the provided title (the topic for quick/YT/keyword-research blogs) word-for-word instead of letting AI write one. Defaults to true.
+                 * @default true
+                 * @example true
                  */
                 exactTitle: boolean;
                 /**
@@ -8150,9 +8127,9 @@ export interface components {
             /** @description Generation options and feature toggles for this blog */
             options?: {
                 /**
-                 * @description Use the exact provided title instead of letting AI generate one
-                 * @default false
-                 * @example false
+                 * @description Keep the provided title (the topic for quick/YT/keyword-research blogs) word-for-word instead of letting AI write one. Defaults to true.
+                 * @default true
+                 * @example true
                  */
                 exactTitle: boolean;
                 /**
@@ -9077,7 +9054,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/nano-banana-2" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9225,7 +9202,7 @@ export interface components {
              * @example fal-ai/nano-banana
              * @enum {string}
              */
-            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/nano-banana-2" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
@@ -9304,7 +9281,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            model: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/nano-banana-2" | "alibaba/qwen-image-3/text-to-image" | "gemini-3.1-flash-image" | "gemini-3-pro-image";
+            model: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9321,6 +9298,27 @@ export interface components {
              * @example 1
              */
             megapixels: number;
+        };
+        MediaRefinedPrompt: {
+            prompt: string;
+        };
+        MediaRefinePromptBody: {
+            /**
+             * @description The rough idea to refine
+             * @example a cozy reading nook
+             */
+            prompt: string;
+            /**
+             * @description What the prompt will generate
+             * @enum {string}
+             */
+            kind: "image" | "video";
+            /**
+             * @description Intended use of the generated asset
+             * @default other
+             * @enum {string}
+             */
+            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
         };
         GenerateVideoBody: {
             /**
@@ -11422,25 +11420,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    template: string | {
+                    /**
+                     * @default single
+                     * @enum {string}
+                     */
+                    type?: "single" | "quick" | "yt";
+                    template?: string | {
                         name: string;
                     };
                     topic: string;
                     focusKeywords?: string[];
                     keywords?: string[];
                     title?: string;
-                    tone: string;
-                    userDefinedLength: number;
+                    tone?: string;
+                    userDefinedLength?: number;
                     brief?: string;
-                    aiModel: string;
+                    aiModel?: string;
                     /** @deprecated */
                     isCheckedGeneratedImages?: boolean;
                     /** @enum {string} */
-                    imageSource: "none" | "stock" | "ai" | "upload";
-                    numberOfImages: number;
+                    imageSource?: "none" | "stock" | "ai" | "upload";
+                    numberOfImages?: number;
                     referenceLinks?: string[];
-                    isCheckedQuick: boolean;
-                    isCheckedBrand: boolean;
+                    isCheckedQuick?: boolean;
+                    isCheckedBrand?: boolean;
                     /** @default english */
                     languageToWrite?: string;
                     /** @default true */
@@ -11450,18 +11453,18 @@ export interface operations {
                     postingDefaultType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
                     /** @default {} */
                     options?: {
-                        /** @default false */
+                        /** @default true */
                         exactTitle?: boolean;
                         /** @default false */
                         performKeywordResearch?: boolean;
-                        /** @default false */
-                        includeFaqs?: boolean;
                         /** @default false */
                         includeInterlinks?: boolean;
                         /** @default false */
                         includeCompetitorResearch?: boolean;
                         /** @default false */
                         addOutBoundLinks?: boolean;
+                        /** @default false */
+                        includeFaqs?: boolean;
                         /** @default false */
                         addCTA?: boolean;
                         /** @default false */
@@ -11481,6 +11484,61 @@ export interface operations {
                         /** @default false */
                         createBrandedImages?: boolean;
                     };
+                    /** @deprecated */
+                    otherLinks?: string[];
+                    /** @deprecated */
+                    references?: string[];
+                    /** @deprecated */
+                    useBrandVoice?: boolean;
+                    /**
+                     * @deprecated
+                     * @enum {string|null}
+                     */
+                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
+                    /** @deprecated */
+                    useCompetitors?: boolean;
+                    /** @deprecated */
+                    wordpressPostStatus?: boolean;
+                    /** @deprecated */
+                    wordpressPosting?: boolean;
+                    /** @deprecated */
+                    addImages?: boolean;
+                    /** @deprecated */
+                    exactTitle?: boolean;
+                    /** @deprecated */
+                    performKeywordResearch?: boolean;
+                    /** @deprecated */
+                    includeInterlinks?: boolean;
+                    /** @deprecated */
+                    includeCompetitorResearch?: boolean;
+                    /** @deprecated */
+                    addOutBoundLinks?: boolean;
+                    /** @deprecated */
+                    includeFaqs?: boolean;
+                    /** @deprecated */
+                    addCTA?: boolean;
+                    /** @deprecated */
+                    automaticPosting?: boolean;
+                    /** @deprecated */
+                    includeTableOfContents?: boolean;
+                    /** @deprecated */
+                    embedYouTubeVideos?: boolean;
+                    /** @deprecated */
+                    easyToUnderstand?: boolean;
+                    /** @deprecated */
+                    humanisation?: boolean;
+                    /** @deprecated */
+                    extendedThinking?: boolean;
+                    /** @deprecated */
+                    deepResearch?: boolean;
+                    /** @deprecated */
+                    createBrandedImages?: boolean;
+                };
+                "multipart/form-data": {
+                    /** @description The JSON request body, as a string */
+                    data: string;
+                    /** @description Images to use when imageSource is 'upload' (max 15) */
+                    blogImages?: string[];
                 };
             };
         };
@@ -11633,260 +11691,6 @@ export interface operations {
             content: {
                 "application/json": {
                     topic: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Blog generation queued */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreateBlogResponseWithDebug"];
-                };
-            };
-            /** @description Invalid request parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationErrorResponse"];
-                };
-            };
-            /** @description Unauthorized - invalid or missing authentication token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    postBlogsQuick: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    topic: string;
-                    /** @enum {string} */
-                    template: "Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is";
-                    /** @default [] */
-                    keywords?: string[];
-                    /** @default [] */
-                    focusKeywords?: string[];
-                    imageSource: string;
-                    /** @default 0 */
-                    numberOfImages?: number;
-                    /** @enum {string} */
-                    type: "quick" | "yt";
-                    /** @default english */
-                    languageToWrite?: string;
-                    aiModel?: string;
-                    /** @default true */
-                    costCutter?: boolean;
-                    referenceLinks?: string[];
-                    options?: {
-                        exactTitle?: boolean;
-                        performKeywordResearch?: boolean;
-                        includeInterlinks?: boolean;
-                        includeCompetitorResearch?: boolean;
-                        addOutBoundLinks?: boolean;
-                        includeFaqs?: boolean;
-                        addCTA?: boolean;
-                        automaticPosting?: boolean;
-                        includeTableOfContents?: boolean;
-                        embedYouTubeVideos?: boolean;
-                        easyToUnderstand?: boolean;
-                        humanisation?: boolean;
-                        extendedThinking?: boolean;
-                        deepResearch?: boolean;
-                        createBrandedImages?: boolean;
-                    };
-                    /** @deprecated */
-                    otherLinks?: string[];
-                    /** @deprecated */
-                    references?: string[];
-                    /** @deprecated */
-                    useBrandVoice?: boolean;
-                    /**
-                     * @deprecated
-                     * @enum {string|null}
-                     */
-                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                    /** @deprecated */
-                    useCompetitors?: boolean;
-                    /** @deprecated */
-                    wordpressPostStatus?: boolean;
-                    /** @deprecated */
-                    wordpressPosting?: boolean;
-                    /** @deprecated */
-                    addImages?: boolean;
-                    /** @deprecated */
-                    exactTitle?: boolean;
-                    /** @deprecated */
-                    performKeywordResearch?: boolean;
-                    /** @deprecated */
-                    includeInterlinks?: boolean;
-                    /** @deprecated */
-                    includeCompetitorResearch?: boolean;
-                    /** @deprecated */
-                    addOutBoundLinks?: boolean;
-                    /** @deprecated */
-                    includeFaqs?: boolean;
-                    /** @deprecated */
-                    addCTA?: boolean;
-                    /** @deprecated */
-                    automaticPosting?: boolean;
-                    /** @deprecated */
-                    includeTableOfContents?: boolean;
-                    /** @deprecated */
-                    embedYouTubeVideos?: boolean;
-                    /** @deprecated */
-                    easyToUnderstand?: boolean;
-                    /** @deprecated */
-                    humanisation?: boolean;
-                    /** @deprecated */
-                    extendedThinking?: boolean;
-                    /** @deprecated */
-                    deepResearch?: boolean;
-                    /** @deprecated */
-                    createBrandedImages?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Quick blog generated successfully */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreateBlogResponseWithDebug"];
-                };
-            };
-            /** @description Invalid request parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationErrorResponse"];
-                };
-            };
-            /** @description Unauthorized - invalid or missing authentication token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    postBlogsYt: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    topic: string;
-                    /** @enum {string} */
-                    template: "Beginner's Guide" | "Behind-the-Scenes" | "Case Study" | "Classic" | "Comparison" | "Controversial" | "Evergreen" | "FAQ" | "Guest Post" | "How to...." | "Infographics" | "Interview" | "Listicle" | "Myth Busting" | "News Article" | "News Jacking" | "News Update" | "Opinion Piece" | "Personal Story" | "Pillar" | "Predictions" | "Problem Solution" | "Product Review" | "QnA" | "Repurposed Content" | "Research / Data-Driven" | "Review" | "Seasonal" | "Storytelling" | "Thought Leadership" | "Trends" | "Tutorial" | "What Is";
-                    /** @default [] */
-                    keywords?: string[];
-                    /** @default [] */
-                    focusKeywords?: string[];
-                    imageSource: string;
-                    /** @default 0 */
-                    numberOfImages?: number;
-                    /** @enum {string} */
-                    type: "quick" | "yt";
-                    /** @default english */
-                    languageToWrite?: string;
-                    aiModel?: string;
-                    /** @default true */
-                    costCutter?: boolean;
-                    referenceLinks?: string[];
-                    options?: {
-                        exactTitle?: boolean;
-                        performKeywordResearch?: boolean;
-                        includeInterlinks?: boolean;
-                        includeCompetitorResearch?: boolean;
-                        addOutBoundLinks?: boolean;
-                        includeFaqs?: boolean;
-                        addCTA?: boolean;
-                        automaticPosting?: boolean;
-                        includeTableOfContents?: boolean;
-                        embedYouTubeVideos?: boolean;
-                        easyToUnderstand?: boolean;
-                        humanisation?: boolean;
-                        extendedThinking?: boolean;
-                        deepResearch?: boolean;
-                        createBrandedImages?: boolean;
-                    };
-                    /** @deprecated */
-                    otherLinks?: string[];
-                    /** @deprecated */
-                    references?: string[];
-                    /** @deprecated */
-                    useBrandVoice?: boolean;
-                    /**
-                     * @deprecated
-                     * @enum {string|null}
-                     */
-                    postingType?: "WORDPRESS" | "SERVERENDPOINT" | "SHOPIFY" | "WIX" | "SANITY" | null;
-                    /** @deprecated */
-                    useCompetitors?: boolean;
-                    /** @deprecated */
-                    wordpressPostStatus?: boolean;
-                    /** @deprecated */
-                    wordpressPosting?: boolean;
-                    /** @deprecated */
-                    addImages?: boolean;
-                    /** @deprecated */
-                    exactTitle?: boolean;
-                    /** @deprecated */
-                    performKeywordResearch?: boolean;
-                    /** @deprecated */
-                    includeInterlinks?: boolean;
-                    /** @deprecated */
-                    includeCompetitorResearch?: boolean;
-                    /** @deprecated */
-                    addOutBoundLinks?: boolean;
-                    /** @deprecated */
-                    includeFaqs?: boolean;
-                    /** @deprecated */
-                    addCTA?: boolean;
-                    /** @deprecated */
-                    automaticPosting?: boolean;
-                    /** @deprecated */
-                    includeTableOfContents?: boolean;
-                    /** @deprecated */
-                    embedYouTubeVideos?: boolean;
-                    /** @deprecated */
-                    easyToUnderstand?: boolean;
-                    /** @deprecated */
-                    humanisation?: boolean;
-                    /** @deprecated */
-                    extendedThinking?: boolean;
-                    /** @deprecated */
-                    deepResearch?: boolean;
-                    /** @deprecated */
-                    createBrandedImages?: boolean;
                 };
             };
         };
@@ -12268,7 +12072,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-12T04:47:53.639Z
+                             * @default 2026-10-14T04:21:02.989Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12415,7 +12219,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-12T04:47:53.647Z
+                             * @default 2026-10-14T04:21:02.991Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -19497,6 +19301,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
+        };
+    };
+    postMediaPromptRefine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaRefinePromptBody"];
+            };
+        };
+        responses: {
+            /** @description The refined prompt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaRefinedPrompt"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

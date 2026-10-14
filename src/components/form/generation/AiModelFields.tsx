@@ -7,25 +7,27 @@ export function AiModelFields() {
   const { control } = useFormContext<FieldValues>()
 
   return (
-    <Controller
-      control={control}
-      name="aiModel"
-      render={({ field, fieldState }) => (
-        <Controller
-          control={control}
-          name="costCutter"
-          render={({ field: costCutter }) => (
-            <AiModelSelector
-              value={field.value}
-              onChange={field.onChange}
-              showCostCutter
-              costCutterValue={!!costCutter.value}
-              onCostCutterChange={costCutter.onChange}
-              error={fieldState.error?.message}
-            />
-          )}
-        />
-      )}
-    />
+    <div data-field-shell data-field-label="AI model">
+      <Controller
+        control={control}
+        name="aiModel"
+        render={({ field, fieldState }) => (
+          <Controller
+            control={control}
+            name="costCutter"
+            render={({ field: costCutter }) => (
+              <AiModelSelector
+                value={field.value}
+                onChange={field.onChange}
+                showCostCutter
+                costCutterValue={!!costCutter.value}
+                onCostCutterChange={costCutter.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+        )}
+      />
+    </div>
   )
 }

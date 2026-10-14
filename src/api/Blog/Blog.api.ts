@@ -58,10 +58,11 @@ export const BlogAPI = {
     }
   },
 
+  /** Quick / YouTube blog — `POST /blogs` with `type` in the body; the backend fills the rest. */
   createQuickBlog: async (blogData: unknown, type?: string) => {
     try {
-      const path = type === "yt" ? ("/blogs/yt" as const) : ("/blogs/quick" as const)
-      const result = await apiPost(path, blogData as never)
+      const body = { ...(blogData as object), type: type === "yt" ? "yt" : "quick" }
+      const result = await apiPost("/blogs", body as never)
       return result.blog
     } catch (err) {
       return rethrowWithCreditCheck(err, "Failed to create blog")

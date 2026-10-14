@@ -35,12 +35,26 @@ export const generationOptionsSchema = z.object(
   >
 )
 
-/** All off. Forms layer their own historical defaults on top (see `generationOptionDefaults`). */
+/**
+ * `options` for the advanced, bulk and job requests, which always keep the exact title: once a
+ * blog is pushed to a CMS its title is live (indexed, linked), so it must not be rewritten.
+ * Only the quick / YouTube forms let the user turn it off (their "Use exact topic as blog
+ * title" switch). With keyword research on, the backend titles the blog with its topic.
+ */
+export function withExactTitle<T extends Partial<GenerationOptions>>(options: T): T {
+  return { ...options, exactTitle: true }
+}
+
+/**
+ * All off except `exactTitle`, which defaults on (as on the backend). Forms layer their own
+ * historical defaults on top.
+ */
 export function generationOptionDefaults(
   overrides: Partial<GenerationOptions> = {}
 ): GenerationOptions {
   return {
     ...(Object.fromEntries(GENERATION_OPTION_KEYS.map((key) => [key, false])) as GenerationOptions),
+    exactTitle: true,
     ...overrides,
   }
 }
@@ -60,8 +74,9 @@ export interface ToggleDefinition {
 export const GENERATION_TOGGLES: readonly ToggleDefinition[] = [
   {
     key: "exactTitle",
-    label: "Use topic as blog title",
-    description: "Uses your topic text as the exact H1 title.",
+    label: "Use exact topic as blog title",
+    description:
+      "Keep your topic word-for-word as the title — a published title shouldn't change later.",
     group: "writing",
   },
   {
@@ -121,7 +136,7 @@ export const GENERATION_TOGGLES: readonly ToggleDefinition[] = [
   {
     key: "includeTableOfContents",
     label: "Table of contents",
-    description: "Include a table of contents in the post.",
+    description: "Add a table of contents to the published post.",
     group: "content",
   },
   {

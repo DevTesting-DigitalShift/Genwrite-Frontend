@@ -1,7 +1,7 @@
 import type { Control, FieldPath, FieldValues } from "react-hook-form"
 import { Controller } from "react-hook-form"
 import { Input } from "@components/ui/input"
-import { FieldShell } from "./FieldShell"
+import { FieldShell, fieldErrorId } from "./FieldShell"
 
 interface RHFTextFieldProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>
@@ -43,6 +43,7 @@ export function RHFTextField<TFieldValues extends FieldValues>({
             type={type}
             placeholder={placeholder}
             aria-invalid={!!fieldState.error}
+            aria-describedby={fieldState.error ? fieldErrorId(name) : undefined}
             {...field}
             value={field.value ?? ""}
           />

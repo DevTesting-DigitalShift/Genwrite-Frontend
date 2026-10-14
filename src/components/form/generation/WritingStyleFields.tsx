@@ -14,9 +14,11 @@ export function WritingStyleFields({
   fields?: readonly WritingField[]
 }) {
   const { control } = useFormContext<FieldValues>()
+  // Language and tone are short selects — side by side when both are offered.
+  const paired = fields.includes("language") && fields.includes("tone")
 
   return (
-    <div className="space-y-4">
+    <div className={paired ? "grid gap-4 sm:grid-cols-2" : "space-y-4"}>
       {fields.includes("language") && (
         <Controller
           control={control}
@@ -32,7 +34,7 @@ export function WritingStyleFields({
                 id="languageToWrite"
                 {...field}
                 aria-invalid={!!fieldState.error}
-                className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
+                className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm aria-invalid:border-destructive"
               >
                 {LANGUAGES.map((lang) => (
                   <option key={lang.value} value={lang.value}>
@@ -61,7 +63,7 @@ export function WritingStyleFields({
                 id="tone"
                 {...field}
                 aria-invalid={!!fieldState.error}
-                className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
+                className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm aria-invalid:border-destructive"
               >
                 {TONES.map((tone) => (
                   <option key={tone} value={tone}>
@@ -83,6 +85,7 @@ export function WritingStyleFields({
               label="Blog length"
               description="Approximate target word count"
               error={undefined}
+              className={paired ? "sm:col-span-2" : undefined}
             >
               <div className="flex items-center gap-4">
                 <Slider

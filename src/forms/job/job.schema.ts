@@ -21,7 +21,7 @@ import {
   writingDefaults,
   writingFragment,
 } from "../shared/fragments"
-import { generationOptionDefaults } from "../shared/options"
+import { withExactTitle, generationOptionDefaults } from "../shared/options"
 import { validateLink } from "../shared/links"
 import { resolveCreateBrandedImages } from "../shared/payload"
 
@@ -109,7 +109,8 @@ export const jobFormSchema = z
 
     values.referenceLinks.forEach((link, index) => {
       const problem = validateLink(link, "reference")
-      if (problem) ctx.addIssue({ path: ["referenceLinks", index], code: "custom", message: problem })
+      if (problem)
+        ctx.addIssue({ path: ["referenceLinks", index], code: "custom", message: problem })
     })
 
     // A schedule with no days selected would never fire.
@@ -239,8 +240,12 @@ export function toJobPayload(values: JobFormValues) {
       numberOfImages: imagesOn ? values.numberOfImages : 0,
       isCheckedBrand: values.isCheckedBrand,
       brandId: values.isCheckedBrand ? values.brandId || null : null,
-      postingDefaultType: includeIf(values.options.automaticPosting, values.postingDefaultType) ?? null,
+      postingDefaultType:
+        includeIf(values.options.automaticPosting, values.postingDefaultType) ?? null,
     },
-    options: { ...values.options, createBrandedImages: resolveCreateBrandedImages(values) },
+    options: {
+      ...withExactTitle(values.options),
+      createBrandedImages: resolveCreateBrandedImages(values),
+    },
   })
 }

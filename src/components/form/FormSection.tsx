@@ -2,15 +2,22 @@ import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { get, useFormContext } from "react-hook-form"
-import { ChevronDown } from "lucide-react"
+import { AlertCircle, Check, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { sectionDomId, useCreateFormContext } from "./createFormContext"
 
 interface FormSectionProps {
+  /** Stable key the summary rail's checklist uses to open and scroll to this section. */
+  id?: string
   title: string
   description?: string
-  /** Compact current-state copy shown while the section is closed. */
+  /** Compact current-state copy shown as a chip in the header. */
   summary?: ReactNode
-  /** One or two characters shown in the leading badge — defaults to the title's initial. */
+  /** Position in the form, shown in the leading badge until the section is complete. */
+  step?: number
+  /** Everything required here is filled in — the badge turns into a green check. */
+  complete?: boolean
+  /** Badge content when there's no `step` — defaults to the title's initial. */
   icon?: ReactNode
   /**
    * Field paths that live inside this section. When any of them has an error the section
@@ -22,6 +29,8 @@ interface FormSectionProps {
   /** Controlled mode, for forms that keep open/closed in their reducer. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Drop the body's padding — for content that runs edge to edge, like `ConfigTabs`. */
+  flush?: boolean
   className?: string
   children: ReactNode
 }
@@ -32,27 +41,36 @@ interface FormSectionProps {
  * `animate-accordion-{down,up}` keyframes) rather than the browser's bare `<details>` marker.
  * The body stays mounted while closed, which keeps its values registered with react-hook-form
  * and its fields validated. Must render inside a react-hook-form `FormProvider`.
+ *
+ * The header badge carries the section's state at a glance: its step number while there's
+ * work left, a green check once `complete`, a red alert while a field inside has an error.
  */
 export function FormSection({
+  id,
   title,
   description,
   summary,
+  step,
+  complete,
   icon,
   fields = [],
   defaultOpen = false,
   open: controlledOpen,
   onOpenChange,
+  flush,
   className,
   children,
 }: FormSectionProps) {
   const {
     formState: { errors },
   } = useFormContext()
+  const { openRequest } = useCreateFormContext()
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : uncontrolledOpen
 
   const errorCount = fields.filter((path) => get(errors, path)).length
+  const hasError = errorCount > 0
 
   const setOpen = (next: boolean) => {
     if (!isControlled) setUncontrolledOpen(next)
@@ -64,37 +82,74 @@ export function FormSection({
     if (errorCount > 0 && !open) setOpen(true)
   }, [errorCount])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run on a new request
+  useEffect(() => {
+    if (id && openRequest?.id === id && !open) setOpen(true)
+  }, [openRequest])
+
+  const badge = hasError ? (
+    <AlertCircle className="size-4" aria-hidden />
+  ) : complete ? (
+    <Check className="size-4" strokeWidth={3} aria-hidden />
+  ) : (
+    (step ?? icon ?? title.charAt(0))
+  )
+
   return (
     <AccordionPrimitive.Root
+      id={id ? sectionDomId(id) : undefined}
       type="single"
       collapsible
       value={open ? "section" : ""}
       onValueChange={(value) => setOpen(value === "section")}
       className={cn(
-        "group overflow-hidden rounded-2xl border border-border/70 bg-card transition-shadow data-[state=open]:shadow-sm data-[state=open]:border-primary/25",
+        "group scroll-mt-24 overflow-hidden rounded-2xl border bg-card shadow-xs transition-[border-color,box-shadow] duration-200",
+        hasError
+          ? "border-destructive/40 ring-1 ring-destructive/10"
+          : "border-border data-[state=open]:border-primary/20 data-[state=open]:shadow-sm",
         className
       )}
     >
       <AccordionPrimitive.Item value="section" className="border-none">
         <AccordionPrimitive.Header asChild>
           <h3>
-            <AccordionPrimitive.Trigger className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 sm:px-5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground transition-colors group-data-[state=open]:bg-primary/10 group-data-[state=open]:text-primary">
-                {icon ?? title.charAt(0)}
+            <AccordionPrimitive.Trigger className="flex w-full items-center gap-3.5 px-4 py-4 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30 sm:px-5">
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-colors",
+                  hasError
+                    ? "bg-destructive/10 text-destructive"
+                    : complete
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-primary/10 text-primary"
+                )}
+              >
+                {badge}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight">{title}</span>
+                <span className="block text-[15px] font-semibold leading-tight text-foreground">
+                  {title}
+                </span>
                 {description && (
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {description}
+                  </span>
                 )}
               </span>
-              {!open && summary && (
-                <span className="max-w-48 truncate rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {summary && !hasError && (
+                <span
+                  className={cn(
+                    "hidden max-w-52 truncate rounded-full px-2.5 py-1 text-xs font-medium sm:inline-block",
+                    complete
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
                   {summary}
                 </span>
               )}
-              {errorCount > 0 && (
-                <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+              {hasError && (
+                <span className="shrink-0 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
                   {errorCount} to fix
                 </span>
               )}
@@ -109,7 +164,9 @@ export function FormSection({
           forceMount
           className="overflow-hidden data-[state=closed]:h-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
         >
-          <div className="space-y-5 border-t border-border/70 px-4 py-4 sm:px-5">{children}</div>
+          <div className={cn("border-t border-border", !flush && "space-y-5 px-4 py-5 sm:px-5")}>
+            {children}
+          </div>
         </AccordionPrimitive.Content>
       </AccordionPrimitive.Item>
     </AccordionPrimitive.Root>

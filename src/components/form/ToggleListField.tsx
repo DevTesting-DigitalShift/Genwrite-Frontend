@@ -1,10 +1,7 @@
 import type { FieldValues } from "react-hook-form"
 import { useFormContext } from "react-hook-form"
 import { RHFSwitchField } from "./fields"
-import {
-  GENERATION_TOGGLE_BY_KEY,
-  type GenerationOptionKey,
-} from "@/forms/shared/options"
+import { GENERATION_TOGGLE_BY_KEY, type GenerationOptionKey } from "@/forms/shared/options"
 
 /** A toggle that isn't one of the shared `options.*` keys — e.g. a form-specific switch like
  * the advanced blog's "quick summary" — rendered in the same row style as the rest. */
@@ -46,7 +43,8 @@ export function ToggleListField({
   extra,
 }: ToggleListFieldProps) {
   const { control } = useFormContext<FieldValues>()
-  const rowClassName = "px-3.5 py-3 transition-colors hover:bg-muted/40 first:rounded-t-xl last:rounded-b-xl"
+  const rowClassName =
+    "px-3.5 py-3 transition-colors hover:bg-muted/40 first:rounded-t-xl last:rounded-b-xl"
 
   return (
     <div className="divide-y divide-border/70 rounded-xl border border-border/70">

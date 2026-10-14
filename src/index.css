@@ -573,9 +573,21 @@ input[type="range"]::-moz-range-thumb {
  *
  * `:root:root` is deliberate — it outranks daisyUI's own `:root` and
  * `[data-theme=light]` selectors regardless of source order.
+ *
+ * `--color-border` can't simply point at `var(--border)`: daisyUI 5 uses
+ * `--border` for its border *width* (`1px`), so the colour resolved to `1px`,
+ * was invalid, and every `border-border` utility (and the base-layer default
+ * above) fell back to `currentColor` — the near-black outlines on cards. The
+ * colour values are spelled out here instead.
  * ------------------------------------------------------------------------- */
 :root:root {
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
+  --color-border: oklch(0.922 0 0);
+}
+
+:root:root.dark,
+:root:root .dark {
+  --color-border: oklch(1 0 0 / 10%);
 }

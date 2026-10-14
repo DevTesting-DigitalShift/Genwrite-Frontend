@@ -17,7 +17,7 @@ import {
   writingDefaults,
   writingFragment,
 } from "../shared/fragments"
-import { generationOptionDefaults } from "../shared/options"
+import { withExactTitle, generationOptionDefaults } from "../shared/options"
 import { resolveCreateBrandedImages } from "../shared/payload"
 
 /**
@@ -32,14 +32,19 @@ export const bulkBlogFormSchema = z
     templates: z.array(z.string()),
     topics: z.array(z.string()),
     /** `undefined` while the box is empty; the range rule reports it with the usual copy. */
-    numberOfBlogs: z.number({ error: `Number of blogs must be at least ${BLOG_CONFIG.BULK.MIN_BLOGS}.` }),
+    numberOfBlogs: z.number({
+      error: `Number of blogs must be at least ${BLOG_CONFIG.BULK.MIN_BLOGS}.`,
+    }),
 
     // Bulk has no focus keywords and no upload source.
     keywords: keywordsFragment.keywords,
     ...writingFragment,
     ...aiFragment,
     imageSource: imageSourceSchema,
-    numberOfImages: z.number({ error: "Number of images must be a number." }).min(0).max(BLOG_CONFIG.IMAGES.MAX_COUNT),
+    numberOfImages: z
+      .number({ error: "Number of images must be a number." })
+      .min(0)
+      .max(BLOG_CONFIG.IMAGES.MAX_COUNT),
     ...brandFragment,
     ...postingFragment,
     ...optionsFragment,
@@ -157,7 +162,7 @@ export function toBulkBlogPayload(values: BulkBlogFormValues) {
     postingDefaultType: includeIf(values.options.automaticPosting, values.postingDefaultType),
 
     options: {
-      ...values.options,
+      ...withExactTitle(values.options),
       createBrandedImages: resolveCreateBrandedImages(values),
     },
   })

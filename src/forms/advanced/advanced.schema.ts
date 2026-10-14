@@ -22,7 +22,7 @@ import {
   writingDefaults,
   writingFragment,
 } from "../shared/fragments"
-import { generationOptionDefaults } from "../shared/options"
+import { withExactTitle, generationOptionDefaults } from "../shared/options"
 import { resolveCreateBrandedImages } from "../shared/payload"
 import { validateLink } from "../shared/links"
 
@@ -70,7 +70,8 @@ export const advancedBlogFormSchema = z
 
     values.referenceLinks.forEach((link, index) => {
       const problem = validateLink(link, "reference")
-      if (problem) ctx.addIssue({ path: ["referenceLinks", index], code: "custom", message: problem })
+      if (problem)
+        ctx.addIssue({ path: ["referenceLinks", index], code: "custom", message: problem })
     })
 
     refineImages(values, ctx)
@@ -141,7 +142,7 @@ export function toAdvancedBlogPayload(values: AdvancedBlogFormValues) {
     postingDefaultType: includeIf(values.options.automaticPosting, values.postingDefaultType),
 
     options: {
-      ...values.options,
+      ...withExactTitle(values.options),
       createBrandedImages: resolveCreateBrandedImages(values),
     },
   })

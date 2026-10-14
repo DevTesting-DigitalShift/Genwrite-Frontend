@@ -7,11 +7,18 @@ import { integrationQuery } from "@api/Integration/Integration.query"
 import useIntegrationStore from "@store/useIntegrationStore"
 import { Switch } from "@components/ui/switch"
 import { Button } from "@components/ui/button"
+import { DependentFields } from "../DependentFields"
+import { ToggleListField } from "../ToggleListField"
 
 /**
- * Automatic posting: the `options.automaticPosting` switch plus, once it is on, the
- * connected platform that becomes `postingDefaultType`. Also keeps the shared integration
- * store warm for the passive readers (editor sidebar, regenerate modal).
+ * Automatic posting: the `options.automaticPosting` switch, then the connected platform that
+ * becomes `postingDefaultType` and the post-only extras — always shown, dimmed until posting
+ * is on (turning it on picks the first connected platform). Also keeps
+ * the shared integration store warm for the passive readers (editor sidebar, regenerate modal).
+ *
+ * The table of contents lives here because only the CMS publish step reads
+ * `options.includeTableOfContents` (the backend's `createPostObject`) — offered anywhere
+ * else it was a switch that did nothing. Turning posting off clears it for the same reason.
  */
 export function PostingFields() {
   const navigate = useNavigate()
@@ -48,6 +55,9 @@ export function PostingFields() {
                 }
                 field.onChange(checked)
                 setValue("postingDefaultType", checked ? platforms[0] : null, { shouldDirty: true })
+                if (!checked) {
+                  setValue("options.includeTableOfContents", false, { shouldDirty: true })
+                }
               }}
             />
           </div>
@@ -71,12 +81,16 @@ export function PostingFields() {
             </div>
           )}
 
-          {field.value && platforms.length > 0 && (
+          <DependentFields enabled={!!field.value}>
             <Controller
               control={control}
               name="postingDefaultType"
               render={({ field: platform, fieldState }) => (
-                <div className="space-y-1.5">
+                <div
+                  data-field-shell
+                  data-field-label="Publishing platform"
+                  className="space-y-1.5"
+                >
                   <label htmlFor="posting-platform" className="text-sm font-semibold">
                     Publishing platform
                   </label>
@@ -84,9 +98,14 @@ export function PostingFields() {
                     id="posting-platform"
                     value={platform.value ?? ""}
                     onChange={(e) => platform.onChange(e.target.value)}
-                    className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm"
+                    className="select select-bordered h-10 min-h-0 w-full rounded-lg text-sm aria-invalid:border-destructive"
                     aria-invalid={!!fieldState.error}
                   >
+                    {!platform.value && (
+                      <option value="">
+                        {platforms.length ? "Select a platform" : "No platform connected"}
+                      </option>
+                    )}
                     {platforms.map((name) => (
                       <option key={name} value={name}>
                         {name}
@@ -94,12 +113,16 @@ export function PostingFields() {
                     ))}
                   </select>
                   {fieldState.error && (
-                    <p className="text-xs text-destructive">{fieldState.error.message}</p>
+                    <p role="alert" className="text-xs font-medium text-destructive">
+                      {fieldState.error.message}
+                    </p>
                   )}
                 </div>
               )}
             />
-          )}
+
+            <ToggleListField keys={["includeTableOfContents"]} />
+          </DependentFields>
         </div>
       )}
     />

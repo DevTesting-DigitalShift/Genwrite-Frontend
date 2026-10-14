@@ -2,26 +2,26 @@ import { useCallback } from "react"
 import { Controller, FormProvider, useWatch } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
 import useBlogStore from "@store/useBlogStore"
 import {
-  AiModelFields,
-  BrandVoiceField,
+  AdvancedConfigSection,
+  AiImagesSection,
   CreateFormShell,
+  DependentFields,
   FieldShell,
+  fieldErrorId,
+  type ReadinessItem,
   FormSection,
-  ImageSettingsFields,
-  PostingFields,
   RHFTagsField,
   RHFTextField,
   RHFTextareaField,
-  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
 } from "@components/form"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import {
+  onInvalidSubmit,
   useCancelNavigation,
   useFormSubmission,
   useUnsavedChangesGuard,
@@ -36,6 +36,14 @@ import {
 import { useTitleGenerator } from "@/forms/advanced/useTitleGenerator"
 import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
 import { validateLink } from "@/forms/shared/links"
+import {
+  countEnabled,
+  imagesSummary,
+  keywordsSummary,
+  modelSummary,
+  originalCostOf,
+  plural,
+} from "@/forms/shared/summary"
 import type { CreateFormProps } from "./createForms.registry"
 
 /**
@@ -77,10 +85,94 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
 
   useUnsavedChangesGuard(form.formState.isDirty, sentRef)
 
-  const onSubmit = handleSubmit(
-    (data) => submit(toAdvancedBlogPayload(data)),
-    () => toast.error("Please fill all required fields correctly.")
-  )
+  const onSubmit = handleSubmit((data) => submit(toAdvancedBlogPayload(data)), onInvalidSubmit)
+
+  const topic = values.topic?.trim() ?? ""
+  const title = values.title?.trim() ?? ""
+  const links = values.referenceLinks?.length ?? 0
+  const keywordsDone =
+    researching || (values.focusKeywords?.length > 0 && values.keywords?.length > 0 && !!title)
+  const uploading = values.imageSource === "upload"
+  const enabledOptions = countEnabled([
+    values.options.easyToUnderstand,
+    values.options.humanisation,
+    values.options.extendedThinking,
+    values.options.deepResearch,
+    values.options.includeFaqs,
+    values.options.includeTableOfContents,
+    values.options.embedYouTubeVideos,
+    values.options.includeInterlinks,
+    values.options.addOutBoundLinks,
+    values.options.includeCompetitorResearch,
+    values.isCheckedQuick,
+  ])
+
+  // Brand voice, publishing and uploads only become requirements once they're switched on.
+  const readiness: ReadinessItem[] = [
+    {
+      section: "template",
+      label: "Template chosen",
+      done: !!values.template,
+      detail: values.template ?? undefined,
+      fields: ["template"],
+    },
+    {
+      section: "basics",
+      label: "Topic written",
+      done: !!topic,
+      detail: topic ? plural(topic.length, "char") : undefined,
+      fields: ["topic"],
+    },
+    {
+      section: "basics",
+      label: researching ? "Title & keywords: AI research" : "Title & keywords set",
+      done: !!keywordsDone,
+      detail: keywordsDone ? keywordsSummary(values, researching) : undefined,
+      fields: ["focusKeywords", "keywords", "title"],
+    },
+    {
+      section: "basics",
+      label: "Writing style set",
+      done: !!values.tone && !!values.languageToWrite,
+      detail: values.tone,
+      fields: ["tone", "userDefinedLength", "languageToWrite", "brief", "referenceLinks"],
+    },
+    ...(uploading
+      ? [
+          {
+            section: "ai",
+            label: "Images uploaded",
+            done: (values.blogImages?.length ?? 0) > 0,
+            fields: ["blogImages"],
+          },
+        ]
+      : []),
+    ...(values.isCheckedBrand
+      ? [
+          {
+            section: "advanced",
+            tab: "brand",
+            label: "Brand voice picked",
+            done: !!values.brandId,
+            fields: ["brandId"],
+          },
+        ]
+      : []),
+    ...(values.options.automaticPosting
+      ? [
+          {
+            section: "advanced",
+            tab: "publishing",
+            label: "Publishing platform picked",
+            done: !!values.postingDefaultType,
+            detail: values.postingDefaultType ?? undefined,
+            fields: ["postingDefaultType"],
+          },
+        ]
+      : []),
+  ]
+  const sectionDone = (id: string) =>
+    readiness.filter((item) => item.section === id).every((item) => item.done)
 
   return (
     <FormProvider {...form}>
@@ -93,13 +185,34 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         submittingLabel="Generating blog..."
         isSubmitting={isSubmitting}
         estimatedCost={cost.total}
-        costNote={values.costCutter ? "(-50% off)" : undefined}
+        originalCost={originalCostOf(cost)}
         costLines={toCostLines(cost)}
-        selectionSummary={values.template ?? undefined}
+        readiness={readiness}
+        summaryRows={[
+          { label: "Template", value: values.template ?? "—" },
+          { label: "Topic", value: topic || "—" },
+          { label: "Title", value: researching ? "AI picks it" : title || "—" },
+          { label: "Keywords", value: keywordsSummary(values, researching) },
+          { label: "Tone · length", value: `${values.tone} · ~${values.userDefinedLength} words` },
+          { label: "Language", value: values.languageToWrite },
+          { label: "Reference links", value: links ? plural(links, "link") : "None" },
+          { label: "Model", value: modelSummary(values.aiModel, values.costCutter) },
+          { label: "Images", value: imagesSummary(values) },
+          { label: "Advanced options", value: `${enabledOptions} enabled` },
+          { label: "Brand voice", value: values.isCheckedBrand ? "On" : "Off" },
+          {
+            label: "Publishing",
+            value: values.options.automaticPosting ? (values.postingDefaultType ?? "On") : "Off",
+          },
+        ]}
       >
         <FormSection
+          id="template"
+          step={1}
           title="Template"
+          description="How the blog is structured"
           summary={values.template ?? "Not selected"}
+          complete={!!values.template}
           fields={["template"]}
           defaultOpen
         >
@@ -107,9 +220,13 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
         </FormSection>
 
         <FormSection
+          id="basics"
+          step={2}
           title="Basics"
+          description="Topic, title, keywords and writing style"
           defaultOpen
-          summary={values.topic || "Not completed"}
+          summary={topic || "Not completed"}
+          complete={sectionDone("basics")}
           fields={[
             "topic",
             "focusKeywords",
@@ -131,87 +248,90 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
           />
 
           <ToggleListField
-            keys={["exactTitle", "performKeywordResearch"]}
+            keys={["performKeywordResearch"]}
             onToggle={{
               performKeywordResearch: (checked) => {
-                if (checked) clearErrors(["focusKeywords", "keywords", "title"])
+                if (!checked) return
+                clearErrors(["focusKeywords", "keywords", "title"])
               },
             }}
             descriptions={{ performKeywordResearch: "AI picks the title and keywords for you." }}
           />
 
-          {!researching && (
-            <>
-              <RHFTagsField
-                control={control}
-                name="focusKeywords"
-                label="Focus keywords (max 3)"
-                required
-                max={BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS}
-                placeholder="Enter keywords (comma, tab, or newline separated)"
-              />
-              <RHFTagsField
-                control={control}
-                name="keywords"
-                label="Keywords"
-                required
-                placeholder="Enter keywords (comma, tab, or newline separated)"
-              />
+          <DependentFields
+            enabled={!researching}
+            hint="Keyword research will pick these for you — turn it off to enter your own."
+          >
+            <RHFTagsField
+              control={control}
+              name="focusKeywords"
+              label="Focus keywords (max 3)"
+              required
+              max={BLOG_CONFIG.CONSTRAINTS.MAX_FOCUS_KEYWORDS}
+              placeholder="Enter keywords (comma, tab, or newline separated)"
+            />
+            <RHFTagsField
+              control={control}
+              name="keywords"
+              label="Keywords"
+              required
+              placeholder="Enter keywords (comma, tab, or newline separated)"
+            />
 
-              <Controller
-                control={control}
-                name="title"
-                render={({ field, fieldState }) => (
-                  <FieldShell
-                    htmlFor="title"
-                    label="Blog title"
-                    required
-                    description="The headline of your blog. Type it, or generate ideas with AI."
-                    error={fieldState.error?.message}
-                  >
-                    <div className="flex gap-2">
-                      <input
-                        id="title"
-                        {...field}
-                        aria-invalid={!!fieldState.error}
-                        placeholder="e.g., How to create a blog"
-                        className="input input-bordered h-10 w-full rounded-md text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={titles.generate}
-                        disabled={titles.isGenerating}
-                        className="shrink-0 rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-50"
-                      >
-                        {titles.isGenerating ? "Generating..." : "Generate"}
-                      </button>
+            <Controller
+              control={control}
+              name="title"
+              render={({ field, fieldState }) => (
+                <FieldShell
+                  htmlFor="title"
+                  label="Blog title"
+                  required
+                  description="The headline of your blog. Type it, or generate ideas with AI."
+                  error={fieldState.error?.message}
+                >
+                  <div className="flex gap-2">
+                    <input
+                      id="title"
+                      {...field}
+                      aria-invalid={!!fieldState.error}
+                      aria-describedby={fieldState.error ? fieldErrorId("title") : undefined}
+                      placeholder="e.g., How to create a blog"
+                      className="input input-bordered h-10 w-full rounded-md text-sm aria-invalid:border-destructive"
+                    />
+                    <button
+                      type="button"
+                      onClick={titles.generate}
+                      disabled={titles.isGenerating}
+                      className="shrink-0 rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-50"
+                    >
+                      {titles.isGenerating ? "Generating..." : "Generate"}
+                    </button>
+                  </div>
+                  {titles.titles.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {titles.titles.map((suggestion) => (
+                        <button
+                          type="button"
+                          key={suggestion}
+                          onClick={() => {
+                            setValue("title", suggestion, { shouldDirty: true })
+                            clearErrors("title")
+                          }}
+                          className={`rounded-md border px-3 py-1 text-xs transition ${
+                            field.value === suggestion
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
                     </div>
-                    {titles.titles.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {titles.titles.map((suggestion) => (
-                          <button
-                            type="button"
-                            key={suggestion}
-                            onClick={() => {
-                              setValue("title", suggestion, { shouldDirty: true })
-                              clearErrors("title")
-                            }}
-                            className={`rounded-md border px-3 py-1 text-xs transition ${
-                              field.value === suggestion
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background hover:bg-muted"
-                            }`}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </FieldShell>
-                )}
-              />
-            </>
-          )}
+                  )}
+                </FieldShell>
+              )}
+            />
+          </DependentFields>
 
           <RHFTagsField
             control={control}
@@ -231,82 +351,18 @@ export default function AdvancedBlogForm({ prefill }: CreateFormProps) {
           />
         </FormSection>
 
-        <FormSection
-          title="AI & images"
-          description="Model, cost cutter and image source"
-          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
-          fields={["aiModel", "costCutter", "imageSource", "numberOfImages", "blogImages"]}
-        >
-          <AiModelFields />
-          <ImageSettingsFields allowUpload />
-        </FormSection>
+        <AiImagesSection step={3} allowUpload />
 
-        <FormSection
-          title="Advanced options"
-          description="Writing, content and SEO controls"
-          summary={`${
-            [
-              values.options.easyToUnderstand,
-              values.options.humanisation,
-              values.options.extendedThinking,
-              values.options.deepResearch,
-              values.options.includeFaqs,
-              values.options.includeTableOfContents,
-              values.options.embedYouTubeVideos,
-              values.options.includeInterlinks,
-              values.options.addOutBoundLinks,
-              values.options.includeCompetitorResearch,
-              values.isCheckedQuick,
-            ].filter(Boolean).length
-          } enabled`}
-        >
-          <SubGroup label="Writing style">
-            <ToggleListField
-              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
-            />
-          </SubGroup>
-
-          <SubGroup label="Content">
-            <ToggleListField
-              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
-              extra={[
-                {
-                  name: "isCheckedQuick",
-                  label: "Add a quick summary",
-                  description: "Generate a concise summary for the readers",
-                },
-              ]}
-            />
-          </SubGroup>
-
-          <SubGroup label="SEO & research">
-            <ToggleListField
-              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
-            />
-          </SubGroup>
-        </FormSection>
-
-        <FormSection
-          title="Brand voice"
-          description="Apply your saved brand style and assets"
-          summary={values.isCheckedBrand ? "On" : "Off"}
-          fields={["brandId"]}
-        >
-          <BrandVoiceField />
-        </FormSection>
-
-        <FormSection
-          title="Publishing"
-          description="Automatically publish after generation"
-          summary={
-            values.options.automaticPosting
-              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
-              : "Off"
-          }
-          fields={["postingDefaultType"]}
-        >
-          <PostingFields />
-        </FormSection>
+        <AdvancedConfigSection
+          step={4}
+          seoExtra={[
+            {
+              name: "isCheckedQuick",
+              label: "Add a quick summary",
+              description: "Generate a concise summary for the readers",
+            },
+          ]}
+        />
       </CreateFormShell>
     </FormProvider>
   )

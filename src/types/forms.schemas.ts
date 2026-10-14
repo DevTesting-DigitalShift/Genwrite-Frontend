@@ -137,25 +137,19 @@ const writingPayload = {
 export const quickBlogFinalDataSchema = z.object({
   type: z.enum(["quick", "yt"]).describe("Blog type: quick (standard) or yt (YouTube-based)"),
   topic: z.string().min(1, "Topic is required").describe("The main topic of the blog post"),
-  template: z.string().nullable().describe("Selected blog template name"),
+  // Required for quick; a YouTube blog's template is picked from its videos.
+  template: z.string().optional().describe("Selected blog template name"),
 
   keywords: z.array(z.string()).default([]).describe("Secondary keywords for SEO"),
   focusKeywords: z.array(z.string()).max(3).default([]).describe("Primary focus keywords (max 3)"),
   referenceLinks: referenceLinksPayload,
 
-  imageSource: imageSourceSchema.default(ImageSource.NONE).describe("Where images come from"),
-  numberOfImages: z
-    .number()
-    .min(0)
-    .max(15)
-    .default(0)
-    .describe("Number of images (0 = AI decides); 0 whenever images are off"),
-
-  languageToWrite: writingPayload.languageToWrite,
-  aiModel: aiPayload.aiModel,
-  costCutter: aiPayload.costCutter,
-
-  options: generationOptionsPayloadSchema,
+  // Everything else (model, cost cutter, images, length, language…) is the backend's
+  // per-type default — see BLOG_TYPE_DEFAULTS in the backend's createBlog.schema.js.
+  options: z.object({
+    exactTitle: z.boolean().describe("Use the exact topic as the blog title"),
+    performKeywordResearch: z.boolean(),
+  }),
 })
 
 export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSchema>
@@ -250,7 +244,12 @@ export const advancedBlogFinalDataSchema = z.object({
   brandId: z.string().optional().describe("Brand voice ID (required if isCheckedBrand)"),
 
   imageSource: imageSourceWithUploadSchema.default(ImageSource.NONE).describe("Image source type"),
-  numberOfImages: z.number().min(0).max(15).default(0).describe("Number of images (0 = AI decides)"),
+  numberOfImages: z
+    .number()
+    .min(0)
+    .max(15)
+    .default(0)
+    .describe("Number of images (0 = AI decides)"),
   blogImages: z.array(z.any()).optional().describe("Custom uploaded images"),
 
   isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),

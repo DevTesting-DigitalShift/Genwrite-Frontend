@@ -2,7 +2,7 @@ import { packages } from "@/data/templates"
 import { Switch } from "@components/ui/switch"
 import { toast } from "sonner"
 import clsx from "clsx"
-import { AlertCircle, Crown, Search } from "lucide-react"
+import { AlertCircle, Check, Crown, Search } from "lucide-react"
 import { type FC, useEffect, useState, useMemo } from "react"
 
 interface TemplateSelectionProps {
@@ -12,6 +12,8 @@ interface TemplateSelectionProps {
   preSelectedIds?: Array<string | number>
   className?: string
   error?: string
+  /** Shorter cropped thumbnails and a selected-check badge — for the single-page create forms. */
+  compact?: boolean
 }
 
 export interface BlogTemplate {
@@ -29,6 +31,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   onClick,
   className = "",
   error = "",
+  compact = false,
 }) => {
   const { isProUser, initialTemplates } = useMemo(() => {
     const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
@@ -172,17 +175,28 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
           </div>
         </div>
         {(localError || error) && (
-          <div className="flex items-center gap-3 p-3.5 px-4 mt-2 bg-red-50/90 border border-red-200/80 rounded-xl text-red-800 text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 backdrop-blur-sm">
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          // No enter animation: `tailwindcss-animate`'s `fade-in` left this banner stuck near
+          // transparent under Tailwind v4, so the one message explaining the red state was unreadable.
+          <div
+            role="alert"
+            className="flex items-center gap-3 p-3 px-4 mt-2 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm font-medium"
+          >
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" aria-hidden />
             <div className="flex-1">{localError || error}</div>
           </div>
         )}
       </div>
 
       {/* Templates Grid - Responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 py-2 max-h-[60vh] overflow-y-auto custom-scroll">
+      <div
+        className={clsx(
+          "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 py-2 overflow-y-auto custom-scroll",
+          compact ? "max-h-108 px-0.5" : "max-h-[60vh]"
+        )}
+      >
         {templates.length ? (
-          templates.map((pkg) => {
+          templates.map((pkg, index) => {
+            const isSelected = selectedIds.includes(pkg.id)
             return (
               // A real <button> rather than role="button": it gets Space/Enter activation
               // and focus handling for free. Inner nodes are spans because <button> only
@@ -191,31 +205,74 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                 type="button"
                 key={pkg.id}
                 className={clsx(
-                  "relative block w-full text-left cursor-pointer transition-all rounded-lg duration-200 border-2",
-                  selectedIds.includes(pkg.id)
-                    ? "border-blue-500"
-                    : "border-transparent hover:border-gray-200"
+                  "relative block w-full text-left cursor-pointer transition-all duration-200",
+                  compact
+                    ? [
+                        "rounded-xl border bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        isSelected
+                          ? "border-primary ring-2 ring-primary/20 shadow-sm"
+                          : "border-border hover:border-primary/40 hover:shadow-sm",
+                      ]
+                    : [
+                        "rounded-lg border-2",
+                        isSelected ? "border-blue-500" : "border-transparent hover:border-gray-200",
+                      ]
                 )}
                 onClick={() => handlePackageSelect(pkg.id)}
-                aria-pressed={selectedIds.includes(pkg.id)}
+                aria-pressed={isSelected}
                 aria-label={`Select ${pkg.name} template`}
+                // Where a failed form submit lands focus (see `findFirstInvalidField`).
+                data-focus-on-error={index === 0 ? "" : undefined}
               >
-                <span className="block bg-white rounded-md overflow-hidden shadow-sm h-full border border-gray-300">
-                  <span className="block relative">
+                <span
+                  className={clsx(
+                    "block bg-white overflow-hidden h-full",
+                    compact ? "rounded-xl" : "rounded-md shadow-sm border border-gray-300"
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "block relative",
+                      compact && "h-32 bg-slate-50 border-b border-border overflow-hidden"
+                    )}
+                  >
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
                       alt={pkg.name}
                       loading="lazy"
-                      className="w-full h-full object-cover"
+                      className={clsx(
+                        "w-full object-cover",
+                        compact ? "h-full object-top" : "h-full"
+                      )}
                     />
                     {pkg.paid && (
-                      <span className="absolute top-2 right-2 bg-white/80 rounded-full p-1 backdrop-blur-sm">
-                        <Crown size={16} className="text-purple-600" aria-label="Pro feature" />
+                      <span
+                        className={clsx(
+                          "absolute top-2 bg-white/80 rounded-full p-1 backdrop-blur-sm",
+                          // Leave the top-right corner to the selected check in compact mode.
+                          compact && isSelected ? "right-9" : "right-2"
+                        )}
+                      >
+                        <Crown
+                          size={compact ? 14 : 16}
+                          className="text-purple-600"
+                          aria-label="Pro feature"
+                        />
+                      </span>
+                    )}
+                    {compact && isSelected && (
+                      <span className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full bg-primary text-white shadow-sm">
+                        <Check className="size-3" strokeWidth={3} aria-hidden />
                       </span>
                     )}
                   </span>
-                  <span className="block p-3">
-                    <span className="block font-medium text-gray-900 text-base mb-1">
+                  <span className={clsx("block", compact ? "px-3 py-2.5" : "p-3")}>
+                    <span
+                      className={clsx(
+                        "block font-medium text-gray-900 mb-1",
+                        compact ? "text-sm font-semibold" : "text-base"
+                      )}
+                    >
                       {pkg.name}
                     </span>
                     <span className="block text-xs text-gray-500 line-clamp-2">

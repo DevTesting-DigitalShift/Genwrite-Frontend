@@ -3,6 +3,7 @@ import { quickBlogFormDefaults, quickBlogFormSchema, toQuickBlogPayload } from "
 
 const validValues = () => ({
   ...quickBlogFormDefaults("quick"),
+  options: { ...quickBlogFormDefaults("quick").options, performKeywordResearch: false },
   topic: "  Sourdough for beginners  ",
   template: "Classic",
   templateIds: [1],
@@ -21,15 +22,31 @@ const withResearch = (type: "quick" | "yt") => {
 }
 
 describe("quickBlogFormSchema", () => {
-  it("requires a template, topic and both keyword lists", () => {
-    const result = quickBlogFormSchema.safeParse(quickBlogFormDefaults("quick"))
+  it("requires a template, topic and both keyword lists once research is off", () => {
+    const base = quickBlogFormDefaults("quick")
+    const result = quickBlogFormSchema.safeParse({
+      ...base,
+      options: { ...base.options, performKeywordResearch: false },
+    })
     expect(result.success).toBe(false)
     const paths = result.success ? [] : result.error.issues.map((i) => i.path.join("."))
-    expect(paths).toEqual(expect.arrayContaining(["template", "topic", "focusKeywords", "keywords"]))
+    expect(paths).toEqual(
+      expect.arrayContaining(["template", "topic", "focusKeywords", "keywords"])
+    )
   })
 
   it("drops the keyword requirement when keyword research is on", () => {
     expect(quickBlogFormSchema.safeParse(withResearch("quick")).success).toBe(true)
+  })
+
+  it("needs neither a template nor keywords for a yt blog", () => {
+    const base = quickBlogFormDefaults("yt")
+    const ok = quickBlogFormSchema.safeParse({
+      ...base,
+      topic: "T",
+      referenceLinks: ["https://youtu.be/abcdefghijk"],
+    })
+    expect(ok.success).toBe(true)
   })
 
   it("requires a valid YouTube link for a yt blog", () => {
@@ -63,23 +80,20 @@ describe("toQuickBlogPayload", () => {
     expect(payload).not.toHaveProperty("templateIds")
   })
 
-  it("speaks the canonical key names", () => {
+  it("sends only what the user chose — the backend fills the quick defaults", () => {
     const payload = toQuickBlogPayload({
       ...validValues(),
       referenceLinks: ["https://example.com"],
     })
-    expect(payload.referenceLinks).toEqual(["https://example.com"])
-    expect(payload).not.toHaveProperty("otherLinks")
-    expect(payload).not.toHaveProperty("addImages")
-    expect(payload.options).toMatchObject({ exactTitle: false, humanisation: false })
-    expect(payload.aiModel).toBe("gemini")
-    expect(payload.topic).toBe("Sourdough for beginners")
-  })
-
-  it("zeroes the image count when images are off", () => {
-    const payload = toQuickBlogPayload({ ...validValues(), imageSource: "none", numberOfImages: 6 })
-    expect(payload.imageSource).toBe("none")
-    expect(payload.numberOfImages).toBe(0)
+    expect(payload).toEqual({
+      type: "quick",
+      topic: "Sourdough for beginners",
+      template: "Classic",
+      keywords: ["baking"],
+      focusKeywords: ["sourdough"],
+      referenceLinks: ["https://example.com"],
+      options: { exactTitle: true, performKeywordResearch: false },
+    })
   })
 
   it("leaves keyword lists to the backend when research is on", () => {
@@ -90,10 +104,32 @@ describe("toQuickBlogPayload", () => {
     })
     expect(payload.keywords).toEqual([])
     expect(payload.focusKeywords).toEqual([])
+    expect(payload.options.performKeywordResearch).toBe(true)
   })
 
-  it("embeds the source video by default on a YouTube blog", () => {
-    expect(quickBlogFormDefaults("yt").options.embedYouTubeVideos).toBe(true)
-    expect(quickBlogFormDefaults("quick").options.embedYouTubeVideos).toBe(false)
+  it("sends a YouTube blog without a template or keywords — the videos decide them", () => {
+    const payload = toQuickBlogPayload({
+      ...quickBlogFormDefaults("yt"),
+      topic: "From the video",
+      template: "Classic",
+      keywords: ["ignored"],
+      referenceLinks: ["https://youtu.be/abcdefghijk"],
+    })
+    expect(payload).not.toHaveProperty("template")
+    expect(payload.keywords).toEqual([])
+    expect(payload.options).toEqual({ exactTitle: true, performKeywordResearch: false })
+  })
+
+  it("defaults match the backend: research on for quick, embeds on for YouTube, exact title on", () => {
+    expect(quickBlogFormDefaults("quick").options).toMatchObject({
+      performKeywordResearch: true,
+      exactTitle: true,
+      embedYouTubeVideos: false,
+    })
+    expect(quickBlogFormDefaults("yt").options).toMatchObject({
+      performKeywordResearch: false,
+      exactTitle: true,
+      embedYouTubeVideos: true,
+    })
   })
 })

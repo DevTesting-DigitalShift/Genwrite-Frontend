@@ -5,21 +5,21 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import useBlogStore from "@store/useBlogStore"
 import {
-  AiModelFields,
-  BrandVoiceField,
+  AdvancedConfigSection,
+  AiImagesSection,
   CreateFormShell,
+  DependentFields,
   FormSection,
-  ImageSettingsFields,
-  PostingFields,
+  type ReadinessItem,
   RHFNumberField,
   RHFTagsField,
-  SubGroup,
   TemplatePickerField,
   ToggleListField,
   WritingStyleFields,
 } from "@components/form"
 import { BLOG_CONFIG } from "@/data/blogConfig"
 import {
+  onInvalidSubmit,
   useCancelNavigation,
   useFormSubmission,
   useUnsavedChangesGuard,
@@ -34,6 +34,14 @@ import {
   type BulkBlogFormValues,
 } from "@/forms/bulk/bulk.schema"
 import { toCostLines, useGenerationCostBreakdown } from "@/forms/shared/cost"
+import {
+  countEnabled,
+  imagesSummary,
+  keywordsSummary,
+  modelSummary,
+  originalCostOf,
+  plural,
+} from "@/forms/shared/summary"
 import type { CreateFormProps } from "./createForms.registry"
 
 /**
@@ -70,14 +78,7 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
 
   useUnsavedChangesGuard(form.formState.isDirty, sentRef)
 
-  const onSubmit = handleSubmit(
-    (data) => submit(toBulkBlogPayload(data)),
-    (invalid) => {
-      // Only the topic count is loud enough for a toast; the rest render inline.
-      const topics = invalid.topics?.message
-      toast.error(topics ?? "Please fill all required fields correctly.")
-    }
-  )
+  const onSubmit = handleSubmit((data) => submit(toBulkBlogPayload(data)), onInvalidSubmit)
 
   /** Adding more topics than blogs raises the count for the user instead of refusing them. */
   const syncBlogCount = useCallback(
@@ -91,6 +92,76 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
     [getValues, setValue, clearErrors]
   )
 
+  const templateCount = values.templates?.length ?? 0
+  const topicCount = values.topics?.length ?? 0
+  const blogCount = Number(values.numberOfBlogs) || 0
+  const enabledOptions = countEnabled([
+    values.options.easyToUnderstand,
+    values.options.humanisation,
+    values.options.extendedThinking,
+    values.options.deepResearch,
+    values.options.includeFaqs,
+    values.options.includeTableOfContents,
+    values.options.embedYouTubeVideos,
+    values.options.includeInterlinks,
+    values.options.addOutBoundLinks,
+    values.options.includeCompetitorResearch,
+  ])
+
+  // Brand voice and publishing only become requirements once they're switched on.
+  const readiness: ReadinessItem[] = [
+    {
+      section: "template",
+      label: "Templates chosen",
+      done: templateCount > 0,
+      detail: templateCount ? `${templateCount} of ${BULK_MAX_TEMPLATES}` : undefined,
+      fields: ["templates"],
+    },
+    {
+      section: "basics",
+      label: "Topics added",
+      // Mirrors the schema: one topic per blog, inside the bulk limits.
+      done:
+        topicCount === blogCount &&
+        blogCount >= BLOG_CONFIG.BULK.MIN_BLOGS &&
+        blogCount <= BLOG_CONFIG.BULK.MAX_BLOGS,
+      detail: `${topicCount}/${blogCount}`,
+      fields: ["numberOfBlogs", "topics"],
+    },
+    {
+      section: "basics",
+      label: researching ? "Keywords: AI research" : "Keywords added",
+      done: !!researching || (values.keywords?.length ?? 0) > 0,
+      detail: researching ? undefined : `${values.keywords?.length ?? 0} added`,
+      fields: ["keywords", "tone", "userDefinedLength", "languageToWrite"],
+    },
+    ...(values.isCheckedBrand
+      ? [
+          {
+            section: "advanced",
+            tab: "brand",
+            label: "Brand voice picked",
+            done: !!values.brandId,
+            fields: ["brandId"],
+          },
+        ]
+      : []),
+    ...(values.options.automaticPosting
+      ? [
+          {
+            section: "advanced",
+            tab: "publishing",
+            label: "Publishing platform picked",
+            done: !!values.postingDefaultType,
+            detail: values.postingDefaultType ?? undefined,
+            fields: ["postingDefaultType"],
+          },
+        ]
+      : []),
+  ]
+  const sectionDone = (id: string) =>
+    readiness.filter((item) => item.section === id).every((item) => item.done)
+
   return (
     <FormProvider {...form}>
       <CreateFormShell
@@ -102,25 +173,34 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         submittingLabel="Generating blogs..."
         isSubmitting={isSubmitting}
         estimatedCost={cost.total}
-        costNote={
-          <>
-            {values.costCutter && "(-50% off) "}({values.numberOfBlogs || 0} blog
-            {Number(values.numberOfBlogs) === 1 ? "" : "s"})
-          </>
-        }
+        originalCost={originalCostOf(cost)}
+        costNote={`For ${plural(blogCount, "blog")}`}
         costLines={toCostLines(cost)}
-        selectionSummary={
-          values.templates?.length
-            ? `${values.templates.length} template${values.templates.length > 1 ? "s" : ""}`
-            : undefined
-        }
+        readiness={readiness}
+        summaryRows={[
+          { label: "Templates", value: templateCount ? (values.templates ?? []).join(", ") : "—" },
+          { label: "Blogs", value: blogCount },
+          { label: "Topics", value: `${topicCount} added` },
+          { label: "Keywords", value: keywordsSummary({ keywords: values.keywords }, researching) },
+          { label: "Tone · length", value: `${values.tone} · ~${values.userDefinedLength} words` },
+          { label: "Language", value: values.languageToWrite },
+          { label: "Model", value: modelSummary(values.aiModel, values.costCutter) },
+          { label: "Images", value: imagesSummary(values) },
+          { label: "Advanced options", value: `${enabledOptions} enabled` },
+          { label: "Brand voice", value: values.isCheckedBrand ? "On" : "Off" },
+          {
+            label: "Publishing",
+            value: values.options.automaticPosting ? (values.postingDefaultType ?? "On") : "Off",
+          },
+        ]}
       >
         <FormSection
+          id="template"
+          step={1}
           title="Templates"
           description={`Pick up to ${BULK_MAX_TEMPLATES}`}
-          summary={
-            values.templates?.length ? `${values.templates.length} selected` : "Not selected"
-          }
+          summary={templateCount ? `${templateCount} selected` : "Not selected"}
+          complete={templateCount > 0}
           fields={["templates"]}
           defaultOpen
         >
@@ -128,9 +208,13 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
         </FormSection>
 
         <FormSection
+          id="basics"
+          step={2}
           title="Basics"
+          description="Topics, keywords and writing style"
           defaultOpen
-          summary={`${values.topics?.length ?? 0}/${values.numberOfBlogs || 0} topics`}
+          summary={`${topicCount}/${blogCount} topics`}
+          complete={sectionDone("basics")}
           fields={[
             "numberOfBlogs",
             "topics",
@@ -169,7 +253,10 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
             keys={["performKeywordResearch"]}
             onToggle={{ performKeywordResearch: () => clearErrors("keywords") }}
           />
-          {!researching && (
+          <DependentFields
+            enabled={!researching}
+            hint="Keyword research will pick these for you — turn it off to enter your own."
+          >
             <RHFTagsField
               control={control}
               name="keywords"
@@ -180,75 +267,12 @@ export default function BulkBlogForm({ prefill }: CreateFormProps) {
               description="Secondary keywords woven through every blog."
               placeholder="Enter keywords (comma, tab, or newline separated)"
             />
-          )}
+          </DependentFields>
         </FormSection>
 
-        <FormSection
-          title="AI & images"
-          description="Model, cost cutter and image source"
-          summary={`${values.aiModel || "No model"} · ${values.imageSource === "none" ? "Images off" : "Images on"}`}
-          fields={["aiModel", "costCutter", "imageSource", "numberOfImages"]}
-        >
-          <AiModelFields />
-          <ImageSettingsFields />
-        </FormSection>
+        <AiImagesSection step={3} />
 
-        <FormSection
-          title="Advanced options"
-          description="Writing, content and SEO controls"
-          summary={`${
-            [
-              values.options.easyToUnderstand,
-              values.options.humanisation,
-              values.options.extendedThinking,
-              values.options.deepResearch,
-              values.options.includeFaqs,
-              values.options.includeTableOfContents,
-              values.options.embedYouTubeVideos,
-              values.options.includeInterlinks,
-              values.options.addOutBoundLinks,
-              values.options.includeCompetitorResearch,
-            ].filter(Boolean).length
-          } enabled`}
-        >
-          <SubGroup label="Writing style">
-            <ToggleListField
-              keys={["easyToUnderstand", "humanisation", "extendedThinking", "deepResearch"]}
-            />
-          </SubGroup>
-          <SubGroup label="Content">
-            <ToggleListField
-              keys={["includeFaqs", "includeTableOfContents", "embedYouTubeVideos"]}
-            />
-          </SubGroup>
-          <SubGroup label="SEO & research">
-            <ToggleListField
-              keys={["includeInterlinks", "addOutBoundLinks", "includeCompetitorResearch"]}
-            />
-          </SubGroup>
-        </FormSection>
-
-        <FormSection
-          title="Brand voice"
-          description="Apply your saved brand style and assets"
-          summary={values.isCheckedBrand ? "On" : "Off"}
-          fields={["brandId"]}
-        >
-          <BrandVoiceField />
-        </FormSection>
-
-        <FormSection
-          title="Publishing"
-          description="Automatically publish generated blogs"
-          summary={
-            values.options.automaticPosting
-              ? `On · ${values.postingDefaultType ?? "Choose platform"}`
-              : "Off"
-          }
-          fields={["postingDefaultType"]}
-        >
-          <PostingFields />
-        </FormSection>
+        <AdvancedConfigSection step={4} />
       </CreateFormShell>
     </FormProvider>
   )

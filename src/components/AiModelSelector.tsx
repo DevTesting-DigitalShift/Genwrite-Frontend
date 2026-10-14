@@ -75,8 +75,8 @@ const AiModelSelector = ({
                   {model.label}
                 </span>
 
-                {isRestricted && (
-                  <span className="absolute top-2 right-2">
+                {isRestricted ? (
+                  <span className="ml-auto">
                     <span
                       className="tooltip tooltip-left"
                       data-tip={`Upgrade to unlock ${model.label}`}
@@ -84,12 +84,26 @@ const AiModelSelector = ({
                       <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-50" />
                     </span>
                   </span>
+                ) : (
+                  // Radio-style indicator: the cards are a pick-one group.
+                  <span
+                    aria-hidden
+                    className={`ml-auto flex size-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                      isActive ? "border-[#4C5BD6]" : "border-gray-300"
+                    }`}
+                  >
+                    {isActive && <span className="size-2 rounded-full bg-[#4C5BD6]" />}
+                  </span>
                 )}
               </button>
             )
           })}
         </div>
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        {error && (
+          <p role="alert" className="text-red-500 text-xs mt-1">
+            {error}
+          </p>
+        )}
       </div>
 
       {showCostCutter && (

@@ -84,7 +84,11 @@ const ImageSourceSelector = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
         <span className="text-sm font-semibold">Select Image Mode</span>
-        {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
+        {error && (
+          <span role="alert" className="text-xs text-red-500 font-medium">
+            {error}
+          </span>
+        )}
       </div>
 
       <div

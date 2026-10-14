@@ -7,7 +7,8 @@ import { toast } from "sonner"
 import { Input } from "@components/ui/input"
 import { Badge } from "@components/ui/badge"
 import { mergeItems, parseCsvItems, splitItems, validateCsvFile } from "@/forms/shared/listInput"
-import { FieldShell } from "./FieldShell"
+import { cn } from "@/lib/utils"
+import { FieldShell, fieldErrorId } from "./FieldShell"
 
 interface RHFTagsFieldProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>
@@ -147,6 +148,7 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
           reader.readAsText(file)
         }
 
+        const invalid = !!(fieldState.error || localError)
         const visible = maxVisible && !showAll ? tags.slice(0, maxVisible) : tags
         const hidden = tags.length - visible.length
 
@@ -155,11 +157,16 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
             htmlFor={name}
             label={label}
             required={required}
-            description={description}
             error={fieldState.error?.message ?? localError ?? undefined}
             className={className}
           >
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-input bg-transparent p-2">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2 rounded-md border border-input bg-transparent p-2 shadow-sm transition-colors focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15",
+                invalid &&
+                  "border-destructive focus-within:border-destructive focus-within:ring-destructive/20"
+              )}
+            >
               {visible.map((tag) => (
                 <Badge key={tag} variant="secondary" className="gap-1">
                   {tag}
@@ -187,7 +194,8 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
               )}
               <Input
                 id={name}
-                aria-invalid={!!(fieldState.error || localError)}
+                aria-invalid={invalid}
+                aria-describedby={invalid ? fieldErrorId(name) : undefined}
                 value={draft}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   setDraft(e.target.value)
@@ -203,13 +211,19 @@ export function RHFTagsField<TFieldValues extends FieldValues>({
                 className="h-7 flex-1 min-w-24 border-none shadow-none focus-visible:ring-0 px-1"
               />
             </div>
-            {(max !== undefined || csv) && (
-              <div className="flex items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
-                <span>
-                  {max !== undefined ? `${tags.length}/${max}` : ""}
-                  {importedCount ? ` · ${importedCount} imported from CSV` : ""}
-                </span>
-                <span className="flex items-center gap-3">
+            {/* One line under the box: the hint on the left; the count and actions on the right. */}
+            {(description || max !== undefined || csv) && (
+              <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
+                <span className="min-w-0">{!invalid && description}</span>
+                <span className="flex shrink-0 items-center gap-3">
+                  {(max !== undefined || importedCount) && (
+                    <span className="tabular-nums">
+                      {max !== undefined ? `${tags.length}/${max}` : ""}
+                      {importedCount
+                        ? `${max !== undefined ? " · " : ""}${importedCount} imported`
+                        : ""}
+                    </span>
+                  )}
                   {showAll && maxVisible && tags.length > maxVisible && (
                     <button
                       type="button"
