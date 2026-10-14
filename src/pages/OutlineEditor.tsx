@@ -1,9 +1,11 @@
 import { toast } from "sonner"
 import { Plus, Sparkles, X } from "lucide-react"
 import { useCallback, useState } from "react"
+import type { ChangeEvent, ClipboardEvent, KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import type { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import { brandsQuery } from "@api/Brand/Brand.query"
 import ProgressLoadingScreen from "@components/ui/ProgressLoadingScreen"
 import useAuthStore from "@store/useAuthStore"
@@ -15,17 +17,48 @@ import { Helmet } from "react-helmet-async"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { extractKeywordsFromClipboard } from "@utils/copyPasteUtil"
+import { apiErrorMessage } from "@/types/api"
+
+/** The three tag-style lists, each with its own draft-text input in the form. */
+type ListKey = "focusKeywords" | "keywords" | "resources"
+
+const INPUT_KEY = {
+  focusKeywords: "focusKeywordInput",
+  keywords: "keywordInput",
+  resources: "resourceInput",
+} as const satisfies Record<ListKey, string>
+
+interface OutlineFormData {
+  title: string
+  topic: string
+  tone: string
+  focusKeywords: string[]
+  keywords: string[]
+  userDefinedLength: number
+  focusKeywordInput: string
+  keywordInput: string
+  template: string
+  brandId: string | null
+  resources: string[]
+  resourceInput: string
+}
+
+/** Fields the wizard validates; `true` means "show the error". */
+type OutlineErrors = Record<
+  "title" | "topic" | "tone" | "focusKeywords" | "keywords" | "template" | "resources",
+  boolean
+>
 
 const OutlineEditor = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { mutateAsync: createOutline } = generateQuery.useCreateOutline()
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState<any[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<BlogTemplate[]>([])
   const [showAllKeywords, setShowAllKeywords] = useState(false)
   const [isOpen, setIsOpen] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<OutlineFormData>({
     title: "",
     topic: "",
     tone: TONES[0],
@@ -39,7 +72,7 @@ const OutlineEditor = () => {
     resources: [],
     resourceInput: "",
   })
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<OutlineErrors>({
     title: false,
     topic: false,
     tone: false,
@@ -65,7 +98,7 @@ const OutlineEditor = () => {
   }
 
   const handleNext = () => {
-    let newErrors = {}
+    let newErrors: Partial<OutlineErrors> = {}
 
     if (currentStep === 0) {
       if (!selectedTemplate) {
@@ -92,40 +125,33 @@ const OutlineEditor = () => {
     setCurrentStep((prev) => prev + 1)
   }
 
-  const handlePackageSelect = useCallback((temps: any) => {
+  const handlePackageSelect = useCallback((temps: BlogTemplate[]) => {
     setSelectedTemplate(temps)
     setFormData((prev) => ({ ...prev, template: temps?.[0]?.name || "" }))
     setErrors((prev) => ({ ...prev, template: false }))
   }, [])
 
-  const handleInputChange = (e: any, key: any) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    key: "title" | "topic"
+  ) => {
     setFormData((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = (value: any) => {
+  const handleSelectChange = (value: string) => {
     setFormData((prev) => ({ ...prev, tone: value }))
     setErrors((prev) => ({ ...prev, tone: false }))
   }
 
-  const handleKeywordInputChange = (e: any, type: any) => {
-    const key =
-      type === "keywords"
-        ? "keywordInput"
-        : type === "focusKeywords"
-          ? "focusKeywordInput"
-          : "resourceInput"
+  const handleKeywordInputChange = (e: ChangeEvent<HTMLInputElement>, type: ListKey) => {
+    const key = INPUT_KEY[type]
     setFormData((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = (type: any, forcedValue = null) => {
-    const inputKey =
-      type === "keywords"
-        ? "keywordInput"
-        : type === "focusKeywords"
-          ? "focusKeywordInput"
-          : "resourceInput"
+  const handleAddKeyword = (type: ListKey, forcedValue: string[] | null = null) => {
+    const inputKey = INPUT_KEY[type]
     const seen = new Set()
     const rawItems = Array.isArray(forcedValue)
       ? forcedValue
@@ -139,7 +165,7 @@ const OutlineEditor = () => {
       return
     }
 
-    const existingSet = new Set(formData[type].map((k: any) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
     const newItems = items.filter((k) => !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) {
@@ -190,20 +216,23 @@ const OutlineEditor = () => {
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
-  const handleRemoveKeyword = (index: any, type: any) => {
+  const handleRemoveKeyword = (index: number, type: ListKey) => {
     const updatedItems = [...formData[type]]
     updatedItems.splice(index, 1)
     setFormData({ ...formData, [type]: updatedItems })
   }
 
-  const handleKeyPress = (e: any, type: any) => {
+  const handleKeyPress = (e: KeyboardEvent, type: ListKey) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
     }
   }
 
-  const handlePasteKeywords = (event: any, type: any) => {
+  const handlePasteKeywords = (
+    event: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    type: ListKey
+  ) => {
     extractKeywordsFromClipboard(event, {
       type,
       cb: (items) => {
@@ -212,7 +241,7 @@ const OutlineEditor = () => {
     })
   }
 
-  const handleBrandSelect = (brandId: any) => {
+  const handleBrandSelect = (brandId: string) => {
     setFormData((prev) => ({ ...prev, brandId: prev.brandId === brandId ? null : brandId }))
   }
 
@@ -259,7 +288,7 @@ const OutlineEditor = () => {
       setActiveTab("edit") // Default to edit tab
     } catch (err) {
       console.error("Failed to create blog:", err)
-      toast.error(err?.message || "Failed to create outline")
+      toast.error(apiErrorMessage(err, "Failed to create outline"))
     } finally {
       setIsSubmitting(false)
     }
@@ -516,7 +545,7 @@ const OutlineEditor = () => {
                             step={BLOG_CONFIG.LENGTH.STEP}
                             value={[formData.userDefinedLength]}
                             onValueChange={(vals) =>
-                              handleInputChange({ target: { value: vals[0] } }, "userDefinedLength")
+                              setFormData((prev) => ({ ...prev, userDefinedLength: vals[0] }))
                             }
                             className="w-full"
                           />
@@ -540,7 +569,7 @@ const OutlineEditor = () => {
                         {formData.brandId && (
                           <button
                             type="button"
-                            onClick={() => handleBrandSelect(formData.brandId)}
+                            onClick={() => formData.brandId && handleBrandSelect(formData.brandId)}
                             className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
                           >
                             Clear Selection

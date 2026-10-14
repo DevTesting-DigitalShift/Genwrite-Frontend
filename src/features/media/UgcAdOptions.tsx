@@ -82,6 +82,7 @@ export function UgcAdOptions({
             ["multi", "Multi-scene ad", "Hook → demo → wrap-up, each its own shot, stitched"],
           ] as const
         ).map(([id, title, hint]) => (
+          // biome-ignore lint/a11y/useSemanticElements: styled radio card; a native input would lose the card layout
           <button
             key={id}
             type="button"
@@ -108,6 +109,7 @@ export function UgcAdOptions({
                 Scenes · {structureSeconds(settings.structure)}s in total
               </p>
               {settings.structure.map((scene, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: scenes have no id; they are positional and edited by index
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-5 text-xs font-bold text-slate-400">{i + 1}</span>
                   <select

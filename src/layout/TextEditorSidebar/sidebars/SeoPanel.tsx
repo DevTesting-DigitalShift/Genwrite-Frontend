@@ -29,7 +29,7 @@ import { CompetitorsList } from "../FeatureComponents"
  * backend), so accept either. Rendering the object directly crashes React.
  */
 const normalizeCriterion = (
-  data: unknown,
+  data: unknown
 ): { score?: number; maxScore?: number; feedback: string } => {
   if (data && typeof data === "object") {
     const { score, maxScore, feedback } = data as {
@@ -375,6 +375,7 @@ const SeoPanel: React.FC<SeoPanelProps> = ({
                 </div>
                 <ul className="p-2.5 bg-amber-50 rounded-lg border border-amber-100 max-h-64 overflow-y-auto custom-scroll space-y-2 list-disc pl-6">
                   {normalizeSuggestions(analysisResult.insights?.suggestions).map((tip, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static display list of plain strings, duplicates possible
                     <li key={i} className="text-xs text-amber-900 leading-relaxed">
                       {tip}
                     </li>

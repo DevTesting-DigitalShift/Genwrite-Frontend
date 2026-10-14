@@ -19,6 +19,7 @@ import useAuthStore from "@store/useAuthStore"
 import useWorkspaceStore from "@store/useWorkspaceStore"
 import dayjs from "dayjs"
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
+import type { InfiniteData } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
@@ -37,8 +38,73 @@ import {
   SORT_OPTIONS,
 } from "@/data/blogFilters"
 import { toast } from "sonner"
+import type { Blog as BlogCardBlog } from "@components/Blog/BlogCard"
 
 dayjs.extend(isBetween)
+
+interface BlogFilters {
+  start: string
+  end: string
+  q: string
+  status: string
+  sort: string
+  gscClicks: number | null
+  gscImpressions: number | null
+}
+
+type BlogRow = BlogCardBlog
+
+interface BlogPage {
+  data: BlogRow[]
+  page: number
+  totalPages: number
+  hasMore: boolean
+  totalItems: number
+}
+
+/** Pipeline events the server pushes over the socket while blogs generate. */
+interface BlogProgressEvent {
+  blogId?: string
+  taskStatus?: BlogRow["taskStatus"]
+}
+interface BlogStatusEvent {
+  blogId?: string
+  newStatus?: BlogRow["status"]
+}
+interface BlogRetryEvent {
+  blogId?: string
+  retryTime?: string
+}
+
+/** One page of the blog list for the current filters; empty filters are left out of the query. */
+async function fetchBlogPage(
+  filters: BlogFilters,
+  page: number,
+  extra: { isArchived?: boolean } = {}
+): Promise<BlogPage> {
+  const params = Object.fromEntries(
+    Object.entries({
+      ...extra,
+      page,
+      limit: ITEMS_PER_PAGE,
+      q: filters.q,
+      status: filters.status !== BLOG_STATUS.ALL ? filters.status : undefined,
+      sort: filters.sort,
+      start: filters.start,
+      end: filters.end,
+      gscClicks: filters.gscClicks,
+      gscImpressions: filters.gscImpressions,
+    }).filter(([, v]) => v !== undefined && v !== null && v !== "")
+  )
+  const res = await blogsQuery.list(params)
+  return {
+    data: (res?.data ?? []) as BlogRow[],
+    page: res?.page ?? 1,
+    totalPages: res?.totalPages ?? 1,
+    hasMore: res?.hasMore ?? false,
+    totalItems: res?.totalItems ?? 0,
+  }
+}
 
 const BlogsPage = () => {
   const location = useLocation()
@@ -61,7 +127,7 @@ const BlogsPage = () => {
   const { guardWrite, isReadOnlyWorkspace, readOnlyMessage } = useReadOnlyGuard()
   const { handlePopup } = useConfirmPopup()
 
-  const initialBlogFilter = useMemo(
+  const initialBlogFilter = useMemo<BlogFilters>(
     () => ({
       start: DATE_PRESETS[0].range[0].toISOString(),
       end: DATE_PRESETS[0].range[1].toISOString(),
@@ -74,7 +140,7 @@ const BlogsPage = () => {
     []
   )
 
-  const [blogFilters, setBlogFilters] = useState(() => {
+  const [blogFilters, setBlogFilters] = useState<BlogFilters>(() => {
     const item = sessionStorage.getItem(
       `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
@@ -83,12 +149,14 @@ const BlogsPage = () => {
 
   const [_isDetailedFilterOpen, _setDetailedFilterOpen] = useState(false)
 
-  const [tempGscClicks, setTempGscClicks] = useState(blogFilters.gscClicks)
-  const [tempGscImpressions, setTempGscImpressions] = useState(blogFilters.gscImpressions)
+  const [tempGscClicks, setTempGscClicks] = useState<number | null>(blogFilters.gscClicks)
+  const [tempGscImpressions, setTempGscImpressions] = useState<number | null>(
+    blogFilters.gscImpressions
+  )
 
   const updateBlogFilters = useCallback(
-    (updates: any) => {
-      setBlogFilters((prev: any) => {
+    (updates: Partial<BlogFilters>) => {
+      setBlogFilters((prev) => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
           `user_${scopeKey}_blog_filters_${isTrashcan ? "trash" : "active"}`,
@@ -111,12 +179,12 @@ const BlogsPage = () => {
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters((prev: any) => ({ ...prev, ...parsedFilters }))
+      setBlogFilters((prev) => ({ ...prev, ...parsedFilters }))
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
       const isSharedWorkspace = !!activeWorkspace
-      setBlogFilters((prev: any) => ({
+      setBlogFilters((prev) => ({
         ...prev,
         start: getDefaultFilterStart(user, { isSharedWorkspace }),
       }))
@@ -134,30 +202,7 @@ const BlogsPage = () => {
   } = useInfiniteQuery({
     queryKey: ["blogs", scopeKey, blogFilters],
     initialPageParam: 1,
-    queryFn: async ({ pageParam = 1 }) => {
-      let params = {
-        page: pageParam,
-        limit: ITEMS_PER_PAGE,
-        q: blogFilters.q || undefined,
-        status: blogFilters.status !== BLOG_STATUS.ALL ? blogFilters.status : undefined,
-        sort: blogFilters.sort,
-        start: blogFilters.start || undefined,
-        end: blogFilters.end || undefined,
-        gscClicks: blogFilters.gscClicks || undefined,
-        gscImpressions: blogFilters.gscImpressions || undefined,
-      }
-      params = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
-      )
-      const res = await blogsQuery.list(params)
-      return {
-        data: res?.data ?? [],
-        page: res?.page ?? 1,
-        totalPages: res?.totalPages ?? 1,
-        hasMore: res?.hasMore ?? false,
-        totalItems: res?.totalItems ?? 0,
-      }
-    },
+    queryFn: ({ pageParam }) => fetchBlogPage(blogFilters, pageParam),
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
     },
@@ -178,31 +223,7 @@ const BlogsPage = () => {
   } = useInfiniteQuery({
     queryKey: ["trashedBlogs", scopeKey, blogFilters],
     initialPageParam: 1,
-    queryFn: async ({ pageParam = 1 }) => {
-      let params = {
-        isArchived: true,
-        page: pageParam,
-        limit: ITEMS_PER_PAGE,
-        q: blogFilters.q || undefined,
-        status: blogFilters.status !== BLOG_STATUS.ALL ? blogFilters.status : undefined,
-        sort: blogFilters.sort,
-        start: blogFilters.start || undefined,
-        end: blogFilters.end || undefined,
-        gscClicks: blogFilters.gscClicks || undefined,
-        gscImpressions: blogFilters.gscImpressions || undefined,
-      }
-      params = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
-      )
-      const res = await blogsQuery.list(params)
-      return {
-        data: res?.data ?? [],
-        page: res?.page ?? 1,
-        totalPages: res?.totalPages ?? 1,
-        hasMore: res?.hasMore ?? false,
-        totalItems: res?.totalItems ?? 0,
-      }
-    },
+    queryFn: ({ pageParam }) => fetchBlogPage(blogFilters, pageParam, { isArchived: true }),
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined
     },
@@ -258,7 +279,7 @@ const BlogsPage = () => {
 
   const hasActiveFilters = useMemo(() => {
     if (!blogFilters || !initialBlogFilter) return false
-    const isOtherChanged = Object.keys(blogFilters).some((key) => {
+    const isOtherChanged = (Object.keys(blogFilters) as (keyof BlogFilters)[]).some((key) => {
       if (key === "start" || key === "end") return false
       return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
     })
@@ -277,12 +298,7 @@ const BlogsPage = () => {
 
     widenedScopeRef.current = filterScope
     setWidenedScope(filterScope)
-    updateBlogFilters({
-      start: "",
-      end: "",
-      status: BLOG_STATUS.ALL,
-      sort: "createdAt:desc",
-    })
+    updateBlogFilters({ start: "", end: "", status: BLOG_STATUS.ALL, sort: "createdAt:desc" })
     toast.info("No blogs in the default date range — showing all of them instead.")
   }, [
     filterScope,
@@ -301,33 +317,35 @@ const BlogsPage = () => {
 
     const activeQueryKey = isTrashcan ? ["trashedBlogs"] : ["blogs"]
 
-    const patchBlogInCache = (blogId: any, patcher: any) => {
-      if (!blogId) return
-      queryClient.setQueriesData({ queryKey: activeQueryKey }, (oldData) => {
-        if (!oldData?.pages) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((blog: any) => (blog._id === blogId ? patcher(blog) : blog)),
-          })),
+    const patchBlogInCache = (blogId: string, patcher: (blog: BlogRow) => BlogRow) => {
+      queryClient.setQueriesData<InfiniteData<BlogPage>>(
+        { queryKey: activeQueryKey },
+        (oldData) => {
+          if (!oldData?.pages) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              data: page.data.map((blog) => (blog._id === blogId ? patcher(blog) : blog)),
+            })),
+          }
         }
-      })
+      )
     }
 
-    const handleProgressUpdated = ({ blogId, taskStatus } = {}) => {
+    const handleProgressUpdated = ({ blogId, taskStatus }: BlogProgressEvent = {}) => {
       if (blogId && taskStatus) {
-        patchBlogInCache(blogId, (blog: any) => ({ ...blog, taskStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, taskStatus }))
       }
     }
 
-    const handleStatusChange = ({ blogId, newStatus } = {}) => {
+    const handleStatusChange = ({ blogId, newStatus }: BlogStatusEvent = {}) => {
       if (newStatus === "complete" || newStatus === "failed") {
         // Final state — fetch fresh blog data from API (title, excerpt, taskStatus, etc. may have changed)
         queryClient.invalidateQueries({ queryKey: activeQueryKey, refetchType: "active" })
       } else if (blogId && newStatus) {
         // Transitional state (e.g. pending → in-progress) — patch status immediately, skip API round-trip
-        patchBlogInCache(blogId, (blog: any) => ({ ...blog, status: newStatus }))
+        patchBlogInCache(blogId, (blog) => ({ ...blog, status: newStatus }))
       }
     }
 
@@ -341,9 +359,9 @@ const BlogsPage = () => {
       }
     }
 
-    const handleBlogJobRetry = ({ blogId, retryTime } = {}) => {
+    const handleBlogJobRetry = ({ blogId, retryTime }: BlogRetryEvent = {}) => {
       if (!blogId) return
-      patchBlogInCache(blogId, (blog: any) => ({ ...blog, agendaNextRun: retryTime }))
+      patchBlogInCache(blogId, (blog) => ({ ...blog, agendaNextRun: retryTime }))
     }
 
     socket.on("blog:progressUpdated", handleProgressUpdated)
@@ -393,17 +411,20 @@ const BlogsPage = () => {
   const handleArchive = useCallback(
     async (id: any) => {
       // Optimistic UI Update
-      queryClient.setQueryData(["blogs", userId, blogFilters], (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
-            ...page,
-            data: page.data.filter((blog: any) => blog._id !== id),
-            totalItems: Math.max(0, page.totalItems - 1),
-          })),
+      queryClient.setQueryData<InfiniteData<BlogPage>>(
+        ["blogs", userId, blogFilters],
+        (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              data: page.data.filter((blog) => blog._id !== id),
+              totalItems: Math.max(0, page.totalItems - 1),
+            })),
+          }
         }
-      })
+      )
       toast.success("Article archived")
 
       try {
@@ -419,17 +440,20 @@ const BlogsPage = () => {
   const handleRestore = useCallback(
     async (id: any) => {
       // Optimistic UI Update
-      queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
-        if (!oldData) return oldData
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
-            ...page,
-            data: page.data.filter((blog: any) => blog._id !== id),
-            totalItems: Math.max(0, page.totalItems - 1),
-          })),
+      queryClient.setQueryData<InfiniteData<BlogPage>>(
+        ["trashedBlogs", userId, blogFilters],
+        (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              data: page.data.filter((blog) => blog._id !== id),
+              totalItems: Math.max(0, page.totalItems - 1),
+            })),
+          }
         }
-      })
+      )
       toast.success("Article is restored. Check My Projects", {
         action: { label: "View", onClick: () => navigate("/blogs") },
       })
@@ -447,13 +471,16 @@ const BlogsPage = () => {
 
   const handleRestoreAll = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
-      if (!oldData) return oldData
-      return {
-        ...oldData,
-        pages: oldData.pages.map((page: any) => ({ ...page, data: [], totalItems: 0 })),
+    queryClient.setQueryData<InfiniteData<BlogPage>>(
+      ["trashedBlogs", userId, blogFilters],
+      (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
+        }
       }
-    })
+    )
     toast.success("All articles are restored. Check My Projects", {
       action: { label: "View", onClick: () => navigate("/blogs") },
     })
@@ -469,13 +496,16 @@ const BlogsPage = () => {
 
   const handleBulkDelete = useCallback(async () => {
     // Optimistic UI Update
-    queryClient.setQueryData(["trashedBlogs", userId, blogFilters], (oldData) => {
-      if (!oldData) return oldData
-      return {
-        ...oldData,
-        pages: oldData.pages.map((page: any) => ({ ...page, data: [], totalItems: 0 })),
+    queryClient.setQueryData<InfiniteData<BlogPage>>(
+      ["trashedBlogs", userId, blogFilters],
+      (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({ ...page, data: [], totalItems: 0 })),
+        }
       }
-    })
+    )
     toast.success("Trash emptied. Permanent deletion complete.")
 
     try {
@@ -720,11 +750,13 @@ const BlogsPage = () => {
                         : [null, null]
                     }
                     minDate={
-                      !activeWorkspace && user?.createdAt ? dayjs(user.createdAt) : undefined
+                      !activeWorkspace && user?.createdAt
+                        ? dayjs(user.createdAt).toDate()
+                        : undefined
                     }
-                    maxDate={dayjs()}
+                    maxDate={dayjs().toDate()}
                     onChange={(dates) => {
-                      if (dates?.[0]) {
+                      if (dates?.[0] && dates[1]) {
                         updateBlogFilters({
                           start: dates[0].toISOString(),
                           end: dates[1].toISOString(),
@@ -821,7 +853,7 @@ const BlogsPage = () => {
           </motion.div>
         ) : (
           <div>
-            <div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {allBlogs.map((blog) => (
                 <BlogCard
                   key={blog._id}
@@ -831,7 +863,6 @@ const BlogsPage = () => {
                   onRetry={handleRetry}
                   onArchive={isTrashcan ? undefined : handleArchive}
                   onRestore={isTrashcan ? handleRestore : undefined}
-                  handlePopup={handlePopup}
                   hasGSCPermissions={Boolean(user?.gsc?.length)}
                   isTrashcan={isTrashcan}
                 />

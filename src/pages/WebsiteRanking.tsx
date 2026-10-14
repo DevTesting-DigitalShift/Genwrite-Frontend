@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import ConnectedTools from "@components/ConnectedTools"
 import { useCosts } from "@/data/costs"
 
+import { apiErrorMessage } from "@/types/api"
 const Card = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
   <div
     className={`bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden ${className}`}
@@ -45,14 +46,14 @@ const Tag = ({
   color?: string
   className?: string
 }) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     blue: "bg-blue-50/50 text-blue-600 border-blue-100/50",
     cyan: "bg-cyan-50/50 text-cyan-600 border-cyan-100/50",
     orange: "bg-orange-50/50 text-orange-600 border-orange-100/50",
     purple: "bg-purple-50/50 text-purple-600 border-purple-100/50",
     emerald: "bg-emerald-50/50 text-emerald-600 border-emerald-100/50",
   }
-  const colorClass = colorMap[color] || "bg-gray-50/50 text-gray-600 border-gray-100/50"
+  const colorClass = (color && colorMap[color]) || "bg-gray-50/50 text-gray-600 border-gray-100/50"
   return (
     <span
       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${colorClass} ${className}`}
@@ -255,7 +256,7 @@ const WebsiteRanking = () => {
   }
 
   const getLoadingScenario = () => {
-    return isCreatingPrompts || isAnalyzingAdvanced ? "writing" : "analysis"
+    return isCreatingPrompts || isAnalyzingAdvanced ? "generation" : "analysis"
   }
 
   useEffect(() => {
@@ -380,7 +381,7 @@ const WebsiteRanking = () => {
     } catch (err) {
       setWebsiteRankingError("orchestrator", err)
       console.error(err)
-      toast.error(err?.toast || "Audit failed")
+      toast.error(apiErrorMessage(err, "Audit failed"))
     }
   }
 
@@ -394,7 +395,7 @@ const WebsiteRanking = () => {
       setManualStep(1)
       toast.success("Analysis complete!")
     } catch (err) {
-      toast.error(err?.toast || "Analysis failed")
+      toast.error(apiErrorMessage(err, "Analysis failed"))
     }
   }
 
@@ -435,7 +436,7 @@ const WebsiteRanking = () => {
       setManualStep(2)
       toast.success("Keywords generated!")
     } catch (err) {
-      toast.error(err?.toast || "Keyword generation failed")
+      toast.error(apiErrorMessage(err, "Keyword generation failed"))
     }
   }
 
@@ -453,7 +454,7 @@ const WebsiteRanking = () => {
       setManualStep(3)
       toast.success("Rankings checked!")
     } catch (err) {
-      toast.error(err?.toast || "Ranking check failed")
+      toast.error(apiErrorMessage(err, "Ranking check failed"))
     }
   }
 
@@ -468,7 +469,7 @@ const WebsiteRanking = () => {
       toast.success("Report generated!")
     } catch (err) {
       setWebsiteRankingError("advancedComp", err)
-      toast.error(err?.toast || "Report generation failed")
+      toast.error(apiErrorMessage(err, "Report generation failed"))
     }
   }
 
@@ -748,8 +749,11 @@ const WebsiteRanking = () => {
                             {...props}
                           />
                         ),
-                        code: ({ node, inline, ...props }) =>
-                          inline ? (
+                        code: ({ node, className, ...props }) =>
+                          // react-markdown v9 no longer passes `inline`: fenced blocks carry a
+                          // `language-*` class (or span lines), inline code has neither.
+                          !className?.startsWith("language-") &&
+                          !String(props.children ?? "").includes("\n") ? (
                             <code
                               className="bg-gray-100 text-gray-900 px-1.5 py-0.5 rounded-md text-[13px] font-black"
                               {...props}

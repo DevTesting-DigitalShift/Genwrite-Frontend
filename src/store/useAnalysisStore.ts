@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware"
 import type { components } from "@/types/apiSchema"
 
 type CompetitorAnalysisResponse = components["schemas"]["CompetitorAnalysisResponse"]
+export type KeywordIdea = components["schemas"]["KeywordIdea"]
 
 /** Keyword selection carried between the analysis tools and the blog modals. */
 export interface SelectedKeywords {
@@ -18,7 +19,7 @@ export interface SelectedKeywords {
  * setAnalysisResult themselves, same split as useIntegrationStore/useImageStore.
  */
 interface AnalysisState {
-  keywordAnalysis: any[]
+  keywordAnalysis: KeywordIdea[]
   loading: boolean
   /** Keyed by blogId. */
   analysisResult: Record<string, CompetitorAnalysisResponse>
@@ -28,7 +29,7 @@ interface AnalysisState {
 
   setPendingImport: (type: string | null) => void
   setAnalysisResult: (blogId: string, data: CompetitorAnalysisResponse) => void
-  setKeywordAnalysis: (result: any[]) => void
+  setKeywordAnalysis: (result: KeywordIdea[]) => void
   setSelectedKeywords: (selectedKeywords: SelectedKeywords) => void
   clearSelectedKeywords: () => void
   clearKeywordAnalysis: () => void

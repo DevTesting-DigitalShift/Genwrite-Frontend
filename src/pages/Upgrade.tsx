@@ -10,18 +10,20 @@ import { Helmet } from "react-helmet-async"
 import { SkeletonCard } from "@components/ui/SkeletonLoader"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import useAuthStore from "@store/useAuthStore"
+import type { AuthUser } from "@store/useAuthStore"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import type { BillingPeriod } from "@utils/stripeGTMEvents"
 
 interface PricingCardProps {
   plan: any
-  onBuy: (plan: any, credits?: number) => void
-  billingPeriod: string
+  onBuy: (plan: any, credits: number | undefined, billingPeriod: BillingPeriod) => void
+  billingPeriod: BillingPeriod
   userPlan?: string
   userStatus?: string
-  userSubscription?: any
-  user?: any
+  userSubscription?: AuthUser["subscription"] | null
+  user?: AuthUser | null
   currency?: string
 }
 
@@ -65,16 +67,16 @@ const PricingCard = ({
     if (!sub || plan.type === "credit_purchase" || userPlan === "free") return false
 
     if (!sub.renewalDate) {
-      return plan.tier === userPlan.toLowerCase()
+      return plan.tier === userPlan?.toLowerCase()
     }
 
-    if (["active", "trialing"].includes(userStatus)) {
-      const start = new Date(sub.startDate)
+    if (["active", "trialing"].includes(userStatus ?? "")) {
+      const start = new Date(sub.startDate ?? 0)
       const renewal = new Date(sub.renewalDate)
-      const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+      const diffDays = (renewal.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
       const userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
 
-      return plan.tier === userPlan.toLowerCase() && billingPeriod === userBillingPeriod
+      return plan.tier === userPlan?.toLowerCase() && billingPeriod === userBillingPeriod
     }
 
     return false
@@ -131,7 +133,7 @@ const PricingCard = ({
   if (userSubscription?.renewalDate && userSubscription.startDate) {
     const start = new Date(userSubscription.startDate)
     const renewal = new Date(userSubscription.renewalDate)
-    const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+    const diffDays = (renewal.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
     _userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
   }
 
@@ -318,7 +320,7 @@ const PricingCard = ({
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [apiPlans, setApiPlans] = useState<any[]>([])
-  const [billingPeriod, setBillingPeriod] = useState("annual")
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("annual")
   const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, _setShowComparisonTable] = useState(true)
   const [showCreditBlockModal, setShowCreditBlockModal] = useState(false)
@@ -431,7 +433,7 @@ const Upgrade = () => {
           : "Get Started",
         type: "subscription",
         icon: <Zap className="w-8 h-8" />,
-        tier: "basic",
+        tier: "basic" as const,
         featured: false,
         slug: billingPeriod === "annual" ? basicAnnual?.slug : basicMonthly?.slug,
       },
@@ -472,7 +474,7 @@ const Upgrade = () => {
           : "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,
-        tier: "pro",
+        tier: "pro" as const,
         featured: !isProUser && userPlan !== "enterprise",
         slug: billingPeriod === "annual" ? proAnnual?.slug : proMonthly?.slug,
       },
@@ -495,7 +497,7 @@ const Upgrade = () => {
         cta: "Contact Sales",
         type: "subscription",
         icon: <Crown className="w-8 h-8" />,
-        tier: "enterprise",
+        tier: "enterprise" as const,
         featured: isProUser || userPlan === "basic",
         slug: "enterprise",
       },
@@ -522,7 +524,7 @@ const Upgrade = () => {
         cta: "Buy Credits",
         type: "credit_purchase",
         icon: <Coins className="w-8 h-8" />,
-        tier: "credits",
+        tier: "credits" as const,
         featured: false,
         slug: creditsPlan?.slug,
       },
@@ -540,7 +542,11 @@ const Upgrade = () => {
     return null
   }
 
-  const handleBuy = async (plan: any, credits: any, billingPeriod: any) => {
+  const handleBuy = async (
+    plan: any,
+    credits: number | undefined,
+    billingPeriod: BillingPeriod
+  ) => {
     // Check if user's email is verified before allowing purchase
     if (user?.emailVerified === false) {
       toast.warning("Please verify your email before purchasing a plan.")
@@ -588,7 +594,7 @@ const Upgrade = () => {
       const data = await createCheckoutSession(payload)
 
       if ("url" in data) {
-        sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+        sendStripeGTMEvent(plan, credits ?? 0, billingPeriod, user?._id)
         window.location.href = data.url
         return
       }
@@ -655,7 +661,7 @@ const Upgrade = () => {
     )
   }
 
-  const _totalCredits = user?.credits?.base + user?.credits?.extra
+  const _totalCredits = (user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)
   const _showTrialMessage = !user?.subscription?.trialOpted
 
   return (
@@ -702,7 +708,7 @@ const Upgrade = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-8">
           <div className="flex justify-center px-4">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
-              {["monthly", "annual"].map((period) => (
+              {(["monthly", "annual"] as const).map((period) => (
                 <button
                   type="button"
                   key={period}
@@ -782,7 +788,7 @@ const Upgrade = () => {
               transition={{ duration: 0.3 }}
               className="mt-12 sm:mt-16 lg:mt-20"
             >
-              <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
+              <ComparisonTable plans={plans} />
             </motion.div>
           )}
         </AnimatePresence>

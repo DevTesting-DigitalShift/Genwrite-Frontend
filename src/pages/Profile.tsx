@@ -28,6 +28,7 @@ import PasswordModal from "@components/PasswordModal"
 import { toast } from "sonner"
 import { Switch } from "@components/ui/switch"
 
+import type { ApiRequestBody, ApiResponse } from "@/types/apiHelpers"
 const INTEREST_OPTIONS = [
   { value: "technology", label: "Technology" },
   { value: "sports", label: "Sports" },
@@ -36,7 +37,7 @@ const INTEREST_OPTIONS = [
   { value: "other", label: "Other" },
 ]
 
-const SUBSCRIPTION_STATUS_CONFIG = {
+const SUBSCRIPTION_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-green-500 text-white" },
   trialing: { label: "Trial", className: "bg-blue-500 text-white" },
   unpaid: { label: "Unpaid", className: "bg-rose-500 text-white" },
@@ -44,12 +45,30 @@ const SUBSCRIPTION_STATUS_CONFIG = {
   past_due: { label: "Past Due", className: "bg-amber-500 text-white" },
 }
 
+interface ProfileData {
+  profilePicture: string
+  personalDetails: {
+    name: string
+    email: string
+    phone: string
+    bio: string
+    jobTitle: string
+    company: string
+    dob: string
+    interests: string[]
+  }
+  subscription: { plan: string; status: string }
+  emailVerified: boolean
+}
+
+type ProfileChanges = ApiRequestBody<"/user/profile", "put">
+
 const Profile = () => {
   const navigate = useNavigate()
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { mutateAsync: updateProfileMutate } = userQuery.useUpdateProfile()
 
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<ProfileData>({
     profilePicture: "",
     personalDetails: {
       name: "",
@@ -64,7 +83,7 @@ const Profile = () => {
     subscription: { plan: "free", status: "active" },
     emailVerified: false,
   })
-  const [initialProfileData, setInitialProfileData] = useState<any>(null)
+  const [initialProfileData, setInitialProfileData] = useState<ProfileData | null>(null)
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
   const [referralStats, setReferralStats] = useState({ totalJoined: 0, converted: 0 })
   const [referralCode, setReferralCode] = useState("")
@@ -73,7 +92,10 @@ const Profile = () => {
     newFeatureUpdates: false,
     accountAlerts: false,
   })
-  const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null)
+  const [subscriptionDetails, setSubscriptionDetails] = useState<ApiResponse<
+    "/user/sub-status",
+    "get"
+  > | null>(null)
 
   useEffect(() => {
     loadAuthenticatedUser()
@@ -125,7 +147,7 @@ const Profile = () => {
 
   const handleSave = async () => {
     if (!initialProfileData) return
-    const changes = {}
+    const changes: ProfileChanges = {}
     if (profileData.profilePicture !== initialProfileData.profilePicture)
       changes.avatar = profileData.profilePicture
     const pd = profileData.personalDetails,
@@ -168,7 +190,7 @@ const Profile = () => {
     }
   }
 
-  const toggleInterest = (val: any) => {
+  const toggleInterest = (val: string) => {
     setProfileData((prev) => {
       const current = prev.personalDetails.interests
       const updated = current.includes(val) ? current.filter((i) => i !== val) : [...current, val]

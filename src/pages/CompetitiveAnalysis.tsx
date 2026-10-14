@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import DOMPurify from "dompurify"
+import type { Schema } from "@/types/apiHelpers"
 import {
   Activity,
   ExternalLink,
@@ -42,9 +43,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+type BlogDetail = NonNullable<Awaited<ReturnType<typeof blogsQuery.get>>>
+type CompetitorContent = Schema<"CompetitorContent">
+type AnalysisResult = Schema<"CompetitorAnalysisResponse">
+
+/**
+ * What the blog's `generatedMetadata` carries for this page. The API schema types the field as
+ * `unknown`, so this is the shape the generator actually writes.
+ */
+interface GeneratedMetadata {
+  competitors?: CompetitorContent[]
+  competitorsAnalysis?: AnalysisResult["insights"]
+  outboundLinks?: unknown[]
+  internalLinks?: unknown[]
+}
+
+interface AnalysisFormData {
+  title: string
+  content: string
+  keywords: string[]
+  focusKeywords: string[]
+  contentType: string
+  selectedProject: BlogDetail | null
+  generatedMetadata: GeneratedMetadata | null
+}
+
+/** Insight suggestions are a list; older saved analyses stored one numbered string instead. */
+const toSuggestionList = (suggestions: string[] | string | undefined): string[] =>
+  Array.isArray(suggestions) ? suggestions : (suggestions?.split(/(?:\d+\.\s)/) ?? [])
+
 const CompetitiveAnalysis = () => {
   const location = useLocation()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AnalysisFormData>({
     title: "",
     content: location.state?.transferValue || "",
     keywords: [],
@@ -53,8 +83,8 @@ const CompetitiveAnalysis = () => {
     selectedProject: null,
     generatedMetadata: null,
   })
-  const [analysisResults, setAnalysisResults] = useState<any>(null)
-  const [id, setId] = useState<any>(null)
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null)
+  const [id, setId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("results")
 
@@ -67,13 +97,14 @@ const CompetitiveAnalysis = () => {
   const { mutateAsync: runCompetitiveAnalysis, isPending: analysisLoading } =
     analysisQuery.useCompetitiveAnalysis()
 
-  const analysis = analysisResult?.[formData?.selectedProject?._id]
+  const selectedBlogId = formData.selectedProject?._id
+  const analysis = selectedBlogId ? analysisResult?.[selectedBlogId] : undefined
 
   const { data: allBlogsData } = blogsQuery.useAllBlogs()
-  const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
+  const blogs = allBlogsData ?? []
 
   // --- 1. Utilities ---
-  const cleanMarkdown = (text: any) => {
+  const cleanMarkdown = (text?: string | null) => {
     if (!text) return ""
     return text
       .replace(/#{1,3}\s/g, "")
@@ -82,12 +113,12 @@ const CompetitiveAnalysis = () => {
       .trim()
   }
 
-  const parseSummary = (text: any) => {
+  const parseSummary = (text?: string | null) => {
     if (!text) return []
     return cleanMarkdown(text)
       .split("\n")
-      .filter((line: any) => line.trim() !== "")
-      .map((line: any) => (
+      .filter((line) => line.trim() !== "")
+      .map((line) => (
         <p key={line} className="mb-2 text-sm leading-relaxed">
           <span
             // biome-ignore lint/security/noDangerouslySetInnerHtml: value is passed through DOMPurify.sanitize on the same expression
@@ -105,8 +136,8 @@ const CompetitiveAnalysis = () => {
   const mergedCompetitors = useMemo(() => {
     const blogCompetitors = formData?.generatedMetadata?.competitors || []
     const analysisCompetitors = analysisResults?.competitors || []
-    const uniqueCompetitors = []
-    const seenUrls = new Set()
+    const uniqueCompetitors: CompetitorContent[] = []
+    const seenUrls = new Set<string>()
 
     ;[...blogCompetitors, ...analysisCompetitors].forEach((competitor) => {
       const url = competitor.url || competitor.link
@@ -125,10 +156,11 @@ const CompetitiveAnalysis = () => {
 
   const hasAnalysisResults = !!analysisResults
   const hasCompetitors = mergedCompetitors.length > 0
-  const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
+  const initialAnalysis = formData.generatedMetadata?.competitorsAnalysis
+  const hasInitialAnalysis = !!initialAnalysis
   const hasLinks =
-    formData.generatedMetadata?.outboundLinks?.length > 0 ||
-    formData.generatedMetadata?.internalLinks?.length > 0
+    !!formData.generatedMetadata?.outboundLinks?.length ||
+    !!formData.generatedMetadata?.internalLinks?.length
   const hasAnyData = hasCompetitors || hasAnalysisResults || hasInitialAnalysis || hasLinks
 
   // --- 3. Effects ---
@@ -141,18 +173,20 @@ const CompetitiveAnalysis = () => {
   useEffect(() => {
     if (id) {
       setIsLoading(true)
-      blogsQuery.get(id)
+      blogsQuery
+        .get(id)
         .then((response) => {
           if (response?._id) {
             setFormData((prev) => ({
               ...prev,
-              title: response.title,
+              title: response.title ?? "",
               content: response.content || "",
               keywords: response.keywords || [],
               focusKeywords: response.focusKeywords || [],
               selectedProject: response,
               contentType: "markdown",
-              generatedMetadata: response.generatedMetadata || null,
+              generatedMetadata:
+                (response.generatedMetadata as GeneratedMetadata | undefined) ?? null,
             }))
           }
         })
@@ -166,8 +200,8 @@ const CompetitiveAnalysis = () => {
 
   useEffect(() => {
     const hasAudit =
-      formData.generatedMetadata?.outboundLinks?.length > 0 ||
-      formData.generatedMetadata?.internalLinks?.length > 0
+      !!formData.generatedMetadata?.outboundLinks?.length ||
+      !!formData.generatedMetadata?.internalLinks?.length
 
     if (hasAnalysisResults) {
       setActiveTab("results")
@@ -178,16 +212,11 @@ const CompetitiveAnalysis = () => {
     } else if (hasAudit) {
       setActiveTab("links")
     }
-  }, [
-    formData?.generatedMetadata, 
-    hasAnalysisResults, 
-    hasInitialAnalysis, 
-    hasCompetitors
-  ])
+  }, [formData?.generatedMetadata, hasAnalysisResults, hasInitialAnalysis, hasCompetitors])
 
   // --- 4. Handlers ---
   const handleProjectSelect = (value: any) => {
-    const foundProject = blogs?.find((p: any) => p._id === value)
+    const foundProject = blogs.find((p) => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
       setAnalysisResults(null)
@@ -196,6 +225,11 @@ const CompetitiveAnalysis = () => {
 
   const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.content.trim()) return
+    // The analysis is stored per blog, so one must be picked.
+    if (!selectedBlogId) {
+      toast.error("Select a blog to analyze first.")
+      return
+    }
 
     if (formData.content.length < 500) {
       toast.error("Your content is too short (min 500 characters) for accurate analysis.")
@@ -233,9 +267,9 @@ const CompetitiveAnalysis = () => {
         content: formData.content,
         keywords: [...new Set([...formData.keywords, ...formData.focusKeywords])],
         contentType: formData.contentType,
-        blogId: formData?.selectedProject?._id,
+        blogId: selectedBlogId,
       })
-      setAnalysisResult(formData?.selectedProject?._id, result)
+      if (selectedBlogId) setAnalysisResult(selectedBlogId, result)
       setAnalysisResults(result)
     } catch (err) {
       console.error("Error fetching analysis:", err)
@@ -393,7 +427,7 @@ const CompetitiveAnalysis = () => {
     )
   }
 
-  const renderAnalysisBreakdown = (analysisData: any) => {
+  const renderAnalysisBreakdown = (analysisData: AnalysisResult["insights"] | null | undefined) => {
     if (!analysisData?.analysis) return null
     return (
       <Accordion type="single" collapsible className="w-full space-y-2">
@@ -634,12 +668,9 @@ const CompetitiveAnalysis = () => {
                                 Strategic Recommendations
                               </h3>
                               <div className="space-y-3">
-                                {(Array.isArray(analysisResults.insights?.suggestions)
-                                  ? analysisResults.insights.suggestions
-                                  : analysisResults.insights?.suggestions?.split?.(/(?:\d+\.\s)/)
-                                )
-                                  ?.filter(Boolean)
-                                  .map((s: any, idx: any) => (
+                                {toSuggestionList(analysisResults.insights?.suggestions)
+                                  .filter(Boolean)
+                                  .map((s, idx) => (
                                     <div
                                       key={s}
                                       className="flex gap-3 text-sm text-slate-600 leading-relaxed items-start p-3 bg-white rounded-xl border border-slate-100"
@@ -680,7 +711,7 @@ const CompetitiveAnalysis = () => {
                     </TabsContent>
 
                     <TabsContent value="initial-analysis" className="mt-0">
-                      {hasInitialAnalysis && (
+                      {initialAnalysis && (
                         <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
@@ -692,16 +723,9 @@ const CompetitiveAnalysis = () => {
                               Pre-Generation Insights
                             </div>
                             <ul className="space-y-3">
-                              {(Array.isArray(
-                                formData.generatedMetadata.competitorsAnalysis?.suggestions
-                              )
-                                ? formData.generatedMetadata.competitorsAnalysis.suggestions
-                                : formData.generatedMetadata.competitorsAnalysis.suggestions?.split?.(
-                                    /(?:\d+\.\s)/
-                                  )
-                              )
-                                ?.filter(Boolean)
-                                .map((s: any) => (
+                              {toSuggestionList(initialAnalysis.suggestions)
+                                .filter(Boolean)
+                                .map((s) => (
                                   <li
                                     key={s}
                                     className="text-sm leading-relaxed pl-4 border-l-2 border-amber-300"
@@ -718,7 +742,7 @@ const CompetitiveAnalysis = () => {
                                 ))}
                             </ul>
                           </div>
-                          {renderAnalysisBreakdown(formData.generatedMetadata.competitorsAnalysis)}
+                          {renderAnalysisBreakdown(initialAnalysis)}
                         </motion.div>
                       )}
                     </TabsContent>

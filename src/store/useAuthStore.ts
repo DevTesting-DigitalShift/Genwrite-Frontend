@@ -54,6 +54,14 @@ export interface AuthUser {
   [key: string]: any
 }
 
+/** What a successful email login/signup resolves with. */
+export interface AuthResult {
+  user: AuthUser
+  token: string
+}
+
+type GoogleLoginResult = Awaited<ReturnType<typeof authQuery.loginWithGoogle>>
+
 interface AuthState {
   user: AuthUser | null
   token: string | null
@@ -72,15 +80,19 @@ interface AuthState {
   addNotification: (notification: unknown) => void
   updateUserPartial: (updates: Partial<AuthUser>) => void
 
-  loginUser: (args: { email: string; password: string; captchaToken?: string }) => Promise<unknown>
+  loginUser: (args: {
+    email: string
+    password: string
+    captchaToken?: string
+  }) => Promise<AuthResult>
   signupUser: (args: {
     email: string
     password: string
     name: string
     captchaToken?: string
     referralId?: string
-  }) => Promise<unknown>
-  googleLogin: (args: { access_token: string; referralId?: string }) => Promise<unknown>
+  }) => Promise<AuthResult>
+  googleLogin: (args: { access_token: string; referralId?: string }) => Promise<GoogleLoginResult>
   loadAuthenticatedUser: () => Promise<unknown>
   switchAccount: (userId: string) => Promise<{ user: AuthUser; token: string }>
   logoutUser: () => Promise<unknown>

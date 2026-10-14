@@ -44,6 +44,8 @@ import {
   getSortedRowModel,
   flexRender,
 } from "@tanstack/react-table"
+import type { ColumnDef, Row, RowSelectionState, SortingState } from "@tanstack/react-table"
+import type { KeywordIdea } from "@store/useAnalysisStore"
 import ExcelJS from "exceljs"
 import clsx from "clsx"
 import dayjs from "dayjs"
@@ -55,15 +57,15 @@ const KEYWORD_LIMIT = 20
 const KeywordResearch = () => {
   const location = useLocation()
   const [newKeyword, setNewKeyword] = useState("")
-  const [keywords, setKeywords] = useState(() => {
-    const initial = location.state?.transferValue || ""
+  const [keywords, setKeywords] = useState<string[]>(() => {
+    const initial: string = location.state?.transferValue || ""
     if (!initial) return []
 
     return [
       ...new Set(
         initial
           .split(/[,\t\n\r;]+/)
-          .map((k: any) => k.trim())
+          .map((k) => k.trim())
           .filter(Boolean)
       ),
     ].slice(0, KEYWORD_LIMIT)
@@ -71,8 +73,8 @@ const KeywordResearch = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [autoSelectVisible, setAutoSelectVisible] = useState(false)
-  const [sorting, setSorting] = useState<any[]>([])
-  const [rowSelection, setRowSelection] = useState<any>({})
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const navigate = useNavigate()
 
@@ -84,9 +86,9 @@ const KeywordResearch = () => {
     setSelectedKeywords,
   } = useAnalysisStore()
 
-  const { mutate: analyzeKeywordsMutate, isPending: analyzing } = analysisQuery.useAnalyzeKeywords(
-    { onSuccess: (data) => setKeywordAnalysis(data as any) }
-  )
+  const { mutate: analyzeKeywordsMutate, isPending: analyzing } = analysisQuery.useAnalyzeKeywords({
+    onSuccess: (data) => setKeywordAnalysis(data as any),
+  })
 
   const REAL_PAGE_SIZE = 10
 
@@ -98,14 +100,14 @@ const KeywordResearch = () => {
   }, [keywords, clearKeywordAnalysis])
 
   useEffect(() => {
-    const initial = location.state?.transferValue || ""
+    const initial: string = location.state?.transferValue || ""
     if (!initial) return
 
     const parsedKeywords = [
       ...new Set(
         initial
           .split(/[,\t\n\r;]+/)
-          .map((k: any) => k.trim())
+          .map((k) => k.trim())
           .filter(Boolean)
       ),
     ]
@@ -114,8 +116,8 @@ const KeywordResearch = () => {
     }
   }, [location.state?.transferValue])
 
-  const mergeKeywordsWithLimit = (incomingKeywords: any) => {
-    const seen = new Set()
+  const mergeKeywordsWithLimit = (incomingKeywords: string[]) => {
+    const seen = new Set<string>()
     const mergedKeywords = [...keywords, ...incomingKeywords].filter((keyword) => {
       const normalizedKeyword = keyword.toLowerCase()
       if (!keyword || seen.has(normalizedKeyword)) return false
@@ -131,12 +133,12 @@ const KeywordResearch = () => {
     return mergedKeywords
   }
 
-  const addKeyword = (forcedValue: any) => {
+  const addKeyword = (forcedValue?: unknown) => {
     const input = typeof forcedValue === "string" ? forcedValue.trim() : newKeyword.trim()
     if (!input) return
 
     const existing = keywords.map((k) => k.toLowerCase())
-    const seen = new Set()
+    const seen = new Set<string>()
 
     const newKeywords = input
       .split(/[,\t\n\r;]+/)
@@ -200,7 +202,10 @@ const KeywordResearch = () => {
   }
 
   const getAutoSelectedKeywords = () => {
-    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
+    const byCompetition: Record<
+      KeywordIdea["competition"],
+      Pick<KeywordIdea, "keyword" | "competition_index">[]
+    > = { LOW: [], MEDIUM: [], HIGH: [] }
     keywordAnalysisResult?.forEach((kw) => {
       if (byCompetition[kw.competition]) {
         byCompetition[kw.competition].push({
@@ -289,20 +294,12 @@ const KeywordResearch = () => {
     if (type === "blog") {
       navigate(createFormPath("advanced"), {
         state: {
-          prefill: {
-            focusKeywords: finalKeywords.slice(0, 3),
-            keywords: finalKeywords.slice(3),
-          },
+          prefill: { focusKeywords: finalKeywords.slice(0, 3), keywords: finalKeywords.slice(3) },
         },
       })
     } else {
       navigate(createFormPath("job"), {
-        state: {
-          prefill: {
-            topics: finalKeywords,
-            keywords: finalKeywords,
-          },
-        },
+        state: { prefill: { topics: finalKeywords, keywords: finalKeywords } },
       })
     }
   }
@@ -329,7 +326,7 @@ const KeywordResearch = () => {
     [keywordAnalysisResult]
   )
 
-  const columns = useMemo(
+  const columns = useMemo<ColumnDef<KeywordIdea>[]>(
     () => [
       {
         id: "select",
@@ -340,8 +337,8 @@ const KeywordResearch = () => {
             (currentPage - 1) * REAL_PAGE_SIZE,
             currentPage * REAL_PAGE_SIZE
           )
-          const pageKeywords = pageRows.map((r: any) => r.id)
-          const selectedOnPage = pageKeywords.filter((k: any) => stateSelection[k])
+          const pageKeywords = pageRows.map((r) => r.id)
+          const selectedOnPage = pageKeywords.filter((k) => stateSelection[k])
           const isAllPageSelected =
             pageKeywords.length > 0 && selectedOnPage.length === pageKeywords.length
           const isSomePageSelected =
@@ -354,7 +351,7 @@ const KeywordResearch = () => {
                 if (value) {
                   // Select only current page keywords
                   const nextSelection = { ...stateSelection }
-                  pageKeywords.forEach((k: any) => {
+                  pageKeywords.forEach((k) => {
                     nextSelection[k] = true
                   })
                   table.setRowSelection(nextSelection)
@@ -378,8 +375,8 @@ const KeywordResearch = () => {
       {
         accessorKey: "competition",
         header: "Difficulty",
-        sortingFn: (rowA: any, rowB: any, columnId: any) => {
-          const order = { low: 1, medium: 2, high: 3, hard: 3 }
+        sortingFn: (rowA: Row<KeywordIdea>, rowB: Row<KeywordIdea>, columnId: string) => {
+          const order: Record<string, number> = { low: 1, medium: 2, high: 3, hard: 3 }
           const valA = order[String(rowA.getValue(columnId)).toLowerCase()] || 0
           const valB = order[String(rowB.getValue(columnId)).toLowerCase()] || 0
           return valA - valB
@@ -400,7 +397,7 @@ const KeywordResearch = () => {
 
   // Sync rowSelection state from store when store changes
   useEffect(() => {
-    const selection = {}
+    const selection: RowSelectionState = {}
     const allSelected = selectedKeywords?.allKeywords || []
     allSelected.forEach((kw) => {
       selection[kw] = true
@@ -538,7 +535,7 @@ const KeywordResearch = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-wrap gap-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100"
               >
-                {keywords.map((keyword) => (
+                {keywords.map((keyword, index) => (
                   <motion.div
                     key={keyword}
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -660,35 +657,35 @@ const KeywordResearch = () => {
                             <TableCell key={cell.id} className="py-3.5">
                               {cell.column.id === "keyword" ? (
                                 <span className="font-bold text-slate-900 capitalize">
-                                  {cell.getValue()}
+                                  {cell.getValue<string>()}
                                 </span>
                               ) : cell.column.id === "avgMonthlySearches" ? (
                                 <span className="text-slate-600 font-medium tabular-nums">
-                                  {new Intl.NumberFormat().format(cell.getValue())}
+                                  {new Intl.NumberFormat().format(cell.getValue<number>())}
                                 </span>
                               ) : cell.column.id === "competition" ? (
                                 <Badge
                                   className={clsx(
                                     "shadow-none font-bold rounded-lg px-2.5 py-0.5 border-none",
-                                    cell.getValue() === "LOW"
+                                    cell.getValue<string>() === "LOW"
                                       ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                                      : cell.getValue() === "MEDIUM"
+                                      : cell.getValue<string>() === "MEDIUM"
                                         ? "bg-amber-100 text-amber-700 hover:bg-amber-100"
                                         : "bg-rose-100 text-rose-700 hover:bg-rose-100"
                                   )}
                                 >
-                                  {cell.getValue()}
+                                  {cell.getValue<string>()}
                                 </Badge>
                               ) : cell.column.id === "competition_index" ? (
                                 <div className="text-right font-bold text-slate-400 tabular-nums pr-8">
-                                  {cell.getValue() || "-"}
+                                  {cell.getValue<number>() || "-"}
                                 </div>
                               ) : cell.column.id === "lowBid" || cell.column.id === "highBid" ? (
                                 <span className="text-slate-600 font-bold tabular-nums">
                                   {cell.getValue() ? (
                                     <>
                                       <span className="text-slate-400 text-[10px] mr-0.5">$</span>
-                                      {cell.getValue().toFixed(2)}
+                                      {cell.getValue<number>().toFixed(2)}
                                     </>
                                   ) : (
                                     "—"

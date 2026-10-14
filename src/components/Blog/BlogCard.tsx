@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import dayjs from "dayjs"
+import type { ApiResponse } from "@/types/apiHelpers"
 import {
   ALL_PIPELINE_STEPS,
   NON_CRITICAL_TASKS,
@@ -28,22 +29,8 @@ interface TaskStatus {
   [key: string]: string | undefined
 }
 
-interface Blog {
-  _id: string
-  title: string
-  status: "complete" | "pending" | "failed" | "in-progress"
-  createdAt: string
-  updatedAt: string
-  shortContent: string
-  focusKeywords: string[]
-  aiModel: string
-  aiModelVer?: string
-  agendaNextRun?: string
-  isManuallyEdited?: boolean
-  isArchived: boolean
-  archiveDate: string
-  gscClicks: number
-  gscImpressions: number
+/** One row of `GET /blogs`, with the pipeline `taskStatus` (typed `unknown` in the schema) narrowed. */
+export type Blog = Omit<ApiResponse<"/blogs", "get">["data"][number], "taskStatus"> & {
   taskStatus?: TaskStatus
 }
 
@@ -465,9 +452,9 @@ const BlogCard: React.FC<BlogCardProps> = ({
                   {tag}
                 </span>
               ))}
-              {focusKeywords?.length > 5 && (
+              {(focusKeywords?.length ?? 0) > 5 && (
                 <span className="text-xs font-bold text-slate-400 flex items-center">
-                  +{focusKeywords.length - 5}
+                  +{(focusKeywords?.length ?? 0) - 5}
                 </span>
               )}
             </div>
@@ -478,7 +465,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                 <Calendar size={12} strokeWidth={2.5} />
-                {new Date(initialBlog.createdAt).toLocaleDateString("en-US", {
+                {new Date(initialBlog.createdAt ?? Date.now()).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",

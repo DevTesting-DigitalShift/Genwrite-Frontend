@@ -4,7 +4,7 @@ import { Check, X } from "lucide-react"
 import { motion } from "framer-motion"
 
 /** A pricing tier key used across the comparison grid. */
-type PlanTier = "basic" | "pro" | "enterprise"
+export type PlanTier = "basic" | "pro" | "enterprise" | "credits"
 
 interface ComparisonPlan {
   name: string
@@ -14,8 +14,21 @@ interface ComparisonPlan {
   extraSeatsAnnual?: number
 }
 
+interface Feature {
+  name: string
+  available: string[]
+  /** Per-tier wording shown instead of a tick, e.g. "5 Jobs". */
+  details?: Partial<Record<PlanTier, string>>
+}
+
+interface FeatureCategory {
+  index: number
+  name: string
+  features: Feature[]
+}
+
 const ComparisonTable = ({ plans }: { plans: ComparisonPlan[] }) => {
-  const featureCategories = [
+  const featureCategories: FeatureCategory[] = [
     {
       index: 1,
       name: "Blog Creation",

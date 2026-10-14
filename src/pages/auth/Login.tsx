@@ -31,15 +31,29 @@ import { toast } from "sonner"
 import { getFriendlyError } from "@utils/friendlyError"
 import { consumePostAuthRedirect } from "@utils/postAuthRedirect"
 
+interface AuthFields {
+  email: string
+  password: string
+  name: string
+  referralId: string
+}
+
+/** Inline message per field; `terms` and `recaptcha` are checkboxes outside `AuthFields`. */
+type AuthErrors = Partial<
+  Record<keyof Omit<AuthFields, "referralId"> | "terms" | "recaptcha", string>
+>
+
+const EMPTY_FIELDS: AuthFields = { email: "", password: "", name: "", referralId: "" }
+
 const Auth = ({ path }: { path?: string }) => {
-  const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
-  const [errors, setErrors] = useState<any>({})
+  const [formData, setFormData] = useState<AuthFields>(EMPTY_FIELDS)
+  const [errors, setErrors] = useState<AuthErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [recaptchaValue, setRecaptchaValue] = useState<any>(null)
-  const recaptchaRef = useRef<any>(null)
+  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
@@ -51,7 +65,7 @@ const Auth = ({ path }: { path?: string }) => {
 
   // Validate form fields
   const validateForm = useCallback(() => {
-    const newErrors = {}
+    const newErrors: AuthErrors = {}
 
     // Name validation (signup only)
     if (isSignup && !formData.name.trim()) {
@@ -94,33 +108,29 @@ const Auth = ({ path }: { path?: string }) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear specific error when user starts typing
-    setErrors((prev: any) => ({ ...prev, [name]: undefined }))
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
   }, [])
 
   // Handle terms checkbox
   const handleTermsChange = useCallback(() => {
     setTermsAccepted((prev) => !prev)
-    setErrors((prev: any) => ({ ...prev, terms: undefined }))
+    setErrors((prev) => ({ ...prev, terms: undefined }))
   }, [])
 
-  const onRecaptchaChange = (value: any) => {
+  const onRecaptchaChange = (value: string | null) => {
     setRecaptchaValue(value)
-    setErrors((prev: any) => ({ ...prev, recaptcha: undefined }))
+    setErrors((prev) => ({ ...prev, recaptcha: undefined }))
   }
 
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
-    redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async (tokenResponse) => {
-      googleLogin({
-        access_token: tokenResponse.access_token,
-        referralId: formData.referralId,
-      })
+      googleLogin({ access_token: tokenResponse.access_token, referralId: formData.referralId })
         .then((data) => {
           // Only greet on signup — a returning user landing on the dashboard is confirmation enough.
           if (isSignup) toast.success("Welcome to GenWrite!")
 
-          const user = data.user || data?.data?.user || data
+          const { user } = data
 
           if (isAddingAccount && user?._id) {
             switchToAccount(user._id, {
@@ -173,13 +183,13 @@ const Auth = ({ path }: { path?: string }) => {
               email: formData.email,
               password: formData.password,
               name: formData.name,
-              captchaToken: recaptchaValue,
+              captchaToken: recaptchaValue ?? undefined,
               referralId: formData.referralId,
             })
           : loginUser({
               email: formData.email,
               password: formData.password,
-              captchaToken: recaptchaValue,
+              captchaToken: recaptchaValue ?? undefined,
             })
 
         const { user } = await authPromise
@@ -234,7 +244,7 @@ const Auth = ({ path }: { path?: string }) => {
   // Update isSignup based on path
   useEffect(() => {
     setIsSignup(path === "signup")
-    setFormData({ email: "", password: "", name: "" })
+    setFormData(EMPTY_FIELDS)
     setErrors({})
     setTermsAccepted(false)
     setRecaptchaValue(null)
@@ -391,7 +401,10 @@ const Auth = ({ path }: { path?: string }) => {
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                     {trialFeatures.map((feature) => (
-                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
+                      <div
+                        key={feature.text}
+                        className="flex items-center gap-3 text-sm text-white/90"
+                      >
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -427,7 +440,10 @@ const Auth = ({ path }: { path?: string }) => {
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                     {trialFeatures.map((feature) => (
-                      <div key={feature.text} className="flex items-center gap-3 text-sm text-white/90">
+                      <div
+                        key={feature.text}
+                        className="flex items-center gap-3 text-sm text-white/90"
+                      >
                         <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </div>
@@ -534,7 +550,7 @@ const Auth = ({ path }: { path?: string }) => {
               {/* Google Button */}
               <button
                 type="button"
-                onClick={handleGoogleLogin}
+                onClick={() => handleGoogleLogin()}
                 disabled={loading || atSessionLimit}
                 className="btn btn-block h-14 w-full bg-white hover:bg-gray-50 border border-gray-300  font-bold rounded-lg text-base normal-case flex items-center justify-center shadow-sm hover:shadow-md hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >

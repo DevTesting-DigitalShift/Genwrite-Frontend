@@ -111,12 +111,9 @@ const Dashboard = () => {
     enabled: !!user,
   })
 
-  // Fix: Handle API response structure { data: [...] }
-  const blogsArray = Array.isArray(recentBlogsData)
-    ? recentBlogsData
-    : recentBlogsData?.data || recentBlogsData?.blogs || []
+  const blogsArray = recentBlogsData?.data ?? []
 
-  const recentBlogs = blogsArray.filter((b: any) => b.status === "complete" && !b.isArchived).slice(0, 4)
+  const recentBlogs = blogsArray.filter((b) => b.status === "complete" && !b.isArchived).slice(0, 4)
 
   // Recent cards must open where My Blogs opens them: the AI editor for generated
   // posts, the manual editor for hand-written ones. /blog/:id is the public reader
@@ -162,7 +159,7 @@ const Dashboard = () => {
         await loadAuthenticatedUser()
         setLoading(false)
       } catch (rawError) {
-      const error = asApiError(rawError)
+        const error = asApiError(rawError)
         console.error("User init failed:", error)
         setLoading(false)
       }
@@ -259,7 +256,6 @@ const Dashboard = () => {
           if (user?._id) localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
         }}
       />
-
 
       <motion.div
         className="min-h-screen p-4 md:p-8 space-y-12"

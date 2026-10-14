@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
@@ -79,15 +79,13 @@ const MainEditorPage = () => {
   } = useEditorStore()
   const resetAiReview = useAiReviewStore((s) => s.reset)
   const aiReview = useAiReviewStore((s) => s.review)
-  const [proofreadingResults, setProofreadingResults] = useState<any[]>([])
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveContent, setSaveContent] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(!id)
-  const [isHumanizeModalOpen, setIsHumanizeModalOpen] = useState(false)
-  const [humanizedContent, setHumanizedContent] = useState("")
-  const [isHumanizing, setIsHumanizing] = useState(false)
-  const [humanizePrompt, setHumanizePrompt] = useState("")
+  const [, setIsHumanizeModalOpen] = useState(false)
+  const [, setHumanizedContent] = useState("")
+  const [, setIsHumanizing] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
 
@@ -181,38 +179,22 @@ const MainEditorPage = () => {
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
     }
-  }, [blog, id])
+  }, [
+    blog,
+    id,
+    setKeywords,
+    setEditorTitle,
+    setEditorContent,
+    setIsPosted,
+    setFormData,
+    setUnsavedChanges,
+  ])
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
   const hasMatchingBlog = !id || blog?._id === id
-
-  // Store the section-aware replace function from TextEditor
-  const sectionReplaceRef = useRef<any>(null)
-  const handleReplaceReady = useCallback((replaceFn: any) => {
-    sectionReplaceRef.current = replaceFn
-  }, [])
-
-  const handleReplace = useCallback((original: any, change: any) => {
-    if (typeof original !== "string" || typeof change !== "string") {
-      toast.error("Invalid suggestion format.")
-      return
-    }
-
-    // Use section-aware replace if available (updates both sections and content)
-    if (sectionReplaceRef.current) {
-      sectionReplaceRef.current(original, change)
-    } else {
-      // Fallback to basic content replace
-      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-      setEditorContent(editorContent.replace(regex, change))
-    }
-
-    // Remove suggestion from list
-    setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-  }, [editorContent, setEditorContent])
 
   const handlePostToWordPress = async (postData: any) => {
     setIsPosting(true)
@@ -357,48 +339,6 @@ const MainEditorPage = () => {
     }
   }
 
-  const handleOptimizeSave = async () => {
-    if (blog?.isArchived) {
-      toast.error("This blog is archived. Please restore it to perform this action.")
-      return
-    }
-    if (!blog?._id) {
-      toast.error("Blog is not loaded yet.")
-      return
-    }
-    setIsSaving(true)
-    try {
-      const payload = {
-        title: editorTitle,
-        content: editorContent,
-        published: blog?.published,
-        focusKeywords: blog?.focusKeywords,
-        keywords,
-        seoMetadata: wordpressMetadata
-          ? { title: wordpressMetadata.title, description: wordpressMetadata.description }
-          : blog?.seoMetadata || { title: "", description: "" },
-      }
-      const updated = await blogsQuery.update(blog._id, payload)
-      setSelectedBlog(updated)
-      queryClient.setQueryData(["blog", id], updated)
-      const res = await blogsQuery.sendRetryLines(blog._id)
-      if (res) {
-        setSaveContent(res)
-        setSaveModalOpen(true)
-        toast.success("Review the suggested content.")
-      } else {
-        toast.error("No content received from retry.")
-      }
-      setUnsavedChanges(false) // Reset unsavedChanges after save
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
-    } catch (error) {
-      console.error("Error updating the blog:", error)
-      toast.error("Failed to save blog.")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   const handleAcceptSave = () => {
     if (saveContent) {
       setEditorContent(saveContent)
@@ -495,17 +435,6 @@ const MainEditorPage = () => {
       editorTitle || templateFormData.topic || "Your Blog Title"
     }</h1>${editorContent}</div>`
   }
-
-  const handleAcceptHumanizedContent = useCallback(() => {
-    setEditorContent(humanizedContent)
-    setIsHumanizeModalOpen(false)
-    toast.success("Humanized content applied successfully!")
-  }, [humanizedContent])
-
-  const handleAcceptOriginalContent = useCallback(() => {
-    setIsHumanizeModalOpen(false)
-    toast.info("Retained original content.")
-  }, [])
 
   if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
     return (

@@ -115,6 +115,7 @@ const TipTapEditor = ({
     prompt: "",
     style: "photorealistic",
     quality: "2k",
+    dimensions: "1024x1024",
   })
   const [isGenerateMode, setIsGenerateMode] = useState(false)
   const [genForm, setGenForm] = useState({
@@ -125,12 +126,12 @@ const TipTapEditor = ({
   })
 
   const [editorReady, setEditorReady] = useState(false)
-  const [linkPreview, setLinkPreview] = useState<any>(null)
-  const [linkPreviewPos, setLinkPreviewPos] = useState<any>(null)
-  const [linkPreviewUrl, setLinkPreviewUrl] = useState<any>(null)
-  const [linkPreviewElement, setLinkPreviewElement] = useState<any>(null)
+  const [linkPreview, setLinkPreview] = useState<LinkPreviewState | null>(null)
+  const [linkPreviewPos, setLinkPreviewPos] = useState<{ top: number; left: number } | null>(null)
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null)
+  const [linkPreviewElement, setLinkPreviewElement] = useState<HTMLElement | null>(null)
   const hideTimeout = useRef<any>(null)
-  const previewCache = useRef({})
+  const previewCache = useRef<Record<string, LinkPreviewState>>({})
   const previewRef = useRef<any>(null)
   const [lastSavedContent, setLastSavedContent] = useState("")
   const lastSavedContentRef = useRef(lastSavedContent)
@@ -251,14 +252,14 @@ const TipTapEditor = ({
     // Initial position (will be refined by useLayoutEffect)
     setLinkPreviewPos({ top: rect.bottom + 5, left: rect.left })
 
-    setLinkPreviewUrl((currentUrl: any) => {
+    setLinkPreviewUrl((currentUrl) => {
       if (currentUrl === url) return currentUrl
       return url
     })
     setLinkPreviewElement(link)
 
     if (previewCache.current[url]) {
-      setLinkPreview((prev: any) =>
+      setLinkPreview((prev) =>
         prev === previewCache.current[url] ? prev : previewCache.current[url]
       )
       if (previewCache.current[url].loading) return
@@ -272,11 +273,11 @@ const TipTapEditor = ({
     getLinkPreview(url)
       .catch(() => getLinkPreview(url, { proxyUrl: "https://corsproxy.io/?" }))
       .then((data) => {
-        previewCache.current[url] = data
+        previewCache.current[url] = data as LinkPreviewState
         // Check if we are still looking for THIS url
-        setLinkPreviewUrl((current: any) => {
+        setLinkPreviewUrl((current) => {
           if (current === url) {
-            setLinkPreview(data)
+            setLinkPreview(data as LinkPreviewState)
           }
           return current
         })
@@ -284,7 +285,7 @@ const TipTapEditor = ({
       .catch((err) => {
         console.error("Link preview error:", err)
         previewCache.current[url] = { error: true, url }
-        setLinkPreviewUrl((current: any) => {
+        setLinkPreviewUrl((current) => {
           if (current === url) {
             setLinkPreview({ error: true, url })
           }
@@ -489,7 +490,7 @@ const TipTapEditor = ({
         console.error(err)
       }
 
-      setLinkUrl(linkPreviewUrl)
+      setLinkUrl(linkPreviewUrl ?? "")
       setLinkModalOpen(true)
       setLinkPreview(null)
     },
@@ -799,7 +800,7 @@ const TipTapEditor = ({
   useEffect(() => {
     if (normalEditor && blog?.content) {
       const html = markdownToHtml(blog.content)
-      normalEditor.commands.setContent(html, false)
+      normalEditor.commands.setContent(html, { emitUpdate: true })
 
       // Calculate round-trip content to prevent false unsaved changes
       const currentHtml = normalEditor.getHTML()
@@ -827,7 +828,7 @@ const TipTapEditor = ({
       if (normalizeContent(content) !== normalizeContent(currentEditorMarkdown)) {
         const html = markdownToHtml(content)
         // emitUpdate: true ensures onUpdate fires to keep state in sync and check unsaved changes
-        normalEditor.commands.setContent(html, true)
+        normalEditor.commands.setContent(html, { emitUpdate: true })
       }
     }
   }, [content, normalEditor, markdownToHtml, htmlToMarkdown, normalizeContent])
@@ -925,7 +926,7 @@ const TipTapEditor = ({
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 relative z-50">
       <div className="flex gap-1 shrink-0">
-        {[1, 2, 3].map((level) => (
+        {([1, 2, 3] as const).map((level) => (
           <div key={level} className="tooltip tooltip-bottom" data-tip={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -1311,7 +1312,6 @@ const TipTapEditor = ({
             editor={normalEditor}
             blogId={blog?._id}
             isArchived={blog?.isArchived}
-            sectionId={null}
             onContentUpdate={() => {}}
           >
             <div className="tooltip tooltip-bottom" data-tip="Bold">
@@ -1514,7 +1514,7 @@ const TipTapEditor = ({
                     <button
                       type="button"
                       className="btn btn-sm btn-outline flex-1 flex items-center justify-center gap-1"
-                      onClick={() => document.getElementById("edit-modal-upload").click()}
+                      onClick={() => document.getElementById("edit-modal-upload")?.click()}
                     >
                       <ImageIcon className="w-4 h-4 text-emerald-600" /> Upload Local
                       <input
@@ -1527,7 +1527,7 @@ const TipTapEditor = ({
                           if (file) {
                             const reader = new FileReader()
                             reader.onload = (ev) => {
-                              setImageUrl(ev.target.result)
+                              setImageUrl(String(ev.target?.result ?? ""))
                               toast.success("Local image uploaded!")
                             }
                             reader.readAsDataURL(file)
@@ -1943,7 +1943,8 @@ const TipTapEditor = ({
               // Handle Insert or Update
               if (editingImageSrc) {
                 let targetPos = null
-                let figCaptionRange = null
+                // A holder object: TS can't see assignments made inside the `descendants` callback.
+                const figCaption: { range: { from: number; to: number } | null } = { range: null }
 
                 normalEditor.state.doc.descendants((node, pos) => {
                   if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
@@ -1957,7 +1958,7 @@ const TipTapEditor = ({
                         if (ancestor.type.name === "figure") {
                           ancestor.forEach((child, offset) => {
                             if (child.type.name === "figcaption") {
-                              figCaptionRange = {
+                              figCaption.range = {
                                 from: $pos.start(d) + offset,
                                 to: $pos.start(d) + offset + child.nodeSize,
                               }
@@ -1975,8 +1976,8 @@ const TipTapEditor = ({
                   const tr = normalEditor.state.tr
                   tr.setNodeMarkup(targetPos, undefined, { src: url, alt: alt || "" })
 
-                  if (figCaptionRange) {
-                    tr.delete(figCaptionRange.from, figCaptionRange.to)
+                  if (figCaption.range) {
+                    tr.delete(figCaption.range.from, figCaption.range.to)
                   }
 
                   normalEditor.view.dispatch(tr)
@@ -2070,7 +2071,7 @@ const TipTapEditor = ({
                           alt="Link preview"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.style.display = "none"
+                            e.currentTarget.style.display = "none"
                           }}
                         />
                         <div className="absolute top-2 left-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md shadow-sm border border-gray-200/50 flex items-center gap-1.5">
@@ -2082,7 +2083,7 @@ const TipTapEditor = ({
                             />
                           )}
                           <span className="text-[10px] font-bold text-gray-600 truncate max-w-[120px]">
-                            {linkPreview.siteName || new URL(linkPreviewUrl).hostname}
+                            {linkPreview.siteName || new URL(linkPreviewUrl ?? "").hostname}
                           </span>
                         </div>
                       </div>
@@ -2104,7 +2105,7 @@ const TipTapEditor = ({
                           </p>
                         </div>
                         <a
-                          href={linkPreviewUrl}
+                          href={linkPreviewUrl ?? undefined}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="bg-blue-50 p-1.5 rounded-lg hover:bg-blue-100 text-black shrink-0"
@@ -2141,6 +2142,18 @@ const TipTapEditor = ({
         )}
     </motion.div>
   )
+}
+
+/** What the hover card knows about a link: loading, failed, or the scraped page metadata. */
+interface LinkPreviewState {
+  loading?: boolean
+  error?: boolean
+  url?: string
+  title?: string
+  description?: string
+  images?: string[]
+  favicons?: string[]
+  siteName?: string
 }
 
 export default TipTapEditor

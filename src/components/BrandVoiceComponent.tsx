@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react"
 import { motion } from "framer-motion"
 import { FaEdit } from "react-icons/fa"
 import { Trash } from "lucide-react"
@@ -17,8 +18,8 @@ const BrandVoicesComponent = ({
   logoUrl?: string
   onSelect?: () => void
   isSelected?: boolean
-  onEdit?: () => void
-  onDelete?: () => void
+  onEdit?: (e: MouseEvent<HTMLButtonElement>) => void
+  onDelete?: (e: MouseEvent<HTMLButtonElement>) => void
   readOnly?: boolean
 }) => {
   return (

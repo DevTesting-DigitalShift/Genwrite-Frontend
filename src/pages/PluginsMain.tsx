@@ -46,10 +46,10 @@ const PluginsMain = () => {
     if (integrationsData) setIntegrations(integrationsData)
   }, [integrationsData, setIntegrations])
 
-  const plugins = useMemo(() => pluginsData(pingIntegration), [pingIntegration])
+  const plugins = useMemo(() => pluginsData(integrationQuery.ping), [])
 
   const extendedPlugins = useMemo(() => {
-    return plugins.filter(p => p.isVisible)
+    return plugins.filter((p) => p.isVisible)
   }, [plugins])
 
   const checkPlugin = useCallback(
@@ -58,14 +58,14 @@ const PluginsMain = () => {
 
       try {
         const result = await plugin.onCheck()
-        setWordpressStatus(prev => ({
+        setWordpressStatus((prev) => ({
           ...prev,
           [plugin.id]: { status: result.status, message: result.message, success: result.success },
         }))
       } catch (rawErr) {
         const err = asApiError(rawErr)
         console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-        setWordpressStatus(prev => ({
+        setWordpressStatus((prev) => ({
           ...prev,
           [plugin.id]: {
             status: err.response?.status || "error",
@@ -97,7 +97,7 @@ const PluginsMain = () => {
 
   const handleTabChange = (key: string) => {
     setActiveTab(key)
-    const plugin = plugins.find(p => p.id.toString() === key)
+    const plugin = plugins.find((p) => p.id.toString() === key)
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
@@ -107,10 +107,7 @@ const PluginsMain = () => {
   }
 
   const PluginTabContent = ({ plugin }: { plugin: Plugin }) => {
-    const wordpressInt = useMemo(
-      () => integrations?.integrations?.WORDPRESS as any,
-      []
-    )
+    const wordpressInt = useMemo(() => integrations?.integrations?.WORDPRESS as any, [])
     const serverInt = useMemo(() => integrations?.integrations?.SERVERENDPOINT as any, [])
     const sanityInt = useMemo(() => integrations?.integrations?.SANITY as any, [])
 
@@ -271,13 +268,9 @@ const PluginsMain = () => {
         const type =
           plugin.id === 112 ? "SERVERENDPOINT" : plugin.id === 115 ? "SANITY" : "WORDPRESS"
         const result = await pingIntegration(type)
-        setWordpressStatus(prev => ({
+        setWordpressStatus((prev) => ({
           ...prev,
-          [plugin.id]: {
-            status: "success",
-            message: result.message,
-            success: result.success,
-          },
+          [plugin.id]: { status: "success", message: result.message, success: result.success },
         }))
         if (result.success) toast.success(result.message)
         else toast.error(result.message)
@@ -426,7 +419,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const res = await pingIntegration(isShopify ? "SHOPIFY" : "WIX")
-          setWordpressStatus(prev => ({
+          setWordpressStatus((prev) => ({
             ...prev,
             [plugin.id]: { success: res.success, message: res.message },
           }))
@@ -465,7 +458,7 @@ const PluginsMain = () => {
                     id={`plugin-${plugin.id}-domain`}
                     placeholder={isShopify ? "brand.myshopify.com" : "https://your-site.wix.com"}
                     value={domain}
-                    onChange={e => setDomain(e.target.value.trim())}
+                    onChange={(e) => setDomain(e.target.value.trim())}
                     disabled={localLoading}
                     className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
                       domain && !isValidDomain
@@ -508,9 +501,8 @@ const PluginsMain = () => {
                     Push custom SEO tags from GenWrite
                   </span>
                   <span className="text-xs text-gray-500 max-w-md block">
-                    Off (default): Wix auto-generates SEO meta tags and structured data
-                    (schema.org) for every post. On: GenWrite pushes its own SEO tags and
-                    JSON-LD instead.
+                    Off (default): Wix auto-generates SEO meta tags and structured data (schema.org)
+                    for every post. On: GenWrite pushes its own SEO tags and JSON-LD instead.
                   </span>
                 </div>
                 <input
@@ -518,7 +510,7 @@ const PluginsMain = () => {
                   className="toggle toggle-primary toggle-sm"
                   checked={useCustomSeo}
                   disabled={seoSaving}
-                  onChange={e => handleSeoToggle(e.target.checked)}
+                  onChange={(e) => handleSeoToggle(e.target.checked)}
                 />
               </div>
             )}
@@ -618,7 +610,7 @@ const PluginsMain = () => {
                   <input
                     id={`plugin-${plugin.id}-frontend`}
                     value={frontend}
-                    onChange={e => {
+                    onChange={(e) => {
                       const val = e.target.value
                       setFrontend(val)
                       try {
@@ -660,7 +652,7 @@ const PluginsMain = () => {
                       id={`plugin-${plugin.id}-project-id`}
                       type="text"
                       value={projectId}
-                      onChange={e => setProjectId(e.target.value)}
+                      onChange={(e) => setProjectId(e.target.value)}
                       disabled={!isEditing}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -678,7 +670,7 @@ const PluginsMain = () => {
                         id={`plugin-${plugin.id}-dataset`}
                         type="text"
                         value={dataset}
-                        onChange={e => setDataset(e.target.value)}
+                        onChange={(e) => setDataset(e.target.value)}
                         disabled={!isEditing}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="production"
@@ -696,7 +688,7 @@ const PluginsMain = () => {
                     <select
                       id={`plugin-${plugin.id}-blog-route`}
                       value={blogRoute}
-                      onChange={e => setBlogRoute(e.target.value)}
+                      onChange={(e) => setBlogRoute(e.target.value)}
                       disabled={!isEditing}
                       className="select select-bordered w-full bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed font-normal"
                     >
@@ -751,13 +743,13 @@ const PluginsMain = () => {
                         : "text"
                     }
                     value={plugin.id === 112 || plugin.id === 115 ? authToken : wpUsername}
-                    onChange={e =>
+                    onChange={(e) =>
                       plugin.id === 112 || plugin.id === 115
                         ? setAuthToken(e.target.value)
                         : setWpUsername(e.target.value)
                     }
                     disabled={!isEditing}
-                    onFocus={e => {
+                    onFocus={(e) => {
                       if (isEditing) e.target.value = ""
                     }}
                     className={clsx(
@@ -768,7 +760,7 @@ const PluginsMain = () => {
                   {(plugin.id === 112 || plugin.id === 115) && (
                     <button
                       type="button"
-                      onClick={() => setShowAuthToken(prev => !prev)}
+                      onClick={() => setShowAuthToken((prev) => !prev)}
                       tabIndex={-1}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                       title={showAuthToken ? "Hide token" : "Show token"}
@@ -791,9 +783,9 @@ const PluginsMain = () => {
                     id={`plugin-${plugin.id}-app-password`}
                     type="password"
                     value={wpPassword}
-                    onChange={e => setWpPassword(e.target.value)}
+                    onChange={(e) => setWpPassword(e.target.value)}
                     disabled={!isEditing}
-                    onFocus={e => {
+                    onFocus={(e) => {
                       if (isEditing) e.target.value = ""
                     }}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -949,7 +941,7 @@ const PluginsMain = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-150">
           {/* Horizontal Tabs */}
           <div className="flex items-center gap-6 px-6 sm:px-10 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-            {extendedPlugins.map(p => {
+            {extendedPlugins.map((p) => {
               const Icon = p.icon
               const isActive = activeTab === p.id.toString()
               return (
@@ -972,7 +964,7 @@ const PluginsMain = () => {
 
           <div className="p-6 lg:p-10">
             <AnimatePresence mode="wait">
-              {extendedPlugins.find(p => p.id.toString() === activeTab) && (
+              {extendedPlugins.find((p) => p.id.toString() === activeTab) && (
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
@@ -981,7 +973,7 @@ const PluginsMain = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <PluginTabContent
-                    plugin={extendedPlugins.find(p => p.id.toString() === activeTab) as Plugin}
+                    plugin={extendedPlugins.find((p) => p.id.toString() === activeTab) as Plugin}
                   />
                 </motion.div>
               )}

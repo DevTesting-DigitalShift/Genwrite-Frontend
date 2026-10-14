@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from "react"
+import { useState, useEffect, Fragment } from "react"
 import {
   Image as ImageIcon,
   X,
@@ -24,6 +24,8 @@ import { toast } from "sonner"
 import { AnimatePresence, motion } from "framer-motion"
 
 // Skeleton Loader Component
+import { apiErrorMessage } from "@/types/api"
+import type { GalleryImage } from "@store/useImageStore"
 const _ImageSkeleton = () => {
   return (
     <div className="break-inside-avoid rounded-lg overflow-hidden bg-gray-100 animate-pulse">
@@ -197,7 +199,7 @@ const ImageGallery = () => {
       refetchImages() // Refresh gallery
     } catch (error) {
       console.error("Generation error:", error)
-      toast.error(error.response?.data?.message || error.message || "Generation failed")
+      toast.error(apiErrorMessage(error, "Generation failed"))
     } finally {
       setIsGenerating(false)
     }
@@ -284,8 +286,9 @@ const ImageGallery = () => {
     return img?._id && img.url
   }
 
-  const handleCopyLink = async (image: any, e: any) => {
-    if (e) e.stopPropagation()
+  const handleCopyLink = async (image: GalleryImage, e?: { stopPropagation: () => void }) => {
+    e?.stopPropagation()
+    if (!image.url) return
     try {
       await navigator.clipboard.writeText(image.url)
       toast.success("Image link copied to clipboard!")
@@ -295,8 +298,9 @@ const ImageGallery = () => {
     }
   }
 
-  const handleDownload = async (image: any, e: any) => {
-    if (e) e.stopPropagation()
+  const handleDownload = async (image: GalleryImage, e?: { stopPropagation: () => void }) => {
+    e?.stopPropagation()
+    if (!image.url) return
     try {
       const response = await fetch(image.url)
       const blob = await response.blob()
@@ -501,66 +505,66 @@ const ImageGallery = () => {
               // Fragment only exists so the suppression below can sit in JSX-child
               // position, which is the only place Biome honours it.
               <Fragment key={image._id}>
-              {/* The card holds its own action buttons (copy, enhance, delete) and a
+                {/* The card holds its own action buttons (copy, enhance, delete) and a
                   <button> may not nest interactive content, so role + tabIndex + onKeyDown
                   stand in for it and give equivalent keyboard access. */}
-              {/* biome-ignore lint/a11y/useSemanticElements: see comment above */}
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={image.description || "Open image"}
-                className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
-                onClick={() => handleImageClick(image)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    handleImageClick(image)
-                  }
-                }}
-              >
-                <img
-                  src={image.url}
-                  alt={image.description}
-                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                {/* biome-ignore lint/a11y/useSemanticElements: see comment above */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={image.description || "Open image"}
+                  className="break-inside-avoid relative group rounded-lg overflow-hidden cursor-pointer bg-gray-100 mb-4"
+                  onClick={() => handleImageClick(image)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleImageClick(image)
+                    }
+                  }}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.description}
+                    className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
 
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                  <div className="flex items-center justify-between">
-                    {/* Tags/badges if AI generated */}
-                    {canEnhance(image) && (
-                      <div className="absolute top-2 right-2">
-                        <span className="bg-white/20 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white border border-white/30 flex items-center gap-1">
-                          <Bot size={10} /> AI
-                        </span>
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <div className="flex items-center justify-between">
+                      {/* Tags/badges if AI generated */}
+                      {canEnhance(image) && (
+                        <div className="absolute top-2 right-2">
+                          <span className="bg-white/20 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white border border-white/30 flex items-center gap-1">
+                            <Bot size={10} /> AI
+                          </span>
+                        </div>
+                      )}
+
+                      <p className="text-white text-sm line-clamp-2 font-medium mr-2">
+                        {image.description}
+                      </p>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyLink(image, e)}
+                          className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
+                          title="Copy Link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownload(image, e)}
+                          className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                       </div>
-                    )}
-
-                    <p className="text-white text-sm line-clamp-2 font-medium mr-2">
-                      {image.description}
-                    </p>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => handleCopyLink(image, e)}
-                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
-                        title="Copy Link"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDownload(image, e)}
-                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
-                        title="Download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
               </Fragment>
             ))}
           </div>
