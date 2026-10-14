@@ -82,13 +82,17 @@ export function AutoVideoForm() {
   const model = models.find((m) => m.id === modelId) ?? models[0]
   const isMultiScene = isUgc && ugcSettings.mode === "multi"
   const durations = model?.frameVideo?.durations ?? []
-  // The picked duration may not exist on a newly picked model — fall back to 5s, else its first.
+  // The picked duration may not exist on a newly picked model (Boreal has no 9s). Snap to the next
+  // longer one it does have — as the backend does — so a script isn't cut short; nothing picked yet: 5s.
   const durationSeconds =
-    duration !== null && durations.includes(duration)
-      ? duration
-      : durations.includes(5)
+    duration === null
+      ? durations.includes(5)
         ? 5
         : (durations[0] ?? 5)
+      : durations.includes(duration)
+        ? duration
+        : (durations.find((d) => d >= duration) ?? durations.at(-1) ?? duration)
+  const durationSnapped = duration !== null && durations.length > 0 && durationSeconds !== duration
   // Animating forward from one frame looks most natural, so the end frame is opt-in, and only
   // offered where the model accepts one.
   const canLockEndFrame = model?.frameVideo?.endFrame === "optional" && !isMultiScene
@@ -221,6 +225,11 @@ export function AutoVideoForm() {
               </option>
             ))}
           </select>
+          {durationSnapped && (
+            <p className="mt-1 text-xs text-amber-700">
+              {duration}s isn't offered by this model — using {durationSeconds}s.
+            </p>
+          )}
         </div>
 
         <div className="form-control w-full">
@@ -362,7 +371,12 @@ export function AutoVideoForm() {
           }
         />
         <div className="flex justify-end">
-          <RefinePromptButton prompt={prompt} kind="video" purpose={purpose} onRefined={setPrompt} />
+          <RefinePromptButton
+            prompt={prompt}
+            kind="video"
+            purpose={purpose}
+            onRefined={setPrompt}
+          />
         </div>
         {pacing && (
           <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">

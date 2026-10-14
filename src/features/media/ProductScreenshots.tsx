@@ -58,8 +58,9 @@ export function ProductScreenshots({
         <p className="text-sm font-semibold text-slate-800">Product screenshots</p>
         <p className="text-xs text-slate-500">
           Add up to {MAX_PRODUCT_SCREENSHOTS} real screens of your app or product. The presenter
-          will hold up a phone showing exactly this screen, instead of an invented one. The first
-          one is the main screen.
+          will show exactly this screen on a device, instead of an invented one: the one you name in
+          the description (laptop, phone…), otherwise the best fit for your screens. The first one
+          is the main screen.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
