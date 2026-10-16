@@ -1,9 +1,10 @@
 import { Loader2, Sparkles } from "lucide-react"
 import { AutoVideoForm } from "./AutoVideoForm"
 import { ComposerTabs } from "./ComposerTabs"
+import { ModeTabs } from "./ModeTabs"
 import { RefinePromptButton } from "./RefinePromptButton"
 import { SettingChip } from "./SettingChip"
-import { PURPOSES, type Purpose } from "./mediaOptions"
+import { PricingNotice } from "./PricingNotice"
 import { formatRate, type MediaComposer } from "./useMediaComposer"
 
 const EXAMPLES = {
@@ -31,8 +32,9 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
     setTab,
     prompt,
     setPrompt,
-    purpose,
-    setPurpose,
+    mode,
+    setMode,
+    usesPipeline,
     tabModels,
     currentModel,
     setModel,
@@ -45,6 +47,9 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
     videoResolutions,
     setResolution,
     estimatedCredits,
+    pricingReady,
+    pricingFailed,
+    retryPricing,
     userCredits,
     isSubmitting,
     handleGenerate,
@@ -59,12 +64,17 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
       className="rounded-xl border border-slate-200 bg-white shadow-xs"
     >
       <div className="p-4 sm:p-5">
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <ComposerTabs value={tab} onChange={setTab} />
+          <ModeTabs
+            kind={tab}
+            mode={mode}
+            onChange={(m) => setMode(m as Parameters<typeof setMode>[0])}
+          />
         </div>
 
-        {tab === "auto" ? (
-          <AutoVideoForm />
+        {usesPipeline ? (
+          <AutoVideoForm mode={mode as "image_to_video" | "reference_to_video"} />
         ) : (
           <>
             <div className="rounded-xl border border-slate-200 bg-slate-50/60 transition-colors focus-within:border-[#4C5BD6] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#4C5BD6]/15">
@@ -93,12 +103,7 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
                   Ctrl + Enter to generate
                 </span>
                 <div className="ml-auto">
-                  <RefinePromptButton
-                    prompt={prompt}
-                    kind={kind}
-                    purpose={purpose}
-                    onRefined={setPrompt}
-                  />
+                  <RefinePromptButton prompt={prompt} kind={kind} onRefined={setPrompt} />
                 </div>
               </div>
             </div>
@@ -119,55 +124,58 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <SettingChip
-                label="Model"
-                value={currentModel?.id ?? ""}
-                options={tabModels.map((m) => ({ id: m.id, label: m.label, hint: formatRate(m) }))}
-                onChange={setModel}
-              />
-              <SettingChip
-                label="Purpose"
-                value={purpose}
-                options={PURPOSES.map((p) => ({ id: p.id, label: p.label }))}
-                onChange={(id) => setPurpose(id as Purpose)}
-                note="Just a tag for organizing your library — it doesn't change the output."
-              />
-              {kind === "image" && currentModel?.unit === "megapixel" && (
+            {!pricingReady ? (
+              <div className="mt-4">
+                <PricingNotice failed={pricingFailed} onRetry={retryPricing} />
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <SettingChip
-                  label="Size"
-                  value={String(megapixels)}
-                  options={SIZE_OPTIONS}
-                  onChange={(id) => setMegapixels(Number(id))}
-                  note="Used for the cost estimate only — the model sets the real output size."
+                  label="Model"
+                  value={currentModel?.id ?? ""}
+                  options={tabModels.map((m) => ({
+                    id: m.id,
+                    label: m.label,
+                    hint: formatRate(m),
+                  }))}
+                  onChange={setModel}
                 />
-              )}
-              {kind === "video" && (
-                <>
+                {kind === "image" && currentModel?.unit === "megapixel" && (
                   <SettingChip
-                    label="Length"
-                    value={String(videoDuration)}
-                    options={videoDurations.map((d) => ({ id: String(d), label: `${d}s` }))}
-                    onChange={(id) => setDurationSeconds(Number(id))}
-                    note={
-                      currentModel && currentModel.unit !== "second"
-                        ? "This model is billed per video — length doesn't change the cost."
-                        : undefined
-                    }
-                    disabled={videoDurations.length <= 1}
+                    label="Size"
+                    value={String(megapixels)}
+                    options={SIZE_OPTIONS}
+                    onChange={(id) => setMegapixels(Number(id))}
+                    note="Used for the cost estimate only — the model sets the real output size."
                   />
-                  {videoResolutions.length > 0 && (
+                )}
+                {kind === "video" && (
+                  <>
                     <SettingChip
-                      label="Resolution"
-                      value={videoResolution ?? ""}
-                      options={videoResolutions.map((r) => ({ id: r, label: r }))}
-                      onChange={(id) => setResolution(id as (typeof videoResolutions)[number])}
-                      disabled={videoResolutions.length <= 1}
+                      label="Length"
+                      value={String(videoDuration)}
+                      options={videoDurations.map((d) => ({ id: String(d), label: `${d}s` }))}
+                      onChange={(id) => setDurationSeconds(Number(id))}
+                      note={
+                        currentModel && currentModel.unit !== "second"
+                          ? "This model is billed per video — length doesn't change the cost."
+                          : undefined
+                      }
+                      disabled={videoDurations.length <= 1}
                     />
-                  )}
-                </>
-              )}
-            </div>
+                    {videoResolutions.length > 0 && (
+                      <SettingChip
+                        label="Resolution"
+                        value={videoResolution ?? ""}
+                        options={videoResolutions.map((r) => ({ id: r, label: r }))}
+                        onChange={(id) => setResolution(id as (typeof videoResolutions)[number])}
+                        disabled={videoResolutions.length <= 1}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="mt-5 flex flex-col-reverse items-stretch gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-slate-500">
@@ -175,7 +183,9 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
                 <span>
                   Estimated cost{" "}
                   <strong className="font-semibold text-slate-900">
-                    {estimatedCredits} credit{estimatedCredits === 1 ? "" : "s"}
+                    {pricingReady
+                      ? `${estimatedCredits} credit${estimatedCredits === 1 ? "" : "s"}`
+                      : "—"}
                   </strong>
                 </span>
                 <span className={short ? "font-medium text-amber-700" : "text-slate-400"}>
@@ -185,7 +195,7 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !pricingReady || !currentModel}
                 className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4C5BD6] px-7 text-base font-semibold text-white transition-colors hover:bg-[#3B4BB8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/30 disabled:opacity-60 sm:w-auto"
               >
                 {isSubmitting ? (

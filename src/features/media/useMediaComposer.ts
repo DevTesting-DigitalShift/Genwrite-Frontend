@@ -2,11 +2,12 @@ import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
-import usePricingStore from "@store/usePricingStore"
+import { useMediaPricing } from "@store/usePricingStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaQuery } from "@api/Media/Media.query"
 import type { MediaAsset } from "@api/Media/Media.api"
-import type { MediaModel, Purpose } from "./mediaOptions"
+import { isPipelineMode, modelsForMode, type MediaMode } from "./mediaModes"
+import type { MediaModel } from "./mediaOptions"
 import {
   DEFAULT_RESOLUTION,
   effectiveResolution,
@@ -15,7 +16,7 @@ import {
   type VideoResolution,
 } from "./pipelinePricing"
 
-export type ComposerTab = "image" | "video" | "auto"
+export type ComposerTab = "image" | "video"
 
 /** Mirrors the backend's media.pricing.js#getMediaCreditCost exactly: 1 credit = 1 cent, and
  * only the unit the model is billed in counts — seconds for per-second video, megapixels for
@@ -50,31 +51,36 @@ export const ETA_LABEL: Record<MediaAsset["type"], string> = {
 /**
  * Everything the Image and Video composers share, whichever layout renders them: the form state,
  * the model picked from the live pricing catalogue, the credit estimate, and the submit handler.
- * "auto" is the Auto Video pipeline (AutoVideoForm), which owns its own form state.
+ * Two tabs (image, video) with a mode each. Text modes are driven from here; the image-to-video
+ * and reference-to-video modes run through the Auto Video pipeline (AutoVideoForm), which owns its
+ * own form state.
  */
-export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } = {}) {
+export function useMediaComposer() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
   const [tab, setTab] = useState<ComposerTab>("image")
+  const [videoMode, setVideoMode] =
+    useState<Extract<MediaMode, `${string}_to_video`>>("text_to_video")
   const [prompt, setPrompt] = useState("")
-  const [purpose, setPurpose] = useState<Purpose>("other")
-  // Models + prices come from the backend's pricing catalogue, so a model added/removed or
-  // repriced there shows up here without a frontend change. Image-to-image models need a
-  // source image this prompt-only form can't provide, so they're not offered.
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
-  const modelsByKind = useMemo(() => {
-    const all: MediaModel[] = Object.entries(mediaCatalogue)
-      .filter(([, m]) => !m.requiresImage && !m.legacy && !m.unavailable)
-      .map(([id, m]) => ({ id, ...m }))
-    // Cheapest image model first (priced for one megapixel), so it's also the default pick.
-    const cost = (m: MediaModel) => estimateCredits(m, { megapixels: 1, durationSeconds: 5 })
-    return {
-      image: all.filter((m) => m.kind === "image").sort((a, b) => cost(a) - cost(b)),
-      video: all.filter((m) => m.kind === "video"),
-    }
-  }, [mediaCatalogue])
+  // Models + prices come only from the backend's pricing catalogue (live, or the cached copy of
+  // its last good response), so a model added/removed or repriced there shows up here without a
+  // frontend change — and with no catalogue there are no models, never made-up prices.
+  const {
+    media: mediaCatalogue,
+    ready: pricingReady,
+    failed: pricingFailed,
+    retry: retryPricing,
+  } = useMediaPricing()
+  const modelsByKind = useMemo(
+    () => ({
+      // Cheapest first, so it's also the default pick.
+      image: modelsForMode(mediaCatalogue, "text_to_image"),
+      video: modelsForMode(mediaCatalogue, "text_to_video"),
+    }),
+    [mediaCatalogue]
+  )
   const [imageModel, setImageModel] = useState("")
   const [videoModel, setVideoModel] = useState("")
   const [megapixels, setMegapixels] = useState(1)
@@ -83,7 +89,10 @@ export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } =
 
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-  const tabModels = tab === "auto" ? [] : modelsByKind[tab]
+  const mode: MediaMode = tab === "image" ? "text_to_image" : videoMode
+  // Pipeline modes list and price their own models (see AutoVideoForm).
+  const usesPipeline = isPipelineMode(mode)
+  const tabModels = usesPipeline ? [] : modelsByKind[tab]
   // Falls back to the first model when nothing's picked yet, or the picked one was removed
   // from the catalogue since.
   const selectedModelId = tab === "image" ? imageModel : videoModel
@@ -115,7 +124,6 @@ export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } =
   const handleSubmitted = (asset: MediaAsset) => {
     setPrompt("")
     loadAuthenticatedUser()
-    onSubmitted?.()
     toast.success(
       `${asset.type === "image" ? "Image" : "Video"} generation started — ready in ${ETA_LABEL[asset.type]}`,
       { description: "We'll notify you when it's done, or hit Refresh to check." }
@@ -153,17 +161,11 @@ export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } =
 
     if (!currentModel) return
     if (tab === "image") {
-      generateImage.mutate({
-        prompt: prompt.trim(),
-        model: currentModel.id,
-        purpose,
-        megapixels,
-      } as never)
+      generateImage.mutate({ prompt: prompt.trim(), model: currentModel.id, megapixels } as never)
     } else {
       generateVideo.mutate({
         prompt: prompt.trim(),
         model: currentModel.id,
-        purpose,
         durationSeconds: videoDuration,
         ...(videoResolution ? { resolution: videoResolution } : {}),
       } as never)
@@ -175,8 +177,9 @@ export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } =
     setTab,
     prompt,
     setPrompt,
-    purpose,
-    setPurpose,
+    mode,
+    setMode: setVideoMode,
+    usesPipeline,
     tabModels,
     currentModel,
     setModel,
@@ -189,6 +192,9 @@ export function useMediaComposer({ onSubmitted }: { onSubmitted?: () => void } =
     videoResolutions,
     setResolution,
     estimatedCredits,
+    pricingReady,
+    pricingFailed,
+    retryPricing,
     userCredits,
     isSubmitting,
     handleGenerate,

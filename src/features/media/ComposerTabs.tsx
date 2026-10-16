@@ -1,13 +1,12 @@
-import { ImageIcon, Video, WandSparkles } from "lucide-react"
+import { ImageIcon, Video } from "lucide-react"
 import type { ComposerTab } from "./useMediaComposer"
 
 const TABS: { id: ComposerTab; label: string; icon: typeof Video }[] = [
   { id: "image", label: "Image", icon: ImageIcon },
   { id: "video", label: "Video", icon: Video },
-  { id: "auto", label: "Auto Video", icon: WandSparkles },
 ]
 
-/** Image / Video / Auto Video mode switch. Arrow keys move between modes like a native tablist. */
+/** Image / Video switch. Arrow keys move between modes like a native tablist. */
 export function ComposerTabs({
   value,
   onChange,

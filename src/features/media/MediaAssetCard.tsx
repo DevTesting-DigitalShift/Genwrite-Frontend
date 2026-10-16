@@ -11,17 +11,24 @@ export const STATUS_STYLES: Record<MediaAsset["status"], { label: string; classN
   failed: { label: "Failed", className: "bg-rose-50 text-rose-600 border-rose-200" },
 }
 
-const purposeLabel = (purpose: string) => purpose.replace("_", " ")
-
 /** Memoised: socket updates patch single entries in the cached list, and only the cards
  * whose asset object actually changed should re-render.
  *
- * A finished card shows just the media — the status/purpose pills and the prompt appear on
+ * A finished card shows just the media — the status and model pills and the prompt appear on
  * hover or keyboard focus (and always on touch screens, which have no hover). Cards that are
  * still generating or failed always carry their status, since that is what the user is
  * looking for on them. */
 export const MediaAssetCard = memo(
-  ({ asset, onSelect }: { asset: MediaAsset; onSelect: (id: string) => void }) => {
+  ({
+    asset,
+    onSelect,
+    modelLabel,
+  }: {
+    asset: MediaAsset
+    onSelect: (id: string) => void
+    /** The model's display name, shown on hover. */
+    modelLabel: string
+  }) => {
     const style = STATUS_STYLES[asset.status]
     const [loaded, setLoaded] = useState(false)
     const resultUrl = asset.resultUrl ?? undefined
@@ -99,7 +106,7 @@ export const MediaAssetCard = memo(
           </span>
         )}
         <span
-          className={`absolute right-2 top-2 flex items-center gap-1 rounded-full border border-slate-200 bg-white/85 px-2 py-0.5 text-[10px] font-bold capitalize text-slate-600 backdrop-blur-sm ${
+          className={`absolute right-2 top-2 flex max-w-[60%] items-center gap-1 rounded-full border border-slate-200 bg-white/85 px-2 py-0.5 text-[10px] font-bold text-slate-600 backdrop-blur-sm ${
             completed ? reveal : ""
           }`}
         >
@@ -108,7 +115,7 @@ export const MediaAssetCard = memo(
           ) : (
             <Video size={10} aria-hidden />
           )}
-          {purposeLabel(asset.purpose)}
+          {modelLabel}
         </span>
 
         {completed && (

@@ -30,8 +30,7 @@ const matchesTab = (asset: MediaAsset, tab: LibraryTab) => {
 
 const createdMs = (asset: MediaAsset) => (asset.createdAt ? new Date(asset.createdAt).getTime() : 0)
 
-/** Filters the already-loaded page of assets by tab and by a free-text match on the prompt or
- * purpose (so "ugc" finds every UGC ad even when the prompt never says it). */
+/** Filters the already-loaded page of assets by tab and by a free-text match on the prompt. */
 export const filterAssets = (
   assets: MediaAsset[],
   tab: LibraryTab,
@@ -41,10 +40,7 @@ export const filterAssets = (
   return assets.filter((asset) => {
     if (!matchesTab(asset, tab)) return false
     if (!needle) return true
-    return (
-      asset.prompt.toLowerCase().includes(needle) ||
-      asset.purpose.replace("_", " ").toLowerCase().includes(needle)
-    )
+    return asset.prompt.toLowerCase().includes(needle)
   })
 }
 

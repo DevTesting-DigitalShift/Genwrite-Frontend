@@ -33,7 +33,11 @@ export function RefinePromptButton({
       disabled={refine.isPending || prompt.trim().length < 3}
       className="btn btn-sm h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center gap-2"
     >
-      {refine.isPending ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4 text-[#4C5BD6]" />}
+      {refine.isPending ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : (
+        <Wand2 className="size-4 text-[#4C5BD6]" />
+      )}
       Refine prompt
     </button>
   )

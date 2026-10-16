@@ -2,21 +2,14 @@ import { useMemo, useState } from "react"
 import { Check, Loader2, RotateCcw, X } from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
-import usePricingStore from "@store/usePricingStore"
+import { useMediaPricing } from "@store/usePricingStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
 import type { MediaPipeline } from "@api/Media/MediaPipeline.api"
+import { resolveModelForMode } from "./mediaModes"
 import { estimatePipelineCredits } from "./pipelinePricing"
 
 type Step = { stage: MediaPipeline["stage"]; label: string }
-
-/** A multi-scene ad plans its scenes, makes each one (a whole pipeline of its own), then stitches. */
-const UGC_STEPS: Step[] = [
-  { stage: "planning", label: "Planning scenes" },
-  { stage: "scenes", label: "Making scenes" },
-  { stage: "stitching", label: "Stitching + sound" },
-  { stage: "subtitles", label: "Subtitles" },
-]
 
 const STEPS: Step[] = [
   { stage: "refining", label: "Refining prompt" },
@@ -28,7 +21,7 @@ const STEPS: Step[] = [
 
 /** The closing-frame and subtitle steps only exist for runs that use them. */
 const stepsFor = (pipeline: MediaPipeline) =>
-  (pipeline.kind === "ugc" ? UGC_STEPS : STEPS).filter(
+  STEPS.filter(
     (s) =>
       (s.stage !== "last_frames" || pipeline.useEndFrame) &&
       (s.stage !== "subtitles" || pipeline.subtitles?.style)
@@ -38,17 +31,6 @@ const stepsFor = (pipeline: MediaPipeline) =>
 const FAILED_VISIBLE_MS = 24 * 60 * 60 * 1000
 
 function stepDetail(pipeline: MediaPipeline): string {
-  if (pipeline.kind === "ugc") {
-    const scenes = pipeline.ugc?.scenes ?? []
-    if (pipeline.stage === "planning")
-      return "Writing each scene — the creator, the shots and the lines"
-    if (pipeline.stage === "scenes") {
-      const done = scenes.filter((s) => s.status === "done").length
-      return `${done} of ${scenes.length} scenes ready — each one is checked for defects and retried if needed`
-    }
-    if (pipeline.stage === "stitching") return "Joining the scenes and levelling the sound"
-    if (pipeline.stage === "subtitles") return "Timing the captions to the speech and adding them"
-  }
   if (pipeline.stage === "video") {
     return pipeline.videoAttempts > 1
       ? "The first take didn't pass our quality check, so we're retrying"
@@ -118,26 +100,6 @@ function FrameThumb({ url, label }: { url: string | null; label: string }) {
   )
 }
 
-/** One scene of a multi-scene ad: a placeholder that fills in and turns green as it finishes. */
-function SceneThumb({ scene }: { scene: NonNullable<MediaPipeline["ugc"]>["scenes"][number] }) {
-  const tone =
-    scene.status === "done"
-      ? "bg-emerald-500"
-      : scene.status === "failed"
-        ? "bg-rose-500"
-        : scene.status === "running"
-          ? "bg-[#4C5BD6] animate-pulse"
-          : "bg-slate-200"
-  return (
-    <div className="w-12 sm:w-14 shrink-0" title={scene.title || scene.kind}>
-      <div className={`h-1.5 rounded-full ${tone}`} />
-      <p className="mt-1 text-[10px] font-medium text-slate-400 text-center">
-        {scene.index + 1} · {scene.durationSeconds}s
-      </p>
-    </div>
-  )
-}
-
 /**
  * Live progress for Auto Video runs that haven't landed in the library yet: every running
  * pipeline, plus recently failed ones (with a one-click retry) until dismissed. Kept current
@@ -147,7 +109,7 @@ function SceneThumb({ scene }: { scene: NonNullable<MediaPipeline["ugc"]>["scene
 export function PipelineRuns() {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const { media: mediaCatalogue } = useMediaPricing()
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
   const { data } = mediaPipelineQuery.useList({ page: 1, limit: 10 })
@@ -174,17 +136,27 @@ export function PipelineRuns() {
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const handleRetry = (pipeline: MediaPipeline) => {
-    // A multi-scene ad is priced by its scenes, which the single-clip estimate can't see.
-    const price =
-      pipeline.kind === "ugc"
-        ? pipeline.creditCost
-        : estimatePipelineCredits(mediaCatalogue, {
-            videoModel: pipeline.videoModel,
-            durationSeconds: pipeline.durationSeconds,
-            resolution: pipeline.resolution,
-            useEndFrame: pipeline.useEndFrame,
-            subtitles: Boolean(pipeline.subtitles?.style),
-          })
+    // A run made on a model that has since been removed restarts on its mode's cheapest one
+    // (the backend does the same), so that's the model to price.
+    const retryModel = resolveModelForMode(
+      mediaCatalogue,
+      pipeline.productImageUrls.length > 0 ? "reference_to_video" : "image_to_video",
+      pipeline.videoModel
+    )
+    const price = retryModel
+      ? estimatePipelineCredits(mediaCatalogue, {
+          videoModel: retryModel.id,
+          durationSeconds: pipeline.durationSeconds,
+          resolution: pipeline.resolution,
+          useEndFrame: pipeline.useEndFrame,
+          subtitles: Boolean(pipeline.subtitles?.style),
+          productImages: pipeline.productImageUrls.length,
+        })
+      : null
+    if (price === null) {
+      toast.error("Prices aren't available right now — try again in a moment")
+      return
+    }
     handlePopup({
       title: "Try again?",
       description:
@@ -205,16 +177,8 @@ export function PipelineRuns() {
           className="rounded-lg border border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4"
         >
           <div className="flex gap-2">
-            {pipeline.kind === "ugc" ? (
-              (pipeline.ugc?.scenes ?? []).map((scene) => (
-                <SceneThumb key={scene.index} scene={scene} />
-              ))
-            ) : (
-              <>
-                <FrameThumb url={pipeline.firstFrameUrl} label="Opening" />
-                {pipeline.useEndFrame && <FrameThumb url={pipeline.lastFrameUrl} label="Closing" />}
-              </>
-            )}
+            <FrameThumb url={pipeline.firstFrameUrl} label="Opening" />
+            {pipeline.useEndFrame && <FrameThumb url={pipeline.lastFrameUrl} label="Closing" />}
           </div>
 
           <div className="min-w-0 flex-1 space-y-2">

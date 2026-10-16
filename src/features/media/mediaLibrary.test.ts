@@ -64,8 +64,8 @@ describe("filterAssets", () => {
     expect(filterAssets(assets, "all", "  DRONE ").map((a) => a._id)).toEqual(["2"])
   })
 
-  it("matches the purpose label even when the prompt never says it", () => {
-    expect(filterAssets(assets, "all", "ugc ad").map((a) => a._id)).toEqual(["1"])
+  it("matches the prompt only — not other fields", () => {
+    expect(filterAssets(assets, "all", "reel")).toEqual([])
   })
 
   it("combines the tab and the query", () => {

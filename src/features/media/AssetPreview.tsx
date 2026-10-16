@@ -47,23 +47,20 @@ const handleDownload = async (asset: MediaAsset) => {
 }
 
 /**
- * Full view of one asset. `modal` (layout A) is the media beside a details column; `drawer`
- * (layout B) slides in from the right so the library stays visible behind it. An id rather than
- * a snapshot is tracked by the caller, so this always reflects the live cache entry (status
- * flips from processing → completed while it's open).
+ * Full view of one asset: the media beside a details column. An id rather than a snapshot is
+ * tracked by the caller, so this always reflects the live cache entry (status flips from
+ * processing → completed while it's open).
  */
 export function AssetPreview({
   asset,
   assets,
   mediaCatalogue,
   onClose,
-  variant = "modal",
 }: {
   asset: MediaAsset | null
   assets: MediaAsset[]
   mediaCatalogue: MediaComposer["mediaCatalogue"]
   onClose: () => void
-  variant?: "modal" | "drawer"
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const open = asset !== null
@@ -77,16 +74,11 @@ export function AssetPreview({
   }, [open, onClose])
 
   const modelLabel = (id: string) => mediaCatalogue[id]?.label ?? id
-  const drawer = variant === "drawer"
 
   return (
     <AnimatePresence>
       {asset && (
-        <div
-          className={`fixed inset-0 z-60 flex ${
-            drawer ? "justify-end" : "items-center justify-center p-0 sm:p-4"
-          } bg-slate-900/60 backdrop-blur-xs`}
-        >
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/60 p-0 backdrop-blur-xs sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -98,23 +90,13 @@ export function AssetPreview({
             role="dialog"
             aria-modal="true"
             aria-label="Media details"
-            initial={drawer ? { x: 48, opacity: 0 } : { opacity: 0, scale: 0.96, y: 24 }}
-            animate={drawer ? { x: 0, opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={drawer ? { x: 48, opacity: 0 } : { opacity: 0, scale: 0.96, y: 24 }}
+            initial={{ opacity: 0, scale: 0.96, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 24 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={
-              drawer
-                ? "relative flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl sm:max-w-md"
-                : "relative flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-2xl lg:flex-row lg:overflow-hidden"
-            }
+            className="relative flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-2xl lg:flex-row lg:overflow-hidden"
           >
-            <div
-              className={`relative flex shrink-0 items-center justify-center bg-slate-950 ${
-                drawer
-                  ? "h-[42vh] p-3"
-                  : "h-[55vh] p-2 sm:h-[60vh] sm:p-6 lg:min-h-105 lg:flex-1 lg:shrink lg:h-auto"
-              }`}
-            >
+            <div className="relative flex h-[55vh] shrink-0 items-center justify-center bg-slate-950 p-2 sm:h-[60vh] sm:p-6 lg:h-auto lg:min-h-105 lg:flex-1 lg:shrink">
               {asset.resultUrl ? (
                 asset.type === "image" ? (
                   <img
@@ -164,16 +146,8 @@ export function AssetPreview({
               </button>
             </div>
 
-            <div
-              className={`flex shrink-0 flex-col ${
-                drawer ? "min-h-0 flex-1" : "w-full lg:max-h-[92vh] lg:w-90 xl:w-100"
-              }`}
-            >
-              <div
-                className={`flex min-h-0 flex-1 flex-col gap-5 p-4 sm:p-6 ${
-                  drawer ? "overflow-y-auto" : "lg:overflow-y-auto"
-                }`}
-              >
+            <div className="flex w-full shrink-0 flex-col lg:max-h-[92vh] lg:w-90 xl:w-100">
+              <div className="flex min-h-0 flex-1 flex-col gap-5 p-4 sm:p-6 lg:overflow-y-auto">
                 {/* Header: status, type, when */}
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -234,12 +208,6 @@ export function AssetPreview({
                         >
                           {asset.providerModel}
                         </p>
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 px-3 py-2.5">
-                      <dt className="text-slate-500">Purpose</dt>
-                      <dd className="font-semibold capitalize text-slate-800">
-                        {asset.purpose.replace("_", " ")}
                       </dd>
                     </div>
                     {/* Auto Video children carry no charge of their own — the run's price

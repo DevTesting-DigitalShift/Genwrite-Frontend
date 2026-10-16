@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom"
 import { AlertTriangle, ChevronDown, Loader2, ShieldCheck, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
-import usePricingStore from "@store/usePricingStore"
+import { useMediaPricing } from "@store/usePricingStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
 import type { CreateMediaPipelinePayload } from "@api/Media/MediaPipeline.api"
-import { PURPOSES, type MediaModel, type Purpose } from "./mediaOptions"
 import {
   DEFAULT_RESOLUTION,
   effectiveResolution,
@@ -19,8 +18,7 @@ import {
 import { pacingAdvice } from "./scriptPacing"
 import { RefinePromptButton } from "./RefinePromptButton"
 import { ProductScreenshots } from "./ProductScreenshots"
-import { UgcAdOptions, useUgcQuote } from "./UgcAdOptions"
-import { DEFAULT_UGC_SETTINGS, ugcPayload, type UgcAdSettings } from "./ugcAd"
+import { modelsForMode } from "./mediaModes"
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string }[] = [
   { id: "16:9", label: "Landscape 16:9" },
@@ -43,44 +41,39 @@ const SUBTITLE_STYLES: { id: SubtitleStyle; label: string }[] = [
  * between (prompt refinement, candidate frames, automated QA, the retry) runs server-side —
  * see src/modules/media/pipeline/ on the backend — and progress shows in PipelineRuns.
  */
-export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
+export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to_video" }) {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
-
-  // Only image-to-video models can run this flow — the catalogue marks them with frameVideo.
-  // Legacy ones stay priced for old runs but aren't offered for new ones.
-  const allModels = useMemo<MediaModel[]>(
-    () =>
-      Object.entries(mediaCatalogue)
-        .filter(([, m]) => m.frameVideo && !m.legacy && !m.unavailable)
-        .map(([id, m]) => ({ id, ...m })),
-    [mediaCatalogue]
-  )
+  const {
+    media: mediaCatalogue,
+    ready: pricingReady,
+    failed: pricingFailed,
+    retry: retryPricing,
+  } = useMediaPricing()
 
   const [modelId, setModelId] = useState("")
   const [duration, setDuration] = useState<number | null>(null)
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9")
-  const [purpose, setPurpose] = useState<Purpose>("reel")
   const [prompt, setPrompt] = useState("")
   const [lockEndFrame, setLockEndFrame] = useState(false)
   const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_RESOLUTION)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null)
   const [productUrls, setProductUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
-  const [ugcSettings, setUgcSettings] = useState<UgcAdSettings>(DEFAULT_UGC_SETTINGS)
 
-  // UGC ads can carry product screenshots and be built from several scenes; other purposes ignore both.
-  const isUgc = purpose === "ugc_ad"
-  // A UGC ad is built around the user's product screenshots, so only models that take product
-  // reference images are offered for it; every other purpose can use any image-to-video model.
+  // Runs that carry the user's own product screenshots are reference-to-video; the rest animate a
+  // generated opening frame (image-to-video). The backend tags every model with its mode, so each
+  // list is built from the catalogue — cheapest first, which makes the first the default.
+  const withReferences = mode === "reference_to_video"
+  // Sent as the run's tag until `purpose` is removed from the API: a reference run is a product
+  // ad; the rest get the social-video look that was this form's default.
+  const purpose = withReferences ? "ugc_ad" : "reel"
   const models = useMemo(
-    () => (isUgc ? allModels.filter((m) => m.frameVideo?.referenceImages) : allModels),
-    [allModels, isUgc]
+    () => modelsForMode(mediaCatalogue, withReferences ? "reference_to_video" : "image_to_video"),
+    [mediaCatalogue, withReferences]
   )
   const model = models.find((m) => m.id === modelId) ?? models[0]
-  const isMultiScene = isUgc && ugcSettings.mode === "multi"
   const durations = model?.frameVideo?.durations ?? []
   // The picked duration may not exist on a newly picked model (Boreal has no 9s). Snap to the next
   // longer one it does have — as the backend does — so a script isn't cut short; nothing picked yet: 5s.
@@ -95,31 +88,18 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
   const durationSnapped = duration !== null && durations.length > 0 && durationSeconds !== duration
   // Animating forward from one frame looks most natural, so the end frame is opt-in, and only
   // offered where the model accepts one.
-  const canLockEndFrame = model?.frameVideo?.endFrame === "optional" && !isMultiScene
+  const canLockEndFrame = model?.frameVideo?.endFrame === "optional"
   const useEndFrame = canLockEndFrame && lockEndFrame
   // Only models with per-resolution pricing take a resolution; the rest render at a fixed one.
   const resolutionOptions = resolutionsOf(model)
   const videoResolution = effectiveResolution(model, resolution)
   // A quoted script longer than the clip allows comes out rushed — say so before they pay.
-  const pacing = isMultiScene ? null : pacingAdvice(prompt, durationSeconds, durations)
-  const screenshots = isUgc ? productUrls : []
+  const pacing = pacingAdvice(prompt, durationSeconds, durations)
+  const screenshots = withReferences ? productUrls : []
   const takesScreenRefs = Boolean(model?.frameVideo?.referenceImages)
 
-  // A multi-scene ad is priced by the backend (its scenes — and a pasted script's lengthened ones —
-  // decide the cost); a single clip is priced here from the catalogue.
-  const quote = useUgcQuote(
-    ugcSettings,
-    {
-      videoModel: model?.id ?? "",
-      resolution: videoResolution,
-      productImages: screenshots.length,
-      subtitles: subtitleStyle !== null,
-    },
-    isMultiScene
-  )
-  const quoteReady = !isMultiScene || quote.data !== undefined
-
-  const clipPrice = model
+  // Priced only from the backend's catalogue — null while it (or a model's rate) isn't known.
+  const price = model
     ? estimatePipelineCredits(mediaCatalogue, {
         videoModel: model.id,
         durationSeconds,
@@ -128,15 +108,13 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         subtitles: subtitleStyle !== null,
         productImages: screenshots.length,
       })
-    : 0
-  const price = isMultiScene ? (quote.data?.cost ?? 0) : clipPrice
+    : null
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const create = mediaPipelineQuery.useCreate({
     onSuccess: () => {
       setPrompt("")
       setProductUrls([])
-      setUgcSettings(DEFAULT_UGC_SETTINGS)
       loadAuthenticatedUser()
       toast.success("Video generation started — usually ready in 5–10 minutes", {
         description:
@@ -153,11 +131,15 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
     }
     if (!model) return
     if (uploading) {
-      toast.error("Wait for the screenshots to finish uploading")
+      toast.error("Wait for the images to finish uploading")
       return
     }
-    if (!quoteReady) {
-      toast.error("Still pricing the ad — try again in a moment")
+    if (withReferences && screenshots.length === 0) {
+      toast.error("Add at least one reference image")
+      return
+    }
+    if (price === null) {
+      toast.error("Prices aren't available right now — try again in a moment")
       return
     }
     if (userCredits < price) {
@@ -179,11 +161,27 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
       subtitleStyle,
       productImageUrls: screenshots,
       purpose,
-      ...(isUgc && ugcPayload(ugcSettings) ? { ugc: ugcPayload(ugcSettings) } : {}),
     } as CreateMediaPipelinePayload)
   }
 
-  if (allModels.length === 0) {
+  // No prices yet means no models: wait for the backend's catalogue rather than show a guess.
+  if (!pricingReady) {
+    return pricingFailed ? (
+      <div className="flex flex-col items-start gap-2 text-sm text-slate-600">
+        <p>Prices couldn't be loaded, so video models aren't available right now.</p>
+        <button
+          type="button"
+          onClick={retryPricing}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Try again
+        </button>
+      </div>
+    ) : (
+      <p className="text-sm text-slate-500">Loading models and prices…</p>
+    )
+  }
+  if (models.length === 0) {
     return <p className="text-sm text-slate-500">Auto Video isn't available right now.</p>
   }
 
@@ -238,9 +236,7 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         )}
       </div>
 
-      <div
-        className={`grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6 ${compact ? "" : "lg:grid-cols-3"}`}
-      >
+      <div className={`grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6 lg:grid-cols-3`}>
         <div className="form-control w-full col-span-2 sm:col-span-1">
           <label htmlFor="auto-video-model" className="label">
             <span className="label-text font-semibold">Model</span>
@@ -260,24 +256,6 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         </div>
 
         <div className="form-control w-full">
-          <label htmlFor="auto-video-purpose" className="label">
-            <span className="label-text font-semibold">Purpose</span>
-          </label>
-          <select
-            id="auto-video-purpose"
-            className={selectClass}
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value as Purpose)}
-          >
-            {PURPOSES.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-control w-full">
           <label htmlFor="auto-video-duration" className="label">
             <span className="label-text font-semibold">Duration</span>
           </label>
@@ -286,7 +264,7 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
             className={selectClass}
             value={durationSeconds}
             onChange={(e) => setDuration(Number(e.target.value))}
-            disabled={durations.length <= 1 || isMultiScene}
+            disabled={durations.length <= 1}
           >
             {durations.map((d) => (
               <option key={d} value={d}>
@@ -363,18 +341,12 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         </div>
       </div>
 
-      {isUgc && (
+      {withReferences && (
         <>
           <ProductScreenshots
             urls={productUrls}
             onChange={setProductUrls}
             onUploadingChange={setUploading}
-          />
-          <UgcAdOptions
-            settings={ugcSettings}
-            onChange={setUgcSettings}
-            scenes={quote.data?.breakdown?.scenes}
-            warnings={quote.data?.breakdown?.warnings}
           />
           {screenshots.length > 0 && !takesScreenRefs && (
             <p className="-mt-3 mb-5 text-xs text-slate-500 sm:-mt-4 sm:mb-6">
@@ -424,7 +396,10 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Sparkles size={14} className="text-[#4C5BD6]" />
           <span>
-            Price <strong className="font-semibold text-slate-900">{price} credits</strong>
+            Price{" "}
+            <strong className="font-semibold text-slate-900">
+              {price === null ? "—" : `${price} credits`}
+            </strong>
           </span>
           <span className="text-slate-400">· includes the automatic retry</span>
         </div>
@@ -432,7 +407,12 @@ export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={create.isPending || uploading || !quoteReady}
+          disabled={
+            create.isPending ||
+            uploading ||
+            price === null ||
+            (withReferences && screenshots.length === 0)
+          }
           className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4C5BD6] px-7 text-base font-semibold text-white transition-colors hover:bg-[#3B4BB8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/30 disabled:opacity-60 sm:w-auto"
         >
           {create.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Generate Video"}

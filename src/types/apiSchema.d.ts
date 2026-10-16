@@ -4204,7 +4204,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-14T04:21:03.020Z
+             * @default 2026-10-16T04:30:29.201Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5088,7 +5088,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-14T04:21:03.067Z
+                 * @default 2026-10-16T04:30:29.225Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5262,7 +5262,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-14T04:21:03.068Z
+                 * @default 2026-10-16T04:30:29.226Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5437,7 +5437,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-14T04:21:03.075Z
+             * @default 2026-10-16T04:30:29.232Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6151,7 +6151,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-14T04:21:03.094Z
+                 * @default 2026-10-16T04:30:29.247Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6325,7 +6325,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-14T04:21:03.098Z
+                 * @default 2026-10-16T04:30:29.248Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -6757,7 +6757,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-14T04:21:03.114Z
+             * @default 2026-10-16T04:30:29.258Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8482,16 +8482,21 @@ export interface components {
                             [key: string]: number;
                         };
                         /**
-                         * @description Not served by fal: "vertex" = generated directly through Vertex AI, "local" = assembled on our own server
+                         * @description Which picker offers this model; "internal" models are only called by our own pipelines
                          * @enum {string}
                          */
-                        provider?: "vertex" | "local";
+                        mode: "text_to_image" | "image_to_image" | "text_to_video" | "image_to_video" | "reference_to_video" | "internal";
+                        /** @description The company/model line — a mode offers at most one model per family */
+                        family: string;
+                        /**
+                         * @description Not served by fal: "vertex" = generated directly through Vertex AI
+                         * @enum {string}
+                         */
+                        provider?: "vertex";
                         /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                         requiresImage?: boolean;
                         /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
                         unavailable?: boolean;
-                        /** @description Superseded model, kept priced for historical records — hide it from pickers */
-                        legacy?: boolean;
                         /** @description Image-to-video model used by the Auto Video pipeline */
                         frameVideo?: {
                             /** @description Supported output lengths in seconds */
@@ -8522,7 +8527,7 @@ export interface components {
                              * @enum {string}
                              */
                             endFrame: "none" | "optional" | "required";
-                            /** @description Takes product/app screenshots as reference images (UGC ads); `max` is how many */
+                            /** @description Takes product/app screenshots as reference images; `max` is how many */
                             referenceImages?: {
                                 field: string;
                                 max: number;
@@ -8682,7 +8687,7 @@ export interface components {
             generate: components["schemas"]["GeneratePricing"];
             blogGeneration: components["schemas"]["BlogGenerationPricing"];
             images: components["schemas"]["ImagePricing"];
-            /** @description model id -> {kind, unit, usdPerUnit, label, provider?, requiresImage?, legacy?, frameVideo?, textVideo?} */
+            /** @description model id -> {kind, mode, family, unit, usdPerUnit, label, provider?, requiresImage?, frameVideo?, textVideo?} */
             media: {
                 [key: string]: {
                     /** @enum {string} */
@@ -8696,16 +8701,21 @@ export interface components {
                         [key: string]: number;
                     };
                     /**
-                     * @description Not served by fal: "vertex" = generated directly through Vertex AI, "local" = assembled on our own server
+                     * @description Which picker offers this model; "internal" models are only called by our own pipelines
                      * @enum {string}
                      */
-                    provider?: "vertex" | "local";
+                    mode: "text_to_image" | "image_to_image" | "text_to_video" | "image_to_video" | "reference_to_video" | "internal";
+                    /** @description The company/model line — a mode offers at most one model per family */
+                    family: string;
+                    /**
+                     * @description Not served by fal: "vertex" = generated directly through Vertex AI
+                     * @enum {string}
+                     */
+                    provider?: "vertex";
                     /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                     requiresImage?: boolean;
                     /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
                     unavailable?: boolean;
-                    /** @description Superseded model, kept priced for historical records — hide it from pickers */
-                    legacy?: boolean;
                     /** @description Image-to-video model used by the Auto Video pipeline */
                     frameVideo?: {
                         /** @description Supported output lengths in seconds */
@@ -8736,7 +8746,7 @@ export interface components {
                          * @enum {string}
                          */
                         endFrame: "none" | "optional" | "required";
-                        /** @description Takes product/app screenshots as reference images (UGC ads); `max` is how many */
+                        /** @description Takes product/app screenshots as reference images; `max` is how many */
                         referenceImages?: {
                             field: string;
                             max: number;
@@ -8879,7 +8889,7 @@ export interface components {
                  * @example 25
                  */
                 cost: number;
-                /** @description Per-component cost breakdown for type "blog"; for "media-ugc-ad" the scenes the ad will have (after pacing adjustments), warnings and the demo-scene model */
+                /** @description Per-component cost breakdown for type "blog" */
                 breakdown?: {
                     [key: string]: unknown;
                 };
@@ -8917,10 +8927,6 @@ export interface components {
             /** @enum {string} */
             type: "media-pipeline";
             params: components["schemas"]["MediaPipelinePricingParams"];
-        } | {
-            /** @enum {string} */
-            type: "media-ugc-ad";
-            params: components["schemas"]["MediaUgcAdPricingParams"];
         } | {
             /** @enum {string} */
             type: "analysis";
@@ -9054,7 +9060,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/nano-banana-2" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9086,7 +9092,7 @@ export interface components {
              * @example alibaba/wan-3.0/image-to-video
              * @enum {string}
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            videoModel: "alibaba/wan-3.0/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
             /**
              * @description Video duration in seconds
              * @example 5
@@ -9110,7 +9116,7 @@ export interface components {
              */
             resolution: "480p" | "540p" | "720p" | "1080p" | null;
             /**
-             * @description Number of product screenshots attached (UGC ad)
+             * @description Number of product screenshots attached
              * @default 0
              */
             productImages: number;
@@ -9124,38 +9130,6 @@ export interface components {
              * @default true
              */
             includeFrames: boolean;
-        };
-        MediaUgcAdPricingParams: {
-            /**
-             * @description The ad's image-to-video model (demo scenes fall back to one with an end frame)
-             * @example alibaba/wan-3.0/image-to-video
-             * @enum {string}
-             */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
-            /**
-             * @default null
-             * @enum {string|null}
-             */
-            resolution: "480p" | "540p" | "720p" | "1080p" | null;
-            /**
-             * @description Screenshots attached
-             * @default 0
-             */
-            productImages: number;
-            /** @default false */
-            subtitles: boolean;
-            structure?: {
-                /** @enum {string} */
-                kind: "hook" | "demo" | "cta" | "talk";
-                durationSeconds: number;
-            }[];
-            /** @description A pasted IMAGE PROMPT / VIDEO PROMPT script — the quote reflects its (possibly lengthened) scenes */
-            script?: string;
-            /**
-             * @default natural
-             * @enum {string}
-             */
-            pacing: "natural" | "as_written";
         };
         MediaAssetResponse: {
             /**
@@ -9196,13 +9170,12 @@ export interface components {
              * @default fal
              * @enum {string}
              */
-            provider: "fal" | "vertex" | "local";
+            provider: "fal" | "vertex";
             /**
-             * @description fal model id used
-             * @example fal-ai/nano-banana
-             * @enum {string}
+             * @description Model id used (it may have been removed from the model table since)
+             * @example fal-ai/hidream-o1-image
              */
-            providerModel: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision" | "local/ugc-ad" | "fal-ai/nano-banana" | "fal-ai/bytedance/seedream/v4/text-to-image" | "fal-ai/flux-pro/kontext" | "fal-ai/qwen-image" | "fal-ai/hidream-o1-image/edit" | "fal-ai/nano-banana-2" | "gemini-3.1-flash-image" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "fal-ai/wan-25-preview/text-to-video" | "fal-ai/kling-video/v2.5-turbo/pro/text-to-video" | "fal-ai/ovi" | "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" | "fal-ai/wan-flf2v" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            providerModel: string;
             /** @description Prompt used for generation */
             prompt: string;
             /** @description fal.ai queue request id, used to poll/match webhook callbacks; null for direct-Vertex assets */
@@ -9278,10 +9251,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal image model id
-             * @example bytedance/seedream/v5/pro/text-to-image
+             * @example fal-ai/hidream-o1-image
              * @enum {string}
              */
-            model: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image";
+            model: "fal-ai/hidream-o1-image" | "alibaba/qwen-image-3/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "bytedance/seedream/v5/pro/text-to-image" | "openai/gpt-image-2";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9328,10 +9301,10 @@ export interface components {
             prompt: string;
             /**
              * @description fal video model id
-             * @example alibaba/wan-3.0/text-to-video
+             * @example creatify/boreal
              * @enum {string}
              */
-            model: "alibaba/wan-3.0/text-to-video" | "alibaba/wan-3.0-prime/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "creatify/boreal";
+            model: "creatify/boreal" | "alibaba/wan-3.0/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "fal-ai/veo3.1";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9406,11 +9379,10 @@ export interface components {
             /** @description The prompt as the user typed it */
             userPrompt: string;
             /**
-             * @description Auto Video image-to-video model id
-             * @example alibaba/wan-3.0/image-to-video
-             * @enum {string}
+             * @description Image-to-video / reference-to-video model id the run was made with (it may have been removed since)
+             * @example minimax/h3-max-turbo/image-to-video
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "blackforestlabs/flux-3/first-last-frame-to-video";
+            videoModel: string;
             /**
              * @description Requested video duration in seconds
              * @example 5
@@ -9423,50 +9395,13 @@ export interface components {
              */
             aspectRatio: "16:9" | "9:16";
             /**
-             * @description single clip, multi-scene UGC ad, or one scene of an ad
-             * @default single
-             * @enum {string}
-             */
-            kind: "single" | "ugc" | "scene";
-            /** @description Multi-scene ad plan and progress (kind 'ugc'); empty otherwise */
-            ugc: {
-                /**
-                 * @description A pasted IMAGE PROMPT / VIDEO PROMPT script, used as written
-                 * @default null
-                 */
-                script: string | null;
-                /**
-                 * @default natural
-                 * @enum {string}
-                 */
-                pacing: "natural" | "as_written";
-                /** @default true */
-                masterAudio: boolean;
-                /** @default null */
-                demoVideoModel: string | null;
-                /** @default 0 */
-                planAttempts: number;
-                /** @default 0 */
-                stitchAttempts: number;
-                /** @default [] */
-                creators: {
-                    label: string;
-                    sheet: string;
-                    voice: string;
-                }[];
-                /** @default [] */
-                scenes: components["schemas"]["MediaPipelineUgcScene"][];
-                /** @default [] */
-                warnings: string[];
-            };
-            /**
              * @description Output resolution; null when the model has no resolution choice
              * @default null
              * @enum {string|null}
              */
             resolution: "480p" | "540p" | "720p" | "1080p" | null;
             /**
-             * @description Product/app screenshots shown in the video (UGC ads); empty for a plain run
+             * @description Product/app screenshots shown in the video; empty for a plain run
              * @default []
              */
             productImageUrls: string[];
@@ -9517,26 +9452,25 @@ export interface components {
                 dialogue: string[];
                 /** @default null */
                 audioPrompt: string | null;
-                /** @default [] */
-                beats: {
-                    start: number;
-                    end: number;
-                    action: string;
-                }[];
                 /** @default null */
                 negativePrompt: string | null;
                 /**
                  * @default null
                  * @enum {string|null}
                  */
-                source: "llm" | "fallback" | "preset" | null;
+                screenDevice: "phone" | "laptop" | "tablet" | null;
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                source: "llm" | "fallback" | null;
             };
             /**
              * @description Current pipeline stage
              * @default refining
              * @enum {string}
              */
-            stage: "planning" | "scenes" | "stitching" | "refining" | "first_frames" | "last_frames" | "video" | "subtitles" | "completed" | "failed";
+            stage: "refining" | "first_frames" | "last_frames" | "video" | "subtitles" | "completed" | "failed";
             /**
              * @description Candidate round within the current frame stage
              * @default 0
@@ -9619,51 +9553,6 @@ export interface components {
              */
             updatedAt: string;
         };
-        MediaPipelineUgcScene: {
-            index: number;
-            /** @enum {string} */
-            kind: "hook" | "demo" | "cta" | "talk";
-            /** @default null */
-            title: string | null;
-            durationSeconds: number;
-            /**
-             * @default waiting
-             * @enum {string}
-             */
-            status: "waiting" | "running" | "done" | "failed";
-            /** @default null */
-            stage: string | null;
-            /**
-             * @description MongoDB ObjectId, serialized as a hex string
-             * @default null
-             * @example 662f1a2b8c9d4e0012a3b4c5
-             */
-            pipelineId: string | null;
-            /** @default true */
-            lipsync: boolean;
-            /** @default A */
-            creator: string;
-            /** @default null */
-            imagePrompt: string | null;
-            /** @default null */
-            imagePromptB: string | null;
-            /** @default null */
-            videoPrompt: string | null;
-            /** @default [] */
-            dialogue: string[];
-            /** @default [] */
-            voiceover: string[];
-            /** @default null */
-            voiceSpec: string | null;
-            /** @default null */
-            audioCues: string | null;
-            /** @default [] */
-            beats: {
-                start: number;
-                end: number;
-                action: string;
-            }[];
-        };
         MediaPipelineQaResult: {
             /**
              * @description MediaAsset that was screened
@@ -9699,10 +9588,10 @@ export interface components {
             prompt: string;
             /**
              * @description Image-to-video model id
-             * @example alibaba/wan-3.0/image-to-video
+             * @example minimax/h3-max-turbo/image-to-video
              * @enum {string}
              */
-            videoModel: "alibaba/wan-3.0/image-to-video" | "alibaba/wan-3.0-prime/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "blackforestlabs/flux-3/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/image-to-video" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/image-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video";
+            videoModel: "minimax/h3-max-turbo/image-to-video" | "alibaba/wan-3.0/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "veo-3.1-generate-001" | "minimax/h3-max/reference-to-video" | "fal-ai/vidu/q4/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "fal-ai/kling-video/o3/pro/reference-to-video";
             /**
              * @description Video length in seconds; must be one of the model's supported durations
              * @default 5
@@ -9728,7 +9617,7 @@ export interface components {
              */
             useEndFrame: boolean;
             /**
-             * @description Real product/app screenshots shown in the video — for UGC ads. Must be images uploaded via /user/images/upload by the same user (other URLs are rejected)
+             * @description Real product/app screenshots shown in the video. Must be images uploaded via /user/images/upload by the same user (other URLs are rejected)
              * @default []
              * @example []
              */
@@ -9745,40 +9634,6 @@ export interface components {
              * @enum {string}
              */
             purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
-            /** @description Make a multi-scene UGC ad (hook → demo → wrap-up, each its own shot, stitched together). Requires purpose 'ugc_ad'. */
-            ugc?: {
-                /**
-                 * @description The ad's scenes in order (default: hook 5s → demo 6s → wrap-up 5s). Ignored when a script is pasted.
-                 * @example [
-                 *       {
-                 *         "kind": "hook",
-                 *         "durationSeconds": 5
-                 *       },
-                 *       {
-                 *         "kind": "demo",
-                 *         "durationSeconds": 6
-                 *       }
-                 *     ]
-                 */
-                structure?: {
-                    /** @enum {string} */
-                    kind: "hook" | "demo" | "cta" | "talk";
-                    durationSeconds: number;
-                }[];
-                /** @description A pasted IMAGE PROMPT / VIDEO PROMPT script for ONE ad, used exactly as written (its scenes, beats, dialogue and sound cues). Without it the scenes are written for you. */
-                script?: string;
-                /**
-                 * @description 'natural' lengthens a scene whose speech would be rushed; 'as_written' keeps the script's timings
-                 * @default natural
-                 * @enum {string}
-                 */
-                pacing: "natural" | "as_written";
-                /**
-                 * @description Level the finished ad's soundtrack (loudness, rumble, harsh top end)
-                 * @default true
-                 */
-                masterAudio: boolean;
-            };
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -12072,7 +11927,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-14T04:21:02.989Z
+                             * @default 2026-10-16T04:30:29.168Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12219,7 +12074,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-14T04:21:02.991Z
+                             * @default 2026-10-16T04:30:29.172Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;

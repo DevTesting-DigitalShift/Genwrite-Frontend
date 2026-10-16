@@ -1,9 +1,10 @@
 import { AlertTriangle, Film, RotateCcw, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
-import usePricingStore from "@store/usePricingStore"
+import { useMediaPricing } from "@store/usePricingStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { mediaPipelineQuery } from "@api/Media/MediaPipeline.query"
+import { resolveModelForMode } from "./mediaModes"
 import { estimatePipelineCredits } from "./pipelinePricing"
 
 /**
@@ -21,7 +22,7 @@ export function PipelineAssetActions({
 }) {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const mediaCatalogue = usePricingStore((s) => s.catalogue.media)
+  const { media: mediaCatalogue } = useMediaPricing()
   const { data: pipeline } = mediaPipelineQuery.useDetail(pipelineId)
   const regenerate = mediaPipelineQuery.useRegenerate({
     onSuccess: () => {
@@ -35,23 +36,32 @@ export function PipelineAssetActions({
   if (!pipeline) return null
 
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+  // A run made on a model that has since been removed restarts on its mode's cheapest one (the
+  // backend does the same), so that's the model to price.
+  const priceModel = resolveModelForMode(
+    mediaCatalogue,
+    pipeline.productImageUrls.length > 0 ? "reference_to_video" : "image_to_video",
+    pipeline.videoModel
+  )
   const priceOf = (includeFrames: boolean) =>
-    pipeline.kind === "ugc"
-      ? pipeline.creditCost
-      : estimatePipelineCredits(mediaCatalogue, {
-          videoModel: pipeline.videoModel,
+    priceModel
+      ? estimatePipelineCredits(mediaCatalogue, {
+          videoModel: priceModel.id,
           durationSeconds: pipeline.durationSeconds,
           resolution: pipeline.resolution,
           useEndFrame: pipeline.useEndFrame,
           subtitles: Boolean(pipeline.subtitles?.style),
+          productImages: pipeline.productImageUrls.length,
           includeFrames,
         })
-
-  // A multi-scene ad has no single opening frame to re-animate — only a full restart makes sense.
-  const isMultiScene = pipeline.kind === "ugc"
+      : null
 
   const confirm = (mode: "video" | "full") => {
     const price = priceOf(mode === "full")
+    if (price === null) {
+      toast.error("Prices aren't available right now — try again in a moment")
+      return
+    }
     const short = userCredits < price
     handlePopup({
       title: mode === "video" ? "Regenerate the video?" : "Start over?",
@@ -107,42 +117,15 @@ export function PipelineAssetActions({
         )}
       </section>
 
-      {isMultiScene && (pipeline.ugc?.scenes.length ?? 0) > 0 && (
-        <section>
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Scenes
-          </h3>
-          <ol className="space-y-1 text-xs text-slate-600">
-            {pipeline.ugc.scenes.map((s) => (
-              <li key={s.index} className="flex justify-between gap-3">
-                <span className="truncate">
-                  {s.index + 1}. {s.title || s.kind}
-                </span>
-                <span className="shrink-0 font-semibold text-slate-700">{s.durationSeconds}s</span>
-              </li>
-            ))}
-          </ol>
-          {pipeline.ugc.warnings.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[11px] text-amber-700">
-              {pipeline.ugc.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      <div className={isMultiScene ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
-        {!isMultiScene && (
-          <button
-            type="button"
-            onClick={() => confirm("video")}
-            disabled={regenerate.isPending}
-            className="btn h-11 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center justify-center gap-1.5"
-          >
-            <Film size={15} /> Regenerate video
-          </button>
-        )}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => confirm("video")}
+          disabled={regenerate.isPending}
+          className="btn h-11 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center justify-center gap-1.5"
+        >
+          <Film size={15} /> Regenerate video
+        </button>
         <button
           type="button"
           onClick={() => confirm("full")}
