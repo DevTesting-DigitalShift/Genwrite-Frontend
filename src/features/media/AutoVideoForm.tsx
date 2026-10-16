@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertTriangle, Loader2, ShieldCheck, Sparkles } from "lucide-react"
+import { AlertTriangle, ChevronDown, Loader2, ShieldCheck, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import useAuthStore from "@store/useAuthStore"
 import usePricingStore from "@store/usePricingStore"
@@ -43,7 +43,7 @@ const SUBTITLE_STYLES: { id: SubtitleStyle; label: string }[] = [
  * between (prompt refinement, candidate frames, automated QA, the retry) runs server-side —
  * see src/modules/media/pipeline/ on the backend — and progress shows in PipelineRuns.
  */
-export function AutoVideoForm() {
+export function AutoVideoForm({ compact = false }: { compact?: boolean }) {
   const { user, loadAuthenticatedUser } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
@@ -187,16 +187,67 @@ export function AutoVideoForm() {
     return <p className="text-sm text-slate-500">Auto Video isn't available right now.</p>
   }
 
+  const selectClass =
+    "select outline-0 w-full h-11 rounded-lg border-gray-200 border mt-1 focus:border-[#4C5BD6] focus:ring-4 focus:ring-[#4C5BD6]/15"
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-5 sm:mb-6">
-        <div className="form-control w-full">
+      <div className="mb-5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50/60 transition-colors focus-within:border-[#4C5BD6] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#4C5BD6]/15">
+          <label htmlFor="auto-video-prompt" className="sr-only">
+            Describe your video
+          </label>
+          <textarea
+            id="auto-video-prompt"
+            className="block min-h-32 w-full resize-none rounded-t-xl bg-transparent p-4 text-base leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 sm:min-h-36 sm:p-5"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            maxLength={2000}
+            placeholder={
+              'Describe your video… e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'
+            }
+          />
+          <div className="flex justify-end px-3 pb-3 sm:px-4">
+            <RefinePromptButton
+              prompt={prompt}
+              kind="video"
+              purpose={purpose}
+              onRefined={setPrompt}
+            />
+          </div>
+        </div>
+        {pacing && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <p>
+              Your script is {pacing.words} words — about {pacing.neededSeconds}s at a natural pace,
+              so at {durationSeconds}s it will sound rushed.{" "}
+              {pacing.suggestedDuration ? (
+                <button
+                  type="button"
+                  className="font-semibold underline"
+                  onClick={() => setDuration(pacing.suggestedDuration)}
+                >
+                  Use {pacing.suggestedDuration} seconds
+                </button>
+              ) : (
+                "Shorten it — this model can't go long enough."
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div
+        className={`grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6 ${compact ? "" : "lg:grid-cols-3"}`}
+      >
+        <div className="form-control w-full col-span-2 sm:col-span-1">
           <label htmlFor="auto-video-model" className="label">
             <span className="label-text font-semibold">Model</span>
           </label>
           <select
             id="auto-video-model"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+            className={selectClass}
             value={model?.id ?? ""}
             onChange={(e) => setModelId(e.target.value)}
           >
@@ -209,12 +260,30 @@ export function AutoVideoForm() {
         </div>
 
         <div className="form-control w-full">
+          <label htmlFor="auto-video-purpose" className="label">
+            <span className="label-text font-semibold">Purpose</span>
+          </label>
+          <select
+            id="auto-video-purpose"
+            className={selectClass}
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value as Purpose)}
+          >
+            {PURPOSES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-control w-full">
           <label htmlFor="auto-video-duration" className="label">
             <span className="label-text font-semibold">Duration</span>
           </label>
           <select
             id="auto-video-duration"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+            className={selectClass}
             value={durationSeconds}
             onChange={(e) => setDuration(Number(e.target.value))}
             disabled={durations.length <= 1 || isMultiScene}
@@ -238,7 +307,7 @@ export function AutoVideoForm() {
           </label>
           <select
             id="auto-video-aspect"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
+            className={selectClass}
             value={aspectRatio}
             onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
           >
@@ -251,18 +320,43 @@ export function AutoVideoForm() {
         </div>
 
         <div className="form-control w-full">
-          <label htmlFor="auto-video-purpose" className="label">
-            <span className="label-text font-semibold">Purpose</span>
+          <label htmlFor="auto-video-resolution" className="label">
+            <span className="label-text font-semibold">Resolution</span>
           </label>
           <select
-            id="auto-video-purpose"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value as Purpose)}
+            id="auto-video-resolution"
+            className={selectClass}
+            value={videoResolution ?? ""}
+            onChange={(e) => setResolution(e.target.value as VideoResolution)}
+            disabled={resolutionOptions.length <= 1}
           >
-            {PURPOSES.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
+            {resolutionOptions.length === 0 ? (
+              <option value="">Set by the model</option>
+            ) : (
+              resolutionOptions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                  {r === "1080p" ? " (sharpest)" : r === "480p" ? " (cheapest)" : ""}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div className="form-control w-full">
+          <label htmlFor="auto-video-subtitles" className="label">
+            <span className="label-text font-semibold">Subtitles</span>
+          </label>
+          <select
+            id="auto-video-subtitles"
+            className={selectClass}
+            value={subtitleStyle ?? ""}
+            onChange={(e) => setSubtitleStyle((e.target.value || null) as SubtitleStyle | null)}
+          >
+            <option value="">No subtitles</option>
+            {SUBTITLE_STYLES.map((st) => (
+              <option key={st.id} value={st.id}>
+                {st.label}
               </option>
             ))}
           </select>
@@ -291,51 +385,6 @@ export function AutoVideoForm() {
         </>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-5 sm:mb-6">
-        <div className="form-control w-full">
-          <label htmlFor="auto-video-resolution" className="label">
-            <span className="label-text font-semibold">Resolution</span>
-          </label>
-          <select
-            id="auto-video-resolution"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-            value={videoResolution ?? ""}
-            onChange={(e) => setResolution(e.target.value as VideoResolution)}
-            disabled={resolutionOptions.length <= 1}
-          >
-            {resolutionOptions.length === 0 ? (
-              <option value="">Set by the model</option>
-            ) : (
-              resolutionOptions.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                  {r === "1080p" ? " (sharpest)" : r === "480p" ? " (cheapest)" : ""}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        <div className="form-control w-full sm:col-span-1 lg:col-span-2">
-          <label htmlFor="auto-video-subtitles" className="label">
-            <span className="label-text font-semibold">Subtitles</span>
-          </label>
-          <select
-            id="auto-video-subtitles"
-            className="select outline-0 w-full h-12 rounded-lg border-gray-200 border mt-1"
-            value={subtitleStyle ?? ""}
-            onChange={(e) => setSubtitleStyle((e.target.value || null) as SubtitleStyle | null)}
-          >
-            <option value="">No subtitles</option>
-            {SUBTITLE_STYLES.map((st) => (
-              <option key={st.id} value={st.id}>
-                {st.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {canLockEndFrame && (
         <label className="mb-5 sm:mb-6 flex items-start gap-3 cursor-pointer">
           <input
@@ -354,55 +403,13 @@ export function AutoVideoForm() {
         </label>
       )}
 
-      <div className="space-y-2 mb-4">
-        <label htmlFor="auto-video-prompt" className="label">
-          <span className="label-text font-semibold">
-            Describe your video <span className="text-rose-500 text-lg">*</span>
-          </span>
-        </label>
-        <textarea
-          id="auto-video-prompt"
-          className="textarea w-full min-h-30 sm:min-h-35 rounded-2xl p-4 sm:p-6 outline-0 border border-slate-200 bg-slate-50 resize-none"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          maxLength={2000}
-          placeholder={
-            'e.g. A young man in his bedroom holds up his phone to the camera and says: "This app changed my morning routine." Selfie-style, natural light'
-          }
-        />
-        <div className="flex justify-end">
-          <RefinePromptButton
-            prompt={prompt}
-            kind="video"
-            purpose={purpose}
-            onRefined={setPrompt}
-          />
-        </div>
-        {pacing && (
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <p>
-              Your script is {pacing.words} words — about {pacing.neededSeconds}s at a natural pace,
-              so at {durationSeconds}s it will sound rushed.{" "}
-              {pacing.suggestedDuration ? (
-                <button
-                  type="button"
-                  className="font-semibold underline"
-                  onClick={() => setDuration(pacing.suggestedDuration)}
-                >
-                  Use {pacing.suggestedDuration} seconds
-                </button>
-              ) : (
-                "Shorten it — this model can't go long enough."
-              )}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="mb-5 sm:mb-6 flex gap-2.5 rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs leading-relaxed text-slate-600">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#4C5BD6]" />
-        <p>
+      <details className="group mb-5 sm:mb-6 rounded-xl border border-slate-100 bg-slate-50 text-xs leading-relaxed text-slate-600">
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3 font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/20 rounded-xl [&::-webkit-details-marker]:hidden">
+          <ShieldCheck className="size-4 shrink-0 text-[#4C5BD6]" />
+          How Auto Video works — quality-checked, retried once for free
+          <ChevronDown className="ml-auto size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+        </summary>
+        <p className="px-3 pb-3 pl-9">
           We expand your idea into a realistic shot with a spoken script and sound, generate several
           opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one that passes
           an automatic quality check before animating it with native audio
@@ -411,20 +418,22 @@ export function AutoVideoForm() {
           of sync, we retry once at no extra cost. On-screen text is avoided on purpose, because AI
           video often garbles it.
         </p>
-      </div>
+      </details>
 
-      <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-6">
-        <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+      <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
           <Sparkles size={14} className="text-[#4C5BD6]" />
-          Price: <span className="text-slate-900">{price} credits</span>
-          <span className="font-medium text-slate-400">(includes the automatic retry)</span>
+          <span>
+            Price <strong className="font-semibold text-slate-900">{price} credits</strong>
+          </span>
+          <span className="text-slate-400">· includes the automatic retry</span>
         </div>
 
         <button
           type="button"
           onClick={handleGenerate}
           disabled={create.isPending || uploading || !quoteReady}
-          className="btn btn-primary w-full sm:w-auto px-8 py-3 bg-[#4C5BD6] hover:bg-[#3B4BB8] rounded-lg border-0 shadow-none sm:shadow-lg sm:shadow-[#4C5BD6]/20 text-white font-bold text-base transition-all scale-100 hover:scale-[1.02] disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4C5BD6] px-7 text-base font-semibold text-white transition-colors hover:bg-[#3B4BB8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/30 disabled:opacity-60 sm:w-auto"
         >
           {create.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Generate Video"}
         </button>
