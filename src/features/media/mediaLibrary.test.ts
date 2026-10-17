@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { MediaAsset } from "@api/Media/Media.api"
-import { countByTab, filterAssets, sortAssets, timeAgo } from "./mediaLibrary"
+import { countByTab, filterAssets, sortAssets, timeAgo } from "./mediaLibraryUtils"
 
 const asset = (over: Partial<MediaAsset> & { _id: string }): MediaAsset =>
   ({

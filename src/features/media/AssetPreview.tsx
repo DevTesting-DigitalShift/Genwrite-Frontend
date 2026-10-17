@@ -8,7 +8,7 @@ import { PipelineAssetActions } from "./PipelineAssetActions"
 import { STATUS_STYLES } from "./MediaAssetCard"
 import { ETA_LABEL, formatRate, type MediaComposer } from "./useMediaComposer"
 import { qualityLabel, resolutionLabel } from "./imageOptions"
-import { isActiveAsset } from "./mediaLibrary"
+import { isActiveAsset } from "./mediaLibraryUtils"
 import type { MediaModel } from "./mediaOptions"
 
 const formatDateTime = (date: string) =>

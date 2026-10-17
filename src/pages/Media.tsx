@@ -5,7 +5,7 @@ import { AssetPreview } from "@/features/media/AssetPreview"
 import { MediaLibrary } from "@/features/media/MediaLibrary"
 import { PipelineRuns } from "@/features/media/PipelineRuns"
 import { PromptComposer } from "@/features/media/PromptComposer"
-import { isActiveAsset } from "@/features/media/mediaLibrary"
+import { isActiveAsset } from "@/features/media/mediaLibraryUtils"
 import { useMediaComposer } from "@/features/media/useMediaComposer"
 
 const Media = () => {

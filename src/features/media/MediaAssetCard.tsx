@@ -2,7 +2,7 @@ import { memo, useState } from "react"
 import { Clock, ImageIcon, Video, X } from "lucide-react"
 import type { MediaAsset } from "@api/Media/Media.api"
 import { ETA_LABEL } from "./useMediaComposer"
-import { isActiveAsset, timeAgo } from "./mediaLibrary"
+import { isActiveAsset, timeAgo } from "./mediaLibraryUtils"
 
 export const STATUS_STYLES: Record<MediaAsset["status"], { label: string; className: string }> = {
   queued: { label: "Queued", className: "bg-slate-100 text-slate-600 border-slate-200" },
