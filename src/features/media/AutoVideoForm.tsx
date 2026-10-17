@@ -85,9 +85,6 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
   // generated opening frame (image-to-video). The backend tags every model with its mode, so each
   // list is built from the catalogue — cheapest first, which makes the first the default.
   const withReferences = mode === "reference_to_video"
-  // Sent as the run's tag until `purpose` is removed from the API: a reference run is a product
-  // ad; the rest get the social-video look that was this form's default.
-  const purpose = withReferences ? "ugc_ad" : "reel"
   const models = useMemo(
     () => modelsForMode(mediaCatalogue, withReferences ? "reference_to_video" : "image_to_video"),
     [mediaCatalogue, withReferences]
@@ -192,7 +189,6 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
       useEndFrame,
       subtitleStyle,
       productImageUrls: screenshots,
-      purpose,
       ...(ownFrames && firstFrameUrl
         ? { firstFrameUrl, ...(useEndFrame && lastFrameUrl ? { lastFrameUrl } : {}) }
         : {}),
@@ -241,12 +237,7 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
             }
           />
           <div className="flex justify-end px-3 pb-3 sm:px-4">
-            <RefinePromptButton
-              prompt={prompt}
-              kind="video"
-              purpose={purpose}
-              onRefined={setPrompt}
-            />
+            <RefinePromptButton prompt={prompt} kind="video" onRefined={setPrompt} />
           </div>
         </div>
         {pacing && (

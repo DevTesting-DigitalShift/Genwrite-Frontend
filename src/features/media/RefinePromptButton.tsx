@@ -10,12 +10,10 @@ import { mediaQuery } from "@api/Media/Media.query"
 export function RefinePromptButton({
   prompt,
   kind,
-  purpose,
   onRefined,
 }: {
   prompt: string
   kind: "image" | "video"
-  purpose?: string
   onRefined: (refined: string) => void
 }) {
   const refine = mediaQuery.useRefinePrompt({
@@ -29,7 +27,7 @@ export function RefinePromptButton({
   return (
     <button
       type="button"
-      onClick={() => refine.mutate({ prompt: prompt.trim(), kind, purpose })}
+      onClick={() => refine.mutate({ prompt: prompt.trim(), kind })}
       disabled={refine.isPending || prompt.trim().length < 3}
       className="btn btn-sm h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-60 flex items-center gap-2"
     >

@@ -4221,7 +4221,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-17T03:22:22.529Z
+             * @default 2026-10-17T04:01:51.688Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5105,7 +5105,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-17T03:22:22.575Z
+                 * @default 2026-10-17T04:01:51.715Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5279,7 +5279,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-17T03:22:22.576Z
+                 * @default 2026-10-17T04:01:51.716Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5430,7 +5430,7 @@ export interface components {
              * @example blog_generation
              * @enum {string}
              */
-            purpose: "BLOG_GENERATION" | "QUICK_BLOG_GENERATION" | "YT_BLOG_GENERATION" | "AI_PROOFREADING" | "PROMPT_CONTENT_GENERATION" | "OUTLINE_GENERATION" | "HUMANISED_CONTENT_GENERATION" | "METADATA_GENERATION" | "COMPETITOR_ANALYSIS" | "SUBSCRIPTION_PAYMENT" | "SECTION_REWRITE" | "SECTION_PROOFREAD" | "SECTION_PROMPT_CHANGES" | "SECTION_COMPETITOR_ANALYSIS" | "CONTENT_REWRITE" | "AI_CONTENT_DETECTION" | "KEYWORD_SCRAPER" | "YOUTUBE_SUMMARIZER" | "IMAGE_GENERATION" | "IMAGE_ENHANCEMENT" | "IMAGE_ALT_TEXT" | "PDF_CHAT" | "WEBSITE_ANALYSER" | "WEBSITE_PROMPT_CREATOR" | "WEBSITE_RANK_CHECKER" | "WEBSITE_ADVANCED_ANALYSIS" | "WEBSITE_RANKING_ORCHESTRATOR" | "JOB_FROM_RANKING" | "COMPETITOR_LIKE_BLOG" | "BLOG_INSIGHT_ANALYZE" | "BLOG_INSIGHT_APPLY" | "MEDIA_IMAGE_GENERATION" | "MEDIA_VIDEO_GENERATION" | "MEDIA_VIDEO_PIPELINE" | "OTHER";
+            purpose: "BLOG_GENERATION" | "QUICK_BLOG_GENERATION" | "YT_BLOG_GENERATION" | "AI_PROOFREADING" | "PROMPT_CONTENT_GENERATION" | "OUTLINE_GENERATION" | "HUMANISED_CONTENT_GENERATION" | "METADATA_GENERATION" | "COMPETITOR_ANALYSIS" | "SUBSCRIPTION_PAYMENT" | "SECTION_REWRITE" | "SECTION_PROOFREAD" | "SECTION_PROMPT_CHANGES" | "SECTION_COMPETITOR_ANALYSIS" | "CONTENT_REWRITE" | "AI_CONTENT_DETECTION" | "KEYWORD_SCRAPER" | "YOUTUBE_SUMMARIZER" | "IMAGE_GENERATION" | "IMAGE_ENHANCEMENT" | "IMAGE_ALT_TEXT" | "PDF_CHAT" | "WEBSITE_ANALYSER" | "WEBSITE_PROMPT_CREATOR" | "WEBSITE_RANK_CHECKER" | "WEBSITE_ADVANCED_ANALYSIS" | "WEBSITE_RANKING_ORCHESTRATOR" | "JOB_FROM_RANKING" | "COMPETITOR_LIKE_BLOG" | "BLOG_INSIGHT_ANALYZE" | "BLOG_INSIGHT_APPLY" | "MEDIA_TEXT_TO_IMAGE" | "MEDIA_IMAGE_TO_IMAGE" | "MEDIA_TEXT_TO_VIDEO" | "MEDIA_IMAGE_TO_VIDEO" | "MEDIA_REFERENCE_TO_VIDEO" | "MEDIA_VIDEO_ENHANCE" | "MEDIA_IMAGE_GENERATION" | "MEDIA_VIDEO_GENERATION" | "MEDIA_VIDEO_PIPELINE" | "OTHER";
             /**
              * @description Credit amount for this transaction. Positive values mean credit was added, negative values mean credit was deducted.
              * @example -10
@@ -5454,7 +5454,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-17T03:22:22.584Z
+             * @default 2026-10-17T04:01:51.722Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6168,7 +6168,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-17T03:22:22.606Z
+                 * @default 2026-10-17T04:01:51.738Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6342,7 +6342,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-17T03:22:22.608Z
+                 * @default 2026-10-17T04:01:51.741Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -6774,7 +6774,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-17T03:22:22.630Z
+             * @default 2026-10-17T04:01:51.757Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -9231,12 +9231,6 @@ export interface components {
              */
             type: "image" | "video";
             /**
-             * @description Intended use of the generated asset
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
-            /**
              * @description Generation provider
              * @default fal
              * @enum {string}
@@ -9326,12 +9320,6 @@ export interface components {
              * @enum {string}
              */
             model: "fal-ai/hidream-o1-image" | "alibaba/qwen-image-3/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "openai/gpt-image-2" | "bytedance/seedream/v5/pro/text-to-image";
-            /**
-             * @description Intended use of the generated asset
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -9369,12 +9357,6 @@ export interface components {
              * @description The image to edit. Must be an image uploaded via /user/images/upload by the same user (other URLs are rejected)
              */
             imageUrl: string;
-            /**
-             * @description Intended use of the generated asset
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -9409,12 +9391,6 @@ export interface components {
              * @enum {string}
              */
             kind: "image" | "video";
-            /**
-             * @description Intended use of the generated asset
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
         };
         GenerateVideoBody: {
             /**
@@ -9428,12 +9404,6 @@ export interface components {
              * @enum {string}
              */
             model: "creatify/boreal" | "alibaba/wan-3.0/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "fal-ai/veo3.1";
-            /**
-             * @description Intended use of the generated asset
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -9498,12 +9468,6 @@ export interface components {
              * @example 662f1a2b8c9d4e0012a3b4c5
              */
             campaignId: string | null;
-            /**
-             * @description Intended use of the generated video
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             /** @description The prompt as the user typed it */
             userPrompt: string;
             /**
@@ -9771,12 +9735,6 @@ export interface components {
              * @enum {string|null}
              */
             subtitleStyle: "hustle" | "slay" | "beans" | "karl" | "simple" | null;
-            /**
-             * @description Intended use of the generated video
-             * @default other
-             * @enum {string}
-             */
-            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             /** @description Optional linked brand */
             brandId?: string;
             /** @description Optional linked campaign */
@@ -12070,7 +12028,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-17T03:22:22.496Z
+                             * @default 2026-10-17T04:01:51.653Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12217,7 +12175,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-17T03:22:22.498Z
+                             * @default 2026-10-17T04:01:51.657Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -19507,7 +19465,6 @@ export interface operations {
                 /** @description Media asset type */
                 type?: "image" | "video";
                 status?: "queued" | "processing" | "completed" | "failed";
-                purpose?: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
             };
             header?: never;
             path?: never;

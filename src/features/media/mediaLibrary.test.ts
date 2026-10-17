@@ -7,24 +7,17 @@ const asset = (over: Partial<MediaAsset> & { _id: string }): MediaAsset =>
     type: "image",
     status: "completed",
     prompt: "a city skyline",
-    purpose: "other",
     createdAt: "2026-10-10T10:00:00.000Z",
     ...over,
   }) as MediaAsset
 
 const assets = [
-  asset({
-    _id: "1",
-    prompt: "Woman holding a serum",
-    purpose: "ugc_ad",
-    createdAt: "2026-10-12T10:00:00.000Z",
-  }),
+  asset({ _id: "1", prompt: "Woman holding a serum", createdAt: "2026-10-12T10:00:00.000Z" }),
   asset({
     _id: "2",
     type: "video",
     status: "processing",
     prompt: "Drone over mountains",
-    purpose: "reel",
     createdAt: "2026-10-14T10:00:00.000Z",
   }),
   asset({
