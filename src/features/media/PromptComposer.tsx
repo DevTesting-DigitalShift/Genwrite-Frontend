@@ -2,29 +2,36 @@ import { Loader2, Sparkles } from "lucide-react"
 import { AutoVideoForm } from "./AutoVideoForm"
 import { ComposerTabs } from "./ComposerTabs"
 import { ModeTabs } from "./ModeTabs"
+import { PricingNotice } from "./PricingNotice"
 import { RefinePromptButton } from "./RefinePromptButton"
 import { SettingChip } from "./SettingChip"
-import { PricingNotice } from "./PricingNotice"
+import { SourceImageUpload } from "./SourceImageUpload"
+import { aspectLabel, imageCredits, qualityLabel, resolutionLabel } from "./imageOptions"
 import { formatRate, type MediaComposer } from "./useMediaComposer"
 
 const EXAMPLES = {
-  image: [
+  text_to_image: [
     "UGC selfie of a woman holding a skincare serum in warm morning light",
     "Cozy café workspace with a laptop, candid lifestyle shot",
     "Macro product shot of a running sneaker on wet asphalt",
   ],
-  video: [
+  image_to_image: [
+    "Put the product on a marble kitchen counter in warm morning light",
+    "Restyle this as a soft watercolour illustration",
+    "Change the background to a clean white studio",
+  ],
+  text_to_video: [
     "Drone shot flying over a mountain range at sunrise",
     "Slow-motion pour of coffee into a glass, soft studio lighting",
     "Handheld selfie video of a creator unboxing a gadget",
   ],
 } as const
 
-const SIZE_OPTIONS = [0.25, 0.5, 1, 2, 4].map((mp) => ({ id: String(mp), label: `${mp} MP` }))
+const credits = (n: number | null) => (n === null ? undefined : `${n} credit${n === 1 ? "" : "s"}`)
 
 /**
- * Layout A: the prompt is the hero. Everything else is a default you can change from one row of
- * chips, and the price sits beside the Generate button instead of in a footnote.
+ * The create form: the prompt is the hero. Everything else is a default you can change from one
+ * row of chips, and the price sits beside the Generate button instead of in a footnote.
  */
 export function PromptComposer({ composer }: { composer: MediaComposer }) {
   const {
@@ -35,18 +42,27 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
     mode,
     setMode,
     usesPipeline,
+    isEdit,
     tabModels,
     currentModel,
     setModel,
-    megapixels,
-    setMegapixels,
+    imageOptions,
+    imageChoice,
+    setImageChoice,
+    sourceImageUrl,
+    setSourceImageUrl,
+    setUploadingSource,
     videoDuration,
     videoDurations,
     setDurationSeconds,
+    videoAspects,
+    videoAspectRatio,
+    setVideoAspectRatio,
     videoResolution,
     videoResolutions,
     setResolution,
     estimatedCredits,
+    canGenerate,
     pricingReady,
     pricingFailed,
     retryPricing,
@@ -56,7 +72,8 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
   } = composer
 
   const kind = tab === "video" ? "video" : "image"
-  const short = userCredits < estimatedCredits
+  const short = estimatedCredits !== null && userCredits < estimatedCredits
+  const examples = EXAMPLES[mode as keyof typeof EXAMPLES] ?? []
 
   return (
     <section
@@ -66,17 +83,21 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
       <div className="p-4 sm:p-5">
         <div className="mb-4 space-y-3">
           <ComposerTabs value={tab} onChange={setTab} />
-          <ModeTabs
-            kind={tab}
-            mode={mode}
-            onChange={(m) => setMode(m as Parameters<typeof setMode>[0])}
-          />
+          <ModeTabs kind={tab} mode={mode} onChange={setMode} />
         </div>
 
         {usesPipeline ? (
           <AutoVideoForm mode={mode as "image_to_video" | "reference_to_video"} />
         ) : (
           <>
+            {isEdit && (
+              <SourceImageUpload
+                url={sourceImageUrl}
+                onChange={setSourceImageUrl}
+                onUploadingChange={setUploadingSource}
+              />
+            )}
+
             <div className="rounded-xl border border-slate-200 bg-slate-50/60 transition-colors focus-within:border-[#4C5BD6] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#4C5BD6]/15">
               <label htmlFor="media-prompt" className="sr-only">
                 Prompt
@@ -93,25 +114,30 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
                   }
                 }}
                 placeholder={
-                  kind === "image"
-                    ? "Describe the image you want… e.g. A futuristic city skyline at dusk"
-                    : "Describe the video you want… e.g. A drone shot flying over a mountain range at sunrise"
+                  isEdit
+                    ? "Describe the change… e.g. Make the background a sunny beach"
+                    : kind === "image"
+                      ? "Describe the image you want… e.g. A futuristic city skyline at dusk"
+                      : "Describe the video you want… e.g. A drone shot flying over a mountain range at sunrise"
                 }
               />
               <div className="flex items-center justify-between gap-3 px-3 pb-3 sm:px-4">
                 <span className="hidden text-xs text-slate-400 sm:inline">
                   Ctrl + Enter to generate
                 </span>
-                <div className="ml-auto">
-                  <RefinePromptButton prompt={prompt} kind={kind} onRefined={setPrompt} />
-                </div>
+                {/* Refining rewrites a short idea into a full scene — not what an edit instruction needs. */}
+                {!isEdit && (
+                  <div className="ml-auto">
+                    <RefinePromptButton prompt={prompt} kind={kind} onRefined={setPrompt} />
+                  </div>
+                )}
               </div>
             </div>
 
             {prompt.trim() === "" && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium text-slate-500">Try:</span>
-                {EXAMPLES[kind].map((example) => (
+                {examples.map((example) => (
                   <button
                     key={example}
                     type="button"
@@ -140,17 +166,73 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
                   }))}
                   onChange={setModel}
                 />
-                {kind === "image" && currentModel?.unit === "megapixel" && (
-                  <SettingChip
-                    label="Size"
-                    value={String(megapixels)}
-                    options={SIZE_OPTIONS}
-                    onChange={(id) => setMegapixels(Number(id))}
-                    note="Used for the cost estimate only — the model sets the real output size."
-                  />
+
+                {imageOptions && imageChoice && (
+                  <>
+                    <SettingChip
+                      label="Aspect"
+                      value={imageChoice.aspectRatio}
+                      options={imageOptions.aspectRatios.map((id) => ({
+                        id,
+                        label: id === "match" ? "Match input" : id,
+                        hint: id === "match" ? undefined : aspectLabel(id).replace(` ${id}`, ""),
+                      }))}
+                      onChange={(aspectRatio) => setImageChoice({ aspectRatio })}
+                      note={
+                        isEdit
+                          ? "The shape of the result. Some models can keep the original's."
+                          : "The shape of the image."
+                      }
+                    />
+                    {imageOptions.resolutions.length > 1 && (
+                      <SettingChip
+                        label="Resolution"
+                        value={imageChoice.resolution}
+                        options={imageOptions.resolutions.map((id) => ({
+                          id,
+                          label: resolutionLabel(id),
+                          hint: credits(
+                            imageCredits(currentModel, { ...imageChoice, resolution: id })
+                          ),
+                        }))}
+                        onChange={(resolution) => setImageChoice({ resolution })}
+                        note="Higher resolution costs more."
+                      />
+                    )}
+                    {imageOptions.qualities && (
+                      <SettingChip
+                        label="Quality"
+                        value={imageChoice.quality ?? ""}
+                        options={imageOptions.qualities.map((id) => ({
+                          id,
+                          label: qualityLabel(id),
+                          hint: credits(
+                            imageCredits(currentModel, { ...imageChoice, quality: id })
+                          ),
+                        }))}
+                        onChange={(quality) => setImageChoice({ quality })}
+                        note="Higher quality renders finer detail and text, and costs more."
+                      />
+                    )}
+                  </>
                 )}
+
                 {kind === "video" && (
                   <>
+                    {videoAspects.length > 0 && (
+                      <SettingChip
+                        label="Aspect"
+                        value={videoAspectRatio ?? ""}
+                        options={videoAspects.map((id) => ({
+                          id,
+                          label: id,
+                          hint: aspectLabel(id).replace(` ${id}`, ""),
+                        }))}
+                        onChange={setVideoAspectRatio}
+                        note="The shape of the video — 9:16 for Reels and Shorts, 16:9 for YouTube."
+                        disabled={videoAspects.length <= 1}
+                      />
+                    )}
                     <SettingChip
                       label="Length"
                       value={String(videoDuration)}
@@ -183,7 +265,7 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
                 <span>
                   Estimated cost{" "}
                   <strong className="font-semibold text-slate-900">
-                    {pricingReady
+                    {pricingReady && estimatedCredits !== null
                       ? `${estimatedCredits} credit${estimatedCredits === 1 ? "" : "s"}`
                       : "—"}
                   </strong>
@@ -195,13 +277,13 @@ export function PromptComposer({ composer }: { composer: MediaComposer }) {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isSubmitting || !pricingReady || !currentModel}
+                disabled={!canGenerate}
                 className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4C5BD6] px-7 text-base font-semibold text-white transition-colors hover:bg-[#3B4BB8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/30 disabled:opacity-60 sm:w-auto"
               >
                 {isSubmitting ? (
                   <Loader2 className="size-5 animate-spin" aria-label="Starting generation" />
                 ) : (
-                  `Generate ${kind === "image" ? "Image" : "Video"}`
+                  `${isEdit ? "Edit" : "Generate"} ${kind === "image" ? "Image" : "Video"}`
                 )}
               </button>
             </div>

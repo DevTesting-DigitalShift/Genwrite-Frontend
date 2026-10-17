@@ -17,7 +17,7 @@ export const MEDIA_MODE_LABELS: Record<MediaMode, string> = {
 
 export const MEDIA_MODE_HINTS: Record<MediaMode, string> = {
   text_to_image: "Describe the image you want.",
-  image_to_image: "Change or restyle an image you upload.",
+  image_to_image: "Upload an image and describe how to change it.",
   text_to_video: "Describe the video you want — it's made straight from your words.",
   image_to_video:
     "We create the opening frame from your description, check it for defects, then animate it with sound.",
@@ -25,12 +25,9 @@ export const MEDIA_MODE_HINTS: Record<MediaMode, string> = {
     "Add images of your product or app. They're used as references so the video shows the real thing.",
 }
 
-/**
- * The modes each tab offers, in order. Image-to-image joins "image" once the backend can run it;
- * until then it would be a mode that can't generate, so it isn't listed.
- */
+/** The modes each tab offers, in order. */
 export const MODES_BY_KIND: Record<"image" | "video", MediaMode[]> = {
-  image: ["text_to_image"],
+  image: ["text_to_image", "image_to_image"],
   video: ["text_to_video", "image_to_video", "reference_to_video"],
 }
 

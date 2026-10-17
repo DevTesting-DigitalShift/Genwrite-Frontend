@@ -7,6 +7,7 @@ import { EnhanceVideoAction } from "./EnhanceVideoAction"
 import { PipelineAssetActions } from "./PipelineAssetActions"
 import { STATUS_STYLES } from "./MediaAssetCard"
 import { ETA_LABEL, formatRate, type MediaComposer } from "./useMediaComposer"
+import { qualityLabel, resolutionLabel } from "./imageOptions"
 import { isActiveAsset } from "./mediaLibrary"
 import type { MediaModel } from "./mediaOptions"
 
@@ -18,6 +19,22 @@ const formatDateTime = (date: string) =>
     hour: "numeric",
     minute: "2-digit",
   })
+
+/** "16:9 · 2K · High quality" from what was recorded on the asset (older images have none). */
+function describeImageSettings(asset: MediaAsset): string | null {
+  if (asset.type !== "image") return null
+  const meta = (asset.metadata ?? {}) as {
+    aspectRatio?: string
+    resolution?: string
+    quality?: string | null
+  }
+  const parts = [
+    meta.aspectRatio && (meta.aspectRatio === "match" ? "Match input" : meta.aspectRatio),
+    meta.resolution && resolutionLabel(meta.resolution),
+    meta.quality && `${qualityLabel(meta.quality)} quality`,
+  ].filter(Boolean)
+  return parts.length ? parts.join(" · ") : null
+}
 
 const handleCopyPrompt = async (text: string) => {
   try {
@@ -74,6 +91,7 @@ export function AssetPreview({
   }, [open, onClose])
 
   const modelLabel = (id: string) => mediaCatalogue[id]?.label ?? id
+  const imageSettings = asset ? describeImageSettings(asset) : null
 
   return (
     <AnimatePresence>
@@ -226,17 +244,27 @@ export function AssetPreview({
                         </dd>
                       </div>
                     )}
-                    {!asset.pipelineId && mediaCatalogue[asset.providerModel] && (
+                    {/* How an image was made (recorded when it was submitted). */}
+                    {imageSettings && (
                       <div className="flex items-center justify-between gap-4 px-3 py-2.5">
-                        <dt className="text-slate-500">Rate</dt>
-                        <dd className="text-slate-600">
-                          {formatRate({
-                            id: asset.providerModel,
-                            ...mediaCatalogue[asset.providerModel],
-                          } as MediaModel)}
-                        </dd>
+                        <dt className="text-slate-500">Settings</dt>
+                        <dd className="text-right text-slate-700">{imageSettings}</dd>
                       </div>
                     )}
+                    {/* An image's price depends on its size and quality, so only the amount charged is shown. */}
+                    {!asset.pipelineId &&
+                      asset.type === "video" &&
+                      mediaCatalogue[asset.providerModel] && (
+                        <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+                          <dt className="text-slate-500">Rate</dt>
+                          <dd className="text-slate-600">
+                            {formatRate({
+                              id: asset.providerModel,
+                              ...mediaCatalogue[asset.providerModel],
+                            } as MediaModel)}
+                          </dd>
+                        </div>
+                      )}
                   </dl>
                 </section>
 

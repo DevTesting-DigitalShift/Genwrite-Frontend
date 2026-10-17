@@ -19,6 +19,7 @@ import { pacingAdvice } from "./scriptPacing"
 import { RefinePromptButton } from "./RefinePromptButton"
 import { ProductScreenshots } from "./ProductScreenshots"
 import { modelsForMode } from "./mediaModes"
+import { SourceImageUpload } from "./SourceImageUpload"
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string }[] = [
   { id: "16:9", label: "Landscape 16:9" },
@@ -35,6 +36,16 @@ const SUBTITLE_STYLES: { id: SubtitleStyle; label: string }[] = [
   { id: "karl", label: "One word at a time" },
   { id: "simple", label: "Clean, no highlight" },
 ]
+
+/** Picks the video's format from the uploaded frame's own orientation (square keeps the current one). */
+function matchFormatTo(url: string, setAspectRatio: (ratio: AspectRatio) => void) {
+  const img = new Image()
+  img.onload = () => {
+    if (img.naturalHeight > img.naturalWidth) setAspectRatio("9:16")
+    else if (img.naturalWidth > img.naturalHeight) setAspectRatio("16:9")
+  }
+  img.src = url
+}
 
 /**
  * Media Studio's "Auto Video" form: one prompt in, one quality-checked video out. Everything
@@ -60,7 +71,15 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
   const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_RESOLUTION)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null)
   const [productUrls, setProductUrls] = useState<string[]>([])
-  const [uploading, setUploading] = useState(false)
+  const [uploadingRefs, setUploadingRefs] = useState(false)
+  // By default we make the frames. Switched off, the user supplies the opening frame (required)
+  // and, for models that take one, a closing frame (optional).
+  const [autoFrames, setAutoFrames] = useState(true)
+  const [firstFrameUrl, setFirstFrameUrl] = useState<string | null>(null)
+  const [lastFrameUrl, setLastFrameUrl] = useState<string | null>(null)
+  const [uploadingFirst, setUploadingFirst] = useState(false)
+  const [uploadingLast, setUploadingLast] = useState(false)
+  const uploading = uploadingRefs || uploadingFirst || uploadingLast
 
   // Runs that carry the user's own product screenshots are reference-to-video; the rest animate a
   // generated opening frame (image-to-video). The backend tags every model with its mode, so each
@@ -89,7 +108,12 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
   // Animating forward from one frame looks most natural, so the end frame is opt-in, and only
   // offered where the model accepts one.
   const canLockEndFrame = model?.frameVideo?.endFrame === "optional"
-  const useEndFrame = canLockEndFrame && lockEndFrame
+  const ownFrames = !autoFrames
+  // Models that can't take an end frame ignore a closing frame — it isn't offered or sent for them.
+  const canUseLastFrame = ownFrames && model?.frameVideo?.endFrame !== "none"
+  const useEndFrame = ownFrames
+    ? canUseLastFrame && Boolean(lastFrameUrl)
+    : canLockEndFrame && lockEndFrame
   // Only models with per-resolution pricing take a resolution; the rest render at a fixed one.
   const resolutionOptions = resolutionsOf(model)
   const videoResolution = effectiveResolution(model, resolution)
@@ -107,6 +131,8 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
         useEndFrame,
         subtitles: subtitleStyle !== null,
         productImages: screenshots.length,
+        // Frames the user supplies cost nothing to make.
+        includeFrames: autoFrames,
       })
     : null
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
@@ -115,6 +141,8 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
     onSuccess: () => {
       setPrompt("")
       setProductUrls([])
+      setFirstFrameUrl(null)
+      setLastFrameUrl(null)
       loadAuthenticatedUser()
       toast.success("Video generation started — usually ready in 5–10 minutes", {
         description:
@@ -136,6 +164,10 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
     }
     if (withReferences && screenshots.length === 0) {
       toast.error("Add at least one reference image")
+      return
+    }
+    if (ownFrames && !firstFrameUrl) {
+      toast.error("Add your opening frame, or switch on Auto frames")
       return
     }
     if (price === null) {
@@ -161,6 +193,9 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
       subtitleStyle,
       productImageUrls: screenshots,
       purpose,
+      ...(ownFrames && firstFrameUrl
+        ? { firstFrameUrl, ...(useEndFrame && lastFrameUrl ? { lastFrameUrl } : {}) }
+        : {}),
     } as CreateMediaPipelinePayload)
   }
 
@@ -232,6 +267,57 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
                 "Shorten it — this model can't go long enough."
               )}
             </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-5 sm:mb-6 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            className="toggle toggle-primary toggle-sm mt-0.5"
+            checked={autoFrames}
+            onChange={(e) => setAutoFrames(e.target.checked)}
+          />
+          <span className="text-sm">
+            <span className="font-semibold text-slate-800">Auto frames</span>
+            <span className="block text-xs text-slate-500">
+              {autoFrames
+                ? "We create the opening frame from your description and check it for defects. Turn off to use your own."
+                : "Using your own frames — nothing is generated for them, so they cost nothing."}
+            </span>
+          </span>
+        </label>
+
+        {ownFrames && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <SourceImageUpload
+              compact
+              label="Opening frame"
+              hint="The first image of the video."
+              url={firstFrameUrl}
+              onChange={(url) => {
+                setFirstFrameUrl(url)
+                if (url) matchFormatTo(url, setAspectRatio)
+              }}
+              onUploadingChange={setUploadingFirst}
+            />
+            {canUseLastFrame ? (
+              <SourceImageUpload
+                compact
+                required={false}
+                label="Closing frame"
+                hint="Where the video should end up."
+                url={lastFrameUrl}
+                onChange={setLastFrameUrl}
+                onUploadingChange={setUploadingLast}
+              />
+            ) : (
+              <p className="self-center text-xs text-slate-500">
+                This model animates forward from the opening frame, so there's no closing frame to
+                add.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -346,7 +432,7 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
           <ProductScreenshots
             urls={productUrls}
             onChange={setProductUrls}
-            onUploadingChange={setUploading}
+            onUploadingChange={setUploadingRefs}
           />
           {screenshots.length > 0 && !takesScreenRefs && (
             <p className="-mt-3 mb-5 text-xs text-slate-500 sm:-mt-4 sm:mb-6">
@@ -357,7 +443,7 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
         </>
       )}
 
-      {canLockEndFrame && (
+      {autoFrames && canLockEndFrame && (
         <label className="mb-5 sm:mb-6 flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -375,22 +461,24 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
         </label>
       )}
 
-      <details className="group mb-5 sm:mb-6 rounded-xl border border-slate-100 bg-slate-50 text-xs leading-relaxed text-slate-600">
-        <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3 font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/20 rounded-xl [&::-webkit-details-marker]:hidden">
-          <ShieldCheck className="size-4 shrink-0 text-[#4C5BD6]" />
-          How Auto Video works — quality-checked, retried once for free
-          <ChevronDown className="ml-auto size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
-        </summary>
-        <p className="px-3 pb-3 pl-9">
-          We expand your idea into a realistic shot with a spoken script and sound, generate several
-          opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one that passes
-          an automatic quality check before animating it with native audio
-          {videoResolution ? ` in ${videoResolution}` : ""}. Put any lines the speaker should say in
-          quotes and we'll keep them word for word. If the video shows defects or the speech is out
-          of sync, we retry once at no extra cost. On-screen text is avoided on purpose, because AI
-          video often garbles it.
-        </p>
-      </details>
+      {autoFrames && (
+        <details className="group mb-5 sm:mb-6 rounded-xl border border-slate-100 bg-slate-50 text-xs leading-relaxed text-slate-600">
+          <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3 font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/20 rounded-xl [&::-webkit-details-marker]:hidden">
+            <ShieldCheck className="size-4 shrink-0 text-[#4C5BD6]" />
+            How Auto Video works — quality-checked, retried once for free
+            <ChevronDown className="ml-auto size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+          </summary>
+          <p className="px-3 pb-3 pl-9">
+            We expand your idea into a realistic shot with a spoken script and sound, generate
+            several opening frames{useEndFrame ? " (and closing frames)" : ""}, and keep the one
+            that passes an automatic quality check before animating it with native audio
+            {videoResolution ? ` in ${videoResolution}` : ""}. Put any lines the speaker should say
+            in quotes and we'll keep them word for word. If the video shows defects or the speech is
+            out of sync, we retry once at no extra cost. On-screen text is avoided on purpose,
+            because AI video often garbles it.
+          </p>
+        </details>
+      )}
 
       <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -411,7 +499,8 @@ export function AutoVideoForm({ mode }: { mode: "image_to_video" | "reference_to
             create.isPending ||
             uploading ||
             price === null ||
-            (withReferences && screenshots.length === 0)
+            (withReferences && screenshots.length === 0) ||
+            (ownFrames && !firstFrameUrl)
           }
           className="inline-flex h-11 items-center justify-center rounded-lg bg-[#4C5BD6] px-7 text-base font-semibold text-white transition-colors hover:bg-[#3B4BB8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4C5BD6]/30 disabled:opacity-60 sm:w-auto"
         >

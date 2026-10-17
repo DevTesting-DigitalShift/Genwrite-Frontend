@@ -2,6 +2,7 @@
 import { QueryBase, type AnyUseQueryOptions } from "@api/QueryBase"
 import {
   MediaAPI,
+  type EditImagePayload,
   type EnhanceVideoPayload,
   type GenerateImagePayload,
   type GenerateVideoPayload,
@@ -36,6 +37,18 @@ class MediaQuery extends QueryBase<MediaAsset> {
     onError?: (err: Error) => void
   }) =>
     this.useMutate<MediaAsset, GenerateImagePayload>((payload) => this.api.generateImage(payload), {
+      ...options,
+      onSuccess: (data) => {
+        this.prependToList(data)
+        options?.onSuccess?.(data)
+      },
+    })
+
+  useEditImage = (options?: {
+    onSuccess?: (data: MediaAsset) => void
+    onError?: (err: Error) => void
+  }) =>
+    this.useMutate<MediaAsset, EditImagePayload>((payload) => this.api.editImage(payload), {
       ...options,
       onSuccess: (data) => {
         this.prependToList(data)

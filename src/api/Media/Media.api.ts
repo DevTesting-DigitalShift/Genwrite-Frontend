@@ -5,6 +5,7 @@ import type { ApiQueryParams, ApiRequestBody, ApiResponse } from "@/types/apiHel
 export type MediaAsset = ApiResponse<"/media/{id}", "get">
 export type MediaAssetList = ApiResponse<"/media", "get">
 export type GenerateImagePayload = ApiRequestBody<"/media/image/generate", "post">
+export type EditImagePayload = ApiRequestBody<"/media/image/edit", "post">
 export type GenerateVideoPayload = ApiRequestBody<"/media/video/generate", "post">
 export type EnhanceVideoPayload = ApiRequestBody<"/media/{id}/enhance", "post">
 export type RefinePromptPayload = {
@@ -20,6 +21,15 @@ export const MediaAPI = {
       return await apiPost("/media/image/generate", payload as never)
     } catch (err) {
       return rethrow(err, "Failed to start image generation")
+    }
+  },
+
+  /** Image-to-image: one of the user's own uploaded images plus a prompt. */
+  editImage: async (payload: EditImagePayload): Promise<MediaAsset> => {
+    try {
+      return await apiPost("/media/image/edit", payload as never)
+    } catch (err) {
+      return rethrow(err, "Failed to start the image edit")
     }
   },
 

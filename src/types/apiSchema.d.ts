@@ -2894,6 +2894,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/image/edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Edit an uploaded image with a prompt (image-to-image) via fal.ai */
+        post: operations["postMediaImageEdit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/prompt/refine": {
         parameters: {
             query?: never;
@@ -4204,7 +4221,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this insight was generated.
-             * @default 2026-10-16T04:30:29.201Z
+             * @default 2026-10-17T03:22:22.529Z
              * @example 2024-01-15T10:30:00.000Z
              */
             generatedAt: string | null;
@@ -5088,7 +5105,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-16T04:30:29.225Z
+                 * @default 2026-10-17T03:22:22.575Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -5262,7 +5279,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-16T04:30:29.226Z
+                 * @default 2026-10-17T03:22:22.576Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -5437,7 +5454,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when this credit log entry was created.
-             * @default 2026-10-16T04:30:29.232Z
+             * @default 2026-10-17T03:22:22.584Z
              * @example 2024-01-15T10:30:00.000Z
              */
             createdAt: string | null;
@@ -6151,7 +6168,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp when the notification was created
-                 * @default 2026-10-16T04:30:29.247Z
+                 * @default 2026-10-17T03:22:22.606Z
                  * @example 2024-01-15T10:30:00.000Z
                  */
                 createdAt: string | null;
@@ -6325,7 +6342,7 @@ export interface components {
                 /**
                  * Format: date-time
                  * @description Timestamp the referral record was created
-                 * @default 2026-10-16T04:30:29.248Z
+                 * @default 2026-10-17T03:22:22.608Z
                  * @example 2024-01-01T10:00:00.000Z
                  */
                 createdAt: string | null;
@@ -6757,7 +6774,7 @@ export interface components {
             /**
              * Format: date-time
              * @description Timestamp when the blog was posted to the platform.
-             * @default 2026-10-16T04:30:29.258Z
+             * @default 2026-10-17T03:22:22.630Z
              * @example 2024-01-15T10:30:00.000Z
              */
             postedOn: string | null;
@@ -8495,6 +8512,29 @@ export interface components {
                         provider?: "vertex";
                         /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                         requiresImage?: boolean;
+                        /** @description Image models: what can be chosen and what each choice costs */
+                        imageOptions?: {
+                            /** @description Aspect ratios the model offers, e.g. 1:1, 16:9 */
+                            aspectRatios: string[];
+                            /** @description Resolution tiers the model offers, e.g. 1k, 2k */
+                            resolutions: string[];
+                            /** @description Quality levels (GPT Image 2), or null when the model has no quality setting */
+                            qualities: string[] | null;
+                            defaults: {
+                                aspectRatio: string;
+                                resolution: string;
+                                quality: string | null;
+                            };
+                            /** @description USD price of every offered combination, keyed aspectRatio|resolution|quality (quality empty when the model has none) */
+                            usd: {
+                                [key: string]: number;
+                            };
+                        };
+                        /** @description Image-to-image models: the input the source image goes in, and how many are sent */
+                        imageInput?: {
+                            field: string;
+                            max: number;
+                        };
                         /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
                         unavailable?: boolean;
                         /** @description Image-to-video model used by the Auto Video pipeline */
@@ -8505,6 +8545,8 @@ export interface components {
                             durationFormat: "number-string" | "seconds-string" | "number";
                             seed: boolean;
                             aspectRatio: boolean;
+                            /** @description Aspect ratios the model offers (text-to-video); the first is the default */
+                            aspectRatios?: string[];
                             negativePrompt: boolean;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
@@ -8544,6 +8586,8 @@ export interface components {
                             durationFormat: "number-string" | "seconds-string" | "number";
                             seed: boolean;
                             aspectRatio: boolean;
+                            /** @description Aspect ratios the model offers (text-to-video); the first is the default */
+                            aspectRatios?: string[];
                             negativePrompt: boolean;
                             /** @description Input that switches native audio on; null = always on */
                             audioField: string | null;
@@ -8714,6 +8758,29 @@ export interface components {
                     provider?: "vertex";
                     /** @description Needs a source image — not offered by the prompt-only generate endpoints */
                     requiresImage?: boolean;
+                    /** @description Image models: what can be chosen and what each choice costs */
+                    imageOptions?: {
+                        /** @description Aspect ratios the model offers, e.g. 1:1, 16:9 */
+                        aspectRatios: string[];
+                        /** @description Resolution tiers the model offers, e.g. 1k, 2k */
+                        resolutions: string[];
+                        /** @description Quality levels (GPT Image 2), or null when the model has no quality setting */
+                        qualities: string[] | null;
+                        defaults: {
+                            aspectRatio: string;
+                            resolution: string;
+                            quality: string | null;
+                        };
+                        /** @description USD price of every offered combination, keyed aspectRatio|resolution|quality (quality empty when the model has none) */
+                        usd: {
+                            [key: string]: number;
+                        };
+                    };
+                    /** @description Image-to-image models: the input the source image goes in, and how many are sent */
+                    imageInput?: {
+                        field: string;
+                        max: number;
+                    };
                     /** @description fal no longer serves this model (removed/deprecated) — hide it and refuse new generations */
                     unavailable?: boolean;
                     /** @description Image-to-video model used by the Auto Video pipeline */
@@ -8724,6 +8791,8 @@ export interface components {
                         durationFormat: "number-string" | "seconds-string" | "number";
                         seed: boolean;
                         aspectRatio: boolean;
+                        /** @description Aspect ratios the model offers (text-to-video); the first is the default */
+                        aspectRatios?: string[];
                         negativePrompt: boolean;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
@@ -8763,6 +8832,8 @@ export interface components {
                         durationFormat: "number-string" | "seconds-string" | "number";
                         seed: boolean;
                         aspectRatio: boolean;
+                        /** @description Aspect ratios the model offers (text-to-video); the first is the default */
+                        aspectRatios?: string[];
                         negativePrompt: boolean;
                         /** @description Input that switches native audio on; null = always on */
                         audioField: string | null;
@@ -9060,7 +9131,7 @@ export interface components {
              * @example bytedance/seedream/v5/pro/text-to-image
              * @enum {string}
              */
-            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "alibaba/wan-3.0/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision";
+            modelId: "bytedance/seedream/v5/pro/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "fal-ai/hidream-o1-image" | "openai/gpt-image-2" | "alibaba/qwen-image-3/text-to-image" | "bytedance/seedream/v5/pro/edit" | "blackforestlabs/flux-3/edit-image" | "fal-ai/hidream-o1-image/edit" | "openai/gpt-image-2/edit" | "alibaba/qwen-image-3/edit" | "alibaba/wan-3.0/text-to-video" | "fal-ai/kling-video/v3/pro/text-to-video" | "google/gemini-omni-flash/v1.1/text-to-video" | "fal-ai/veo3.1" | "alibaba/wan-3.0/image-to-video" | "fal-ai/kling-video/v3/pro/image-to-video" | "google/gemini-omni-flash/v1.1/image-to-video" | "veo-3.1-generate-001" | "fal-ai/vidu/q4/reference-to-video" | "minimax/h3-max-turbo/image-to-video" | "minimax/h3-max/reference-to-video" | "xai/grok-imagine-video/v1.5/reference-to-video" | "creatify/boreal" | "fal-ai/kling-video/o3/pro/reference-to-video" | "alibaba/wan-3.0/reference-to-video" | "veed/subtitles" | "fal-ai/elevenlabs/forced-alignment" | "topaz/upscale/video/precision";
             /**
              * @description Item count, for per-item models
              * @default 1
@@ -9250,11 +9321,11 @@ export interface components {
              */
             prompt: string;
             /**
-             * @description fal image model id
+             * @description Text-to-image model id
              * @example fal-ai/hidream-o1-image
              * @enum {string}
              */
-            model: "fal-ai/hidream-o1-image" | "alibaba/qwen-image-3/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "bytedance/seedream/v5/pro/text-to-image" | "openai/gpt-image-2";
+            model: "fal-ai/hidream-o1-image" | "alibaba/qwen-image-3/text-to-image" | "blackforestlabs/flux-3/text-to-image" | "openai/gpt-image-2" | "bytedance/seedream/v5/pro/text-to-image";
             /**
              * @description Intended use of the generated asset
              * @default other
@@ -9266,11 +9337,63 @@ export interface components {
             /** @description Optional linked campaign */
             campaignId?: string;
             /**
-             * @description Expected output megapixels, used for cost calculation
-             * @default 1
-             * @example 1
+             * @description Aspect ratio, e.g. "16:9" — one the model offers (see imageOptions in GET /user/pricing?module=media); defaults to the model's own
+             * @example 16:9
              */
-            megapixels: number;
+            aspectRatio?: string;
+            /**
+             * @description Resolution tier, e.g. "1k" or "2k" — one the model offers; defaults to the model's own
+             * @example 1k
+             */
+            resolution?: string;
+            /**
+             * @description Quality, for models that have one (GPT Image 2: low, medium, high); defaults to the model's own
+             * @example medium
+             */
+            quality?: string;
+        };
+        MediaEditImageBody: {
+            /**
+             * @description What to change — the image and this prompt are both sent to the model
+             * @example Put the product on a marble kitchen counter in warm morning light
+             */
+            prompt: string;
+            /**
+             * @description Image-to-image model id
+             * @example fal-ai/hidream-o1-image/edit
+             * @enum {string}
+             */
+            model: "fal-ai/hidream-o1-image/edit" | "alibaba/qwen-image-3/edit" | "blackforestlabs/flux-3/edit-image" | "openai/gpt-image-2/edit" | "bytedance/seedream/v5/pro/edit";
+            /**
+             * Format: uri
+             * @description The image to edit. Must be an image uploaded via /user/images/upload by the same user (other URLs are rejected)
+             */
+            imageUrl: string;
+            /**
+             * @description Intended use of the generated asset
+             * @default other
+             * @enum {string}
+             */
+            purpose: "poster" | "thumbnail" | "reel" | "social_post" | "ugc_ad" | "other";
+            /** @description Optional linked brand */
+            brandId?: string;
+            /** @description Optional linked campaign */
+            campaignId?: string;
+            /**
+             * @description Aspect ratio, e.g. "16:9" — one the model offers (see imageOptions in GET /user/pricing?module=media); defaults to the model's own
+             * @example 16:9
+             */
+            aspectRatio?: string;
+            /**
+             * @description Resolution tier, e.g. "1k" or "2k" — one the model offers; defaults to the model's own
+             * @example 1k
+             */
+            resolution?: string;
+            /**
+             * @description Quality, for models that have one (GPT Image 2: low, medium, high); defaults to the model's own
+             * @example medium
+             */
+            quality?: string;
         };
         MediaRefinedPrompt: {
             prompt: string;
@@ -9328,6 +9451,11 @@ export interface components {
              * @enum {string}
              */
             resolution: "480p" | "540p" | "720p" | "1080p";
+            /**
+             * @description Aspect ratio, e.g. "16:9" or "9:16" — one the model offers (textVideo.aspectRatios in GET /user/pricing?module=media); defaults to the model's first
+             * @example 16:9
+             */
+            aspectRatio?: string;
         };
         ListMediaAssetsResponse: {
             data: components["schemas"]["MediaAssetResponse"][];
@@ -9410,6 +9538,11 @@ export interface components {
              * @default false
              */
             useEndFrame: boolean;
+            /**
+             * @description The user supplied the opening (and optionally closing) frame, so none were generated
+             * @default false
+             */
+            framesProvided: boolean;
             /** @description Burned-in subtitles: chosen style and progress; status null = not requested */
             subtitles: {
                 /**
@@ -9622,6 +9755,16 @@ export interface components {
              * @example []
              */
             productImageUrls: string[];
+            /**
+             * Format: uri
+             * @description Your own opening frame. When given, no frames are generated: the video is made from it (and from lastFrameUrl, if the model takes one). Must be an image uploaded via /user/images/upload by the same user
+             */
+            firstFrameUrl?: string;
+            /**
+             * Format: uri
+             * @description Your own closing frame (optional; needs firstFrameUrl and a model that takes an end frame)
+             */
+            lastFrameUrl?: string;
             /**
              * @description Burn in subtitles of the spoken script in this style (a flat add-on); null = no subtitles
              * @default null
@@ -11927,7 +12070,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-16T04:30:29.168Z
+                             * @default 2026-10-17T03:22:22.496Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -12074,7 +12217,7 @@ export interface operations {
                             /**
                              * Format: date-time
                              * @description Timestamp when the blog was posted to the platform.
-                             * @default 2026-10-16T04:30:29.172Z
+                             * @default 2026-10-17T03:22:22.498Z
                              * @example 2024-01-15T10:30:00.000Z
                              */
                             postedOn: string | null;
@@ -19123,6 +19266,57 @@ export interface operations {
         };
         responses: {
             /** @description Image generation job submitted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetResponse"];
+                };
+            };
+            /** @description Validation error - request failed schema validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Insufficient credits - not enough credits to perform this action */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsufficientCreditsError"];
+                };
+            };
+        };
+    };
+    postMediaImageEdit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaEditImageBody"];
+            };
+        };
+        responses: {
+            /** @description Image edit job submitted */
             201: {
                 headers: {
                     [name: string]: unknown;
