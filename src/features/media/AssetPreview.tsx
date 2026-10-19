@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import type { MediaAsset } from "@api/Media/Media.api"
 import { EnhanceVideoAction } from "./EnhanceVideoAction"
 import { PipelineAssetActions } from "./PipelineAssetActions"
+import { RetryVideoAction } from "./RetryVideoAction"
 import { STATUS_STYLES } from "./MediaAssetCard"
 import { ETA_LABEL, formatRate, type MediaComposer } from "./useMediaComposer"
 import { qualityLabel, resolutionLabel } from "./imageOptions"
@@ -280,6 +281,8 @@ export function AssetPreview({
                     .map((a) => String((a.metadata as { resolution?: unknown })?.resolution))}
                   onStarted={onClose}
                 />
+
+                <RetryVideoAction asset={asset} onStarted={onClose} />
 
                 {asset.pipelineId && (
                   <PipelineAssetActions pipelineId={asset.pipelineId} onStarted={onClose} />
