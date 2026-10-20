@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
+import { createFormPath } from "@/features/create/createForms.registry"
+import { Navigate, useLocation, useNavigate, useParams, useBlocker } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
 import { Loader2, FileText, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
@@ -12,8 +13,6 @@ import { Sparkles as SparklesIcon } from "lucide-react"
 import { blogsQuery } from "@api/Blog/Blog.query"
 import { ApiRequestError } from "@api/typedClient"
 import { asApiError } from "@/types/api"
-import { debugPayload } from "@utils/debugPayload"
-import TemplateModal from "@components/generateBlog/TemplateModal"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import EditorAiReview from "@/layout/Editor/EditorAiReview"
@@ -23,7 +22,6 @@ import LoadingScreen from "@components/ui/LoadingScreen"
 import useBlogStore, { type Blog } from "@store/useBlogStore"
 import useEditorStore from "@store/useEditorStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { TONES } from "@/data/blogData"
 import { Share2, Globe, Lock } from "lucide-react"
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard"
 
@@ -82,7 +80,6 @@ const MainEditorPage = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveContent, setSaveContent] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [showTemplateModal, setShowTemplateModal] = useState(!id)
   const [, setIsHumanizeModalOpen] = useState(false)
   const [, setHumanizedContent] = useState("")
   const [, setIsHumanizing] = useState(false)
@@ -91,27 +88,6 @@ const MainEditorPage = () => {
 
   const pathDetect =
     location.pathname.includes("/blog-editor") || location.pathname.includes("/editor")
-  const [templateFormData, setTemplateFormData] = useState({
-    title: "",
-    topic: "",
-    tone: TONES[0],
-    focusKeywords: [],
-    keywords: [],
-    userDefinedLength: 1200,
-    focusKeywordInput: "",
-    keywordInput: "",
-    template: "",
-  })
-  const [errors, setErrors] = useState({
-    title: false,
-    topic: false,
-    tone: false,
-    focusKeywords: false,
-    keywords: false,
-    userDefinedLength: false,
-    template: false,
-  })
-
   useEffect(() => {
     const handleBeforeUnload = (event: any) => {
       if (unsavedChanges) {
@@ -356,63 +332,6 @@ const MainEditorPage = () => {
 
   const _tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
-  const handleTemplateModalClose = () => {
-    const isEmpty =
-      !templateFormData.title?.trim() ||
-      !templateFormData.topic?.trim() ||
-      !templateFormData.template ||
-      !templateFormData.userDefinedLength ||
-      templateFormData.userDefinedLength <= 0 ||
-      !templateFormData.focusKeywords ||
-      templateFormData.focusKeywords.length === 0 ||
-      !templateFormData.keywords ||
-      templateFormData.keywords.length === 0
-
-    if (isEmpty && !id) navigate("/blogs")
-    setShowTemplateModal(false)
-  }
-
-  const handleSubmit = async () => {
-    const blogData = {
-      title: templateFormData.title?.trim(),
-      topic: templateFormData.topic?.trim(),
-      tone: templateFormData.tone?.trim(),
-      focusKeywords: templateFormData.focusKeywords,
-      keywords: templateFormData.keywords,
-      userDefinedLength: Number(templateFormData.userDefinedLength),
-      template: templateFormData.template,
-      aiModel: "gemini",
-      isCheckedGeneratedImages: false,
-      isUnsplashActive: false,
-    }
-
-    const newErrors: Partial<typeof errors> = {}
-    if (!blogData.title) newErrors.title = true
-    if (!blogData.topic) newErrors.topic = true
-    if (!blogData.template) newErrors.template = true
-    if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
-      newErrors.userDefinedLength = true
-    if (!blogData.focusKeywords || blogData.focusKeywords.length === 0)
-      newErrors.focusKeywords = true
-    if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...newErrors }))
-      return
-    }
-
-    if (debugPayload("ManualBlog", blogData)) return
-
-    try {
-      const res = await blogsQuery.createSimple(blogData)
-      setShowTemplateModal(false)
-      navigate(`/blog-editor/${res._id}`)
-    } catch (err) {
-      console.error("Failed to create blog:", err)
-      toast.error(err instanceof Error ? err.message : "Failed to create blog")
-    }
-  }
-
   const handleTitleChange = (e: any) => {
     if (isReadOnlyWorkspace) return
     if (blog?.isArchived) {
@@ -432,9 +351,12 @@ const MainEditorPage = () => {
     if (!editorContent.trim())
       return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
     return `<div class="prose prose-lg"><h1>${
-      editorTitle || templateFormData.topic || "Your Blog Title"
+      editorTitle || "Your Blog Title"
     }</h1>${editorContent}</div>`
   }
+
+  // A blog starts on the create page; the editor only opens an existing one.
+  if (!id) return <Navigate to={createFormPath("simple")} replace />
 
   if ((!!id && (!hasMatchingBlog || isBlogFetching)) || isPosting || blog?.status === "pending") {
     return (
@@ -795,16 +717,6 @@ const MainEditorPage = () => {
           </AnimatePresence>
         </div>
       </div>
-
-      <TemplateModal
-        closeFnc={handleTemplateModalClose}
-        isOpen={showTemplateModal}
-        handleSubmit={handleSubmit}
-        errors={errors}
-        setErrors={setErrors}
-        formData={templateFormData}
-        setFormData={setTemplateFormData}
-      />
     </>
   )
 }

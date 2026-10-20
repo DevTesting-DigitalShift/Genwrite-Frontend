@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { createFormPath } from "@/features/create/createForms.registry"
 import { useNavigate, useLocation } from "react-router-dom"
 import BlogCard from "../components/Blog/BlogCard"
 import {
@@ -541,7 +542,7 @@ const BlogsPage = () => {
               type="button"
               disabled={isReadOnlyWorkspace}
               title={isReadOnlyWorkspace ? readOnlyMessage : undefined}
-              onClick={() => guardWrite(() => handleProAction(() => navigate("/blog-editor")))}
+              onClick={() => guardWrite(() => handleProAction(() => navigate(createFormPath("simple"))))}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-[#3B4BB8] text-white rounded-md transition-all text-xs sm:text-sm font-bold cursor-pointer shadow-none border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
             >
               <Plus

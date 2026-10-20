@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { createFormPath } from "@/features/create/createForms.registry"
 import { useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/ui/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
@@ -350,7 +351,7 @@ const MyProjects = () => {
             type="button"
             onClick={() => {
               handleProAction(() => {
-                navigate("/blog-editor")
+                navigate(createFormPath("simple"))
               })
             }}
             className="flex items-center gap-2 px-6 h-12 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-2xl transition-all shadow-xl shadow-blue-200/50 hover:shadow-blue-300 font-black text-sm cursor-pointer active:scale-95"

@@ -7,7 +7,7 @@ import type { ComponentType, LazyExoticComponent } from "react"
  * resolve everything from this table.
  */
 
-export type CreateFormKind = "quick" | "youtube" | "advanced" | "bulk" | "job"
+export type CreateFormKind = "quick" | "simple" | "youtube" | "advanced" | "bulk" | "job"
 
 /** Props the page hands every form; a form ignores what it does not need. */
 export interface CreateFormProps {
@@ -24,12 +24,14 @@ interface CreateFormEntry {
 }
 
 const QuickBlogForm = lazy(() => import("./QuickBlogForm"))
+const SimpleBlogForm = lazy(() => import("./SimpleBlogForm"))
 const BulkBlogForm = lazy(() => import("./BulkBlogForm"))
 const AdvancedBlogForm = lazy(() => import("./AdvancedBlogForm"))
 const JobForm = lazy(() => import("./JobForm"))
 
 export const CREATE_FORMS: Partial<Record<CreateFormKind, CreateFormEntry>> = {
   quick: { component: QuickBlogForm, props: { type: "quick" } },
+  simple: { component: SimpleBlogForm },
   youtube: { component: QuickBlogForm, props: { type: "yt" } },
   advanced: { component: AdvancedBlogForm },
   bulk: { component: BulkBlogForm },

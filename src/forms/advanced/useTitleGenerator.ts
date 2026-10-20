@@ -1,17 +1,25 @@
 import { useCallback, useReducer } from "react"
-import type { UseFormReturn } from "react-hook-form"
+import type { FieldValues, UseFormReturn } from "react-hook-form"
 import { toast } from "sonner"
 import { blogsQuery } from "@api/Blog/Blog.query"
 import { initialTitleGeneratorState, titleGeneratorReducer } from "./titleGenerator.reducer"
-import type { AdvancedBlogFormValues } from "./advanced.schema"
+
+/** The fields a title is suggested from; any form that has them can use the generator. */
+interface TitleSourceValues extends FieldValues {
+  template: string | null
+  topic: string
+  focusKeywords: string[]
+  keywords: string[]
+}
 
 /**
  * Suggests blog titles from the topic and keywords already on the form. Needs all three, and
  * says which are missing (as inline field errors) rather than failing in the request.
  */
-export function useTitleGenerator(form: UseFormReturn<AdvancedBlogFormValues>) {
+export function useTitleGenerator<T extends TitleSourceValues>(form: UseFormReturn<T>) {
   const [state, dispatch] = useReducer(titleGeneratorReducer, initialTitleGeneratorState)
-  const { getValues, setError } = form
+  // Field names are fixed by `TitleSourceValues`, which the generic path type can't see.
+  const { getValues, setError } = form as unknown as UseFormReturn<TitleSourceValues>
 
   const generate = useCallback(async () => {
     const values = getValues()

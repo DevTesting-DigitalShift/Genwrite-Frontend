@@ -69,6 +69,7 @@ const LAZY_LOAD = { timeout: 25_000 }
 
 describe.each([
   ["quick", "Generate Quick Blog", "Generate blog", false],
+  ["simple", "Create Simple Blog", "Create blog", false],
   ["youtube", "Generate YouTube Blog", "Generate blog", false],
   ["advanced", "Generate Advanced Blog", "Generate blog", true],
   ["bulk", "Generate Bulk Blogs", "Generate blogs", true],
