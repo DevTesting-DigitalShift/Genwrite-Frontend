@@ -12,6 +12,8 @@ import type { MediaPipeline } from "@api/Media/MediaPipeline.api"
 const notifiedIds = new Set<string>()
 /** Same guard for Auto Video runs, keyed by pipeline id. */
 const notifiedPipelineIds = new Set<string>()
+/** How often in-flight generations are checked with the provider. */
+const POLL_INTERVAL_MS = 15_000
 
 /**
  * App-wide listener for Media Studio's "media:created"/"media:statusChanged" socket events
@@ -32,6 +34,10 @@ export function useMediaNotifications() {
 
     const handleStatusChanged = (asset: MediaAsset) => {
       mediaQuery.applyAssetUpdate(asset)
+      announce(asset)
+    }
+
+    const announce = (asset: MediaAsset) => {
       if (asset.status !== "completed" && asset.status !== "failed") return
       // Auto Video children (frames, retried videos, and the delivered video itself) are
       // announced once for the whole run by handlePipelineUpdated instead.
@@ -86,7 +92,29 @@ export function useMediaNotifications() {
     }
     setupListeners()
 
+    // The webhook can't reach local/dev servers and can be missed in production, and the socket
+    // drops while a tab sleeps — so while anything is generating, ask the backend to check with
+    // the provider. Results land in the cache and are toasted (announce dedupes against the
+    // socket event), with no manual Refresh needed.
+    let polling = false
+    const pollActive = async () => {
+      if (polling || document.hidden) return
+      const ids = mediaQuery.activeAssetIds()
+      if (ids.length === 0) return
+      polling = true
+      try {
+        const assets = await Promise.all(ids.map((id) => mediaQuery.checkAsset(id)))
+        for (const asset of assets) if (asset) announce(asset)
+      } finally {
+        polling = false
+      }
+    }
+    const pollTimer = setInterval(pollActive, POLL_INTERVAL_MS)
+    document.addEventListener("visibilitychange", pollActive)
+
     return () => {
+      clearInterval(pollTimer)
+      document.removeEventListener("visibilitychange", pollActive)
       if (retryTimeout) clearTimeout(retryTimeout)
       socket?.off("media:created", handleCreated)
       socket?.off("media:statusChanged", handleStatusChanged)

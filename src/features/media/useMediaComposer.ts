@@ -158,7 +158,7 @@ export function useMediaComposer() {
     loadAuthenticatedUser()
     toast.success(
       `${asset.type === "image" ? "Image" : "Video"} generation started — ready in ${ETA_LABEL[asset.type]}`,
-      { description: "We'll notify you when it's done, or hit Refresh to check." }
+      { description: "We'll notify you when it's done — you can keep working meanwhile." }
     )
   }
   const generateImage = mediaQuery.useGenerateImage({

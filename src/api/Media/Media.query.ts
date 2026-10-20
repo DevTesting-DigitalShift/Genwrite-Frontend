@@ -101,6 +101,30 @@ class MediaQuery extends QueryBase<MediaAsset> {
       },
     })
 
+  /** Ids of every still-generating asset in the cached library pages. */
+  activeAssetIds = (): string[] => {
+    const ids = new Set<string>()
+    for (const [, list] of this.queryClient.getQueriesData<MediaAssetList>({
+      queryKey: [...this.baseKey, "list"],
+    })) {
+      for (const a of list?.data ?? []) {
+        if (a.status === "queued" || a.status === "processing") ids.add(a._id)
+      }
+    }
+    return [...ids]
+  }
+
+  /** Asks the backend to check the provider for one asset (the fallback for a missed webhook). */
+  checkAsset = async (id: string): Promise<MediaAsset | null> => {
+    try {
+      const asset = await this.api.refresh(id)
+      this.applyAssetUpdate(asset)
+      return asset
+    } catch {
+      return null // transient provider/network error — the next poll tries again
+    }
+  }
+
   /** Adds a freshly-submitted (queued) asset to the cache. Routed through applyAssetUpdate
    * rather than a blind prepend: the backend emits "media:created" over the socket before
    * the HTTP response resolves, so by the time the mutation's onSuccess runs the asset is

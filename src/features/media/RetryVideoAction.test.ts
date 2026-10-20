@@ -16,6 +16,7 @@ const failedVideo = (over: Partial<MediaAsset> = {}) =>
 describe("retryVideoPayload", () => {
   it("rebuilds the original text-to-video request", () => {
     expect(retryVideoPayload(failedVideo())).toEqual({
+      retryOf: "a1",
       prompt: "a drone shot",
       model: "creatify/boreal",
       durationSeconds: 8,
@@ -29,5 +30,10 @@ describe("retryVideoPayload", () => {
     expect(retryVideoPayload(failedVideo({ type: "image" }))).toBeNull()
     expect(retryVideoPayload(failedVideo({ pipelineId: "p1" }))).toBeNull()
     expect(retryVideoPayload(failedVideo({ metadata: { enhancedFrom: "x" } }))).toBeNull()
+  })
+
+  it("allows only one retry: not after it was retried, nor for a retry itself", () => {
+    expect(retryVideoPayload(failedVideo({ metadata: { retriedBy: "b2" } }))).toBeNull()
+    expect(retryVideoPayload(failedVideo({ metadata: { retryOf: "a0" } }))).toBeNull()
   })
 })
